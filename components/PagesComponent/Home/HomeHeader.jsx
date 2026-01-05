@@ -229,7 +229,7 @@ const HomeHeader = () => {
             {/* desktop category search select */}
 
             {isLargeScreen && (
-              <div className="flex items-center border leading-none rounded">
+              <div className="flex items-center border leading-none rounded grow-[0.7]">
                 <Search />
               </div>
             )}

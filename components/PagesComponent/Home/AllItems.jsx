@@ -30,6 +30,7 @@ const AllItems = ({ cityData, KmRange }) => {
       const params = {
         page,
         current_page: "home",
+        is_feature: 1,
       };
       if (Number(KmRange) > 0 && (cityData?.areaId || cityData?.city)) {
         // Add location-based parameters for non-demo mode
@@ -69,6 +70,8 @@ const AllItems = ({ cityData, KmRange }) => {
 
       if (response?.data?.data?.data?.length > 0) {
         const data = response?.data?.data?.data;
+        console.log('First item full structure:', data[0]); // Add this line
+
         if (page === 1) {
           setAllItem(data);
         } else {
@@ -131,6 +134,7 @@ const AllItems = ({ cityData, KmRange }) => {
           <AllItemsSkeleton />
         ) : AllItem && AllItem.length > 0 ? (
           AllItem?.map((item) => (
+            // AllItem?.filter(item => item.is_feature)?.map((item) => (
             <ProductCard
               key={item?.id}
               item={item}

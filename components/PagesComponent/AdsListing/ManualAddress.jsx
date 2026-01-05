@@ -20,7 +20,7 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { useInView } from "react-intersection-observer";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getAreasApi,
@@ -74,29 +74,46 @@ const ManualAddress = ({
   });
   const [Address, setAddress] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
-  const isCountrySelected =
-    Object.keys(CountryStore?.SelectedCountry).length > 0;
-  // Check if areas exist for the selected city
+  const [touched, setTouched] = useState({});
+  
+  const isCountrySelected = Object.keys(CountryStore?.SelectedCountry).length > 0;
   const hasAreas = AreaStore?.Areas.length > 0;
+  
   // Infinite scroll refs
   const { ref: stateRef, inView: stateInView } = useInView();
   const { ref: countryRef, inView: countryInView } = useInView();
   const { ref: cityRef, inView: cityInView } = useInView();
   const { ref: areaRef, inView: areaInView } = useInView();
 
+  // ✅ Real-time validation check
+  const isFieldValid = (field) => {
+    switch (field) {
+      case 'country':
+        return !!CountryStore?.SelectedCountry?.name;
+      case 'state':
+        return !!StateStore?.SelectedState?.name;
+      case 'city':
+        return !!CityStore?.SelectedCity?.name;
+      case 'address':
+        return hasAreas ? !!AreaStore?.SelectedArea?.name : !!Address.trim();
+      default:
+        return false;
+    }
+  };
+
   const getCountriesData = async (search, page) => {
     try {
       setCountryStore((prev) => ({
         ...prev,
         isLoading: true,
-        Countries: search ? [] : prev.Countries, // Clear list if searching
+        Countries: search ? [] : prev.Countries,
       }));
-      // Fetch countries
+      
       const params = {};
       if (search) {
-        params.search = search; // Send only 'search' if provided
+        params.search = search;
       } else {
-        params.page = page; // Send only 'page' if no search
+        params.page = page;
       }
 
       const res = await getCoutriesApi.getCoutries(params);
@@ -121,6 +138,7 @@ const ManualAddress = ({
       setCountryStore((prev) => ({ ...prev, isLoading: false }));
     }
   };
+
   const getStatesData = async (search, page) => {
     try {
       setStateStore((prev) => ({
@@ -132,9 +150,9 @@ const ManualAddress = ({
         country_id: CountryStore?.SelectedCountry?.id,
       };
       if (search) {
-        params.search = search; // Send only 'search' if provided
+        params.search = search;
       } else {
-        params.page = page; // Send only 'page' if no search
+        params.page = page;
       }
 
       const res = await getStatesApi.getStates(params);
@@ -162,6 +180,7 @@ const ManualAddress = ({
       return [];
     }
   };
+
   const getCitiesData = async (search, page) => {
     try {
       setCityStore((prev) => ({
@@ -173,9 +192,9 @@ const ManualAddress = ({
         state_id: StateStore?.SelectedState?.id,
       };
       if (search) {
-        params.search = search; // Send only 'search' if provided
+        params.search = search;
       } else {
-        params.page = page; // Send only 'page' if no search
+        params.page = page;
       }
 
       const res = await getCitiesApi.getCities(params);
@@ -201,6 +220,7 @@ const ManualAddress = ({
       return [];
     }
   };
+
   const getAreaData = async (search, page) => {
     try {
       setAreaStore((prev) => ({
@@ -239,6 +259,7 @@ const ManualAddress = ({
       return [];
     }
   };
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (showManualAddress) {
@@ -249,6 +270,7 @@ const ManualAddress = ({
       clearTimeout(timeout);
     };
   }, [CountryStore?.CountrySearch, showManualAddress]);
+
   useEffect(() => {
     if (CountryStore?.SelectedCountry?.id) {
       const timeout = setTimeout(() => {
@@ -259,6 +281,7 @@ const ManualAddress = ({
       };
     }
   }, [CountryStore?.SelectedCountry?.id, StateStore?.StateSearch]);
+
   useEffect(() => {
     if (StateStore?.SelectedState?.id) {
       const timeout = setTimeout(() => {
@@ -269,6 +292,7 @@ const ManualAddress = ({
       };
     }
   }, [StateStore?.SelectedState?.id, CityStore?.CitySearch]);
+
   useEffect(() => {
     if (CityStore?.SelectedCity?.id) {
       const timeout = setTimeout(() => {
@@ -280,7 +304,6 @@ const ManualAddress = ({
     }
   }, [CityStore?.SelectedCity?.id, AreaStore?.AreaSearch]);
 
-  // Trigger infinite scroll when refs come into view
   useEffect(() => {
     if (CountryStore?.hasMore && !CountryStore?.isLoading && countryInView) {
       getCountriesData("", CountryStore?.currentPage + 1);
@@ -344,6 +367,9 @@ const ManualAddress = ({
       SelectedCountry: Country,
       countryOpen: false,
     }));
+    setTouched(prev => ({ ...prev, country: true }));
+    setFieldErrors(prev => ({ ...prev, country: false }));
+    
     setStateStore({
       States: [],
       SelectedState: {},
@@ -370,6 +396,7 @@ const ManualAddress = ({
     });
     setAddress("");
   };
+
   const handleStateChange = (value) => {
     const State = StateStore?.States.find((state) => state.name === value);
     setStateStore((prev) => ({
@@ -377,6 +404,9 @@ const ManualAddress = ({
       SelectedState: State,
       stateOpen: false,
     }));
+    setTouched(prev => ({ ...prev, state: true }));
+    setFieldErrors(prev => ({ ...prev, state: false }));
+    
     setCityStore({
       Cities: [],
       SelectedCity: {},
@@ -395,6 +425,7 @@ const ManualAddress = ({
     });
     setAddress("");
   };
+
   const handleCityChange = (value) => {
     const City = CityStore?.Cities.find((city) => city.name === value);
     setCityStore((prev) => ({
@@ -402,6 +433,9 @@ const ManualAddress = ({
       SelectedCity: City,
       cityOpen: false,
     }));
+    setTouched(prev => ({ ...prev, city: true }));
+    setFieldErrors(prev => ({ ...prev, city: false }));
+    
     setAreaStore({
       Areas: [],
       SelectedArea: {},
@@ -412,6 +446,7 @@ const ManualAddress = ({
     });
     setAddress("");
   };
+
   const handleAreaChange = (value) => {
     const chosenArea = AreaStore?.Areas.find((item) => item.name === value);
     setAreaStore((prev) => ({
@@ -419,14 +454,24 @@ const ManualAddress = ({
       SelectedArea: chosenArea,
       areaOpen: false,
     }));
+    setTouched(prev => ({ ...prev, address: true }));
+    setFieldErrors(prev => ({ ...prev, address: false }));
+  };
+
+  const handleAddressChange = (e) => {
+    setAddress(e.target.value);
+    setTouched(prev => ({ ...prev, address: true }));
+    if (e.target.value.trim()) {
+      setFieldErrors(prev => ({ ...prev, address: false }));
+    }
   };
 
   const handleSave = () => {
     const errors = validateFields();
     setFieldErrors(errors);
+    setTouched({ country: true, state: true, city: true, address: true });
+    
     if (Object.keys(errors).length > 0) return;
-
-    // Build address parts array and filter out empty values
 
     const addressParts = [];
     const addressPartsTranslated = [];
@@ -478,38 +523,88 @@ const ManualAddress = ({
     setShowManualAddress(false);
   };
 
+  // 🎨 Render field with validation indicator
+  const renderFieldLabel = (label, fieldName) => {
+    const isValid = isFieldValid(fieldName);
+    const hasError = touched[fieldName] && fieldErrors[fieldName];
+    
+    return (
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium flex items-center gap-2">
+          {label}
+          {touched[fieldName] && (
+            isValid ? (
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+            ) : hasError ? (
+              <AlertCircle className="w-4 h-4 text-red-500" />
+            ) : null
+          )}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={showManualAddress} onOpenChange={setShowManualAddress}>
-      <DialogContent className="">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("manuAddAddress")}</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            {t("manuAddAddress")}
+          </DialogTitle>
+          
+          {/* 📊 Progress Indicator */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">
+                {t("completeness")}
+              </span>
+              <span className="text-sm font-semibold text-primary">
+                {[isFieldValid('country'), isFieldValid('state'), isFieldValid('city'), isFieldValid('address')].filter(Boolean).length}/4
+              </span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-300"
+                style={{ 
+                  width: `${([isFieldValid('country'), isFieldValid('state'), isFieldValid('city'), isFieldValid('address')].filter(Boolean).length / 4) * 100}%` 
+                }}
+              />
+            </div>
+          </div>
         </DialogHeader>
+
         <div className="flex flex-col gap-4 py-4">
+          {/* Country Field */}
           <div className="flex flex-col gap-1">
+            {renderFieldLabel(t("country"), 'country')}
             <Popover
               modal
               open={CountryStore?.countryOpen}
-              onOpenChange={(isOpen) =>
-                setCountryStore((prev) => ({ ...prev, countryOpen: isOpen }))
-              }
+              onOpenChange={(isOpen) => {
+                setCountryStore((prev) => ({ ...prev, countryOpen: isOpen }));
+                if (!isOpen) setTouched(prev => ({ ...prev, country: true }));
+              }}
             >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={CountryStore?.countryOpen}
-                  className={`w-full justify-between outline-none ${
-                    fieldErrors.country ? "border-red-500" : ""
-                  }`}
+                  className={cn(
+                    "w-full justify-between outline-none transition-all",
+                    fieldErrors.country && touched.country && "border-red-500 bg-red-50",
+                    isFieldValid('country') && touched.country && "border-green-500 bg-green-50"
+                  )}
                 >
                   {CountryStore?.SelectedCountry?.translated_name ||
                     CountryStore?.SelectedCountry?.name ||
-                    t("country")}
+                    t("selectCountry")}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              {fieldErrors.country && (
-                <span className="text-red-500 text-sm">
+              {fieldErrors.country && touched.country && (
+                <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
                   {t("countryRequired")}
                 </span>
               )}
@@ -529,7 +624,7 @@ const ManualAddress = ({
                     {CountryStore.isLoading ? (
                       <LoacationLoader />
                     ) : (
-                      <div className="text-center">
+                      <div className="text-center py-4">
                         <p className="text-sm text-muted-foreground">
                           {t("noCountriesFound")}
                         </p>
@@ -568,32 +663,38 @@ const ManualAddress = ({
             </Popover>
           </div>
 
+          {/* State Field */}
           <div className="flex flex-col gap-1">
+            {renderFieldLabel(t("state"), 'state')}
             <Popover
               modal
               open={StateStore?.stateOpen}
-              onOpenChange={(isOpen) =>
-                setStateStore((prev) => ({ ...prev, stateOpen: isOpen }))
-              }
+              onOpenChange={(isOpen) => {
+                setStateStore((prev) => ({ ...prev, stateOpen: isOpen }));
+                if (!isOpen) setTouched(prev => ({ ...prev, state: true }));
+              }}
             >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={StateStore?.stateOpen}
-                  className={`w-full justify-between outline-none ${
-                    fieldErrors.state ? "border-red-500" : ""
-                  }`}
+                  className={cn(
+                    "w-full justify-between outline-none transition-all",
+                    fieldErrors.state && touched.state && "border-red-500 bg-red-50",
+                    isFieldValid('state') && touched.state && "border-green-500 bg-green-50"
+                  )}
                   disabled={!isCountrySelected}
                 >
                   {StateStore?.SelectedState?.translated_name ||
                     StateStore?.SelectedState?.name ||
-                    t("state")}
+                    t("selectState")}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              {fieldErrors.state && (
-                <span className="text-red-500 text-sm">
+              {fieldErrors.state && touched.state && (
+                <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
                   {t("stateRequired")}
                 </span>
               )}
@@ -610,7 +711,7 @@ const ManualAddress = ({
                     {StateStore.isLoading ? (
                       <LoacationLoader />
                     ) : (
-                      <div className="text-center">
+                      <div className="text-center py-4">
                         <p className="text-sm text-muted-foreground">
                           {t("noStatesFound")}
                         </p>
@@ -648,32 +749,38 @@ const ManualAddress = ({
             </Popover>
           </div>
 
-          <div className="flex flex-col gap-1">
+          {/* City Field */}
+          <div className="flex-col gap-1">
+            {renderFieldLabel(t("city"), 'city')}
             <Popover
               modal
               open={CityStore?.cityOpen}
-              onOpenChange={(isOpen) =>
-                setCityStore((prev) => ({ ...prev, cityOpen: isOpen }))
-              }
+              onOpenChange={(isOpen) => {
+                setCityStore((prev) => ({ ...prev, cityOpen: isOpen }));
+                if (!isOpen) setTouched(prev => ({ ...prev, city: true }));
+              }}
             >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={CityStore?.cityOpen}
-                  className={`w-full justify-between outline-none ${
-                    fieldErrors.city ? "border-red-500" : ""
-                  }`}
+                  className={cn(
+                    "w-full justify-between outline-none transition-all",
+                    fieldErrors.city && touched.city && "border-red-500 bg-red-50",
+                    isFieldValid('city') && touched.city && "border-green-500 bg-green-50"
+                  )}
                   disabled={!StateStore?.SelectedState?.id}
                 >
                   {CityStore?.SelectedCity?.translated_name ||
                     CityStore?.SelectedCity?.name ||
-                    t("city")}
+                    t("selectCity")}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              {fieldErrors.city && (
-                <span className="text-red-500 text-sm">
+              {fieldErrors.city && touched.city && (
+                <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
                   {t("cityRequired")}
                 </span>
               )}
@@ -690,7 +797,7 @@ const ManualAddress = ({
                     {CityStore.isLoading ? (
                       <LoacationLoader />
                     ) : (
-                      <div className="text-center">
+                      <div className="text-center py-4">
                         <p className="text-sm text-muted-foreground">
                           {t("noCitiesFound")}
                         </p>
@@ -728,33 +835,39 @@ const ManualAddress = ({
             </Popover>
           </div>
 
+          {/* Area or Address Field */}
           {hasAreas || AreaStore?.AreaSearch ? (
             <div className="flex flex-col gap-1">
+              {renderFieldLabel(t("area"), 'address')}
               <Popover
                 modal
                 open={AreaStore?.areaOpen}
-                onOpenChange={(isOpen) =>
-                  setAreaStore((prev) => ({ ...prev, areaOpen: isOpen }))
-                }
+                onOpenChange={(isOpen) => {
+                  setAreaStore((prev) => ({ ...prev, areaOpen: isOpen }));
+                  if (!isOpen) setTouched(prev => ({ ...prev, address: true }));
+                }}
               >
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
                     aria-expanded={AreaStore?.areaOpen}
-                    className={`w-full justify-between outline-none ${
-                      fieldErrors.address ? "border-red-500" : ""
-                    }`}
+                    className={cn(
+                      "w-full justify-between outline-none transition-all",
+                      fieldErrors.address && touched.address && "border-red-500 bg-red-50",
+                      isFieldValid('address') && touched.address && "border-green-500 bg-green-50"
+                    )}
                     disabled={!CityStore?.SelectedCity?.id}
                   >
                     {AreaStore?.SelectedArea?.translated_name ||
                       AreaStore?.SelectedArea?.name ||
-                      t("area")}
+                      t("selectArea")}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                {fieldErrors.address && (
-                  <span className="text-red-500 text-sm">
+                {fieldErrors.address && touched.address && (
+                  <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
                     {t("areaRequired")}
                   </span>
                 )}
@@ -771,7 +884,7 @@ const ManualAddress = ({
                       {AreaStore.isLoading ? (
                         <LoacationLoader />
                       ) : (
-                        <div className="text-center">
+                        <div className="text-center py-4">
                           <p className="text-sm text-muted-foreground">
                             {t("noAreasFound")}
                           </p>
@@ -810,30 +923,44 @@ const ManualAddress = ({
             </div>
           ) : (
             <div className="flex flex-col gap-1">
+              {renderFieldLabel(t("address"), 'address')}
               <Textarea
                 rows={5}
-                className={`border p-2 outline-none rounded-md w-full ${
-                  fieldErrors.address ? "border-red-500" : ""
-                }`}
-                placeholder={t("enterAddre")}
+                className={cn(
+                  "border p-2 outline-none rounded-md w-full transition-all",
+                  fieldErrors.address && touched.address && "border-red-500 bg-red-50",
+                  isFieldValid('address') && touched.address && "border-green-500 bg-green-50"
+                )}
+                placeholder={t("enterAddress")}
                 value={Address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={handleAddressChange}
+                onBlur={() => setTouched(prev => ({ ...prev, address: true }))}
                 disabled={!CityStore?.SelectedCity?.id}
               />
-              {fieldErrors.address && (
-                <span className="text-red-500 text-sm">
+              {fieldErrors.address && touched.address && (
+                <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
                   {t("addressRequired")}
                 </span>
               )}
             </div>
           )}
         </div>
+
         <DialogFooter className="flex justify-end gap-2">
-          <button onClick={() => setShowManualAddress(false)}>
+          <button 
+            className="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+            onClick={() => setShowManualAddress(false)}
+          >
             {t("cancel")}
           </button>
           <button
-            className="bg-primary p-2 px-4 rounded-md text-white font-medium"
+            className={cn(
+              "px-4 py-2 rounded-md text-white font-medium transition-all",
+              [isFieldValid('country'), isFieldValid('state'), isFieldValid('city'), isFieldValid('address')].filter(Boolean).length === 4
+                ? "bg-primary hover:bg-primary/90"
+                : "bg-gray-400 cursor-not-allowed"
+            )}
             onClick={handleSave}
           >
             {t("save")}

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ComponentOne from "./ComponentOne";
 import {
   addItemApi,
@@ -33,6 +33,7 @@ import {
 } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
+import { CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin } from "lucide-react";
 
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -58,6 +59,7 @@ const AdsListing = () => {
   const [isAdPlaced, setIsAdPlaced] = useState(false);
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
   const [createdAdSlug, setCreatedAdSlug] = useState("");
+  const [recentCategories, setRecentCategories] = useState([]);
   const userData = useSelector(userSignUpData);
 
   const languages = useSelector(getLanguages);
@@ -101,6 +103,69 @@ const AdsListing = () => {
     .join(",");
   let lastItemId = categoryPath[categoryPath.length - 1]?.id;
 
+  // 🎯 Calculate completeness score
+  const completenessScore = useMemo(() => {
+    let score = 0;
+    let totalSteps = 5;
+
+    // Step 1: Category (20%)
+    if (categoryPath.length > 0) score += 20;
+
+    // Step 2: Details (20%)
+    if (defaultDetails.name && defaultDetails.description && defaultDetails.contact) {
+      score += 20;
+    }
+
+    // Step 3: Custom fields (20%)
+    if (customFields.length === 0) {
+      score += 20;
+    } else {
+      const filledFields = Object.keys(currentExtraDetails).filter(
+        key => currentExtraDetails[key] && currentExtraDetails[key] !== ""
+      ).length;
+      score += (filledFields / customFields.length) * 20;
+    }
+
+    // Step 4: Images (20%)
+    if (uploadedImages.length > 0) {
+      score += 10;
+      if (otherImages.length >= 3) score += 10;
+      else score += (otherImages.length / 3) * 10;
+    }
+
+    // Step 5: Location (20%)
+    if (location?.country && location?.state && location?.city && location?.address) {
+      score += 20;
+    }
+
+    return Math.round(score);
+  }, [categoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, otherImages, location]);
+
+  // 🏆 Calculate quality badges
+  const qualityBadges = useMemo(() => {
+    const badges = [];
+
+    return badges;
+  }, [uploadedImages, otherImages, defaultDetails, completenessScore]);
+
+  // Load recent categories from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("recentCategories");
+    if (stored) {
+      setRecentCategories(JSON.parse(stored));
+    }
+  }, []);
+
+  // Save recent category
+  const saveRecentCategory = (category) => {
+    setRecentCategories(prev => {
+      const filtered = prev.filter(c => c.id !== category.id);
+      const updated = [category, ...filtered].slice(0, 5);
+      localStorage.setItem("recentCategories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   useEffect(() => {
     if (step === 1) {
       handleFetchCategories();
@@ -114,7 +179,6 @@ const AdsListing = () => {
   }, [allCategoryIdsString, CurrentLanguage.id]);
 
   useEffect(() => {
-    // Update category path translations when language changes
     if (categoryPath.length > 0) {
       const lastCategoryId = categoryPath[categoryPath.length - 1]?.id;
       if (lastCategoryId) {
@@ -198,6 +262,8 @@ const AdsListing = () => {
 
   const handleCategoryTabClick = async (category) => {
     setCategoryPath((prevPath) => [...prevPath, category]);
+    saveRecentCategory(category);
+    
     if (!(category?.subcategories_count > 0)) {
       setStep(2);
       setDisabledTab({
@@ -251,6 +317,7 @@ const AdsListing = () => {
       setStep(3);
     }
   };
+  
   const SLUG_RE = /^[a-z0-9-]+$/i;
   const isEmpty = (x) => !x || !x.toString().trim();
   const isNegative = (n) => Number(n) < 0;
@@ -268,26 +335,23 @@ const AdsListing = () => {
       country_code,
     } = defaultDetails;
 
-    // Step 1: Must pick a category
     const catId = categoryPath.at(-1)?.id;
 
     if (!catId) {
       toast.error(t("selectCategory"));
       return setStep(1);
     }
-    // Step 2: Get data for default (selected) language
+
     if (isEmpty(name) || isEmpty(description) || isEmpty(contact)) {
-      toast.error(t("completeDetails")); // Title, desc, phone required
+      toast.error(t("completeDetails"));
       return setStep(2);
     }
 
-    // ✅ Validate phone number ONLY if user entered one as it is optional
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
       toast.error(t("invalidPhoneNumber"));
       return setStep(2);
     }
 
-    // Step 3: Validate job or price fields
     if (is_job_category) {
       const min = min_salary ? Number(min_salary) : null;
       const max = max_salary ? Number(max_salary) : null;
@@ -312,7 +376,7 @@ const AdsListing = () => {
       }
     } else {
       if (!isPriceOptional && isEmpty(price)) {
-        toast.error(t("completeDetails")); // Price is required
+        toast.error(t("completeDetails"));
         return setStep(2);
       }
       if (!isEmpty(price) && isNegative(price)) {
@@ -321,13 +385,11 @@ const AdsListing = () => {
       }
     }
 
-    // Step 4: Video URL check
     if (!isEmpty(video_link) && !isValidURL(video_link)) {
       toast.error(t("enterValidUrl"));
       return setStep(2);
     }
 
-    // Step 5: Slug validation
     if (!isEmpty(slug) && !SLUG_RE.test(slug.trim())) {
       toast.error(t("addValidSlug"));
       return setStep(2);
@@ -345,11 +407,13 @@ const AdsListing = () => {
     ) {
       return setStep(3);
     }
+    
     if (uploadedImages.length === 0) {
       toast.error(t("uploadMainPicture"));
       setStep(4);
       return;
     }
+    
     if (
       !location?.country ||
       !location?.state ||
@@ -359,6 +423,7 @@ const AdsListing = () => {
       toast.error(t("pleaseSelectCity"));
       return;
     }
+    
     postAd();
   };
 
@@ -385,7 +450,6 @@ const AdsListing = () => {
       price: defaultDetails.price,
       contact: defaultDetails.contact,
       video_link: defaultDetails?.video_link,
-      // custom_fields: transformedCustomFields,
       image: uploadedImages[0],
       gallery_images: otherImages,
       address: location?.address,
@@ -404,8 +468,8 @@ const AdsListing = () => {
       }),
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
     };
+    
     if (is_job_category) {
-      // Only add salary fields if they're provided
       if (defaultDetails.min_salary) {
         allData.min_salary = defaultDetails.min_salary;
       }
@@ -451,8 +515,8 @@ const AdsListing = () => {
       });
       const { data } = response.data;
       setCategories((prev) => [...prev, ...data.data]);
-      setCurrentPage(data?.current_page); // Update the current page
-      setLastPage(data?.last_page); // Update the current page
+      setCurrentPage(data?.current_page);
+      setLastPage(data?.last_page);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -503,168 +567,358 @@ const AdsListing = () => {
     }
   };
 
+  // 🎨 Step configuration
+  const steps = [
+    { id: 1, label: t("selectedCategory"), icon: Circle, disabled: disabledTab.categoryTab },
+    { id: 2, label: t("details"), icon: Circle, disabled: disabledTab.detailTab },
+    ...(customFields?.length > 0 ? [{ id: 3, label: t("extraDetails"), icon: Circle, disabled: disabledTab.extraDetailTabl }] : []),
+    { id: 4, label: t("images"), icon: Circle, disabled: disabledTab.images },
+    { id: 5, label: t("location"), icon: Circle, disabled: disabledTab.location },
+  ];
+
+  const getStepProgress = (stepId) => {
+    const stepIndex = steps.findIndex(s => s.id === stepId);
+    const currentIndex = steps.findIndex(s => s.id === step);
+    
+    if (stepIndex < currentIndex) return 100;
+    if (stepIndex === currentIndex) {
+      switch (stepId) {
+        case 1: return categoryPath.length > 0 ? 100 : 0;
+        case 2: return (defaultDetails.name && defaultDetails.description) ? 100 : 50;
+        case 3: return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
+        case 4: return uploadedImages.length > 0 ? 100 : 0;
+        case 5: return location?.address ? 100 : 0;
+        default: return 0;
+      }
+    }
+    return 0;
+  };
+
   return (
     <Layout>
       <BreadCrumb title2={t("adListing")} />
       <div className="container">
         <div className="flex flex-col gap-8 mt-8">
-          <h1 className="text-2xl font-medium">{t("adListing")}</h1>
-          <div className="flex flex-col gap-6 border rounded-md p-4">
-            <div className="flex items-center gap-3 justify-between bg-muted px-4 py-2 rounded-md flex-wrap">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div
-                  className={`transition-all duration-300 p-2 cursor-pointer ${
-                    step === 1 ? "bg-primary text-white" : ""
-                  } rounded-md ${
-                    disabledTab?.categoryTab == true ? "opacity-60" : " "
-                  }`}
-                  onClick={() => handleTabClick(1)}
-                >
-                  {t("selectedCategory")}
-                </div>
-                <div
-                  className={`transition-all duration-300 p-2 cursor-pointer ${
-                    step === 2 ? "bg-primary text-white" : ""
-                  } rounded-md ${
-                    disabledTab?.detailTab == true ? "opacity-60" : " "
-                  }`}
-                  onClick={() => handleTabClick(2)}
-                >
-                  {t("details")}
-                </div>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-medium">{t("adListing")}</h1>
+            
+            {/* 🏆 Quality Score Badge */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-2 rounded-full">
+                <Award className="w-5 h-5 text-primary" />
+                <span className="font-semibold text-primary">{completenessScore}%</span>
+                <span className="text-sm text-muted-foreground">{t("dovršen")}</span>
+              </div>
+            </div>
+          </div>
 
-                {customFields?.length > 0 && (
-                  <div
-                    className={`transition-all duration-300 p-2 cursor-pointer ${
-                      step === 3 ? "bg-primary text-white" : ""
-                    } rounded-md ${
-                      disabledTab?.extraDetailTabl == true ? "opacity-60" : " "
-                    }`}
-                    onClick={() => handleTabClick(3)}
-                  >
-                    {t("extraDetails")}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content - 2 columns */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
+              
+              {/* 📊 Progress Stepper */}
+              <div className="border rounded-lg p-6 bg-white shadow-sm">
+                <div className="relative">
+                  {/* Progress Bar Background */}
+                  <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
+                  
+                  {/* Active Progress Bar */}
+                  <div 
+                    className="absolute top-5 left-0 h-1 bg-primary rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${(steps.findIndex(s => s.id === step) / (steps.length - 1)) * 100}%`,
+                      zIndex: 1
+                    }}
+                  />
+
+                  {/* Steps */}
+                  <div className="relative flex justify-between" style={{ zIndex: 2 }}>
+                    {steps.map((s, idx) => {
+                      const progress = getStepProgress(s.id);
+                      const isActive = s.id === step;
+                      const isCompleted = progress === 100;
+                      
+                      return (
+                        <div key={s.id} className="flex flex-col items-center gap-2">
+                          <button
+                            onClick={() => handleTabClick(s.id)}
+                            disabled={s.disabled}
+                            className={`
+                              relative w-10 h-10 rounded-full flex items-center justify-center
+                              transition-all duration-300 transform
+                              ${isActive ? 'scale-110 shadow-lg' : 'scale-100'}
+                              ${isCompleted ? 'bg-primary text-white' : 'bg-white border-2'}
+                              ${isActive && !isCompleted ? 'border-primary border-4' : 'border-gray-300'}
+                              ${s.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}
+                            `}
+                          >
+                            {isCompleted ? (
+                              <CheckCircle2 className="w-5 h-5" />
+                            ) : (
+                              <span className={`text-sm font-semibold ${isActive ? 'text-primary' : 'text-gray-400'}`}>
+                                {idx + 1}
+                              </span>
+                            )}
+                            
+                            {/* Pulse animation for active step */}
+                            {isActive && !isCompleted && (
+                              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20" />
+                            )}
+                          </button>
+                          
+                          <span className={`
+                            text-xs font-medium text-center max-w-[80px]
+                            ${isActive ? 'text-primary' : 'text-gray-500'}
+                          `}>
+                            {s.label}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-
-                <div
-                  className={`transition-all duration-300 p-2 cursor-pointer ${
-                    step === 4 ? "bg-primary text-white" : ""
-                  } rounded-md  ${
-                    disabledTab?.images == true ? "opacity-60" : " "
-                  }`}
-                  onClick={() => handleTabClick(4)}
-                >
-                  {t("images")}
-                </div>
-
-                <div
-                  className={`transition-all duration-300 p-2 cursor-pointer ${
-                    step === 5 ? "bg-primary text-white" : ""
-                  } rounded-md ${
-                    disabledTab?.location == true ? "opacity-60" : " "
-                  }`}
-                  onClick={() => handleTabClick(5)}
-                >
-                  {t("location")}
                 </div>
               </div>
 
+              {/* Language Selector */}
               {(step == 2 || (step === 3 && hasTextbox)) && (
-                <AdLanguageSelector
-                  langId={langId}
-                  setLangId={setLangId}
-                  languages={languages}
-                  setTranslations={setTranslations}
-                />
+                <div className="flex justify-end">
+                  <AdLanguageSelector
+                    langId={langId}
+                    setLangId={setLangId}
+                    languages={languages}
+                    setTranslations={setTranslations}
+                  />
+                </div>
               )}
-            </div>
 
-            {(step == 1 || step == 2) && categoryPath?.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="font-medium text-xl">{t("selectedCategory")}</p>
-                <div className="flex">
-                  {categoryPath?.map((item, index) => {
-                    const shouldShowComma =
-                      categoryPath.length > 1 &&
-                      index !== categoryPath.length - 1;
-                    return (
+              {/* Selected Category Path */}
+              {(step == 1 || step == 2) && categoryPath?.length > 0 && (
+                <div className="flex flex-col gap-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <p className="font-medium text-sm text-primary">{t("selectedCategory")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {categoryPath?.map((item, index) => (
                       <button
                         key={item.id}
-                        className="text-primary ltr:text-left rtl:text-right"
+                        className="text-sm px-3 py-1 bg-white rounded-full hover:bg-primary/10 transition-colors border border-primary/20"
                         onClick={() => handleSelectedTabClick(item?.id)}
                       >
                         {item.translated_name || item.name}
-                        {shouldShowComma && ", "}
+                        {index !== categoryPath.length - 1 && " →"}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step Content */}
+              <div className="border rounded-lg p-6 bg-white shadow-sm">
+                {step == 1 && (
+                  <ComponentOne
+                    categories={categories}
+                    setCategoryPath={setCategoryPath}
+                    fetchMoreCategory={fetchMoreCategory}
+                    lastPage={lastPage}
+                    currentPage={currentPage}
+                    isLoadMoreCat={isLoadMoreCat}
+                    handleCategoryTabClick={handleCategoryTabClick}
+                    categoriesLoading={categoriesLoading}
+                    recentCategories={recentCategories}
+                  />
+                )}
+
+                {step == 2 && (
+                  <ComponentTwo
+                    setTranslations={setTranslations}
+                    current={currentDetails}
+                    langId={langId}
+                    defaultLangId={defaultLangId}
+                    handleDetailsSubmit={handleDetailsSubmit}
+                    handleDeatilsBack={handleDeatilsBack}
+                    is_job_category={is_job_category}
+                    isPriceOptional={isPriceOptional}
+                  />
+                )}
+
+                {step == 3 && (
+                  <ComponentThree
+                    customFields={customFields}
+                    setExtraDetails={setExtraDetails}
+                    filePreviews={filePreviews}
+                    setFilePreviews={setFilePreviews}
+                    setStep={setStep}
+                    handleGoBack={handleGoBack}
+                    currentExtraDetails={currentExtraDetails}
+                    langId={langId}
+                    defaultLangId={defaultLangId}
+                  />
+                )}
+
+                {step == 4 && (
+                  <ComponentFour
+                    uploadedImages={uploadedImages}
+                    setUploadedImages={setUploadedImages}
+                    otherImages={otherImages}
+                    setOtherImages={setOtherImages}
+                    setStep={setStep}
+                    handleGoBack={handleGoBack}
+                  />
+                )}
+
+                {step == 5 && (
+                  <ComponentFive
+                    location={location}
+                    setLocation={setLocation}
+                    handleFullSubmission={handleFullSubmission}
+                    isAdPlaced={isAdPlaced}
+                    handleGoBack={handleGoBack}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 📱 Live Preview Panel - 1 column */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-4 border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-white shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <Zap className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
+                </div>
+
+                {/* Ad Preview Card */}
+                <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                  {/* Image Preview */}
+                  <div className="relative aspect-video bg-gray-100">
+                    {uploadedImages.length > 0 ? (
+                      <img 
+                        src={URL.createObjectURL(uploadedImages[0])} 
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="text-center text-gray-400">
+                          <Upload className="w-12 h-12 mx-auto mb-2" />
+                          <p className="text-sm">{t("Bez slike")}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Image count badge */}
+                    {(uploadedImages.length > 0 || otherImages.length > 0) && (
+                      <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
+                        {uploadedImages.length + otherImages.length} {t("slika")}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content Preview */}
+                  <div className="p-4 space-y-3">
+                    {/* Title */}
+                    <h4 className="font-semibold text-lg line-clamp-2">
+                      {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
+                    </h4>
+
+                    {/* Price */}
+                    {!is_job_category && (
+                      <p className="text-2xl font-bold text-primary">
+                        {defaultDetails.price ? `${defaultDetails.price} KM` : "0 KM"}
+                      </p>
+                    )}
+
+                    {is_job_category && (
+                      <div className="flex gap-2 text-sm">
+                        {defaultDetails.min_salary && (
+                          <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
+                            {t("from")} {defaultDetails.min_salary} KM
+                          </span>
+                        )}
+                        {defaultDetails.max_salary && (
+                          <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
+                            {t("to")} {defaultDetails.max_salary} KM
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    {/* <p className="text-sm text-gray-600 line-clamp-3">
+                      {defaultDetails.description || t("Vaš opis ovdje")}
+                    </p> */}
+
+                    {/* Location */}
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <MapPin className="w-4 h-4" />
+                      <span>{location?.city || t("Lokacija oglasa")}</span>
+                    </div>
+
+                    {/* Quality Badges */}
+                    {qualityBadges.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2 border-t">
+                        {qualityBadges.map((badge, idx) => (
+                          <span 
+                            key={idx}
+                            className={`text-xs px-2 py-1 rounded-full text-white ${badge.color}`}
+                          >
+                            {badge.icon} {badge.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tips & Completeness */}
+                <div className="mt-6 space-y-4">
+                  {/* Completeness Progress */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{t("Ocjena kvaliteta oglasa")}</span>
+                      <span className="text-primary font-semibold">{completenessScore}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-primary to-green-500 transition-all duration-500"
+                        style={{ width: `${completenessScore}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tips */}
+                  <div className="space-y-2">
+                    {uploadedImages.length === 0 && (
+                      <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <TrendingUp className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-yellow-800">
+                          {t("Dodajte bar jednu sliku!")} (+20% {t("visibility")})
+                        </p>
+                      </div>
+                    )}
+
+                    {uploadedImages.length > 0 && otherImages.length < 3 && (
+                      <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <Star className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-blue-800">
+                          {t("Dodajte još fotografija").replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {t("veća vidljivost!")})
+                        </p>
+                      </div>
+                    )}
+
+                    {defaultDetails.description && defaultDetails.description.length < 100 && (
+                      <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <Award className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-purple-800">
+                          {t("Detaljan opis")} (+10% {t("pouzdanost")})
+                        </p>
+                      </div>
+                    )}
+
+                  </div>
                 </div>
               </div>
-            )}
-            <div>
-              {step == 1 && (
-                <ComponentOne
-                  categories={categories}
-                  setCategoryPath={setCategoryPath}
-                  fetchMoreCategory={fetchMoreCategory}
-                  lastPage={lastPage}
-                  currentPage={currentPage}
-                  isLoadMoreCat={isLoadMoreCat}
-                  handleCategoryTabClick={handleCategoryTabClick}
-                  categoriesLoading={categoriesLoading}
-                />
-              )}
-
-              {step == 2 && (
-                <ComponentTwo
-                  setTranslations={setTranslations}
-                  current={currentDetails}
-                  langId={langId}
-                  defaultLangId={defaultLangId}
-                  handleDetailsSubmit={handleDetailsSubmit}
-                  handleDeatilsBack={handleDeatilsBack}
-                  is_job_category={is_job_category}
-                  isPriceOptional={isPriceOptional}
-                />
-              )}
-
-              {step == 3 && (
-                <ComponentThree
-                  customFields={customFields}
-                  setExtraDetails={setExtraDetails}
-                  filePreviews={filePreviews}
-                  setFilePreviews={setFilePreviews}
-                  setStep={setStep}
-                  handleGoBack={handleGoBack}
-                  currentExtraDetails={currentExtraDetails}
-                  langId={langId}
-                  defaultLangId={defaultLangId}
-                />
-              )}
-
-              {step == 4 && (
-                <ComponentFour
-                  uploadedImages={uploadedImages}
-                  setUploadedImages={setUploadedImages}
-                  otherImages={otherImages}
-                  setOtherImages={setOtherImages}
-                  setStep={setStep}
-                  handleGoBack={handleGoBack}
-                />
-              )}
-
-              {step == 5 && (
-                <ComponentFive
-                  location={location}
-                  setLocation={setLocation}
-                  handleFullSubmission={handleFullSubmission}
-                  isAdPlaced={isAdPlaced}
-                  handleGoBack={handleGoBack}
-                />
-              )}
             </div>
           </div>
         </div>
+
         <AdSuccessModal
           openSuccessModal={openSuccessModal}
           setOpenSuccessModal={setOpenSuccessModal}
