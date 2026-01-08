@@ -100,11 +100,12 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
 
         <DropdownMenuItem
           className="cursor-pointer"
-          onClick={() => navigate("/job-applications")}
+          onClick={() => window.open("https://poslovi.lmx.ba/", "_blank")}
         >
           <MdWorkOutline size={16} />
           {t("jobApplications")}
         </DropdownMenuItem>
+
 
         <DropdownMenuItem
           className="cursor-pointer"

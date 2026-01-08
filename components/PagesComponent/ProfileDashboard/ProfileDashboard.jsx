@@ -18,94 +18,131 @@ import { useMediaQuery } from "usehooks-ts";
 import BlockedUsersMenu from "../Chat/BlockedUsersMenu";
 import { cn } from "@/lib/utils";
 
+// Icons
+import { 
+  FiUser, FiBell, FiLayers, FiHeart, 
+  FiCreditCard, FiStar, FiMessageSquare, FiBriefcase 
+} from "react-icons/fi";
+import { BiBadgeCheck } from "react-icons/bi";
+
 const ProfileDashboard = () => {
   const pathname = usePathname();
-  const isNotifications = pathname === "/notifications";
-  const isSubscriptions = pathname === "/user-subscription";
-  const isProfile = pathname === "/profile";
-  const isAds = pathname === "/my-ads";
-  const isFavorite = pathname === "/favorites";
-  const isTransaction = pathname === "/transactions";
-  const isReviews = pathname === "/reviews";
-  const isChat = pathname == "/chat";
-  const isJobApplications = pathname == "/job-applications";
-
   const isLargeScreen = useMediaQuery("(min-width: 992px)");
   const isSmallerThanLaptop = useMediaQuery("(max-width: 1200px)");
 
-  const renderHeading = () => {
-    if (isProfile) {
-      return t("myProfile");
-    } else if (isNotifications) {
-      return t("notifications");
-    } else if (isSubscriptions) {
-      return t("subscription");
-    } else if (isAds) {
-      return t("myAds");
-    } else if (isFavorite) {
-      return t("myFavorites");
-    } else if (isTransaction) {
-      return t("myTransaction");
-    } else if (isReviews) {
-      return t("reviews");
-    } else if (isChat) {
-      return "chat";
-    } else if (isJobApplications) {
-      return t("jobApplications");
-    }
+  // 1. Centralizovana konfiguracija (čistiji kod i lakše dodavanje opisa/ikona)
+  const dashboardConfig = {
+    "/profile": {
+      title: t("myProfile"),
+      description: "Uredite lične podatke i postavke naloga",
+      icon: <FiUser className="w-6 h-6" />,
+      component: <Profile />,
+    },
+    "/notifications": {
+      title: t("notifications"),
+      description: "Pregled svih vaših obavijesti i aktivnosti",
+      icon: <FiBell className="w-6 h-6" />,
+      component: <Notifications />,
+    },
+    "/user-subscription": {
+      title: t("subscription"),
+      description: "Status vaše pretplate i dostupni paketi",
+      icon: <BiBadgeCheck className="w-6 h-6" />,
+      component: <ProfileSubscription />,
+    },
+    "/my-ads": {
+      title: t("myAds"),
+      description: "Upravljajte svojim aktivnim, isteklim i arhiviranim oglasima",
+      icon: <FiLayers className="w-6 h-6" />,
+      component: <MyAds />,
+    },
+    "/favorites": {
+      title: t("myFavorites"),
+      description: "Lista oglasa koje ste sačuvali za kasnije",
+      icon: <FiHeart className="w-6 h-6" />,
+      component: <Favorites />,
+    },
+    "/transactions": {
+      title: t("myTransaction"),
+      description: "Historija vaših plaćanja i transakcija",
+      icon: <FiCreditCard className="w-6 h-6" />,
+      component: <Transactions />,
+    },
+    "/reviews": {
+      title: t("reviews"),
+      description: "Dojmovi i ocjene koje ste dobili od drugih korisnika",
+      icon: <FiStar className="w-6 h-6" />,
+      component: <Reviews />,
+    },
+    "/chat": {
+      title: "Poruke", // Hardcoded jer u originalu nije bilo t()
+      description: "Direktna komunikacija sa drugim korisnicima",
+      icon: <FiMessageSquare className="w-6 h-6" />,
+      component: <Chat />,
+    },
+    "/job-applications": {
+      title: t("jobApplications"),
+      description: "Pregled prijava za posao",
+      icon: <FiBriefcase className="w-6 h-6" />,
+      component: <JobApplications />,
+    },
   };
 
-  const renderContent = () => {
-    if (isProfile) {
-      return <Profile />;
-    } else if (isNotifications) {
-      return <Notifications />;
-    } else if (isSubscriptions) {
-      return <ProfileSubscription />;
-    } else if (isAds) {
-      return <MyAds />;
-    } else if (isFavorite) {
-      return <Favorites />;
-    } else if (isTransaction) {
-      return <Transactions />;
-    } else if (isReviews) {
-      return <Reviews />;
-    } else if (isChat) {
-      return <Chat />;
-    } else if (isJobApplications) {
-      return <JobApplications />;
-    }
-  };
-  const breadCrumbTitle = renderHeading();
+  // Pronađi trenutnu konfiguraciju na osnovu pathname-a
+  const currentConfig = dashboardConfig[pathname] || dashboardConfig["/profile"];
+  const isChat = pathname === "/chat";
+
   return (
     <Layout>
-      <BreadCrumb title2={breadCrumbTitle} />
-      <div className="container mt-8">
-        {isChat && isSmallerThanLaptop ? (
-          <div className="flex items-center justify-between">
-            <h1 className="sectionTitle">{renderHeading()}</h1>
-            <BlockedUsersMenu />
-          </div>
-        ) : (
-          <h1 className="sectionTitle">{renderHeading()}</h1>
-        )}
-
-        <div
-          className={cn(
-            "grid grid-cols-1 lg:grid-cols-4 lg:border rounded-lg mt-6",
-            isChat && "border"
-          )}
-        >
-          {isLargeScreen && (
-            <div className="max-h-fit lg:col-span-1 ltr:lg:border-r rtl:lg:border-l">
-              <ProfileSidebar />
+      {/* Blaga siva pozadina za cijeli dashboard sekciju */}
+      <div className="bg-gray-50/50 min-h-screen pb-12">
+        <BreadCrumb title2={currentConfig.title} />
+        
+        <div className="container mt-8">
+          {/* HEADER SEKCIJA - Naslov i Opis */}
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg text-primary hidden sm:block">
+                  {currentConfig.icon}
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  {currentConfig.title}
+                </h1>
+              </div>
+              <p className="text-gray-500 text-sm sm:text-base ml-0 sm:ml-12">
+                {currentConfig.description}
+              </p>
             </div>
-          )}
 
-          <div
-            className={cn("lg:col-span-3 lg:border-t-0", !isChat && "lg:p-7")}
-          >
-            {renderContent()}
+            {/* Specijalni meni za Chat na manjim ekranima */}
+            {isChat && isSmallerThanLaptop && (
+              <BlockedUsersMenu />
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* SIDEBAR - Lijeva strana (Plutajuća kartica) */}
+            {isLargeScreen && (
+              <div className="lg:col-span-3">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+                  <ProfileSidebar />
+                </div>
+              </div>
+            )}
+
+            {/* MAIN CONTENT - Desna strana (Plutajuća kartica) */}
+            <div className={cn("lg:col-span-9", !isLargeScreen && "col-span-1")}>
+              <div
+                className={cn(
+                  "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300",
+                  // Ako je Chat, želimo da se širi maksimalno i možda nema padding da bi chat izgledao kao app
+                  isChat ? "h-[calc(100vh-200px)] overflow-hidden shadow-md" : "p-4 sm:p-6 lg:p-8 min-h-[500px]"
+                )}
+              >
+                {currentConfig.component}
+              </div>
+            </div>
           </div>
         </div>
       </div>

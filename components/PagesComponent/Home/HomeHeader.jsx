@@ -6,10 +6,11 @@ import { t, truncate } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import { useSelector } from "react-redux";
 import { GrLocation } from "react-icons/gr";
+import { BsChatDots } from "react-icons/bs"; // <--- NOVA IKONICA
 import { getCityData } from "@/redux/reducer/locationSlice";
 import HomeMobileMenu from "./HomeMobileMenu.jsx";
 import MailSentSuccessModal from "@/components/Auth/MailSentSuccessModal.jsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   getIsLoggedIn,
   logoutSuccess,
@@ -29,7 +30,7 @@ import {
   setIsLoginOpen,
 } from "@/redux/reducer/globalStateSlice.js";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
-import { deleteUserApi, getLimitsApi, logoutApi } from "@/utils/api.js";
+import { deleteUserApi, getLimitsApi, logoutApi, chatListApi } from "@/utils/api.js"; // <--- DODAN API
 import { useMediaQuery } from "usehooks-ts";
 import UnauthorizedModal from "@/components/Auth/UnauthorizedModal.jsx";
 import CustomImage from "@/components/Common/CustomImage.jsx";
@@ -113,6 +114,9 @@ const HomeHeader = () => {
   // Email Status
   const [IsMailSentSuccess, setIsMailSentSuccess] = useState(false);
 
+  // Chat Count State
+  const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
+
   // 📱 Media Query
   const isLargeScreen = useMediaQuery("(min-width: 992px)");
 
@@ -121,6 +125,51 @@ const HomeHeader = () => {
     IsDeleteAccount: false,
     IsDeleting: false,
   });
+
+  // --- LOGIKA ZA BROJANJE PORUKA ---
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchUnreadCount = async () => {
+      if (!IsLoggedin) {
+        setTotalUnreadMessages(0);
+        return;
+      }
+      try {
+        // Dohvati chatove i za kupca i za prodavača
+        const [buyerRes, sellerRes] = await Promise.all([
+          chatListApi.chatList({ type: "buyer", page: 1 }),
+          chatListApi.chatList({ type: "seller", page: 1 })
+        ]);
+
+        let count = 0;
+        if (buyerRes?.data?.error === false) {
+          buyerRes?.data?.data?.data?.forEach(chat => {
+             count += (chat.unread_chat_count || 0);
+          });
+        }
+        if (sellerRes?.data?.error === false) {
+           sellerRes?.data?.data?.data?.forEach(chat => {
+             count += (chat.unread_chat_count || 0);
+           });
+        }
+
+        if (isMounted) setTotalUnreadMessages(count);
+
+      } catch (error) {
+        console.error("Failed to fetch unread messages count", error);
+      }
+    };
+
+    fetchUnreadCount();
+    // Osvježi svakih 30 sekundi
+    const interval = setInterval(fetchUnreadCount, 30000); 
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [IsLoggedin, pathname]);
 
   const handleLogout = async () => {
     try {
@@ -212,6 +261,15 @@ const HomeHeader = () => {
     }
   };
 
+  // Navigacija do chata
+  const handleChatClick = () => {
+      if (!IsLoggedin) {
+          setIsLoginOpen(true);
+      } else {
+          navigate("/chat");
+      }
+  }
+
   return (
     <>
       <header className="py-5 border-b">
@@ -254,6 +312,24 @@ const HomeHeader = () => {
             </button>
 
             <div className="hidden lg:flex items-center gap-2">
+              
+              {/* --- CHAT DUGME (DODANO OVDJE) --- */}
+              {IsLoggedin && (
+                  <button 
+                    onClick={handleChatClick}
+                    className="relative p-2 text-gray-600 hover:text-primary transition-colors mx-1"
+                    title={t("chat")}
+                  >
+                      <BsChatDots size={22} />
+                      {totalUnreadMessages > 0 && (
+                          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full">
+                              {totalUnreadMessages > 99 ? '99+' : totalUnreadMessages}
+                          </span>
+                      )}
+                  </button>
+              )}
+              {/* ---------------------------------- */}
+
               {IsLoggedin ? (
                 <ProfileDropdown
                   setIsLogout={setIsLogout}
@@ -308,8 +384,24 @@ const HomeHeader = () => {
           </div>
 
           {!isLargeScreen && (
-            <div className="flex items-center border leading-none rounded mt-2">
-              <Search />
+            <div className="flex gap-2 mt-2">
+                <div className="flex-1 flex items-center border leading-none rounded">
+                   <Search />
+                </div>
+                {/* --- CHAT DUGME ZA MOBITEL (DODANO OVDJE) --- */}
+                {IsLoggedin && (
+                  <button 
+                    onClick={handleChatClick}
+                    className="relative flex items-center justify-center w-12 border rounded bg-white text-gray-600"
+                  >
+                      <BsChatDots size={20} />
+                       {totalUnreadMessages > 0 && (
+                          <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-bold rounded-full border border-white">
+                              {totalUnreadMessages > 9 ? '9+' : totalUnreadMessages}
+                          </span>
+                      )}
+                  </button>
+              )}
             </div>
           )}
         </nav>

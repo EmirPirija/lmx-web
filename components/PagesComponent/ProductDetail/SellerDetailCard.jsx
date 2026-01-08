@@ -18,6 +18,7 @@ import ApplyJobModal from "./ApplyJobModal";
 import CustomImage from "@/components/Common/CustomImage";
 import Link from "next/link";
 import { useNavigate } from "@/components/Common/useNavigate";
+import { IoClose } from "react-icons/io5";
 
 const SellerDetailCard = ({ productDetails, setProductDetails }) => {
   const { navigate } = useNavigate();
@@ -30,6 +31,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
   const loggedInUserId = loggedInUser?.id;
   const [IsOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const isAllowedToMakeOffer =
     productDetails?.price > 0 &&
@@ -73,122 +75,221 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
     setIsOfferModalOpen(true);
   };
 
+  const handlePhoneClick = () => {
+    if (!loggedInUserId) {
+      setIsLoginOpen(true);
+      return;
+    }
+    setShowPhoneModal(true);
+  };
+
   return (
     <>
-      <div className="flex items-center rounded-lg border flex-col">
-        {(userData?.is_verified === 1 || memberSinceYear) && (
-          <div className="p-4 flex justify-between items-center w-full">
-            {productDetails?.user?.is_verified == 1 && (
-              <Badge
-                variant="outline"
-                className="p-1 bg-[#FA6E53] flex items-center gap-1 rounded-md text-white text-sm"
-              >
-                <MdVerifiedUser size={20} />
-                {t("verified")}
-              </Badge>
-            )}
-            {memberSinceYear && (
-              <p className="ltr:ml-auto rtl:mr-auto text-sm text-muted-foreground">
-                {t("memberSince")}: {memberSinceYear}
-              </p>
-            )}
-          </div>
-        )}
-        <div className="border-b w-full"></div>
-        <div className="flex gap-2 justify-between w-full items-center p-4">
-          <div className="flex gap-2.5 items-center max-w-[90%]">
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .modal-overlay {
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+          animation: slideUp 0.3s ease-out;
+        }
+
+        .action-btn {
+          transition: all 0.2s ease;
+        }
+
+        .action-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      `}</style>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* Seller Info - Minimal Clean */}
+        <div className="p-5">
+          <div className="flex items-center gap-3">
+            {/* Profile Image */}
             <CustomImage
               onClick={() => navigate(`/seller/${productDetails?.user?.id}`)}
               src={productDetails?.user?.profile}
-              alt="Seller Image"
-              width={80}
-              height={80}
-              className="w-[80px] aspect-square rounded-lg cursor-pointer"
+              alt="Seller"
+              width={64}
+              height={64}
+              className="w-16 h-16 rounded-xl cursor-pointer object-cover border border-gray-200 hover:border-blue-400 transition-all"
             />
-            <div className="flex flex-col gap-1 min-w-0">
-              <CustomLink
-                href={`/seller/${productDetails?.user?.id}`}
-                className="font-bold text-lg text_ellipsis"
-              >
-                {productDetails?.user?.name}
-              </CustomLink>
-              {productDetails?.user?.reviews_count > 0 &&
-                productDetails?.user?.average_rating && (
-                  <div className="flex items-center gap-1 text-sm">
-                    <IoMdStar size={20} className="text-black" />
-                    <p className="flex">
-                      {Number(productDetails?.user?.average_rating).toFixed(2)}
-                    </p>{" "}
-                    |{" "}
-                    <p className="flex text-sm ">
-                      {productDetails?.user?.reviews_count}
-                    </p>{" "}
-                    {t("ratings")}
-                  </div>
-                )}
-              {productDetails?.user?.show_personal_details === 1 &&
-                productDetails?.user?.email && (
-                  <Link
-                    href={`mailto:${productDetails?.user?.email}`}
-                    className="text-sm text_ellipsis"
-                  >
-                    {productDetails?.user?.email}
-                  </Link>
-                )}
-            </div>
-          </div>
-          <CustomLink href={`/seller/${productDetails?.user?.id}`}>
-            <FaArrowRight size={20} className="text-black rtl:scale-x-[-1]" />
-          </CustomLink>
-        </div>
-        <div className="border-b w-full"></div>
-        <div className="flex flex-wrap items-center gap-4 p-4 w-full">
-          <button
-            onClick={handleChat}
-            disabled={IsStartingChat}
-            className="bg-[#000] text-white p-4 rounded-md flex items-center gap-2 text-base font-medium justify-center whitespace-nowrap [flex:1_1_47%]"
-          >
-            <IoChatboxEllipsesOutline size={22} />
-            {IsStartingChat ? (
-              <span>{t("startingChat")}</span>
-            ) : (
-              <span>{t("startChat")}</span>
-            )}
-          </button>
 
-          {productDetails?.user?.show_personal_details === 1 &&
-            productDetails?.user?.mobile && (
-              <Link
-                href={`tel:${productDetails?.user?.mobile}`}
-                className="bg-[#000] text-white p-4 rounded-md flex items-center gap-2 text-base font-medium justify-center whitespace-nowrap [flex:1_1_47%]"
+            {/* Name & Verified */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <CustomLink
+                  href={`/seller/${productDetails?.user?.id}`}
+                  className="font-bold text-lg text-gray-900 hover:text-blue-600 transition-colors truncate"
+                >
+                  {productDetails?.user?.name}
+                </CustomLink>
+                {productDetails?.user?.is_verified == 1 && (
+                  <MdVerifiedUser className="text-orange-500 flex-shrink-0" size={20} />
+                )}
+              </div>
+
+              {/* Rating • Reviews • Member Since */}
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 mt-1 flex-wrap">
+                {productDetails?.user?.reviews_count > 0 &&
+                  productDetails?.user?.average_rating && (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <IoMdStar className="text-yellow-500" size={16} />
+                        <span className="font-semibold text-gray-900">
+                          {Number(productDetails?.user?.average_rating).toFixed(1)}
+                        </span>
+                      </div>
+                      {memberSinceYear && <span></span>}
+                    </>
+                  )}
+                {memberSinceYear && (
+                  <span>{t("Član od")} {memberSinceYear}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <CustomLink
+              href={`/seller/${productDetails?.user?.id}`}
+              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <FaArrowRight size={18} className="text-gray-600 rtl:scale-x-[-1]" />
+            </CustomLink>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-gray-100"></div>
+
+        {/* Action Buttons */}
+        <div className="p-4">
+          <div className="flex flex-wrap gap-3">
+            {/* Chat */}
+            <button
+              onClick={handleChat}
+              disabled={IsStartingChat}
+              className="action-btn flex-1 min-w-[120px] bg-black text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
+            >
+              <IoChatboxEllipsesOutline size={20} />
+              {IsStartingChat ? t("startingChat") : t("chat")}
+            </button>
+
+            {/* Call */}
+            {productDetails?.user?.show_personal_details === 1 &&
+              productDetails?.user?.mobile && (
+                <button
+                  onClick={handlePhoneClick}
+                  className="action-btn flex-1 min-w-[120px] bg-green-600 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold"
+                >
+                  <BiPhoneCall size={20} />
+                  {t("Nazovi")}
+                </button>
+              )}
+
+            {/* Make Offer */}
+            {isAllowedToMakeOffer && (
+              <button
+                onClick={handleMakeOffer}
+                className="action-btn flex-1 min-w-[120px] bg-blue-600 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold"
               >
-                <BiPhoneCall size={21} />
-                <span>{t("call")}</span>
-              </Link>
+                <Gift size={19} />
+                {t("offer")}
+              </button>
             )}
-          {isAllowedToMakeOffer && (
-            <button
-              onClick={handleMakeOffer}
-              className="bg-primary text-white p-4 rounded-md flex items-center gap-2 text-base font-medium justify-center whitespace-nowrap [flex:1_1_47%]"
-            >
-              <Gift size={21} />
-              {t("makeOffer")}
-            </button>
-          )}
-          {isJobCategory && (
-            <button
-              className={`text-white p-4 rounded-md flex items-center gap-2 text-base font-medium justify-center whitespace-nowrap [flex:1_1_47%] ${
-                isApplied ? "bg-primary" : "bg-black"
-              }`}
-              disabled={isApplied}
-              onClick={() => setShowApplyModal(true)}
-            >
-              <FaPaperPlane size={20} />
-              {isApplied ? t("applied") : t("applyNow")}
-            </button>
-          )}
+
+            {/* Apply Job */}
+            {isJobCategory && (
+              <button
+                className={`action-btn flex-1 min-w-[120px] px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold text-white ${
+                  isApplied ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600"
+                }`}
+                disabled={isApplied}
+                onClick={() => setShowApplyModal(true)}
+              >
+                <FaPaperPlane size={18} />
+                {isApplied ? t("applied") : t("apply")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Phone Number Modal */}
+      {showPhoneModal && (
+        <div 
+          className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPhoneModal(false)}
+        >
+          <div 
+            className="modal-content bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setShowPhoneModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <IoClose size={24} className="text-gray-600" />
+              </button>
+            </div>
+
+            {/* Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <BiPhoneCall size={32} className="text-green-600" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
+              {"Kontaktiraj prodavača"}
+            </h3>
+
+            {/* Seller Name */}
+            <p className="text-center text-gray-600 mb-6">
+              {productDetails?.user?.name}
+            </p>
+
+            {/* Phone Number - Hyperlink */}
+            <a
+              href={`tel:+${productDetails?.user?.country_code}${productDetails?.user?.mobile}`}
+              className="block w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl text-center font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
+            >
+              +{productDetails?.user?.country_code}{productDetails?.user?.mobile}
+            </a>
+
+            {/* Helper Text */}
+            <p className="text-center text-xs text-gray-500 mt-4">
+              {"Klik od poziva!"}
+            </p>
+          </div>
+        </div>
+      )}
 
       <MakeOfferModal
         isOpen={IsOfferModalOpen}

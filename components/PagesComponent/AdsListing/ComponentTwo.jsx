@@ -1,6 +1,22 @@
+import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Link,
+  Smile,
+  Eye,
+  Type,
+} from "lucide-react";
 import {
   getCurrencyPosition,
   getCurrencySymbol,
@@ -9,6 +25,331 @@ import { generateSlug, t } from "@/utils";
 import PhoneInput from "react-phone-input-2";
 import { useSelector } from "react-redux";
 
+// Emoji lista
+const EMOJI_LIST = [
+  "😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊", "😇", "🙂",
+  "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋",
+  "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩",
+  "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣",
+  "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬",
+  "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗",
+  "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯",
+  "👍", "👎", "👌", "🤝", "🙏", "💪", "🎉", "🎊", "🎈", "🎁",
+  "⭐", "✨", "💫", "🔥", "💯", "✅", "❌", "❗", "❓", "💡",
+];
+
+// ========================================
+// RichTextarea Component (Inline)
+// ========================================
+const RichTextarea = ({
+  value = "",
+  onChange,
+  label,
+  placeholder = "Unesite opis...",
+  maxLength = 7000,
+  minHeight = 120,
+  required = false,
+  id = "rich-textarea",
+  name = "description",
+}) => {
+  const [activeTab, setActiveTab] = useState("write");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const textareaRef = useRef(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.max(
+        textareaRef.current.scrollHeight,
+        minHeight
+      )}px`;
+    }
+  }, [value, minHeight]);
+
+  // Calculate stats
+  const charCount = value.length;
+  const wordCount = value.trim() === "" ? 0 : value.trim().split(/\s+/).length;
+  const isOverLimit = charCount > maxLength;
+  const percentUsed = (charCount / maxLength) * 100;
+
+  // Get color based on usage
+  const getCounterColor = () => {
+    if (isOverLimit) return "text-red-600";
+    if (percentUsed > 90) return "text-orange-500";
+    if (percentUsed > 75) return "text-yellow-600";
+    return "text-gray-500";
+  };
+
+  // Insert markdown formatting
+  const insertMarkdown = (before, after = "") => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = value.substring(start, end);
+    const newText =
+      value.substring(0, start) +
+      before +
+      selectedText +
+      after +
+      value.substring(end);
+
+    onChange({ target: { value: newText, name } });
+
+    // Restore cursor position
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + before.length + selectedText.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  // Insert emoji
+  const insertEmoji = (emoji) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const newText =
+      value.substring(0, start) + emoji + value.substring(start);
+
+    onChange({ target: { value: newText, name } });
+    setShowEmojiPicker(false);
+
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + emoji.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  // Render markdown preview
+  const renderMarkdown = (text) => {
+    let html = text
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/__(.+?)__/g, "<strong>$1</strong>")
+      // Italic
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/_(.+?)_/g, "<em>$1</em>")
+      // Links
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>')
+      // Line breaks
+      .replace(/\n/g, "<br />");
+
+    // Unordered lists
+    html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
+    html = html.replace(/(<li>.*<\/li>)/s, "<ul class='list-disc ml-6 my-2'>$1</ul>");
+
+    // Ordered lists
+    html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
+    html = html.replace(/(<li>.*<\/li>)/s, "<ol class='list-decimal ml-6 my-2'>$1</ol>");
+
+    return html;
+  };
+
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {/* Label */}
+      {label && (
+        <Label
+          htmlFor={id}
+          className={required ? "requiredInputLabel" : ""}
+        >
+          {label}
+        </Label>
+      )}
+
+      {/* Tabs for Write/Preview */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex items-center justify-between border-b-2 border-gray-200">
+          <TabsList className="bg-transparent border-0">
+            <TabsTrigger
+              value="write"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none px-4 py-2"
+            >
+              <Type className="w-4 h-4 mr-2" />
+              Opis
+            </TabsTrigger>
+            <TabsTrigger
+              value="preview"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none px-4 py-2"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Pregled
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Toolbar - only show in write mode */}
+          {activeTab === "write" && (
+            <div className="flex items-center gap-1 p-2">
+              <button
+                type="button"
+                onClick={() => insertMarkdown("**", "**")}
+                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Bold (Ctrl+B)"
+              >
+                <Bold className="w-4 h-4 text-gray-600" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown("*", "*")}
+                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Italic (Ctrl+I)"
+              >
+                <Italic className="w-4 h-4 text-gray-600" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const textarea = textareaRef.current;
+                  const start = textarea.selectionStart;
+                  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+                  const newText =
+                    value.substring(0, lineStart) +
+                    "- " +
+                    value.substring(lineStart);
+                  onChange({ target: { value: newText, name } });
+                }}
+                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Bullet List"
+              >
+                <List className="w-4 h-4 text-gray-600" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const textarea = textareaRef.current;
+                  const start = textarea.selectionStart;
+                  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+                  const newText =
+                    value.substring(0, lineStart) +
+                    "1. " +
+                    value.substring(lineStart);
+                  onChange({ target: { value: newText, name } });
+                }}
+                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Numbered List"
+              >
+                <ListOrdered className="w-4 h-4 text-gray-600" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown("[", "](url)")}
+                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Insert Link"
+              >
+                <Link className="w-4 h-4 text-gray-600" />
+              </button>
+
+              {/* Emoji Picker */}
+              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Insert Emoji"
+                  >
+                    <Smile className="w-4 h-4 text-gray-600" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2">
+                  <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+                    {EMOJI_LIST.map((emoji, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => insertEmoji(emoji)}
+                        className="text-2xl hover:bg-gray-100 rounded p-1 transition-colors"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+
+        {/* Write Tab */}
+        <TabsContent value="write" className="mt-0">
+          <textarea
+            ref={textareaRef}
+            id={id}
+            name={name}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className={`w-full border-2 rounded-xl px-4 py-3 outline-none resize-none transition-colors focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              isOverLimit ? "border-red-500" : "border-gray-200"
+            }`}
+            style={{ minHeight: `${minHeight}px` }}
+          />
+        </TabsContent>
+
+        {/* Preview Tab */}
+        <TabsContent value="preview" className="mt-0">
+          <div
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 min-h-[120px] bg-gray-50 prose prose-sm max-w-none"
+            style={{ minHeight: `${minHeight}px` }}
+          >
+            {value ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(value) }}
+              />
+            ) : (
+              <p className="text-gray-400 italic">Ništa za pregled...</p>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Stats Footer */}
+      <div className="flex items-center justify-between text-sm">
+        <div className="text-gray-600">
+          <span className="font-medium">{wordCount}</span>{" "}
+          {wordCount === 1 ? "riječ" : "riječi"}
+        </div>
+        <div className={`font-medium ${getCounterColor()}`}>
+          {charCount} / {maxLength} karaktera
+          {isOverLimit && (
+            <span className="ml-2 text-xs">
+              ({charCount - maxLength} preko dozvoljenog)
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+        <div
+          className={`h-full transition-all duration-300 ${
+            isOverLimit
+              ? "bg-red-500"
+              : percentUsed > 90
+              ? "bg-orange-500"
+              : percentUsed > 75
+              ? "bg-yellow-500"
+              : "bg-green-500"
+          }`}
+          style={{ width: `${Math.min(percentUsed, 100)}%` }}
+        />
+      </div>
+
+      {/* Markdown hint */}
+      <p className="text-xs text-gray-500 mt-1">
+        💡 Formatirajte tekst za profesionalniji izgled oglasa
+      </p>
+    </div>
+  );
+};
+
+// ========================================
+// Main ComponentTwo
+// ========================================
 const ComponentTwo = ({
   setTranslations,
   current,
@@ -23,8 +364,8 @@ const ComponentTwo = ({
   const currencySymbol = useSelector(getCurrencySymbol);
   const placeholderLabel =
     currencyPosition === "right"
-      ? `00 ${currencySymbol}`
-      : `${currencySymbol} 00`;
+      ? `${currencySymbol}`
+      : `${currencySymbol}`;
 
   const handleField = (field) => (e) => {
     const value = e.target.value;
@@ -66,41 +407,37 @@ const ComponentTwo = ({
   };
 
   return (
-    <div className="flex flex-col w-full gap-6">
+    <div className="flex flex-col w-full gap-6 pb-24">
       <div className="flex flex-col gap-2">
         <Label
           htmlFor="title"
           className={langId === defaultLangId ? "requiredInputLabel" : ""}
         >
-          {t("title")}
+          Naslov
         </Label>
         <Input
           type="text"
           name="title"
           id="title"
-          placeholder={t("enterTitle")}
+          placeholder="Unesite naslov oglasa"
           value={current.name || ""}
-          onChange={handleField("name")} //here send param as the one we need to send to the api
+          onChange={handleField("name")}
+          className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <Label
-          htmlFor="description"
-          className={langId === defaultLangId ? "requiredInputLabel" : ""}
-        >
-          {t("description")}
-        </Label>
-        <Textarea
-          name="description"
-          id="description"
-          cols="30"
-          rows="3"
-          placeholder={t("enterDescription")}
-          className="border rounded-md px-4 py-2 outline-none"
-          value={current.description || ""}
-          onChange={handleField("description")}
-        ></Textarea>
-      </div>
+
+      {/* ✨ Enhanced Rich Textarea */}
+      <RichTextarea
+        id="description"
+        name="description"
+        value={current.description || ""}
+        onChange={handleField("description")}
+        label="Opis"
+        placeholder="Opišite vaš artikal detaljno..."
+        maxLength={7000}
+        minHeight={120}
+        required={langId === defaultLangId}
+      />
 
       {/* Render the rest only for default language */}
       {langId === defaultLangId && (
@@ -108,7 +445,7 @@ const ComponentTwo = ({
           {is_job_category ? (
             <>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="salaryMin">{t("salaryMin")}</Label>
+                <Label htmlFor="salaryMin">Minimalna plata</Label>
                 <Input
                   type="number"
                   name="salaryMin"
@@ -117,10 +454,11 @@ const ComponentTwo = ({
                   placeholder={placeholderLabel}
                   value={current.min_salary || ""}
                   onChange={handleField("min_salary")}
+                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="salaryMax">{t("salaryMax")}</Label>
+                <Label htmlFor="salaryMax">Maksimalna plata</Label>
                 <Input
                   type="number"
                   min={0}
@@ -129,6 +467,7 @@ const ComponentTwo = ({
                   placeholder={placeholderLabel}
                   value={current.max_salary || ""}
                   onChange={handleField("max_salary")}
+                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </>
@@ -142,7 +481,7 @@ const ComponentTwo = ({
                     : ""
                 }
               >
-                {t("price")}
+                Cijena
               </Label>
 
               <Input
@@ -153,6 +492,7 @@ const ComponentTwo = ({
                 placeholder={placeholderLabel}
                 value={current.price || ""}
                 onChange={handleField("price")}
+                className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           )}
@@ -162,7 +502,7 @@ const ComponentTwo = ({
               htmlFor="phonenumber"
               className={langId === defaultLangId ? "requiredInputLabel" : ""}
             >
-              {t("phoneNumber")}
+              Broj telefona
             </Label>
             <PhoneInput
               country={process.env.NEXT_PUBLIC_DEFAULT_COUNTRY}
@@ -173,50 +513,57 @@ const ComponentTwo = ({
                 id: "phonenumber",
               }}
               enableLongNumbers
+              inputClass="!border-2 !border-gray-200 !rounded-xl focus:!ring-2 focus:!ring-blue-500"
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="videoLink">{t("videoLink")}</Label>
+            <Label htmlFor="videoLink">Video link</Label>
             <Input
               type="text"
               name="videoLink"
               id="videoLink"
-              placeholder={t("enterAdditionalLinks")}
+              placeholder="Dodajte YouTube ili drugi video link"
               value={current.video_link || ""}
               onChange={handleField("video_link")}
+              className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="hidden flex flex-col gap-2">
             <Label htmlFor="slug">
-              {t("slug")}{" "}
+              URL oznaka{" "}
               <span className="text-muted-foreground text-xs">
-                ({t("allowedSlug")})
+                (samo mala slova, brojevi i crtice)
               </span>
             </Label>
             <Input
               type="text"
               name="slug"
               id="slug"
-              placeholder={t("enterSlug")}
+              placeholder="npr: moj-artikal-123"
               value={current.slug || ""}
               onChange={handleField("slug")}
+              className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </>
       )}
-      <div className="flex justify-end gap-3">
-        <button
-          className="bg-black text-white px-4 py-2 rounded-md text-xl font-light"
-          onClick={handleDeatilsBack}
-        >
-          {t("back")}
-        </button>
-        <button
-          className="bg-primary text-white  px-4 py-2 rounded-md text-xl font-light"
-          onClick={handleDetailsSubmit}
-        >
-          {t("next")}
-        </button>
+
+      {/* Sticky Action Buttons */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
+          <button
+            className="bg-black text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors shadow-md flex-1 sm:flex-none"
+            onClick={handleDeatilsBack}
+          >
+            Nazad
+          </button>
+          <button
+            className="bg-primary text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-primary/90 transition-colors shadow-md flex-1 sm:flex-none"
+            onClick={handleDetailsSubmit}
+          >
+            Naprijed
+          </button>
+        </div>
       </div>
     </div>
   );

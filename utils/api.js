@@ -651,6 +651,9 @@ export const chatListApi = {
       },
     });
   },
+  markSeen: (id) => {
+    return Api.post(`chat/seen/${id}`);
+  },
 };
 
 export const getMessagesApi = {

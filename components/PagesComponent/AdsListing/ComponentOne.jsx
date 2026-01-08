@@ -4,6 +4,7 @@ import { memo, useMemo, useEffect, useState, useRef, useCallback } from "react";
 import Fuse from "fuse.js";
 import { MdChevronRight } from "react-icons/md";
 import { FaStar, FaUser } from "react-icons/fa";
+import { IoSearchOutline } from "react-icons/io5";
 
 import { Button } from "@/components/ui/button";
 import { t } from "@/utils";
@@ -15,34 +16,39 @@ import CustomImage from "@/components/Common/CustomImage";
 const CategoryItem = memo(({ category, onClick, showPath = false, adCount = null }) => {
   return (
     <div
-      className="flex justify-between items-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors"
+      className="flex justify-between items-center cursor-pointer p-4 rounded-xl hover:bg-blue-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md group"
       onClick={() => onClick(category)}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <CustomImage
           src={category?.image}
           alt={category?.search_name}
-          height={48}
-          width={48}
+          height={56}
+          width={56}
           loading="lazy"
-          className="h-12 w-12 rounded-full object-cover"
+          className="h-14 w-14 rounded-xl object-cover border-2 border-gray-100 group-hover:border-blue-300 transition-all"
         />
         <div className="flex flex-col">
-          <span className="break-all font-medium">{category?.search_name}</span>
+          <span className="break-all font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
+            {category?.search_name}
+          </span>
           {showPath && category?.full_path && (
-            <span className="text-xs text-gray-500">{category.full_path}</span>
+            <span className="text-xs text-gray-500 mt-0.5">{category.full_path}</span>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {adCount !== null && adCount > 0 && (
-          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+          <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-semibold">
             {adCount.toLocaleString()}
           </span>
         )}
         {category?.subcategories_count > 0 && !showPath && (
-          <MdChevronRight size={24} className="rtl:scale-x-[-1] flex-shrink-0" />
+          <MdChevronRight 
+            size={24} 
+            className="rtl:scale-x-[-1] flex-shrink-0 text-gray-400 group-hover:text-blue-600 transition-colors" 
+          />
         )}
       </div>
     </div>
@@ -57,44 +63,52 @@ CategoryItem.displayName = "CategoryItem";
 const UserItem = memo(({ user, onClick }) => {
   return (
     <div
-      className="flex justify-between items-center cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+      className="flex justify-between items-center cursor-pointer p-4 rounded-xl hover:bg-blue-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md group"
       onClick={() => onClick(user)}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         {user?.profile ? (
           <CustomImage
             src={user.profile}
             alt={user.name}
-            height={48}
-            width={48}
+            height={56}
+            width={56}
             loading="lazy"
-            className="h-12 w-12 rounded-full object-cover"
+            className="h-14 w-14 rounded-full object-cover border-2 border-gray-100 group-hover:border-blue-300 transition-all"
           />
         ) : (
-          <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-            <FaUser className="text-gray-400" size={20} />
+          <div className="h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200 group-hover:border-blue-300 transition-all">
+            <FaUser className="text-gray-400" size={24} />
           </div>
         )}
         <div className="flex flex-col">
-          <span className="font-medium">{user?.name}</span>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span className="font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
+            {user?.name}
+          </span>
+
+          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
             {user?.average_rating && (
-              <span className="flex items-center gap-1">
-                <FaStar className="text-yellow-400" size={12} />
-                {user.average_rating.toFixed(1)}
+              <span className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-full">
+                <FaStar className="text-yellow-500" size={12} />
+                <span className="font-semibold text-yellow-700">{user.average_rating.toFixed(1)}</span>
               </span>
             )}
-            {user?.reviews_count > 0 && (
-              <span>({user.reviews_count} recenzija)</span>
-            )}
+
             {user?.adCount > 0 && (
-              <span className="text-primary">{user.adCount} oglasa</span>
+              <span className="text-blue-600 font-medium">
+                {user.adCount === 1
+                  ? "1 oglas"
+                  : `${user.adCount} oglasa`}
+              </span>
             )}
           </div>
         </div>
       </div>
 
-      <MdChevronRight size={24} className="rtl:scale-x-[-1] flex-shrink-0 text-gray-400" />
+      <MdChevronRight 
+        size={24} 
+        className="rtl:scale-x-[-1] flex-shrink-0 text-gray-400 group-hover:text-blue-600 transition-colors" 
+      />
     </div>
   );
 });
@@ -106,10 +120,13 @@ UserItem.displayName = "UserItem";
 ------------------------------------------------------- */
 const CategorySkeleton = () => (
   <>
-    {Array.from({ length: 9 }).map((_, i) => (
-      <div key={i} className="flex items-center gap-2 p-2 animate-pulse">
-        <div className="h-12 w-12 rounded-full bg-gray-200" />
-        <div className="h-4 w-32 bg-gray-200 rounded" />
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} className="flex items-center gap-3 p-4 animate-pulse border border-gray-100 rounded-xl">
+        <div className="h-14 w-14 rounded-xl bg-gray-200" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 bg-gray-200 rounded w-3/4" />
+          <div className="h-3 bg-gray-100 rounded w-1/2" />
+        </div>
       </div>
     ))}
   </>
@@ -118,11 +135,11 @@ const CategorySkeleton = () => (
 const UserSkeleton = () => (
   <>
     {Array.from({ length: 3 }).map((_, i) => (
-      <div key={i} className="flex items-center gap-3 p-3 animate-pulse border border-gray-100 rounded-lg">
-        <div className="h-12 w-12 rounded-full bg-gray-200" />
-        <div className="flex flex-col gap-2">
-          <div className="h-4 w-28 bg-gray-200 rounded" />
-          <div className="h-3 w-20 bg-gray-200 rounded" />
+      <div key={i} className="flex items-center gap-4 p-4 animate-pulse border border-gray-100 rounded-xl">
+        <div className="h-14 w-14 rounded-full bg-gray-200" />
+        <div className="flex flex-col gap-2 flex-1">
+          <div className="h-5 bg-gray-200 rounded w-32" />
+          <div className="h-3 bg-gray-100 rounded w-24" />
         </div>
       </div>
     ))}
@@ -168,7 +185,7 @@ const ComponentOne = ({
   currentPage,
   isLoadMoreCat,
   handleCategoryTabClick,
-  onUserClick, // New prop for user click handling
+  onUserClick,
 }) => {
   const [search, setSearch] = useState("");
   const [suggestedCategories, setSuggestedCategories] = useState([]);
@@ -274,7 +291,6 @@ const ComponentOne = ({
             }
           }
           
-
           // Process users
           if (ad.user) {
             const existingUser = userMap.get(ad.user.id);
@@ -362,7 +378,6 @@ const ComponentOne = ({
     }
   }, []);
   
-
   // Debounced search
   useEffect(() => {
     if (searchTimeoutRef.current) {
@@ -405,7 +420,6 @@ const ComponentOne = ({
     };
   }, [search, searchUsers, searchAdCategories]);
   
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -432,32 +446,38 @@ const ComponentOne = ({
   const hasResults = suggestedCategories.length > 0 || suggestedUsers.length > 0;
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       {/* 🔍 SEARCH */}
-      <div className="mb-4 relative">
-        <input
-          type="text"
-          placeholder="Šta želite prodati? (npr. iPhone, Samsung, Golf...)"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        {isSearching && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
+      <div className="relative">
+        <div className="relative">
+          <IoSearchOutline 
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" 
+            size={22} 
+          />
+          <input
+            type="text"
+            placeholder="Šta želite prodati? (npr. iPhone, Samsung, Golf...)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+          />
+          {isSearching && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 📦 CATEGORY LIST */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {categoriesLoading ? (
           <CategorySkeleton />
         ) : showSearchResults ? (
           isSearching ? (
-            <div className="col-span-full text-center py-4">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">Pretražujem...</p>
+            <div className="col-span-full text-center py-12">
+              <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-gray-600 font-medium">Pretražujem...</p>
             </div>
           ) : hasResults ? (
             <>
@@ -465,9 +485,9 @@ const ComponentOne = ({
               {suggestedCategories.length > 0 && (
                 <>
                   <div className="col-span-full mb-2">
-                    <span className="text-sm text-gray-500 font-medium">
+                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
                       Kategorije za "{search}"
-                    </span>
+                    </h3>
                   </div>
                   {suggestedCategories.map((category) => (
                     <CategoryItem
@@ -482,9 +502,13 @@ const ComponentOne = ({
               )}
             </>
           ) : (
-            <p className="text-gray-500 col-span-full text-center">
-              Nema pronađenih kategorija za "{search}"
-            </p>
+            <div className="col-span-full text-center py-12">
+              <div className="text-6xl mb-4">🔍</div>
+              <p className="text-gray-600 font-medium text-lg">
+                Nema pronađenih kategorija za "{search}"
+              </p>
+              <p className="text-gray-500 text-sm mt-2">Pokušajte sa drugim pojmom</p>
+            </div>
           )
         ) : (
           categories.map((category) => (
@@ -502,11 +526,11 @@ const ComponentOne = ({
 
       {/* 👥 USERS SECTION */}
       {showSearchResults && !isSearching && suggestedUsers.length > 0 && (
-        <div className="mt-8">
+        <div className="mt-6">
           <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Korisnici</h3>
+            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Korisnici</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {suggestedUsers.map((user) => (
               <UserItem
                 key={user.id}
@@ -520,18 +544,18 @@ const ComponentOne = ({
 
       {/* LOAD MORE */}
       {!search && lastPage > currentPage && (
-        <div className="text-center mt-6">
+        <div className="text-center mt-4">
           <Button
             variant="outline"
-            className="text-sm sm:text-base text-primary w-[256px]"
+            className="text-base text-primary font-semibold px-8 py-3 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
             disabled={isLoadMoreCat || categoriesLoading}
             onClick={fetchMoreCategory}
           >
-            {isLoadMoreCat ? t("loading") : t("loadMore")}
+            {isLoadMoreCat ? "Učitavanje..." : "Učitaj još"}
           </Button>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
