@@ -6,7 +6,7 @@ import { t, truncate } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import { useSelector } from "react-redux";
 import { GrLocation } from "react-icons/gr";
-import { BsChatDots } from "react-icons/bs"; // <--- NOVA IKONICA
+import { BsChatDots } from "react-icons/bs"; 
 import { getCityData } from "@/redux/reducer/locationSlice";
 import HomeMobileMenu from "./HomeMobileMenu.jsx";
 import MailSentSuccessModal from "@/components/Auth/MailSentSuccessModal.jsx";
@@ -30,7 +30,7 @@ import {
   setIsLoginOpen,
 } from "@/redux/reducer/globalStateSlice.js";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
-import { deleteUserApi, getLimitsApi, logoutApi, chatListApi } from "@/utils/api.js"; // <--- DODAN API
+import { deleteUserApi, getLimitsApi, logoutApi, chatListApi } from "@/utils/api.js";
 import { useMediaQuery } from "usehooks-ts";
 import UnauthorizedModal from "@/components/Auth/UnauthorizedModal.jsx";
 import CustomImage from "@/components/Common/CustomImage.jsx";
@@ -76,51 +76,33 @@ const HomeHeader = () => {
   const { signOut } = FirebaseData();
   const pathname = usePathname();
 
-  // 🔌 Redux State (via useSelector)
-
-  // User & Auth
+  // 🔌 Redux State
   const userData = useSelector(userSignUpData);
   const IsLoggedin = useSelector(getIsLoggedIn);
   const IsLoginOpen = useSelector(getIsLoginModalOpen);
-
-  // Ads & Categories
   const isCategoryLoading = useSelector(getIsCatLoading);
   const cateData = useSelector(CategoryData);
   const IsFreeAdListing = useSelector(getIsFreAdListing);
-
-  // Location
   const cityData = useSelector(getCityData);
-
-  // Language & Settings
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const settings = useSelector(settingsData);
 
-  // 🎛️ Local UI State (via useState)
-
-  // Modals
+  // 🎛️ Local UI State
   const [IsRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [IsLocationModalOpen, setIsLocationModalOpen] = useState(false);
-
-  // Auth State
   const [IsLogout, setIsLogout] = useState(false);
   const [IsLoggingOut, setIsLoggingOut] = useState(false);
-
-  // Profile
   const [IsUpdatingProfile, setIsUpdatingProfile] = useState(false);
-
-  // Ad Listing
   const [IsAdListingClicked, setIsAdListingClicked] = useState(false);
-
-  // Email Status
   const [IsMailSentSuccess, setIsMailSentSuccess] = useState(false);
 
-  // Chat Count State
+  // 🔥 CHAT COUNT STATE
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
 
   // 📱 Media Query
   const isLargeScreen = useMediaQuery("(min-width: 992px)");
 
-  //delete account state
+  // Delete account state
   const [manageDeleteAccount, setManageDeleteAccount] = useState({
     IsDeleteAccount: false,
     IsDeleting: false,
@@ -130,46 +112,65 @@ const HomeHeader = () => {
   useEffect(() => {
     let isMounted = true;
     
+    // Pomoćna funkcija za sigurno izvlačenje niza chatova
+    const extractChatData = (res) => {
+      const rootData = res?.data;
+      if (!rootData || rootData.error) return [];
+      const dataLayer1 = rootData.data;
+      if (Array.isArray(dataLayer1)) return dataLayer1;
+      if (dataLayer1 && Array.isArray(dataLayer1.data)) return dataLayer1.data;
+      return [];
+    };
+
     const fetchUnreadCount = async () => {
       if (!IsLoggedin) {
         setTotalUnreadMessages(0);
         return;
       }
+
       try {
-        // Dohvati chatove i za kupca i za prodavača
         const [buyerRes, sellerRes] = await Promise.all([
           chatListApi.chatList({ type: "buyer", page: 1 }),
           chatListApi.chatList({ type: "seller", page: 1 })
         ]);
 
-        let count = 0;
-        if (buyerRes?.data?.error === false) {
-          buyerRes?.data?.data?.data?.forEach(chat => {
-             count += (chat.unread_chat_count || 0);
-          });
-        }
-        if (sellerRes?.data?.error === false) {
-           sellerRes?.data?.data?.data?.forEach(chat => {
-             count += (chat.unread_chat_count || 0);
-           });
-        }
+        if (!isMounted) return;
 
-        if (isMounted) setTotalUnreadMessages(count);
+        const buyerChats = extractChatData(buyerRes);
+        const sellerChats = extractChatData(sellerRes);
+
+        let count = 0;
+
+        // Saberi nepročitane poruke
+        buyerChats.forEach(chat => {
+          // 🔥 NOVO: Ako je chat mutiran, PRESKOČI GA
+          if (chat.is_muted === true) return;
+          
+          count += Number(chat?.unread_chat_count || 0);
+        });
+
+        sellerChats.forEach(chat => {
+          // 🔥 NOVO: Ako je chat mutiran, PRESKOČI GA
+          if (chat.is_muted === true) return;
+
+          count += Number(chat?.unread_chat_count || 0);
+        });
+
+        setTotalUnreadMessages(count);
 
       } catch (error) {
-        console.error("Failed to fetch unread messages count", error);
+        console.error("Greška pri dohvatanju poruka:", error);
       }
     };
 
     fetchUnreadCount();
-    // Osvježi svakih 30 sekundi
     const interval = setInterval(fetchUnreadCount, 30000); 
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [IsLoggedin, pathname]);
+  }, [IsLoggedin, pathname]); 
 
   const handleLogout = async () => {
     try {
@@ -182,7 +183,6 @@ const HomeHeader = () => {
         logoutSuccess();
         toast.success(t("signOutSuccess"));
         setIsLogout(false);
-        // avoid redirect if already on home page otherwise router.push triggering server side api calls
         if (pathname !== "/") {
           navigate("/");
         }
@@ -245,7 +245,6 @@ const HomeHeader = () => {
       logoutSuccess();
       toast.success(t("userDeleteSuccess"));
       setManageDeleteAccount((prev) => ({ ...prev, IsDeleteAccount: false }));
-      // avoid redirect if already on home page otherwise router.push triggering server side api calls
       if (pathname !== "/") {
         navigate("/");
       }
@@ -261,7 +260,6 @@ const HomeHeader = () => {
     }
   };
 
-  // Navigacija do chata
   const handleChatClick = () => {
       if (!IsLoggedin) {
           setIsLoginOpen(true);
@@ -284,7 +282,6 @@ const HomeHeader = () => {
                 className="w-full h-[52px] object-contain ltr:object-left rtl:object-right max-w-[195px]"
               />
             </CustomLink>
-            {/* desktop category search select */}
 
             {isLargeScreen && (
               <div className="flex items-center border leading-none rounded grow-[0.7]">
@@ -313,7 +310,7 @@ const HomeHeader = () => {
 
             <div className="hidden lg:flex items-center gap-2">
               
-              {/* --- CHAT DUGME (DODANO OVDJE) --- */}
+              {/* --- CHAT DUGME (DESKTOP) --- */}
               {IsLoggedin && (
                   <button 
                     onClick={handleChatClick}
@@ -322,13 +319,12 @@ const HomeHeader = () => {
                   >
                       <BsChatDots size={22} />
                       {totalUnreadMessages > 0 && (
-                          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full">
+                          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-0.5 bg-red-600 text-white text-[10px] font-bold rounded-full border-2 border-white box-content">
                               {totalUnreadMessages > 99 ? '99+' : totalUnreadMessages}
                           </span>
                       )}
                   </button>
               )}
-              {/* ---------------------------------- */}
 
               {IsLoggedin ? (
                 <ProfileDropdown
@@ -354,7 +350,7 @@ const HomeHeader = () => {
               )}
 
               <button
-                className="bg-primary px-2 xl:px-4 py-2 items-center text-white rounded-md  flex gap-1"
+                className="bg-primary px-2 xl:px-4 py-2 items-center text-white rounded-md flex gap-1"
                 disabled={IsAdListingClicked}
                 onClick={handleAdListing}
                 title={t("adListing")}
@@ -388,16 +384,17 @@ const HomeHeader = () => {
                 <div className="flex-1 flex items-center border leading-none rounded">
                    <Search />
                 </div>
-                {/* --- CHAT DUGME ZA MOBITEL (DODANO OVDJE) --- */}
+                
+                {/* --- CHAT DUGME (MOBITEL) --- */}
                 {IsLoggedin && (
                   <button 
                     onClick={handleChatClick}
-                    className="relative flex items-center justify-center w-12 border rounded bg-white text-gray-600"
+                    className="relative flex items-center justify-center w-12 border rounded bg-white text-gray-600 active:bg-slate-50"
                   >
                       <BsChatDots size={20} />
                        {totalUnreadMessages > 0 && (
-                          <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-bold rounded-full border border-white">
-                              {totalUnreadMessages > 9 ? '9+' : totalUnreadMessages}
+                          <span className="absolute top-1 right-1 flex items-center justify-center w-3 h-3 bg-red-600 rounded-full border border-white">
+                              {/* Dot */}
                           </span>
                       )}
                   </button>
@@ -406,6 +403,7 @@ const HomeHeader = () => {
           )}
         </nav>
       </header>
+      
       {isCategoryLoading && !cateData.length ? (
         <HeaderCategoriesSkeleton />
       ) : (
@@ -430,7 +428,6 @@ const HomeHeader = () => {
         setIsMailSentSuccess={setIsMailSentSuccess}
       />
 
-      {/* Reusable Alert Dialog for Logout */}
       <ReusableAlertDialog
         open={IsLogout}
         onCancel={() => setIsLogout(false)}
@@ -442,7 +439,6 @@ const HomeHeader = () => {
         confirmDisabled={IsLoggingOut}
       />
 
-      {/* Reusable Alert Dialog for Updating Profile */}
       <ReusableAlertDialog
         open={IsUpdatingProfile}
         onCancel={() => setIsUpdatingProfile(false)}

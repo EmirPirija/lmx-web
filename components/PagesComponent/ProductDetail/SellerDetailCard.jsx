@@ -1,37 +1,72 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { MdVerifiedUser } from "react-icons/md";
-import { IoMdStar } from "react-icons/io";
-import { FaArrowRight, FaPaperPlane } from "react-icons/fa";
-import { IoChatboxEllipsesOutline } from "react-icons/io5";
+import { 
+  MdVerified, 
+  MdOutlineMail, 
+  MdPhone, 
+  MdStar,
+  MdContentCopy,
+  MdCheck,
+  MdArrowForward,
+  MdClose,
+  MdChatBubbleOutline,
+  MdLocalOffer,
+  MdWorkOutline,
+  MdCalendarMonth
+} from "react-icons/md";
+import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
-import { extractYear, t } from "@/utils";
+import { getCompanyName } from "@/redux/reducer/settingSlice";
+import ShareDropdown from "@/components/Common/ShareDropdown";
 import CustomLink from "@/components/Common/CustomLink";
-import { BiPhoneCall } from "react-icons/bi";
-import { itemOfferApi } from "@/utils/api";
+import CustomImage from "@/components/Common/CustomImage";
 import { toast } from "sonner";
 import { userSignUpData } from "@/redux/reducer/authSlice";
-import { Gift } from "lucide-react";
-import MakeOfferModal from "./MakeOfferModal";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
+import { itemOfferApi } from "@/utils/api";
+import MakeOfferModal from "./MakeOfferModal";
 import ApplyJobModal from "./ApplyJobModal";
-import CustomImage from "@/components/Common/CustomImage";
-import Link from "next/link";
 import { useNavigate } from "@/components/Common/useNavigate";
-import { IoClose } from "react-icons/io5";
+import { cn } from "@/lib/utils";
+
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+
+// 🔥 NOVA FUNKCIJA ZA LIJEP DATUM (Januar 2026)
+const formatJoinDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+
+    const months = [
+        "Januar", "Februar", "Mart", "April", "Maj", "Juni",
+        "Juli", "August", "Septembar", "Oktobar", "Novembar", "Decembar"
+    ];
+
+    return `${months[date.getMonth()]} ${date.getFullYear()}`;
+};
 
 const SellerDetailCard = ({ productDetails, setProductDetails }) => {
   const { navigate } = useNavigate();
-  const userData = productDetails && productDetails?.user;
-  const memberSinceYear = productDetails?.created_at
-    ? extractYear(productDetails.created_at)
-    : "";
-  const [IsStartingChat, setIsStartingChat] = useState(false);
+  const pathname = usePathname();
+  const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
+  const CompanyName = useSelector(getCompanyName);
+  
+  const seller = productDetails?.user;
+  const FbTitle = seller?.name + " | " + CompanyName;
+
   const loggedInUser = useSelector(userSignUpData);
   const loggedInUserId = loggedInUser?.id;
+  const [IsStartingChat, setIsStartingChat] = useState(false);
   const [IsOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
+
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  // Koristimo novu funkciju za datum
+  const joinDate = formatJoinDate(seller?.created_at);
 
   const isAllowedToMakeOffer =
     productDetails?.price > 0 &&
@@ -42,11 +77,6 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
   const isApplied = productDetails?.is_already_job_applied;
   const item_id = productDetails?.id;
 
-  const offerData = {
-    itemPrice: productDetails?.price,
-    itemId: productDetails?.id,
-  };
-
   const handleChat = async () => {
     if (!loggedInUserId) {
       setIsLoginOpen(true);
@@ -55,12 +85,12 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
     try {
       setIsStartingChat(true);
       const response = await itemOfferApi.offer({
-        item_id: offerData.itemId,
+        item_id: productDetails?.id,
       });
       const { data } = response.data;
       navigate("/chat?activeTab=buying&chatid=" + data?.id);
     } catch (error) {
-      toast.error(t("unableToStartChat"));
+      toast.error("Nije moguće započeti chat");
       console.log(error);
     } finally {
       setIsStartingChat(false);
@@ -75,221 +105,200 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
     setIsOfferModalOpen(true);
   };
 
-  const handlePhoneClick = () => {
-    if (!loggedInUserId) {
-      setIsLoginOpen(true);
-      return;
+  const handleCopyPhone = () => {
+    if (seller?.mobile) {
+      navigator.clipboard.writeText(seller.mobile);
+      setIsCopied(true);
+      toast.success("Broj telefona kopiran!");
+      setTimeout(() => setIsCopied(false), 2000);
     }
-    setShowPhoneModal(true);
   };
 
   return (
     <>
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] overflow-hidden relative group">
+        
+        {/* Dekorativna pozadina */}
+        <div className="h-20 bg-slate-50 w-full absolute top-0 left-0 z-0 border-b border-slate-100"></div>
 
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .modal-overlay {
-          animation: fadeIn 0.2s ease-out;
-        }
-
-        .modal-content {
-          animation: slideUp 0.3s ease-out;
-        }
-
-        .action-btn {
-          transition: all 0.2s ease;
-        }
-
-        .action-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .action-btn:active:not(:disabled) {
-          transform: translateY(0);
-        }
-      `}</style>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Seller Info - Minimal Clean */}
-        <div className="p-5">
-          <div className="flex items-center gap-3">
-            {/* Profile Image */}
-            <CustomImage
-              onClick={() => navigate(`/seller/${productDetails?.user?.id}`)}
-              src={productDetails?.user?.profile}
-              alt="Seller"
-              width={64}
-              height={64}
-              className="w-16 h-16 rounded-xl cursor-pointer object-cover border border-gray-200 hover:border-blue-400 transition-all"
-            />
-
-            {/* Name & Verified */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <CustomLink
-                  href={`/seller/${productDetails?.user?.id}`}
-                  className="font-bold text-lg text-gray-900 hover:text-blue-600 transition-colors truncate"
-                >
-                  {productDetails?.user?.name}
-                </CustomLink>
-                {productDetails?.user?.is_verified == 1 && (
-                  <MdVerifiedUser className="text-orange-500 flex-shrink-0" size={20} />
-                )}
-              </div>
-
-              {/* Rating • Reviews • Member Since */}
-              <div className="flex items-center gap-1.5 text-sm text-gray-600 mt-1 flex-wrap">
-                {productDetails?.user?.reviews_count > 0 &&
-                  productDetails?.user?.average_rating && (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <IoMdStar className="text-yellow-500" size={16} />
-                        <span className="font-semibold text-gray-900">
-                          {Number(productDetails?.user?.average_rating).toFixed(1)}
-                        </span>
-                      </div>
-                      {memberSinceYear && <span></span>}
-                    </>
-                  )}
-                {memberSinceYear && (
-                  <span>{t("Član od")} {memberSinceYear}</span>
-                )}
-              </div>
-            </div>
-
-            {/* Arrow */}
-            <CustomLink
-              href={`/seller/${productDetails?.user?.id}`}
-              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <FaArrowRight size={18} className="text-gray-600 rtl:scale-x-[-1]" />
-            </CustomLink>
-          </div>
+        <div className="absolute top-3 right-3 z-10">
+          <ShareDropdown
+            url={currentUrl}
+            title={FbTitle}
+            headline={FbTitle}
+            companyName={CompanyName}
+            className="bg-white hover:bg-slate-50 border border-slate-200 shadow-sm rounded-full p-2 text-slate-500 transition-all"
+          />
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-100"></div>
+        <div className="relative z-10 px-5 pt-6 pb-5">
+          
+          {/* INFO SEKCIJA */}
+          <div className="flex flex-col items-center justify-center text-center">
+             <div className="relative mb-3 cursor-pointer" onClick={() => navigate(`/seller/${seller?.id}`)}>
+               <div className="p-1.5 bg-white rounded-full shadow-sm">
+                  <CustomImage
+                    src={seller?.profile}
+                    alt="Seller"
+                    width={84}
+                    height={84}
+                    className="w-[84px] h-[84px] rounded-full object-cover border border-slate-100"
+                  />
+               </div>
+             </div>
 
-        {/* Action Buttons */}
-        <div className="p-4">
-          <div className="flex flex-wrap gap-3">
-            {/* Chat */}
-            <button
-              onClick={handleChat}
-              disabled={IsStartingChat}
-              className="action-btn flex-1 min-w-[120px] bg-black text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
-            >
-              <IoChatboxEllipsesOutline size={20} />
-              {IsStartingChat ? t("startingChat") : t("chat")}
-            </button>
-
-            {/* Call */}
-            {productDetails?.user?.show_personal_details === 1 &&
-              productDetails?.user?.mobile && (
-                <button
-                  onClick={handlePhoneClick}
-                  className="action-btn flex-1 min-w-[120px] bg-green-600 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold"
+             <div className="mb-1">
+                <CustomLink 
+                    href={`/seller/${seller?.id}`}
+                    className="text-xl font-bold text-slate-900 flex items-center justify-center gap-1.5 hover:text-blue-600 transition-colors"
                 >
-                  <BiPhoneCall size={20} />
-                  {t("Nazovi")}
+                  {seller?.name}
+                  {seller?.is_verified === 1 && (
+                    <MdVerified className="text-blue-500 text-lg" title="Verifikovan nalog" />
+                  )}
+                </CustomLink>
+             </div>
+             
+             {/* STATISTIKA I DATUM (Sada izgleda lijepo) */}
+             <div className="flex items-center justify-center gap-3 mt-2 text-sm text-slate-600">
+                {seller?.average_rating > 0 && (
+                    <div className="flex items-center gap-1.5 bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-100">
+                        <MdStar className="text-yellow-500 text-lg" />
+                        <span className="font-bold text-slate-800">{Number(seller?.average_rating).toFixed(1)}</span>
+                        <span className="text-slate-400">({seller?.reviews_count || 0})</span>
+                    </div>
+                )}
+                
+                {joinDate && (
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100" title="Datum pridruživanja">
+                        <MdCalendarMonth className="text-slate-400 text-lg" />
+                        <span className="font-medium text-slate-600">Korisnik od: {joinDate}</span>
+                    </div>
+                )}
+             </div>
+          </div>
+
+          <div className="h-px w-full bg-slate-100 my-5"></div>
+
+          {/* DUGMAD U GRIDU */}
+          <div className="w-full flex flex-col-reverse gap-3">
+              
+              <button
+                onClick={handleChat}
+                disabled={IsStartingChat}
+                className="col-span-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] transition-all shadow-sm"
+              >
+                 <MdChatBubbleOutline className="text-xl" />
+                 <span>{IsStartingChat ? "Pokrećem..." : "Započni chat"}</span>
+              </button>
+
+              {/* Telefon */}
+              {seller?.show_personal_details === 1 && seller?.mobile && (
+                <button
+                  onClick={() => setIsPhoneModalOpen(true)}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  <MdPhone className="text-lg" />
+                  <span>Pozovi</span>
                 </button>
               )}
 
-            {/* Make Offer */}
-            {isAllowedToMakeOffer && (
-              <button
-                onClick={handleMakeOffer}
-                className="action-btn flex-1 min-w-[120px] bg-blue-600 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold"
-              >
-                <Gift size={19} />
-                {t("offer")}
-              </button>
-            )}
+              {/* Ponudi */}
+              {isAllowedToMakeOffer && (
+                <button
+                   onClick={handleMakeOffer}
+                   className={cn(
+                     "flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all",
+                     (!seller?.mobile || seller?.show_personal_details !== 1) ? "col-span-2" : ""
+                   )}
+                >
+                   <MdLocalOffer className="text-lg text-blue-500" />
+                   <span>Ponudi</span>
+                </button>
+              )}
 
-            {/* Apply Job */}
-            {isJobCategory && (
-              <button
-                className={`action-btn flex-1 min-w-[120px] px-4 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold text-white ${
-                  isApplied ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600"
-                }`}
-                disabled={isApplied}
-                onClick={() => setShowApplyModal(true)}
-              >
-                <FaPaperPlane size={18} />
-                {isApplied ? t("applied") : t("apply")}
-              </button>
-            )}
+              {/* Apliciraj */}
+              {isJobCategory && (
+                <button
+                  onClick={() => setShowApplyModal(true)}
+                  disabled={isApplied}
+                  className={cn(
+                    "col-span-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white transition-all shadow-sm",
+                    isApplied ? "bg-slate-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700 active:scale-[0.98]"
+                  )}
+                >
+                   <MdWorkOutline className="text-lg" />
+                   <span>{isApplied ? "Već aplicirano" : "Apliciraj"}</span>
+                </button>
+              )}
+          </div>
+
+          <div className="mt-5 text-center">
+             <CustomLink 
+               href={`/seller/${seller?.id}`}
+               className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-primary transition-colors uppercase tracking-wide"
+             >
+                Profil korisnika <MdArrowForward />
+             </CustomLink>
           </div>
         </div>
       </div>
 
-      {/* Phone Number Modal */}
-      {showPhoneModal && (
-        <div 
-          className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowPhoneModal(false)}
-        >
-          <div 
-            className="modal-content bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={() => setShowPhoneModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <IoClose size={24} className="text-gray-600" />
-              </button>
+      {/* PHONE MODAL */}
+      <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>
+        <DialogContent className="sm:max-w-sm w-[90%] p-0 gap-0 rounded-3xl overflow-hidden bg-white border-none shadow-2xl">
+            <div className="bg-slate-900 text-white p-6 relative flex flex-col items-center justify-center">
+                <button 
+                  onClick={() => setIsPhoneModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                >
+                   <MdClose size={20} />
+                </button>
+                
+                <CustomImage
+                    src={seller?.profile}
+                    alt="Seller"
+                    width={80}
+                    height={80}
+                    className="w-20 h-20 rounded-full object-cover border-4 border-white/20 mb-3 shadow-lg"
+                 />
+                 <h3 className="font-bold text-xl">{seller?.name}</h3>
+                 <p className="text-slate-300 text-sm">Kontakt informacije</p>
             </div>
 
-            {/* Icon */}
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <BiPhoneCall size={32} className="text-green-600" />
-              </div>
+            <div className="p-6 bg-white">
+                 <div 
+                   onClick={handleCopyPhone}
+                   className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 text-center cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all group"
+                 >
+                    <p className="text-3xl font-black text-slate-800 tracking-tight group-hover:scale-105 transition-transform">
+                      {seller?.mobile}
+                    </p>
+                    <p className="text-xs font-medium text-slate-400 mt-2 uppercase tracking-wide">
+                      Dodirni za kopiranje
+                    </p>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-3 mt-6">
+                    <button 
+                      onClick={handleCopyPhone}
+                      className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all"
+                    >
+                      {isCopied ? <MdCheck className="text-green-600 text-xl" /> : <MdContentCopy className="text-xl" />}
+                      <span>{isCopied ? "Kopirano" : "Kopiraj"}</span>
+                    </button>
+
+                    <a 
+                      href={`tel:${seller?.mobile}`}
+                      className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold bg-green-600 text-white hover:bg-green-700 active:scale-[0.98] transition-all shadow-lg shadow-green-200"
+                    >
+                      <MdPhone className="text-xl" />
+                      <span>Pozovi</span>
+                    </a>
+                 </div>
             </div>
-
-            {/* Title */}
-            <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
-              {"Kontaktiraj prodavača"}
-            </h3>
-
-            {/* Seller Name */}
-            <p className="text-center text-gray-600 mb-6">
-              {productDetails?.user?.name}
-            </p>
-
-            {/* Phone Number - Hyperlink */}
-            <a
-              href={`tel:+${productDetails?.user?.country_code}${productDetails?.user?.mobile}`}
-              className="block w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl text-center font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
-            >
-              +{productDetails?.user?.country_code}{productDetails?.user?.mobile}
-            </a>
-
-            {/* Helper Text */}
-            <p className="text-center text-xs text-gray-500 mt-4">
-              {"Klik od poziva!"}
-            </p>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       <MakeOfferModal
         isOpen={IsOfferModalOpen}

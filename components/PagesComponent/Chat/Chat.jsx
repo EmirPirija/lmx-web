@@ -2,7 +2,7 @@
 import SelectedChatHeader from "./SelectedChatHeader";
 import ChatList from "./ChatList";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import NoChatFound from "./NoChatFound";
 import ChatMessages from "./ChatMessages";
 import { useSelector } from "react-redux";
@@ -11,11 +11,11 @@ import { useMediaQuery } from "usehooks-ts";
 import { chatListApi } from "@/utils/api";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { userSignUpData } from "@/redux/reducer/authSlice";
-import useWebSocket from "@/hooks/useWebSocket"; 
+import useWebSocket from "@/hooks/useWebSocket";
+import { toast } from "sonner";
 
 const Chat = () => {
   const searchParams = useSearchParams();
-  const activeTab = searchParams.get("activeTab") || "selling";
   const chatId = Number(searchParams.get("chatid")) || "";
   const [selectedChatDetails, setSelectedChatDetails] = useState();
   const langCode = useSelector(getCurrentLangCode);
@@ -24,309 +24,684 @@ const Chat = () => {
 
   const [IsLoading, setIsLoading] = useState(true);
 
-  const [buyer, setBuyer] = useState({
-    BuyerChatList: [],
-    CurrentBuyerPage: 1,
-    HasMoreBuyer: false,
+  // --- TABS & LISTS STATE ---
+  const [activeTab, setActiveTab] = useState("inbox"); // 'inbox', 'unread', 'archived'
+  
+  // --- SEARCH STATES ---
+  const [searchQuery, setSearchQuery] = useState(""); // Za pretragu korisnika u listi lijevo
+  const [messageSearchQuery, setMessageSearchQuery] = useState(""); // Za pretragu poruka u chatu desno
+  
+  // --- BULK ACTION STATES ---
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedChats, setSelectedChats] = useState(new Set());
+
+  // --- DATA STATES ---
+  const [chats, setChats] = useState({
+    all: [],        // Svi aktivni chatovi
+    archived: [],   // Arhivirani chatovi
+    currentPage: 1,
+    hasMore: false,
   });
 
-  const [seller, setSeller] = useState({
-    SellerChatList: [],
-    CurrentSellerPage: 1,
-    HasMoreSeller: false,
-  });
-
+  // --- WEBSOCKET STATES ---
   const [typingUsers, setTypingUsers] = useState({});
-  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [incomingMessage, setIncomingMessage] = useState(null);
+  const [messageStatusUpdate, setMessageStatusUpdate] = useState(null);
+  const markedSeenChats = useRef(new Set());
+  const onlineTimeouts = useRef(new Map());
 
   const isLargeScreen = useMediaQuery("(min-width: 1200px)");
 
-  const { isConnected, subscribeToChat, unsubscribeFromChat } = useWebSocket({
-    userId: user?.id,
-    onMessage: handleWebSocketMessage,
-  });
+  // === HELPERS ZA FILTRIRANJE ===
 
-  useEffect(() => {
-    if (chatId && user?.id) {
-      console.log('📡 Subscribing to chat:', chatId);
-      subscribeToChat(chatId);
+  // Filtrira listu na osnovu search inputa (za lijevu stranu)
+  const filterBySearch = (list) => {
+    if (!searchQuery.trim()) return list;
+    const query = searchQuery.toLowerCase();
+    return list.filter(chat => {
+      const otherUser = chat?.buyer?.id === user?.id ? chat?.seller : chat?.buyer;
+      const userName = otherUser?.name?.toLowerCase() || "";
+      const itemName = (chat?.item?.name || chat?.item?.translated_name || "").toLowerCase();
+      return userName.includes(query) || itemName.includes(query);
+    });
+  };
+
+  // Računamo liste
+  const inboxChats = chats.all.filter(c => !c.is_archived && !c.is_deleted);
+  const unreadChats = inboxChats.filter(c => c.unread_chat_count > 0);
+  const archivedChats = chats.archived;
+
+  // Određujemo koja lista se prikazuje
+  const getCurrentList = () => {
+    switch (activeTab) {
+      case "unread":
+        return filterBySearch(unreadChats);
+      case "archived":
+        return filterBySearch(archivedChats);
+      default:
+        return filterBySearch(inboxChats);
     }
-    return () => {
-      if (chatId) {
-        console.log('📴 Unsubscribing from chat:', chatId);
-        unsubscribeFromChat(chatId);
-      }
-    };
-  }, [chatId, user?.id]);
+  };
 
-  function handleWebSocketMessage(data) {
-    console.log('📨 WebSocket received:', data);
+  const unreadCount = unreadChats.length;
+  const archivedCount = archivedChats.length;
+
+  // === WEBSOCKET HANDLER ===
+  const handleWebSocketMessage = useCallback((data) => {
+    // console.log('📨 WebSocket message received:', data);
     
     switch (data.type) {
       case 'typing':
         handleTypingIndicator(data);
         break;
-      case 'user_status':
-        handleUserStatus(data);
+      case 'new_message':
+        handleNewMessage(data);
         break;
       case 'message_status':
         handleMessageStatus(data);
         break;
-      case 'new_message':
-        handleNewMessage(data);
+      case 'user_online_status':
+      case 'user_status':
+        handleOnlineStatus(data);
         break;
       default:
-        console.warn('⚠️ Unknown WebSocket message type:', data.type);
+        break;
     }
-  }
+  }, [chatId, user?.id]);
 
-  function handleTypingIndicator(data) {
-    const { chat_id, user_id, is_typing } = data;
-    
-    if (is_typing) {
-      setTypingUsers(prev => ({ ...prev, [chat_id]: user_id }));
-      setTimeout(() => {
-        setTypingUsers(prev => {
-          const updated = { ...prev };
-          if (updated[chat_id] === user_id) {
-            delete updated[chat_id];
-          }
-          return updated;
-        });
-      }, 3000);
-    } else {
-      setTypingUsers(prev => {
-        const updated = { ...prev };
-        delete updated[chat_id];
-        return updated;
-      });
+  const { isConnected, subscribeToChat, unsubscribeFromChat, subscribeToMultipleChats } = useWebSocket({
+    userId: user?.id,
+    onMessage: handleWebSocketMessage,
+  });
+
+  // Subscribe na trenutni chat
+  useEffect(() => {
+    if (chatId && user?.id && isConnected) {
+      subscribeToChat(chatId);
     }
-
-    updateChatListTypingStatus(chat_id, user_id, is_typing);
-  }
-
-  function handleUserStatus(data) {
-    const { user_id, status } = data;
-    
-    setOnlineUsers(prev => {
-      const updated = new Set(prev);
-      if (status === 'online') {
-        updated.add(user_id);
-      } else {
-        updated.delete(user_id);
+    return () => {
+      if (chatId) {
+        unsubscribeFromChat(chatId);
+        markedSeenChats.current.delete(chatId);
       }
-      return updated;
+    };
+  }, [chatId, user?.id, isConnected, subscribeToChat, unsubscribeFromChat]);
+
+  // Subscribe na sve chatove u listi (za update zadnje poruke i statusa u realnom vremenu)
+  useEffect(() => {
+    if (!isConnected || !user?.id) return;
+    const allChatIds = [...chats.all, ...chats.archived].map(c => c.id).filter(Boolean);
+    if (allChatIds.length > 0) {
+      subscribeToMultipleChats(allChatIds);
+    }
+  }, [isConnected, user?.id, chats.all, chats.archived, subscribeToMultipleChats]);
+
+  // === WEBSOCKET LOGIC FUNCTIONS ===
+  
+  function handleTypingIndicator(data) {
+    const eventUserId = Number(data.user_id);
+    const eventChatId = Number(data.chat_id);
+    
+    if (eventUserId === Number(user?.id)) return;
+    
+    const isTypingBool = data.is_typing === true || data.is_typing === 'true' || 
+                         data.is_typing === 1 || data.is_typing === '1';
+
+    updateChatProperty(eventChatId, (chat) => {
+      const newChat = { ...chat };
+      if (newChat.buyer?.id === eventUserId) {
+        newChat.buyer = { ...newChat.buyer, is_typing: isTypingBool };
+      }
+      if (newChat.seller?.id === eventUserId) {
+        newChat.seller = { ...newChat.seller, is_typing: isTypingBool };
+      }
+      return newChat;
     });
 
-    updateChatListOnlineStatus(user_id, status === 'online');
+    if (eventChatId === Number(chatId)) {
+      if (isTypingBool) {
+        setTypingUsers(prev => ({ ...prev, [eventChatId]: eventUserId }));
+        // Auto remove typing indicator after 3s
+        setTimeout(() => {
+          setTypingUsers(prev => {
+            const updated = { ...prev };
+            if (updated[eventChatId] === eventUserId) delete updated[eventChatId];
+            return updated;
+          });
+        }, 3000);
+      } else {
+        setTypingUsers(prev => {
+          const updated = { ...prev };
+          delete updated[eventChatId];
+          return updated;
+        });
+      }
+    }
   }
 
   function handleMessageStatus(data) {
-    const { message_id, status, chat_id } = data;
-    console.log(`📧 Message ${message_id} status: ${status}`);
+    setMessageStatusUpdate(data);
+  }
+
+  function handleOnlineStatus(data) {
+    const targetUserId = Number(data.user_id);
+    
+    // Normalizacija statusa
+    const rawStatus = data.is_online !== undefined ? data.is_online : data.status;
+    const isOnline = 
+      rawStatus === true || 
+      rawStatus === "true" || 
+      rawStatus === 1 || 
+      rawStatus === "1" || 
+      rawStatus === "online";
+    
+    if (!isOnline) {
+      updateUserOnlineStatus(targetUserId, false);
+      return;
+    }
+    
+    if (onlineTimeouts.current.has(targetUserId)) {
+      clearTimeout(onlineTimeouts.current.get(targetUserId));
+    }
+    
+    updateUserOnlineStatus(targetUserId, true);
+    
+    // Auto-offline fallback
+    const timeout = setTimeout(() => {
+      updateUserOnlineStatus(targetUserId, false);
+      onlineTimeouts.current.delete(targetUserId);
+    }, 120000); // 2 minute
+    
+    onlineTimeouts.current.set(targetUserId, timeout);
+  }
+
+  function updateUserOnlineStatus(targetUserId, isOnline) {
+    const updateList = (list) => list.map(chat => {
+      const newChat = { ...chat };
+      if (newChat.buyer?.id === targetUserId) {
+        newChat.buyer = { ...newChat.buyer, is_online: isOnline };
+      }
+      if (newChat.seller?.id === targetUserId) {
+        newChat.seller = { ...newChat.seller, is_online: isOnline };
+      }
+      return newChat;
+    });
+
+    setChats(prev => ({
+      ...prev,
+      all: updateList(prev.all),
+      archived: updateList(prev.archived)
+    }));
+    
+    setSelectedChatDetails(prev => {
+      if (!prev) return prev;
+      const newDetails = { ...prev };
+      if (newDetails.buyer?.id === targetUserId) {
+        newDetails.buyer = { ...newDetails.buyer, is_online: isOnline };
+      }
+      if (newDetails.seller?.id === targetUserId) {
+        newDetails.seller = { ...newDetails.seller, is_online: isOnline };
+      }
+      return newDetails;
+    });
   }
 
   function handleNewMessage(data) {
-    const { message } = data;
-    console.log('💬 New message received:', message);
-    updateChatListLastMessage(message.chat_id, message);
-  }
-
-  function updateChatListTypingStatus(chatId, userId, isTyping) {
-    const updateList = (list) => list.map(chat => {
-      if (chat.id === chatId) {
-        const user = activeTab === 'selling' ? chat.buyer : chat.seller;
-        if (user.id === userId) {
-          return {
-            ...chat,
-            [activeTab === 'selling' ? 'buyer' : 'seller']: {
-              ...user,
-              is_typing: isTyping
-            }
-          };
-        }
-      }
-      return chat;
+    const message = data.message || data;
+    const msgChatId = Number(message.chat_id || message.item_offer_id);
+    const senderId = Number(message.sender_id);
+    const currentUserId = Number(user?.id);
+    const currentOpenChatId = Number(chatId);
+    
+    // Ažuriraj listu chatova (pomjeri na vrh, update tekst)
+    updateChatProperty(msgChatId, (chat) => {
+      const shouldIncrementUnread = senderId !== currentUserId && msgChatId !== currentOpenChatId;
+      return {
+        ...chat,
+        last_message: message.message,
+        last_message_type: message.message_type,
+        last_message_time: message.created_at,
+        last_message_sender_id: senderId,
+        unread_chat_count: shouldIncrementUnread 
+          ? (chat.unread_chat_count || 0) + 1 
+          : chat.unread_chat_count
+      };
     });
 
-    if (activeTab === 'selling') {
-      setSeller(prev => ({
-        ...prev,
-        SellerChatList: updateList(prev.SellerChatList)
-      }));
-    } else {
-      setBuyer(prev => ({
-        ...prev,
-        BuyerChatList: updateList(prev.BuyerChatList)
-      }));
-    }
-  }
-
-  function updateChatListOnlineStatus(userId, isOnline) {
-    const updateList = (list) => list.map(chat => {
-      const user = activeTab === 'selling' ? chat.buyer : chat.seller;
-      if (user.id === userId) {
-        return {
-          ...chat,
-          [activeTab === 'selling' ? 'buyer' : 'seller']: {
-            ...user,
-            is_online: isOnline
-          }
-        };
-      }
-      return chat;
-    });
-
-    setSeller(prev => ({
+    // Sortiraj listu ponovo
+    setChats(prev => ({
       ...prev,
-      SellerChatList: updateList(prev.SellerChatList)
+      all: [...prev.all].sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return new Date(b.last_message_time) - new Date(a.last_message_time);
+      })
     }));
     
-    setBuyer(prev => ({
+    // Ako je taj chat otvoren, dodaj poruku u state
+    if (msgChatId === currentOpenChatId) {
+      setIncomingMessage({
+        ...message,
+        id: message.id || `ws-${Date.now()}`,
+        item_offer_id: msgChatId,
+        created_at: message.created_at || new Date().toISOString(),
+        status: senderId === currentUserId ? 'sent' : 'delivered'
+      });
+      
+      if (senderId !== currentUserId) {
+        markChatAsSeenInternal(msgChatId, false);
+      }
+    }
+  }
+
+  function updateChatProperty(chatId, updateFn) {
+    setChats(prev => ({
       ...prev,
-      BuyerChatList: updateList(prev.BuyerChatList)
+      all: prev.all.map(chat => chat.id === chatId ? updateFn(chat) : chat),
+      archived: prev.archived.map(chat => chat.id === chatId ? updateFn(chat) : chat)
     }));
   }
 
-  function updateChatListLastMessage(chatId, message) {
-    const updateList = (list) => list.map(chat => {
-      if (chat.id === chatId) {
-        return {
-          ...chat,
-          last_message: message.message,
-          last_message_type: message.message_type,
-          last_message_time: message.created_at,
-          last_message_sender_id: message.sender_id,
-          unread_chat_count: message.sender_id !== user?.id 
-            ? (chat.unread_chat_count || 0) + 1 
-            : chat.unread_chat_count
-        };
+  // === CHAT ACTIONS ===
+
+  // 1. MUTE CHAT
+  const muteChat = async (targetChatId) => {
+      const id = targetChatId || chatId;
+      try {
+          await chatListApi.muteChat(id);
+          toast.success("Notifikacije za ovaj chat su isključene");
+      } catch (error) {
+          toast.error("Greška pri isključivanju notifikacija");
       }
-      return chat;
-    });
+  };
 
-    if (activeTab === 'selling') {
-      setSeller(prev => ({
-        ...prev,
-        SellerChatList: updateList(prev.SellerChatList)
-      }));
-    } else {
-      setBuyer(prev => ({
-        ...prev,
-        BuyerChatList: updateList(prev.BuyerChatList)
-      }));
-    }
-  }
 
-  /**
-   * 🆕 Mark messages as seen when chat is opened
-   */
-  async function markChatAsSeen(chatId) {
-    if (!chatId || !user?.id) return;
-  
+const handleToggleMuteChat = async (targetChatId, isCurrentlyMuted) => {
     try {
-      const response = await chatListApi.markSeen(chatId);
-      console.log('✅ Messages marked as seen:', response.data);
-  
-      // Update unread count
-      const updateList = (list) => list.map(chat => 
-        chat.id === chatId ? { ...chat, unread_chat_count: 0 } : chat
+      // 1. Optimistično ažuriranje UI-a (odmah mijenjamo state)
+      const updateList = (list) => list.map(c => 
+        c.id === targetChatId ? { ...c, is_muted: !isCurrentlyMuted } : c
       );
-  
-      if (activeTab === 'selling') {
-        setSeller(prev => ({ ...prev, SellerChatList: updateList(prev.SellerChatList) }));
+
+      setChats(prev => ({
+        ...prev,
+        all: updateList(prev.all),
+        archived: updateList(prev.archived)
+      }));
+
+      // Ažuriraj i selectedChatDetails ako je taj chat trenutno otvoren
+      if (selectedChatDetails?.id === targetChatId) {
+        setSelectedChatDetails(prev => ({ ...prev, is_muted: !isCurrentlyMuted }));
+      }
+
+      // 2. API Poziv
+      if (isCurrentlyMuted) {
+        await chatListApi.unmuteChat(targetChatId);
+        toast.success("Notifikacije uključene");
       } else {
-        setBuyer(prev => ({ ...prev, BuyerChatList: updateList(prev.BuyerChatList) }));
+        await chatListApi.muteChat(targetChatId);
+        toast.success("Notifikacije isključene");
       }
+
     } catch (error) {
-      console.error('❌ Error:', error);
+      console.error("Greška pri mute/unmute:", error);
+      toast.error("Greška pri promjeni postavki");
+      fetchAllChats(); // Vrati staro stanje ako pukne API
+    }
+  };
+  
+
+  // 2. ARCHIVE CHAT
+  const archiveChat = async (chatId) => {
+    try {
+      setChats(prev => {
+        const chatToArchive = prev.all.find(c => c.id === chatId);
+        if (!chatToArchive) return prev; 
+        
+        return {
+          ...prev,
+          all: prev.all.filter(c => c.id !== chatId),
+          archived: [{ ...chatToArchive, is_archived: true }, ...prev.archived]
+        };
+      });
+      
+      await chatListApi.archiveChat(chatId);
+      toast.success("Chat arhiviran");
+      
+      // Ako arhiviramo trenutno otvoreni chat, vratimo se nazad
+      if(Number(chatId) === Number(selectedChatDetails?.id)) {
+          handleBack();
+      }
+
+    } catch (error) {
+      console.error("Error archiving chat:", error);
+      toast.error("Greška pri arhiviranju");
+      fetchAllChats(); 
+    }
+  };
+
+  const unarchiveChat = async (chatId) => {
+    try {
+      setChats(prev => {
+        const chatToUnarchive = prev.archived.find(c => c.id === chatId);
+        if (!chatToUnarchive) return prev;
+        
+        return {
+          ...prev,
+          archived: prev.archived.filter(c => c.id !== chatId),
+          all: [{ ...chatToUnarchive, is_archived: false }, ...prev.all]
+        };
+      });
+      
+      await chatListApi.unarchiveChat(chatId);
+      toast.success("Chat vraćen u inbox");
+    } catch (error) {
+      console.error("Error unarchiving chat:", error);
+      toast.error("Greška pri vraćanju");
+      fetchAllChats();
+    }
+  };
+
+  // 3. DELETE CHAT
+  const deleteChat = (chatId) => {
+    toast("Jeste li sigurni da želite obrisati ovaj razgovor?", {
+      description: "Ova radnja je nepovratna i izbrisat će sve poruke.",
+      action: {
+        label: "Obriši",
+        onClick: async () => {
+          try {
+            setChats(prev => ({
+              ...prev,
+              all: prev.all.filter(c => c.id !== chatId),
+              archived: prev.archived.filter(c => c.id !== chatId)
+            }));
+            
+            await chatListApi.deleteChat(chatId);
+            toast.success("Chat uspješno obrisan");
+            
+            if (Number(chatId) === Number(selectedChatDetails?.id)) {
+              handleBack();
+            }
+          } catch (error) {
+            console.error("Error deleting chat:", error);
+            toast.error("Greška pri brisanju");
+            fetchAllChats();
+          }
+        },
+      },
+      cancel: {
+        label: "Odustani",
+        onClick: () => toast.dismiss(),
+      },
+      duration: 5000,
+    });
+  };
+
+  // --- WRAPPERS ZA HEADER ---
+  const handleDeleteCurrentChat = () => {
+      if(chatId) deleteChat(chatId);
+  };
+
+
+  const handleUnarchiveCurrentChat = () => {
+    if(chatId) unarchiveChat(chatId);
+  };
+
+  const handleArchiveCurrentChat = () => {
+      if(chatId) archiveChat(chatId);
+  };
+  
+  const handleMessageSearch = (query) => {
+      setMessageSearchQuery(query);
+  };
+
+  // --- OSTALE AKCIJE ---
+
+  const markAsUnread = async (chatId) => {
+    try {
+      updateChatProperty(chatId, chat => ({ ...chat, unread_chat_count: 1 }));
+      await chatListApi.markAsUnread(chatId);
+      toast.success("Označeno kao nepročitano");
+    } catch (error) {
+      console.error("Error marking as unread:", error);
+    }
+  };
+
+  const markAsRead = async (chatId) => {
+    try {
+      updateChatProperty(chatId, chat => ({ ...chat, unread_chat_count: 0 }));
+      await chatListApi.markSeen(chatId);
+      toast.success("Označeno kao pročitano");
+    } catch (error) {
+      console.error("Error marking as read:", error);
+    }
+  };
+
+  const pinChat = async (chatId) => {
+    try {
+      const chat = [...chats.all, ...chats.archived].find(c => c.id === chatId);
+      const newPinned = !chat?.is_pinned;
+      
+      updateChatProperty(chatId, chat => ({ ...chat, is_pinned: newPinned }));
+      
+      setChats(prev => ({
+        ...prev,
+        all: [...prev.all].sort((a, b) => {
+          if (a.is_pinned && !b.is_pinned) return -1;
+          if (!a.is_pinned && b.is_pinned) return 1;
+          return new Date(b.last_message_time) - new Date(a.last_message_time);
+        })
+      }));
+      
+      await chatListApi.pinChat(chatId, newPinned);
+      toast.success(newPinned ? "Chat zakačen" : "Chat otkačen");
+    } catch (error) {
+      console.error("Error pinning chat:", error);
+      toast.error("Greška");
+    }
+  };
+
+  // --- BULK ACTIONS ---
+  const bulkArchive = () => {
+    const ids = Array.from(selectedChats);
+    const count = ids.length;
+
+    if (count === 0) return;
+
+    toast(`Želite li arhivirati ${count} razgovora?`, {
+      description: "Razgovori će biti prebačeni u arhivu.",
+      action: {
+        label: "Arhiviraj sve",
+        onClick: async () => {
+          try {
+            setChats(prev => {
+              const chatsToArchive = prev.all.filter(c => selectedChats.has(c.id));
+              return {
+                all: prev.all.filter(c => !selectedChats.has(c.id)),
+                archived: [...prev.archived, ...chatsToArchive]
+              };
+            });
+
+            setBulkSelectMode(false);
+            setSelectedChats(new Set());
+
+            await Promise.all(ids.map(id => chatListApi.archiveChat(id)));
+            toast.success("Razgovori arhivirani");
+          } catch (error) {
+            console.error("Error bulk archiving:", error);
+            toast.error("Greška pri arhiviranju");
+            fetchAllChats();
+          }
+        },
+      },
+      cancel: {
+        label: "Odustani",
+        onClick: () => toast.dismiss(),
+      },
+    });
+  };
+
+  const bulkDelete = () => {
+    const ids = Array.from(selectedChats);
+    const count = ids.length;
+
+    if (count === 0) return;
+
+    toast(`Jeste li sigurni da želite obrisati ${count} razgovora?`, {
+      description: "Ovo se ne može poništiti.",
+      action: {
+        label: "Obriši sve",
+        onClick: async () => {
+          try {
+            setChats(prev => ({
+              ...prev,
+              all: prev.all.filter(c => !selectedChats.has(c.id)),
+              archived: prev.archived.filter(c => !selectedChats.has(c.id))
+            }));
+
+            setBulkSelectMode(false);
+            setSelectedChats(new Set());
+
+            if (selectedChatDetails && selectedChats.has(selectedChatDetails.id)) {
+              handleBack();
+            }
+
+            await Promise.all(ids.map(id => chatListApi.deleteChat(id)));
+            toast.success(`${count} razgovora obrisano`);
+
+          } catch (error) {
+            console.error("Error bulk deleting:", error);
+            toast.error("Greška pri grupnom brisanju");
+            fetchAllChats();
+          }
+        }
+      },
+      cancel: {
+        label: "Odustani",
+        onClick: () => toast.dismiss() 
+      }
+    });
+  };
+
+  const bulkMarkRead = async () => {
+    const ids = Array.from(selectedChats);
+    for (const id of ids) {
+      await markAsRead(id);
+    }
+    setBulkSelectMode(false);
+    setSelectedChats(new Set());
+  };
+
+  const toggleSelectChat = (chatId) => {
+    setSelectedChats(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(chatId)) {
+        newSet.delete(chatId);
+      } else {
+        newSet.add(chatId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    const currentList = getCurrentList();
+    setSelectedChats(new Set(currentList.map(c => c.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedChats(new Set());
+  };
+
+  // --- MARK SEEN INTERNAL ---
+  async function markChatAsSeenInternal(targetChatId, updateUI = true) {
+    const cId = Number(targetChatId);
+    if (!cId || !user?.id) return;
+
+    try {
+      if (updateUI) {
+        updateChatProperty(cId, chat => ({ ...chat, unread_chat_count: 0 }));
+        if (selectedChatDetails?.id === cId) {
+          setSelectedChatDetails(prev => prev ? { ...prev, unread_chat_count: 0 } : prev);
+        }
+      }
+      await chatListApi.markSeen(cId);
+    } catch (error) {
+      console.error('Error marking messages as seen:', error);
     }
   }
 
-  const fetchSellerChatList = async (page = 1) => {
-    if (page === 1) {
-      setIsLoading(true);
-    }
+  const markChatAsSeen = useCallback(async (targetChatId) => {
+    const cId = Number(targetChatId);
+    if (markedSeenChats.current.has(cId)) return;
+    markedSeenChats.current.add(cId);
+    await markChatAsSeenInternal(cId, true);
+  }, [user?.id, selectedChatDetails?.id]);
+
+  // === DATA FETCHING ===
+  const fetchAllChats = async (page = 1) => {
+    if (page === 1) setIsLoading(true);
+    
     try {
-      const res = await chatListApi.chatList({ type: "seller", page });
-      
-      const responseData = res?.data?.data || res?.data;
-      const data = responseData?.data || responseData;
-      const currentPage = responseData?.current_page || 1;
-      const lastPage = responseData?.last_page || 1;
+      const [sellerRes, buyerRes, archivedRes] = await Promise.all([
+        chatListApi.chatList({ type: "seller", page }),
+        chatListApi.chatList({ type: "buyer", page }),
+        chatListApi.chatList({ type: "archived", page }).catch(() => ({ data: { data: [] } }))
+      ]);
 
-      if (data && Array.isArray(data)) {
-        setSeller((prev) => ({
-          ...prev,
-          SellerChatList: page === 1 ? data : [...prev.SellerChatList, ...data],
-          CurrentSellerPage: currentPage,
-          HasMoreSeller: currentPage < lastPage,
-        }));
-      }
+      const extractData = (res) => {
+        const responseData = res?.data?.data || res?.data;
+        return responseData?.data || responseData || [];
+      };
+
+      const sellerChats = extractData(sellerRes).map(chat => ({ ...chat, chatType: 'selling' }));
+      const buyerChats = extractData(buyerRes).map(chat => ({ ...chat, chatType: 'buying' }));
+      const archived = extractData(archivedRes).map(chat => ({ ...chat, is_archived: true }));
+
+      const allChats = [...sellerChats, ...buyerChats]
+        .filter((chat, index, self) => index === self.findIndex(c => c.id === chat.id))
+        .filter(c => !c.deleted_by?.includes(user?.id) && !c.deleted_by?.includes(String(user?.id)))
+        .sort((a, b) => {
+          if (a.is_pinned && !b.is_pinned) return -1;
+          if (!a.is_pinned && b.is_pinned) return 1;
+          return new Date(b.last_message_time || 0) - new Date(a.last_message_time || 0);
+        });
+
+      setChats({
+        all: allChats,
+        archived: archived,
+        currentPage: page,
+        hasMore: false
+      });
+
     } catch (error) {
-      console.error("Error fetching seller chat list:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchBuyerChatList = async (page = 1) => {
-    if (page === 1) {
-      setIsLoading(true);
-    }
-    try {
-      const res = await chatListApi.chatList({ type: "buyer", page });
-      
-      const responseData = res?.data?.data || res?.data;
-      const data = responseData?.data || responseData;
-      const currentPage = responseData?.current_page || 1;
-      const lastPage = responseData?.last_page || 1;
-
-      if (data && Array.isArray(data)) {
-        setBuyer((prev) => ({
-          ...prev,
-          BuyerChatList: page === 1 ? data : [...prev.BuyerChatList, ...data],
-          CurrentBuyerPage: currentPage,
-          HasMoreBuyer: currentPage < lastPage,
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching buyer chat list:", error);
+      console.error("Error fetching chats:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    activeTab === "selling" ? fetchSellerChatList() : fetchBuyerChatList();
-  }, [activeTab, langCode]);
+    fetchAllChats();
+  }, [langCode]);
 
   useEffect(() => {
-    if (chatId && activeTab === "selling" && seller.SellerChatList.length > 0) {
-      setSelectedChatDetails(
-        seller.SellerChatList.find((chat) => chat.id === chatId)
-      );
-    } else if (
-      chatId &&
-      activeTab === "buying" &&
-      buyer.BuyerChatList.length > 0
-    ) {
-      setSelectedChatDetails(
-        buyer.BuyerChatList.find((chat) => chat.id === chatId)
-      );
-    } else if (!chatId) {
+    if (chatId) {
+      const allAvailable = [...chats.all, ...chats.archived];
+      const found = allAvailable.find(chat => chat.id === chatId);
+      setSelectedChatDetails(found);
+      setMessageSearchQuery(""); // Reset pretrage poruka kada se promijeni chat
+    } else {
       setSelectedChatDetails("");
     }
-  }, [chatId, activeTab, seller.SellerChatList, buyer.BuyerChatList, langCode]);
+  }, [chatId, chats.all, chats.archived]);
 
-  /**
-   * 🆕 Mark messages as seen when chat is opened
-   */
   useEffect(() => {
-    if (chatId && user?.id) {
-      markChatAsSeen(chatId);
-    }
-  }, [chatId, user?.id]);
+    return () => {
+      onlineTimeouts.current.forEach(timeout => clearTimeout(timeout));
+      onlineTimeouts.current.clear();
+    };
+  }, []);
 
   const handleBack = () => {
     const params = new URLSearchParams(searchParams.toString());
@@ -334,68 +709,90 @@ const Chat = () => {
     navigate(`?${params.toString()}`, { scroll: false });
   };
 
-  return (
-    <div className="grid grid-cols-1 xl:grid-cols-12">
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 z-50 bg-white shadow-lg rounded-full px-3 py-1 text-xs">
-          {isConnected ? (
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Connected
-            </span>
-          ) : (
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-              Disconnected
-            </span>
-          )}
-        </div>
-      )}
+  const isSelling = selectedChatDetails?.chatType === 'selling' || 
+                    selectedChatDetails?.seller_id === user?.id;
 
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-12 h-full">
+      {/* Sidebar List */}
       <div className="col-span-4">
         {(isLargeScreen || !chatId || IsLoading) && (
           <ChatList
             chatId={chatId}
-            activeTab={activeTab}
-            buyer={buyer}
-            setBuyer={setBuyer}
-            langCode={langCode}
-            isLargeScreen={isLargeScreen}
-            seller={seller}
-            setSeller={setSeller}
+            chats={getCurrentList()}
             IsLoading={IsLoading}
-            fetchSellerChatList={fetchSellerChatList}
-            fetchBuyerChatList={fetchBuyerChatList}
-            setSelectedChatDetails={setSelectedChatDetails}
+            currentUserId={user?.id}
+            isLargeScreen={isLargeScreen}
+            // Tabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            unreadCount={unreadCount}
+            archivedCount={archivedCount}
+            // Search (Sidebar)
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            // Bulk select
+            bulkSelectMode={bulkSelectMode}
+            setBulkSelectMode={setBulkSelectMode}
+            selectedChats={selectedChats}
+            toggleSelectChat={toggleSelectChat}
+            selectAll={selectAll}
+            deselectAll={deselectAll}
+            bulkArchive={bulkArchive}
+            bulkDelete={bulkDelete}
+            bulkMarkRead={bulkMarkRead}
+            // Actions
+            archiveChat={archiveChat}
+            unarchiveChat={unarchiveChat}
+            deleteChat={deleteChat}
+            onToggleMute={handleToggleMuteChat}
+            markAsUnread={markAsUnread}
+            markAsRead={markAsRead}
+            pinChat={pinChat}
           />
         )}
       </div>
+      
+      {/* Main Chat Area */}
       {(isLargeScreen || chatId) && (
         <div className="col-span-8">
           {selectedChatDetails?.id ? (
-            <div className="ltr:xl:border-l rtl:lg:border-r h-[65vh] lg:h-[800px] flex flex-col">
+            <div className="ltr:xl:border-l rtl:lg:border-r h-[65vh] lg:h-[800px] flex flex-col relative">
+              
+              {/* HEADER SA NOVIM FUNKCIJAMA */}
               <SelectedChatHeader
                 selectedChat={selectedChatDetails}
-                isSelling={activeTab === "selling"}
+                isSelling={isSelling}
                 setSelectedChat={setSelectedChatDetails}
                 handleBack={handleBack}
                 isLargeScreen={isLargeScreen}
+                // Props za akcije iz dropdowna
+                onSearch={handleMessageSearch}
+                onDelete={handleDeleteCurrentChat}
+                onArchive={handleArchiveCurrentChat}
+                onUnarchive={handleUnarchiveCurrentChat}
+                onMute={() => muteChat(chatId)}
+                onShowMedia={() => toast.info("Galerija stiže uskoro!")}
               />
+              
+              {/* MESSAGES COMPONENT SA PRETRAGOM */}
               <ChatMessages
                 selectedChatDetails={selectedChatDetails}
                 setSelectedChatDetails={setSelectedChatDetails}
-                isSelling={activeTab === "selling"}
-                setBuyer={setBuyer}
+                isSelling={isSelling}
+                setChats={setChats}
                 chatId={chatId}
                 isOtherUserTyping={typingUsers[chatId] !== undefined}
+                markChatAsSeen={markChatAsSeen}
+                incomingMessage={incomingMessage}
+                messageStatusUpdate={messageStatusUpdate}
+                // Props za filtriranje poruka
+                searchQuery={messageSearchQuery} 
               />
             </div>
           ) : (
             <div className="ltr:xl:border-l rtl:xl:border-r h-[60vh] lg:h-[800px] flex items-center justify-center">
-              <NoChatFound
-                isLargeScreen={isLargeScreen}
-                handleBack={handleBack}
-              />
+              <NoChatFound isLargeScreen={isLargeScreen} handleBack={handleBack} />
             </div>
           )}
         </div>

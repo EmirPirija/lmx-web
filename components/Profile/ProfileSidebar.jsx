@@ -19,6 +19,7 @@ import ReusableAlertDialog from "../Common/ReusableAlertDialog";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 import { useNavigate } from "../Common/useNavigate";
+import Image from "next/image"; // Dodano za avatar ako ga imate, ili placeholder
 
 const ProfileSidebar = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -80,103 +81,89 @@ const ProfileSidebar = () => {
     }
   };
 
+  // Helper funkcija za stiliziranje linkova da kod bude čišći
+  const getLinkClass = (path) => {
+    const isActive = pathname === path;
+    return `group flex items-center gap-3 py-3 px-4 rounded-lg transition-all duration-200 text-sm font-medium ${
+      isActive
+        ? "bg-primary text-white shadow-md" // Prilagodite 'bg-primary' vašoj boji teme
+        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+    }`;
+  };
+
   return (
-    <>
-      <div className="flex flex-col gap-4 py-6 px-4 h-full">
-        <CustomLink
-          href="/profile"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/profile" ? "profileActiveTab" : ""
-          }`}
-        >
-          <FiUser size={24} />
+    <aside className="h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      
+      {/* 1. Header sekcija sa podacima korisnika (UX poboljšanje) */}
+      <div className="p-6 border-b border-gray-100 flex items-center gap-3">
+        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden shrink-0">
+            {userData?.profile_image ? (
+                 <img src={userData.profile_image} alt="User" className="h-full w-full object-cover" />
+            ) : (
+                 <FiUser size={24} />
+            )}
+        </div>
+        <div className="overflow-hidden">
+            <h3 className="text-sm font-bold text-gray-900 truncate">{userData?.name || "Korisnik"}</h3>
+            <p className="text-xs text-gray-500 truncate">{userData?.email || userData?.phone}</p>
+        </div>
+      </div>
+
+      {/* 2. Scrollable Navigation */}
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+        <CustomLink href="/profile" className={getLinkClass("/profile")}>
+          <FiUser size={20} />
           <span>{t("profile")}</span>
         </CustomLink>
-        <CustomLink
-          href="/notifications"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/notifications" ? "profileActiveTab" : ""
-          }`}
-        >
-          <IoMdNotificationsOutline size={24} />
+        <CustomLink href="/notifications" className={getLinkClass("/notifications")}>
+          <IoMdNotificationsOutline size={20} />
           <span>{t("notifications")}</span>
         </CustomLink>
-        <CustomLink
-          href="/chat"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/chat" ? "profileActiveTab" : ""
-          }`}
-        >
-          <BiChat size={24} />
+        <CustomLink href="/chat" className={getLinkClass("/chat")}>
+          <BiChat size={20} />
           <span>{t("chat")}</span>
         </CustomLink>
-        <CustomLink
-          href="/user-subscription"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/user-subscription" ? "profileActiveTab" : ""
-          }`}
-        >
-          <BiDollarCircle size={24} />
+        <CustomLink href="/user-subscription" className={getLinkClass("/user-subscription")}>
+          <BiDollarCircle size={20} />
           <span>{t("subscription")}</span>
         </CustomLink>
-        <CustomLink
-          href="/my-ads"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/my-ads" ? "profileActiveTab" : ""
-          }`}
-        >
-          <LiaAdSolid size={24} />
+        <CustomLink href="/my-ads" className={getLinkClass("/my-ads")}>
+          <LiaAdSolid size={20} />
           <span>{t("myAds")}</span>
         </CustomLink>
-        <CustomLink
-          href="/favorites"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/favorites" ? "profileActiveTab" : ""
-          }`}
-        >
-          <LuHeart size={24} />
+        <CustomLink href="/favorites" className={getLinkClass("/favorites")}>
+          <LuHeart size={20} />
           <span>{t("favorites")}</span>
         </CustomLink>
-        <CustomLink
-          href="/transactions"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/transactions" ? "profileActiveTab" : ""
-          }`}
-        >
-          <BiReceipt size={24} />
+        <CustomLink href="/transactions" className={getLinkClass("/transactions")}>
+          <BiReceipt size={20} />
           <span>{t("transaction")}</span>
         </CustomLink>
-        <CustomLink
-          href="/reviews"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/reviews" ? "profileActiveTab" : ""
-          }`}
-        >
-          <MdOutlineRateReview size={24} />
+        <CustomLink href="/reviews" className={getLinkClass("/reviews")}>
+          <MdOutlineRateReview size={20} />
           <span>{t("myReviews")}</span>
         </CustomLink>
-        <CustomLink
-          href="/job-applications"
-          className={`flex items-center gap-1 py-2 px-4 ${
-            pathname === "/job-applications" ? "profileActiveTab" : ""
-          }`}
-        >
-          <MdWorkOutline size={24} />
+        <CustomLink href="/job-applications" className={getLinkClass("/job-applications")}>
+          <MdWorkOutline size={20} />
           <span>{t("jobApplications")}</span>
         </CustomLink>
+      </div>
 
+      {/* 3. Footer Actions (Logout & Delete) - Jasno odvojeno */}
+      <div className="p-3 border-t border-gray-100 bg-gray-50/50 space-y-1">
         <button
           onClick={() => setIsLogout(true)}
-          className="flex items-center gap-1 py-2 px-4"
+          className="w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors duration-200"
         >
-          <RiLogoutCircleLine size={24} />
+          <RiLogoutCircleLine size={20} />
           <span>{t("signOut")}</span>
         </button>
+        
         <button
           onClick={() => setIsDeleteAccount(true)}
-          className="flex items-center gap-1 py-2 px-4 text-destructive"
+          className="w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
         >
-          <BiTrashAlt size={24} />
+          <BiTrashAlt size={20} />
           <span>{t("deleteAccount")}</span>
         </button>
       </div>
@@ -200,18 +187,22 @@ const ProfileSidebar = () => {
         onConfirm={handleDeleteAcc}
         title={t("areYouSure")}
         description={
-          <ul className="list-disc list-inside mt-2">
-            <li>{t("adsAndTransactionWillBeDeleted")}</li>
-            <li>{t("accountsDetailsWillNotRecovered")}</li>
-            <li>{t("subWillBeCancelled")}</li>
-            <li>{t("savedMesgWillBeLost")}</li>
-          </ul>
+          <div className="bg-red-50 p-3 rounded-md border border-red-100">
+             <p className="text-red-800 text-sm font-semibold mb-2">{t("warning")}:</p>
+              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                <li>{t("adsAndTransactionWillBeDeleted")}</li>
+                <li>{t("accountsDetailsWillNotRecovered")}</li>
+                <li>{t("subWillBeCancelled")}</li>
+                <li>{t("savedMesgWillBeLost")}</li>
+              </ul>
+          </div>
         }
         cancelText={t("cancel")}
         confirmText={t("yes")}
         confirmDisabled={IsDeleting}
+        confirmButtonClass="bg-red-600 hover:bg-red-700" // Opcionalno, ako komponenta podržava
       />
-    </>
+    </aside>
   );
 };
 

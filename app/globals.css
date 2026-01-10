@@ -289,3 +289,89 @@ html {
   -webkit-backdrop-filter: blur(8px);
   transition: backdrop-filter 0.3s ease;
 }
+
+/* Range Slider Styling */
+.slider-thumb::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider-thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.slider-thumb::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* -------------------------------------------------------------------------- */
+/* GLOBALNI DARK MODE FIX (Univerzalno)                                       */
+/* -------------------------------------------------------------------------- */
+
+@layer utilities {
+
+  /* 1. SVE što je bijelo (bg-white) postaje tamno sivo */
+  .dark .bg-white {
+    background-color: #111827 !important; /* gray-900 */
+    border-color: #374151 !important;     /* Tamniji border */
+    color: #f3f4f6 !important;            /* Svijetli tekst */
+  }
+
+  /* 2. SVE što je svijetlo sivo (bg-gray-100, bg-gray-50) postaje malo svjetlije tamno */
+  .dark .bg-gray-100, 
+  .dark .bg-gray-50 {
+    background-color: #1f2937 !important; /* gray-800 */
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+  }
+
+  /* 3. Popravlja hover efekat na bijelim elementima */
+  .dark .bg-white:hover {
+    background-color: #1f2937 !important; /* Postaje malo svjetliji kad pređeš mišem */
+  }
+
+  /* 4. Sive ikone i sivi tekst postaju svjetliji da se vide na tamnom */
+  .dark .text-gray-500,
+  .dark .text-gray-600, 
+  .dark .text-gray-700 {
+    color: #9ca3af !important; /* gray-400 */
+  }
+
+  /* 5. Ovo rješava tvoj "staklo" header (bg-white/80) */
+  /* Traži bilo koju klasu koja počinje sa bg-white/ i ima prozirnost */
+  .dark [class*="bg-white/"] {
+    background-color: rgba(17, 24, 39, 0.9) !important;
+    border-color: #374151 !important;
+  }
+}
+
+@layer components {
+  /* Ovo cilja sva dugmad koja imaju bijelu pozadinu i tjera ih da budu tamna u dark modu */
+  .bg-white {
+    @apply dark:bg-gray-800 dark:text-white dark:border-gray-700;
+  }
+  
+  /* Ako imaš specifične klase za dugmad, npr .btn */
+  button {
+    @apply dark:border-gray-700;
+  }
+}

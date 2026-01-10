@@ -810,7 +810,7 @@ const AccordionSection = ({
   isCompleted 
 }) => {
   return (
-    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm overflow-visible">
       {/* Header */}
       <div 
         onClick={onToggle}
@@ -985,7 +985,8 @@ const EditComponentTwo = ({
           <div className="flex flex-col">
             <Input
               type={type}
-              inputMode="numeric"
+              step="any"    
+              inputMode="decimal"
               placeholder={`Unesite ${translated_name || name}`}
               {...inputProps}
               onKeyDown={(e) => handleKeyDown(e, max_length)}

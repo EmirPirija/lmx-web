@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
-import { Loader2, Minus, Plus } from "lucide-react";
+import { Loader2, ChevronRight, ChevronDown, Grid3x3 } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { t } from "@/utils";
-import CategoryNode from "./CategoryNode";
 import { useState } from "react";
 import { useNavigate } from "../Common/useNavigate";
 import useGetCategories from "../Layout/useGetCategories";
+import CategoryNode from "./CategoryNode";
 
 const FilterTree = ({ extraDetails }) => {
   const { navigate } = useNavigate();
@@ -23,7 +23,7 @@ const FilterTree = ({ extraDetails }) => {
   const hasMore = catCurrentPage < catLastPage;
 
   const selectedSlug = searchParams.get("category") || "";
-  const isSelected = !selectedSlug; // "All" category is selected when no category is selected
+  const isSelected = !selectedSlug;
 
   const [expanded, setExpanded] = useState(true);
 
@@ -46,55 +46,63 @@ const FilterTree = ({ extraDetails }) => {
   };
 
   return (
-    <ul>
-      <li>
-        <div className="flex items-center rounded text-sm">
+    <div className="space-y-2">
+      <div
+        className={cn(
+          "flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all group",
+          isSelected
+            ? "border-primary bg-primary/5 shadow-sm"
+            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+        )}
+      >
+        <button
+          onClick={handleToggleExpand}
+          className="p-1 hover:bg-gray-200 rounded transition-colors"
+        >
           {isCatLoading ? (
-            <div className="p-1">
-              <Loader2 className="size-[14px] animate-spin text-muted-foreground" />
-            </div>
+            <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+          ) : expanded ? (
+            <ChevronDown className="w-4 h-4 text-gray-600" />
           ) : (
+            <ChevronRight className="w-4 h-4 text-gray-600" />
+          )}
+        </button>
+
+        <Grid3x3 className={cn("w-4 h-4", isSelected ? "text-primary" : "text-gray-400")} />
+
+        <button
+          onClick={handleClick}
+          className={cn(
+            "flex-1 text-left text-sm font-medium transition-colors",
+            isSelected ? "text-primary" : "text-gray-700"
+          )}
+        >
+          {t("allCategories")}
+        </button>
+      </div>
+
+      {expanded && cateData.length > 0 && (
+        <div className="ml-6 space-y-1 border-l-2 border-gray-200 pl-4">
+          {cateData.map((category) => (
+            <CategoryNode
+              key={category.id + "filter-tree"}
+              category={category}
+              extraDetails={extraDetails}
+            />
+          ))}
+
+          {hasMore && (
             <button
-              className="text-sm p-1 hover:bg-muted rounded-sm"
-              onClick={handleToggleExpand}
+              onClick={() => getCategories(catCurrentPage + 1)}
+              disabled={isCatLoadMore}
+              className="w-full py-2 px-3 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors disabled:opacity-50"
             >
-              {expanded ? <Minus size={14} /> : <Plus size={14} />}
+              {isCatLoadMore ? t("loading") : t("loadMore")}
             </button>
           )}
-
-          <button
-            onClick={handleClick}
-            className={cn(
-              "flex-1 ltr:text-left rtl:text-right py-1 px-2 rounded-sm",
-              isSelected && "border bg-muted"
-            )}
-          >
-            {t("allCategories")}
-          </button>
         </div>
-        {expanded && cateData.length > 0 && (
-          <ul className="ltr:ml-3 rtl:mr-3 ltr:border-l rtl:border-r ltr:pl-2 rtl:pr-2 space-y-1">
-            {cateData.map((category) => (
-              <CategoryNode
-                key={category.id + "filter-tree"}
-                category={category}
-                extraDetails={extraDetails}
-              />
-            ))}
-
-            {hasMore && (
-              <button
-                onClick={() => getCategories(catCurrentPage + 1)}
-                className="text-primary text-center text-sm py-1 px-2"
-                disabled={isCatLoadMore}
-              >
-                {isCatLoadMore ? t("loading") : t("loadMore")}
-              </button>
-            )}
-          </ul>
-        )}
-      </li>
-    </ul>
+      )}
+    </div>
   );
 };
 

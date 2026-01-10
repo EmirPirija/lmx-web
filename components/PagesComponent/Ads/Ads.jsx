@@ -25,7 +25,7 @@ import NoData from "@/components/EmptyStates/NoData";
 import { IoGrid } from "react-icons/io5";
 import { CiGrid2H } from "react-icons/ci";
 import { Badge } from "@/components/ui/badge";
-import { IoIosCloseCircle } from "react-icons/io";
+import { IoMdClose } from "react-icons/io"; 
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import Layout from "@/components/Layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -484,305 +484,221 @@ const Ads = () => {
       ? t("within3Months")
       : "";
 
+  // Helper komponenta za konzistentan i ljepši izgled filter tagova
+  const FilterTag = ({ label, onClear }) => (
+    <Badge
+      variant="secondary"
+      className="px-3 py-1.5 h-auto text-sm font-medium flex items-center gap-2 rounded-lg bg-primary/10 text-primary border border-primary/10 transition-all hover:bg-primary/20 hover:border-primary/20 cursor-default"
+    >
+      <span className="truncate max-w-[200px]">{label}</span>
+      <IoMdClose
+        size={16}
+        className="cursor-pointer text-primary/70 hover:text-primary transition-colors shrink-0"
+        onClick={onClear}
+      />
+    </Badge>
+  );
+
   return (
     <Layout>
       <BreadCrumb />
+
+      {/* Filter Sidebar Logic */}
+      <Filter
+        customFields={customFields}
+        extraDetails={extraDetails}
+        setExtraDetails={setExtraDetails}
+        newSearchParams={newSearchParams}
+        country={country}
+        state={state}
+        city={city}
+        area={area}
+      />
+
       <div className="container mt-8">
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-semibold mb-6">{title}</h1>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="xl:col-span-3 lg:col-span-4 col-span-1">
-              <Filter
-                customFields={customFields}
-                extraDetails={extraDetails}
-                setExtraDetails={setExtraDetails}
-                newSearchParams={newSearchParams}
-                country={country}
-                state={state}
-                city={city}
-                area={area}
-              />
-            </div>
-            <div className="xl:col-span-9 lg:col-span-8 col-span-1 flex flex-col gap-5">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="flex flex-col md:flex-row  items-start md:items-center gap-2">
-                    <div className="flex gap-2 items-center whitespace-nowrap">
-                      <TbTransferVertical />
-                      {t("sortBy")}
-                    </div>
-                    <Select value={sortBy} onValueChange={handleSortBy}>
-                      <SelectTrigger className="max-w-[180px] font-semibold">
-                        <SelectValue
-                          placeholder={t("sortBy")}
-                          className="font-semibold"
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup className="font-semibold">
-                          <SelectItem value="new-to-old">
-                            {t("newestToOldest")}
-                          </SelectItem>
-                          <SelectItem value="old-to-new">
-                            {t("oldestToNewest")}
-                          </SelectItem>
-                          <SelectItem value="price-high-to-low">
-                            {t("priceHighToLow")}
-                          </SelectItem>
-                          <SelectItem value="price-low-to-high">
-                            {t("priceLowToHigh")}
-                          </SelectItem>
-                          <SelectItem value="popular_items">
-                            {t("popular")}
-                          </SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
+        <div className="flex flex-col gap-6">
+          
+          {/* --- Header Section: Title & Controls --- */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+          <div>
+                <p className="text-sm text-gray-500 mt-1">
+                    {advertisements?.data?.length || 0} {
+                        ((advertisements?.data?.length || 0) % 10 === 1 && (advertisements?.data?.length || 0) % 100 !== 11)
+                        ? "rezultat"
+                        : "rezultata"
+                    }
+                </p>
+             </div>
+
+             <div className="flex items-center gap-3 md:self-auto space-between">
+                <div className="flex items-center gap-2">
+                   <TbTransferVertical className="text-gray-400 hidden sm:block" size={18} />
+                   <Select value={sortBy} onValueChange={handleSortBy}>
+                        <SelectTrigger className="w-[170px] h-10 border-gray-200 bg-white focus:ring-1 focus:ring-primary/20 font-medium">
+                            <SelectValue placeholder={t("sortBy")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem value="new-to-old">{t("newestToOldest")}</SelectItem>
+                                <SelectItem value="old-to-new">{t("oldestToNewest")}</SelectItem>
+                                <SelectItem value="price-high-to-low">{t("priceHighToLow")}</SelectItem>
+                                <SelectItem value="price-low-to-high">{t("priceLowToHigh")}</SelectItem>
+                                <SelectItem value="popular_items">{t("popular")}</SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
                     </Select>
-                  </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setView("list")}
-                    className={`text-muted-foreground p-3 rounded-full ${
-                      view === "list" ? "bg-primary text-white" : ""
-                    }`}
-                  >
-                    <CiGrid2H size={22} />
-                  </button>
-                  <button
-                    onClick={() => setView("grid")}
-                    className={` text-muted-foreground  p-3 rounded-full  ${
-                      view === "grid" ? "bg-primary text-white" : ""
-                    }`}
-                  >
-                    <IoGrid size={22} />
-                  </button>
+                {/* Grid/List Switcher Container */}
+                <div className="bg-gray-100 p-1 rounded-lg flex items-center border border-gray-200">
+                    <button
+                        onClick={() => setView("list")}
+                        className={`p-2 rounded-md transition-all duration-200 ${
+                            view === "list" 
+                            ? "bg-white text-primary shadow-sm" 
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                        }`}
+                        title={t("listView")}
+                    >
+                        <CiGrid2H size={20} />
+                    </button>
+                    <button
+                        onClick={() => setView("grid")}
+                        className={`p-2 rounded-md transition-all duration-200 ${
+                            view === "grid" 
+                            ? "bg-white text-primary shadow-sm" 
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                        }`}
+                        title={t("gridView")}
+                    >
+                        <IoGrid size={18} />
+                    </button>
                 </div>
-              </div>
+             </div>
+          </div>
 
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex gap-2 flex-wrap">
-                  {category && (
-                    <Badge
-                      variant="outline"
-                      className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                    >
-                      <span>
-                        {t("category")}: {category}
-                      </span>
-                      <IoIosCloseCircle
-                        size={22}
-                        className="cursor-pointer "
-                        onClick={handleClearCategory}
-                      />
-                    </Badge>
-                  )}
+          {/* --- Active Filters Section --- */}
+          {(activeFilterCount > 0) && (
+             <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <span className="text-sm font-medium text-gray-500 mr-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    {t("filters")}:
+                </span>
+                
+                {category && <FilterTag label={`${t("category")}: ${category}`} onClear={handleClearCategory} />}
+                
+                {query && <FilterTag label={`${t("search")}: ${query}`} onClear={handleClearQuery} />}
+                
+                {(country || state || city || area) && (
+                    <FilterTag 
+                        label={`${t("location")}: ${selectedLocation?.translated_name || selectedLocation?.name}`} 
+                        onClear={handleClearLocation} 
+                    />
+                )}
+                
+                {Number(km_range) > 0 && (
+                    <FilterTag label={`${t("nearByRange")}: ${km_range} KM`} onClear={handleClearRange} />
+                )}
+                
+                {date_posted && (
+                    <FilterTag label={`${t("datePosted")}: ${postedSince}`} onClear={handleClearDatePosted} />
+                )}
+                
+                {isMinPrice && max_price && (
+                    <FilterTag label={`${t("budget")}: ${min_price}-${max_price}`} onClear={handleClearBudget} />
+                )}
+                
+                {featured_section && (
+                    <FilterTag label={`${t("featuredSection")}: ${featuredTitle}`} onClear={handleClearFeaturedSection} />
+                )}
+                
+                {initialExtraDetails &&
+                  Object.entries(initialExtraDetails || {}).map(([key, value]) => {
+                    const field = customFields.find((f) => f.id.toString() === key.toString());
+                    const fieldName = field?.translated_name || field?.name;
+                    
+                    const getTranslatedValue = (val) => {
+                      if (!field?.values || !field?.translated_value) return val;
+                      const idx = field.values.indexOf(val);
+                      return idx !== -1 ? field.translated_value[idx] : val;
+                    };
+                    
+                    const displayValue = Array.isArray(value)
+                      ? value.map((v) => getTranslatedValue(v)).join(", ")
+                      : getTranslatedValue(value);
+                    
+                    return (
+                        <FilterTag 
+                            key={key} 
+                            label={`${fieldName}: ${displayValue}`} 
+                            onClear={() => handleClearExtraDetail(key)} 
+                        />
+                    );
+                  })}
 
-                  {query && (
-                    <Badge
-                      variant="outline"
-                      className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                    >
-                      <span>
-                        {t("search")}: {query}
-                      </span>
-                      <IoIosCloseCircle
-                        size={22}
-                        className="cursor-pointer "
-                        onClick={handleClearQuery}
-                      />
-                    </Badge>
-                  )}
-
-                  {(country || state || city || area) && (
-                    <Badge
-                      variant="outline"
-                      className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                    >
-                      <span>
-                        {t("location")}:{" "}
-                        {selectedLocation?.translated_name ||
-                          selectedLocation?.name}
-                      </span>
-                      <IoIosCloseCircle
-                        size={22}
-                        className="cursor-pointer "
-                        onClick={handleClearLocation}
-                      />
-                    </Badge>
-                  )}
-                  {Number(km_range) > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                    >
-                      <span>
-                        {t("nearByRange")}: {km_range} KM
-                      </span>
-                      <IoIosCloseCircle
-                        size={22}
-                        className="cursor-pointer "
-                        onClick={handleClearRange}
-                      />
-                    </Badge>
-                  )}
-
-                  {date_posted && (
-                    <Badge
-                      variant="outline"
-                      className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                    >
-                      <span>
-                        {t("datePosted")}: {postedSince}
-                      </span>
-                      <IoIosCloseCircle
-                        size={22}
-                        className="cursor-pointer "
-                        onClick={handleClearDatePosted}
-                      />
-                    </Badge>
-                  )}
-
-                  {isMinPrice && max_price && (
-                    <Badge
-                      variant="outline"
-                      className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                    >
-                      <span>
-                        {t("budget")}: {min_price}-{max_price}
-                      </span>
-                      <IoIosCloseCircle
-                        size={22}
-                        className="cursor-pointer "
-                        onClick={handleClearBudget}
-                      />
-                    </Badge>
-                  )}
-
-                  {featured_section && (
-                    <Badge
-                      variant="outline"
-                      className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                    >
-                      <span>
-                        {t("featuredSection")}: {featuredTitle}
-                      </span>
-                      <IoIosCloseCircle
-                        size={22}
-                        className="cursor-pointer "
-                        onClick={handleClearFeaturedSection}
-                      />
-                    </Badge>
-                  )}
-                  {initialExtraDetails &&
-                    Object.entries(initialExtraDetails || {}).map(
-                      ([key, value]) => {
-                        const field = customFields.find(
-                          (f) => f.id.toString() === key.toString()
-                        );
-
-                        const fieldName = field?.translated_name || field?.name;
-
-                        // Function to get translated value
-                        const getTranslatedValue = (val) => {
-                          if (!field?.values || !field?.translated_value)
-                            return val;
-                          const idx = field.values.indexOf(val);
-                          return idx !== -1 ? field.translated_value[idx] : val;
-                        };
-
-                        const displayValue = Array.isArray(value)
-                          ? value.map((v) => getTranslatedValue(v)).join(", ")
-                          : getTranslatedValue(value);
-
-                        return (
-                          <Badge
-                            key={key}
-                            variant="outline"
-                            className="px-4 text-base font-normal py-2 rounded-full flex items-center gap-2 bg-muted"
-                          >
-                            <span>
-                              {fieldName}: {displayValue}
-                            </span>
-                            <IoIosCloseCircle
-                              size={22}
-                              className="cursor-pointer"
-                              onClick={() => handleClearExtraDetail(key)}
-                            />
-                          </Badge>
-                        );
-                      }
-                    )}
-                </div>
                 {activeFilterCount > 1 && (
                   <button
-                    className="text-primary whitespace-nowrap"
                     onClick={handleClearAll}
+                    className="text-sm text-red-500 hover:text-red-700 font-medium underline-offset-4 hover:underline transition-all ml-2"
                   >
                     {t("clearAll")}
                   </button>
                 )}
-              </div>
+             </div>
+          )}
 
-              <div className="grid grid-cols-12 gap-4">
-                {advertisements?.isLoading ? (
-                  Array.from({ length: 12 }).map((_, index) =>
-                    view === "list" ? (
-                      <div className="col-span-12" key={index}>
-                        <ProductHorizontalCardSkeleton />
-                      </div>
-                    ) : (
-                      <div
-                        key={index}
-                        className="col-span-12 sm:col-span-6 xl:col-span-4"
-                      >
-                        <ProductCardSkeleton />
-                      </div>
-                    )
-                  )
-                ) : advertisements.data && advertisements.data.length > 0 ? (
-                  advertisements.data?.map((item, index) =>
-                    view === "list" ? (
-                      <div className="col-span-12" key={index}>
-                        <ProductHorizontalCard
-                          item={item}
-                          handleLike={handleLike}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className="col-span-12 sm:col-span-6 xl:col-span-4"
-                        key={index}
-                      >
-                        <ProductCard item={item} handleLike={handleLike} />
-                      </div>
-                    )
-                  )
+          {/* --- Products Grid --- */}
+          <div className="grid grid-cols-12 gap-6">
+            {advertisements?.isLoading ? (
+              Array.from({ length: 12 }).map((_, index) =>
+                view === "list" ? (
+                  <div className="col-span-12" key={index}>
+                    <ProductHorizontalCardSkeleton />
+                  </div>
                 ) : (
-                  <div className="col-span-12">
-                    <NoData name={t("ads")} />
+                  <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3" key={index}>
+                    <ProductCardSkeleton />
                   </div>
-                )}
+                )
+              )
+            ) : advertisements.data && advertisements.data.length > 0 ? (
+              advertisements.data?.map((item, index) =>
+                view === "list" ? (
+                  <div className="col-span-12" key={index}>
+                    <ProductHorizontalCard item={item} handleLike={handleLike} />
+                  </div>
+                ) : (
+                  // Optimizovano: xl:col-span-3 znači 4 kartice u redu na velikim ekranima
+                  <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3" key={index}>
+                    <ProductCard item={item} handleLike={handleLike} />
+                  </div>
+                )
+              )
+            ) : (
+              <div className="col-span-12 py-12 flex justify-center">
+                <NoData name={t("ads")} />
               </div>
-              {advertisements.data &&
-                advertisements.data.length > 0 &&
-                advertisements.hasMore && (
-                  <div className="text-center mt-6">
-                    <Button
-                      variant="outline"
-                      className="text-sm sm:text-base text-primary w-[256px]"
-                      disabled={
-                        advertisements.isLoading || advertisements.isLoadMore
-                      }
-                      onClick={handleProdLoadMore}
-                    >
-                      {advertisements.isLoadMore ? t("loading") : t("loadMore")}
-                    </Button>
-                  </div>
-                )}
-            </div>
+            )}
           </div>
+
+          {/* --- Load More Button --- */}
+          {advertisements.data && advertisements.data.length > 0 && advertisements.hasMore && (
+            <div className="text-center mt-8 pb-12">
+              <Button
+                variant="outline"
+                className="min-w-[200px] border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
+                disabled={advertisements.isLoading || advertisements.isLoadMore}
+                onClick={handleProdLoadMore}
+              >
+                {advertisements.isLoadMore ? (
+                    <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                        {t("loading")}...
+                    </span>
+                ) : t("loadMore")}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </Layout>

@@ -1,253 +1,416 @@
+import { useState, useRef } from "react";
 import { formatTime } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  MoreVertical, 
+  Archive, 
+  ArchiveRestore,
+  Trash2, 
+  Mail, 
+  MailOpen, 
+  Pin,
+  PinOff,
+  CheckSquare,
+  Square,
+  Volume2, // ✅ Dodana ikona za zvuk
+  VolumeX  // ✅ Dodana ikona za mute
+} from "lucide-react";
 
-/**
- * ChatListCard Component - Production Ready
- * 
- * Features implemented:
- * ✅ Last message preview
- * ✅ Online/offline status indicator
- * ✅ Typing indicator
- * ✅ Message status icons (sent/delivered/seen)
- * ✅ Unread count badge
- * ✅ Hover effects and animations
- * ✅ Optimistic UI updates
- * 
- * Props expected from backend:
- * - chat.last_message: string (last message text)
- * - chat.last_message_type: "text" | "audio" | "file" (for icons)
- * - chat.last_message_status: "sent" | "delivered" | "seen" (message status)
- * - user.is_online: boolean (online status)
- * - user.is_typing: boolean (typing indicator)
- * - chat.last_message_time: string (timestamp)
- * 
- * TODO Backend Integration:
- * 1. WebSocket connection for real-time typing indicator
- * 2. WebSocket connection for online/offline status
- * 3. API endpoint to mark messages as read when clicked
- */
+const ChatListCard = ({ 
+  chat, 
+  isActive, 
+  currentUserId, 
+  isArchived,
+  // Bulk select
+  bulkSelectMode,
+  isSelected,
+  toggleSelect,
+  // Actions
+  onArchive,
+  onUnarchive,
+  onDelete,
+  onMarkUnread,
+  onMarkRead,
+  onPin,
+  onMute, // ✅ Dodan prop za mute funkciju
+}) => {
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartX = useRef(0);
+  const cardRef = useRef(null);
 
-const ChatListCard = ({ chat, isSelling, isActive, handleChatTabClick }) => {
-  const user = isSelling ? chat?.buyer : chat?.seller;
-  const isUnread = chat?.unread_chat_count > 0;
+  // Determine other user
+  const otherUser = chat?.buyer?.id === currentUserId ? chat?.seller : chat?.buyer;
+  const isSelling = chat?.seller?.id === currentUserId;
   
-  // TODO: These will come from WebSocket in production
-  const isOnline = user?.is_online || false; // TODO: Connect to WebSocket for real-time status
-  const isTyping = user?.is_typing || false; // TODO: Connect to WebSocket for real-time typing
+  const isUnread = chat?.unread_chat_count > 0;
+  const isOnline = otherUser?.is_online || false;
+  const isTyping = otherUser?.is_typing || false;
+  const isPinned = chat?.is_pinned || false;
+  const isMuted = chat?.is_muted || false; // ✅ Status utišavanja
 
-  // Fallback za missing data
-  if (!chat || !user) {
-    return null;
-  }
+  if (!chat || !otherUser) return null;
 
-  // Get last message preview
-  // TODO: Backend should send last_message in chat object
   const lastMessage = chat?.last_message || "";
   const lastMessageType = chat?.last_message_type || "text";
-  
-  // Get message status for display
-  // TODO: Backend should send last_message_status ("sent" | "delivered" | "seen")
-  const messageStatus = chat?.last_message_status || "sent";
 
-  // Format last message preview based on type
+  // Swipe handlers
+  const handleTouchStart = (e) => {
+    if (bulkSelectMode) return;
+    touchStartX.current = e.touches[0].clientX;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isSwiping || bulkSelectMode) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStartX.current;
+    
+    // Limit swipe distance
+    const maxSwipe = 100;
+    const clampedDiff = Math.max(-maxSwipe, Math.min(maxSwipe, diff));
+    setSwipeOffset(clampedDiff);
+  };
+
+  const handleTouchEnd = () => {
+    if (!isSwiping) return;
+    
+    const threshold = 60;
+    
+    if (swipeOffset > threshold) {
+      // Swipe right -> Archive/Unarchive
+      if (isArchived) {
+        onUnarchive?.();
+      } else {
+        onArchive?.();
+      }
+    } else if (swipeOffset < -threshold) {
+      // Swipe left -> Delete
+      onDelete?.();
+    }
+    
+    setSwipeOffset(0);
+    setIsSwiping(false);
+  };
+
+  // Format last message preview
   const getLastMessagePreview = () => {
     if (isTyping) {
       return (
-        <span className="flex items-center gap-1 italic text-primary">
-          typing
-          <span className="flex gap-0.5">
-            <span className="animate-bounce delay-0">.</span>
-            <span className="animate-bounce delay-100">.</span>
-            <span className="animate-bounce delay-200">.</span>
+        <span className="flex items-center gap-1.5 italic text-primary font-medium">
+          piše
+          <span className="flex gap-0.5 pb-1">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0s" }}></span>
+            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.15s" }}></span>
+            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.3s" }}></span>
           </span>
         </span>
       );
     }
 
-    if (!lastMessage) return "No messages yet";
+    if (!lastMessage) return "Nema poruka";
 
     switch (lastMessageType) {
       case "audio":
-        return "🎤 Voice message";
+        return (
+          <span className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 3a1 1 0 00-1 1v4a1 1 0 002 0V4a1 1 0 00-1-1z"/>
+              <path d="M6 8a1 1 0 011 1v.5a3 3 0 006 0V9a1 1 0 112 0v.5a5 5 0 01-10 0V9a1 1 0 011-1z"/>
+            </svg>
+            <span>Glasovna poruka</span>
+          </span>
+        );
       case "file":
-        return "📷 Photo";
       case "file_and_text":
-        return `📷 ${lastMessage}`;
+        return (
+          <span className="flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd"/>
+            </svg>
+            <span className="truncate">{lastMessageType === "file" ? "Fotografija" : lastMessage}</span>
+          </span>
+        );
       default:
         return lastMessage;
     }
   };
 
-  // Message status icons
-  const MessageStatusIcon = () => {
-    // Only show status for sent messages (when user is sender)
-    if (!isSelling && chat?.last_message_sender_id === user?.id) {
-      return null;
-    }
+  const cardContent = (
+    <>
+      {/* Swipe action backgrounds */}
+      <div className={cn(
+        "absolute inset-y-0 left-0 w-24 flex items-center justify-center transition-opacity",
+        swipeOffset > 30 ? "opacity-100" : "opacity-0",
+        isArchived ? "bg-primary" : "bg-amber-500"
+      )}>
+        {isArchived ? <ArchiveRestore className="text-white" size={24} /> : <Archive className="text-white" size={24} />}
+      </div>
+      <div className={cn(
+        "absolute inset-y-0 right-0 w-24 flex items-center justify-center bg-red-500 transition-opacity",
+        swipeOffset < -30 ? "opacity-100" : "opacity-0"
+      )}>
+        <Trash2 className="text-white" size={24} />
+      </div>
 
-    // TODO: Backend should provide last_message_status
-    switch (messageStatus) {
-      case "sent":
-        return (
-          <span className="text-xs" title="Sent">
-            ✓
-          </span>
-        );
-      case "delivered":
-        return (
-          <span className="text-xs" title="Delivered">
-            ✓✓
-          </span>
-        );
-      case "seen":
-        return (
-          <span className="text-xs text-blue-500" title="Seen">
-            ✓✓
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
+      {/* Main card content */}
+      <div
+        ref={cardRef}
+        className={cn(
+          "relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
+          "bg-white border border-transparent",
+          isActive 
+            ? "bg-primary text-white shadow-lg shadow-primary/20" 
+            : "hover:bg-slate-50 hover:border-slate-200",
+          isPinned && !isActive && "bg-amber-50/50 border-amber-200/50",
+          isSelected && "bg-primary/10 border-primary/30"
+        )}
+        style={{
+          transform: `translateX(${swipeOffset}px)`,
+          transition: isSwiping ? "none" : "transform 0.2s ease-out"
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Bulk select checkbox */}
+        {bulkSelectMode && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleSelect();
+            }}
+            className="flex-shrink-0"
+          >
+            {isSelected ? (
+              <CheckSquare size={22} className="text-primary" />
+            ) : (
+              <Square size={22} className="text-slate-400" />
+            )}
+          </button>
+        )}
+
+        {/* Avatar with online status */}
+        <div className="relative flex-shrink-0">
+            {/* Online indicator */}
+            {isOnline && (
+              <div className="absolute bottom-0 right-0 z-10">
+                <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+                <span className={cn(
+                  "relative block w-3 h-3 rounded-full bg-green-500 ring-2",
+                  isActive ? "ring-primary" : "ring-white"
+                )} />
+              </div>
+            )}
+
+          <div className={cn(
+            "relative rounded-full overflow-hidden ring-2 transition-all",
+            isActive ? "ring-white/30" : "ring-slate-200"
+          )}>
+            <CustomImage
+              src={otherUser?.profile}
+              alt={otherUser?.name}
+              width={52}
+              height={52}
+              className="w-13 h-13 object-cover"
+            />
+          </div>
+
+          {/* Pinned indicator */}
+          {isPinned && !isActive && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
+              <Pin size={10} className="text-white" />
+            </div>
+          )}
+          
+          {/* Muted indicator (mali ikonica ako je mutirano) */}
+          {isMuted && !isActive && !isPinned && (
+             <div className="absolute -top-1 -right-1 w-5 h-5 bg-slate-400 rounded-full flex items-center justify-center">
+               <VolumeX size={10} className="text-white" />
+             </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <h5 className={cn(
+                "font-semibold truncate",
+                isActive ? "text-white" : "text-slate-900"
+              )}>
+                {otherUser?.name}
+              </h5>
+              {!bulkSelectMode && !isActive && (
+                <span className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0",
+                  isSelling 
+                    ? "bg-orange-100 text-orange-600" 
+                    : "bg-cyan-100 text-cyan-600"
+                )}>
+                  {isSelling ? "Prodajem" : "Kupujem"}
+                </span>
+              )}
+            </div>
+            <span className={cn(
+              "text-xs whitespace-nowrap flex-shrink-0",
+              isActive ? "text-white/70" : "text-slate-500"
+            )}>
+              {formatTime(chat?.last_message_time)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className={cn(
+              "text-sm truncate",
+              isActive 
+                ? "text-white/80" 
+                : isUnread 
+                  ? "text-slate-900 font-medium" 
+                  : "text-slate-500"
+            )}>
+              {getLastMessagePreview()}
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Unread badge */}
+              {isUnread && !isActive && (
+                <span className="min-w-[20px] h-5 flex items-center justify-center px-1.5 
+                               bg-primary text-white rounded-full text-xs font-bold">
+                  {chat.unread_chat_count > 99 ? "99+" : chat.unread_chat_count}
+                </span>
+              )}
+              
+              {/* Actions menu */}
+              {!bulkSelectMode && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button 
+                      onClick={(e) => e.preventDefault()}
+                      className={cn(
+                        "p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity",
+                        isActive ? "hover:bg-white/20" : "hover:bg-slate-200"
+                      )}
+                    >
+                      <MoreVertical size={16} className={isActive ? "text-white" : "text-slate-500"} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); onPin?.(); }}>
+                      {isPinned ? (
+                        <>
+                          <PinOff size={16} className="mr-2" />
+                          Otkači
+                        </>
+                      ) : (
+                        <>
+                          <Pin size={16} className="mr-2" />
+                          Zakači na vrh
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); isUnread ? onMarkRead?.() : onMarkUnread?.(); }}>
+                      {isUnread ? (
+                        <>
+                          <MailOpen size={16} className="mr-2" />
+                          Označi kao pročitano
+                        </>
+                      ) : (
+                        <>
+                          <Mail size={16} className="mr-2" />
+                          Označi kao nepročitano
+                        </>
+                      )}
+                    </DropdownMenuItem>
+
+                    {/* ✅ Mute / Unmute Opcija */}
+                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); onMute?.(); }}>
+                      {isMuted ? (
+                        <>
+                          <Volume2 size={16} className="mr-2" />
+                          Uključi notifikacije
+                        </>
+                      ) : (
+                        <>
+                          <VolumeX size={16} className="mr-2" />
+                          Isključi notifikacije
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator />
+                    
+                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); isArchived ? onUnarchive?.() : onArchive?.(); }}>
+                      {isArchived ? (
+                        <>
+                          <ArchiveRestore size={16} className="mr-2" />
+                          Vrati iz arhive
+                        </>
+                      ) : (
+                        <>
+                          <Archive size={16} className="mr-2" />
+                          Arhiviraj
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
+                      onClick={(e) => { e.preventDefault(); onDelete?.(); }}
+                      className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      Obriši
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+
+          {/* Item name */}
+          {chat?.item?.name && !isActive && (
+            <p className="text-xs text-slate-400 truncate mt-0.5">
+              {chat.item.name}
+            </p>
+          )}
+        </div>
+
+        {/* Unread indicator line */}
+        {isUnread && !isActive && !isSelected && (
+          <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary" />
+        )}
+      </div>
+    </>
+  );
+
+  // If in bulk select mode, don't wrap in link
+  if (bulkSelectMode) {
+    return (
+      <div className="group relative overflow-hidden rounded-xl">
+        {cardContent}
+      </div>
+    );
+  }
 
   return (
     <CustomLink
+      href={`/chat?chatid=${chat?.id}`}
       scroll={false}
-      href={`/chat?activeTab=${isSelling ? "selling" : "buying"}&chatid=${chat?.id}`}
-      onClick={() => handleChatTabClick(chat, isSelling)}
-      role="button"
-      aria-label={`Chat with ${user?.name} about ${chat?.item?.name || "item"}`}
-      aria-current={isActive ? "true" : undefined}
-      className={cn(
-        "group relative py-4 px-4 border-b transition-all duration-200",
-        "flex items-center gap-4 cursor-pointer",
-        isActive 
-          ? "bg-gradient-to-r from-primary to-primary/90 text-white shadow-md" 
-          : "hover:bg-gray-50 hover:shadow-sm active:bg-gray-100"
-      )}
+      shallow={true}
+      className="group relative block overflow-hidden rounded-xl"
     >
-      {/* Avatar sa item image overlay */}
-      <div className="relative flex-shrink-0">
-        <div className={cn(
-          "relative rounded-full overflow-hidden",
-          "ring-2 transition-all duration-200",
-          isActive 
-            ? "ring-white/30" 
-            : "ring-gray-200 group-hover:ring-primary/30"
-        )}>
-          <CustomImage
-            src={user?.profile}
-            alt={`${user?.name}'s avatar`}
-            width={56}
-            height={56}
-            className="w-[56px] h-[56px] object-cover"
-          />
-          
-          {/* Online status indicator */}
-          {/* TODO: Connect to WebSocket for real-time online/offline status */}
-          {isOnline && (
-            <div 
-              className={cn(
-                "absolute bottom-1 right-1 w-3 h-3 rounded-full",
-                "ring-2 transition-all duration-200",
-                isActive ? "ring-primary" : "ring-white",
-                "bg-green-500"
-              )}
-              title="Online"
-            />
-          )}
-        </div>
-
-        {/* Item thumbnail badge */}
-        {chat?.item?.image && (
-          <div className={cn(
-            "absolute -bottom-1 -right-1 rounded-full overflow-hidden",
-            "ring-2 transition-all duration-200",
-            isActive ? "ring-primary" : "ring-white"
-          )}>
-            <CustomImage
-              src={chat.item.image}
-              alt="Item"
-              width={28}
-              height={28}
-              className="w-[28px] h-[28px] object-cover"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex flex-col gap-1.5 w-full min-w-0 flex-1">
-        {/* Header sa imenom i vremenom */}
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          <h5 
-            className={cn(
-              "font-semibold text-[15px] truncate transition-colors",
-              isActive ? "text-white" : "text-gray-900 group-hover:text-primary"
-            )}
-            title={user?.name}
-          >
-            {user?.name}
-          </h5>
-          <span 
-            className={cn(
-              "text-xs font-medium whitespace-nowrap flex-shrink-0",
-              isActive ? "text-white/80" : "text-gray-500"
-            )}
-          >
-            {formatTime(chat?.last_message_time)}
-          </span>
-        </div>
-
-        {/* Last message preview and unread badge */}
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            {/* Message status icon */}
-            <MessageStatusIcon />
-            
-            {/* Last message text */}
-            <p
-              className={cn(
-                "text-sm truncate transition-colors",
-                isActive 
-                  ? "text-white/90" 
-                  : isUnread 
-                    ? "text-gray-900 font-medium" 
-                    : "text-gray-600 group-hover:text-gray-700"
-              )}
-              title={typeof getLastMessagePreview() === 'string' ? getLastMessagePreview() : ''}
-            >
-              {getLastMessagePreview()}
-            </p>
-          </div>
-          
-          {/* Unread badge */}
-          {isUnread && !isActive && (
-            <span className={cn(
-              "flex items-center justify-center",
-              "bg-primary text-white rounded-full",
-              "min-w-[22px] h-[22px] px-2",
-              "text-xs font-bold",
-              "animate-in fade-in zoom-in duration-200",
-              "shadow-sm flex-shrink-0"
-            )}>
-              {chat.unread_chat_count > 99 ? "99+" : chat.unread_chat_count}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Active indicator line */}
-      {isActive && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/40 rounded-r-full" />
-      )}
-
-      {/* Unread indicator line (alternative style) */}
-      {isUnread && !isActive && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
-      )}
+      {cardContent}
     </CustomLink>
   );
 };

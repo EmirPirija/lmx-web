@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
-import { BreadcrumbPathData } from "@/redux/reducer/breadCrumbSlice";
 import { t } from "@/utils";
 import { categoryApi } from "@/utils/api";
-import { Loader2, Minus, Plus } from "lucide-react";
+import { Loader2, ChevronRight, ChevronDown, Tag } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
+import { BreadcrumbPathData } from "@/redux/reducer/breadCrumbSlice";
 import { useNavigate } from "../Common/useNavigate";
 
 const CategoryNode = ({ category, extraDetails }) => {
@@ -25,19 +25,17 @@ const CategoryNode = ({ category, extraDetails }) => {
   const shouldExpand = useMemo(() => {
     if (!Array.isArray(breadcrumbPath) || breadcrumbPath.length <= 2)
       return false;
-    // Skip the first (All Categories) and last (leaf node)
     const keysToCheck = breadcrumbPath.slice(1, -1).map((crumb) => crumb.key);
     return keysToCheck.includes(category.slug);
-  }, []);
+  }, [breadcrumbPath, category.slug]);
 
-  // 📦 Auto-expand if it's in the path
   useEffect(() => {
     if (shouldExpand && !expanded) {
-      // If not already expanded and part of the path, expand and load children
       setExpanded(true);
       fetchSubcategories();
     }
   }, [shouldExpand]);
+
   const fetchSubcategories = async (page = 1, append = false) => {
     setIsLoading(true);
     try {
@@ -84,56 +82,80 @@ const CategoryNode = ({ category, extraDetails }) => {
   };
 
   return (
-    <li>
-      <div className="flex items-center rounded text-sm">
-        {category.subcategories_count > 0 &&
-          (isLoading ? (
-            <div className="p-1">
-              <Loader2 className="size-[14px] animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <button
-              className="text-sm p-1 hover:bg-muted rounded-sm"
-              onClick={handleToggleExpand}
-            >
-              {expanded ? <Minus size={14} /> : <Plus size={14} />}
-            </button>
-          ))}
+    <div className="space-y-1">
+      <div
+        className={cn(
+          "flex items-center gap-2 p-2 rounded-lg transition-all group",
+          isSelected
+            ? "bg-primary/10 border-2 border-primary"
+            : "hover:bg-gray-50 border-2 border-transparent"
+        )}
+      >
+        {category.subcategories_count > 0 && (
+          <button
+            onClick={handleToggleExpand}
+            className="p-1 hover:bg-gray-200 rounded transition-colors"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
+            ) : expanded ? (
+              <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
+            )}
+          </button>
+        )}
+
+        <Tag
+          className={cn(
+            "w-3.5 h-3.5 flex-shrink-0",
+            isSelected ? "text-primary" : "text-gray-400"
+          )}
+        />
 
         <button
           onClick={handleClick}
           className={cn(
-            "flex-1 ltr:text-left rtl:text-right py-1 px-2 rounded-sm flex items-center justify-between gap-2",
-            isSelected && "border bg-muted"
+            "flex-1 text-left text-sm font-medium transition-colors flex items-center justify-between gap-2",
+            isSelected ? "text-primary" : "text-gray-700 group-hover:text-gray-900"
           )}
         >
           <span className="break-all">{category.translated_name}</span>
-          <span>({category.all_items_count})</span>
+          <span
+            className={cn(
+              "text-xs px-2 py-0.5 rounded-full",
+              isSelected
+                ? "bg-primary text-white"
+                : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
+            )}
+          >
+            {category.all_items_count}
+          </span>
         </button>
       </div>
 
-      {expanded && (
-        <ul className="ltr:ml-3 rtl:mr-3 ltr:border-l rtl:border-r ltr:pl-2 rtl:pr-2 space-y-1">
+      {expanded && subcategories.length > 0 && (
+        <div className="ml-6 space-y-1 border-l-2 border-gray-200 pl-4">
           {subcategories.map((sub) => (
             <CategoryNode
               key={sub.id + "filter-tree"}
               category={sub}
-              selectedSlug={selectedSlug}
-              searchParams={searchParams}
+              extraDetails={extraDetails}
             />
           ))}
 
           {hasMore && (
             <button
               onClick={loadMore}
-              className="text-primary text-center text-sm py-1 px-2"
+              className="w-full py-2 px-3 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
             >
               {t("loadMore")}
             </button>
           )}
-        </ul>
+        </div>
       )}
-    </li>
+    </div>
   );
 };
 

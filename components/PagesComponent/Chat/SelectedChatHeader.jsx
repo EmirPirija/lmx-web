@@ -1,4 +1,18 @@
-import { HiOutlineDotsVertical } from "react-icons/hi";
+import React, { useState } from "react";
+import { 
+  HiOutlineDotsVertical, 
+  HiPhone, 
+  HiEye, 
+  HiOutlineSearch, 
+  HiOutlinePhotograph, 
+  HiOutlineArchive, 
+  HiOutlineTrash, 
+  HiOutlineVolumeOff,
+  HiOutlineVolumeUp,
+  HiOutlineInboxIn, // ✅ NOVA IKONICA ZA UNARCHIVE
+  HiX 
+} from "react-icons/hi";
+import { MdArrowBack, MdVerified, MdStar } from "react-icons/md";
 import { formatPriceAbbreviated, t } from "@/utils";
 import {
   DropdownMenu,
@@ -7,12 +21,42 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import CustomLink from "@/components/Common/CustomLink";
-import { blockUserApi, unBlockUserApi } from "@/utils/api";
+import { blockUserApi, unBlockUserApi, chatListApi } from "@/utils/api";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 import CustomImage from "@/components/Common/CustomImage";
-import { MdArrowBack } from "react-icons/md";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+
+const formatLastSeen = (timestamp) => {
+  if (!timestamp) return "";
+  const now = new Date();
+  const lastSeen = new Date(timestamp);
+  if (isNaN(lastSeen.getTime())) return "";
+
+  const diffInSeconds = Math.floor((now - lastSeen) / 1000);
+  if (diffInSeconds < 60) return "Upravo sada";
+  if (diffInSeconds < 3600) return `Prije ${Math.floor(diffInSeconds / 60)} min`;
+  if (diffInSeconds < 86400) return `Prije ${Math.floor(diffInSeconds / 3600)} h`;
+  if (diffInSeconds < 172800) return "Jučer";
+  
+  return lastSeen.toLocaleDateString("bs-BA", {
+    day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+};
+
+const getItemStatusBadge = (status) => {
+    switch (status) {
+        case 'sold':
+            return <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 font-bold border border-red-200">PRODANO</span>;
+        case 'reserved':
+            return <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 font-bold border border-orange-200">REZERVIRANO</span>;
+        case 'active':
+        default:
+            return <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600 font-bold border border-green-200">NA PRODAJU</span>;
+    }
+};
 
 const SelectedChatHeader = ({
   selectedChat,
@@ -20,23 +64,55 @@ const SelectedChatHeader = ({
   setSelectedChat,
   handleBack,
   isLargeScreen,
+  onSearch, 
+  onDelete, 
+  onArchive,
+  onUnarchive, // ✅ NOVI PROP KOJI MORAŠ PROSLIJEDITI IZ CHAT.JSX
+  onShowMedia 
 }) => {
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const isBlocked = selectedChat?.user_blocked;
+  const isMuted = selectedChat?.is_muted || false;
+  // ✅ Provjera da li je chat arhiviran
+  const isArchived = selectedChat?.is_archived || false; 
+
   const userData = isSelling ? selectedChat?.buyer : selectedChat?.seller;
   const itemData = selectedChat?.item;
   const isRTL = useSelector(getIsRtl);
 
-  const handleBlockUser = async (id) => {
-    try {
-      const response = await blockUserApi.blockUser({
-        blocked_user_id: userData?.id,
-      });
+  const isOnline = userData?.is_online || false;
+  const lastSeenText = !isOnline && userData?.last_seen ? formatLastSeen(userData.last_seen) : null;
+  const isVerified = userData?.email_verified_at ? true : false; 
+  const rating = userData?.rating || null;
 
+  const handleToggleMute = async () => {
+    try {
+        if (isMuted) {
+            const res = await chatListApi.unmuteChat(selectedChat.id);
+            if (!res?.data?.error) {
+                toast.success("Notifikacije uključene");
+                setSelectedChat(prev => ({ ...prev, is_muted: false }));
+            }
+        } else {
+            const res = await chatListApi.muteChat(selectedChat.id);
+            if (!res?.data?.error) {
+                toast.success("Notifikacije isključene");
+                setSelectedChat(prev => ({ ...prev, is_muted: true }));
+            }
+        }
+    } catch (error) {
+        console.error(error);
+        toast.error("Greška pri promjeni postavki zvuka");
+    }
+  };
+
+  const handleBlockUser = async () => {
+    try {
+      const response = await blockUserApi.blockUser({ blocked_user_id: userData?.id });
       if (response?.data?.error === false) {
-        setSelectedChat((prevData) => ({
-          ...prevData,
-          user_blocked: true,
-        }));
+        setSelectedChat((prev) => ({ ...prev, user_blocked: true }));
         toast.success(response?.data?.message);
       } else {
         toast.error(response?.data?.message);
@@ -46,16 +122,11 @@ const SelectedChatHeader = ({
     }
   };
 
-  const handleUnBlockUser = async (id) => {
+  const handleUnBlockUser = async () => {
     try {
-      const response = await unBlockUserApi.unBlockUser({
-        blocked_user_id: userData?.id,
-      });
+      const response = await unBlockUserApi.unBlockUser({ blocked_user_id: userData?.id });
       if (response?.data.error === false) {
-        setSelectedChat((prevData) => ({
-          ...prevData,
-          user_blocked: false,
-        }));
+        setSelectedChat((prev) => ({ ...prev, user_blocked: false }));
         toast.success(response?.data?.message);
       } else {
         toast.error(response?.data?.message);
@@ -64,71 +135,199 @@ const SelectedChatHeader = ({
       console.log(error);
     }
   };
+
+  const handleSearchSubmit = (e) => {
+      e.preventDefault();
+      if(onSearch) onSearch(searchQuery);
+  };
+
+  const closeSearch = () => {
+      setIsSearchMode(false);
+      setSearchQuery("");
+      if(onSearch) onSearch(""); 
+  };
+
+  if (isSearchMode) {
+      return (
+        <div className="flex items-center gap-2 px-4 py-3 border-b bg-white shadow-sm z-10 h-[72px]">
+            <button onClick={closeSearch} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                <MdArrowBack size={22} />
+            </button>
+            <form onSubmit={handleSearchSubmit} className="flex-1">
+                <Input 
+                    autoFocus
+                    placeholder="Pretraži poruke..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-slate-50 border-slate-200 focus-visible:ring-primary h-10"
+                />
+            </form>
+            <button onClick={closeSearch} className="text-sm font-medium text-slate-500 hover:text-slate-800 px-2">
+                Otkaži
+            </button>
+        </div>
+      );
+  }
 
   return (
-    <div className="flex items-center justify-between gap-1 px-4 py-3 border-b">
-      <div className="flex items-center gap-4 min-w-0">
+    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-white shadow-sm z-10 h-[72px]">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         {!isLargeScreen && (
-          <button onClick={handleBack}>
-            <MdArrowBack size={20} className="rtl:scale-x-[-1]" />
+          <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors">
+            <MdArrowBack size={22} className="rtl:scale-x-[-1] text-slate-600" />
           </button>
         )}
+        
+        {/* Avatar */}
         <div className="relative flex-shrink-0">
           <CustomLink href={`/seller/${userData?.id}`}>
-            <CustomImage
-              src={userData?.profile}
-              alt="avatar"
-              width={56}
-              height={56}
-              className="w-[56px] h-auto aspect-square object-cover rounded-full"
-            />
+            <div className="relative group cursor-pointer">
+              <CustomImage
+                src={userData?.profile}
+                alt="avatar"
+                width={48}
+                height={48}
+                className="w-[48px] h-[48px] object-cover rounded-full ring-2 ring-slate-100 group-hover:ring-primary transition-all"
+              />
+              {isOnline && (
+                <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+              )}
+            </div>
           </CustomLink>
-          <CustomImage
-            src={userData?.profile}
-            alt="avatar"
-            width={24}
-            height={24}
-            className="w-[24px] h-auto aspect-square object-cover rounded-full absolute top-[32px] bottom-[-6px] right-[-6px]"
-          />
         </div>
-        <div className="flex flex-col gap-2 w-full min-w-0">
-          <CustomLink
-            href={`/seller/${userData?.id}`}
-            className="font-medium truncate"
-            title={userData?.name}
-          >
-            {userData?.name}
-          </CustomLink>
-          <p
-            className="truncate text-sm"
-            title={itemData?.translated_name || itemData?.name}
-          >
-            {itemData?.translated_name || itemData?.name}
-          </p>
+        
+        {/* User Info */}
+        <div className="flex flex-col min-w-0 justify-center">
+          <div className="flex items-center gap-1.5">
+            <CustomLink href={`/seller/${userData?.id}`} className="font-bold text-slate-900 truncate text-[15px] hover:underline decoration-slate-300 underline-offset-4">
+              {userData?.name}
+            </CustomLink>
+            {isVerified && <MdVerified className="text-blue-500 text-sm flex-shrink-0" />}
+            {rating && (
+              <div className="flex items-center gap-0.5 bg-yellow-50 px-1.5 py-0.5 rounded text-[10px] font-bold text-yellow-700 border border-yellow-100">
+                <MdStar className="text-yellow-500 text-xs" />
+                <span>{rating}</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 text-xs h-4">
+            {isOnline ? (
+              <span className="text-green-600 font-medium">Online</span>
+            ) : (
+              <span className="text-slate-500 font-medium truncate">
+                {lastSeenText ? `Viđen/a: ${lastSeenText}` : "Offline"}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Dropdown Menu for Actions */}
+      <div className="flex items-center gap-3 pl-2 border-l border-slate-100 ml-2">
+        <div className="hidden sm:flex flex-col items-end min-w-0 text-right">
+           <div className="flex items-center gap-1 mb-0.5">
+                {getItemStatusBadge(itemData?.status)}
+           </div>
+           <span className="text-xs text-slate-500 max-w-[120px] truncate block" title={itemData?.translated_name || itemData?.name}>
+             {itemData?.translated_name || itemData?.name}
+           </span>
+           <span className="font-bold text-primary text-sm block">
+             {formatPriceAbbreviated(itemData?.price)}
+           </span>
+        </div>
 
-      <div className="flex flex-col gap-1">
+        {itemData?.image && (
+          <CustomLink href={`/ad-details/${itemData?.slug}`} className="relative group flex-shrink-0">
+             <CustomImage
+              src={itemData?.image}
+              alt="item"
+              width={36}
+              height={36}
+              className="w-[36px] h-[36px] object-cover rounded-md border border-slate-200 group-hover:border-primary transition-colors"
+            />
+          </CustomLink>
+        )}
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="self-end">
-              <HiOutlineDotsVertical size={22} />
+            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500 hover:text-slate-800 focus:outline-none">
+              <HiOutlineDotsVertical size={20} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align={isRTL ? "start" : "end"}>
+          <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-56 bg-white z-50">
+            
+            {userData?.phone && (
+                 <DropdownMenuItem className="cursor-pointer sm:hidden">
+                    <HiPhone className="mr-2 h-4 w-4" />
+                    <span>Pozovi korisnika</span>
+                 </DropdownMenuItem>
+            )}
+
+            <DropdownMenuItem onClick={() => setIsSearchMode(true)} className="cursor-pointer">
+                <HiOutlineSearch className="mr-2 h-4 w-4 text-slate-500" />
+                <span>Pretraži u razgovoru</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={onShowMedia} className="cursor-pointer">
+                <HiOutlinePhotograph className="mr-2 h-4 w-4 text-slate-500" />
+                <span>Prikaži medije</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem asChild>
+                <CustomLink href={`/ad/details/${itemData?.slug}`} className="flex items-center w-full cursor-pointer px-2 py-1.5">
+                    <HiEye className="mr-2 h-4 w-4 text-slate-500" />
+                    <span>Pogledaj oglas</span>
+                </CustomLink>
+            </DropdownMenuItem>
+
+            <div className="h-px bg-slate-100 my-1" />
+
+            {/* MUTE / UNMUTE */}
+            <DropdownMenuItem onClick={handleToggleMute} className="cursor-pointer">
+                {isMuted ? (
+                    <>
+                        <HiOutlineVolumeUp className="mr-2 h-4 w-4 text-slate-500" />
+                        <span>Uključi notifikacije</span>
+                    </>
+                ) : (
+                    <>
+                        <HiOutlineVolumeOff className="mr-2 h-4 w-4 text-slate-500" />
+                        <span>Isključi notifikacije</span>
+                    </>
+                )}
+            </DropdownMenuItem>
+
+            {/* 🔥 ARCHIVE / UNARCHIVE */}
+            {isArchived ? (
+                <DropdownMenuItem onClick={onUnarchive} className="cursor-pointer text-blue-600 focus:bg-blue-50">
+                    <HiOutlineInboxIn className="mr-2 h-4 w-4" />
+                    <span>Vrati u inbox</span>
+                </DropdownMenuItem>
+            ) : (
+                <DropdownMenuItem onClick={onArchive} className="cursor-pointer text-slate-500">
+                    <HiOutlineArchive className="mr-2 h-4 w-4" />
+                    <span>Arhiviraj</span>
+                </DropdownMenuItem>
+            )}
+
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+              onClick={onDelete}
+            >
+              <HiOutlineTrash className="mr-2 h-4 w-4" />
+              <span>Obriši razgovor</span>
+            </DropdownMenuItem>
+            
+            <div className="h-px bg-slate-100 my-1" />
+            
+            <DropdownMenuItem
+              className="cursor-pointer text-slate-600"
               onClick={isBlocked ? handleUnBlockUser : handleBlockUser}
             >
               <span>{isBlocked ? t("unblock") : t("block")}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="text-xs whitespace-nowrap">
-          {formatPriceAbbreviated(itemData?.price)}
-        </div>
       </div>
     </div>
   );

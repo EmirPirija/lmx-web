@@ -1,153 +1,211 @@
-import { Fragment } from "react";
-import { Checkbox } from "../ui/checkbox";
-import { Label } from "../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { t } from "@/utils";
-import { Button } from "../ui/button";
+import { Fragment, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const ExtraDetailsFilter = ({
-  customFields,
-  extraDetails,
-  setExtraDetails,
-  newSearchParams,
-}) => {
+const ExtraDetailsFilter = ({ customFields }) => {
+  const searchParams = useSearchParams();
+  const [showAll, setShowAll] = useState(false);
 
-  const isApplyDisabled = () => {
-    return !Object.values(extraDetails).some(
-      (val) => (Array.isArray(val) && val.length > 0) || (!!val && val !== "")
-    );
-  };
-
-  const handleCheckboxChange = (id, value, checked) => {
-    setExtraDetails((prev) => {
-      const existing = prev[id] || [];
-      const updated = checked
-        ? [...existing, value]
-        : existing.filter((v) => v !== value);
-      return { ...prev, [id]: updated.length ? updated : "" };
-    });
-  };
-
-  const handleInputChange = (fieldId, value) => {
-    setExtraDetails((prev) => ({
-      ...prev,
-      [fieldId]: value,
-    }));
-  };
-
-  const handleApply = () => {
-    Object.entries(extraDetails).forEach(([key, val]) => {
-      if (Array.isArray(val) && val.length) {
-        newSearchParams.set(key, val.join(","));
-      } else if (val) {
-        newSearchParams.set(key, val);
-      } else {
-        newSearchParams.delete(key);
+  const getCurrentExtraDetails = () => {
+    const details = {};
+    customFields.forEach((field) => {
+      const value = searchParams.get(field.id.toString());
+      if (value) {
+        details[field.id] = field.type === "checkbox" ? value.split(",") : value;
       }
     });
-    window.history.pushState(null, '', `/ads?${newSearchParams.toString()}`);
+    return details;
   };
 
+  const extraDetails = getCurrentExtraDetails();
+
+  const handleCheckboxChange = (fieldId, value, checked) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    const existing = extraDetails[fieldId] || [];
+    const updated = checked
+      ? [...existing, value]
+      : existing.filter((v) => v !== value);
+
+    if (updated.length > 0) {
+      newSearchParams.set(fieldId.toString(), updated.join(","));
+    } else {
+      newSearchParams.delete(fieldId.toString());
+    }
+
+    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+  };
+
+  const handleRadioChange = (fieldId, value) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    const currentValue = extraDetails[fieldId];
+
+    if (currentValue === value) {
+      newSearchParams.delete(fieldId.toString());
+    } else {
+      newSearchParams.set(fieldId.toString(), value);
+    }
+
+    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+  };
+
+  const handleDropdownChange = (fieldId, value) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (value) {
+      newSearchParams.set(fieldId.toString(), value);
+    } else {
+      newSearchParams.delete(fieldId.toString());
+    }
+    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+  };
+
+  if (!customFields || customFields.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-xs text-gray-500">
+          Odaberite kategoriju da vidite filtere
+        </p>
+      </div>
+    );
+  }
+
+  // Show only first 5 fields by default
+  const INITIAL_VISIBLE_COUNT = 5;
+  const visibleFields = showAll ? customFields : customFields.slice(0, INITIAL_VISIBLE_COUNT);
+  const hasMore = customFields.length > INITIAL_VISIBLE_COUNT;
+
   return (
-    <div className="flex gap-4 flex-col">
-      {customFields.map((field) => (
+    <div className="flex flex-col gap-3">
+      {visibleFields.map((field) => (
         <Fragment key={field.id}>
-          {/* Checkbox */}
-          {field.type === "checkbox" && (
-            <div className="flex flex-col gap-2">
-              <Label className="font-semibold" htmlFor={field.id}>
+          {/* Dropdown Type - Compact */}
+          {field.type === "dropdown" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                 {field.translated_name || field.name}
-              </Label>
-              {field.values.map((option, index) => (
-                <div key={option} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`${field.id}-${option}`}
-                    checked={(extraDetails[field.id] || []).includes(option)}
-                    onCheckedChange={(checked) =>
-                      handleCheckboxChange(field.id, option, checked)
-                    }
-                  />
-                  <label
-                    htmlFor={`${field.id}-${option}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {field?.translated_value[index] || option}
-                  </label>
-                </div>
-              ))}
+              </label>
+              <select
+                value={extraDetails[field.id] || ""}
+                onChange={(e) => handleDropdownChange(field.id, e.target.value)}
+                className={cn(
+                  "w-full px-3 py-2 text-sm rounded-lg border-2 bg-white text-gray-900 font-medium transition-all",
+                  extraDetails[field.id]
+                    ? "border-blue-500 ring-1 ring-blue-100"
+                    : "border-gray-200 hover:border-gray-300"
+                )}
+              >
+                <option value="">Odaberi {field.translated_name || field.name}</option>
+                {field.values.map((option, index) => (
+                  <option key={option} value={option}>
+                    {field?.translated_value?.[index] || option}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
-          {/* Radio */}
+          {/* Radio Type - Horizontal Pills */}
           {field.type === "radio" && (
-            <div className="flex flex-col gap-2">
-              <Label className="font-semibold" htmlFor={field.id}>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                 {field.translated_name || field.name}
-              </Label>
-              <div className="flex gap-2 flex-wrap">
-                {field.values.map((option, index) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`py-2 px-4 w-fit rounded-md border transition-colors ${
-                      extraDetails[field.id] === option
-                        ? "bg-primary text-white"
-                        : ""
-                    }`}
-                    onClick={() => handleInputChange(field.id, option)}
-                    aria-pressed={extraDetails[field.id] === option}
-                  >
-                    {field?.translated_value[index] || option}
-                  </button>
-                ))}
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {field.values.map((option, index) => {
+                  const isSelected = extraDetails[field.id] === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => handleRadioChange(field.id, option)}
+                      className={cn(
+                        "px-3 py-1.5 text-xs rounded-full font-medium transition-all",
+                        isSelected
+                          ? "bg-blue-500 text-white shadow-sm"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      )}
+                    >
+                      {field?.translated_value?.[index] || option}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Dropdown */}
-          {field.type === "dropdown" && (
-            <div className="w-full flex flex-col gap-2">
-              <Label className="font-semibold capitalize" htmlFor={field.id}>
+          {/* Checkbox Type - Compact List */}
+          {field.type === "checkbox" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                 {field.translated_name || field.name}
-              </Label>
-              <Select
-                value={extraDetails[field.id] || ""}
-                onValueChange={(val) => handleInputChange(field.id, val)}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={`${t("select")} ${
-                      field.translated_name || field.name
-                    }`}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {field.values.map((option, index) => (
-                    <SelectItem key={option} value={option}>
-                      {field?.translated_value[index] || option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              </label>
+              <div className="space-y-1">
+                {field.values.map((option, index) => {
+                  const isChecked = (extraDetails[field.id] || []).includes(option);
+                  return (
+                    <label
+                      key={option}
+                      className={cn(
+                        "flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all group",
+                        isChecked
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "w-3.5 h-3.5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0",
+                          isChecked
+                            ? "bg-blue-500 border-blue-500"
+                            : "border-gray-300 bg-white group-hover:border-gray-400"
+                        )}
+                      >
+                        {isChecked && <Check className="w-2 h-2 text-white" />}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={isChecked}
+                        onChange={(e) =>
+                          handleCheckboxChange(field.id, option, e.target.checked)
+                        }
+                      />
+                      <span
+                        className={cn(
+                          "text-xs font-medium transition-colors",
+                          isChecked ? "text-blue-700" : "text-gray-700"
+                        )}
+                      >
+                        {field?.translated_value?.[index] || option}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           )}
         </Fragment>
       ))}
 
-      <Button
-        variant="outline"
-        className="hover:bg-primary hover:text-white"
-        onClick={handleApply}
-        disabled={isApplyDisabled()}
-      >
-        {t("apply")}
-      </Button>
+      {/* Show More/Less Button */}
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          {showAll ? (
+            <>
+              <ChevronUp className="w-3.5 h-3.5" />
+              Prikaži manje
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3.5 h-3.5" />
+              Prikaži sve ({customFields.length - INITIAL_VISIBLE_COUNT} više)
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 };

@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
-import { t } from "@/utils";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 const BudgetFilter = () => {
@@ -13,45 +10,47 @@ const BudgetFilter = () => {
 
   const { minPrice, maxPrice } = budget;
 
+  useEffect(() => {
+    setBudget({
+      minPrice: searchParams.get("min_price") || "",
+      maxPrice: searchParams.get("max_price") || "",
+    });
+  }, [searchParams]);
+
   const handleMinMaxPrice = () => {
+    if (!minPrice && !maxPrice) return;
     const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set("min_price", minPrice);
-    newSearchParams.set("max_price", maxPrice);
+    if (minPrice) newSearchParams.set("min_price", minPrice);
+    else newSearchParams.delete("min_price");
+    if (maxPrice) newSearchParams.set("max_price", maxPrice);
+    else newSearchParams.delete("max_price");
     window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
   };
 
-
   return (
-    <div className="flex flex-col gap-4 mt-4">
-      <form className="flex gap-4">
-        <Input
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <input
           type="number"
-          placeholder={t("from")}
+          placeholder="Od"
           min={0}
-          onChange={(e) =>
-            setBudget((prev) => ({ ...prev, minPrice: Number(e.target.value) }))
-          }
           value={minPrice}
+          onChange={(e) => setBudget((prev) => ({ ...prev, minPrice: e.target.value }))}
+          onBlur={handleMinMaxPrice}
+          onKeyDown={(e) => e.key === "Enter" && handleMinMaxPrice()}
+          className="w-full px-2 py-1.5 text-sm rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
         />
-        <Input
+        <input
           type="number"
-          placeholder={t("to")}
+          placeholder="Do"
           min={0}
-          onChange={(e) =>
-            setBudget((prev) => ({ ...prev, maxPrice: Number(e.target.value) }))
-          }
           value={maxPrice}
+          onChange={(e) => setBudget((prev) => ({ ...prev, maxPrice: e.target.value }))}
+          onBlur={handleMinMaxPrice}
+          onKeyDown={(e) => e.key === "Enter" && handleMinMaxPrice()}
+          className="w-full px-2 py-1.5 text-sm rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
         />
-      </form>
-      <Button
-        type="submit"
-        className="hover:bg-primary hover:text-white"
-        variant="outline"
-        disabled={minPrice == null || maxPrice == null || minPrice >= maxPrice}
-        onClick={handleMinMaxPrice}
-      >
-        {t("apply")}
-      </Button>
+      </div>
     </div>
   );
 };

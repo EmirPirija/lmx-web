@@ -7,7 +7,6 @@ const useWebSocket = ({ userId, onMessage }) => {
   const [isConnected, setIsConnected] = useState(false);
   const onMessageRef = useRef(onMessage);
 
-  // Keep onMessage ref updated
   useEffect(() => {
     onMessageRef.current = onMessage;
   }, [onMessage]);
@@ -18,21 +17,17 @@ const useWebSocket = ({ userId, onMessage }) => {
       return;
     }
 
-    // Prevent multiple initializations
-    if (pusher.current) {
-      console.log('✅ WebSocket already initialized');
-      return;
-    }
+    if (pusher.current) return;
 
     console.log('🚀 Initializing WebSocket connection...');
 
     try {
       pusher.current = new Pusher(process.env.NEXT_PUBLIC_REVERB_APP_KEY, {
-        wsHost: process.env.NEXT_PUBLIC_REVERB_HOST || 'localhost',
-        wsPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || '8080'),
-        wssPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || '8080'),
-        forceTLS: false,
-        encrypted: false,
+        wsHost: process.env.NEXT_PUBLIC_REVERB_HOST,
+        wsPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || '443'),
+        wssPort: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || '443'),
+        forceTLS: process.env.NEXT_PUBLIC_REVERB_SCHEME === 'wss',
+        encrypted: process.env.NEXT_PUBLIC_REVERB_SCHEME === 'wss',
         disableStats: true,
         enabledTransports: ['ws', 'wss'],
         cluster: 'mt1',
@@ -41,10 +36,6 @@ const useWebSocket = ({ userId, onMessage }) => {
       pusher.current.connection.bind('connected', () => {
         console.log('✅ WebSocket connected');
         setIsConnected(true);
-      });
-
-      pusher.current.connection.bind('connecting', () => {
-        console.log('🔄 WebSocket connecting...');
       });
 
       pusher.current.connection.bind('disconnected', () => {
@@ -56,28 +47,36 @@ const useWebSocket = ({ userId, onMessage }) => {
         console.error('❌ WebSocket error:', err);
       });
 
+      // 🔥 Subscribe na globalni online-status kanal
+      const onlineChannel = pusher.current.subscribe('online-status');
+      
+      onlineChannel.bind('UserOnlineStatus', (data) => {
+        console.log('🟢 Online status event:', data);
+        onMessageRef.current?.({ ...data, type: 'user_online_status' });
+      });
+
     } catch (error) {
       console.error('❌ Error initializing WebSocket:', error);
     }
 
-    // Cleanup ONLY on unmount
     return () => {
-      console.log('🧹 Cleaning up WebSocket (component unmount)');
+      console.log('🧹 Cleaning up WebSocket');
       if (pusher.current) {
         pusher.current.disconnect();
         pusher.current = null;
       }
+      channels.current.clear();
     };
-  }, [userId]); // ← Only userId dependency!
+  }, [userId]);
 
   const subscribeToChat = useCallback((chatId) => {
     if (!pusher.current) {
-      console.warn('⚠️ Cannot subscribe: Pusher not initialized');
+      console.warn('⚠️ Pusher not initialized');
       return;
     }
 
     if (channels.current.has(chatId)) {
-      console.log(`✅ Already subscribed to chat ${chatId}`);
+      console.log(`📡 Already subscribed to chat.${chatId}`);
       return;
     }
 
@@ -85,7 +84,7 @@ const useWebSocket = ({ userId, onMessage }) => {
 
     try {
       const channel = pusher.current.subscribe(`chat.${chatId}`);
-      
+
       channel.bind('pusher:subscription_succeeded', () => {
         console.log(`✅ Successfully subscribed to chat.${chatId}`);
       });
@@ -94,22 +93,47 @@ const useWebSocket = ({ userId, onMessage }) => {
         console.error(`❌ Subscription error for chat.${chatId}:`, error);
       });
 
-      channel.bind('UserTyping', (data) => {
-        console.log('👤 UserTyping event:', data);
-        onMessageRef.current?.({ ...data, type: 'typing' });
+      // DEBUG: Log all events
+      channel.bind_global((eventName, data) => {
+        console.log(`🔔 [chat.${chatId}] Event: ${eventName}`, data);
       });
 
-      channel.bind('NewMessage', (data) => {
-        console.log('💬 NewMessage event:', data);
-        onMessageRef.current?.({ ...data, type: 'new_message' });
-      });
+      // TYPING
+      const handleTyping = (data) => {
+        console.log('✍️ Typing event:', data);
+        onMessageRef.current?.({ 
+          ...data, 
+          type: 'typing',
+          chat_id: data.chat_id || chatId,
+        });
+      };
+      channel.bind('typing', handleTyping);
+      channel.bind('.typing', handleTyping);
 
-      channel.bind('MessageStatusUpdated', (data) => {
-        console.log('✓ MessageStatusUpdated event:', data);
-        onMessageRef.current?.({ ...data, type: 'message_status' });
-      });
+      // NEW MESSAGE
+      const handleNewMessage = (data) => {
+        console.log('💬 New message event:', data);
+        onMessageRef.current?.({ 
+          ...data, 
+          type: 'new_message',
+        });
+      };
+      channel.bind('NewMessage', handleNewMessage);
+      channel.bind('.NewMessage', handleNewMessage);
+
+      // MESSAGE STATUS
+      const handleMessageStatus = (data) => {
+        console.log('👁️ Message status event:', data);
+        onMessageRef.current?.({ 
+          ...data, 
+          type: 'message_status',
+        });
+      };
+      channel.bind('MessageStatusUpdated', handleMessageStatus);
+      channel.bind('.MessageStatusUpdated', handleMessageStatus);
 
       channels.current.set(chatId, channel);
+      
     } catch (error) {
       console.error(`❌ Error subscribing to chat ${chatId}:`, error);
     }
@@ -119,15 +143,28 @@ const useWebSocket = ({ userId, onMessage }) => {
     const channel = channels.current.get(chatId);
     if (channel && pusher.current) {
       console.log(`📴 Unsubscribing from chat.${chatId}`);
+      channel.unbind_all();
       pusher.current.unsubscribe(`chat.${chatId}`);
       channels.current.delete(chatId);
     }
   }, []);
 
+  // 🔥 NOVO: Subscribe na više chatova odjednom (za typing u sidebar)
+  const subscribeToMultipleChats = useCallback((chatIds) => {
+    if (!pusher.current) return;
+    
+    chatIds.forEach(chatId => {
+      if (!channels.current.has(chatId)) {
+        subscribeToChat(chatId);
+      }
+    });
+  }, [subscribeToChat]);
+
   return {
     isConnected,
     subscribeToChat,
     unsubscribeFromChat,
+    subscribeToMultipleChats,
   };
 };
 

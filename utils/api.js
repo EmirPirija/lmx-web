@@ -645,15 +645,34 @@ export const itemOfferApi = {
 export const chatListApi = {
   chatList: ({ type, page } = {}) => {
     return Api.get(CHAT_LIST, {
-      params: {
-        type,
-        page,
-      },
+      params: { type, page },
     });
   },
-  markSeen: (id) => {
+  
+  markSeen: (data) => {
+    const id = typeof data === 'object' ? data.chat_id : data;
     return Api.post(`chat/seen/${id}`);
   },
+  
+  sendTyping: ({ chat_id, is_typing } = {}) => {
+    const formData = new FormData();
+    if (chat_id) formData.append("chat_id", chat_id);
+    formData.append("is_typing", is_typing ? 1 : 0);
+    
+    return Api.post("chat/typing", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  archiveChat: (chatId) => Api.post(`chat/archive/${chatId}`),
+  unarchiveChat: (chatId) => Api.post(`chat/unarchive/${chatId}`),
+  deleteChat: (chatId) => Api.delete(`chat/${chatId}`),
+  markAsUnread: (chatId) => Api.post(`chat/mark-unread/${chatId}`),
+  pinChat: (chatId, pin = true) => Api.post(`chat/pin/${chatId}`, { pin }),
+  
+
+  muteChat: (chatId) => Api.post(`chat/mute/${chatId}`),
+  unmuteChat: (chatId) => Api.post(`chat/unmute/${chatId}`),
 };
 
 export const getMessagesApi = {

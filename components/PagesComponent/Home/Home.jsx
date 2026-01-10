@@ -16,6 +16,7 @@ const OfferSlider = dynamic(() => import("./OfferSlider"), {
   loading: OfferSliderSkeleton,
 });
 
+
 const Home = () => {
   const KmRange = useSelector(getKilometerRange);
   const cityData = useSelector(getCityData);

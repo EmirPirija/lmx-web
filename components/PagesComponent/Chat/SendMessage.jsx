@@ -1,60 +1,55 @@
 "use client";
-import { sendMessageApi } from "@/utils/api";
+import { sendMessageApi, chatListApi } from "@/utils/api";
 import { useEffect, useState, useRef } from "react";
 import { IoMdAttach, IoMdSend } from "react-icons/io";
 import { FaMicrophone, FaRegStopCircle } from "react-icons/fa";
-import { Loader2, X, Check, CheckCheck } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { toast } from "sonner";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
+import { useSelector } from "react-redux";
+import { userSignUpData } from "@/redux/reducer/authSlice";
 
 /**
- * SendMessage Component - Production Ready with Optimistic UI
- * 
+ * SendMessage Component
  * Features:
- * ✅ Optimistic UI - Message appears instantly before API response
- * ✅ Typing indicator - Sends typing status to other user
- * ✅ Message status tracking (sending → sent → delivered → seen)
- * ✅ File upload with preview
+ * ✅ Optimistic UI
+ * ✅ Debounced Typing indicator
+ * ✅ File upload & Preview
  * ✅ Voice recording
- * ✅ Error handling with retry
- * 
- * TODO Backend Integration:
- * 1. WebSocket for typing indicator
- * 2. WebSocket for message status updates
- * 3. Message delivery confirmation endpoint
+ * ✅ Access control check
  */
 
 const SendMessage = ({ 
   selectedChatDetails, 
   setChatMessages,
-  onTyping, // TODO: Connect to WebSocket
-  isOtherUserTyping = false // TODO: From WebSocket
+  isOtherUserTyping = false 
 }) => {
+  // 🔥 Dohvati ulogovanog korisnika
+  const user = useSelector(userSignUpData);
+  const userId = user?.id;
+
+  // Provjera da li je chat dozvoljen
   const isAllowToChat =
     selectedChatDetails?.item?.status === "approved" ||
     selectedChatDetails?.item?.status === "featured";
-
-  if (!isAllowToChat) {
-    return (
-      <div className="p-4 border-t text-center text-muted-foreground">
-        {t("thisAd")} {selectedChatDetails?.item?.status}
-      </div>
-    );
-  }
 
   const id = selectedChatDetails?.id;
   const [message, setMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isSending, setIsSending] = useState(false);
+  
   const fileInputRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Voice recording setup
+  // Refs za Debounce typinga
+  const lastTypingSentTime = useRef(0);
+  const typingTimeoutRef = useRef(null);
+
+  // --- VOICE RECORDING SETUP ---
   const { status, startRecording, stopRecording, mediaBlobUrl, error } =
     useReactMediaRecorder({
       audio: true,
@@ -64,7 +59,7 @@ const SendMessage = ({
   const isRecording = status === "recording";
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // Format recording duration as mm:ss
+  // Format recording duration
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -83,18 +78,25 @@ const SendMessage = ({
     } else {
       setRecordingDuration(0);
     }
-
     return () => clearInterval(timer);
   }, [isRecording]);
 
+  // Cleanup effect
   useEffect(() => {
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
       stopRecording();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      // Pošalji false samo ako imamo ID
+      if (id) {
+        sendTypingStatus(false);
+      }
     };
-  }, []);
+  }, [id]);
 
   // Handle recorded audio
   useEffect(() => {
@@ -103,28 +105,22 @@ const SendMessage = ({
     }
   }, [mediaBlobUrl, status]);
 
-  /**
-   * Typing Indicator Handler
-   * TODO: Connect to WebSocket to send typing status
-   */
-  const handleTypingIndicator = (isTyping) => {
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Send typing status
-    // TODO: Send via WebSocket
-    onTyping?.(id, isTyping);
-
-    if (isTyping) {
-      // Auto-stop typing after 3 seconds of inactivity
-      typingTimeoutRef.current = setTimeout(() => {
-        onTyping?.(id, false);
-      }, 3000);
+  // --- TYPING INDICATOR LOGIC ---
+  const sendTypingStatus = async (isTyping) => {
+    if (!id) return;
+    
+    console.log('📤 Sending typing status:', isTyping);
+    try {
+      await chatListApi.sendTyping({
+        chat_id: id,
+        is_typing: isTyping
+      });
+    } catch (error) {
+      console.error('Typing indicator error:', error);
     }
   };
 
+  // --- AUDIO HANDLER ---
   const handleRecordedAudio = async () => {
     try {
       const response = await fetch(mediaBlobUrl);
@@ -139,6 +135,7 @@ const SendMessage = ({
     }
   };
 
+  // --- FILE HANDLERS ---
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -166,30 +163,56 @@ const SendMessage = ({
     }
   };
 
-  /**
-   * Send Message with Optimistic UI
-   * Message appears instantly, then updates with server response
-   */
+  // Handle message change with debounce
+  const handleMessageChange = (e) => {
+    const newValue = e.target.value;
+    setMessage(newValue);
+    
+    const now = Date.now();
+    const TIME_BETWEEN_EVENTS = 2000;
+
+    if (newValue.length > 0) {
+      if (now - lastTypingSentTime.current > TIME_BETWEEN_EVENTS) {
+        sendTypingStatus(true);
+        lastTypingSentTime.current = now;
+      }
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        sendTypingStatus(false);
+      }, 3000);
+
+    } else {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      sendTypingStatus(false);
+    }
+  };
+
+  // --- SEND MESSAGE LOGIC ---
   const sendMessage = async (audioFile = null) => {
     if ((!message.trim() && !selectedFile && !audioFile) || isSending) return;
 
-    // Stop typing indicator
-    handleTypingIndicator(false);
+    // Zaustavi typing status
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    sendTypingStatus(false);
 
-    // Create optimistic message
+    // 🔥 ISPRAVLJENO: Koristi userId iz ulogovanog korisnika
     const optimisticMessage = {
-      id: `temp-${Date.now()}`, // Temporary ID
+      id: `temp-${Date.now()}`,
       message_type: audioFile ? "audio" : selectedFile ? (message ? "file_and_text" : "file") : "text",
       message: message || "",
-      sender_id: selectedChatDetails?.buyer_id || selectedChatDetails?.seller_id,
+      sender_id: userId, // 🔥 Pravilni sender_id
       created_at: new Date().toISOString(),
       audio: audioFile ? URL.createObjectURL(audioFile) : null,
       file: selectedFile ? previewUrl : null,
-      status: "sending", // Custom status for optimistic UI
-      isOptimistic: true, // Flag to identify optimistic messages
+      status: "sending",
+      isOptimistic: true,
     };
 
-    // Add optimistic message to UI immediately
+    // Add optimistic message to UI
     setChatMessages((prev) => [...prev, optimisticMessage]);
 
     // Clear input
@@ -197,39 +220,48 @@ const SendMessage = ({
     setMessage("");
     removeSelectedFile();
 
+    // 🔥 ISPRAVLJENO: Pravilno slanje parametara
     const params = {
       item_offer_id: id,
-      message: messageText || "",
-      file: selectedFile || "",
-      audio: audioFile || "",
     };
+    
+    // Dodaj message samo ako postoji
+    if (messageText && messageText.trim()) {
+      params.message = messageText;
+    }
+    
+    // Dodaj file samo ako postoji
+    if (selectedFile) {
+      params.file = selectedFile;
+    }
+    
+    // Dodaj audio samo ako postoji
+    if (audioFile) {
+      params.audio = audioFile;
+    }
+
+    console.log('📤 Sending message with params:', {
+      item_offer_id: params.item_offer_id,
+      message: params.message,
+      hasFile: !!params.file,
+      hasAudio: !!params.audio
+    });
 
     try {
       setIsSending(true);
       const response = await sendMessageApi.sendMessage(params);
 
-      if (!response?.data?.error) {
+      console.log('📥 Send message response:', response?.data);
+
+      if (response?.data?.error === false) {
         // Replace optimistic message with real message from server
         setChatMessages((prev) => 
           prev.map((msg) => 
             msg.id === optimisticMessage.id 
-              ? { ...response.data.data, status: "sent" } // TODO: Status will come from WebSocket
+              ? { ...response.data.data, status: "sent" }
               : msg
           )
         );
-
-        // TODO: WebSocket will handle status updates (sent → delivered → seen)
-        // Simulate status updates for demo (remove in production)
-        setTimeout(() => {
-          setChatMessages((prev) => 
-            prev.map((msg) => 
-              msg.id === response.data.data.id 
-                ? { ...msg, status: "delivered" }
-                : msg
-            )
-          );
-        }, 1000);
-
       } else {
         // Remove optimistic message on error
         setChatMessages((prev) => 
@@ -242,15 +274,12 @@ const SendMessage = ({
       setChatMessages((prev) => 
         prev.filter((msg) => msg.id !== optimisticMessage.id)
       );
-      console.error(error);
-      toast.error("Error sending message");
+      console.error('Send message error:', error);
+      console.error('Error response:', error?.response?.data);
+      toast.error(error?.response?.data?.message || "Error sending message");
       
-      // Restore input values for retry
+      // Restore message for retry
       setMessage(messageText);
-      if (selectedFile) {
-        // Note: Can't restore file input, but can show error
-        toast.info("Please re-attach the file and try again");
-      }
     } finally {
       setIsSending(false);
     }
@@ -277,28 +306,25 @@ const SendMessage = ({
     }
   };
 
-  const handleMessageChange = (e) => {
-    setMessage(e.target.value);
-    
-    // Send typing indicator
-    if (e.target.value.length > 0) {
-      handleTypingIndicator(true);
-    } else {
-      handleTypingIndicator(false);
-    }
-  };
+  // Ako chat nije dozvoljen, prikaži poruku
+  if (!isAllowToChat) {
+    return (
+      <div className="p-4 border-t text-center text-muted-foreground">
+        {t("thisAd")} {selectedChatDetails?.item?.status}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">
       {/* Other user typing indicator */}
-      {/* TODO: Connect to WebSocket */}
       {isOtherUserTyping && (
-        <div className="px-4 py-2 text-sm text-muted-foreground flex items-center gap-2">
-          <span>Typing</span>
-          <span className="flex gap-0.5">
-            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+        <div className="px-4 py-2 text-sm text-cyan-600 flex items-center gap-2 bg-cyan-50 animate-in fade-in slide-in-from-bottom-1 transition-all">
+          <span className="font-medium">piše</span>
+          <span className="flex gap-0.5 pb-1">
+            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
+            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-[bounce_1s_ease-in-out_0.15s_infinite]"></span>
+            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-[bounce_1s_ease-in-out_0.3s_infinite]"></span>
           </span>
         </div>
       )}
@@ -351,14 +377,12 @@ const SendMessage = ({
         ) : (
           <textarea
             ref={inputRef}
-            type="text"
-            placeholder="Message..."
+            placeholder="Poruka..."
             className="flex-1 outline-none border px-3 py-1 rounded-md resize-none focus:ring-2 focus:ring-primary/20 transition-all"
             value={message}
             rows={2}
             onChange={handleMessageChange}
             onKeyDown={(e) => {
-              // Send on Enter (without Shift)
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 if (message.trim() || selectedFile) {

@@ -7,17 +7,18 @@ const ScrollToTopButton = () => {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.pageYOffset > 300) {
+      // Koristimo window.scrollY jer je modernije od pageYOffset
+      if (window.scrollY > 300) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
       }
     };
+
     window.addEventListener("scroll", toggleVisibility);
-    return () => {
-      window.removeEventListener("scroll", toggleVisibility);
-    };
+    return () => window.removeEventListener("scroll", toggleVisibility);
   }, []);
+
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -29,11 +30,25 @@ const ScrollToTopButton = () => {
     <button
       onClick={scrollToTop}
       className={cn(
-        "fixed bottom-7 right-7 bg-primary text-white rounded z-[1000] p-2 flex items-center justify-center size-12",
-        isVisible ? "flex" : "hidden"
+        // --- BAZNI STILOVI (Uvijek prisutni) ---
+        "fixed bottom-7 right-7 z-[1000]",
+        "flex items-center justify-center size-12",
+        "bg-primary text-white rounded-full", // Krug umjesto kvadrata
+        "shadow-lg shadow-primary/30", // Lijepa sjena u boji dugmeta
+        "transition-all duration-500 ease-in-out", // Glatka tranzicija za sve
+        
+        // --- INTERAKCIJE (Hover & Active) ---
+        "hover:bg-primary/90 hover:-translate-y-1 hover:shadow-xl", // Lebdi na hover
+        "active:scale-90", // "Ulegne" na klik
+        
+        // --- LOGIKA POJAVLJIVANJA (UI MAGIC) ---
+        isVisible 
+          ? "opacity-100 translate-y-0 pointer-events-auto" // Vidljivo
+          : "opacity-0 translate-y-8 pointer-events-none"   // Sakriveno (pomjereno dolje)
       )}
+      aria-label="Vrati se na vrh"
     >
-      <IoIosArrowUp size={22} />
+      <IoIosArrowUp size={24} />
     </button>
   );
 };

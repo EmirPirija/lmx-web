@@ -503,7 +503,7 @@ const AccordionSection = ({
   isCompleted 
 }) => {
   return (
-    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm overflow-visible">
       {/* Header */}
       <div 
         onClick={onToggle}
@@ -659,14 +659,20 @@ const ComponentThree = ({
       case "number": {
         return (
           <div className="flex flex-col">
-            <Input
-              type={type}
-              inputMode="numeric"
-              placeholder={`Unesite ${translated_name || name}`}
-              {...inputProps}
-              onKeyDown={(e) => handleKeyDown(e, max_length)}
-              onKeyPress={(e) => inpNum(e)}
-            />
+              <Input
+                type={type}
+                step="any"              // BITNO: Dozvoljava bilo koji decimalni broj
+                inputMode="decimal"     // BITNO: Prikazuje tastaturu sa tačkom na mobitelu
+                placeholder={`Unesite ${translated_name || name}`}
+                {...inputProps}
+                onKeyDown={(e) => handleKeyDown(e, max_length)}
+                onKeyPress={(e) => {
+                    // Dozvoljava samo brojeve (0-9) i tačku (.)
+                    if (!/[0-9.]/.test(e.key)) {
+                        e.preventDefault();
+                    }
+                }}
+              />
             {max_length && (
               <span className="self-end text-sm text-muted-foreground">
                 {`${currentExtraDetails[id]?.length ?? 0}/${max_length}`}

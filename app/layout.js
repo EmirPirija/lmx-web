@@ -2,14 +2,19 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/redux/store/providers";
 import { Toaster } from "@/components/ui/sonner";
-// import Script from "next/script";
 
+// --- DARK MODE IMPORTI ---
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { SmartThemeToggle } from "@/components/SmartThemeToggle";
+
+// Konfiguracija fonta
 const manrope = Manrope({
   weight: ["200", "300", "400", "500", "600", "700", "800"],
   subsets: ["latin"],
   display: "swap",
 });
 
+// Metadata (SEO)
 export const generateMetadata = () => {
   return {
     title: process.env.NEXT_PUBLIC_META_TITLE,
@@ -29,17 +34,38 @@ export default function RootLayout({ children }) {
       lang="en"
       web-version={process.env.NEXT_PUBLIC_WEB_VERSION}
       className="scroll-smooth"
+      // OBAVEZNO: Sprječava greške zbog neslaganja servera i klijenta kod tema
+      suppressHydrationWarning
     >
       <head>
-        {/* <Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxxxxxxx"
-          crossOrigin="anonymous" strategy="afterInteractive" /> */}
+        {/* <Script async src="..." /> */}
       </head>
-      <body className={`${manrope.className} !pointer-events-auto`}>
-        <Providers>
-          {children}
-          <Toaster position="top-center" />
-        </Providers>
-        <div id="recaptcha-container"></div>
+      
+      <body 
+        className={`
+          ${manrope.className} 
+          bg-white text-black 
+          dark:bg-gray-900 dark:text-white 
+          transition-colors duration-300 
+          !pointer-events-auto relative
+        `}
+      >
+        {/* 1. ThemeProvider mora obuhvatiti cijelu aplikaciju */}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          
+          {/* 2. Redux Providers */}
+          <Providers>
+            {children}
+            <Toaster position="top-center" />
+          </Providers>
+
+          {/* 3. Pametno dugme za temu (Automatski "bježi" od footera) */}
+          <SmartThemeToggle />
+
+          {/* 4. Ostali globalni elementi */}
+          <div id="recaptcha-container"></div>
+          
+        </ThemeProvider>
       </body>
     </html>
   );

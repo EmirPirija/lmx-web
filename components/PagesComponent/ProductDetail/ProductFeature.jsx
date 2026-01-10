@@ -1,3 +1,4 @@
+import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { FaRegLightbulb, FaCheck, FaTimes } from "react-icons/fa";
 import { isPdf, t } from "@/utils/index";
@@ -9,25 +10,21 @@ const ProductFeature = ({ filteredFields }) => {
   const renderValue = (feature) => {
     const { type, value, translated_selected_values } = feature;
 
-    // Checkbox type - Multiple items in column layout
+    // Checkbox type - cleaner pills
     if (type === "checkbox") {
       const values = Array.isArray(translated_selected_values) 
         ? translated_selected_values 
         : translated_selected_values ? [translated_selected_values] : [];
       
       return (
-        <div className="flex flex-col gap-2 w-full">
+        <div className="flex flex-wrap gap-2">
           {values.map((item, idx) => (
             <div
               key={idx}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg w-fit"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full transition-colors"
             >
-              <div className="flex items-center justify-center w-4 h-4 bg-green-500 rounded">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span className="text-sm font-medium text-green-900">
+              <FaCheck className="w-3 h-3 text-emerald-600" />
+              <span className="text-sm font-medium text-emerald-900">
                 {item}
               </span>
             </div>
@@ -39,8 +36,8 @@ const ProductFeature = ({ filteredFields }) => {
     // Radio type
     if (type === "radio") {
       return (
-        <div className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="w-3 h-3 bg-blue-600 rounded-full border-2 border-blue-700"></div>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors">
+          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
           <span className="text-sm font-medium text-blue-900">
             {translated_selected_values}
           </span>
@@ -55,7 +52,7 @@ const ProductFeature = ({ filteredFields }) => {
         : [translated_selected_values];
       
       return (
-        <div className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-full transition-colors">
           <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
           <span className="text-sm font-medium text-purple-900">
             {values.join(", ")}
@@ -77,15 +74,13 @@ const ProductFeature = ({ filteredFields }) => {
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-all duration-300 group"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg transition-all group shadow-sm hover:shadow"
           >
-            <div className="p-1.5 bg-white rounded-md shadow-sm">
-              <MdOutlineAttachFile className="text-red-600 text-lg" />
-            </div>
+            <MdOutlineAttachFile className="text-red-600 text-lg" />
             <span className="text-sm font-medium text-red-700">
               {t("viewPdf") || "View PDF"}
             </span>
-            <MdOpenInNew className="text-red-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <MdOpenInNew className="text-red-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity" />
           </CustomLink>
         );
       }
@@ -97,7 +92,7 @@ const ProductFeature = ({ filteredFields }) => {
           rel="noopener noreferrer"
           className="inline-block"
         >
-          <div className="relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-all duration-300 group">
+          <div className="relative overflow-hidden rounded-xl border-2 border-gray-200 hover:border-blue-400 transition-all group shadow-sm hover:shadow">
             <CustomImage
               src={fileUrl}
               alt="Preview"
@@ -105,8 +100,8 @@ const ProductFeature = ({ filteredFields }) => {
               height={80}
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 flex items-center justify-center transition-all duration-300">
-              <MdOpenInNew className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-xl" />
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 flex items-center justify-center transition-all">
+              <MdOpenInNew className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-xl" />
             </div>
           </div>
         </CustomLink>
@@ -116,7 +111,7 @@ const ProductFeature = ({ filteredFields }) => {
     // Number type
     if (type === "number") {
       return (
-        <div className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+        <div className="inline-flex items-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-full transition-colors">
           <span className="text-sm font-semibold text-indigo-900">
             {translated_selected_values || value}
           </span>
@@ -127,8 +122,8 @@ const ProductFeature = ({ filteredFields }) => {
     // Textbox type
     if (type === "textbox") {
       return (
-        <div className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-          <span className="text-sm font-medium text-gray-900">
+        <div className="inline-flex items-center px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition-colors">
+          <span className="text-sm font-medium text-slate-900">
             {translated_selected_values || value}
           </span>
         </div>
@@ -137,8 +132,8 @@ const ProductFeature = ({ filteredFields }) => {
 
     // Default text type
     return (
-      <div className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-        <span className="text-sm font-medium text-gray-900">
+      <div className="inline-flex items-center px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition-colors">
+        <span className="text-sm font-medium text-slate-900">
           {Array.isArray(translated_selected_values)
             ? translated_selected_values.join(", ")
             : translated_selected_values || value}
@@ -150,10 +145,10 @@ const ProductFeature = ({ filteredFields }) => {
   return (
     <>
       <style>{`
-        @keyframes slideInUp {
+        @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(8px);
           }
           to {
             opacity: 1;
@@ -161,85 +156,74 @@ const ProductFeature = ({ filteredFields }) => {
           }
         }
 
-        .feature-item {
-          animation: slideInUp 0.3s ease-out backwards;
+        .feature-card {
+          animation: fadeInUp 0.4s ease-out backwards;
         }
 
-        .feature-item:hover {
-          background: rgba(0, 0, 0, 0.02);
+        .feature-card:hover .feature-icon {
+          transform: scale(1.05) rotate(2deg);
         }
 
-        .feature-icon-wrapper {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .feature-item:hover .feature-icon-wrapper {
-          transform: scale(1.1);
+        .feature-icon {
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
       `}</style>
 
-      <div className="flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 p-5 border-b border-gray-100">
+        <div className="bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 p-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-lg shadow-sm">
-              <FaRegLightbulb className="text-blue-600 text-xl" />
+            <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
+              <FaRegLightbulb className="text-white text-2xl" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {t("highlights")}
+              <h3 className="text-xl font-bold text-white">
+                {t("highlights") || "Key Features"}
               </h3>
-              <p className="text-sm text-gray-600">
-                {filteredFields?.length} {t("keyFeatures") || "Key Features"}
+              <p className="text-sm text-blue-100">
+                {filteredFields?.length} {t("keyFeatures") || "features"}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Features List */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 gap-4">
-            {filteredFields?.map((feature, index) => {
-              const isCheckbox = feature.type === "checkbox";
-              const hasMultipleValues = isCheckbox && Array.isArray(feature.translated_selected_values) && feature.translated_selected_values.length > 3;
-
-              return (
-                <div
-                  className={`feature-item flex flex-col gap-3 p-4 rounded-lg border border-gray-100 hover:border-blue-200 transition-all duration-300 ${
-                    hasMultipleValues ? '' : 'sm:flex-row sm:items-center'
-                  }`}
-                  key={index}
-                  style={{
-                    animationDelay: `${index * 0.05}s`,
-                  }}
-                >
+        {/* Features Grid */}
+        <div className="p-6 sm:p-8">
+          <div className="space-y-4">
+            {filteredFields?.map((feature, index) => (
+              <div
+                className="feature-card group"
+                key={index}
+                style={{
+                  animationDelay: `${index * 0.05}s`,
+                }}
+              >
+                <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all">
                   {/* Feature Label */}
                   <div className="flex items-center gap-3 sm:w-1/3 flex-shrink-0">
-                    <div className="feature-icon-wrapper flex-shrink-0">
-                      <div className="p-2 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
+                    <div className="feature-icon flex-shrink-0">
+                      <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100">
                         <CustomImage
                           src={feature?.image}
                           alt={feature?.translated_name || feature?.name}
                           height={24}
                           width={24}
-                          className="aspect-square size-6"
+                          className="size-6"
                         />
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-700">
-                        {feature?.translated_name || feature?.name}
-                      </p>
-                    </div>
+                    <p className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                      {feature?.translated_name || feature?.name}
+                    </p>
                   </div>
 
                   {/* Feature Value */}
-                  <div className="flex items-start sm:flex-1">
+                  <div className="flex items-start sm:flex-1 sm:justify-end">
                     {renderValue(feature)}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
