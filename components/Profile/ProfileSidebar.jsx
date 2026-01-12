@@ -19,7 +19,6 @@ import ReusableAlertDialog from "../Common/ReusableAlertDialog";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 import { useNavigate } from "../Common/useNavigate";
-import Image from "next/image"; // Dodano za avatar ako ga imate, ili placeholder
 
 const ProfileSidebar = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -81,94 +80,85 @@ const ProfileSidebar = () => {
     }
   };
 
-  // Helper funkcija za stiliziranje linkova da kod bude čišći
   const getLinkClass = (path) => {
     const isActive = pathname === path;
-    return `group flex items-center gap-3 py-3 px-4 rounded-lg transition-all duration-200 text-sm font-medium ${
+    return `group flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 text-sm font-medium ${
       isActive
-        ? "bg-primary text-white shadow-md" // Prilagodite 'bg-primary' vašoj boji teme
-        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+        ? "bg-[#00B8D4] text-white shadow-sm"
+        : "text-gray-700 hover:bg-gray-50"
     }`;
   };
 
+  const navigationLinks = [
+    { href: "/profile", icon: FiUser, label: t("profile") },
+    { href: "/notifications", icon: IoMdNotificationsOutline, label: t("notifications") },
+    { href: "/chat", icon: BiChat, label: t("chat") },
+    { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
+    { href: "/my-ads", icon: LiaAdSolid, label: t("myAds") },
+    { href: "/favorites", icon: LuHeart, label: t("favorites") },
+    { href: "/transactions", icon: BiReceipt, label: t("transaction") },
+    { href: "/reviews", icon: MdOutlineRateReview, label: t("myReviews") },
+    { href: "/job-applications", icon: MdWorkOutline, label: t("jobApplications") },
+  ];
+
   return (
-    <aside className="h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      
-      {/* 1. Header sekcija sa podacima korisnika (UX poboljšanje) */}
-      <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden shrink-0">
+    <aside className="h-full flex flex-col bg-white rounded-xl shadow-sm border border-gray-200">
+      {/* User Header - Kompaktan dizajn */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-full bg-gradient-to-br from-[#00B8D4] to-[#0097A7] flex items-center justify-center text-white overflow-hidden shrink-0 shadow-sm">
             {userData?.profile_image ? (
-                 <img src={userData.profile_image} alt="User" className="h-full w-full object-cover" />
+              <img src={userData.profile_image} alt="User" className="h-full w-full object-cover" />
             ) : (
-                 <FiUser size={24} />
+              <FiUser size={20} />
             )}
-        </div>
-        <div className="overflow-hidden">
-            <h3 className="text-sm font-bold text-gray-900 truncate">{userData?.name || "Korisnik"}</h3>
-            <p className="text-xs text-gray-500 truncate">{userData?.email || userData?.phone}</p>
+          </div>
+          <div className="overflow-hidden flex-1">
+            <h3 className="text-sm font-semibold text-gray-900 truncate">
+              {userData?.name || "Korisnik"}
+            </h3>
+            <p className="text-xs text-gray-500 truncate">
+              {userData?.email || userData?.phone}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* 2. Scrollable Navigation */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
-        <CustomLink href="/profile" className={getLinkClass("/profile")}>
-          <FiUser size={20} />
-          <span>{t("profile")}</span>
-        </CustomLink>
-        <CustomLink href="/notifications" className={getLinkClass("/notifications")}>
-          <IoMdNotificationsOutline size={20} />
-          <span>{t("notifications")}</span>
-        </CustomLink>
-        <CustomLink href="/chat" className={getLinkClass("/chat")}>
-          <BiChat size={20} />
-          <span>{t("chat")}</span>
-        </CustomLink>
-        <CustomLink href="/user-subscription" className={getLinkClass("/user-subscription")}>
-          <BiDollarCircle size={20} />
-          <span>{t("subscription")}</span>
-        </CustomLink>
-        <CustomLink href="/my-ads" className={getLinkClass("/my-ads")}>
-          <LiaAdSolid size={20} />
-          <span>{t("myAds")}</span>
-        </CustomLink>
-        <CustomLink href="/favorites" className={getLinkClass("/favorites")}>
-          <LuHeart size={20} />
-          <span>{t("favorites")}</span>
-        </CustomLink>
-        <CustomLink href="/transactions" className={getLinkClass("/transactions")}>
-          <BiReceipt size={20} />
-          <span>{t("transaction")}</span>
-        </CustomLink>
-        <CustomLink href="/reviews" className={getLinkClass("/reviews")}>
-          <MdOutlineRateReview size={20} />
-          <span>{t("myReviews")}</span>
-        </CustomLink>
-        <CustomLink href="/job-applications" className={getLinkClass("/job-applications")}>
-          <MdWorkOutline size={20} />
-          <span>{t("jobApplications")}</span>
-        </CustomLink>
-      </div>
+      {/* Navigation - Sve na vrhu, kompaktno */}
+      <nav className="flex-1 overflow-y-auto py-2 px-2">
+        <div className="space-y-0.5">
+          {navigationLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <CustomLink key={link.href} href={link.href} className={getLinkClass(link.href)}>
+                <Icon size={18} className="shrink-0" />
+                <span className="truncate">{link.label}</span>
+              </CustomLink>
+            );
+          })}
+        </div>
+      </nav>
 
-      {/* 3. Footer Actions (Logout & Delete) - Jasno odvojeno */}
-      <div className="p-3 border-t border-gray-100 bg-gray-50/50 space-y-1">
+      {/* Footer Actions - Minimalan dizajn */}
+      <div className="p-2 border-t border-gray-200 space-y-0.5">
         <button
           onClick={() => setIsLogout(true)}
-          className="w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors duration-200"
+          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200"
         >
-          <RiLogoutCircleLine size={20} />
-          <span>{t("signOut")}</span>
+          <RiLogoutCircleLine size={18} className="shrink-0" />
+          <span className="truncate">{t("signOut")}</span>
         </button>
         
         <button
           onClick={() => setIsDeleteAccount(true)}
-          className="w-full flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
+          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-200"
         >
-          <BiTrashAlt size={20} />
-          <span>{t("deleteAccount")}</span>
+          <BiTrashAlt size={18} className="shrink-0" />
+          <span className="truncate">{t("deleteAccount")}</span>
         </button>
       </div>
 
-      {/* Logout Alert Dialog */}
+      {/* Logout Dialog */}
       <ReusableAlertDialog
         open={IsLogout}
         onCancel={() => setIsLogout(false)}
@@ -180,27 +170,26 @@ const ProfileSidebar = () => {
         confirmDisabled={IsLoggingOut}
       />
 
-      {/* Delete Account Alert Dialog */}
+      {/* Delete Account Dialog */}
       <ReusableAlertDialog
         open={IsDeleteAccount}
         onCancel={() => setIsDeleteAccount(false)}
         onConfirm={handleDeleteAcc}
         title={t("areYouSure")}
         description={
-          <div className="bg-red-50 p-3 rounded-md border border-red-100">
-             <p className="text-red-800 text-sm font-semibold mb-2">{t("warning")}:</p>
-              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
-                <li>{t("adsAndTransactionWillBeDeleted")}</li>
-                <li>{t("accountsDetailsWillNotRecovered")}</li>
-                <li>{t("subWillBeCancelled")}</li>
-                <li>{t("savedMesgWillBeLost")}</li>
-              </ul>
+          <div className="bg-red-50 p-3 rounded-lg border border-red-100">
+            <p className="text-red-800 text-sm font-semibold mb-2">{t("warning")}:</p>
+            <ul className="list-disc list-inside text-xs text-red-700 space-y-1">
+              <li>{t("adsAndTransactionWillBeDeleted")}</li>
+              <li>{t("accountsDetailsWillNotRecovered")}</li>
+              <li>{t("subWillBeCancelled")}</li>
+              <li>{t("savedMesgWillBeLost")}</li>
+            </ul>
           </div>
         }
         cancelText={t("cancel")}
         confirmText={t("yes")}
         confirmDisabled={IsDeleting}
-        confirmButtonClass="bg-red-600 hover:bg-red-700" // Opcionalno, ako komponenta podržava
       />
     </aside>
   );

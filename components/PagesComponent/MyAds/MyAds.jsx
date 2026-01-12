@@ -1,6 +1,7 @@
 "use client";
 import { t } from "@/utils";
 import { CgArrowsExchangeAltV } from "react-icons/cg";
+import { ArrowUpDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,9 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import AdsCard from "./MyAdsCard.jsx";
-import { deleteItemApi, getMyItemsApi, renewItemApi } from "@/utils/api";
+import { deleteItemApi, getMyItemsApi, renewItemApi, chanegItemStatusApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton.jsx";
 import NoData from "@/components/EmptyStates/NoData";
@@ -26,66 +27,134 @@ import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog.jsx";
 import { toast } from "sonner";
 import ChoosePackageModal from "./ChoosePackageModal.jsx";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice.js";
+import { useNavigate } from "@/components/Common/useNavigate";
 
 const MyAds = () => {
+  const { navigate } = useNavigate();
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const searchParams = useSearchParams();
   const isRTL = useSelector(getIsRtl);
 
   const sortValue = searchParams.get("sort") || "new-to-old";
-  const status = searchParams.get("status") || "all";
+  const status = searchParams.get("status") || "approved";
 
-  const [totalAdsCount, setTotalAdsCount] = useState(0);
   const [MyItems, setMyItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [IsLoading, setIsLoading] = useState(true);
   const [IsLoadMore, setIsLoadMore] = useState(false);
 
+  const [statusCounts, setStatusCounts] = useState({
+    approved: 0,
+    inactive: 0,
+    "sold out": 0,
+    featured: 0,
+    expired: 0,
+    resubmitted: 0,
+  });
+
   const isFreeAdListing = useSelector(getIsFreAdListing);
   const [ItemPackages, setItemPackages] = useState([]);
   const [renewIds, setRenewIds] = useState([]);
-
   const [selectedIds, setSelectedIds] = useState([]);
   const [IsDeleting, setIsDeleting] = useState(false);
   const [IsDeleteDialog, setIsDeleteDialog] = useState(false);
-
   const [IsChoosePackage, setIsChoosePackage] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [isRenewingAd, setIsRenewingAd] = useState(false);
 
-  // Filter expired ads and check if selection is allowed
-  const expiredAds = MyItems.filter((item) => item.status === "expired");
-  const canMultiSelect = expiredAds.length > 1;
+  const [isSticky, setIsSticky] = useState(false);
+  const sentinelRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      setContainerHeight(containerRef.current.offsetHeight);
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting && entry.boundingClientRect.top <= 0) {
+          setIsSticky(true);
+        } else {
+          setIsSticky(false);
+        }
+      },
+      { root: null, threshold: 0 }
+    );
+    if (sentinelRef.current) observer.observe(sentinelRef.current);
+    return () => {
+      if (sentinelRef.current) observer.unobserve(sentinelRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchAllCounts = async () => {
+      const statusesToCheck = [
+        "approved",
+        "inactive",
+        "sold out",
+        "featured",
+        "expired",
+        "resubmitted",
+      ];
+
+      const promises = statusesToCheck.map(async (s) => {
+        try {
+          const res = await getMyItemsApi.getMyItems({
+            status: s,
+            page: 1,
+            sort_by: "new-to-old",
+          });
+          return { status: s, count: res?.data?.data?.total || 0 };
+        } catch (error) {
+          return { status: s, count: 0 };
+        }
+      });
+
+      try {
+        const results = await Promise.all(promises);
+        const newCounts = {};
+        results.forEach((item) => {
+          newCounts[item.status] = item.count;
+        });
+        setStatusCounts((prev) => ({ ...prev, ...newCounts }));
+      } catch (error) {
+        console.error("Greška pri učitavanju brojača:", error);
+      }
+    };
+
+    fetchAllCounts();
+  }, []);
 
   const getMyItemsData = async (page = 1) => {
     try {
-      const params = {
-        page,
-        sort_by: sortValue,
-      };
+      const params = { page, sort_by: sortValue };
       if (status !== "all") {
         params.status = status;
       }
 
-      // Set loading states based on page
-      if (page > 1) {
-        setIsLoadMore(true);
-      } else {
-        setIsLoading(true);
-      }
+      if (page > 1) setIsLoadMore(true);
+      else setIsLoading(true);
 
       const res = await getMyItemsApi.getMyItems(params);
       const data = res?.data;
+
       if (data?.error === false) {
-        setTotalAdsCount(data?.data?.total);
+        if (status !== "all") {
+          setStatusCounts((prev) => ({
+            ...prev,
+            [status]: data?.data?.total,
+          }));
+        }
+
         page > 1
           ? setMyItems((prevData) => [...prevData, ...data?.data?.data])
           : setMyItems(data?.data?.data);
         setCurrentPage(data?.data?.current_page);
         setLastPage(data?.data?.last_page);
       } else {
-        console.log("Error in response: ", data.message);
+        console.log("Error", data.message);
       }
     } catch (error) {
       console.log(error);
@@ -105,36 +174,35 @@ const MyAds = () => {
     window.history.pushState(null, "", `?${params.toString()}`);
   };
 
-  const handleSortChange = (value) => {
-    updateURLParams("sort", value);
-  };
+  const handleSortChange = (value) => updateURLParams("sort", value);
+  const handleStatusChange = (value) => updateURLParams("status", value);
 
-  const handleStatusChange = (value) => {
-    updateURLParams("status", value);
-  };
+  const expiredAds = MyItems.filter((item) => item.status === "expired");
+  const canMultiSelect = expiredAds.length > 1;
 
   const handleAdSelection = (adId) => {
     const ad = MyItems.find((item) => item.id === adId);
     if (ad?.status !== "expired") return;
-
-    setRenewIds((prev) => {
-      if (prev.includes(adId)) {
-        return prev.filter((id) => id !== adId);
-      } else {
-        return [...prev, adId];
-      }
-    });
+    setRenewIds((prev) =>
+      prev.includes(adId)
+        ? prev.filter((id) => id !== adId)
+        : [...prev, adId]
+    );
   };
+
+  const handleSelectAll = () =>
+    renewIds.length === expiredAds.length
+      ? setRenewIds([])
+      : setRenewIds(expiredAds.map((item) => item.id));
+
+  const handleCancelSelection = () => setRenewIds([]);
 
   const handleRemove = async () => {
     if (selectedIds.length === 0) return;
     try {
       setIsDeleting(true);
       const payload = { item_ids: selectedIds.join(",") };
-      // Call API
       const res = await deleteItemApi.deleteItem(payload);
-
-      // Handle response
       if (res?.data?.error === false) {
         toast.success(res?.data?.message);
         setIsDeleteDialog(false);
@@ -166,9 +234,7 @@ const MyAds = () => {
           ...(isFreeAdListing ? {} : { package_id: packageId }),
         };
       }
-
       const res = await renewItemApi.renewItem(payload);
-
       if (res?.data?.error === false) {
         toast.success(res?.data?.message);
         setIsChoosePackage(false);
@@ -186,7 +252,6 @@ const MyAds = () => {
 
   const handleRenew = (ids) => {
     const idsToRenew = Array.isArray(ids) ? ids : renewIds;
-
     if (isFreeAdListing) {
       renewAds({ ids: idsToRenew });
     } else {
@@ -194,7 +259,6 @@ const MyAds = () => {
         toast.error(t("pleaseSelectPackage"));
         return;
       }
-
       const subPackage = ItemPackages.find(
         (p) => Number(p.id) === Number(selectedPackageId)
       );
@@ -207,112 +271,320 @@ const MyAds = () => {
     }
   };
 
-  // Handle context menu actions
+  // --- FUNKCIJE ZA PROMJENU STATUSA ---
+  const handleDeactivateAd = async (adId) => {
+    try {
+      const res = await chanegItemStatusApi.changeItemStatus({
+        item_id: adId,
+        status: "inactive",
+      });
+
+      if (res?.data?.error === false) {
+        toast.success("Oglas je skriven");
+        
+        const currentItem = MyItems.find(item => item.id === adId);
+        
+        // INSTANT UKLANJANJE iz liste ako gledamo approved/featured tab
+        if (status === "approved" || status === "featured") {
+          setMyItems((prevItems) => prevItems.filter((item) => item.id !== adId));
+        } else {
+          setMyItems((prevItems) =>
+            prevItems.map((item) =>
+              item.id === adId ? { ...item, status: "inactive" } : item
+            )
+          );
+        }
+
+        // Ažuriraj brojače
+        setStatusCounts((prev) => ({
+          ...prev,
+          approved: Math.max(0, prev.approved - 1),
+          featured: currentItem?.is_feature ? Math.max(0, prev.featured - 1) : prev.featured,
+          inactive: prev.inactive + 1,
+        }));
+      } else {
+        toast.error(res?.data?.message || "Greška pri skrivanju oglasa");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Greška pri skrivanju oglasa");
+    }
+  };
+
+  const handleActivateAd = async (adId) => {
+    try {
+      const res = await chanegItemStatusApi.changeItemStatus({
+        item_id: adId,
+        status: "active", // ← Backend očekuje "active"
+      });
+
+      if (res?.data?.error === false) {
+        toast.success("Oglas je aktiviran");
+
+        // INSTANT UKLANJANJE iz inactive liste
+        if (status === "inactive") {
+          setMyItems((prevItems) => prevItems.filter((item) => item.id !== adId));
+        } else {
+          setMyItems((prevItems) =>
+            prevItems.map((item) =>
+              item.id === adId ? { ...item, status: "approved" } : item
+            )
+          );
+        }
+
+        // Ažuriraj brojače
+        setStatusCounts((prev) => ({
+          ...prev,
+          inactive: Math.max(0, prev.inactive - 1),
+          approved: prev.approved + 1,
+        }));
+      } else {
+        toast.error(res?.data?.message || "Greška pri aktiviranju oglasa");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Greška pri aktiviranju oglasa");
+    }
+  };
+
+  const handleMarkAsSoldOut = async (adId) => {
+    try {
+      const res = await chanegItemStatusApi.changeItemStatus({
+        item_id: adId,
+        status: "sold out",
+      });
+
+      if (res?.data?.error === false) {
+        const currentItem = MyItems.find((item) => item.id === adId);
+        const isJobCategory = Number(currentItem?.category?.is_job_category) === 1;
+        
+        toast.success(
+          isJobCategory
+            ? "Posao je označen kao popunjen"
+            : "Oglas je označen kao prodat"
+        );
+
+        // INSTANT UKLANJANJE iz approved/featured liste
+        if (status === "approved" || status === "featured") {
+          setMyItems((prevItems) => prevItems.filter((item) => item.id !== adId));
+        } else {
+          setMyItems((prevItems) =>
+            prevItems.map((item) =>
+              item.id === adId ? { ...item, status: "sold out" } : item
+            )
+          );
+        }
+
+        // Ažuriraj brojače
+        setStatusCounts((prev) => ({
+          ...prev,
+          approved: Math.max(0, prev.approved - 1),
+          featured: currentItem?.is_feature ? Math.max(0, prev.featured - 1) : prev.featured,
+          "sold out": prev["sold out"] + 1,
+        }));
+      } else {
+        toast.error(res?.data?.message || "Greška pri označavanju oglasa");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Greška pri označavanju oglasa");
+    }
+  };
+
   const handleContextMenuAction = (action, adId) => {
     const ad = MyItems.find((item) => item.id === adId);
 
     switch (action) {
       case "select":
-        // Only allow selection for expired ads
-        if (ad && ad.status === "expired") {
-          handleAdSelection(adId);
-        }
+        if (ad && ad.status === "expired") handleAdSelection(adId);
         break;
+
+      case "edit":
+        navigate(`/edit-listing/${adId}`);
+        break;
+
+      case "deactivate":
+        handleDeactivateAd(adId);
+        break;
+
+      case "activate":
+        handleActivateAd(adId);
+        break;
+
+      case "markAsSoldOut":
+        handleMarkAsSoldOut(adId);
+        break;
+
       case "renew":
-        if (isFreeAdListing) {
-          handleRenew([adId]);
-        } else {
-          setRenewIds([adId]);
-          setIsChoosePackage(true);
-        }
+        isFreeAdListing
+          ? handleRenew([adId])
+          : (setRenewIds([adId]), setIsChoosePackage(true));
         break;
+
       case "delete":
-        setSelectedIds([adId]); // single ad
+        setSelectedIds([adId]);
         setIsDeleteDialog(true);
         break;
+
       default:
         break;
     }
   };
 
-  const handleSelectAll = () => {
-    if (renewIds.length === expiredAds.length) {
-      setRenewIds([]);
-    } else {
-      setRenewIds(expiredAds.map((item) => item.id));
-    }
-  };
-
-  const handleCancelSelection = () => setRenewIds([]);
+  const tabs = [
+    { value: "approved", label: "Aktivni" },
+    { value: "inactive", label: "Skriveni" },
+    { value: "sold out", label: "Završeni" },
+    { value: "featured", label: "Istaknuti" },
+    { value: "expired", label: "Istekli" },
+    { value: "resubmitted", label: "Za obnoviti" },
+  ];
 
   return (
     <>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between py-2 px-4 bg-muted rounded-lg">
-        <h1 className="font-semibold">
-          {t("totalAds")} {totalAdsCount}
-        </h1>
+      <div
+        ref={sentinelRef}
+        className="absolute w-full h-px bg-transparent translate-y-[-1px]"
+      />
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            <CgArrowsExchangeAltV size={25} />
-            <span className="whitespace-nowrap">{t("sortBy")}</span>
+      {isSticky && (
+        <div
+          style={{
+            height: containerHeight ? `${containerHeight}px` : "124px",
+          }}
+          className="w-full mb-3 bg-transparent"
+        />
+      )}
+
+      <div
+        ref={containerRef}
+        className={`
+            transition-all duration-500 ease-in-out z-40
+            ${
+              isSticky
+                ? "fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md shadow-md border-b border-gray-200 py-3 rounded-none px-4 md:px-8"
+                : "relative w-full bg-muted rounded-lg py-3 px-4 gap-4 border border-transparent"
+            }
+        `}
+      >
+        <div
+          className={`flex flex-col gap-4 ${
+            isSticky ? "container mx-auto max-w-7xl" : ""
+          }`}
+        >
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between transition-all duration-300">
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex items-center gap-1 transition-opacity duration-300 ${
+                  isSticky ? "hidden sm:flex" : "flex"
+                }`}
+              >
+                <CgArrowsExchangeAltV size={22} className="text-gray-500" />
+                <span className="whitespace-nowrap text-sm font-medium text-gray-600">
+                  {t("sortBy")}
+                </span>
+              </div>
+
+              <Select value={sortValue} onValueChange={handleSortChange}>
+                <SelectTrigger
+                  className={`w-[170px] transition-all duration-300 ${
+                    isSticky
+                      ? "bg-white border-gray-300 h-9 text-xs shadow-sm"
+                      : "bg-white border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 h-10"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="h-3.5 w-3.5 text-gray-500" />
+                    <SelectValue placeholder="Poredaj po" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent
+                  align={isRTL ? "start" : "end"}
+                  className="bg-white border-gray-100 shadow-md"
+                >
+                  <SelectGroup>
+                    <SelectItem
+                      value="new-to-old"
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
+                      Najnovije prvo
+                    </SelectItem>
+                    <SelectItem
+                      value="old-to-new"
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
+                      Najstarije prvo
+                    </SelectItem>
+                    <SelectItem
+                      value="price-high-to-low"
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
+                      Cijena: Najviša prvo
+                    </SelectItem>
+                    <SelectItem
+                      value="price-low-to-high"
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
+                      Cijena: Najniža prvo
+                    </SelectItem>
+                    <SelectItem
+                      value="popular_items"
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
+                      Popularno
+                    </SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Select value={sortValue} onValueChange={handleSortChange}>
-            <SelectTrigger className="bg-transparent border-black/23 whitespace-nowrap">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent align={isRTL ? "start" : "end"}>
-              <SelectGroup>
-                <SelectItem value="new-to-old">
-                  {t("newestToOldest")}
-                </SelectItem>
-                <SelectItem value="old-to-new">
-                  {t("oldestToNewest")}
-                </SelectItem>
-                <SelectItem value="price-high-to-low">
-                  {t("priceHighToLow")}
-                </SelectItem>
-                <SelectItem value="price-low-to-high">
-                  {t("priceLowToHigh")}
-                </SelectItem>
-                <SelectItem value="popular_items">{t("popular")}</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
 
-          <Select value={status} onValueChange={handleStatusChange}>
-            <SelectTrigger className="bg-transparent border-black/23">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent align={isRTL ? "start" : "end"}>
-              <SelectGroup>
-                <SelectItem value="all">{t("all")}</SelectItem>
-                <SelectItem value="review">{t("review")}</SelectItem>
-                <SelectItem value="approved">{t("live")}</SelectItem>
-                <SelectItem value="soft rejected">
-                  {t("softRejected")}
-                </SelectItem>
-                <SelectItem value="permanent rejected">
-                  {t("permanentRejected")}
-                </SelectItem>
-                <SelectItem value="inactive">{t("deactivate")}</SelectItem>
-                <SelectItem value="featured">{t("featured")}</SelectItem>
-                <SelectItem value="sold out">{t("soldOut")}</SelectItem>
-                <SelectItem value="resubmitted">{t("resubmitted")}</SelectItem>
-                <SelectItem value="expired">{t("expired")}</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+            {tabs.map((item) => {
+              const isActive = status === item.value;
+              const count = statusCounts[item.value] || 0;
+
+              return (
+                <button
+                  key={item.value}
+                  onClick={() => handleStatusChange(item.value)}
+                  className={`
+                            group relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-all duration-300 shrink-0 border
+                            ${
+                              isActive
+                                ? "bg-black text-white border-black shadow-md"
+                                : isSticky
+                                ? "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
+                                : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                            }
+                        `}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    className={`
+                            flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[10px] rounded-full transition-colors
+                            ${
+                              isActive
+                                ? "bg-white/20 text-white"
+                                : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
+                            }
+                        `}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="mt-[30px] text-sm text-destructive">
-        <span>{t("expiredAdsNote")}</span>
-      </div>
-
-      {/* Selection controls - only show when there are expired ads and at least one is selected */}
       {canMultiSelect && renewIds.length > 0 && (
-        <div className="flex items-center justify-between mt-[30px]">
+        <div
+          className={`flex items-center justify-between mt-[30px] ${
+            isSticky ? "pt-[20px]" : ""
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -323,18 +595,16 @@ const MyAds = () => {
               <span className="text-sm font-medium">{t("selectAll")}</span>
             </div>
           </div>
-          <p className="text-sm">
+          <p className="text-sm text-gray-600">
             {renewIds.length} {renewIds.length === 1 ? t("ad") : t("ads")}{" "}
             {t("selected")}
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 mt-[30px] xl:grid-cols-3 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 mt-[30px] xl:grid-cols-3 gap-4">
         {IsLoading ? (
-          [...Array(6)].map((item, index) => (
-            <ProductCardSkeleton key={index} />
-          ))
+          [...Array(6)].map((_, i) => <ProductCardSkeleton key={i} />)
         ) : MyItems && MyItems?.length > 0 ? (
           MyItems.map((item) => (
             <AdsCard
@@ -355,11 +625,12 @@ const MyAds = () => {
           </div>
         )}
       </div>
+
       {currentPage < lastPage && (
-        <div className="text-center mt-6">
+        <div className="text-center mt-8 pb-8">
           <Button
             variant="outline"
-            className="text-sm sm:text-base text-primary w-[256px]"
+            className="h-11 px-8 rounded-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-black transition-all"
             disabled={IsLoading || IsLoadMore}
             onClick={() => getMyItemsData(currentPage + 1)}
           >
@@ -368,36 +639,32 @@ const MyAds = () => {
         </div>
       )}
 
-      {/* Action buttons for selected ads - show at bottom */}
       {renewIds.length > 0 && (
-        <div className="mt-[30px]">
-          <div className="flex items-center justify-end gap-3">
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none">
+          <div className="bg-white p-2 rounded-full shadow-xl border border-gray-200 flex gap-2 pointer-events-auto animate-in slide-in-from-bottom-4">
             <Button
               onClick={handleCancelSelection}
-              className="bg-black text-white"
+              variant="ghost"
+              className="rounded-full px-6 hover:bg-gray-100"
             >
               {t("cancel")}
             </Button>
             <Button
               onClick={() => {
-                if (renewIds.length === 0) return; // no selection
-                setSelectedIds([...renewIds]); // copy renewIds to selectedIds
+                if (renewIds.length === 0) return;
+                setSelectedIds([...renewIds]);
                 setIsDeleteDialog(true);
               }}
-              className="bg-destructive text-white"
+              className="bg-red-50 text-red-600 hover:bg-red-100 rounded-full px-6"
             >
               {t("remove")}
             </Button>
             <Button
-              onClick={() => {
-                if (isFreeAdListing) {
-                  handleRenew(); // directly renew
-                } else {
-                  setIsChoosePackage(true);
-                }
-              }}
+              onClick={() =>
+                isFreeAdListing ? handleRenew() : setIsChoosePackage(true)
+              }
               disabled={isRenewingAd}
-              className="bg-primary text-white"
+              className="bg-black text-white rounded-full px-6 hover:bg-gray-800"
             >
               {isRenewingAd ? t("loading") : t("renew")}
             </Button>

@@ -8,44 +8,50 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
       ? (pckg?.translated_description || pckg?.description).split("\r\n")
       : [];
 
+  const isActive = pckg?.is_active == 1;
+
   return (
     <div
-      className={`rounded-lg relative p-4 sm:p-8 shadow-sm border text-color ${
-        pckg?.is_active == 1 ? "bg-primary !text-white" : "bg-white"
+      className={`rounded-xl relative p-6 sm:p-8 border transition-all duration-300 ${
+        isActive 
+          ? "bg-primary !text-white shadow-lg scale-[1.02]" 
+          : "bg-white shadow-sm hover:shadow-xl hover:-translate-y-1"
       }`}
     >
       {/* Sale Badge */}
       {pckg?.discount_in_percentage > 0 && (
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-          <span className="bg-primary text-white px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap">
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
+          <span className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-semibold whitespace-nowrap shadow-lg">
             {t("save")} {pckg?.discount_in_percentage}% {t("off")}
           </span>
         </div>
       )}
 
       {/* Card Header */}
-      <div className="flex items-center gap-4">
-        <CustomImage
-          height={80}
-          width={80}
-          src={pckg.icon}
-          alt="Bronze medal"
-          className="aspect-square rounded-lg"
-        />
-        <div className="flex flex-col gap-2 overflow-hidden">
-          <h2 className="text-xl font-medium mb-1 line-clamp-2 overflow-hidden">
+      <div className="flex items-center gap-4 mb-6">
+        <div className={`rounded-xl overflow-hidden ${isActive ? 'ring-2 ring-white/30' : 'ring-1 ring-gray-200'}`}>
+          <CustomImage
+            height={80}
+            width={80}
+            src={pckg.icon}
+            alt={pckg?.translated_name || pckg?.name}
+            className="aspect-square"
+          />
+        </div>
+        <div className="flex flex-col gap-2 overflow-hidden flex-1">
+          <h2 className="text-xl font-semibold line-clamp-2">
             {pckg?.translated_name || pckg?.name}
           </h2>
-          <div className="flex items-center gap-1">
+          <div className="flex items-baseline gap-2">
             {pckg?.final_price !== 0 ? (
-              <p className="text-xl font-bold">
+              <p className="text-2xl font-bold">
                 {formatPriceAbbreviated(pckg?.final_price)}
               </p>
             ) : (
-              t("Free")
+              <p className="text-2xl font-bold">{t("Free")}</p>
             )}
             {pckg?.price > pckg?.final_price && (
-              <p className="text-xl font-bold line-through text-gray-500">
+              <p className={`text-lg line-through ${isActive ? 'text-white/60' : 'text-gray-400'}`}>
                 {formatPriceAbbreviated(pckg?.price)}
               </p>
             )}
@@ -53,66 +59,65 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-gray-200 my-6"></div>
+      {/* Divider with gradient effect */}
+      <div className={`h-px mb-6 ${isActive ? 'bg-white/20' : 'bg-gradient-to-r from-transparent via-gray-300 to-transparent'}`}></div>
+
+      {/* Key Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className={`p-3 rounded-lg text-center ${isActive ? 'bg-white/10' : 'bg-gray-50'}`}>
+          <div className={`text-2xl font-bold ${isActive ? 'text-white' : 'text-primary'}`}>
+            {pckg?.duration === "unlimited" ? "∞" : pckg?.duration}
+          </div>
+          <div className={`text-xs uppercase tracking-wide ${isActive ? 'text-white/80' : 'text-gray-600'}`}>
+            {t("days")}
+          </div>
+        </div>
+        <div className={`p-3 rounded-lg text-center ${isActive ? 'bg-white/10' : 'bg-gray-50'}`}>
+          <div className={`text-2xl font-bold ${isActive ? 'text-white' : 'text-primary'}`}>
+            {pckg?.item_limit === "unlimited" ? "∞" : pckg?.item_limit}
+          </div>
+          <div className={`text-xs uppercase tracking-wide ${isActive ? 'text-white/80' : 'text-gray-600'}`}>
+            {t("adsListing")}
+          </div>
+        </div>
+      </div>
 
       {/* Feature List */}
-      <div className="flex flex-col gap-2 h-[250px] overflow-y-auto p-4 text-sm">
-        <div className="flex items-center gap-3">
-          <span
-            className={`${
-              pckg?.is_active == 1 ? "text-white" : "text-primary"
-            }`}
-          >
-            <FaCheck />
-          </span>
-          <span className="text-normal ">
-            {pckg?.duration === "unlimited" ? t("unlimited") : pckg?.duration}{" "}
-            {t("days")}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span
-            className={`${
-              pckg?.is_active == 1 ? "text-white" : "text-primary"
-            }`}
-          >
-            <FaCheck />
-          </span>
-          <span className="text-normal ">
-            {pckg?.item_limit === "unlimited"
-              ? t("unlimited")
-              : pckg?.item_limit}{" "}
-            {t("adsListing")}
-          </span>
-        </div>
+      <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-2 mb-6 scrollbar-thin">
         {descriptionItems.map((item, index) => (
-          <div key={index} className="flex items-center gap-3">
-            <span
-              className={`${
-                pckg?.is_active == 1 ? "text-white" : "text-primary"
-              }`}
-            >
-              <FaCheck />
+          <div key={index} className="flex items-start gap-3">
+            <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5 ${
+              isActive ? 'bg-white/20' : 'bg-primary/10'
+            }`}>
+              <FaCheck 
+                size={12}
+                className={isActive ? "text-white" : "text-primary"}
+              />
+            </div>
+            <span className={`text-sm leading-relaxed ${isActive ? 'text-white/90' : 'text-gray-700'}`}>
+              {item}
             </span>
-            <span className="text-normal ">{item}</span>
           </div>
         ))}
       </div>
 
-      <div className="flex items-center justify-center h-12 max-h-12 p-4 md:p-0">
-        <button
-          onClick={() => handlePurchasePackage(pckg)}
-          className={` w-full ${
-            pckg?.is_active == 1 ? "hidden" : "flex"
-          } py-1 px-3 md:py-2 md:px-4 lg:py-3 lg:px-6 rounded-lg  items-center text-primary  justify-center hover:bg-primary border hover:text-white transition-all duration-300`}
-        >
-          <span className="font-light text-lg">{t("choosePlan")}</span>
-          <span className="ml-2">
-            <FaArrowRight size={20} className="rtl:scale-x-[-1]" />
-          </span>
-        </button>
-      </div>
+      {/* CTA Button */}
+      <button
+        onClick={() => handlePurchasePackage(pckg)}
+        disabled={isActive}
+        className={`w-full py-4 px-6 rounded-lg font-semibold flex items-center justify-center gap-3 transition-all duration-300 ${
+          isActive 
+            ? "bg-white/20 cursor-default" 
+            : "bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-lg active:scale-95"
+        }`}
+      >
+        <span className="text-base">
+          {isActive ? t("currentPlan") || "Current Plan" : t("choosePlan")}
+        </span>
+        {!isActive && (
+          <FaArrowRight size={18} className="rtl:scale-x-[-1] group-hover:translate-x-1 transition-transform" />
+        )}
+      </button>
     </div>
   );
 };

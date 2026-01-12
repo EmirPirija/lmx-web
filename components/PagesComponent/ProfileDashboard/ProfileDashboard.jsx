@@ -1,5 +1,5 @@
 "use client";
-import ProfileSidebar from "@/components/Profile/ProfileSidebar";
+import ProfileNavigation from "@/components/Profile/ProfileNavigation";
 import { usePathname } from "next/navigation";
 import Checkauth from "@/HOC/Checkauth";
 import Notifications from "../Notifications/Notifications";
@@ -27,10 +27,9 @@ import { BiBadgeCheck } from "react-icons/bi";
 
 const ProfileDashboard = () => {
   const pathname = usePathname();
-  const isLargeScreen = useMediaQuery("(min-width: 992px)");
   const isSmallerThanLaptop = useMediaQuery("(max-width: 1200px)");
 
-  // 1. Centralizovana konfiguracija (čistiji kod i lakše dodavanje opisa/ikona)
+  // Centralizovana konfiguracija
   const dashboardConfig = {
     "/profile": {
       title: t("myProfile"),
@@ -75,7 +74,7 @@ const ProfileDashboard = () => {
       component: <Reviews />,
     },
     "/chat": {
-      title: "Poruke", // Hardcoded jer u originalu nije bilo t()
+      title: "Poruke",
       description: "Direktna komunikacija sa drugim korisnicima",
       icon: <FiMessageSquare className="w-6 h-6" />,
       component: <Chat />,
@@ -88,19 +87,20 @@ const ProfileDashboard = () => {
     },
   };
 
-  // Pronađi trenutnu konfiguraciju na osnovu pathname-a
   const currentConfig = dashboardConfig[pathname] || dashboardConfig["/profile"];
   const isChat = pathname === "/chat";
 
   return (
     <Layout>
-      {/* Blaga siva pozadina za cijeli dashboard sekciju */}
       <div className="bg-gray-50/50 min-h-screen pb-12">
         <BreadCrumb title2={currentConfig.title} />
         
         <div className="container mt-8">
+        <ProfileNavigation />
+          {/* NAVIGATION - Horizontalni tab menu iznad svega */}
+
           {/* HEADER SEKCIJA - Naslov i Opis */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg text-primary hidden sm:block">
@@ -121,27 +121,17 @@ const ProfileDashboard = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* SIDEBAR - Lijeva strana (Plutajuća kartica) */}
-            {isLargeScreen && (
-              <div className="lg:col-span-3">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
-                  <ProfileSidebar />
-                </div>
-              </div>
-            )}
-
-            {/* MAIN CONTENT - Desna strana (Plutajuća kartica) */}
-            <div className={cn("lg:col-span-9", !isLargeScreen && "col-span-1")}>
-              <div
-                className={cn(
-                  "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300",
-                  // Ako je Chat, želimo da se širi maksimalno i možda nema padding da bi chat izgledao kao app
-                  isChat ? "h-[calc(100vh-200px)] overflow-hidden shadow-md" : "p-4 sm:p-6 lg:p-8 min-h-[500px]"
-                )}
-              >
-                {currentConfig.component}
-              </div>
+          {/* MAIN CONTENT - Puna širina ispod navigation-a */}
+          <div className="w-full">
+            <div
+              className={cn(
+                "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300",
+                isChat 
+                  ? "h-[calc(100vh-280px)] overflow-hidden shadow-md" 
+                  : "p-4 sm:p-6 lg:p-8 min-h-[500px]"
+              )}
+            >
+              {currentConfig.component}
             </div>
           </div>
         </div>

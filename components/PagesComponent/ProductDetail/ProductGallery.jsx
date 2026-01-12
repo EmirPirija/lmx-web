@@ -106,54 +106,67 @@ const ProductGallery = ({ galleryImages, videoData }) => {
 
   return (
     <PhotoProvider
-      maskOpacity={0.95}
-      speed={() => 300}
-      easing={() => 'cubic-bezier(0.25, 0.1, 0.25, 1)'}
-      toolbarRender={({ onScale, scale, index }) => (
-        <div className="flex gap-2 items-center">
-          {/* Thumbnail Strip in Lightbox */}
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 backdrop-blur-xl p-2 rounded-2xl max-w-[90vw] overflow-x-auto">
-            {galleryImages?.map((img, idx) => (
-              <button
-                key={idx}
-                className={`relative w-14 h-14 rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0 ${
-                  index === idx 
-                    ? 'ring-2 ring-white scale-110' 
-                    : 'opacity-60 hover:opacity-100 hover:scale-105'
-                }`}
-              >
-                <img
-                  src={img}
-                  alt={`Thumb ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
-          </div>
+  maskOpacity={0.95}
+  speed={() => 300}
+  easing={() => 'cubic-bezier(0.25, 0.1, 0.25, 1)'}
+  toolbarRender={({ onScale, scale, index, onIndexChange }) => ( // Dodan onIndexChange
+    <div className="flex gap-2 items-center">
+      {/* Traka sa sličicama (Thumbnail Strip) u Lightboxu */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 backdrop-blur-xl p-2 rounded-2xl max-w-[90vw] overflow-x-auto no-scrollbar z-[9999]">
+        {galleryImages?.map((img, idx) => {
+          const isActive = index === idx;
+          return (
+            <button
+              key={idx}
+              // KLJUČNI DIO: onIndexChange mijenja sliku u pregledniku na osnovu indeksa
+              onClick={() => onIndexChange && onIndexChange(idx)}
+              className={`relative w-14 h-14 rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0 cursor-pointer ${
+                isActive 
+                  ? 'ring-2 ring-white scale-110' 
+                  : 'opacity-50 hover:opacity-100 hover:scale-105'
+              }`}
+            >
+              <img
+                src={img}
+                alt={`Thumb ${idx + 1}`}
+                className="w-full h-full object-cover pointer-events-none"
+              />
+              {/* Indikator aktivne slike */}
+              {isActive && (
+                <div className="absolute inset-0 border-2 border-white rounded-lg shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]" />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-          {/* Zoom Controls */}
-          <div className="flex gap-2 items-center bg-black/50 backdrop-blur-md px-4 py-2 rounded-full">
-            <button
-              onClick={() => onScale(scale - 0.5)}
-              className="p-2 hover:bg-white/20 rounded-full transition-all duration-300"
-              disabled={scale <= 1}
-            >
-              <RiZoomOutLine size={20} className="text-white" />
-            </button>
-            <span className="text-white text-sm min-w-[3rem] text-center">
-              {Math.round(scale * 100)}%
-            </span>
-            <button
-              onClick={() => onScale(scale + 0.5)}
-              className="p-2 hover:bg-white/20 rounded-full transition-all duration-300"
-              disabled={scale >= 6}
-            >
-              <RiZoomInLine size={20} className="text-white" />
-            </button>
-          </div>
-        </div>
-      )}
-    >
+      {/* Kontrole zuma (Zoom Controls) */}
+      <div className="flex gap-2 items-center bg-black/50 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
+        <button
+          onClick={() => onScale(scale - 0.5)}
+          className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 disabled:opacity-30"
+          disabled={scale <= 1}
+          title="Umanji"
+        >
+          <RiZoomOutLine size={20} className="text-white" />
+        </button>
+        
+        <span className="text-white text-sm font-medium min-w-[3.5rem] text-center">
+          {Math.round(scale * 100)}%
+        </span>
+        
+        <button
+          onClick={() => onScale(scale + 0.5)}
+          className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 disabled:opacity-30"
+          disabled={scale >= 6}
+          title="Uvećaj"
+        >
+          <RiZoomInLine size={20} className="text-white" />
+        </button>
+      </div>
+    </div>
+  )}
+>
       <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl overflow-hidden shadow-2xl group/main">
         
         {isVideoSelected ? (
@@ -317,8 +330,8 @@ const ProductGallery = ({ galleryImages, videoData }) => {
         </div>
       </div>
 
-      {/* Thumbnail Carousel */}
-      <div className="relative mt-4 px-12">
+      {/* Thumbnail Carousel Wrapper */}
+      <div className="relative mt-4 w-full group">
         <Carousel
           key={isRTL ? "rtl" : "ltr"}
           opts={{
@@ -334,72 +347,75 @@ const ProductGallery = ({ galleryImages, videoData }) => {
         >
           <CarouselContent className="-ml-2">
             {galleryImages?.map((image, index) => (
-              <CarouselItem key={index} className="basis-auto pl-2">
-                <div className="relative pt-1 pb-3">
+              <CarouselItem 
+                key={index} 
+                // IZMJENA OVDJE:
+                // basis-1/6 (16.6%) umjesto basis-1/4 (25%) -> Slike su manje
+                // md:basis-1/8 (12.5%) umjesto md:basis-1/6 (16.6%) -> Na desktopu još manje
+                className="pl-2 basis-1/6 md:basis-1/8 min-w-0" 
+              >
+                <div 
+                  className={`
+                    relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 transition-all duration-300
+                    ${selectedIndex === index 
+                      ? "border-primary ring-1 ring-primary ring-offset-1 opacity-100" 
+                      : "border-transparent opacity-60 hover:opacity-100 hover:scale-105"
+                    }
+                  `}
+                  onClick={() => handleImageClick(index)}
+                >
                   <CustomImage
                     src={image}
                     alt={`Product ${index + 1}`}
-                    height={96}
-                    width={96}
-                    className={`w-20 sm:w-24 aspect-square object-cover rounded-xl cursor-pointer transition-all duration-300 ${
-                      selectedIndex === index 
-                        ? "ring-2 ring-primary ring-offset-2 scale-105 opacity-100" 
-                        : "hover:scale-105 opacity-60 hover:opacity-100"
-                    }`}
-                    onClick={() => handleImageClick(index)}
+                    height={80} // Smanjio sam i load size malo
+                    width={80}
+                    className="h-full w-full object-cover"
                   />
-                  {selectedIndex === index && (
-                    <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-primary rounded-full" />
-                  )}
                 </div>
               </CarouselItem>
             ))}
+
             {hasVideo && (
-              <CarouselItem className="basis-auto pl-2">
-                <div className="relative pt-1 pb-3">
-                  <div
-                    className={`relative w-20 sm:w-24 aspect-square rounded-xl cursor-pointer overflow-hidden transition-all duration-300 ${
-                      isVideoSelected 
-                        ? "ring-2 ring-primary ring-offset-2 scale-105 opacity-100" 
-                        : "hover:scale-105 opacity-60 hover:opacity-100"
-                    }`}
-                    onClick={() => setSelectedIndex(videoIndex)}
-                  >
-                    <CustomImage
-                      src={videoThumbnail}
-                      alt="Video Thumbnail"
-                      height={96}
-                      width={96}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <RiPlayCircleFill 
-                        size={32} 
-                        className="text-white drop-shadow-lg" 
-                      />
-                    </div>
+              <CarouselItem className="pl-2 basis-1/6 md:basis-1/8 min-w-0">
+                <div
+                  className={`
+                    relative aspect-square cursor-pointer overflow-hidden rounded-lg border-2 transition-all duration-300
+                    ${isVideoSelected 
+                      ? "border-primary ring-1 ring-primary ring-offset-1 opacity-100" 
+                      : "border-transparent opacity-60 hover:opacity-100 hover:scale-105"
+                    }
+                  `}
+                  onClick={() => setSelectedIndex(videoIndex)}
+                >
+                  <CustomImage
+                    src={videoThumbnail}
+                    alt="Video Thumbnail"
+                    height={80}
+                    width={80}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <RiPlayCircleFill size={20} className="text-white drop-shadow-md" /> {/* Smanjio ikonicu sa 28 na 20 */}
                   </div>
-                  {isVideoSelected && (
-                    <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-6 h-1 bg-primary rounded-full" />
-                  )}
                 </div>
               </CarouselItem>
             )}
           </CarouselContent>
         </Carousel>
 
-        {/* Thumbnail Navigation */}
+        {/* Dugmad - prilagodio veličinu malo da prate manje slike */}
         <button
           onClick={handlePrevImage}
-          className="absolute top-1/2 left-0 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-110 active:scale-95 transition-all duration-300"
+          className="absolute left-1 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
         >
-          <RiArrowLeftLine size={18} className={`text-gray-600 dark:text-gray-300 ${isRTL ? "rotate-180" : ""}`} />
+          <RiArrowLeftLine className="h-4 w-4 text-black" />
         </button>
+
         <button
           onClick={handleNextImage}
-          className="absolute top-1/2 right-0 -translate-y-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-110 active:scale-95 transition-all duration-300"
+          className="absolute right-1 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
         >
-          <RiArrowRightLine size={18} className={`text-gray-600 dark:text-gray-300 ${isRTL ? "rotate-180" : ""}`} />
+          <RiArrowRightLine className="h-4 w-4 text-black" />
         </button>
       </div>
     </PhotoProvider>

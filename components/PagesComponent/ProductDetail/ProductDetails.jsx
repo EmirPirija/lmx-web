@@ -332,7 +332,10 @@ const ProductDetails = ({ slug }) => {
                       className={getAnimationClass()}
                       style={getStaggerDelay(3)}
                     >
-                      <ProductFeature filteredFields={filteredFields} />
+                      <ProductFeature 
+                      filteredFields={filteredFields}
+                      productDetails={productDetails}
+                    />
                     </div>
                   )}
 

@@ -21,6 +21,7 @@ const SoldOutModal = ({
   selectedRadioValue,
   setSelectedRadioValue,
   setShowConfirmModal,
+  onBuyerSelected, // <--- NOVO: Prop za callback kad se odabere kupac
 }) => {
   const [buyers, setBuyers] = useState([]);
   const [isNoneOfAboveChecked, setIsNoneOfAboveChecked] = useState(false);
@@ -69,6 +70,20 @@ const SoldOutModal = ({
   };
 
   const handleSoldOut = () => {
+    // LOGIKA 1: Ako je odabran kupac, šaljemo podatke roditelju za ReviewFormModal
+    if (selectedRadioValue && onBuyerSelected) {
+      const selectedBuyer = buyers.find((b) => b.id === selectedRadioValue);
+      
+      onBuyerSelected({
+        id: selectedRadioValue,
+        name: selectedBuyer?.name || "Kupac",
+      });
+
+      setShowSoldOut(false);
+      return; // Prekidamo ovdje, ne otvaramo ConfirmModal jer slijedi review
+    }
+
+    // LOGIKA 2: Standardni flow (Niko od navedenih) -> ConfirmModal
     setShowSoldOut(false);
     setShowConfirmModal(true);
   };

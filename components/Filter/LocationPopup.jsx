@@ -6,7 +6,6 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { useNavigate } from "../Common/useNavigate"; 
 
 // --- MOCK PODACI: POČETNE ZEMLJE ---
-// Ovo mijenja onaj tvoj stari HTML u podatke
 const INITIAL_COUNTRIES = [
   { id: 'ba', name: "Bosna i Hercegovina", slug: "ba", has_children: true },
   { id: 'hr', name: "Hrvatska", slug: "hr", has_children: true },

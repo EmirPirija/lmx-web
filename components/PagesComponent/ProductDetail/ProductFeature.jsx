@@ -1,30 +1,55 @@
 import React from 'react';
-import { Badge } from "@/components/ui/badge";
-import { FaRegLightbulb, FaCheck, FaTimes } from "react-icons/fa";
+import { FaCheck, FaRegCalendarCheck } from "react-icons/fa";
+import { MdOpenInNew, MdOutlineAttachFile } from "react-icons/md";
 import { isPdf, t } from "@/utils/index";
-import { MdOutlineAttachFile, MdOpenInNew, MdCheckBox } from "react-icons/md";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 
-const ProductFeature = ({ filteredFields }) => {
+const ProductFeature = ({ filteredFields, productDetails }) => {
+  
+  if (!filteredFields || filteredFields.length === 0) {
+    return null;
+  }
+
+  // Format datuma: DD.MM.YYYY
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
+
+  // Izvuci "Stanje oglasa" iz custom fields (ako postoji)
+  const statusField = filteredFields.find(feature => {
+    const fieldName = (feature?.translated_name || feature?.name || '').toLowerCase();
+    return fieldName.includes('stanje') || fieldName.includes('condition');
+  });
+
+  // Sva polja idu u specifikacije
+  const specFields = filteredFields;
+
   const renderValue = (feature) => {
     const { type, value, translated_selected_values } = feature;
 
-    // Checkbox type - cleaner pills
+    // Checkbox - lista sa checkmark ikonama (bolji prikaz)
     if (type === "checkbox") {
       const values = Array.isArray(translated_selected_values) 
         ? translated_selected_values 
         : translated_selected_values ? [translated_selected_values] : [];
+      
+      if (values.length === 0) return <span className="text-sm text-gray-400">-</span>;
       
       return (
         <div className="flex flex-wrap gap-2">
           {values.map((item, idx) => (
             <div
               key={idx}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-md"
             >
-              <FaCheck className="w-3 h-3 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-900">
+              <FaCheck className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+              <span className="text-xs font-medium text-emerald-900">
                 {item}
               </span>
             </div>
@@ -33,35 +58,7 @@ const ProductFeature = ({ filteredFields }) => {
       );
     }
 
-    // Radio type
-    if (type === "radio") {
-      return (
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors">
-          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-          <span className="text-sm font-medium text-blue-900">
-            {translated_selected_values}
-          </span>
-        </div>
-      );
-    }
-
-    // Dropdown/Select type
-    if (type === "dropdown" || type === "select") {
-      const values = Array.isArray(translated_selected_values) 
-        ? translated_selected_values 
-        : [translated_selected_values];
-      
-      return (
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-full transition-colors">
-          <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-          <span className="text-sm font-medium text-purple-900">
-            {values.join(", ")}
-          </span>
-        </div>
-      );
-    }
-
-    // File input type
+    // File input
     if (type === "fileinput") {
       const fileUrl = value?.[0];
       if (!fileUrl) return null;
@@ -74,13 +71,11 @@ const ProductFeature = ({ filteredFields }) => {
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg transition-all group shadow-sm hover:shadow"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
           >
-            <MdOutlineAttachFile className="text-red-600 text-lg" />
-            <span className="text-sm font-medium text-red-700">
-              {t("viewPdf") || "View PDF"}
-            </span>
-            <MdOpenInNew className="text-red-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+            <MdOutlineAttachFile className="text-base" />
+            <span>Pogledaj PDF</span>
+            <MdOpenInNew className="text-xs" />
           </CustomLink>
         );
       }
@@ -92,142 +87,138 @@ const ProductFeature = ({ filteredFields }) => {
           rel="noopener noreferrer"
           className="inline-block"
         >
-          <div className="relative overflow-hidden rounded-xl border-2 border-gray-200 hover:border-blue-400 transition-all group shadow-sm hover:shadow">
-            <CustomImage
-              src={fileUrl}
-              alt="Preview"
-              width={80}
-              height={80}
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 flex items-center justify-center transition-all">
-              <MdOpenInNew className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-xl" />
-            </div>
-          </div>
+          <CustomImage
+            src={fileUrl}
+            alt="Preview"
+            width={60}
+            height={60}
+            className="object-cover rounded border border-gray-200 hover:border-gray-300"
+          />
         </CustomLink>
       );
     }
 
-    // Number type
-    if (type === "number") {
-      return (
-        <div className="inline-flex items-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-full transition-colors">
-          <span className="text-sm font-semibold text-indigo-900">
-            {translated_selected_values || value}
-          </span>
-        </div>
-      );
+    // Boolean/Checkmark vrijednosti
+    if (
+      type === "radio" && 
+      (translated_selected_values === "Da" || 
+       translated_selected_values === "Yes" || 
+       translated_selected_values === "true" ||
+       translated_selected_values === true)
+    ) {
+      return <FaCheck className="text-green-600 text-lg" />;
     }
 
-    // Textbox type
-    if (type === "textbox") {
-      return (
-        <div className="inline-flex items-center px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition-colors">
-          <span className="text-sm font-medium text-slate-900">
-            {translated_selected_values || value}
-          </span>
-        </div>
-      );
-    }
+    // Default - text
+    const displayValue = Array.isArray(translated_selected_values)
+      ? translated_selected_values.filter(Boolean).join(", ")
+      : translated_selected_values || value || '-';
 
-    // Default text type
     return (
-      <div className="inline-flex items-center px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition-colors">
-        <span className="text-sm font-medium text-slate-900">
-          {Array.isArray(translated_selected_values)
-            ? translated_selected_values.join(", ")
-            : translated_selected_values || value}
-        </span>
-      </div>
+      <span className="text-sm text-gray-900 font-medium">
+        {displayValue}
+      </span>
     );
   };
 
   return (
-    <>
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .feature-card {
-          animation: fadeInUp 0.4s ease-out backwards;
-        }
-
-        .feature-card:hover .feature-icon {
-          transform: scale(1.05) rotate(2deg);
-        }
-
-        .feature-icon {
-          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-      `}</style>
-
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
-              <FaRegLightbulb className="text-white text-2xl" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white">
-                {t("highlights") || "Key Features"}
-              </h3>
-              <p className="text-sm text-blue-100">
-                {filteredFields?.length} {t("keyFeatures") || "features"}
+    <div className="space-y-6">
+      {/* Top Info Cards - Kompaktniji dizajn */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200">
+          {/* Stanje oglasa */}
+          {statusField && (
+            <div className="p-4 hover:bg-gray-50 transition-colors">
+              <p className="text-xs text-gray-500 mb-2">
+                {statusField?.translated_name || statusField?.name}
               </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Features Grid */}
-        <div className="p-6 sm:p-8">
-          <div className="space-y-4">
-            {filteredFields?.map((feature, index) => (
-              <div
-                className="feature-card group"
-                key={index}
-                style={{
-                  animationDelay: `${index * 0.05}s`,
-                }}
-              >
-                <div className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all">
-                  {/* Feature Label */}
-                  <div className="flex items-center gap-3 sm:w-1/3 flex-shrink-0">
-                    <div className="feature-icon flex-shrink-0">
-                      <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100">
-                        <CustomImage
-                          src={feature?.image}
-                          alt={feature?.translated_name || feature?.name}
-                          height={24}
-                          width={24}
-                          className="size-6"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                      {feature?.translated_name || feature?.name}
-                    </p>
-                  </div>
-
-                  {/* Feature Value */}
-                  <div className="flex items-start sm:flex-1 sm:justify-end">
-                    {renderValue(feature)}
-                  </div>
-                </div>
+              <div className="font-semibold text-gray-900 text-sm">
+                {statusField.translated_selected_values || statusField.value || '-'}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Broj pregleda */}
+          {productDetails?.clicks !== undefined && (
+            <div className="p-4 hover:bg-gray-50 transition-colors">
+              <p className="text-xs text-gray-500 mb-2">
+                {"Broj pregleda"}
+              </p>
+              <div className="font-semibold text-gray-900 text-sm">
+                {productDetails.clicks}
+              </div>
+            </div>
+          )}
+
+          {/* ID oglasa */}
+          {productDetails?.id && (
+            <div className="p-4 hover:bg-gray-50 transition-colors">
+              <p className="text-xs text-gray-500 mb-2">
+                {t("adId") || "ID oglasa"}
+              </p>
+              <div className="font-semibold text-gray-900 text-sm">
+                #{productDetails.id}
+              </div>
+            </div>
+          )}
+
+          {/* Datum objave */}
+          {productDetails?.created_at && (
+            <div className="p-4 hover:bg-gray-50 transition-colors">
+              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1.5">
+                <FaRegCalendarCheck className="text-xs" />
+                {"Datum objave"}
+              </p>
+              <div className="font-semibold text-gray-900 text-sm">
+                {formatDate(productDetails.created_at)}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </>
+
+      {/* Specifikacije - tabela */}
+      {specFields.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Specifikacije i oprema
+            </h3>
+          </div>
+
+          {/* Table - 2 kolone */}
+          <div className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3">
+              {specFields.map((feature, index) => {
+                const isCheckbox = feature.type === 'checkbox';
+                
+                return (
+                  <div
+                    key={index}
+                    className={`
+                      ${isCheckbox ? 'md:col-span-2' : ''}
+                      flex ${isCheckbox ? 'flex-col gap-2' : 'items-center justify-between'} 
+                      py-3 border-b border-gray-100 last:border-b-0
+                    `}
+                  >
+                    {/* Label */}
+                    <span className="text-sm text-gray-600 flex-shrink-0">
+                      {feature?.translated_name || feature?.name}
+                    </span>
+                    
+                    {/* Value */}
+                    <div className={`${isCheckbox ? 'w-full mt-1' : 'text-right'}`}>
+                      {renderValue(feature)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

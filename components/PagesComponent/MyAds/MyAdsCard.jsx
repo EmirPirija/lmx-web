@@ -1,6 +1,5 @@
 import { formatPriceAbbreviated, formatSalaryRange, t } from "@/utils";
 import { useState, useMemo, useRef } from "react";
-// Zamijenio sam RxEyeOpen sa IoEye za puniju ikonu, i BiHeart sa FaHeart za punu boju
 import { IoEye } from "react-icons/io5"; 
 import { FaHeart, FaYoutube } from "react-icons/fa"; 
 import { IoLocationOutline, IoTimeOutline } from "react-icons/io5";
@@ -9,6 +8,7 @@ import { HiOutlineArrowRight } from "react-icons/hi";
 import CustomImage from "@/components/Common/CustomImage";
 import CustomLink from "@/components/Common/CustomLink";
 import GetMyAdStatus from "./GetMyAdStatus";
+import SoldOutModal from "../../PagesComponent/ProductDetail/SoldOutModal"; // <--- IMPORT TVOG MODALA
 import {
   ContextMenu,
   ContextMenuContent,
@@ -16,7 +16,14 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RotateCcw, Trash2, CheckSquare } from "lucide-react";
+import { RotateCcw, Trash2, CheckSquare, MoreVertical, EyeOff, CheckCircle, Edit } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Helper function to format relative time
 const formatRelativeTime = (dateString) => {
@@ -80,9 +87,6 @@ const getKeyAttributes = (item) => {
   const transmission = findValue(["mjenjač", "mjenjac"]);
   if (transmission) attributes.push(transmission);
 
-  // const drive = findValue(["pogon"]);
-  // if (drive) attributes.push(drive);
-
   if (attributes.length === 0) {
     return getSmartTagsFallback(item);
   }
@@ -100,7 +104,7 @@ const getSmartTagsFallback = (item) => {
     if (tags.length >= 3) break;
     const fieldName = (field.name || field.translated_name || "").toLowerCase();
     if (skipFields.some((skip) => fieldName.includes(skip))) continue;
-    const value = field.translated_selected_values?.[0] || field.value?.[0];
+    const value = field.translated_selected_values?.[0] || field?.value?.[0];
     if (value && typeof value === "string" && value.length < 25 && value.length > 0) {
       tags.push(value);
     }
@@ -117,7 +121,6 @@ const MyAdsCard = ({
   onContextMenuAction,
 }) => {
   const isJobCategory = Number(data?.category?.is_job_category) === 1;
-  const isAdminEdited = Number(data?.is_edited_by_admin) === 1;
   const translated_item = data?.translated_item;
 
   const keyAttributes = getKeyAttributes(data);
@@ -125,6 +128,10 @@ const MyAdsCard = ({
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  
+  // STATE ZA SOLD OUT MODAL
+  const [isSoldOutDialogOpen, setIsSoldOutDialogOpen] = useState(false);
+  const [selectedBuyerId, setSelectedBuyerId] = useState(null);
 
   // Touch/Swipe ref
   const touchStartX = useRef(0);
@@ -143,7 +150,13 @@ const MyAdsCard = ({
 
   const status = data?.status;
   const isExpired = status === "expired";
+  const isInactive = status === "inactive";
+  const isSoldOut = status === "sold out";
+  const isApproved = status === "approved" || status === "featured";
   const hasVideo = data?.video_link && data?.video_link !== "";
+
+  // Provjera da li je oglas editabilan
+  const isEditable = isApproved;
 
   // Build slider images
   const allSlides = useMemo(() => {
@@ -157,7 +170,6 @@ const MyAdsCard = ({
         if (src) slides.push({ type: "image", src });
       });
     }
-    // "View More" slide at the end
     slides.push({ type: "viewMore" });
     return slides;
   }, [data?.image, data?.gallery_images]);
@@ -198,6 +210,22 @@ const MyAdsCard = ({
   };
 
   const isViewMoreSlide = allSlides[currentSlide]?.type === "viewMore";
+
+  // Handle sold out triggering modal
+  const handleSoldOutClick = () => {
+    setIsSoldOutDialogOpen(true);
+  };
+
+  // Ovo hvata akciju iz SoldOutModal-a kad korisnik klikne "Sold Out"
+  // Tvoj modal šalje (true) kad se potvrdi, mi to koristimo kao trigger
+  const handleSoldOutAction = (shouldProcess) => {
+    if (shouldProcess) {
+      // Šaljemo roditeljskoj komponenti akciju i ID kupca (ili null ako je "None of above")
+      onContextMenuAction("markAsSoldOut", data?.id, selectedBuyerId);
+      // Zatvaramo modal (ako ga SoldOutModal sam ne zatvori)
+      setIsSoldOutDialogOpen(false);
+    }
+  };
 
   // Card Content JSX
   const cardContent = (
@@ -267,19 +295,98 @@ const MyAdsCard = ({
         <div className={`absolute top-2 ${isSelectable ? "left-9" : "left-2"} z-20 flex flex-col gap-1 items-start`}>
           {status && (
             <div className="shadow-md">
-                <GetMyAdStatus
+              <GetMyAdStatus
                 status={status}
                 isApprovedSort={isApprovedSort}
                 isFeature={data?.is_feature}
                 isJobCategory={isJobCategory}
-                />
+              />
             </div>
           )}
-          {isAdminEdited && (
-            <div className="py-0.5 px-2 bg-red-500 text-white rounded text-[10px] font-bold shadow-md">
-              {t("adminEdited")}
-            </div>
-          )}
+        </div>
+
+        {/* DROPDOWN MENI - Gornji desni ugao */}
+        <div className="absolute top-2 right-2 z-30" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white hover:scale-110 transition-all duration-200">
+                <MoreVertical size={16} className="text-gray-700" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {/* Edit - samo ako je editabilan */}
+              {isEditable && (
+                <DropdownMenuItem
+                  onClick={() => onContextMenuAction("edit", data?.id)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Edit className="size-4" />
+                  <span>{t("edit")}</span>
+                </DropdownMenuItem>
+              )}
+
+              {/* Deaktiviraj - samo za approved/featured */}
+              {isApproved && (
+                <DropdownMenuItem
+                  onClick={() => onContextMenuAction("deactivate", data?.id)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <EyeOff className="size-4" />
+                  <span>{t("hide")}</span>
+                </DropdownMenuItem>
+              )}
+
+              {/* Aktiviraj - samo za inactive */}
+              {isInactive && (
+                <DropdownMenuItem
+                  onClick={() => onContextMenuAction("activate", data?.id)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle className="size-4 text-green-600" />
+                  <span className="text-green-600">{t("activate")}</span>
+                </DropdownMenuItem>
+              )}
+
+              {/* Označi kao završeno - samo za approved/featured koji nisu sold out */}
+              {isApproved && !isSoldOut && (
+                <DropdownMenuItem
+                  onClick={handleSoldOutClick}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle className="size-4 text-blue-600" />
+                  <span className="text-blue-600">
+                    {isJobCategory ? t("markAsFilled") || "Označi kao popunjeno" : t("markAsSold") || "Označi kao prodato"}
+                  </span>
+                </DropdownMenuItem>
+              )}
+
+              {/* Separator */}
+              {(isExpired || isEditable) && <DropdownMenuSeparator />}
+
+              {/* Obnovi - samo za expired */}
+              {isExpired && (
+                <DropdownMenuItem
+                  onClick={() => onContextMenuAction("renew", data?.id)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <RotateCcw className="size-4 text-primary" />
+                  <span className="text-primary">{t("renew")}</span>
+                </DropdownMenuItem>
+              )}
+
+              {/* Separator prije delete */}
+              <DropdownMenuSeparator />
+
+              {/* Obriši - uvijek dostupno */}
+              <DropdownMenuItem
+                onClick={() => onContextMenuAction("delete", data?.id)}
+                className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+              >
+                <Trash2 className="size-4" />
+                <span>{t("delete")}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Navigation Arrows */}
@@ -372,15 +479,15 @@ const MyAdsCard = ({
 
         {/* Location + Date */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
-            <div className="flex items-center gap-1">
-                <IoLocationOutline size={12} />
-                <span className="truncate max-w-[100px]">{displayCity}</span>
-            </div>
-            <span className="text-gray-300">|</span>
-            <div className="flex items-center gap-1">
-                <IoTimeOutline size={12} />
-                <span>{formatRelativeTime(data?.created_at)}</span>
-            </div>
+          <div className="flex items-center gap-1">
+            <IoLocationOutline size={12} />
+            <span className="truncate max-w-[100px]">{displayCity}</span>
+          </div>
+          <span className="text-gray-300">|</span>
+          <div className="flex items-center gap-1">
+            <IoTimeOutline size={12} />
+            <span>{formatRelativeTime(data?.created_at)}</span>
+          </div>
         </div>
 
         {/* Attributes */}
@@ -400,15 +507,14 @@ const MyAdsCard = ({
         <div className="flex-grow" />
         <div className="border-t border-gray-100 mt-1.5" />
 
-        {/* Bottom Row: Stats & Price (IMPROVED STATS) */}
+        {/* Bottom Row: Stats & Price */}
         <div className="flex items-center justify-between gap-2 mt-1">
           {/* Stats - Dashboard Style */}
           <div className="flex items-center gap-2">
-            
             {/* Views Badge */}
             <div 
-                className="flex items-center gap-1 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md transition-colors hover:bg-gray-200" 
-                title="Ukupan broj pregleda"
+              className="flex items-center gap-1 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md transition-colors hover:bg-gray-200" 
+              title="Ukupan broj pregleda"
             >
               <IoEye size={12} />
               <span className="text-[10px] font-semibold">{data?.clicks || 0}</span>
@@ -416,8 +522,8 @@ const MyAdsCard = ({
 
             {/* Likes Badge */}
             <div 
-                className="flex items-center gap-1 bg-red-50 text-red-500 px-1.5 py-0.5 rounded-md transition-colors hover:bg-red-100" 
-                title="Ukupan broj sviđanja"
+              className="flex items-center gap-1 bg-red-50 text-red-500 px-1.5 py-0.5 rounded-md transition-colors hover:bg-red-100" 
+              title="Ukupan broj sviđanja"
             >
               <FaHeart size={10} />
               <span className="text-[10px] font-semibold">{data?.total_likes || 0}</span>
@@ -433,6 +539,17 @@ const MyAdsCard = ({
           )}
         </div>
       </CustomLink>
+
+      {/* --- INTEGRISAN SOLD OUT MODAL --- */}
+      <SoldOutModal
+        productDetails={data}
+        showSoldOut={isSoldOutDialogOpen}
+        setShowSoldOut={setIsSoldOutDialogOpen}
+        selectedRadioValue={selectedBuyerId}
+        setSelectedRadioValue={setSelectedBuyerId}
+        // Ovdje presrećemo akciju. Kad modal kaže "Confirm", mi okinemo glavnu funkciju.
+        setShowConfirmModal={handleSoldOutAction}
+      />
     </div>
   );
 

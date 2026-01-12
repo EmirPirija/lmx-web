@@ -6,7 +6,7 @@
     "dev-turbo": "next dev --turbo",
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "NODE_ENV=production NODE_PORT=8004 node server.js",
+    "start": "next start -p 3000",
     "lint": "next lint"
   },
   "dependencies": {
@@ -45,6 +45,7 @@
     "firebase": "^11.9.1",
     "fuse.js": "^7.1.0",
     "html-react-parser": "^5.2.5",
+    "laravel-echo": "^2.2.7",
     "leaflet": "^1.9.4",
     "libphonenumber-js": "^1.12.9",
     "lucide-react": "^0.468.0",

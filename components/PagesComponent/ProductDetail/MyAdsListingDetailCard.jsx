@@ -340,7 +340,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
             </p>
           </div>
         </div>
-        {/* <div className="flex items-center justify-center text-muted-foreground gap-1 p-4 border-b flex-wrap">
+        <div className="flex items-center justify-center text-muted-foreground gap-1 p-4 border-b flex-wrap">
           <div className="text-sm flex items-center gap-1">
             <FaRegCalendarCheck size={14} />
             {t("postedOn")}: {formatDateMonthYear(productDetails?.created_at)}
@@ -353,7 +353,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
             <FaRegHeart size={14} />
             {t("favorites")}: {productDetails?.total_likes}
           </div>
-        </div> */}
+        </div>
         <div className="p-4 flex items-center gap-4 flex-wrap">
           <button
             className="py-2 px-4 flex-1 min-w-[120px] rounded-md bg-black text-white font-medium hover:bg-gray-800 transition-colors"

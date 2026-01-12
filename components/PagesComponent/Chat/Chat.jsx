@@ -757,7 +757,7 @@ const handleToggleMuteChat = async (targetChatId, isCurrentlyMuted) => {
       {(isLargeScreen || chatId) && (
         <div className="col-span-8">
           {selectedChatDetails?.id ? (
-            <div className="ltr:xl:border-l rtl:lg:border-r h-[65vh] lg:h-[800px] flex flex-col relative">
+            <div className="ltr:xl:border-l rtl:lg:border-r h-[65vh] lg:h-[800px] flex flex-col relative overflow-auto">
               
               {/* HEADER SA NOVIM FUNKCIJAMA */}
               <SelectedChatHeader
