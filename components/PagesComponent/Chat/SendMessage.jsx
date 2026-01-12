@@ -11,7 +11,7 @@ import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
-
+ 
 /**
  * SendMessage Component
  * Features:
@@ -21,7 +21,7 @@ import { userSignUpData } from "@/redux/reducer/authSlice";
  * ✅ Voice recording
  * ✅ Access control check
  */
-
+ 
 const SendMessage = ({ 
   selectedChatDetails, 
   setChatMessages,
@@ -30,12 +30,14 @@ const SendMessage = ({
   // 🔥 Dohvati ulogovanog korisnika
   const user = useSelector(userSignUpData);
   const userId = user?.id;
-
-  // Provjera da li je chat dozvoljen
+ 
+  // 🔥 ISPRAVKA: Dodano "sold out" kao dozvoljen status za chat
+  const itemStatus = selectedChatDetails?.item?.status;
   const isAllowToChat =
-    selectedChatDetails?.item?.status === "approved" ||
-    selectedChatDetails?.item?.status === "featured";
-
+    itemStatus === "approved" ||
+    itemStatus === "featured" ||
+    itemStatus === "sold out";
+ 
   const id = selectedChatDetails?.id;
   const [message, setMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -44,21 +46,21 @@ const SendMessage = ({
   
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
-
+ 
   // Refs za Debounce typinga
   const lastTypingSentTime = useRef(0);
   const typingTimeoutRef = useRef(null);
-
+ 
   // --- VOICE RECORDING SETUP ---
   const { status, startRecording, stopRecording, mediaBlobUrl, error } =
     useReactMediaRecorder({
       audio: true,
       blobPropertyBag: { type: "audio/mpeg" },
     });
-
+ 
   const isRecording = status === "recording";
   const [recordingDuration, setRecordingDuration] = useState(0);
-
+ 
   // Format recording duration
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -67,7 +69,7 @@ const SendMessage = ({
       .toString()
       .padStart(2, "0")}`;
   };
-
+ 
   // Timer for recording
   useEffect(() => {
     let timer;
@@ -80,7 +82,7 @@ const SendMessage = ({
     }
     return () => clearInterval(timer);
   }, [isRecording]);
-
+ 
   // Cleanup effect
   useEffect(() => {
     return () => {
@@ -97,14 +99,14 @@ const SendMessage = ({
       }
     };
   }, [id]);
-
+ 
   // Handle recorded audio
   useEffect(() => {
     if (mediaBlobUrl && status === "stopped") {
       handleRecordedAudio();
     }
   }, [mediaBlobUrl, status]);
-
+ 
   // --- TYPING INDICATOR LOGIC ---
   const sendTypingStatus = async (isTyping) => {
     if (!id) return;
@@ -119,7 +121,7 @@ const SendMessage = ({
       console.error('Typing indicator error:', error);
     }
   };
-
+ 
   // --- AUDIO HANDLER ---
   const handleRecordedAudio = async () => {
     try {
@@ -134,24 +136,24 @@ const SendMessage = ({
       toast.error("Failed to process recording");
     }
   };
-
+ 
   // --- FILE HANDLERS ---
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+ 
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-
+ 
     if (!allowedTypes.includes(file.type)) {
       toast.error("Only image files (JPEG, PNG, JPG) are allowed");
       return;
     }
-
+ 
     const fileUrl = URL.createObjectURL(file);
     setPreviewUrl(fileUrl);
     setSelectedFile(file);
   };
-
+ 
   const removeSelectedFile = () => {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -162,7 +164,7 @@ const SendMessage = ({
       fileInputRef.current.value = "";
     }
   };
-
+ 
   // Handle message change with debounce
   const handleMessageChange = (e) => {
     const newValue = e.target.value;
@@ -170,35 +172,35 @@ const SendMessage = ({
     
     const now = Date.now();
     const TIME_BETWEEN_EVENTS = 2000;
-
+ 
     if (newValue.length > 0) {
       if (now - lastTypingSentTime.current > TIME_BETWEEN_EVENTS) {
         sendTypingStatus(true);
         lastTypingSentTime.current = now;
       }
-
+ 
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-
+ 
       typingTimeoutRef.current = setTimeout(() => {
         sendTypingStatus(false);
       }, 3000);
-
+ 
     } else {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       sendTypingStatus(false);
     }
   };
-
+ 
   // --- SEND MESSAGE LOGIC ---
   const sendMessage = async (audioFile = null) => {
     if ((!message.trim() && !selectedFile && !audioFile) || isSending) return;
-
+ 
     // Zaustavi typing status
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     sendTypingStatus(false);
-
+ 
     // 🔥 ISPRAVLJENO: Koristi userId iz ulogovanog korisnika
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
@@ -211,15 +213,15 @@ const SendMessage = ({
       status: "sending",
       isOptimistic: true,
     };
-
+ 
     // Add optimistic message to UI
     setChatMessages((prev) => [...prev, optimisticMessage]);
-
+ 
     // Clear input
     const messageText = message;
     setMessage("");
     removeSelectedFile();
-
+ 
     // 🔥 ISPRAVLJENO: Pravilno slanje parametara
     const params = {
       item_offer_id: id,
@@ -239,20 +241,20 @@ const SendMessage = ({
     if (audioFile) {
       params.audio = audioFile;
     }
-
+ 
     console.log('📤 Sending message with params:', {
       item_offer_id: params.item_offer_id,
       message: params.message,
       hasFile: !!params.file,
       hasAudio: !!params.audio
     });
-
+ 
     try {
       setIsSending(true);
       const response = await sendMessageApi.sendMessage(params);
-
+ 
       console.log('📥 Send message response:', response?.data);
-
+ 
       if (response?.data?.error === false) {
         // Replace optimistic message with real message from server
         setChatMessages((prev) => 
@@ -284,7 +286,7 @@ const SendMessage = ({
       setIsSending(false);
     }
   };
-
+ 
   const handleVoiceButtonClick = () => {
     if (isRecording) {
       stopRecording();
@@ -305,16 +307,33 @@ const SendMessage = ({
       }
     }
   };
-
+ 
+  // 🔥 ISPRAVKA: Poboljšana poruka za blokirane statuse
+  const getBlockedMessage = () => {
+    switch (itemStatus) {
+      case "review":
+        return "Ovaj oglas je na pregledu";
+      case "inactive":
+        return "Ovaj oglas je deaktiviran";
+      case "expired":
+        return "Ovaj oglas je istekao";
+      case "soft rejected":
+      case "permanent rejected":
+        return "Ovaj oglas je odbijen";
+      default:
+        return `Ovaj oglas ima status: ${itemStatus}`;
+    }
+  };
+ 
   // Ako chat nije dozvoljen, prikaži poruku
   if (!isAllowToChat) {
     return (
-      <div className="p-4 border-t text-center text-muted-foreground">
-        {t("thisAd")} {selectedChatDetails?.item?.status}
+      <div className="p-4 border-t text-center text-muted-foreground bg-gray-50">
+        <p className="text-sm">{getBlockedMessage()}</p>
       </div>
     );
   }
-
+ 
   return (
     <div className="flex flex-col">
       {/* Other user typing indicator */}
@@ -328,7 +347,7 @@ const SendMessage = ({
           </span>
         </div>
       )}
-
+ 
       {/* File Preview */}
       {previewUrl && (
         <div className="px-4 pt-2 pb-1">
@@ -348,7 +367,7 @@ const SendMessage = ({
           </div>
         </div>
       )}
-
+ 
       {/* Input Area */}
       <div className="p-4 border-t flex items-center gap-2">
         {!isRecording && (
@@ -369,7 +388,7 @@ const SendMessage = ({
             </button>
           </>
         )}
-
+ 
         {isRecording ? (
           <div className="flex-1 py-2 px-3 bg-red-50 text-red-500 rounded-md flex items-center justify-center font-medium">
             🔴 {t("recording")} {formatDuration(recordingDuration)}
@@ -392,7 +411,7 @@ const SendMessage = ({
             }}
           />
         )}
-
+ 
         <button
           className={cn(
             "p-2 rounded-md transition-all",
@@ -420,5 +439,5 @@ const SendMessage = ({
     </div>
   );
 };
-
+ 
 export default SendMessage;

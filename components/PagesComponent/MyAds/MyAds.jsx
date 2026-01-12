@@ -28,22 +28,22 @@ import { toast } from "sonner";
 import ChoosePackageModal from "./ChoosePackageModal.jsx";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice.js";
 import { useNavigate } from "@/components/Common/useNavigate";
-
+ 
 const MyAds = () => {
   const { navigate } = useNavigate();
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const searchParams = useSearchParams();
   const isRTL = useSelector(getIsRtl);
-
+ 
   const sortValue = searchParams.get("sort") || "new-to-old";
   const status = searchParams.get("status") || "approved";
-
+ 
   const [MyItems, setMyItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [IsLoading, setIsLoading] = useState(true);
   const [IsLoadMore, setIsLoadMore] = useState(false);
-
+ 
   const [statusCounts, setStatusCounts] = useState({
     approved: 0,
     inactive: 0,
@@ -52,7 +52,7 @@ const MyAds = () => {
     expired: 0,
     resubmitted: 0,
   });
-
+ 
   const isFreeAdListing = useSelector(getIsFreAdListing);
   const [ItemPackages, setItemPackages] = useState([]);
   const [renewIds, setRenewIds] = useState([]);
@@ -62,12 +62,12 @@ const MyAds = () => {
   const [IsChoosePackage, setIsChoosePackage] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [isRenewingAd, setIsRenewingAd] = useState(false);
-
+ 
   const [isSticky, setIsSticky] = useState(false);
   const sentinelRef = useRef(null);
   const containerRef = useRef(null);
   const [containerHeight, setContainerHeight] = useState(0);
-
+ 
   useEffect(() => {
     if (containerRef.current) {
       setContainerHeight(containerRef.current.offsetHeight);
@@ -87,7 +87,7 @@ const MyAds = () => {
       if (sentinelRef.current) observer.unobserve(sentinelRef.current);
     };
   }, []);
-
+ 
   useEffect(() => {
     const fetchAllCounts = async () => {
       const statusesToCheck = [
@@ -98,7 +98,7 @@ const MyAds = () => {
         "expired",
         "resubmitted",
       ];
-
+ 
       const promises = statusesToCheck.map(async (s) => {
         try {
           const res = await getMyItemsApi.getMyItems({
@@ -111,7 +111,7 @@ const MyAds = () => {
           return { status: s, count: 0 };
         }
       });
-
+ 
       try {
         const results = await Promise.all(promises);
         const newCounts = {};
@@ -123,23 +123,23 @@ const MyAds = () => {
         console.error("Greška pri učitavanju brojača:", error);
       }
     };
-
+ 
     fetchAllCounts();
   }, []);
-
+ 
   const getMyItemsData = async (page = 1) => {
     try {
       const params = { page, sort_by: sortValue };
       if (status !== "all") {
         params.status = status;
       }
-
+ 
       if (page > 1) setIsLoadMore(true);
       else setIsLoading(true);
-
+ 
       const res = await getMyItemsApi.getMyItems(params);
       const data = res?.data;
-
+ 
       if (data?.error === false) {
         if (status !== "all") {
           setStatusCounts((prev) => ({
@@ -147,7 +147,7 @@ const MyAds = () => {
             [status]: data?.data?.total,
           }));
         }
-
+ 
         page > 1
           ? setMyItems((prevData) => [...prevData, ...data?.data?.data])
           : setMyItems(data?.data?.data);
@@ -163,23 +163,23 @@ const MyAds = () => {
       setIsLoadMore(false);
     }
   };
-
+ 
   useEffect(() => {
     getMyItemsData(1);
   }, [sortValue, status, CurrentLanguage?.id]);
-
+ 
   const updateURLParams = (key, value) => {
     const params = new URLSearchParams(searchParams);
     params.set(key, value);
     window.history.pushState(null, "", `?${params.toString()}`);
   };
-
+ 
   const handleSortChange = (value) => updateURLParams("sort", value);
   const handleStatusChange = (value) => updateURLParams("status", value);
-
+ 
   const expiredAds = MyItems.filter((item) => item.status === "expired");
   const canMultiSelect = expiredAds.length > 1;
-
+ 
   const handleAdSelection = (adId) => {
     const ad = MyItems.find((item) => item.id === adId);
     if (ad?.status !== "expired") return;
@@ -189,14 +189,14 @@ const MyAds = () => {
         : [...prev, adId]
     );
   };
-
+ 
   const handleSelectAll = () =>
     renewIds.length === expiredAds.length
       ? setRenewIds([])
       : setRenewIds(expiredAds.map((item) => item.id));
-
+ 
   const handleCancelSelection = () => setRenewIds([]);
-
+ 
   const handleRemove = async () => {
     if (selectedIds.length === 0) return;
     try {
@@ -218,7 +218,7 @@ const MyAds = () => {
       setIsDeleting(false);
     }
   };
-
+ 
   const renewAds = async ({ ids, packageId }) => {
     try {
       setIsRenewingAd(true);
@@ -249,7 +249,7 @@ const MyAds = () => {
       setIsRenewingAd(false);
     }
   };
-
+ 
   const handleRenew = (ids) => {
     const idsToRenew = Array.isArray(ids) ? ids : renewIds;
     if (isFreeAdListing) {
@@ -270,7 +270,7 @@ const MyAds = () => {
       renewAds({ ids: idsToRenew, packageId: selectedPackageId });
     }
   };
-
+ 
   // --- FUNKCIJE ZA PROMJENU STATUSA ---
   const handleDeactivateAd = async (adId) => {
     try {
@@ -278,7 +278,7 @@ const MyAds = () => {
         item_id: adId,
         status: "inactive",
       });
-
+ 
       if (res?.data?.error === false) {
         toast.success("Oglas je skriven");
         
@@ -294,7 +294,7 @@ const MyAds = () => {
             )
           );
         }
-
+ 
         // Ažuriraj brojače
         setStatusCounts((prev) => ({
           ...prev,
@@ -310,17 +310,17 @@ const MyAds = () => {
       toast.error("Greška pri skrivanju oglasa");
     }
   };
-
+ 
   const handleActivateAd = async (adId) => {
     try {
       const res = await chanegItemStatusApi.changeItemStatus({
         item_id: adId,
         status: "active", // ← Backend očekuje "active"
       });
-
+ 
       if (res?.data?.error === false) {
         toast.success("Oglas je aktiviran");
-
+ 
         // INSTANT UKLANJANJE iz inactive liste
         if (status === "inactive") {
           setMyItems((prevItems) => prevItems.filter((item) => item.id !== adId));
@@ -331,7 +331,7 @@ const MyAds = () => {
             )
           );
         }
-
+ 
         // Ažuriraj brojače
         setStatusCounts((prev) => ({
           ...prev,
@@ -346,14 +346,22 @@ const MyAds = () => {
       toast.error("Greška pri aktiviranju oglasa");
     }
   };
-
-  const handleMarkAsSoldOut = async (adId) => {
+ 
+  
+  const handleMarkAsSoldOut = async (adId, buyerId = null) => {
     try {
-      const res = await chanegItemStatusApi.changeItemStatus({
+      const payload = {
         item_id: adId,
         status: "sold out",
-      });
-
+      };
+      
+      
+      if (buyerId) {
+        payload.sold_to = buyerId;
+      }
+ 
+      const res = await chanegItemStatusApi.changeItemStatus(payload);
+ 
       if (res?.data?.error === false) {
         const currentItem = MyItems.find((item) => item.id === adId);
         const isJobCategory = Number(currentItem?.category?.is_job_category) === 1;
@@ -363,18 +371,18 @@ const MyAds = () => {
             ? "Posao je označen kao popunjen"
             : "Oglas je označen kao prodat"
         );
-
+ 
         // INSTANT UKLANJANJE iz approved/featured liste
         if (status === "approved" || status === "featured") {
           setMyItems((prevItems) => prevItems.filter((item) => item.id !== adId));
         } else {
           setMyItems((prevItems) =>
             prevItems.map((item) =>
-              item.id === adId ? { ...item, status: "sold out" } : item
+              item.id === adId ? { ...item, status: "sold out", sold_to: buyerId } : item
             )
           );
         }
-
+ 
         // Ažuriraj brojače
         setStatusCounts((prev) => ({
           ...prev,
@@ -390,47 +398,49 @@ const MyAds = () => {
       toast.error("Greška pri označavanju oglasa");
     }
   };
-
-  const handleContextMenuAction = (action, adId) => {
+ 
+  // 🔥 ISPRAVKA: Dodano buyerId kao treći parametar
+  const handleContextMenuAction = (action, adId, buyerId = null) => {
     const ad = MyItems.find((item) => item.id === adId);
-
+ 
     switch (action) {
       case "select":
         if (ad && ad.status === "expired") handleAdSelection(adId);
         break;
-
+ 
       case "edit":
         navigate(`/edit-listing/${adId}`);
         break;
-
+ 
       case "deactivate":
         handleDeactivateAd(adId);
         break;
-
+ 
       case "activate":
         handleActivateAd(adId);
         break;
-
+ 
       case "markAsSoldOut":
-        handleMarkAsSoldOut(adId);
+        // 🔥 ISPRAVKA: Proslijedi buyerId
+        handleMarkAsSoldOut(adId, buyerId);
         break;
-
+ 
       case "renew":
         isFreeAdListing
           ? handleRenew([adId])
           : (setRenewIds([adId]), setIsChoosePackage(true));
         break;
-
+ 
       case "delete":
         setSelectedIds([adId]);
         setIsDeleteDialog(true);
         break;
-
+ 
       default:
         break;
     }
   };
-
+ 
   const tabs = [
     { value: "approved", label: "Aktivni" },
     { value: "inactive", label: "Skriveni" },
@@ -439,14 +449,14 @@ const MyAds = () => {
     { value: "expired", label: "Istekli" },
     { value: "resubmitted", label: "Za obnoviti" },
   ];
-
+ 
   return (
     <>
       <div
         ref={sentinelRef}
         className="absolute w-full h-px bg-transparent translate-y-[-1px]"
       />
-
+ 
       {isSticky && (
         <div
           style={{
@@ -455,7 +465,7 @@ const MyAds = () => {
           className="w-full mb-3 bg-transparent"
         />
       )}
-
+ 
       <div
         ref={containerRef}
         className={`
@@ -484,7 +494,7 @@ const MyAds = () => {
                   {t("sortBy")}
                 </span>
               </div>
-
+ 
               <Select value={sortValue} onValueChange={handleSortChange}>
                 <SelectTrigger
                   className={`w-[170px] transition-all duration-300 ${
@@ -538,12 +548,12 @@ const MyAds = () => {
               </Select>
             </div>
           </div>
-
+ 
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
             {tabs.map((item) => {
               const isActive = status === item.value;
               const count = statusCounts[item.value] || 0;
-
+ 
               return (
                 <button
                   key={item.value}
@@ -578,7 +588,7 @@ const MyAds = () => {
           </div>
         </div>
       </div>
-
+ 
       {canMultiSelect && renewIds.length > 0 && (
         <div
           className={`flex items-center justify-between mt-[30px] ${
@@ -601,23 +611,23 @@ const MyAds = () => {
           </p>
         </div>
       )}
-
+ 
       <div className="grid grid-cols-1 sm:grid-cols-2 mt-[30px] xl:grid-cols-3 gap-4">
         {IsLoading ? (
           [...Array(6)].map((_, i) => <ProductCardSkeleton key={i} />)
         ) : MyItems && MyItems?.length > 0 ? (
           MyItems.map((item) => (
-            <AdsCard
-              key={item?.id}
-              data={item}
-              isApprovedSort={sortValue === "approved"}
-              isSelected={renewIds.includes(item?.id)}
-              isSelectable={renewIds.length > 0 && item.status === "expired"}
-              onSelectionToggle={() => handleAdSelection(item?.id)}
-              onContextMenuAction={(action) =>
-                handleContextMenuAction(action, item?.id)
-              }
-            />
+<AdsCard
+  key={item?.id}
+  data={item}
+  isApprovedSort={sortValue === "approved"}
+  isSelected={renewIds.includes(item?.id)}
+  isSelectable={renewIds.length > 0 && item.status === "expired"}
+  onSelectionToggle={() => handleAdSelection(item?.id)}
+  onContextMenuAction={(action, id, buyerId) =>
+    handleContextMenuAction(action, id || item?.id, buyerId)
+  }
+/>
           ))
         ) : (
           <div className="col-span-full">
@@ -625,7 +635,7 @@ const MyAds = () => {
           </div>
         )}
       </div>
-
+ 
       {currentPage < lastPage && (
         <div className="text-center mt-8 pb-8">
           <Button
@@ -638,7 +648,7 @@ const MyAds = () => {
           </Button>
         </div>
       )}
-
+ 
       {renewIds.length > 0 && (
         <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none">
           <div className="bg-white p-2 rounded-full shadow-xl border border-gray-200 flex gap-2 pointer-events-auto animate-in slide-in-from-bottom-4">
@@ -671,7 +681,7 @@ const MyAds = () => {
           </div>
         </div>
       )}
-
+ 
       <ChoosePackageModal
         key={IsChoosePackage}
         selectedPackageId={selectedPackageId}
@@ -700,5 +710,5 @@ const MyAds = () => {
     </>
   );
 };
-
+ 
 export default MyAds;
