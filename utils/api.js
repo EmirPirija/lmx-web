@@ -482,13 +482,20 @@ export const assigFreePackageApi = {
 };
 
 export const addItemReviewApi = {
-  addItemReview: ({ review, ratings, item_id } = {}) => {
+  addItemReview: ({ review, ratings, item_id, images } = {}) => {
     const formData = new FormData();
 
     // Append only if the value is defined and not an empty string
     if (review) formData.append("review", review);
     if (ratings) formData.append("ratings", ratings);
     if (item_id) formData.append("item_id", item_id);
+    
+    // Dodaj slike ako postoje
+    if (images && Array.isArray(images) && images.length > 0) {
+      images.forEach((image, index) => {
+        formData.append(`images[${index}]`, image);
+      });
+    }
 
     return Api.post(AD_ITEM_REVIEW, formData, {
       headers: {

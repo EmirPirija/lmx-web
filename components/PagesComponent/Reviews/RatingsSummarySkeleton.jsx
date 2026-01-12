@@ -1,31 +1,40 @@
-import { Skeleton } from "@/components/ui/skeleton";
+'use client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const RatingsSummarySkeleton = () => {
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-12 p-4 rounded-xl border">
-            {/* Average Rating Section Skeleton */}
-            <div className="col-span-4 border-b md:border-b-0 ltr:md:border-r pb-4 md:pb-0 md:pr-4">
-                <div className="flex flex-col items-center justify-center">
-                    <Skeleton className="h-24 w-24 rounded-md mb-4" />
-                    <Skeleton className="h-6 w-36 rounded-md mb-2" />
-                    <Skeleton className="h-4 w-20 rounded-md" />
-                </div>
-            </div>
-
-            {/* Rating Progress Bars Section Skeleton */}
-            <div className="col-span-8 pt-4 md:pt-0 md:pl-8">
-                <div className="flex flex-col gap-3">
-                    {[1, 2, 3, 4, 5].map((index) => (
-                        <div className="flex items-center gap-2" key={`skeleton-rating-${index}`}>
-                            <Skeleton className="h-6 w-10 rounded-md" />
-                            <Skeleton className="h-3 flex-1 rounded-md" />
-                            <Skeleton className="h-4 w-6 rounded-md" />
-                        </div>
-                    ))}
-                </div>
-            </div>
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Lijeva strana - Ukupna ocjena skeleton */}
+        <div className="flex flex-col items-center justify-center lg:min-w-[200px] lg:border-r lg:border-gray-100 lg:pr-8">
+          <Skeleton className="h-16 w-20 rounded-lg mb-3" />
+          <div className="flex gap-1 mb-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="w-5 h-5 rounded" />
+            ))}
+          </div>
+          <Skeleton className="h-4 w-20 rounded" />
+          <Skeleton className="h-3 w-16 rounded mt-1" />
         </div>
-    );
+
+        {/* Desna strana - Progress bars skeleton */}
+        <div className="flex-1 space-y-4">
+          <Skeleton className="h-4 w-32 rounded mb-4" />
+          
+          {[5, 4, 3, 2, 1].map((rating) => (
+            <div key={rating} className="flex items-center gap-3">
+              <div className="flex items-center gap-1 min-w-[50px]">
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-4 w-4 rounded" />
+              </div>
+              <Skeleton className="flex-1 h-2.5 rounded-full" />
+              <Skeleton className="h-4 w-8 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
 
-export default RatingsSummarySkeleton; 
+export default RatingsSummarySkeleton;
