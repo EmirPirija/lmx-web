@@ -45,7 +45,10 @@ export function SmartThemeToggle() {
 
   return (
     <div
-      style={{ bottom: `${bottomOffset}px` }} 
+    style={{ 
+      bottom: `${bottomOffset}px`,
+      display: 'none'
+    }}
       className="fixed left-8 z-[9999] transition-all duration-30000 ease-out will-change-[bottom]"
     >
       <button

@@ -166,7 +166,7 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
       {isPriceDown && (
         <div className="px-5 py-3 bg-green-50 border-t border-green-100">
           <p className="text-xs text-green-700 text-center font-medium">
-            💰 Cijena je snižena za {formatPrice(Math.abs(priceChange))} od prvog oglašavanja
+            Cijena je snižena za {formatPrice(Math.abs(priceChange))} od prvog oglašavanja
           </p>
         </div>
       )}

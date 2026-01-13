@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { allItemApi, getMyItemsApi, setItemTotalClickApi } from "@/utils/api";
+import { useEffect, useState, useRef } from "react";
+import { allItemApi, getMyItemsApi, setItemTotalClickApi, deleteItemApi } from "@/utils/api";
 import ProductFeature from "./ProductFeature";
 import ProductDescription from "./ProductDescription";
 import ProductDetailCard from "./ProductDetailCard";
@@ -10,13 +10,14 @@ import AdsReportCard from "./AdsReportCard";
 import SimilarProducts from "./SimilarProducts";
 import MyAdsListingDetailCard from "./MyAdsListingDetailCard";
 import AdsStatusChangeCards from "./AdsStatusChangeCards";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Layout from "@/components/Layout/Layout";
 import ProductGallery from "./ProductGallery";
 import {
   getFilteredCustomFields,
   getYouTubeVideoId,
   truncate,
+  t
 } from "@/utils";
 import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,22 +28,257 @@ import MakeFeaturedAd from "./MakeFeaturedAd";
 import RenewAd from "./RenewAd";
 import AdEditedByAdmin from "./AdEditedByAdmin";
 import NoData from "@/components/EmptyStates/NoData";
-import PriceHistory from "../../PagesComponent/ProductDetail/PriceHistory";
- 
+// PriceHistory import je uklonjen jer je komponenta integrisana ispod
+import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
+import { toast } from "sonner";
+import Link from "next/link";
+import { 
+  MdSyncAlt,
+  MdRocketLaunch,
+} from "react-icons/md";
+
+import { 
+  MdHistory, 
+  MdClose, 
+  MdTrendingDown, 
+  MdTrendingUp,
+  MdExpandMore,
+  MdExpandLess,
+  MdPhone, 
+  MdChat, 
+  MdVisibility,
+  MdEdit,
+  MdDelete,
+  MdLocalOffer, 
+} from "react-icons/md";
+
+import { IoStatsChart } from "react-icons/io5";
+
 // ============================================
-// SKELETON LOADING COMPONENT - Poboljšana verzija
+// GLOBALNI HELPERI
+// ============================================
+
+// Formatiranje cijene (Koristi se u oba dijela)
+const formatPrice = (price) => {
+  if (!price || price === 0) return "Besplatno";
+  return new Intl.NumberFormat('bs-BA', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price) + ' KM';
+};
+
+// Formatiranje datuma (Iz PriceHistory fajla)
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+  
+  const day = date.getDate();
+  const months = [
+    "jan", "feb", "mar", "apr", "maj", "jun",
+    "jul", "aug", "sep", "okt", "nov", "dec"
+  ];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  
+  return `${day}. ${month} ${year}`;
+};
+
+// ============================================
+// KOMPONENTA: PRICE HISTORY (Integrisana)
+// ============================================
+const PriceHistory = ({ priceHistory = [], currentPrice }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+ 
+  if (!priceHistory || priceHistory.length === 0) {
+    return null;
+  }
+ 
+  // Sortiraj po datumu (najnoviji prvi)
+  const sortedHistory = [...priceHistory].sort((a, b) => 
+    new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
+  );
+ 
+  // Izračunaj ukupnu promjenu cijene
+  const oldestPrice = sortedHistory[sortedHistory.length - 1]?.price || currentPrice;
+  const priceChange = currentPrice - oldestPrice;
+  const percentChange = oldestPrice > 0 ? ((priceChange / oldestPrice) * 100).toFixed(1) : 0;
+  const isPriceDown = priceChange < 0;
+  const isPriceUp = priceChange > 0;
+ 
+  // Prikaži samo prve 3 ako nije prošireno
+  const displayedHistory = isExpanded ? sortedHistory : sortedHistory.slice(0, 3);
+  const hasMore = sortedHistory.length > 3;
+ 
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white rounded-xl shadow-sm">
+              <MdHistory className="text-slate-600 text-xl" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800">Historija cijena</h3>
+              <p className="text-xs text-slate-500">{sortedHistory.length} promjena</p>
+            </div>
+          </div>
+          
+          {/* Badge za ukupnu promjenu */}
+          {(isPriceDown || isPriceUp) && (
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${
+              isPriceDown 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-red-100 text-red-700'
+            }`}>
+              {isPriceDown ? (
+                <MdTrendingDown className="text-lg" />
+              ) : (
+                <MdTrendingUp className="text-lg" />
+              )}
+              <span>{Math.abs(percentChange)}%</span>
+            </div>
+          )}
+        </div>
+      </div>
+ 
+      {/* Lista promjena */}
+      <div className="p-4">
+        <div className="space-y-3">
+          {/* Trenutna cijena */}
+          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/10">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-slate-600">Trenutna cijena</span>
+            </div>
+            <span className="font-bold text-primary text-lg">{formatPrice(currentPrice)}</span>
+          </div>
+ 
+          {/* Historija */}
+          {displayedHistory.map((item, index) => {
+            const itemPrice = item.price || item.old_price;
+            const itemDate = item.created_at || item.date;
+            const prevPrice = index < displayedHistory.length - 1 
+              ? (displayedHistory[index + 1]?.price || displayedHistory[index + 1]?.old_price)
+              : itemPrice;
+            
+            const itemChange = index === 0 ? currentPrice - itemPrice : itemPrice - prevPrice;
+            const isDown = itemChange < 0;
+            const isUp = itemChange > 0;
+ 
+            return (
+              <div 
+                key={index} 
+                className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    isDown ? 'bg-green-100' : isUp ? 'bg-red-100' : 'bg-slate-200'
+                  }`}>
+                    {isDown ? (
+                      <MdTrendingDown className="text-green-600" />
+                    ) : isUp ? (
+                      <MdTrendingUp className="text-red-600" />
+                    ) : (
+                      <span className="text-slate-400 text-xs">—</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-slate-700">{formatPrice(itemPrice)}</span>
+                    <p className="text-xs text-slate-400">{formatDate(itemDate)}</p>
+                  </div>
+                </div>
+                
+                {(isDown || isUp) && (
+                  <span className={`text-xs font-bold ${isDown ? 'text-green-600' : 'text-red-600'}`}>
+                    {isDown ? '' : '+'}{formatPrice(Math.abs(itemChange))}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+ 
+        {/* Dugme za proširenje */}
+        {hasMore && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-bold text-slate-600 transition-all"
+          >
+            {isExpanded ? (
+              <>
+                <MdExpandLess className="text-lg" />
+                Prikaži manje
+              </>
+            ) : (
+              <>
+                <MdExpandMore className="text-lg" />
+                Prikaži sve ({sortedHistory.length - 3} više)
+              </>
+            )}
+          </button>
+        )}
+      </div>
+ 
+      {/* Footer info */}
+      {isPriceDown && (
+        <div className="px-5 py-3 bg-green-50 border-t border-green-100">
+          <p className="text-xs text-green-700 text-center font-medium">
+            Cijena je snižena za {formatPrice(Math.abs(priceChange))} od prvog oglašavanja
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// DESKTOP: TEASER KARTICA (SIDEBAR)
+// ============================================
+const PriceHistoryTeaser = ({ priceHistory, currentPrice, onClick }) => {
+    const sortedHistory = [...priceHistory].sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
+    const oldestPrice = sortedHistory[sortedHistory.length - 1]?.price || currentPrice;
+    const priceChange = currentPrice - oldestPrice;
+    const percentChange = oldestPrice > 0 ? ((priceChange / oldestPrice) * 100).toFixed(1) : 0;
+    const isPriceDown = priceChange < 0;
+};
+
+// ============================================
+// DESKTOP: MODAL (Popup)
+// ============================================
+const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 transition-opacity" onClick={onClose} />
+            <div className="relative bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="text-xl font-bold text-slate-800">Historija kretanja cijene</h3>
+                    <button onClick={onClose} className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:bg-slate-100 transition-colors">
+                        <MdClose size={20} />
+                    </button>
+                </div>
+                <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    <PriceHistory priceHistory={priceHistory} currentPrice={currentPrice} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============================================
+// SKELETON LOADING
 // ============================================
 const ProductDetailsSkeleton = () => {
   return (
     <div className="container mt-4 lg:mt-8">
-      {/* Breadcrumb Skeleton */}
       <div className="flex gap-2 mb-4 lg:mb-6 animate-pulse">
         <div className="h-4 w-16 bg-slate-200 rounded-md" />
         <div className="h-4 w-3 bg-slate-200 rounded-md" />
         <div className="h-4 w-32 bg-slate-200 rounded-md" />
       </div>
- 
-      {/* Mobile: Naslov iznad galerije */}
       <div className="lg:hidden mb-4">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse">
           <div className="h-5 w-24 bg-slate-200 rounded-md mb-3" />
@@ -51,12 +287,9 @@ const ProductDetailsSkeleton = () => {
           <div className="h-9 w-36 bg-slate-200 rounded-lg" />
         </div>
       </div>
- 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
-        {/* Lijeva kolona */}
         <div className="col-span-1 lg:col-span-8">
           <div className="flex flex-col gap-5 lg:gap-7">
-            {/* Galerija Skeleton */}
             <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
               <div className="w-full aspect-[4/3] lg:aspect-[870/500] bg-gradient-to-br from-slate-100 to-slate-200" />
               <div className="p-3 lg:p-4">
@@ -67,8 +300,6 @@ const ProductDetailsSkeleton = () => {
                 </div>
               </div>
             </div>
- 
-            {/* Karakteristike Skeleton */}
             <div className="bg-white p-5 lg:p-6 rounded-2xl border border-slate-100 animate-pulse">
               <div className="h-6 w-36 bg-slate-200 rounded-md mb-5" />
               <div className="grid grid-cols-2 gap-4">
@@ -83,8 +314,6 @@ const ProductDetailsSkeleton = () => {
                 ))}
               </div>
             </div>
- 
-            {/* Opis Skeleton */}
             <div className="bg-white p-5 lg:p-6 rounded-2xl border border-slate-100 animate-pulse">
               <div className="h-6 w-24 bg-slate-200 rounded-md mb-5" />
               <div className="space-y-3">
@@ -95,10 +324,7 @@ const ProductDetailsSkeleton = () => {
             </div>
           </div>
         </div>
- 
-        {/* Desna kolona */}
         <div className="flex flex-col col-span-1 lg:col-span-4 gap-5 lg:gap-7">
-          {/* Desktop: Cijena kartica Skeleton */}
           <div className="hidden lg:block bg-white p-6 rounded-2xl border border-slate-100 animate-pulse">
             <div className="h-5 w-20 bg-slate-200 rounded-md mb-3" />
             <div className="h-8 w-4/5 bg-slate-200 rounded-md mb-2" />
@@ -112,8 +338,6 @@ const ProductDetailsSkeleton = () => {
               </div>
             </div>
           </div>
- 
-          {/* Prodavač Skeleton */}
           <div className="bg-white p-5 lg:p-6 rounded-2xl border border-slate-100 animate-pulse">
             <div className="flex flex-col items-center">
               <div className="h-20 w-20 bg-slate-200 rounded-full mb-3" />
@@ -125,8 +349,6 @@ const ProductDetailsSkeleton = () => {
               <div className="h-12 w-full bg-slate-200 rounded-xl" />
             </div>
           </div>
- 
-          {/* Lokacija Skeleton */}
           <div className="bg-white p-5 lg:p-6 rounded-2xl border border-slate-100 animate-pulse">
             <div className="h-5 w-28 bg-slate-200 rounded-md mb-4" />
             <div className="h-4 w-full bg-slate-200 rounded mb-3" />
@@ -146,18 +368,6 @@ const MobileProductHeader = ({ productDetails, isMyListing }) => {
   const productName = translated_item?.name || productDetails?.name;
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
  
-  // Formatiranje cijene
-  const formatPrice = (price) => {
-    if (!price || price === 0) return "Besplatno";
-    return new Intl.NumberFormat('bs-BA', {
-      style: 'currency',
-      currency: 'BAM',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price).replace('BAM', 'KM');
-  };
- 
-  // Formatiranje plate za poslove
   const formatSalary = (min, max) => {
     if (!min && !max) return "Po dogovoru";
     const formatNum = (num) => new Intl.NumberFormat('bs-BA').format(num);
@@ -169,26 +379,19 @@ const MobileProductHeader = ({ productDetails, isMyListing }) => {
   return (
     <div className="lg:hidden mb-4">
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-5">
-        {/* Kategorija Badge */}
         {productDetails?.category?.name && (
           <span className="inline-block px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-2">
             {productDetails?.category?.name}
           </span>
         )}
- 
-        {/* Naslov proizvoda */}
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight mb-2 break-words">
           {productName}
         </h1>
- 
-        {/* Cijena */}
         <div className="text-2xl sm:text-3xl font-black text-primary tracking-tight mb-3">
           {isJobCategory
             ? formatSalary(productDetails?.min_salary, productDetails?.max_salary)
             : formatPrice(productDetails?.price)}
         </div>
- 
-        {/* Featured badge */}
         {productDetails?.is_feature === 1 && (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold shadow-sm">
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -197,8 +400,6 @@ const MobileProductHeader = ({ productDetails, isMyListing }) => {
             Istaknuti oglas
           </span>
         )}
- 
-        {/* Status za moje oglase */}
         {isMyListing && productDetails?.status && (
           <div className="mt-3 pt-3 border-t border-slate-100">
             <div className="flex items-center gap-2">
@@ -206,15 +407,10 @@ const MobileProductHeader = ({ productDetails, isMyListing }) => {
               <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                 productDetails.status === 'approved' ? 'bg-green-100 text-green-700' :
                 productDetails.status === 'review' ? 'bg-yellow-100 text-yellow-700' :
-                productDetails.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                productDetails.status === 'expired' ? 'bg-slate-100 text-slate-600' :
                 'bg-slate-100 text-slate-600'
               }`}>
                 {productDetails.status === 'approved' ? 'Aktivan' :
-                 productDetails.status === 'review' ? 'Na pregledu' :
-                 productDetails.status === 'rejected' ? 'Odbijen' :
-                 productDetails.status === 'expired' ? 'Istekao' :
-                 productDetails.status}
+                 productDetails.status === 'review' ? 'Na pregledu' : productDetails.status}
               </span>
             </div>
           </div>
@@ -231,54 +427,121 @@ const ProductDetails = ({ slug }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const dispatch = useDispatch();
   const pathName = usePathname();
+  const router = useRouter(); 
   const searchParams = useSearchParams();
   const isShare = searchParams.get("share") == "true" ? true : false;
   const isMyListing = pathName?.startsWith("/my-listing") ? true : false;
   const [productDetails, setProductDetails] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]);
   const [status, setStatus] = useState("");
-  
-  // YouTube video podaci
-  const [videoData, setVideoData] = useState({
-    url: "",
-    thumbnail: "",
-  });
-  
-  // Direktni video (uploadovan)
+  const [videoData, setVideoData] = useState({ url: "", thumbnail: "" });
   const [directVideo, setDirectVideo] = useState(null);
-  
   const [isLoading, setIsLoading] = useState(false);
   const [isOpenInApp, setIsOpenInApp] = useState(false);
- 
-  // Stanja za animacije
   const [isVisible, setIsVisible] = useState(false);
+  
+  // Stanja za Historiju
+  const [showMobilePriceHistory, setShowMobilePriceHistory] = useState(false);
+  const [showDesktopPriceHistory, setShowDesktopPriceHistory] = useState(false);
+  const priceHistoryDrawerRef = useRef(null);
+  const [showStatusDrawer, setShowStatusDrawer] = useState(false);
+  const statusDrawerRef = useRef(null);
+
+
+  // Stanja za Brisanje
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [showFeaturedDrawer, setShowFeaturedDrawer] = useState(false);
+  const featuredDrawerRef = useRef(null);
+  
  
-  const IsShowFeaturedAd =
-    isMyListing &&
-    !productDetails?.is_feature &&
-    productDetails?.status === "approved";
- 
+  const IsShowFeaturedAd = isMyListing && !productDetails?.is_feature && productDetails?.status === "approved";
   const isMyAdExpired = isMyListing && productDetails?.status === "expired";
-  const isEditedByAdmin =
-    isMyListing && productDetails?.is_edited_by_admin === 1;
+  const isEditedByAdmin = isMyListing && productDetails?.is_edited_by_admin === 1;
+  const isEditable = isMyListing && productDetails?.status && !["permanent rejected", "inactive", "sold out", "expired"].includes(productDetails.status);
  
-  useEffect(() => {
-    fetchProductDetails();
-  }, [CurrentLanguage?.id]);
+  useEffect(() => { fetchProductDetails(); }, [CurrentLanguage?.id]);
  
   useEffect(() => {
     if (window.innerWidth <= 768 && !isMyListing && isShare) {
       setIsOpenInApp(true);
     }
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        priceHistoryDrawerRef.current &&
+        !priceHistoryDrawerRef.current.contains(event.target)
+      ) {
+        setShowMobilePriceHistory(false);
+      }
+      if (
+        featuredDrawerRef.current &&
+        !featuredDrawerRef.current.contains(event.target)
+      ) {
+        setShowFeaturedDrawer(false);
+      }
+      
+      if (
+        statusDrawerRef.current &&
+        !statusDrawerRef.current.contains(event.target)
+      ) {
+        setShowStatusDrawer(false);
+      }
+    };
+  
+    const anyOpen = showMobilePriceHistory || showStatusDrawer;
+  
+    if (anyOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "unset";
+    };
+  }, [showDesktopPriceHistory, showMobilePriceHistory, showStatusDrawer, showFeaturedDrawer]);
+  
+  
+  useEffect(() => {
+    if (showDesktopPriceHistory) {
+        document.body.style.overflow = 'hidden';
+    } else if (!showMobilePriceHistory && !showStatusDrawer) {
+        document.body.style.overflow = 'unset';
+    }
+  }, [showDesktopPriceHistory, showMobilePriceHistory, showStatusDrawer]);
+  
  
-  // Pokretanje animacija nakon učitavanja podataka
   useEffect(() => {
     if (productDetails && !isLoading) {
       const timer = setTimeout(() => setIsVisible(true), 50);
       return () => clearTimeout(timer);
     }
   }, [productDetails, isLoading]);
+
+  const handleDeleteAd = async () => {
+    try {
+      setIsDeleting(true);
+      const res = await deleteItemApi.deleteItem({ item_id: productDetails?.id });
+      if (res?.data?.error === false) {
+        toast.success(t("adDeleted") || "Oglas uspješno obrisan");
+        router.push("/my-ads");
+      } else {
+        toast.error(res?.data?.message || "Greška pri brisanju");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Došlo je do greške");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteOpen(false);
+    }
+  };
  
   const fetchMyListingDetails = async (slug) => {
     const response = await getMyItemsApi.getMyItems({ slug });
@@ -286,79 +549,42 @@ const ProductDetails = ({ slug }) => {
     if (!product) throw new Error("Oglas nije pronađen");
     setProductDetails(product);
     
-    // YouTube video link
     const videoLink = product?.video_link;
     if (videoLink) {
       const videoId = getYouTubeVideoId(videoLink);
-      const thumbnail = videoId
-        ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-        : "";
+      const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : "";
       setVideoData((prev) => ({ ...prev, url: videoLink, thumbnail }));
     }
+    if (product?.video) setDirectVideo(product.video);
+    else setDirectVideo(null);
  
-    // Direktni video (uploadovan)
-    if (product?.video) {
-      setDirectVideo(product.video);
-    } else {
-      setDirectVideo(null);
-    }
- 
-    const galleryImages =
-      product?.gallery_images?.map((image) => image?.image) || [];
+    const galleryImages = product?.gallery_images?.map((image) => image?.image) || [];
     setGalleryImages([product?.image, ...galleryImages]);
     setStatus(product?.status);
-    dispatch(
-      setBreadcrumbPath([
-        {
-          name: "Moji oglasi",
-          slug: "/my-ads",
-        },
-        {
-          name: truncate(product?.translated_item?.name || product?.name, 80),
-        },
-      ])
-    );
+    dispatch(setBreadcrumbPath([{ name: "Moji oglasi", slug: "/my-ads" }, { name: truncate(product?.translated_item?.name || product?.name, 80) }]));
   };
  
   const incrementViews = async (item_id) => {
-    try {
-      if (!item_id) {
-        console.error("Nevažeći item_id za incrementViews");
-        return;
-      }
-      const res = await setItemTotalClickApi.setItemTotalClick({ item_id });
-    } catch (error) {
-      console.error("Greška pri povećanju pregleda:", error);
-    }
+    try { if (!item_id) return; await setItemTotalClickApi.setItemTotalClick({ item_id }); } catch (error) { console.error(error); }
   };
  
   const fetchPublicListingDetails = async (slug) => {
     const response = await allItemApi.getItems({ slug });
     const product = response?.data?.data?.data?.[0];
- 
     if (!product) throw new Error("Oglas nije pronađen");
     setProductDetails(product);
     
-    // YouTube video link
     const videoLink = product?.video_link;
     if (videoLink) {
       setVideoData((prev) => ({ ...prev, url: videoLink }));
       const videoId = getYouTubeVideoId(videoLink);
-      const thumbnail = videoId
-        ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-        : "";
+      const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : "";
       setVideoData((prev) => ({ ...prev, thumbnail }));
     }
+    if (product?.video) setDirectVideo(product.video);
+    else setDirectVideo(null);
  
-    // Direktni video (uploadovan)
-    if (product?.video) {
-      setDirectVideo(product.video);
-    } else {
-      setDirectVideo(null);
-    }
- 
-    const galleryImages =
-      product?.gallery_images?.map((image) => image?.image) || [];
+    const galleryImages = product?.gallery_images?.map((image) => image?.image) || [];
     setGalleryImages([product?.image, ...galleryImages]);
     await incrementViews(product?.id);
   };
@@ -367,39 +593,16 @@ const ProductDetails = ({ slug }) => {
     try {
       setIsLoading(true);
       setIsVisible(false);
-      // Resetuj video stanja
       setVideoData({ url: "", thumbnail: "" });
       setDirectVideo(null);
-      
-      if (isMyListing) {
-        await fetchMyListingDetails(slug);
-      } else {
-        await fetchPublicListingDetails(slug);
-      }
-    } catch (error) {
-      console.error("Greška pri dohvatanju detalja oglasa:", error);
-    } finally {
-      setIsLoading(false);
-    }
+      if (isMyListing) await fetchMyListingDetails(slug);
+      else await fetchPublicListingDetails(slug);
+    } catch (error) { console.error(error); } finally { setIsLoading(false); }
   };
  
-  const filteredFields = getFilteredCustomFields(
-    productDetails?.all_translated_custom_fields,
-    CurrentLanguage?.id
-  );
- 
-  // Klase za animacije
-  const getAnimationClass = (delay = 0) => {
-    return `transition-all duration-500 ease-out ${
-      isVisible
-        ? "opacity-100 translate-y-0"
-        : "opacity-0 translate-y-6"
-    }`;
-  };
- 
-  const getStaggerDelay = (index) => {
-    return { transitionDelay: `${index * 80}ms` };
-  };
+  const filteredFields = getFilteredCustomFields(productDetails?.all_translated_custom_fields, CurrentLanguage?.id);
+  const getAnimationClass = () => `transition-all duration-500 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`;
+  const getStaggerDelay = (index) => ({ transitionDelay: `${index * 80}ms` });
  
   return (
     <Layout>
@@ -407,285 +610,336 @@ const ProductDetails = ({ slug }) => {
         <ProductDetailsSkeleton />
       ) : productDetails ? (
         <>
-          {/* Breadcrumb sa animacijom */}
-          <div
-            className={getAnimationClass()}
-            style={getStaggerDelay(0)}
-          >
-            {isMyListing ? (
-              <BreadCrumb />
-            ) : (
-              <BreadCrumb
-                title2={truncate(
-                  productDetails?.translated_item?.name || productDetails?.name,
-                  80
-                )}
-              />
-            )}
+          <div className={getAnimationClass()} style={getStaggerDelay(0)}>
+            {isMyListing ? <BreadCrumb /> : <BreadCrumb title2={truncate(productDetails?.translated_item?.name || productDetails?.name, 80)} />}
           </div>
  
           <div className="container mt-4 lg:mt-8 pb-8 lg:pb-12">
-            
-            {/* MOBILNI HEADER - Naslov i cijena IZNAD galerije */}
-            <div
-              className={getAnimationClass()}
-              style={getStaggerDelay(1)}
-            >
-              <MobileProductHeader 
-                productDetails={productDetails} 
-                isMyListing={isMyListing}
-              />
+            <div className={getAnimationClass()} style={getStaggerDelay(1)}>
+              <MobileProductHeader productDetails={productDetails} isMyListing={isMyListing} />
             </div>
  
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
-              {/* LIJEVA KOLONA - Glavni sadržaj */}
+              {/* LIJEVA KOLONA */}
               <div className="col-span-1 lg:col-span-8">
                 <div className="flex flex-col gap-5 lg:gap-7">
-                  
-                  {/* Galerija sa animacijom */}
-                  <div
-                    className={getAnimationClass()}
-                    style={getStaggerDelay(2)}
-                  >
-                    <ProductGallery
-                      galleryImages={galleryImages}
-                      videoData={videoData}
-                      directVideo={directVideo}
-                    />
+                  <div className={getAnimationClass()} style={getStaggerDelay(2)}>
+                    <ProductGallery galleryImages={galleryImages} videoData={videoData} directVideo={directVideo} />
                   </div>
- 
-                  {/* Kartica za istaknuti oglas */}
                   {IsShowFeaturedAd && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(3)}
-                    >
-                      <MakeFeaturedAd
-                        item_id={productDetails?.id}
-                        setProductDetails={setProductDetails}
-                      />
-                    </div>
-                  )}
- 
-                  {/* Karakteristike proizvoda */}
+  <div
+    className={`hidden lg:block ${getAnimationClass()}`}
+    style={getStaggerDelay(3)}
+  >
+    <MakeFeaturedAd item_id={productDetails?.id} setProductDetails={setProductDetails} />
+  </div>
+)}
+
                   {filteredFields.length > 0 && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(4)}
-                    >
-                      <ProductFeature 
-                        filteredFields={filteredFields}
-                        productDetails={productDetails}
-                      />
+                    <div className={getAnimationClass()} style={getStaggerDelay(4)}>
+                      <ProductFeature filteredFields={filteredFields} productDetails={productDetails} />
                     </div>
                   )}
- 
-                  {/* Opis proizvoda */}
-                  <div
-                    className={getAnimationClass()}
-                    style={getStaggerDelay(5)}
-                  >
+                  <div className={getAnimationClass()} style={getStaggerDelay(5)}>
                     <ProductDescription productDetails={productDetails} />
                   </div>
                 </div>
               </div>
  
-              {/* DESNA KOLONA - Sticky bočna traka */}
+              {/* DESNA KOLONA - STICKY */}
               <div className="flex flex-col col-span-1 lg:col-span-4 gap-5 lg:gap-7">
-                {/* Sticky omotač za desktop */}
                 <div className="lg:sticky lg:top-24 lg:self-start flex flex-col gap-5 lg:gap-7">
                   
-                  {/* Kartica detalja proizvoda - SAMO NA DESKTOPU */}
-                  <div
-                    className={`hidden lg:block ${getAnimationClass()}`}
-                    style={getStaggerDelay(6)}
-                  >
+                  {/* GLAVNA KARTICA DETALJA */}
+                  <div className={`hidden lg:block ${getAnimationClass()}`} style={getStaggerDelay(6)}>
                     {isMyListing ? (
                       <MyAdsListingDetailCard productDetails={productDetails} />
                     ) : (
-                      <ProductDetailCard
-                        productDetails={productDetails}
-                        setProductDetails={setProductDetails}
-                      />
+                      <ProductDetailCard productDetails={productDetails} setProductDetails={setProductDetails} />
                     )}
                   </div>
  
-                  {/* HISTORIJA CIJENA */}
+                  {/* TEASER ZA HISTORIJU CIJENA - SADA VIDLJIV SVIMA (ako ima historije) */}
                   {productDetails?.price_history && productDetails.price_history.length > 0 && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(6.5)}
-                    >
-                      <PriceHistory 
-                        priceHistory={productDetails.price_history} 
-                        currentPrice={productDetails.price}
-                      />
+                    <div className={`hidden lg:block ${getAnimationClass()}`} style={getStaggerDelay(6.5)}>
+                        <PriceHistoryTeaser priceHistory={productDetails.price_history} currentPrice={productDetails.price} onClick={() => setShowDesktopPriceHistory(true)} />
                     </div>
                   )}
  
-                  {/* Kartica prodavača */}
                   {!isMyListing && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(7)}
-                    >
-                      <SellerDetailCard
-                        productDetails={productDetails}
-                        setProductDetails={setProductDetails}
-                      />
+                    <div className={getAnimationClass()} style={getStaggerDelay(7)}>
+                      <SellerDetailCard productDetails={productDetails} setProductDetails={setProductDetails} />
                     </div>
                   )}
- 
-                  {/* Kartice za promjenu statusa */}
-                  {isMyListing && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(8)}
-                    >
-                      <AdsStatusChangeCards
-                        productDetails={productDetails}
-                        setProductDetails={setProductDetails}
-                        status={status}
-                        setStatus={setStatus}
-                      />
-                    </div>
-                  )}
- 
-                  {/* Obavijest o admin izmjeni */}
+{isMyListing && (
+  <div
+    className={`hidden lg:block ${getAnimationClass()}`}
+    style={getStaggerDelay(8)}
+  >
+    <AdsStatusChangeCards
+      productDetails={productDetails}
+      setProductDetails={setProductDetails}
+      status={status}
+      setStatus={setStatus}
+    />
+  </div>
+)}
+
                   {isEditedByAdmin && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(9)}
-                    >
-                      <AdEditedByAdmin
-                        admin_edit_reason={productDetails?.admin_edit_reason}
-                      />
+                    <div className={getAnimationClass()} style={getStaggerDelay(9)}>
+                      <AdEditedByAdmin admin_edit_reason={productDetails?.admin_edit_reason} />
                     </div>
                   )}
- 
-                  {/* Obnovi oglas */}
                   {isMyAdExpired && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(10)}
-                    >
-                      <RenewAd
-                        item_id={productDetails?.id}
-                        setProductDetails={setProductDetails}
-                        currentLanguageId={CurrentLanguage?.id}
-                        setStatus={setStatus}
-                      />
+                    <div className={getAnimationClass()} style={getStaggerDelay(10)}>
+                      <RenewAd item_id={productDetails?.id} setProductDetails={setProductDetails} currentLanguageId={CurrentLanguage?.id} setStatus={setStatus} />
                     </div>
                   )}
- 
-                  {/* Lokacija proizvoda */}
-                  <div
-                    className={getAnimationClass()}
-                    style={getStaggerDelay(11)}
-                  >
+                  <div className={getAnimationClass()} style={getStaggerDelay(11)}>
                     <ProductLocation productDetails={productDetails} />
                   </div>
- 
-                  {/* Kartica za prijavu */}
                   {!isMyListing && !productDetails?.is_already_reported && (
-                    <div
-                      className={getAnimationClass()}
-                      style={getStaggerDelay(12)}
-                    >
-                      <AdsReportCard
-                        productDetails={productDetails}
-                        setProductDetails={setProductDetails}
-                      />
+                    <div className={getAnimationClass()} style={getStaggerDelay(12)}>
+                      <AdsReportCard productDetails={productDetails} setProductDetails={setProductDetails} />
                     </div>
                   )}
                 </div>
               </div>
             </div>
  
-            {/* Slični proizvodi */}
             {!isMyListing && (
-              <div
-                className={`mt-8 lg:mt-12 ${getAnimationClass()}`}
-                style={getStaggerDelay(13)}
-              >
-                <SimilarProducts
-                  productDetails={productDetails}
-                  key={`similar-products-${CurrentLanguage?.id}`}
-                />
+              <div className={`mt-8 lg:mt-12 ${getAnimationClass()}`} style={getStaggerDelay(13)}>
+                <SimilarProducts productDetails={productDetails} key={`similar-products-${CurrentLanguage?.id}`} />
               </div>
             )}
- 
-            {/* Fiksirana akciona traka za mobitel */}
-            {!isMyListing && (
-              <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
-                <div className="container flex items-center gap-3">
-                  {/* Cijena - lijevo */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-500 font-medium">Cijena</p>
-                    <p className="text-lg font-black text-primary truncate">
-                      {productDetails?.price === 0 
-                        ? "Besplatno" 
-                        : `${new Intl.NumberFormat('bs-BA').format(productDetails?.price)} KM`}
-                    </p>
-                  </div>
-                  
-                  {/* Dugmad - desno */}
-                  <div className="flex gap-2">
-                    <button 
-                      className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all active:scale-95 text-sm"
-                      onClick={() => {
-                        const phoneSection = document.querySelector('[data-seller-card]');
-                        if (phoneSection) {
-                          phoneSection.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      }}
-                    >
-                      Pozovi
-                    </button>
-                    <button 
-                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-all active:scale-95 text-sm shadow-lg"
-                      onClick={() => {
-                        const chatButton = document.querySelector('[data-chat-button]');
-                        if (chatButton) {
-                          chatButton.click();
-                        } else {
-                          const sellerSection = document.querySelector('[data-seller-card]');
-                          if (sellerSection) {
-                            sellerSection.scrollIntoView({ behavior: 'smooth' });
-                          }
-                        }
-                      }}
-                    >
-                      Pošalji poruku
-                    </button>
-                  </div>
-                </div>
-              </div>
+            
+            {/* DESKTOP MODAL */}
+            {productDetails?.price_history && productDetails.price_history.length > 0 && (
+                <DesktopPriceHistoryModal isOpen={showDesktopPriceHistory} onClose={() => setShowDesktopPriceHistory(false)} priceHistory={productDetails.price_history} currentPrice={productDetails.price} />
+            )}
+
+            {/* MOBILNI DRAWER ZA HISTORIJU */}
+            {productDetails?.price_history && productDetails.price_history.length > 0 && (
+                <>
+                    <div className={`fixed inset-0 bg-black/50 z-[60] transition-opacity duration-300 lg:hidden ${showMobilePriceHistory ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`} onClick={() => setShowMobilePriceHistory(false)} />
+                    <div ref={priceHistoryDrawerRef} className={`fixed bottom-0 left-0 right-0 z-[61] bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${showMobilePriceHistory ? "translate-y-0" : "translate-y-full"}`}>
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                            <h3 className="font-bold text-lg text-slate-800">Historija cijena</h3>
+                            <button onClick={() => setShowMobilePriceHistory(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                                <MdClose className="text-xl text-slate-600" />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto p-4 pb-8">
+                            <PriceHistory priceHistory={productDetails.price_history} currentPrice={productDetails.price} />
+                        </div>
+                    </div>
+                </>
             )}
  
-            <OpenInAppDrawer
-              isOpenInApp={isOpenInApp}
-              setIsOpenInApp={setIsOpenInApp}
+            <OpenInAppDrawer isOpenInApp={isOpenInApp} setIsOpenInApp={setIsOpenInApp} />
+            
+            <ReusableAlertDialog
+                open={isDeleteOpen}
+                onCancel={() => setIsDeleteOpen(false)}
+                onConfirm={handleDeleteAd}
+                title={t("areYouSure") || "Jeste li sigurni?"}
+                description={t("youWantToDeleteThisAd") || "Želite li obrisati ovaj oglas?"}
+                cancelText={t("cancel") || "Odustani"}
+                confirmText={t("yes") || "Da, obriši"}
+                confirmDisabled={isDeleting}
             />
           </div>
+
+          {/* ======================================================== */}
+          {/* FIKSIRANE TRAKE NA DNU - SADA IZVAN CONTAINER-A          */}
+          {/* ======================================================== */}
+          
+          {/* TRAKA ZA KUPCA (PUBLIC) */}
+          {!isMyListing && (
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
+              <div className="container flex items-center gap-3">
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <div className="min-w-0">
+                      <p className="text-xs text-slate-500 font-medium">Cijena</p>
+                      <p className="text-lg font-black text-primary truncate">
+                      {productDetails?.price === 0 ? "Besplatno" : `${new Intl.NumberFormat('bs-BA').format(productDetails?.price)} KM`}
+                      </p>
+                  </div>
+                  {productDetails?.price_history && productDetails.price_history.length > 0 && (
+                      <button onClick={() => setShowMobilePriceHistory(true)} className="w-11 h-11 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm">
+                          <MdHistory className="text-2xl" />
+                      </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95" onClick={() => document.querySelector('[data-seller-card]')?.scrollIntoView({ behavior: 'smooth' })}>
+                    <MdPhone className="text-2xl" />
+                  </button>
+                  <button className="w-11 h-11 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-slate-900/20" onClick={() => document.querySelector('[data-chat-button]') ? document.querySelector('[data-chat-button]').click() : document.querySelector('[data-seller-card]')?.scrollIntoView({ behavior: 'smooth' })}>
+                    <MdChat className="text-2xl" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TRAKA ZA PRODAVAČA (SELLER) */}
+          {isMyListing && (
+  <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
+    <div className="container flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-slate-500 font-medium">Status</p>
+        <p
+          className={`text-sm font-bold truncate ${
+            productDetails?.status === "approved"
+              ? "text-green-600"
+              : productDetails?.status === "pending"
+              ? "text-yellow-600"
+              : "text-slate-700"
+          }`}
+        >
+          {productDetails?.status === "approved"
+            ? "Aktivan"
+            : productDetails?.status === "pending"
+            ? "Na čekanju"
+            : productDetails?.status}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+      {isEditable && (
+  <>
+    {/* 1️⃣ STATUS - nova ikona */}
+    <button
+      className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95"
+      aria-label="Promijeni status"
+      onClick={() => setShowStatusDrawer(true)}
+    >
+      <MdSyncAlt className="text-2xl" />
+    </button>
+
+    {/* 2️⃣ ISTAKNI OGLAS - raketa 🚀 */}
+    {IsShowFeaturedAd && (
+      <button
+        className="w-11 h-11 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl transition-all active:scale-95"
+        aria-label="Istakni oglas"
+        onClick={() => setShowFeaturedDrawer(true)}
+      >
+        <MdRocketLaunch className="text-2xl" />
+      </button>
+    )}
+
+    {/* 3️⃣ EDIT */}
+    <Link
+      href={`/edit-listing/${productDetails?.id}`}
+      className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95"
+      aria-label="Uredi"
+    >
+      <MdEdit className="text-2xl" />
+    </Link>
+  </>
+)}
+
+
+
+        {/* DELETE */}
+        <button
+          onClick={() => setIsDeleteOpen(true)}
+          className="w-11 h-11 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-red-600/20"
+          aria-label="Obriši"
+        >
+          <MdDelete className="text-2xl" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* MOBILE STATUS DRAWER ZA MOJE OGLASE */}
+{isMyListing && isEditable && (
+  <>
+    <div
+      className={`fixed inset-0 bg-black/50 z-[101] transition-opacity duration-300 lg:hidden ${
+        showStatusDrawer
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+      }`}
+      onClick={() => setShowStatusDrawer(false)}
+    />
+    <div
+      ref={statusDrawerRef}
+      className={`fixed bottom-0 left-0 right-0 z-[102] bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${
+        showStatusDrawer ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
+      <div className="flex items-center justify-between p-4 border-b border-slate-100">
+        <h3 className="font-bold text-lg text-slate-800">
+          {t("changeStatus") || "Promijeni status"}
+        </h3>
+        <button
+          onClick={() => setShowStatusDrawer(false)}
+          className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+        >
+          <MdClose className="text-xl text-slate-600" />
+        </button>
+      </div>
+      <div className="overflow-y-auto p-4 pb-8">
+        <AdsStatusChangeCards
+          productDetails={productDetails}
+          setProductDetails={setProductDetails}
+          status={status}
+          setStatus={setStatus}
+        />
+      </div>
+    </div>
+  </>
+)}
+
+{/* MOBILE FEATURED DRAWER */}
+{isMyListing && IsShowFeaturedAd && (
+  <>
+    <div
+      className={`fixed inset-0 bg-black/50 z-[101] transition-opacity duration-300 lg:hidden ${
+        showFeaturedDrawer
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+      }`}
+      onClick={() => setShowFeaturedDrawer(false)}
+    />
+    <div
+      ref={featuredDrawerRef}
+      className={`fixed bottom-0 left-0 right-0 z-[102] bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${
+        showFeaturedDrawer ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
+      <div className="flex items-center justify-between p-4 border-b border-slate-100">
+        <h3 className="font-bold text-lg text-slate-800">
+          Istakni oglas
+        </h3>
+        <button
+          onClick={() => setShowFeaturedDrawer(false)}
+          className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+        >
+          <MdClose className="text-xl text-slate-600" />
+        </button>
+      </div>
+      <div className="overflow-y-auto p-4 pb-8">
+        <MakeFeaturedAd
+          item_id={productDetails?.id}
+          setProductDetails={setProductDetails}
+        />
+      </div>
+    </div>
+  </>
+)}
+
+
         </>
       ) : (
         <div className="container mt-8 min-h-[60vh] flex items-center justify-center">
           <div className="text-center">
-            <div className="w-24 h-24 mx-auto mb-6 bg-slate-100 rounded-full flex items-center justify-center">
-              <svg className="w-12 h-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Oglas nije pronađen</h2>
-            <p className="text-slate-500 mb-6">Ovaj oglas više nije dostupan ili je uklonjen.</p>
-            <a 
-              href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
+            <a href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all">
               Nazad na početnu
             </a>
           </div>
