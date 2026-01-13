@@ -807,6 +807,9 @@ export const editItemApi = {
     translations,
     custom_field_translations,
     region_code,
+    is_on_sale: is_on_sale,
+    old_price: old_price,
+    video: video,
     // expiry_date,
   } = {}) => {
     const formData = new FormData();
@@ -840,10 +843,16 @@ export const editItemApi = {
       });
     }
     if (region_code) formData.append("region_code", region_code);
+    if (is_on_sale !== undefined) formData.append("is_on_sale", is_on_sale ? 1 : 0);
+    if (old_price) formData.append("old_price", old_price);
 
     formData.append("min_salary", min_salary);
     formData.append("max_salary", max_salary);
     // if (expiry_date) formData.append("expiry_date", expiry_date);
+
+    if (video instanceof File || video instanceof Blob) {
+      formData.append("video", video);
+    }
 
     custom_field_files.forEach(({ key, files }) => {
       if (Array.isArray(files)) {

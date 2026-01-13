@@ -6,6 +6,8 @@ import {
 } from "@/utils/index";
 import { FaBriefcase, FaRegCalendarCheck, FaRegHeart } from "react-icons/fa";
 import { IoEyeOutline, IoClose, IoStatsChart } from "react-icons/io5";
+import { MdLocalOffer } from "react-icons/md";
+import { FiPercent } from "react-icons/fi";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { deleteItemApi } from "@/utils/api";
@@ -17,16 +19,16 @@ import JobApplicationModal from "./JobApplicationModal";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { TrendingUp, TrendingDown, MessageSquare, Share2, Calendar, MapPin } from "lucide-react";
-
+ 
 const MyAdsListingDetailCard = ({ productDetails }) => {
   const { navigate } = useNavigate();
   const CompanyName = useSelector(getCompanyName);
-
+ 
   const [IsDeleteAccount, setIsDeleteAccount] = useState(false);
   const [IsDeletingAccount, setIsDeletingAccount] = useState(false);
   const [IsShowJobApplications, setIsShowJobApplications] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
-
+ 
   const productName =
     productDetails?.translated_item?.name || productDetails?.name;
   
@@ -40,7 +42,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
     !["permanent rejected", "inactive", "sold out", "expired"].includes(
       productDetails.status
     );
-
+ 
   // job application variables
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
   const isShowReceivedJobApplications =
@@ -48,7 +50,20 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
     (productDetails?.status === "approved" ||
       productDetails?.status === "featured" ||
       productDetails?.status === "sold out");
-
+ 
+  // 🔥 AKCIJA/SALE Logic
+  const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
+  const oldPrice = productDetails?.old_price;
+  const currentPrice = productDetails?.price;
+  const discountPercentage = productDetails?.discount_percentage || (
+    isOnSale && oldPrice && currentPrice && Number(oldPrice) > Number(currentPrice)
+      ? Math.round(((Number(oldPrice) - Number(currentPrice)) / Number(oldPrice)) * 100)
+      : 0
+  );
+  const savings = isOnSale && oldPrice && currentPrice 
+    ? Math.max(0, Number(oldPrice) - Number(currentPrice)) 
+    : 0;
+ 
   const deleteAd = async () => {
     try {
       setIsDeletingAccount(true);
@@ -67,7 +82,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       setIsDeletingAccount(false);
     }
   };
-
+ 
   // Calculate statistics
   const calculateStats = () => {
     const views = productDetails?.clicks || 0;
@@ -92,9 +107,80 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       likeToViewRatio,
     };
   };
-
+ 
   const stats = calculateStats();
-
+ 
+  // 🔥 PRICE DISPLAY COMPONENT
+  const PriceDisplay = ({ size = "large" }) => {
+    const isLarge = size === "large";
+    
+    if (isJobCategory) {
+      return (
+        <h2
+          className={`text-primary font-bold break-all text-balance line-clamp-2 ${isLarge ? 'text-3xl' : 'text-xl'}`}
+          title={formatSalaryRange(productDetails?.min_salary, productDetails?.max_salary)}
+        >
+          {formatSalaryRange(productDetails?.min_salary, productDetails?.max_salary)}
+        </h2>
+      );
+    }
+ 
+    // 🔥 AKCIJA/SALE Price Display
+    if (isOnSale && oldPrice && discountPercentage > 0) {
+      return (
+        <div className="flex flex-col gap-2">
+          {/* Sale Badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-md animate-pulse">
+              <MdLocalOffer size={16} />
+              AKCIJA
+            </span>
+            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-sm font-bold px-3 py-1.5 rounded-full">
+              <FiPercent size={14} />
+              -{discountPercentage}%
+            </span>
+          </div>
+          
+          {/* Prices */}
+          <div className="flex items-baseline gap-3 flex-wrap">
+            {/* Old Price - crossed out */}
+            <span 
+              className={`text-gray-400 line-through decoration-red-500 decoration-2 ${isLarge ? 'text-xl' : 'text-base'}`}
+              title={formatPriceAbbreviated(oldPrice)}
+            >
+              {formatPriceAbbreviated(oldPrice)}
+            </span>
+            
+            {/* New/Current Price - highlighted */}
+            <h2
+              className={`font-black text-red-600 ${isLarge ? 'text-3xl' : 'text-xl'}`}
+              title={formatPriceAbbreviated(currentPrice)}
+            >
+              {formatPriceAbbreviated(currentPrice)}
+            </h2>
+          </div>
+          
+          {/* Savings info */}
+          {savings > 0 && (
+            <p className="text-sm text-green-600 font-medium">
+              🎉 {t("ustedite") || "Uštedite"} {formatPriceAbbreviated(savings)}
+            </p>
+          )}
+        </div>
+      );
+    }
+ 
+    // Regular Price Display
+    return (
+      <h2
+        className={`text-primary font-bold break-all text-balance line-clamp-2 ${isLarge ? 'text-3xl' : 'text-xl'}`}
+        title={formatPriceAbbreviated(productDetails?.price)}
+      >
+        {formatPriceAbbreviated(productDetails?.price)}
+      </h2>
+    );
+  };
+ 
   // Statistics Modal Component
   const StatisticsModal = () => (
     <div 
@@ -120,6 +206,13 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               <p className="text-blue-100 text-sm line-clamp-1">
                 {productName}
               </p>
+              {/* 🔥 Show AKCIJA badge in stats modal too */}
+              {isOnSale && discountPercentage > 0 && (
+                <span className="inline-flex items-center gap-1 mt-2 bg-white/20 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  <MdLocalOffer size={12} />
+                  AKCIJA -{discountPercentage}%
+                </span>
+              )}
             </div>
             <button
               onClick={() => setShowStatistics(false)}
@@ -129,9 +222,33 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
             </button>
           </div>
         </div>
-
+ 
         {/* Content */}
         <div className="p-6">
+          {/* 🔥 Price Info Card (if on sale) */}
+          {isOnSale && discountPercentage > 0 && (
+            <div className="bg-gradient-to-br from-red-50 to-orange-50 p-5 rounded-xl border border-red-200 mb-6">
+              <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <MdLocalOffer className="text-red-600" size={20} />
+                {t("saleInfo") || "Akcijska ponuda"}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-white rounded-lg border border-red-100">
+                  <p className="text-xs text-gray-500 mb-1">{t("oldPrice") || "Stara cijena"}</p>
+                  <p className="text-lg font-bold text-gray-400 line-through">{formatPriceAbbreviated(oldPrice)}</p>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                  <p className="text-xs text-gray-500 mb-1">{t("newPrice") || "Nova cijena"}</p>
+                  <p className="text-lg font-bold text-red-600">{formatPriceAbbreviated(currentPrice)}</p>
+                </div>
+                <div className="text-center p-3 bg-green-100 rounded-lg border border-green-200">
+                  <p className="text-xs text-green-700 mb-1">{t("savings") || "Ušteda"}</p>
+                  <p className="text-lg font-bold text-green-700">{formatPriceAbbreviated(savings)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+ 
           {/* Overview Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {/* Views */}
@@ -143,7 +260,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               <p className="text-2xl font-bold text-blue-900">{stats.views}</p>
               <p className="text-xs text-blue-600 mt-1">{stats.avgViewsPerDay}/day</p>
             </div>
-
+ 
             {/* Likes */}
             <div className="bg-gradient-to-br from-pink-50 to-red-50 p-4 rounded-xl border border-pink-200">
               <div className="flex items-center gap-2 mb-2">
@@ -153,7 +270,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               <p className="text-2xl font-bold text-pink-900">{stats.likes}</p>
               <p className="text-xs text-pink-600 mt-1">{stats.likeToViewRatio}% of views</p>
             </div>
-
+ 
             {/* Chat/Offers */}
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
               <div className="flex items-center gap-2 mb-2">
@@ -163,7 +280,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               <p className="text-2xl font-bold text-green-900">{stats.chatOffers}</p>
               <p className="text-xs text-green-600 mt-1">{t("interactions")}</p>
             </div>
-
+ 
             {/* Shares */}
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-200">
               <div className="flex items-center gap-2 mb-2">
@@ -174,7 +291,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               <p className="text-xs text-purple-600 mt-1">{t("social")}</p>
             </div>
           </div>
-
+ 
           {/* Engagement Metrics */}
           <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-xl border border-orange-200 mb-6">
             <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -192,7 +309,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               </div>
             </div>
           </div>
-
+ 
           {/* Ad Details */}
           <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 mb-6">
             <h4 className="font-bold text-gray-900 mb-4">{t("adDetails") || "Ad Details"}</h4>
@@ -216,7 +333,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                   </div>
                 </div>
               )}
-
+ 
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${
                   productDetails?.status === 'approved' ? 'bg-green-500' :
@@ -231,7 +348,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                   </p>
                 </div>
               </div>
-
+ 
               {productDetails?.category?.name && (
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
@@ -245,7 +362,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               )}
             </div>
           </div>
-
+ 
           {/* Performance Tips */}
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-5 rounded-xl border border-blue-200">
             <h4 className="font-bold text-gray-900 mb-3">💡 {t("tips") || "Tips to Improve"}</h4>
@@ -274,11 +391,20 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                   <span>{t("tipLowActivity") || "Refresh your ad to boost visibility"}</span>
                 </li>
               )}
+              {/* 🔥 Sale-specific tip */}
+              {isOnSale && discountPercentage > 0 && (
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span className="text-green-700 font-medium">
+                    {t("tipOnSale") || `Vaš oglas je na akciji sa ${discountPercentage}% popusta - to privlači više kupaca!`}
+                  </span>
+                </li>
+              )}
             </ul>
           </div>
         </div>
       </div>
-
+ 
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -297,51 +423,55 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       `}</style>
     </div>
   );
-
+ 
   return (
     <>
-      <div className="flex flex-col border rounded-lg">
+      <div className="flex flex-col border rounded-lg overflow-hidden">
+        {/* 🔥 AKCIJA BANNER - Top Banner when on sale */}
+        {isOnSale && discountPercentage > 0 && (
+          <div className="bg-gradient-to-r from-red-500 via-orange-500 to-red-500 px-4 py-2 flex items-center justify-center gap-2 animate-pulse">
+            <MdLocalOffer className="text-white" size={18} />
+            <span className="text-white font-bold text-sm uppercase tracking-wider">
+              AKCIJA - Uštedite {discountPercentage}%
+            </span>
+            <MdLocalOffer className="text-white" size={18} />
+          </div>
+        )}
+ 
         <div className="flex w-full flex-col gap-4 p-4 border-b">
           <div className="flex justify-between max-w-full">
-            <h1 className="text-2xl font-medium word-break-all line-clamp-2" title={productName}>
-              {productName}
-            </h1>
+            <div className="flex items-start gap-2 flex-1">
+              <h1 className="text-2xl font-medium word-break-all line-clamp-2" title={productName}>
+                {productName}
+              </h1>
+              {/* 🔥 Small AKCIJA badge next to title */}
+              {isOnSale && discountPercentage > 0 && (
+                <span className="shrink-0 inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  -{discountPercentage}%
+                </span>
+              )}
+            </div>
             {productDetails?.status === "approved" && (
               <ShareDropdown
                 url={currentUrl}
                 title={FbTitle}
                 headline={headline}
                 companyName={CompanyName}
-                className="rounded-full size-10 flex items-center justify-center p-2 border"
+                className="rounded-full size-10 flex items-center justify-center p-2 border shrink-0"
               />
             )}
           </div>
           <div className="flex justify-between items-end w-full">
-            <h2
-              className="text-primary text-3xl font-bold break-all text-balance line-clamp-2"
-              title={
-                isJobCategory
-                  ? formatSalaryRange(
-                      productDetails?.min_salary,
-                      productDetails?.max_salary
-                    )
-                  : formatPriceAbbreviated(productDetails?.price)
-              }
-            >
-              {isJobCategory
-                ? formatSalaryRange(
-                    productDetails?.min_salary,
-                    productDetails?.max_salary
-                  )
-                : formatPriceAbbreviated(productDetails?.price)}
-            </h2>
-            <p className="text-sm text-muted-foreground whitespace-nowrap">
+            {/* 🔥 Use PriceDisplay component */}
+            <PriceDisplay size="large" />
+            {/* <p className="text-sm text-muted-foreground whitespace-nowrap">
               {t("adId")} #{productDetails?.id}
-            </p>
+            </p> */}
           </div>
         </div>
-        <div className="flex items-center justify-center text-muted-foreground gap-1 p-4 border-b flex-wrap">
-          <div className="text-sm flex items-center gap-1">
+ 
+        <div className="flex items-center justify-center text-muted-foreground flex-wrap">
+          {/* <div className="text-sm flex items-center gap-1">
             <FaRegCalendarCheck size={14} />
             {t("postedOn")}: {formatDateMonthYear(productDetails?.created_at)}
           </div>
@@ -352,8 +482,16 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
           <div className="ltr:border-l rtl:border-r gap-1 flex items-center text-sm px-2">
             <FaRegHeart size={14} />
             {t("favorites")}: {productDetails?.total_likes}
-          </div>
+          </div> */}
+          {/* 🔥 Show sale indicator in stats bar */}
+          {isOnSale && discountPercentage > 0 && (
+            <div className="ltr:border-l rtl:border-r gap-1 flex items-center text-sm px-2 text-green-600 font-medium">
+              <MdLocalOffer size={14} />
+              {t("onSale") || "Na akciji"}
+            </div>
+          )}
         </div>
+ 
         <div className="p-4 flex items-center gap-4 flex-wrap">
           <button
             className="py-2 px-4 flex-1 min-w-[120px] rounded-md bg-black text-white font-medium hover:bg-gray-800 transition-colors"
@@ -361,7 +499,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
           >
             {t("delete")}
           </button>
-
+ 
           {isEditable && (
             <CustomLink
               href={`/edit-listing/${productDetails?.id}`}
@@ -370,7 +508,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               {t("edit")}
             </CustomLink>
           )}
-
+ 
           <button
             onClick={() => setShowStatistics(true)}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 py-2 px-4 flex-1 min-w-[120px] rounded-md text-white font-medium flex items-center gap-2 justify-center hover:from-blue-700 hover:to-indigo-700 transition-all"
@@ -378,7 +516,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
             <IoStatsChart size={18} />
             {t("statistics") || "Statistics"}
           </button>
-
+ 
           {isShowReceivedJobApplications && (
             <button
               onClick={() => setIsShowJobApplications(true)}
@@ -390,10 +528,10 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
           )}
         </div>
       </div>
-
+ 
       {/* Statistics Modal */}
       {showStatistics && <StatisticsModal />}
-
+ 
       <JobApplicationModal
         IsShowJobApplications={IsShowJobApplications}
         setIsShowJobApplications={setIsShowJobApplications}
@@ -413,5 +551,5 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
     </>
   );
 };
-
+ 
 export default MyAdsListingDetailCard;

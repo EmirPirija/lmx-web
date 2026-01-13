@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react"; // Dodan useMemo
+import { useEffect, useState, useMemo } from "react";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import {
   editItemApi,
@@ -37,6 +37,7 @@ import { isValidPhoneNumber } from "libphonenumber-js/max";
 // Dodani icon importi iz lucide-react da odgovaraju adslisting.jsx
 import { CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin } from "lucide-react";
 
+
 const EditListing = ({ id }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const [step, setStep] = useState(1);
@@ -51,6 +52,7 @@ const EditListing = ({ id }) => {
   const [deleteImagesId, setDeleteImagesId] = useState("");
   const [isAdPlaced, setIsAdPlaced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [video, setVideo] = useState(null);
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
@@ -184,6 +186,7 @@ const EditListing = ({ id }) => {
       // Osiguraj da je gallery_images uvijek niz
       setOtherImages(listingData?.gallery_images || []);
       // --- FIX ZAVRŠAVA OVDJE ---
+      setVideo(listingData?.video || null);
 
       const mainDetailsTranslation = getMainDetailsTranslations(
         listingData,
@@ -365,12 +368,12 @@ const EditListing = ({ id }) => {
     );
     const customFieldTranslations =
       prepareCustomFieldTranslations(extraDetails);
-
+ 
     const customFieldFiles = prepareCustomFieldFiles(
       extraDetails,
       defaultLangId
     );
-
+ 
     const allData = {
       id: id,
       name: defaultDetails.name,
@@ -380,19 +383,14 @@ const EditListing = ({ id }) => {
       contact: defaultDetails.contact,
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
       video_link: defaultDetails?.video_link,
-      
-      // --- FIX ZA IMAGE ---
-      // Šaljemo sliku SAMO ako je File/Blob (nova slika). 
-      // Ako je string (stari URL), šaljemo null jer se nije mijenjala.
       image: (uploadedImages[0] instanceof File || uploadedImages[0] instanceof Blob) ? uploadedImages[0] : null,
-      // --------------------
-
       gallery_images: OtherImages,
       address: Location?.address,
       latitude: Location?.lat,
       longitude: Location?.long,
       custom_field_files: customFieldFiles,
       country: Location?.country,
+      video: (video instanceof File) ? video : null,
       state: Location?.state,
       city: Location?.city,
       ...(Location?.area_id ? { area_id: Number(Location?.area_id) } : {}),
@@ -404,15 +402,24 @@ const EditListing = ({ id }) => {
         custom_field_translations: customFieldTranslations,
       }),
     };
-
+ 
     if (is_job_category) {
-      // Only add salary fields if they're provided
       allData.min_salary = defaultDetails.min_salary;
       allData.max_salary = defaultDetails.max_salary;
     } else {
       allData.price = defaultDetails.price;
+      // DODANO - Akcija/Sale polja
+      allData.is_on_sale = defaultDetails.is_on_sale || false;
+      allData.old_price = defaultDetails.is_on_sale ? defaultDetails.old_price : null;
     }
-
+ 
+    // 🔍 DEBUG - Šta šaljemo na API
+    console.log('🚀 SENDING TO API - SALE FIELDS:', {
+      is_on_sale: allData.is_on_sale,
+      old_price: allData.old_price,
+      price: allData.price,
+    });
+    
     try {
       setIsAdPlaced(true);
       const res = await editItemApi.editItem(allData);
@@ -648,6 +655,8 @@ const getPreviewImage = () => {
                         handleImageSubmit={handleImageSubmit}
                         handleGoBack={handleGoBack}
                         setDeleteImagesId={setDeleteImagesId}
+                        video={video}
+                        setVideo={setVideo}
                       />
                     )}
 

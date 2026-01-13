@@ -55,6 +55,7 @@ const AdsListing = () => {
   const [filePreviews, setFilePreviews] = useState({});
   const [uploadedImages, setUploadedImages] = useState([]);
   const [otherImages, setOtherImages] = useState([]);
+  const [uploadedVideo, setUploadedVideo] = useState(null);
   const [location, setLocation] = useState({});
   const [isAdPlaced, setIsAdPlaced] = useState(false);
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
@@ -453,6 +454,7 @@ const AdsListing = () => {
       image: uploadedImages[0],
       gallery_images: otherImages,
       address: location?.address,
+      video: uploadedVideo,
       latitude: location?.lat,
       longitude: location?.long,
       custom_field_files: customFieldFiles,
@@ -755,12 +757,14 @@ const AdsListing = () => {
 
                 {step == 4 && (
                   <ComponentFour
-                    uploadedImages={uploadedImages}
-                    setUploadedImages={setUploadedImages}
-                    otherImages={otherImages}
-                    setOtherImages={setOtherImages}
-                    setStep={setStep}
-                    handleGoBack={handleGoBack}
+                  uploadedImages={uploadedImages}
+                  setUploadedImages={setUploadedImages}
+                  otherImages={otherImages}
+                  setOtherImages={setOtherImages}
+                  uploadedVideo={uploadedVideo}
+                  setUploadedVideo={setUploadedVideo}
+                  setStep={setStep}
+                  handleGoBack={handleGoBack}
                   />
                 )}
 

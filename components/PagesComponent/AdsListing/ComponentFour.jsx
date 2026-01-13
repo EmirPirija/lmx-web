@@ -6,7 +6,7 @@ import { FaPlay, FaPause } from "react-icons/fa";
 import { toast } from "sonner";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
-
+ 
 const ComponentFour = ({
   uploadedImages,
   setUploadedImages,
@@ -23,7 +23,7 @@ const ComponentFour = ({
   const [playingVideo, setPlayingVideo] = useState(false);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const videoRef = useRef(null);
-
+ 
   // Cleanup URLs on unmount
   useEffect(() => {
     return () => {
@@ -32,7 +32,7 @@ const ComponentFour = ({
       }
     };
   }, [videoPreviewUrl]);
-
+ 
   // Kreiraj preview URL ako uploadedVideo već postoji
   useEffect(() => {
     if (uploadedVideo && !videoPreviewUrl) {
@@ -40,76 +40,87 @@ const ComponentFour = ({
       setVideoPreviewUrl(previewUrl);
     }
   }, [uploadedVideo]);
-
+ 
   // Handle video drop (bez kompresije)
   const handleVideoDrop = async (e) => {
     e.preventDefault();
     setIsDraggingVideo(false);
-
+ 
     const file = e.dataTransfer?.files[0] || e.target?.files[0];
     if (!file) return;
-
+ 
     if (!file.type.startsWith('video/')) {
       toast.error('Pogrešan tip fajla. Molimo uploadujte video.');
       return;
     }
-
+ 
     if (file.size > 100 * 1024 * 1024) {
       toast.error('Video je prevelik (maksimum 100MB)');
       return;
     }
-
-    // Kreiraj preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setVideoPreviewUrl(previewUrl);
-    setUploadedVideo(file);
-    toast.success('Video uspješno dodan!');
+ 
+    // Provjeri trajanje videa
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      if (video.duration > 30) {
+        toast.error('Video je predug. Maksimalno trajanje je 30 sekundi.');
+        return;
+      }
+      // Ako je sve OK, postavi video
+      const previewUrl = URL.createObjectURL(file);
+      setVideoPreviewUrl(previewUrl);
+      setUploadedVideo(file);
+      toast.success('Video uspješno dodan!');
+    };
+    video.src = URL.createObjectURL(file);
   };
-
+ 
   // Handle main image drop
   const handleMainImageDrop = (e) => {
     e.preventDefault();
     setIsDraggingMain(false);
-
+ 
     const file = e.dataTransfer?.files[0] || e.target?.files[0];
     if (!file) return;
-
+ 
     if (!file.type.startsWith('image/')) {
       toast.error('Pogrešan tip fajla. Molimo uploadujte sliku.');
       return;
     }
-
+ 
     setUploadedImages([file]);
   };
-
+ 
   // Handle other images drop
   const handleOtherImagesDrop = (e) => {
     e.preventDefault();
     setIsDraggingOther(false);
-
+ 
     const files = Array.from(e.dataTransfer?.files || e.target?.files || []);
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
-
+ 
     if (imageFiles.length === 0) {
       toast.error('Pogrešan tip fajla. Molimo uploadujte slike.');
       return;
     }
-
+ 
     const remainingSlots = 5 - otherImages.length;
     
     if (remainingSlots === 0) {
       toast.error("Dostigli ste maksimalan broj slika");
       return;
     }
-
+ 
     if (imageFiles.length > remainingSlots) {
       toast.error(`Možete dodati još samo ${remainingSlots} ${remainingSlots === 1 ? 'sliku' : 'slika'}`);
       return;
     }
-
+ 
     setOtherImages(prev => [...prev, ...imageFiles]);
   };
-
+ 
   const toggleVideoPlay = () => {
     if (videoRef.current) {
       if (playingVideo) {
@@ -120,80 +131,209 @@ const ComponentFour = ({
       setPlayingVideo(!playingVideo);
     }
   };
-
+ 
+  const handleRemoveVideo = () => {
+    if (videoPreviewUrl) {
+      URL.revokeObjectURL(videoPreviewUrl);
+    }
+    setVideoPreviewUrl(null);
+    setUploadedVideo(null);
+    setPlayingVideo(false);
+  };
+ 
+  // Format file size helper
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+ 
   return (
     <div className="flex flex-col gap-8 pb-24">
-      <div className="grid grid-cols-1 md:grid-cols-1">
-        {/* Main Image Upload */}
-        <div className="flex flex-col gap-3">
-          <label className="text-sm font-semibold flex items-center gap-2">
-            Glavna slika <span className="text-red-500">*</span>
-          </label>
+      {/* Main Image Upload */}
+      <div className="flex flex-col gap-3">
+        <label className="text-sm font-semibold flex items-center gap-2">
+          Glavna slika <span className="text-red-500">*</span>
+        </label>
+        
+        <div
+          onDragOver={(e) => { e.preventDefault(); setIsDraggingMain(true); }}
+          onDragLeave={() => setIsDraggingMain(false)}
+          onDrop={handleMainImageDrop}
+          className="relative"
+        >
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/jpg"
+            onChange={handleMainImageDrop}
+            className="hidden"
+            id="main-image-input"
+          />
           
-          <div
-            onDragOver={(e) => { e.preventDefault(); setIsDraggingMain(true); }}
-            onDragLeave={() => setIsDraggingMain(false)}
-            onDrop={handleMainImageDrop}
-            className="relative"
-          >
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/jpg"
-              onChange={handleMainImageDrop}
-              className="hidden"
-              id="main-image-input"
-            />
-            
-            {uploadedImages.length === 0 ? (
-              <label
-                htmlFor="main-image-input"
-                className={`block border-2 border-dashed rounded-xl p-8 min-h-[280px] cursor-pointer transition-all duration-300 ${
-                  isDraggingMain
-                    ? 'border-blue-500 bg-blue-50 scale-105'
-                    : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-                  <div className={`transition-transform duration-300 ${isDraggingMain ? 'scale-110' : ''}`}>
-                    <HiOutlineUpload size={56} className="text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-gray-700 mb-2 font-semibold text-lg">
-                      {isDraggingMain ? "Spustite fajl ovdje" : "Prevucite sliku ovdje"}
-                    </p>
-                    <p className="text-sm text-gray-500 mb-2">ili</p>
-                    <span className="text-blue-600 font-semibold text-base">Kliknite za upload</span>
-                  </div>
-                  <p className="text-xs text-gray-400">JPG, PNG do 10MB</p>
+          {uploadedImages.length === 0 ? (
+            <label
+              htmlFor="main-image-input"
+              className={`block border-2 border-dashed rounded-xl p-8 min-h-[280px] cursor-pointer transition-all duration-300 ${
+                isDraggingMain
+                  ? 'border-blue-500 bg-blue-50 scale-105'
+                  : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex flex-col items-center justify-center h-full text-center gap-4">
+                <div className={`transition-transform duration-300 ${isDraggingMain ? 'scale-110' : ''}`}>
+                  <HiOutlineUpload size={56} className="text-blue-500" />
                 </div>
-              </label>
-            ) : (
-              <div className="relative rounded-xl overflow-hidden shadow-lg group">
-                <CustomImage
-                  width={591}
-                  height={280}
-                  className="rounded-xl object-cover aspect-[591/280] w-full"
-                  src={URL.createObjectURL(uploadedImages[0])}
-                  alt={uploadedImages[0].name}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-3 left-3 text-white text-sm">
-                    <p className="font-semibold">{uploadedImages[0].name}</p>
-                    <p className="text-xs mt-1">{Math.round(uploadedImages[0].size / 1024)} KB</p>
-                  </div>
-                  <button
-                    onClick={() => setUploadedImages([])}
-                    className="absolute top-3 right-3 bg-red-500 text-white p-2.5 rounded-full shadow-lg hover:bg-red-600 hover:scale-110 transition-all"
-                  >
-                    <MdClose size={20} />
-                  </button>
+                <div>
+                  <p className="text-gray-700 mb-2 font-semibold text-lg">
+                    {isDraggingMain ? "Spustite fajl ovdje" : "Prevucite sliku ovdje"}
+                  </p>
+                  <p className="text-sm text-gray-500 mb-2">ili</p>
+                  <span className="text-blue-600 font-semibold text-base">Kliknite za upload</span>
                 </div>
+                <p className="text-xs text-gray-400">JPG, PNG do 10MB</p>
               </div>
-            )}
-          </div>
+            </label>
+          ) : (
+            <div className="relative rounded-xl overflow-hidden shadow-lg group">
+              <CustomImage
+                width={591}
+                height={280}
+                className="rounded-xl object-cover aspect-[591/280] w-full"
+                src={URL.createObjectURL(uploadedImages[0])}
+                alt={uploadedImages[0].name}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute bottom-3 left-3 text-white text-sm">
+                  <p className="font-semibold">{uploadedImages[0].name}</p>
+                  <p className="text-xs mt-1">{Math.round(uploadedImages[0].size / 1024)} KB</p>
+                </div>
+                <button
+                  onClick={() => setUploadedImages([])}
+                  className="absolute top-3 right-3 bg-red-500 text-white p-2.5 rounded-full shadow-lg hover:bg-red-600 hover:scale-110 transition-all"
+                >
+                  <MdClose size={20} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+ 
+      {/* 🎬 VIDEO UPLOAD SECTION */}
+      {/* <div className="flex flex-col gap-3">
+        <label className="flex items-center gap-2 font-semibold text-sm">
+          <svg className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="m22 8-6 4 6 4V8Z"/>
+            <rect width="14" height="12" x="2" y="6" rx="2"/>
+          </svg>
+          Video
+          <span className="text-gray-400 font-normal text-xs">(opciono, max 30s)</span>
+        </label>
+ 
+        <div
+          onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
+          onDragLeave={() => setIsDraggingVideo(false)}
+          onDrop={handleVideoDrop}
+        >
+          <input
+            type="file"
+            accept="video/mp4,video/quicktime,video/webm"
+            onChange={handleVideoDrop}
+            className="hidden"
+            id="video-input"
+          />
+ 
+          {!videoPreviewUrl ? (
+            <label
+              htmlFor="video-input"
+              className={`block border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all duration-300 ${
+                isDraggingVideo
+                  ? 'border-red-500 bg-red-50 scale-105'
+                  : 'border-gray-300 hover:border-red-400 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex flex-col items-center justify-center text-center gap-3">
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                  isDraggingVideo ? 'bg-red-100' : 'bg-gray-100'
+                }`}>
+                  <svg className={`w-7 h-7 ${isDraggingVideo ? 'text-red-500' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" x2="12" y1="3" y2="15"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-gray-700 font-semibold">
+                    {isDraggingVideo ? "Spustite video ovdje" : "Dodajte video"}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Prevucite ili kliknite za odabir</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">MP4</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">MOV</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">WebM</span>
+                </div>
+                <p className="text-xs text-gray-400">Max 30 sekundi, 100MB</p>
+              </div>
+            </label>
+          ) : (
+            <div className="relative rounded-xl overflow-hidden bg-black aspect-video group shadow-lg">
+              <video
+                ref={videoRef}
+                src={videoPreviewUrl}
+                className="w-full h-full object-contain"
+                onEnded={() => setPlayingVideo(false)}
+                playsInline
+                muted
+              />
+              
+              <div
+                onClick={toggleVideoPlay}
+                className={`absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-opacity ${
+                  playingVideo ? 'opacity-0 hover:opacity-100' : 'opacity-100'
+                }`}
+              >
+                <div className={`w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg transition-transform ${
+                  playingVideo ? 'scale-75' : 'scale-100 hover:scale-110'
+                }`}>
+                  {playingVideo ? (
+                    <FaPause className="w-6 h-6 text-gray-800" />
+                  ) : (
+                    <FaPlay className="w-6 h-6 text-gray-800 ml-1" />
+                  )}
+                </div>
+              </div>
+ 
 
+              {uploadedVideo && (
+                <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                  <span className="px-2 py-1 bg-black/70 text-white text-xs font-medium rounded-lg">
+                    {formatFileSize(uploadedVideo.size)}
+                  </span>
+                </div>
+              )}
+ 
+              <button
+                onClick={handleRemoveVideo}
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
+              >
+                <MdClose size={20} />
+              </button>
+            </div>
+          )}
+        </div>
+ 
+        {!videoPreviewUrl && (
+          <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+            <p className="text-xs text-blue-700">
+              💡 <strong>Savjet:</strong> Kratki video (15-30s) povećava šanse za prodaju do 50%!
+            </p>
+          </div>
+        )}
+      </div> */}
+ 
       {/* Other Images Section */}
       <div className="flex flex-col gap-3">
         <label className="flex items-center gap-2 font-semibold text-sm">
@@ -205,7 +345,7 @@ const ComponentFour = ({
             </div>
           </div>
         </label>
-
+ 
         <div
           onDragOver={(e) => { e.preventDefault(); setIsDraggingOther(true); }}
           onDragLeave={() => setIsDraggingOther(false)}
@@ -219,7 +359,7 @@ const ComponentFour = ({
             className="hidden"
             id="other-images-input"
           />
-
+ 
           {otherImages.length < 5 && (
             <label
               htmlFor="other-images-input"
@@ -237,7 +377,7 @@ const ComponentFour = ({
               </div>
             </label>
           )}
-
+ 
           {/* Image Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {otherImages.map((file, index) => (
@@ -269,7 +409,7 @@ const ComponentFour = ({
           </div>
         </div>
       </div>
-
+ 
       {/* Sticky Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
@@ -290,5 +430,5 @@ const ComponentFour = ({
     </div>
   );
 };
-
+ 
 export default ComponentFour;

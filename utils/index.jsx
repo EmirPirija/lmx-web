@@ -1050,6 +1050,8 @@ export const getMainDetailsTranslations = (
         max_salary: listingData?.max_salary || "",
         region_code: listingData?.region_code?.toLowerCase() || "",
         country_code: countryCodeFromRegion,
+        is_on_sale: listingData?.is_on_sale || false,
+        old_price: listingData?.old_price || "",
       };
     } else {
       // Other languages: get translation if available
