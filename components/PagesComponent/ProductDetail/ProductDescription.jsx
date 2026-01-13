@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import parse from "html-react-parser";
-import { t } from "@/utils";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { MdDescription } from "react-icons/md";
 
@@ -61,54 +60,55 @@ const ProductDescription = ({ productDetails }) => {
         }
       `}</style>
 
-      <div className="flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-50 via-gray-50 to-zinc-50 px-6 py-4 border-b border-gray-100">
+        <div className="bg-gradient-to-r from-slate-50 via-gray-50 to-zinc-50 px-5 lg:px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-lg shadow-sm">
-              <MdDescription className="text-gray-700 text-xl" />
+            <div className="p-2 bg-white rounded-xl shadow-sm">
+              <MdDescription className="text-slate-600 text-xl" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {t("description")}
+              <h3 className="text-lg font-bold text-slate-800">
+                Opis oglasa
               </h3>
+              <p className="text-xs text-slate-500">Detaljne informacije o artiklu</p>
             </div>
           </div>
         </div>
 
-        {/* Description Content */}
-        <div className="p-6 relative">
+        {/* Sadržaj opisa */}
+        <div className="p-5 lg:p-6 relative">
           <div
             className={`${
               showFullDescription ? "max-h-none description-expand" : "max-h-[250px]"
             } prose prose-sm lg:prose-base max-w-none overflow-hidden transition-all duration-300`}
             ref={descriptionRef}
           >
-            <div className="text-gray-700 leading-relaxed">
-              {parse(fullDescription || "")}
+            <div className="text-slate-700 leading-relaxed">
+              {parse(fullDescription || "<p class='text-slate-400 italic'>Opis nije dostupan za ovaj oglas.</p>")}
             </div>
           </div>
 
-          {/* Fade Overlay when collapsed */}
+          {/* Fade Overlay kada je skupljeno */}
           {!showFullDescription && isOverflowing && (
-            <div className="fade-overlay absolute bottom-0 left-0 right-0 h-16"></div>
+            <div className="fade-overlay absolute bottom-0 left-0 right-0 h-20"></div>
           )}
         </div>
 
-        {/* See More/Less Button */}
+        {/* Dugme Prikaži više/manje */}
         {isOverflowing && (
-          <div className="px-6 pb-4">
+          <div className="px-5 lg:px-6 pb-5">
             <button
               onClick={toggleDescription}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 rounded-lg transition-all duration-300 group"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/15 border border-primary/20 rounded-xl transition-all duration-300 group"
             >
-              <span className="text-sm font-semibold text-blue-700">
-                {showFullDescription ? t("seeLess") : t("seeMore")}
+              <span className="text-sm font-bold text-primary">
+                {showFullDescription ? "Prikaži manje" : "Prikaži više"}
               </span>
               {showFullDescription ? (
-                <FaChevronUp className="text-blue-600 text-sm group-hover:-translate-y-0.5 transition-transform duration-300" />
+                <FaChevronUp className="text-primary text-sm group-hover:-translate-y-0.5 transition-transform duration-300" />
               ) : (
-                <FaChevronDown className="text-blue-600 text-sm group-hover:translate-y-0.5 transition-transform duration-300" />
+                <FaChevronDown className="text-primary text-sm group-hover:translate-y-0.5 transition-transform duration-300" />
               )}
             </button>
           </div>
