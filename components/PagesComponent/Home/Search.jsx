@@ -846,13 +846,14 @@ const Search = () => {
         {/* LOGO zauzima dio širine, skuplja se na focus */}
         {settings?.header_logo && (
           <div
-            className={cn(
-              "transition-all duration-300 ease-in-out overflow-hidden",
-              isSearchActive
-                ? "w-0 opacity-0 -translate-x-2"
-                : "w-[40px] sm:w-[160px] opacity-100 translate-x-0"
-            )}
-          >
+  className={cn(
+    "transition-all duration-300 ease-in-out overflow-hidden",
+    isSearchActive
+      ? "w-0 opacity-0 -translate-x-2"
+      : "w-[40px] sm:w-[160px] opacity-100 translate-x-0"
+  )}
+>
+
 <Link href="/" className="block cursor-pointer">
   <CustomImage
     src={settings.header_logo}
@@ -869,7 +870,7 @@ const Search = () => {
         <div
           ref={searchContainerRef}
           className={cn(
-            "relative flex-1 transition-transform duration-300 ease-out",
+            "relative flex-1 transition-transform duration-300 ease-out z-[99999]",
             isSearchActive ? "scale-[1.02]" : "scale-100"
           )}
         >
