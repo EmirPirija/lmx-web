@@ -354,42 +354,47 @@ const MyAds = () => {
         item_id: adId,
         status: "sold out",
       };
-      
-      
+  
       if (buyerId) {
         payload.sold_to = buyerId;
       }
- 
+  
       const res = await chanegItemStatusApi.changeItemStatus(payload);
- 
+  
       if (res?.data?.error === false) {
         const currentItem = MyItems.find((item) => item.id === adId);
-        const isJobCategory = Number(currentItem?.category?.is_job_category) === 1;
-        
+        const isJobCategory =
+          Number(currentItem?.category?.is_job_category) === 1;
+  
         toast.success(
           isJobCategory
             ? "Posao je označen kao popunjen"
             : "Oglas je označen kao prodat"
         );
- 
-        // INSTANT UKLANJANJE iz approved/featured liste
-        if (status === "approved" || status === "featured") {
-          setMyItems((prevItems) => prevItems.filter((item) => item.id !== adId));
-        } else {
-          setMyItems((prevItems) =>
-            prevItems.map((item) =>
-              item.id === adId ? { ...item, status: "sold out", sold_to: buyerId } : item
-            )
-          );
-        }
- 
-        // Ažuriraj brojače
+  
+        // 🔁 SAMO PROMIJENI STATUS LOKALNO – NEMOJ BRISATI IZ LISTE
+        setMyItems((prevItems) =>
+          prevItems.map((item) =>
+            item.id === adId
+              ? { ...item, status: "sold out", sold_to: buyerId }
+              : item
+          )
+        );
+  
+        // 📊 Ažuriraj brojače
         setStatusCounts((prev) => ({
           ...prev,
           approved: Math.max(0, prev.approved - 1),
-          featured: currentItem?.is_feature ? Math.max(0, prev.featured - 1) : prev.featured,
+          featured: currentItem?.is_feature
+            ? Math.max(0, prev.featured - 1)
+            : prev.featured,
           "sold out": prev["sold out"] + 1,
         }));
+  
+        // 👉 Automatski prebaci na tab "Završeni" (prodano)
+        if (status !== "sold out") {
+          updateURLParams("status", "sold out");
+        }
       } else {
         toast.error(res?.data?.message || "Greška pri označavanju oglasa");
       }
@@ -398,6 +403,7 @@ const MyAds = () => {
       toast.error("Greška pri označavanju oglasa");
     }
   };
+  
  
   // 🔥 ISPRAVKA: Dodano buyerId kao treći parametar
   const handleContextMenuAction = (action, adId, buyerId = null) => {
@@ -421,7 +427,6 @@ const MyAds = () => {
         break;
  
       case "markAsSoldOut":
-        // 🔥 ISPRAVKA: Proslijedi buyerId
         handleMarkAsSoldOut(adId, buyerId);
         break;
  

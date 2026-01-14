@@ -21,7 +21,7 @@ const SoldOutModal = ({
   selectedRadioValue,
   setSelectedRadioValue,
   setShowConfirmModal,
-  onBuyerSelected, // <--- NOVO: Prop za callback kad se odabere kupac
+  onBuyerSelected,
 }) => {
   const [buyers, setBuyers] = useState([]);
   const [isNoneOfAboveChecked, setIsNoneOfAboveChecked] = useState(false);
