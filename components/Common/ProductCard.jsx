@@ -350,15 +350,21 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
           </div>
         )}
  
-        {/* 🔥 AKCIJA Badge - na slici */}
-        {isOnSale && discountPercentage > 0 && !isViewMoreSlide && (
-          <div className="absolute top-2 ltr:left-2 rtl:right-2 z-10 flex items-center gap-1 py-1 px-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-full shadow-md animate-pulse">
-            <MdLocalOffer size={12} color="white" />
-            <span className="text-white text-[10px] uppercase font-bold tracking-wide">
-              -{discountPercentage}%
-            </span>
-          </div>
-        )}
+      {/* Minimalistički popust badge */}
+      {isOnSale && discountPercentage > 0 && !isViewMoreSlide && (
+        <div className="
+          absolute top-2 ltr:left-2 rtl:right-2 z-10
+          bg-red-600/90 text-white
+          rounded-full px-2 py-0.5
+          text-[10px] font-semibold
+          tracking-wide
+          shadow-sm
+          backdrop-blur-sm
+        ">
+          AKCIJA
+        </div>
+      )}
+
  
         {/* Featured Badge - pomaknut ako ima akciju */}
         {item?.is_feature && !isViewMoreSlide && (

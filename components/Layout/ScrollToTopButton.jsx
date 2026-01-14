@@ -43,7 +43,7 @@ const ScrollToTopButton = () => {
         
         // --- LOGIKA POJAVLJIVANJA (UI MAGIC) ---
         isVisible 
-          ? "opacity-100 translate-y-0 pointer-events-auto" // Vidljivo
+          ? "opacity-0 translate-y-0 pointer-events-auto" // Vidljivo
           : "opacity-0 translate-y-8 pointer-events-none"   // Sakriveno (pomjereno dolje)
       )}
       aria-label="Vrati se na vrh"

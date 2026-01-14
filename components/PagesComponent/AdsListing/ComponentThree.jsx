@@ -580,6 +580,7 @@ const ComponentThree = ({
   currentExtraDetails,
   langId,
   defaultLangId,
+
 }) => {
   const [isAvailable, setIsAvailable] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -589,14 +590,26 @@ const ComponentThree = ({
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
 
-  const write = (fieldId, value) =>
-    setExtraDetails((prev) => ({
-      ...prev,
-      [langId]: {
-        ...prev[langId],
-        [fieldId]: value,
-      },
-    }));
+  const write = (fieldId, value) => {
+    setExtraDetails((prev) => {
+      const updated = {
+        ...prev,
+        [langId]: {
+          ...(prev[langId] || {}),
+          [fieldId]: value,
+        },
+      };
+  
+      console.log("[EXTRA_DETAILS_WRITE]", {
+        fieldId,
+        value,
+        langId,
+        updatedForLang: updated[langId],
+      });
+  
+      return updated;
+    });
+  };
 
   const handleFileChange = (id, file) => {
     if (file) {

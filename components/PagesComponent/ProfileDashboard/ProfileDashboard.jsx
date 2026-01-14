@@ -127,7 +127,7 @@ const ProfileDashboard = () => {
               className={cn(
                 "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300",
                 isChat 
-                  ? "h-[calc(100vh-280px)] overflow-hidden shadow-md" 
+                  ? "h-[calc(100vh-290px)] overflow-hidden shadow-md" 
                   : "p-4 sm:p-6 lg:p-8 min-h-[500px]"
               )}
             >

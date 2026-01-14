@@ -103,7 +103,7 @@ const Seller = ({ id, searchParams }) => {
   const tabs = [
     {
       key: "live",
-      label: "Aktivni oglasi",
+      label: "Aktivni",
       count: liveCount,
     },
     {
@@ -148,50 +148,63 @@ const Seller = ({ id, searchParams }) => {
               <div className="col-span-12 flex flex-col gap-6 lg:col-span-8">
                 {/* Tabovi */}
                 <div className="flex w-full justify-start">
-  <div className="grid grid-cols-3 w-full rounded-full border bg-slate-100/80 p-1 shadow-sm backdrop-blur">
+  <div className="
+    grid grid-cols-3 w-full rounded-full border bg-slate-100/80 
+    p-1 shadow-sm backdrop-blur
+  ">
     {tabs.map((tab) => {
       const isActive = activeTab === tab.key;
       return (
         <button
-          key={tab.key}
-          type="button"
-          onClick={() => setActiveTab(tab.key)}
-          className={`
-            relative inline-flex items-center justify-center gap-2 w-full
-            rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap
-            transition-all duration-200 ease-out text-center
-            ${
-              isActive
-                ? "bg-primary text-white shadow-md scale-[1.01]"
-                : "bg-transparent text-slate-700 hover:bg-white hover:text-slate-900"
-            }
-          `}
-        >
-          <span>{tab.label}</span>
-          <span
-            className={`
-              inline-flex items-center justify-center
-              h-5 min-w-[1.6rem] rounded-full text-[11px] font-semibold
-              transition-all duration-200
-              ${
-                isActive
-                  ? "bg-white/95 text-primary"
-                  : "bg-slate-200 text-slate-700"
-              }
-            `}
-          >
-            {tab.count}
-          </span>
+  key={tab.key}
+  type="button"
+  onClick={() => setActiveTab(tab.key)}
+  className={`
+    relative inline-flex items-center justify-center gap-1.5 w-full
+    rounded-full
+    px-1.5 py-1 text-[12px]               /* MOBITEL: manji tekst + manje paddinga */
+    sm:px-4 sm:py-1.5 sm:text-sm          /* DESKTOP: normalno */
+    font-medium whitespace-nowrap
+    transition-all duration-200 ease-out text-center
+    ${
+      isActive
+        ? "bg-primary text-white shadow-md scale-[1.01]"
+        : "bg-transparent text-slate-700 hover:bg-white hover:text-slate-900"
+    }
+  `}
+>
+  {/* TEKST - prikazan svuda */}
+  <span>{tab.label}</span>
 
-          {/* Glow efekat ispod aktivnog taba */}
-          {isActive && (
-            <span className="pointer-events-none absolute inset-x-2 -bottom-1 h-1 rounded-full bg-primary/40 blur-[4px]" />
-          )}
-        </button>
+  {/* BROJAČ */}
+  <span
+    className={`
+      inline-flex items-center justify-center
+      h-4 min-w-[1.2rem] rounded-full text-[10px] font-semibold
+      transition-all duration-200
+      ${
+        isActive
+          ? "bg-white/90 text-primary"
+          : "bg-slate-200 text-slate-700"
+      }
+    `}
+  >
+    {tab.count}
+  </span>
+
+  {isActive && (
+    <span className="
+      pointer-events-none absolute inset-x-2 -bottom-[2px]
+      h-[3px] rounded-full bg-primary/40 blur-[3px]
+    " />
+  )}
+</button>
+
       );
     })}
   </div>
 </div>
+
 
 
                 {/* Sadržaj taba */}

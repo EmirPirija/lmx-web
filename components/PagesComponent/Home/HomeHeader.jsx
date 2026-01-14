@@ -10,7 +10,9 @@ import { BsChatDots } from "react-icons/bs";
 import { getCityData } from "@/redux/reducer/locationSlice";
 import HomeMobileMenu from "./HomeMobileMenu.jsx";
 import MailSentSuccessModal from "@/components/Auth/MailSentSuccessModal.jsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { HiOutlineQueueList } from "react-icons/hi2";
+
 import {
   getIsLoggedIn,
   logoutSuccess,
@@ -59,6 +61,7 @@ const LocationModal = dynamic(
     ssr: false,
   }
 );
+
 
 const HeaderCategoriesSkeleton = () => {
   return (
@@ -274,13 +277,13 @@ const HomeHeader = () => {
         <nav className="container">
           <div className="space-between">
             <CustomLink href="/">
-              <CustomImage
+              {/* <CustomImage
                 src={settings?.header_logo}
                 alt="logo"
                 width={195}
                 height={52}
                 className="w-full h-[52px] object-contain ltr:object-left rtl:object-right max-w-[195px]"
-              />
+              /> */}
             </CustomLink>
 
             {isLargeScreen && (
@@ -381,7 +384,7 @@ const HomeHeader = () => {
 
           {!isLargeScreen && (
             <div className="flex gap-2 mt-2">
-                <div className="flex-1 flex items-center border leading-none rounded">
+                <div className="flex-1 flex items-center leading-none rounded">
                    <Search />
                 </div>
                 
@@ -389,7 +392,7 @@ const HomeHeader = () => {
                 {IsLoggedin && (
                   <button 
                     onClick={handleChatClick}
-                    className="relative flex items-center justify-center w-12 border rounded bg-white text-gray-600 active:bg-slate-50"
+                    className="hidden relative flex items-center justify-center w-12 border rounded bg-white text-gray-600 active:bg-slate-50"
                   >
                       <BsChatDots size={20} />
                        {totalUnreadMessages > 0 && (

@@ -167,7 +167,7 @@ const ProductGallery = ({ galleryImages, videoData }) => {
     </div>
   )}
 >
-      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl overflow-hidden shadow-2xl group/main">
+      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl overflow-hidden group/main">
         
         {isVideoSelected ? (
           // Video Player
@@ -187,7 +187,7 @@ const ProductGallery = ({ galleryImages, videoData }) => {
                 
                 {/* Play Button */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-primary/90 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 hover:bg-primary transition-all duration-300 group/play">
+                  <div className="w-20 h-20 bg-primary/90 rounded-full flex items-center justify-center hover:scale-110 hover:bg-primary transition-all duration-300 group/play">
                     <RiPlayCircleFill size={48} className="text-white ml-1" />
                   </div>
                 </div>

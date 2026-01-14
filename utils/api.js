@@ -692,8 +692,102 @@ export const getMessagesApi = {
     });
   },
 };
-// add item api
 
+const normalizeBoolean = (val) => {
+  if (val === true || val === 1 || val === "1" || val === "true") return 1;
+  return 0;
+};
+
+const extractAvailableNow = (data = {}) => {
+  if (data.available_now !== undefined) return normalizeBoolean(data.available_now);
+  if (data.is_available !== undefined) return normalizeBoolean(data.is_available);
+  if (data.is_avaible !== undefined) return normalizeBoolean(data.is_avaible);
+  if (data.isAvailable !== undefined) return normalizeBoolean(data.isAvailable);
+  return undefined;
+};
+
+const cleanCustomFields = (custom_fields = {}) => {
+  if (!custom_fields || typeof custom_fields !== "object") return custom_fields;
+
+  const cleaned = { ...custom_fields };
+  delete cleaned.available_now;
+  delete cleaned.is_available;
+  delete cleaned.is_avaible;
+  delete cleaned.isAvailable;
+
+  return cleaned;
+};
+
+const to01 = (v) => (v === true || v === 1 || v === "1" || v === "true" ? 1 : 0);
+
+const tryParseJson = (v) => {
+  if (typeof v !== "string") return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return v; // ostavi kako je ako nije validan JSON string
+  }
+};
+
+const pickAvailableNow = (explicit, custom_fields) => {
+  // explicit može doći kao available_now, isAvailable, is_available, is_avaible...
+  let value = explicit;
+
+  const cf = tryParseJson(custom_fields);
+
+  const KEYS = ["available_now", "is_available", "is_avaible", "isAvailable"];
+
+  const readFromObj = (obj) => {
+    if (!obj || typeof obj !== "object") return undefined;
+    for (const k of KEYS) {
+      if (obj[k] !== undefined) return obj[k];
+    }
+    return undefined;
+  };
+
+  // 1) ako nije proslijeđeno top-level, probaj naći u custom_fields
+  if (value === undefined) {
+    value = readFromObj(cf);
+
+    // 2) fallback: ako je custom_fields slučajno u formi { langId: {...} }
+    if (value === undefined && cf && typeof cf === "object") {
+      for (const v of Object.values(cf)) {
+        const found = readFromObj(v);
+        if (found !== undefined) {
+          value = found;
+          break;
+        }
+      }
+    }
+  }
+
+  // očisti custom_fields da backend ne dobije "available_now" kao custom field key
+  let cleaned = cf;
+  if (cf && typeof cf === "object") {
+    cleaned = Array.isArray(cf) ? [...cf] : { ...cf };
+
+    // briši top-level
+    for (const k of KEYS) delete cleaned[k];
+
+    // briši i u nested objektima (ako postoje)
+    for (const [kLang, v] of Object.entries(cleaned)) {
+      if (v && typeof v === "object") {
+        const vv = Array.isArray(v) ? [...v] : { ...v };
+        for (const kk of KEYS) delete vv[kk];
+        cleaned[kLang] = vv;
+      }
+    }
+  }
+
+  return {
+    availableNow01: value === undefined ? undefined : to01(value),
+    cleanedCustomFields: cleaned,
+  };
+};
+
+
+
+// add item api
 export const addItemApi = {
   addItem: ({
     name,
@@ -720,9 +814,16 @@ export const addItemApi = {
     translations,
     custom_field_translations,
     region_code,
+
+    // podrži sve varijante imena koje se mogu desiti u kodu
+    available_now,
+    isAvailable,
+    is_available,
+    is_avaible,
+
+    show_only_to_premium,
   } = {}) => {
     const formData = new FormData();
-    // Append only if the value is defined and not an empty string
 
     if (name) formData.append("name", name);
     if (slug) formData.append("slug", slug);
@@ -733,8 +834,25 @@ export const addItemApi = {
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
 
-    if (custom_fields)
-      formData.append("custom_fields", JSON.stringify(custom_fields));
+    // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
+    const { availableNow01, cleanedCustomFields } = pickAvailableNow(
+      available_now ?? isAvailable ?? is_available ?? is_avaible,
+      custom_fields
+    );
+
+    for (const [k, v] of formData.entries()) {
+      console.log("FORMDATA:", k, v);
+    }
+    
+
+    // ✅ šalji custom_fields bez available_now unutra
+    if (cleanedCustomFields !== undefined && cleanedCustomFields !== null) {
+      const cfToSend =
+        typeof cleanedCustomFields === "string"
+          ? cleanedCustomFields
+          : JSON.stringify(cleanedCustomFields);
+      formData.append("custom_fields", cfToSend);
+    }
 
     if (image) formData.append("image", image);
     if (gallery_images.length > 0) {
@@ -742,17 +860,17 @@ export const addItemApi = {
         formData.append(`gallery_images[${index}]`, gallery_image);
       });
     }
+
     if (address) formData.append("address", address);
     if (latitude) formData.append("latitude", latitude);
     if (longitude) formData.append("longitude", longitude);
 
-    // Append custom field files
     custom_field_files.forEach(({ key, files }) => {
       if (Array.isArray(files)) {
-        files.forEach((file, index) =>
+        files.forEach((file) =>
           formData.append(`custom_field_files[${key}]`, file)
         );
-      } else {
+      } else if (files) {
         formData.append(`custom_field_files[${key}]`, files);
       }
     });
@@ -770,13 +888,21 @@ export const addItemApi = {
 
     if (translations) formData.append("translations", translations);
 
+    // ✅ ovo si već imao
+    formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
+
+    // ✅ KLJUČNO: always send 0/1
+    formData.append("available_now", availableNow01 ?? 0);
+
     return Api.post(ADD_ITEM, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
+    
   },
 };
+
+
+
 
 // Edit item API
 export const editItemApi = {
@@ -807,13 +933,19 @@ export const editItemApi = {
     translations,
     custom_field_translations,
     region_code,
-    is_on_sale: is_on_sale,
-    old_price: old_price,
-    video: video,
-    // expiry_date,
+    is_on_sale,
+    old_price,
+    video,
+
+    available_now,
+    isAvailable,
+    is_available,
+    is_avaible,
+
+    show_only_to_premium,
   } = {}) => {
     const formData = new FormData();
-    // Append only if the value is defined and not an empty string
+
     if (id) formData.append("id", id);
     if (name) formData.append("name", name);
     if (slug) formData.append("slug", slug);
@@ -827,39 +959,68 @@ export const editItemApi = {
     if (video_link) formData.append("video_link", video_link);
     if (latitude) formData.append("latitude", latitude);
     if (longitude) formData.append("longitude", longitude);
-    if (custom_fields)
-      formData.append("custom_fields", JSON.stringify(custom_fields));
+
+    const { availableNow01, cleanedCustomFields } = pickAvailableNow(
+      available_now ?? isAvailable ?? is_available ?? is_avaible,
+      custom_fields
+    );
+
+    if (cleanedCustomFields !== undefined && cleanedCustomFields !== null) {
+      const cfToSend =
+        typeof cleanedCustomFields === "string"
+          ? cleanedCustomFields
+          : JSON.stringify(cleanedCustomFields);
+      formData.append("custom_fields", cfToSend);
+    }
+
     if (address) formData.append("address", address);
-    if (contact) formData.append("contact", contact);
     if (country) formData.append("country", country);
     if (state) formData.append("state", state);
-    // if (custom_field_files) formData.append("custom_field_files", custom_field_files)
     if (area_id) formData.append("area_id", area_id);
     if (city) formData.append("city", city);
     if (image != null) formData.append("image", image);
+
     if (gallery_images.length > 0) {
       gallery_images.forEach((gallery_image, index) => {
         formData.append(`gallery_images[${index}]`, gallery_image);
       });
     }
-    if (region_code) formData.append("region_code", region_code);
-    if (is_on_sale !== undefined) formData.append("is_on_sale", is_on_sale ? 1 : 0);
-    if (old_price) formData.append("old_price", old_price);
 
-    formData.append("min_salary", min_salary);
-    formData.append("max_salary", max_salary);
-    // if (expiry_date) formData.append("expiry_date", expiry_date);
+    if (region_code) formData.append("region_code", region_code);
+
+    if (is_on_sale !== undefined) {
+      formData.append("is_on_sale", is_on_sale ? 1 : 0);
+    }
+    if (old_price) {
+      formData.append("old_price", old_price);
+    }
+
+    if (min_salary !== undefined && min_salary !== null) {
+      formData.append("min_salary", min_salary);
+    }
+    if (max_salary !== undefined && max_salary !== null) {
+      formData.append("max_salary", max_salary);
+    }
 
     if (video instanceof File || video instanceof Blob) {
       formData.append("video", video);
     }
 
+    // ✅ samo ako imamo vrijednost
+    if (availableNow01 !== undefined) {
+      formData.append("available_now", availableNow01);
+    }
+
+    if (show_only_to_premium !== undefined) {
+      formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
+    }
+
     custom_field_files.forEach(({ key, files }) => {
       if (Array.isArray(files)) {
-        files.forEach((file, index) =>
+        files.forEach((file) =>
           formData.append(`custom_field_files[${key}]`, file)
         );
-      } else {
+      } else if (files) {
         formData.append(`custom_field_files[${key}]`, files);
       }
     });
@@ -868,13 +1029,15 @@ export const editItemApi = {
       formData.append("custom_field_translations", custom_field_translations);
 
     if (translations) formData.append("translations", translations);
+
     return Api.post(UPDATE_LISTING, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
   },
 };
+
+
+
 
 export const sendMessageApi = {
   sendMessage: ({ item_offer_id, message, file, audio } = {}) => {

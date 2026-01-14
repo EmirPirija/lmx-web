@@ -44,6 +44,7 @@ const AdsListing = () => {
   const [categoryPath, setCategoryPath] = useState([]);
   const [currentPage, setCurrentPage] = useState();
   const [lastPage, setLastPage] = useState();
+  const [availableNow, setAvailableNow] = useState(false);
   const [disabledTab, setDisabledTab] = useState({
     categoryTab: false,
     detailTab: true,
@@ -752,6 +753,8 @@ const AdsListing = () => {
                     currentExtraDetails={currentExtraDetails}
                     langId={langId}
                     defaultLangId={defaultLangId}
+                    isAvailable={availableNow}
+                    setIsAvailable={setAvailableNow}
                   />
                 )}
 
