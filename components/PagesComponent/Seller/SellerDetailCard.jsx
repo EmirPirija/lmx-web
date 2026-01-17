@@ -20,7 +20,6 @@ import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-// 🔥 Importujemo Dialog komponente (Shadcn UI)
 import {
   Dialog,
   DialogContent,
@@ -49,7 +48,18 @@ const formatLastSeen = (timestamp) => {
   });
 };
 
-const SellerDetailCard = ({ seller, ratings }) => {
+const SellerDetailCard = ({ 
+  seller, 
+  ratings,
+  // ✅ TRACKING PROPS
+  onPhoneReveal,
+  onPhoneClick,
+  onWhatsAppClick,
+  onViberClick,
+  onMessageClick,
+  onEmailClick,
+  onProfileClick,
+}) => {
   const pathname = usePathname();
   const memberSinceYear = seller?.created_at ? extractYear(seller.created_at) : "";
   const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
@@ -72,6 +82,36 @@ const SellerDetailCard = ({ seller, ratings }) => {
       
       // Resetuj ikonicu nakon 2 sekunde
       setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
+  // ✅ HANDLER ZA OTVARANJE TELEFON MODALA
+  const handleOpenPhoneModal = () => {
+    setIsPhoneModalOpen(true);
+    // Track phone reveal
+    if (onPhoneReveal) {
+      onPhoneReveal();
+    }
+  };
+
+  // ✅ HANDLER ZA KLIK NA POZIV
+  const handlePhoneCall = () => {
+    if (onPhoneClick) {
+      onPhoneClick();
+    }
+  };
+
+  // ✅ HANDLER ZA EMAIL
+  const handleEmailClick = () => {
+    if (onEmailClick) {
+      onEmailClick();
+    }
+  };
+
+  // ✅ HANDLER ZA PROFIL KORISNIKA
+  const handleProfileClick = () => {
+    if (onProfileClick) {
+      onProfileClick();
     }
   };
 
@@ -164,7 +204,7 @@ const SellerDetailCard = ({ seller, ratings }) => {
               {/* TELEFON DUGME (Otvara Modal) */}
               {seller?.mobile ? (
                 <button
-                  onClick={() => setIsPhoneModalOpen(true)}
+                  onClick={handleOpenPhoneModal}
                   className={cn(
                     "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all duration-200",
                     "bg-primary text-white hover:bg-primary/90 shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
@@ -184,6 +224,7 @@ const SellerDetailCard = ({ seller, ratings }) => {
               {seller?.email ? (
                 <a 
                   href={`mailto:${seller?.email}`}
+                  onClick={handleEmailClick}
                   className={cn(
                     "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all duration-200",
                     "bg-white border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-95"
@@ -203,7 +244,11 @@ const SellerDetailCard = ({ seller, ratings }) => {
         </div>
 
         <div className="bg-slate-50 border-t border-slate-100 p-3 text-center">
-            <CustomLink href={`/seller/${seller?.id}`} className="text-xs font-medium text-slate-500 hover:text-primary transition-colors">
+            <CustomLink 
+              href={`/seller/${seller?.id}`} 
+              className="text-xs font-medium text-slate-500 hover:text-primary transition-colors"
+              onClick={handleProfileClick}
+            >
                 Pogledaj sve oglase ovog korisnika &rarr;
             </CustomLink>
         </div>
@@ -251,6 +296,7 @@ const SellerDetailCard = ({ seller, ratings }) => {
 
                 <a 
                   href={`tel:${seller?.mobile}`}
+                  onClick={handlePhoneCall}
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
                 >
                   <MdPhone className="text-xl" />

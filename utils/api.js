@@ -1307,3 +1307,174 @@ export const setItemTotalClickApi = {
     });
   },
 };
+
+// ============================================
+// ITEM STATISTICS API
+// ============================================
+export const GET_ITEM_STATISTICS = "item-statistics";
+
+export const itemStatisticsApi = {
+  // Dohvati kompletnu statistiku za oglas
+  getStatistics: ({ itemId, period = 30 } = {}) => {
+    return Api.get(`${GET_ITEM_STATISTICS}/${itemId}`, {
+      params: { period },
+    });
+  },
+
+  // Dohvati quick stats
+  getQuickStats: ({ itemId } = {}) => {
+    return Api.get(`${GET_ITEM_STATISTICS}/${itemId}/quick`);
+  },
+
+  // Track view
+  trackView: ({ item_id, source, source_detail, referrer_url, utm_source, utm_medium, utm_campaign, country_code, city, is_app, app_platform } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (source) formData.append("source", source);
+    if (source_detail) formData.append("source_detail", source_detail);
+    if (referrer_url) formData.append("referrer_url", referrer_url);
+    if (utm_source) formData.append("utm_source", utm_source);
+    if (utm_medium) formData.append("utm_medium", utm_medium);
+    if (utm_campaign) formData.append("utm_campaign", utm_campaign);
+    if (country_code) formData.append("country_code", country_code);
+    if (city) formData.append("city", city);
+    if (is_app !== undefined) formData.append("is_app", is_app ? 1 : 0);
+    if (app_platform) formData.append("app_platform", app_platform);
+
+    return Api.post(`${GET_ITEM_STATISTICS}/track-view`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  // Track contact
+  trackContact: ({ item_id, contact_type, source } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (contact_type) formData.append("contact_type", contact_type);
+    if (source) formData.append("source", source);
+
+    return Api.post(`${GET_ITEM_STATISTICS}/track-contact`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  // Track share
+  trackShare: ({ item_id, platform, share_url, country_code } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (platform) formData.append("platform", platform);
+    if (share_url) formData.append("share_url", share_url);
+    if (country_code) formData.append("country_code", country_code);
+
+    return Api.post(`${GET_ITEM_STATISTICS}/track-share`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  // Track engagement
+ trackEngagement: ({ item_id, engagement_type, extra_data } = {}) => {
+  const formData = new FormData();
+
+  if (item_id) formData.append("item_id", String(item_id));
+  if (engagement_type) formData.append("engagement_type", engagement_type);
+
+  // 1. Priprema podataka: Osiguraj da radimo sa pravim JS objektom/nizom
+  let dataToProcess = extra_data;
+
+  // Ako je greškom proslijeđen JSON string, parsiraj ga
+  if (typeof extra_data === 'string') {
+      try {
+          dataToProcess = JSON.parse(extra_data);
+      } catch (e) {
+          console.error("Greška pri parsiranju extra_data", e);
+          dataToProcess = []; // Fallback
+      }
+  }
+
+  // 2. Osiguraj da je niz
+  const arr = Array.isArray(dataToProcess) ? dataToProcess : (dataToProcess ? [dataToProcess] : []);
+
+  // 3. Loop kroz niz i kreiraj ispravne ključeve za Laravel (npr. extra_data[0][index])
+  arr.forEach((obj, i) => {
+    if (obj && typeof obj === "object") {
+      Object.entries(obj).forEach(([k, v]) => {
+        // Ovdje pravimo ključ koji PHP prepoznaje kao array
+        formData.append(`extra_data[${i}][${k}]`, v == null ? "" : String(v));
+      });
+    } else {
+      // Fallback za primitivne vrijednosti
+      formData.append(`extra_data[${i}]`, obj == null ? "" : String(obj));
+    }
+  });
+
+  return Api.post(`${GET_ITEM_STATISTICS}/track-engagement`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+},
+  
+  
+
+  // Track time on page
+  trackTime: ({ item_id, duration } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (duration) formData.append("duration", duration);
+
+    return Api.post(`${GET_ITEM_STATISTICS}/track-time`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  // Track favorite
+  trackFavorite: ({ item_id, added } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    formData.append("added", added ? 1 : 0);
+
+    return Api.post(`${GET_ITEM_STATISTICS}/track-favorite`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
+// Public tracking (bez auth)
+export const publicTrackingApi = {
+  trackView: ({ item_id, visitor_id, device_type, referrer_url, utm_source, utm_medium, utm_campaign, source } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (visitor_id) formData.append("visitor_id", visitor_id);
+    if (device_type) formData.append("device_type", device_type);
+    if (referrer_url) formData.append("referrer_url", referrer_url);
+    if (utm_source) formData.append("utm_source", utm_source);
+    if (utm_medium) formData.append("utm_medium", utm_medium);
+    if (utm_campaign) formData.append("utm_campaign", utm_campaign);
+    if (source) formData.append("source", source);
+
+    return Api.post("track/view", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  trackSearchImpressions: ({ item_ids, search_query, search_type, page, results_total, filters } = {}) => {
+    const formData = new FormData();
+    if (item_ids) formData.append("item_ids", JSON.stringify(item_ids));
+    if (search_query) formData.append("search_query", search_query);
+    if (search_type) formData.append("search_type", search_type);
+    if (page) formData.append("page", page);
+    if (results_total) formData.append("results_total", results_total);
+    if (filters) formData.append("filters", JSON.stringify(filters));
+
+    return Api.post("track/search-impressions", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  trackSearchClick: ({ impression_id } = {}) => {
+    const formData = new FormData();
+    if (impression_id) formData.append("impression_id", impression_id);
+
+    return Api.post("track/search-click", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};

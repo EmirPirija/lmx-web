@@ -5,7 +5,7 @@ import {
   t,
 } from "@/utils/index";
 import { FaBriefcase, FaRegHeart } from "react-icons/fa";
-import { IoEyeOutline, IoClose } from "react-icons/io5";
+import { IoEyeOutline, IoClose, IoStatsChartOutline } from "react-icons/io5";
 import { 
   MdLocalOffer, 
   MdDelete, 
@@ -32,11 +32,12 @@ import { cn } from "@/lib/utils";
 // HELPER FUNKCIJE
 // ============================================
 const formatBosnianPrice = (price) => {
-  if (!price || price === 0) return "Besplatno";
-  return new Intl.NumberFormat('bs-BA', {
+  if (price === null || price === undefined) return "Na upit";
+  if (Number(price) === 0) return "Na upit"; 
+  return new Intl.NumberFormat("bs-BA", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(price) + ' KM';
+  }).format(Number(price)) + " KM";
 };
 
 const formatShortDate = (dateString) => {
@@ -50,7 +51,39 @@ const formatShortDate = (dateString) => {
   return `${day}. ${month} ${year}`;
 };
 
+const formatNumber = (num) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num?.toString() || '0';
+};
 
+// ============================================
+// KOMPONENTA: QUICK STATS PRIKAZ
+// ============================================
+const QuickStatsDisplay = ({ productDetails }) => {
+  const views = productDetails?.clicks || 0;
+  const favorites = productDetails?.favourites_count || productDetails?.favourites?.length || 0;
+  const messages = productDetails?.total_messages || 0;
+
+  return (
+    <div className="flex items-center gap-4 text-sm text-slate-500">
+      <div className="flex items-center gap-1.5" title="Pregledi">
+        <IoEyeOutline size={16} className="text-blue-500" />
+        <span className="font-medium text-slate-700">{formatNumber(views)}</span>
+      </div>
+      <div className="flex items-center gap-1.5" title="Favoriti">
+        <FaRegHeart size={14} className="text-red-400" />
+        <span className="font-medium text-slate-700">{formatNumber(favorites)}</span>
+      </div>
+      {messages > 0 && (
+        <div className="flex items-center gap-1.5" title="Poruke">
+          <span className="text-slate-400">💬</span>
+          <span className="font-medium text-slate-700">{formatNumber(messages)}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ============================================
 // KOMPONENTA: DESKTOP MODAL ZA HISTORIJU
@@ -133,7 +166,6 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
   const statusDrawerRef = useRef(null);
 
-  
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [showDesktopHistory, setShowDesktopHistory] = useState(false);
   const historyDrawerRef = useRef(null);
@@ -161,12 +193,19 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
   
   const hasHistory = !isJobCategory && productDetails?.price_history && productDetails.price_history.length > 0;
 
+  // Statistika dostupna za sve aktivne i završene oglase
+  const canViewStatistics = productDetails?.status && ["approved", "featured", "sold out"].includes(productDetails.status);
+
   const handleHistoryClick = () => {
     if (window.innerWidth >= 1024) {
       setShowDesktopHistory(true);
     } else {
       setShowHistoryDrawer(true);
     }
+  };
+
+  const handleStatisticsClick = () => {
+    navigate(`/my-ads/${productDetails?.slug}/statistics`);
   };
 
   useEffect(() => {
@@ -185,7 +224,6 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
     };
   }, [showStatusDrawer]);
   
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (historyDrawerRef.current && !historyDrawerRef.current.contains(event.target)) {
@@ -242,8 +280,8 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       return (
         <div className="space-y-2">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-slate-400 line-through text-lg">{formatPriceAbbreviated(oldPrice)}</span>
-            <h2 className="text-2xl font-black text-red-600">{formatPriceAbbreviated(currentPrice)}</h2>
+            <span className="text-slate-400 line-through text-lg">{formatBosnianPrice(oldPrice)}</span>
+            <h2 className="text-2xl font-black text-red-600">{formatBosnianPrice(currentPrice)}</h2>
           </div>
           {savings > 0 && (
             <p className="text-sm text-green-600 font-semibold">
@@ -256,7 +294,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
     
     return (
       <h2 className="text-2xl font-black text-slate-900">
-        {formatPriceAbbreviated(productDetails?.price)}
+        {formatBosnianPrice(productDetails?.price)}
       </h2>
     );
   };
@@ -264,7 +302,6 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
   return (
     <>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
- 
         <div className="p-5">
           {/* HEADER - Naslov + Share */}
           <div className="flex justify-between items-start gap-3 mb-4">
@@ -282,9 +319,8 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
           
           {/* CIJENA + HISTORY BUTTON */}
           <div className="flex items-center gap-3 mb-4">
-            {/* <div className="flex-1"> */}
-              <PriceDisplay />
-              {hasHistory && (
+            <PriceDisplay />
+            {hasHistory && (
               <button 
                 onClick={handleHistoryClick}
                 className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
@@ -293,11 +329,28 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                 <MdHistory size={18} />
               </button>
             )}
-            {/* </div> */}
           </div>
+
+          {/* QUICK STATS - prikaži samo ako ima pregleda */}
+          {(productDetails?.clicks > 0 || productDetails?.favourites?.length > 0) && (
+            <div className="mb-4">
+              <QuickStatsDisplay productDetails={productDetails} />
+            </div>
+          )}
  
           {/* RAZDJELNIK */}
           <div className="h-px w-full bg-slate-200 mb-4"></div>
+
+          {/* STATISTICS BUTTON - Desktop */}
+          {canViewStatistics && (
+            <button 
+              onClick={handleStatisticsClick}
+              className="w-full mb-3 py-2.5 px-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-blue-700 font-medium flex items-center justify-center gap-2 hover:from-blue-100 hover:to-indigo-100 transition-all group"
+            >
+              <IoStatsChartOutline size={18} className="group-hover:scale-110 transition-transform" />
+              <span>Pogledaj detaljnu statistiku</span>
+            </button>
+          )}
 
           {/* DESKTOP ACTIONS */}
           <div className="hidden lg:flex items-center gap-3">
@@ -428,34 +481,45 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
           </div>
           
           <div className="flex items-center gap-2">
-  {isEditable && (
-    <>
-      <button
-        className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 active:scale-95 transition-all"
-        aria-label="Promijeni status"
-        onClick={() => setShowStatusDrawer(true)}
-      >
-        <MdHistory size={20} />
-      </button>
+            {/* STATISTIKA DUGME - MOBILE */}
+            {canViewStatistics && (
+              <button
+                className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 active:scale-95 transition-all"
+                aria-label="Statistika"
+                onClick={handleStatisticsClick}
+              >
+                <IoStatsChartOutline size={20} />
+              </button>
+            )}
 
-      <Link 
-        href={`/edit-listing/${productDetails?.id}`}
-        className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 active:scale-95 transition-all"
-        aria-label="Uredi"
-      >
-        <MdEdit size={20} />
-      </Link>
-    </>
-  )}
+            {isEditable && (
+              <>
+                <button
+                  className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 active:scale-95 transition-all"
+                  aria-label="Promijeni status"
+                  onClick={() => setShowStatusDrawer(true)}
+                >
+                  <MdHistory size={20} />
+                </button>
 
-  <button 
-    className="w-10 h-10 flex items-center justify-center bg-red-600 text-white rounded-lg hover:bg-red-700 active:scale-95 transition-all"
-    aria-label="Obriši"
-    onClick={() => setIsDeleteAccount(true)}
-  >
-    <MdDelete size={20} />
-  </button>
-</div>
+                <Link 
+                  href={`/edit-listing/${productDetails?.id}`}
+                  className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 active:scale-95 transition-all"
+                  aria-label="Uredi"
+                >
+                  <MdEdit size={20} />
+                </Link>
+              </>
+            )}
+
+            <button 
+              className="w-10 h-10 flex items-center justify-center bg-red-600 text-white rounded-lg hover:bg-red-700 active:scale-95 transition-all"
+              aria-label="Obriši"
+              onClick={() => setIsDeleteAccount(true)}
+            >
+              <MdDelete size={20} />
+            </button>
+          </div>
 
         </div>
       </div>

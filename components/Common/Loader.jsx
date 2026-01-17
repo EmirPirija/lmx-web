@@ -1,12 +1,25 @@
-const Loader = () => {
+export default function Loader({ size = 220, className = "" }) {
+  const height = Math.round((size * 140) / 220);
+
   return (
-    <div className="h-screen flex items-center justify-center">
-      <div className="relative w-12 h-12">
-        <div className="absolute w-12 h-12 bg-primary rounded-full animate-ping"></div>
-        <div className="absolute w-12 h-12 bg-primary rounded-full animate-ping delay-1000"></div>
-      </div>
+    <div
+      className={`${className}`.trim()}
+      style={{
+        minHeight: "100dvh",
+        display: "grid",
+        placeItems: "center",
+      }}
+      aria-label="Loading"
+      role="status"
+    >
+      <img
+        src="/assets/lmx-loader.svg"
+        width={size}
+        height={height}
+        alt="Loading…"
+        style={{ display: "block" }}
+        draggable={false}
+      />
     </div>
   );
-};
-
-export default Loader;
+}

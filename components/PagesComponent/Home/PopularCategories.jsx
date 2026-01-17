@@ -23,6 +23,14 @@ const PopularCategories = () => {
     catLastPage,
     catCurrentPage,
   } = useGetCategories();
+  console.log({
+    cateData,
+    getCategories,
+    isCatLoading,
+    isCatLoadMore,
+    catLastPage,
+    catCurrentPage,
+  });
 
   const isRTL = useSelector(getIsRtl);
   const [api, setApi] = useState();

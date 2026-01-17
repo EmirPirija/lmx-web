@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { allItemApi, getMyItemsApi, setItemTotalClickApi, deleteItemApi } from "@/utils/api";
 import ProductFeature from "./ProductFeature";
 import ProductDescription from "./ProductDescription";
@@ -28,7 +28,6 @@ import MakeFeaturedAd from "./MakeFeaturedAd";
 import RenewAd from "./RenewAd";
 import AdEditedByAdmin from "./AdEditedByAdmin";
 import NoData from "@/components/EmptyStates/NoData";
-// PriceHistory import je uklonjen jer je komponenta integrisana ispod
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -55,19 +54,28 @@ import {
 import { IoStatsChart } from "react-icons/io5";
 
 // ============================================
+// TRACKING IMPORTS
+// ============================================
+import { 
+  useItemTracking, 
+  useContactTracking, 
+  useEngagementTracking 
+} from "@/hooks/useItemTracking";
+
+// ============================================
 // GLOBALNI HELPERI
 // ============================================
 
-// Formatiranje cijene (Koristi se u oba dijela)
+// Formatiranje cijene
 const formatPrice = (price) => {
-  if (!price || price === 0) return "Besplatno";
+  if (!price || price === 0) return "Na upit";
   return new Intl.NumberFormat('bs-BA', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price) + ' KM';
 };
 
-// Formatiranje datuma (Iz PriceHistory fajla)
+// Formatiranje datuma
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -85,7 +93,7 @@ const formatDate = (dateString) => {
 };
 
 // ============================================
-// KOMPONENTA: PRICE HISTORY (Integrisana)
+// KOMPONENTA: HISTORIJA CIJENA
 // ============================================
 const PriceHistory = ({ priceHistory = [], currentPrice }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -112,7 +120,7 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
  
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      {/* Header */}
+      {/* Zaglavlje */}
       <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-5 py-4 border-b border-slate-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -121,11 +129,11 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
             </div>
             <div>
               <h3 className="font-bold text-slate-800">Historija cijena</h3>
-              <p className="text-xs text-slate-500">{sortedHistory.length} promjena</p>
+              <p className="text-xs text-slate-500">{sortedHistory.length} {sortedHistory.length === 1 ? 'promjena' : sortedHistory.length < 5 ? 'promjene' : 'promjena'}</p>
             </div>
           </div>
           
-          {/* Badge za ukupnu promjenu */}
+          {/* Oznaka za ukupnu promjenu */}
           {(isPriceDown || isPriceUp) && (
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${
               isPriceDown 
@@ -214,14 +222,14 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
             ) : (
               <>
                 <MdExpandMore className="text-lg" />
-                Prikaži sve ({sortedHistory.length - 3} više)
+                Prikaži sve (još {sortedHistory.length - 3})
               </>
             )}
           </button>
         )}
       </div>
  
-      {/* Footer info */}
+      {/* Informacija u podnožju */}
       {isPriceDown && (
         <div className="px-5 py-3 bg-green-50 border-t border-green-100">
           <p className="text-xs text-green-700 text-center font-medium">
@@ -234,7 +242,7 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
 };
 
 // ============================================
-// DESKTOP: TEASER KARTICA (SIDEBAR)
+// DESKTOP: TEASER KARTICA (BOČNA TRAKA)
 // ============================================
 const PriceHistoryTeaser = ({ priceHistory, currentPrice, onClick }) => {
     const sortedHistory = [...priceHistory].sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
@@ -245,7 +253,7 @@ const PriceHistoryTeaser = ({ priceHistory, currentPrice, onClick }) => {
 };
 
 // ============================================
-// DESKTOP: MODAL (Popup)
+// DESKTOP: MODAL (Iskočni prozor)
 // ============================================
 const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice }) => {
     if (!isOpen) return null;
@@ -269,7 +277,7 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
 };
 
 // ============================================
-// SKELETON LOADING
+// SKELETON UČITAVANJE
 // ============================================
 const ProductDetailsSkeleton = () => {
   return (
@@ -447,22 +455,71 @@ const ProductDetails = ({ slug }) => {
   const [isOpenInApp, setIsOpenInApp] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   
-  // Stanja za Historiju
+  // Stanja za historiju cijena
   const [showMobilePriceHistory, setShowMobilePriceHistory] = useState(false);
   const [showDesktopPriceHistory, setShowDesktopPriceHistory] = useState(false);
   const priceHistoryDrawerRef = useRef(null);
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
   const statusDrawerRef = useRef(null);
 
-
-  // Stanja za Brisanje
+  // Stanja za brisanje
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [showFeaturedDrawer, setShowFeaturedDrawer] = useState(false);
   const featuredDrawerRef = useRef(null);
+
+  // ============================================
+  // TRACKING HOOKS
+  // ============================================
+  const [itemId, setItemId] = useState(null);
   
- 
+  // Glavni tracking - prati view, share, favorite
+  const { 
+    trackView, 
+    trackShare, 
+    trackFavorite,
+    trackEngagement,
+    trackTimeOnPage,
+  } = useItemTracking(itemId, { 
+    autoTrackView: false, // Ručno pozivamo nakon što dobijemo podatke
+  });
+  
+  // Contact tracking
+  const { 
+    trackPhoneReveal, 
+    trackPhoneClick, 
+    trackWhatsApp, 
+    trackViber,
+    trackMessage,
+    trackEmail,
+  } = useContactTracking(itemId);
+  
+  // Engagement tracking
+  const {
+    trackGalleryOpen,
+    trackImageView,
+    trackImageZoom,
+    trackVideoPlay,
+    trackDescriptionExpand,
+    trackMapOpen,
+    trackSellerProfileClick,
+    trackPriceHistoryView,
+    trackSimilarItemsClick,
+  } = useEngagementTracking(itemId);
+
+  // ============================================
+  // TRACK VIEW KADA SE UČITA OGLAS
+  // ============================================
+  useEffect(() => {
+    if (itemId && !isMyListing) {
+      // Dohvati source iz URL parametara
+      const source = searchParams.get("ref") || "direct";
+      const sourceDetail = searchParams.get("query") || searchParams.get("category") || null;
+      trackView(source, sourceDetail);
+    }
+  }, [itemId, isMyListing, trackView, searchParams]);
+  
   const IsShowFeaturedAd = isMyListing && !productDetails?.is_feature && productDetails?.status === "approved";
   const isMyAdExpired = isMyListing && productDetails?.status === "expired";
   const isEditedByAdmin = isMyListing && productDetails?.is_edited_by_admin === 1;
@@ -536,10 +593,10 @@ const ProductDetails = ({ slug }) => {
       setIsDeleting(true);
       const res = await deleteItemApi.deleteItem({ item_id: productDetails?.id });
       if (res?.data?.error === false) {
-        toast.success(t("adDeleted") || "Oglas uspješno obrisan");
+        toast.success("Oglas je uspješno obrisan");
         router.push("/my-ads");
       } else {
-        toast.error(res?.data?.message || "Greška pri brisanju");
+        toast.error(res?.data?.message || "Greška prilikom brisanja");
       }
     } catch (error) {
       console.log(error);
@@ -555,6 +612,7 @@ const ProductDetails = ({ slug }) => {
     const product = response?.data?.data?.data?.[0];
     if (!product) throw new Error("Oglas nije pronađen");
     setProductDetails(product);
+    setItemId(product.id); // Set item ID for tracking (ali nećemo track-ati view za vlastite oglase)
     
     const videoLink = product?.video_link;
     if (videoLink) {
@@ -569,6 +627,8 @@ const ProductDetails = ({ slug }) => {
     setGalleryImages([product?.image, ...galleryImages]);
     setStatus(product?.status);
     dispatch(setBreadcrumbPath([{ name: "Moji oglasi", slug: "/my-ads" }, { name: truncate(product?.translated_item?.name || product?.name, 80) }]));
+    console.log("📊 FULL RESPONSE:", response.data);
+    console.log("📊 PRODUCT:", response?.data?.data?.data?.[0]);
   };
  
   const incrementViews = async (item_id) => {
@@ -580,6 +640,7 @@ const ProductDetails = ({ slug }) => {
     const product = response?.data?.data?.data?.[0];
     if (!product) throw new Error("Oglas nije pronađen");
     setProductDetails(product);
+    setItemId(product.id); // ✅ POSTAVI ITEM ID ZA TRACKING
     
     const videoLink = product?.video_link;
     if (videoLink) {
@@ -606,6 +667,26 @@ const ProductDetails = ({ slug }) => {
       else await fetchPublicListingDetails(slug);
     } catch (error) { console.error(error); } finally { setIsLoading(false); }
   };
+
+  // ============================================
+  // TRACKING HANDLER FUNKCIJE
+  // ============================================
+  
+  // Handler za otvaranje historije cijena
+  const handleOpenPriceHistory = useCallback(() => {
+    setShowMobilePriceHistory(true);
+    trackPriceHistoryView();
+  }, [trackPriceHistoryView]);
+
+  const handleOpenDesktopPriceHistory = useCallback(() => {
+    setShowDesktopPriceHistory(true);
+    trackPriceHistoryView();
+  }, [trackPriceHistoryView]);
+
+  // Handler za klik na mapu
+  const handleMapOpen = useCallback(() => {
+    trackMapOpen();
+  }, [trackMapOpen]);
  
   const filteredFields = getFilteredCustomFields(productDetails?.all_translated_custom_fields, CurrentLanguage?.id);
   const getAnimationClass = () => `transition-all duration-500 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`;
@@ -631,16 +712,25 @@ const ProductDetails = ({ slug }) => {
               <div className="col-span-1 lg:col-span-8">
                 <div className="flex flex-col gap-5 lg:gap-7">
                   <div className={getAnimationClass()} style={getStaggerDelay(2)}>
-                    <ProductGallery galleryImages={galleryImages} videoData={videoData} directVideo={directVideo} />
+                    <ProductGallery 
+                      galleryImages={galleryImages} 
+                      videoData={videoData} 
+                      directVideo={directVideo}
+                      // ✅ TRACKING PROPS
+                      onGalleryOpen={trackGalleryOpen}
+                      onImageView={trackImageView}
+                      onImageZoom={trackImageZoom}
+                      onVideoPlay={trackVideoPlay}
+                    />
                   </div>
                   {IsShowFeaturedAd && (
-  <div
-    className={`hidden lg:block ${getAnimationClass()}`}
-    style={getStaggerDelay(3)}
-  >
-    <MakeFeaturedAd item_id={productDetails?.id} setProductDetails={setProductDetails} />
-  </div>
-)}
+                    <div
+                      className={`hidden lg:block ${getAnimationClass()}`}
+                      style={getStaggerDelay(3)}
+                    >
+                      <MakeFeaturedAd item_id={productDetails?.id} setProductDetails={setProductDetails} />
+                    </div>
+                  )}
 
                   {filteredFields.length > 0 && (
                     <div className={getAnimationClass()} style={getStaggerDelay(4)}>
@@ -648,49 +738,72 @@ const ProductDetails = ({ slug }) => {
                     </div>
                   )}
                   <div className={getAnimationClass()} style={getStaggerDelay(5)}>
-                    <ProductDescription productDetails={productDetails} />
+                    <ProductDescription 
+                      productDetails={productDetails}
+                      onDescriptionExpand={trackDescriptionExpand}
+                    />
                   </div>
                 </div>
               </div>
  
-              {/* DESNA KOLONA - STICKY */}
+              {/* DESNA KOLONA - FIKSIRANA */}
               <div className="flex flex-col col-span-1 lg:col-span-4 gap-5 lg:gap-7">
                 <div className="lg:sticky lg:top-24 lg:self-start flex flex-col gap-5 lg:gap-7">
                   
-                  {/* GLAVNA KARTICA DETALJA */}
+                  {/* GLAVNA KARTICA S DETALJIMA */}
                   <div className={`hidden lg:block ${getAnimationClass()}`} style={getStaggerDelay(6)}>
                     {isMyListing ? (
                       <MyAdsListingDetailCard productDetails={productDetails} />
                     ) : (
-                      <ProductDetailCard productDetails={productDetails} setProductDetails={setProductDetails} />
+                      <ProductDetailCard 
+                        productDetails={productDetails} 
+                        setProductDetails={setProductDetails}
+                        onFavoriteToggle={trackFavorite}
+                        onShareClick={trackShare}
+                      />
                     )}
                   </div>
  
-                  {/* TEASER ZA HISTORIJU CIJENA - SADA VIDLJIV SVIMA (ako ima historije) */}
+                  {/* TEASER ZA HISTORIJU CIJENA - VIDLJIV SVIMA (ako ima historije) */}
                   {productDetails?.price_history && productDetails.price_history.length > 0 && (
                     <div className={`hidden lg:block ${getAnimationClass()}`} style={getStaggerDelay(6.5)}>
-                        <PriceHistoryTeaser priceHistory={productDetails.price_history} currentPrice={productDetails.price} onClick={() => setShowDesktopPriceHistory(true)} />
+                        <PriceHistoryTeaser 
+                          priceHistory={productDetails.price_history} 
+                          currentPrice={productDetails.price} 
+                          onClick={handleOpenDesktopPriceHistory} 
+                        />
                     </div>
                   )}
  
                   {!isMyListing && (
-                    <div className={getAnimationClass()} style={getStaggerDelay(7)}>
-                      <SellerDetailCard productDetails={productDetails} setProductDetails={setProductDetails} />
+                    <div className={getAnimationClass()} style={getStaggerDelay(7)} data-seller-card>
+                      <SellerDetailCard 
+                        productDetails={productDetails} 
+                        setProductDetails={setProductDetails}
+                        // ✅ TRACKING PROPS
+                        onPhoneReveal={trackPhoneReveal}
+                        onPhoneClick={trackPhoneClick}
+                        onWhatsAppClick={trackWhatsApp}
+                        onViberClick={trackViber}
+                        onMessageClick={trackMessage}
+                        onEmailClick={trackEmail}
+                        onProfileClick={trackSellerProfileClick}
+                      />
                     </div>
                   )}
-{isMyListing && (
-  <div
-    className={`hidden lg:block ${getAnimationClass()}`}
-    style={getStaggerDelay(8)}
-  >
-    <AdsStatusChangeCards
-      productDetails={productDetails}
-      setProductDetails={setProductDetails}
-      status={status}
-      setStatus={setStatus}
-    />
-  </div>
-)}
+                  {isMyListing && (
+                    <div
+                      className={`hidden lg:block ${getAnimationClass()}`}
+                      style={getStaggerDelay(8)}
+                    >
+                      <AdsStatusChangeCards
+                        productDetails={productDetails}
+                        setProductDetails={setProductDetails}
+                        status={status}
+                        setStatus={setStatus}
+                      />
+                    </div>
+                  )}
 
                   {isEditedByAdmin && (
                     <div className={getAnimationClass()} style={getStaggerDelay(9)}>
@@ -703,7 +816,10 @@ const ProductDetails = ({ slug }) => {
                     </div>
                   )}
                   <div className={getAnimationClass()} style={getStaggerDelay(11)}>
-                    <ProductLocation productDetails={productDetails} />
+                    <ProductLocation 
+                      productDetails={productDetails}
+                      onMapOpen={handleMapOpen}
+                    />
                   </div>
                   {!isMyListing && !productDetails?.is_already_reported && (
                     <div className={getAnimationClass()} style={getStaggerDelay(12)}>
@@ -716,20 +832,29 @@ const ProductDetails = ({ slug }) => {
  
             {!isMyListing && (
               <div className={`mt-8 lg:mt-12 ${getAnimationClass()}`} style={getStaggerDelay(13)}>
-                <SimilarProducts productDetails={productDetails} key={`similar-products-${CurrentLanguage?.id}`} />
+                <SimilarProducts 
+                  productDetails={productDetails} 
+                  key={`similar-products-${CurrentLanguage?.id}`}
+                  onItemClick={trackSimilarItemsClick}
+                />
               </div>
             )}
             
             {/* DESKTOP MODAL */}
             {productDetails?.price_history && productDetails.price_history.length > 0 && (
-                <DesktopPriceHistoryModal isOpen={showDesktopPriceHistory} onClose={() => setShowDesktopPriceHistory(false)} priceHistory={productDetails.price_history} currentPrice={productDetails.price} />
+                <DesktopPriceHistoryModal 
+                  isOpen={showDesktopPriceHistory} 
+                  onClose={() => setShowDesktopPriceHistory(false)} 
+                  priceHistory={productDetails.price_history} 
+                  currentPrice={productDetails.price} 
+                />
             )}
 
-            {/* MOBILNI DRAWER ZA HISTORIJU */}
+            {/* MOBILNI DRAWER ZA HISTORIJU CIJENA */}
             {productDetails?.price_history && productDetails.price_history.length > 0 && (
                 <>
                     <div className={`fixed inset-0 bg-black/50 z-[60] transition-opacity duration-300 lg:hidden ${showMobilePriceHistory ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`} onClick={() => setShowMobilePriceHistory(false)} />
-                    <div ref={priceHistoryDrawerRef} className={`fixed bottom-0 left-0 right-0 z-[61] bg-white rounded-t-3x transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${showMobilePriceHistory ? "translate-y-0" : "translate-y-full"}`}>
+                    <div ref={priceHistoryDrawerRef} className={`fixed bottom-12 left-0 right-0 z-[61] bg-white rounded-t-3x transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${showMobilePriceHistory ? "translate-y-0" : "translate-y-full"}`}>
                         <div className="flex items-center justify-between p-4 border-b border-slate-100">
                             <h3 className="font-bold text-lg text-slate-800">Historija cijena</h3>
                             <button onClick={() => setShowMobilePriceHistory(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
@@ -749,19 +874,19 @@ const ProductDetails = ({ slug }) => {
                 open={isDeleteOpen}
                 onCancel={() => setIsDeleteOpen(false)}
                 onConfirm={handleDeleteAd}
-                title={t("areYouSure") || "Jeste li sigurni?"}
-                description={t("youWantToDeleteThisAd") || "Želite li obrisati ovaj oglas?"}
-                cancelText={t("cancel") || "Odustani"}
-                confirmText={t("yes") || "Da, obriši"}
+                title="Jeste li sigurni?"
+                description="Želite li obrisati ovaj oglas?"
+                cancelText="Odustani"
+                confirmText="Da, obriši"
                 confirmDisabled={isDeleting}
             />
           </div>
 
           {/* ======================================================== */}
-          {/* FIKSIRANE TRAKE NA DNU - SADA IZVAN CONTAINER-A          */}
+          {/* FIKSIRANE TRAKE NA DNU - IZVAN KONTEJNERA               */}
           {/* ======================================================== */}
           
-          {/* TRAKA ZA KUPCA (PUBLIC) */}
+          {/* TRAKA ZA KUPCA (JAVNI OGLAS) */}
           {!isMyListing && (
             <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
               <div className="container flex items-center gap-3">
@@ -769,20 +894,36 @@ const ProductDetails = ({ slug }) => {
                   <div className="min-w-0">
                       <p className="text-xs text-slate-500 font-medium">Cijena</p>
                       <p className="text-lg font-black text-primary truncate">
-                      {productDetails?.price === 0 ? "Besplatno" : `${new Intl.NumberFormat('bs-BA').format(productDetails?.price)} KM`}
+                      {Number(productDetails?.price) === 0
+                        ? "Na upit"
+                        : `${new Intl.NumberFormat("bs-BA").format(Number(productDetails?.price))} KM`}
                       </p>
                   </div>
                   {productDetails?.price_history && productDetails.price_history.length > 0 && (
-                      <button onClick={() => setShowMobilePriceHistory(true)} className="w-11 h-11 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm">
+                      <button onClick={handleOpenPriceHistory} className="w-11 h-11 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm">
                           <MdHistory className="text-2xl" />
                       </button>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95" onClick={() => document.querySelector('[data-seller-card]')?.scrollIntoView({ behavior: 'smooth' })}>
+                  <button 
+                    className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95" 
+                    onClick={() => {
+                      trackPhoneReveal(); // ✅ TRACK
+                      document.querySelector('[data-seller-card]')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
                     <MdPhone className="text-2xl" />
                   </button>
-                  <button className="w-11 h-11 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-slate-900/20" onClick={() => document.querySelector('[data-chat-button]') ? document.querySelector('[data-chat-button]').click() : document.querySelector('[data-seller-card]')?.scrollIntoView({ behavior: 'smooth' })}>
+                  <button 
+                    className="w-11 h-11 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-slate-900/20" 
+                    onClick={() => {
+                      trackMessage(); // ✅ TRACK
+                      document.querySelector('[data-chat-button]') 
+                        ? document.querySelector('[data-chat-button]').click() 
+                        : document.querySelector('[data-seller-card]')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
                     <MdChat className="text-2xl" />
                   </button>
                 </div>
@@ -790,156 +931,153 @@ const ProductDetails = ({ slug }) => {
             </div>
           )}
 
-          {/* TRAKA ZA PRODAVAČA (SELLER) */}
+          {/* TRAKA ZA PRODAVAČA (MOJ OGLAS) */}
           {isMyListing && (
-  <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
-    <div className="container flex items-center gap-3">
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-slate-500 font-medium">Status</p>
-        <p
-          className={`text-sm font-bold truncate ${
-            productDetails?.status === "approved"
-              ? "text-green-600"
-              : productDetails?.status === "pending"
-              ? "text-yellow-600"
-              : "text-slate-700"
-          }`}
-        >
-          {productDetails?.status === "approved"
-            ? "Aktivan"
-            : productDetails?.status === "pending"
-            ? "Na čekanju"
-            : productDetails?.status}
-        </p>
-      </div>
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
+              <div className="container flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-500 font-medium">Status</p>
+                  <p
+                    className={`text-sm font-bold truncate ${
+                      productDetails?.status === "approved"
+                        ? "text-green-600"
+                        : productDetails?.status === "pending"
+                        ? "text-yellow-600"
+                        : "text-slate-700"
+                    }`}
+                  >
+                    {productDetails?.status === "approved"
+                      ? "Aktivan"
+                      : productDetails?.status === "pending"
+                      ? "Na čekanju"
+                      : productDetails?.status}
+                  </p>
+                </div>
 
-      <div className="flex items-center gap-2">
-      {isEditable && (
-  <>
-    {/* 1️⃣ STATUS - nova ikona */}
-    <button
-      className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95"
-      aria-label="Promijeni status"
-      onClick={() => setShowStatusDrawer(true)}
-    >
-      <MdSyncAlt className="text-2xl" />
-    </button>
+                <div className="flex items-center gap-2">
+                  {isEditable && (
+                    <>
+                      {/* 1️⃣ STATUS - promjena statusa */}
+                      <button
+                        className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95"
+                        aria-label="Promijeni status"
+                        onClick={() => setShowStatusDrawer(true)}
+                      >
+                        <MdSyncAlt className="text-2xl" />
+                      </button>
 
-    {/* 2️⃣ ISTAKNI OGLAS - raketa 🚀 */}
-    {IsShowFeaturedAd && (
-      <button
-        className="w-11 h-11 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl transition-all active:scale-95"
-        aria-label="Istakni oglas"
-        onClick={() => setShowFeaturedDrawer(true)}
-      >
-        <MdRocketLaunch className="text-2xl" />
-      </button>
-    )}
+                      {/* 2️⃣ ISTAKNI OGLAS - raketa 🚀 */}
+                      {IsShowFeaturedAd && (
+                        <button
+                          className="w-11 h-11 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl transition-all active:scale-95"
+                          aria-label="Istakni oglas"
+                          onClick={() => setShowFeaturedDrawer(true)}
+                        >
+                          <MdRocketLaunch className="text-2xl" />
+                        </button>
+                      )}
 
-    {/* 3️⃣ EDIT */}
-    <Link
-      href={`/edit-listing/${productDetails?.id}`}
-      className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95"
-      aria-label="Uredi"
-    >
-      <MdEdit className="text-2xl" />
-    </Link>
-  </>
-)}
+                      {/* 3️⃣ UREDI */}
+                      <Link
+                        href={`/edit-listing/${productDetails?.id}`}
+                        className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all active:scale-95"
+                        aria-label="Uredi"
+                      >
+                        <MdEdit className="text-2xl" />
+                      </Link>
+                    </>
+                  )}
 
+                  {/* OBRIŠI */}
+                  <button
+                    onClick={() => setIsDeleteOpen(true)}
+                    className="w-11 h-11 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-red-600/20"
+                    aria-label="Obriši"
+                  >
+                    <MdDelete className="text-2xl" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
+          {/* MOBILNI DRAWER ZA PROMJENU STATUSA */}
+          {isMyListing && isEditable && (
+            <>
+              <div
+                className={`fixed inset-0 bg-black/50 z-[101] transition-opacity duration-300 lg:hidden ${
+                  showStatusDrawer
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
+                }`}
+                onClick={() => setShowStatusDrawer(false)}
+              />
+              <div
+                ref={statusDrawerRef}
+                className={`fixed bottom-0 left-0 right-0 z-[102] bg-white rounded-t-3xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${
+                  showStatusDrawer ? "translate-y-0" : "translate-y-full"
+                }`}
+              >
+                <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                  <h3 className="font-bold text-lg text-slate-800">
+                    Promijeni status
+                  </h3>
+                  <button
+                    onClick={() => setShowStatusDrawer(false)}
+                    className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                  >
+                    <MdClose className="text-xl text-slate-600" />
+                  </button>
+                </div>
+                <div className="overflow-y-auto p-4 pb-8">
+                  <AdsStatusChangeCards
+                    productDetails={productDetails}
+                    setProductDetails={setProductDetails}
+                    status={status}
+                    setStatus={setStatus}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
-        {/* DELETE */}
-        <button
-          onClick={() => setIsDeleteOpen(true)}
-          className="w-11 h-11 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-red-600/20"
-          aria-label="Obriši"
-        >
-          <MdDelete className="text-2xl" />
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-{/* MOBILE STATUS DRAWER ZA MOJE OGLASE */}
-{isMyListing && isEditable && (
-  <>
-    <div
-      className={`fixed inset-0 bg-black/50 z-[101] transition-opacity duration-300 lg:hidden ${
-        showStatusDrawer
-          ? "opacity-100 pointer-events-auto"
-          : "opacity-0 pointer-events-none"
-      }`}
-      onClick={() => setShowStatusDrawer(false)}
-    />
-    <div
-      ref={statusDrawerRef}
-      className={`fixed bottom-0 left-0 right-0 z-[102] bg-white rounded-t-3xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${
-        showStatusDrawer ? "translate-y-0" : "translate-y-full"
-      }`}
-    >
-      <div className="flex items-center justify-between p-4 border-b border-slate-100">
-        <h3 className="font-bold text-lg text-slate-800">
-          {t("changeStatus") || "Promijeni status"}
-        </h3>
-        <button
-          onClick={() => setShowStatusDrawer(false)}
-          className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
-        >
-          <MdClose className="text-xl text-slate-600" />
-        </button>
-      </div>
-      <div className="overflow-y-auto p-4 pb-8">
-        <AdsStatusChangeCards
-          productDetails={productDetails}
-          setProductDetails={setProductDetails}
-          status={status}
-          setStatus={setStatus}
-        />
-      </div>
-    </div>
-  </>
-)}
-
-{/* MOBILE FEATURED DRAWER */}
-{isMyListing && IsShowFeaturedAd && (
-  <>
-    <div
-      className={`fixed inset-0 bg-black/50 z-[101] transition-opacity duration-300 lg:hidden ${
-        showFeaturedDrawer
-          ? "opacity-100 pointer-events-auto"
-          : "opacity-0 pointer-events-none"
-      }`}
-      onClick={() => setShowFeaturedDrawer(false)}
-    />
-    <div
-      ref={featuredDrawerRef}
-      className={`fixed bottom-0 left-0 right-0 z-[102] bg-white rounded-t-3xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${
-        showFeaturedDrawer ? "translate-y-0" : "translate-y-full"
-      }`}
-    >
-      <div className="flex items-center justify-between p-4 border-b border-slate-100">
-        <h3 className="font-bold text-lg text-slate-800">
-          Istakni oglas
-        </h3>
-        <button
-          onClick={() => setShowFeaturedDrawer(false)}
-          className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
-        >
-          <MdClose className="text-xl text-slate-600" />
-        </button>
-      </div>
-      <div className="overflow-y-auto p-4 pb-8">
-        <MakeFeaturedAd
-          item_id={productDetails?.id}
-          setProductDetails={setProductDetails}
-        />
-      </div>
-    </div>
-  </>
-)}
-
+          {/* MOBILNI DRAWER ZA ISTICANJE OGLASA */}
+          {isMyListing && IsShowFeaturedAd && (
+            <>
+              <div
+                className={`fixed inset-0 bg-black/50 z-[101] transition-opacity duration-300 lg:hidden ${
+                  showFeaturedDrawer
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
+                }`}
+                onClick={() => setShowFeaturedDrawer(false)}
+              />
+              <div
+                ref={featuredDrawerRef}
+                className={`fixed bottom-0 left-0 right-0 z-[102] bg-white rounded-t-3xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${
+                  showFeaturedDrawer ? "translate-y-0" : "translate-y-full"
+                }`}
+              >
+                <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                  <h3 className="font-bold text-lg text-slate-800">
+                    Istakni oglas
+                  </h3>
+                  <button
+                    onClick={() => setShowFeaturedDrawer(false)}
+                    className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                  >
+                    <MdClose className="text-xl text-slate-600" />
+                  </button>
+                </div>
+                <div className="overflow-y-auto p-4 pb-8">
+                  <MakeFeaturedAd
+                    item_id={productDetails?.id}
+                    setProductDetails={setProductDetails}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
         </>
       ) : (
@@ -955,5 +1093,6 @@ const ProductDetails = ({ slug }) => {
     </Layout>
   );
 };
+
  
 export default ProductDetails;

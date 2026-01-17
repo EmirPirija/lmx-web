@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -21,11 +21,20 @@ import ReactPlayer from "react-player";
 import { getPlaceholderImage } from "@/redux/reducer/settingSlice";
 import CustomImage from "@/components/Common/CustomImage";
 
-const ProductGallery = ({ galleryImages, videoData }) => {
+const ProductGallery = ({ 
+  galleryImages, 
+  videoData,
+  // ✅ TRACKING PROPS
+  onGalleryOpen,
+  onImageView,
+  onImageZoom,
+  onVideoPlay,
+}) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [hasTrackedGalleryOpen, setHasTrackedGalleryOpen] = useState(false);
   const carouselApi = useRef(null);
   const isRTL = useSelector(getIsRtl);
   const placeHolderImage = useSelector(getPlaceholderImage);
@@ -77,6 +86,13 @@ const ProductGallery = ({ galleryImages, videoData }) => {
     }
   }, [isVideoSelected]);
 
+  // ✅ TRACK IMAGE VIEW KADA SE PROMIJENI INDEX
+  useEffect(() => {
+    if (selectedIndex >= 0 && selectedIndex < galleryImages.length && onImageView) {
+      onImageView(selectedIndex);
+    }
+  }, [selectedIndex, galleryImages.length, onImageView]);
+
   const handlePrevImage = () => {
     if (selectedIndex === 0) {
       setSelectedIndex(totalItems - 1);
@@ -97,6 +113,29 @@ const ProductGallery = ({ galleryImages, videoData }) => {
     setSelectedIndex(index);
   };
 
+  // ✅ HANDLER ZA GALLERY OPEN (Lightbox)
+  const handleGalleryOpen = useCallback(() => {
+    if (!hasTrackedGalleryOpen && onGalleryOpen) {
+      onGalleryOpen();
+      setHasTrackedGalleryOpen(true);
+    }
+  }, [hasTrackedGalleryOpen, onGalleryOpen]);
+
+  // ✅ HANDLER ZA ZOOM
+  const handleImageZoom = useCallback(() => {
+    if (onImageZoom) {
+      onImageZoom();
+    }
+  }, [onImageZoom]);
+
+  // ✅ HANDLER ZA VIDEO PLAY
+  const handleVideoPlay = useCallback(() => {
+    setIsVideoPlaying(true);
+    if (onVideoPlay) {
+      onVideoPlay();
+    }
+  }, [onVideoPlay]);
+
   // Scroll thumbnail into view
   useEffect(() => {
     if (carouselApi.current && selectedIndex >= 0 && selectedIndex < galleryImages.length) {
@@ -106,67 +145,74 @@ const ProductGallery = ({ galleryImages, videoData }) => {
 
   return (
     <PhotoProvider
-  maskOpacity={0.95}
-  speed={() => 300}
-  easing={() => 'cubic-bezier(0.25, 0.1, 0.25, 1)'}
-  toolbarRender={({ onScale, scale, index, onIndexChange }) => ( // Dodan onIndexChange
-    <div className="flex gap-2 items-center">
-      {/* Traka sa sličicama (Thumbnail Strip) u Lightboxu */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 backdrop-blur-xl p-2 rounded-2xl max-w-[90vw] overflow-x-auto no-scrollbar z-[9999]">
-        {galleryImages?.map((img, idx) => {
-          const isActive = index === idx;
-          return (
-            <button
-              key={idx}
-              // KLJUČNI DIO: onIndexChange mijenja sliku u pregledniku na osnovu indeksa
-              onClick={() => onIndexChange && onIndexChange(idx)}
-              className={`relative w-14 h-14 rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0 cursor-pointer ${
-                isActive 
-                  ? 'ring-2 ring-white scale-110' 
-                  : 'opacity-50 hover:opacity-100 hover:scale-105'
-              }`}
-            >
-              <img
-                src={img}
-                alt={`Thumb ${idx + 1}`}
-                className="w-full h-full object-cover pointer-events-none"
-              />
-              {/* Indikator aktivne slike */}
-              {isActive && (
-                <div className="absolute inset-0 border-2 border-white rounded-lg shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      maskOpacity={0.95}
+      speed={() => 300}
+      easing={() => 'cubic-bezier(0.25, 0.1, 0.25, 1)'}
+      onVisibleChange={(visible) => {
+        // ✅ TRACK GALLERY OPEN KADA SE OTVORI LIGHTBOX
+        if (visible) {
+          handleGalleryOpen();
+        }
+      }}
+      toolbarRender={({ onScale, scale, index, onIndexChange }) => (
+        <div className="flex gap-2 items-center">
+          {/* Traka sa sličicama (Thumbnail Strip) u Lightboxu */}
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 backdrop-blur-xl p-2 rounded-2xl max-w-[90vw] overflow-x-auto no-scrollbar z-[9999]">
+            {galleryImages?.map((img, idx) => {
+              const isActive = index === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => onIndexChange && onIndexChange(idx)}
+                  className={`relative w-14 h-14 rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0 cursor-pointer ${
+                    isActive 
+                      ? 'ring-2 ring-white scale-110' 
+                      : 'opacity-50 hover:opacity-100 hover:scale-105'
+                  }`}
+                >
+                  <img
+                    src={img}
+                    alt={`Thumb ${idx + 1}`}
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
+                  {isActive && (
+                    <div className="absolute inset-0 border-2 border-white rounded-lg shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-      {/* Kontrole zuma (Zoom Controls) */}
-      <div className="flex gap-2 items-center bg-black/50 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
-        <button
-          onClick={() => onScale(scale - 0.5)}
-          className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 disabled:opacity-30"
-          disabled={scale <= 1}
-          title="Umanji"
-        >
-          <RiZoomOutLine size={20} className="text-white" />
-        </button>
-        
-        <span className="text-white text-sm font-medium min-w-[3.5rem] text-center">
-          {Math.round(scale * 100)}%
-        </span>
-        
-        <button
-          onClick={() => onScale(scale + 0.5)}
-          className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 disabled:opacity-30"
-          disabled={scale >= 6}
-          title="Uvećaj"
-        >
-          <RiZoomInLine size={20} className="text-white" />
-        </button>
-      </div>
-    </div>
-  )}
->
+          {/* Kontrole zuma (Zoom Controls) */}
+          <div className="flex gap-2 items-center bg-black/50 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
+            <button
+              onClick={() => onScale(scale - 0.5)}
+              className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 disabled:opacity-30"
+              disabled={scale <= 1}
+              title="Umanji"
+            >
+              <RiZoomOutLine size={20} className="text-white" />
+            </button>
+            
+            <span className="text-white text-sm font-medium min-w-[3.5rem] text-center">
+              {Math.round(scale * 100)}%
+            </span>
+            
+            <button
+              onClick={() => {
+                onScale(scale + 0.5);
+                handleImageZoom(); // ✅ TRACK ZOOM
+              }}
+              className="p-2 hover:bg-white/20 rounded-full transition-all duration-300 disabled:opacity-30"
+              disabled={scale >= 6}
+              title="Uvećaj"
+            >
+              <RiZoomInLine size={20} className="text-white" />
+            </button>
+          </div>
+        </div>
+      )}
+    >
       <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl overflow-hidden group/main">
         
         {isVideoSelected ? (
@@ -176,7 +222,7 @@ const ProductGallery = ({ galleryImages, videoData }) => {
             {!isVideoPlaying && (
               <div 
                 className="absolute inset-0 z-10 cursor-pointer"
-                onClick={() => setIsVideoPlaying(true)}
+                onClick={handleVideoPlay}
               >
                 {/* Thumbnail Background */}
                 <div 

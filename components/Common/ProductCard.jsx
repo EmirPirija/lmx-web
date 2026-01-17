@@ -17,7 +17,8 @@ import CustomLink from "@/components/Common/CustomLink";
 import { toast } from "sonner";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import CustomImage from "./CustomImage";
- 
+import { IconRocket, IconRosetteDiscount } from "@tabler/icons-react";
+
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
   return (
@@ -39,82 +40,82 @@ export const ProductCardSkeleton = () => {
     </div>
   );
 };
- 
+
 // Helper function to format relative time
 const formatRelativeTime = (dateString) => {
   const now = new Date();
   const date = new Date(dateString);
   const diffInSeconds = Math.floor((now - date) / 1000);
- 
+
   if (diffInSeconds < 60) return "Upravo sada";
- 
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
     if (diffInMinutes === 1) return "Prije 1 min";
     return `Prije ${diffInMinutes} min`;
   }
- 
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
     if (diffInHours === 1) return "Prije 1 sat";
     return `Prije ${diffInHours} sati`;
   }
- 
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 30) {
     if (diffInDays === 1) return "Prije 1 dan";
     return `Prije ${diffInDays} dana`;
   }
- 
+
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) {
     if (diffInMonths === 1) return "Prije 1 mj";
     return `Prije ${diffInMonths} mj`;
   }
- 
+
   const diffInYears = Math.floor(diffInMonths / 12);
   if (diffInYears === 1) return "Prije 1 god";
   return `Prije ${diffInYears} god`;
 };
- 
+
 // Izvlači Godište, Gorivo, Mjenjač, Pogon i Stanje
 const getKeyAttributes = (item) => {
   const attributes = [];
   const customFields = item?.translated_custom_fields || [];
- 
+
   const findValue = (keys) => {
-    const field = customFields.find(f => {
+    const field = customFields.find((f) => {
       const name = (f.translated_name || f.name || "").toLowerCase();
       return keys.includes(name);
     });
     return field?.translated_selected_values?.[0] || field?.value?.[0];
   };
- 
+
   const condition = findValue(["stanje oglasa", "stanje"]);
   if (condition) attributes.push(condition);
- 
+
   const year = findValue(["godište", "godiste"]);
   if (year) attributes.push(year);
- 
+
   const fuel = findValue(["gorivo"]);
   if (fuel) attributes.push(fuel);
- 
+
   const transmission = findValue(["mjenjač", "mjenjac"]);
   if (transmission) attributes.push(transmission);
- 
+
   if (attributes.length === 0) {
-    return getSmartTagsFallback(item); 
+    return getSmartTagsFallback(item);
   }
- 
+
   return attributes;
 };
- 
+
 // Fallback funkcija
 const getSmartTagsFallback = (item) => {
   const tags = [];
   const skipFields = ["stanje", "condition", "opis", "description", "naslov", "title"];
   const customFields = item?.translated_custom_fields || [];
- 
+
   for (const field of customFields) {
     if (tags.length >= 3) break;
     const fieldName = (field.name || field.translated_name || "").toLowerCase();
@@ -126,31 +127,44 @@ const getSmartTagsFallback = (item) => {
   }
   return tags;
 };
- 
-const ProductCard = ({ item, handleLike, isLoading }) => {
+
+const formatPriceOrInquiry = (price) => {
+  if (price === null || price === undefined) return "Na upit";
+  if (typeof price === "string" && price.trim() === "") return "Na upit";
+  if (Number(price) === 0) return "Na upit";
+  return formatPriceAbbreviated(Number(price));
+};
+
+
+const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
   const userData = useSelector(userSignUpData);
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
   const translated_item = item?.translated_item;
-  
+
   const keyAttributes = getKeyAttributes(item);
-  
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
- 
+
   // Touch/Swipe state
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
- 
+
   // 🔥 AKCIJA/SALE Logic
   const isOnSale = item?.is_on_sale === true || item?.is_on_sale === 1;
   const oldPrice = item?.old_price;
   const currentPrice = item?.price;
-  const discountPercentage = item?.discount_percentage || (
-    isOnSale && oldPrice && currentPrice && Number(oldPrice) > Number(currentPrice)
-      ? Math.round(((Number(oldPrice) - Number(currentPrice)) / Number(oldPrice)) * 100)
-      : 0
-  );
- 
+  const discountPercentage =
+    item?.discount_percentage ||
+    (isOnSale &&
+    oldPrice &&
+    currentPrice &&
+    Number(oldPrice) > Number(currentPrice)
+      ? Math.round(
+          ((Number(oldPrice) - Number(currentPrice)) / Number(oldPrice)) * 100
+        )
+      : 0);
+
   const allSlides = useMemo(() => {
     const slides = [];
     if (item?.image) {
@@ -165,26 +179,30 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
     slides.push({ type: "viewMore" });
     return slides;
   }, [item?.image, item?.gallery_images]);
- 
+
   const totalSlides = allSlides.length;
   const totalImages = totalSlides - 1;
   const hasVideo = item?.video_link && item?.video_link !== "";
- 
+
   if (isLoading) {
     return <ProductCardSkeleton />;
   }
- 
+
   const isHidePrice = isJobCategory
-    ? [item?.min_salary, item?.max_salary].every(
-        (val) => val === null || val === undefined || (typeof val === "string" && val.trim() === "")
-      )
-    : item?.price === null || item?.price === undefined || (typeof item?.price === "string" && item?.price.trim() === "");
- 
+  ? [item?.min_salary, item?.max_salary].every(
+      (val) =>
+        val === null ||
+        val === undefined ||
+        (typeof val === "string" && val.trim() === "")
+    )
+  : false;
+
+
   const productLink =
     userData?.id === item?.user_id
       ? `/my-listing/${item?.slug}`
       : `/ad-details/${item?.slug}`;
- 
+
   const handleLikeItem = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -207,33 +225,33 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
       toast.error("Greška pri dodavanju u favorite");
     }
   };
- 
+
   const handlePrevSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
   };
- 
+
   const handleNextSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setCurrentSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
   };
- 
+
   const goToSlide = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
     setCurrentSlide(index);
   };
- 
+
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
   };
- 
+
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
   };
- 
+
   const handleTouchEnd = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -247,17 +265,18 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
       }
     }
   };
- 
+
   const displayCity = item?.translated_city || item?.city || "";
   const currentSlideData = allSlides[currentSlide];
   const isViewMoreSlide = currentSlideData?.type === "viewMore";
- 
+
   return (
     <CustomLink
       href={productLink}
       className="bg-white border border-gray-100 rounded-2xl flex flex-col h-full group overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
     >
       {/* Image Slider Container */}
       <div
@@ -271,8 +290,8 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
             <div
               key={index}
               className={`absolute inset-0 transition-all duration-500 ease-out ${
-                index === currentSlide 
-                  ? "opacity-100 z-[1] scale-100" 
+                index === currentSlide
+                  ? "opacity-100 z-[1] scale-100"
                   : "opacity-0 z-0 scale-105"
               }`}
             >
@@ -296,45 +315,57 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
               )}
             </div>
           ))}
- 
+
           {!isViewMoreSlide && (
             <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-[2]" />
           )}
         </div>
- 
+
         {/* Navigation Arrows */}
         {totalSlides > 1 && (
           <>
             <button
               onClick={handlePrevSlide}
               className={`absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
-              ${isHovered ? "opacity-100 translate-x-0" : "opacity-0 ltr:-translate-x-4 rtl:translate-x-4 pointer-events-none"}`}
+              ${
+                isHovered
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 ltr:-translate-x-4 rtl:translate-x-4 pointer-events-none"
+              }`}
             >
               <FiChevronLeft size={16} className="text-gray-700 rtl:rotate-180" />
             </button>
             <button
               onClick={handleNextSlide}
               className={`absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
-              ${isHovered ? "opacity-100 translate-x-0" : "opacity-0 ltr:translate-x-4 rtl:-translate-x-4 pointer-events-none"}`}
+              ${
+                isHovered
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 ltr:translate-x-4 rtl:-translate-x-4 pointer-events-none"
+              }`}
             >
               <FiChevronRight size={16} className="text-gray-700 rtl:rotate-180" />
             </button>
           </>
         )}
- 
+
         {/* Dot Indicators */}
         {totalSlides > 1 && (
-          <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}>
+          <div
+            className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 transition-opacity duration-300 ${
+              isHovered ? "opacity-100" : "opacity-0"
+            }`}
+          >
             {allSlides.map((_, index) => {
               const diff = Math.abs(index - currentSlide);
-              const isVisible = 
-                diff === 0 || 
-                diff === 1 || 
-                (currentSlide === 0 && index === totalSlides - 1) || 
+              const isVisible =
+                diff === 0 ||
+                diff === 1 ||
+                (currentSlide === 0 && index === totalSlides - 1) ||
                 (currentSlide === totalSlides - 1 && index === 0);
-              
+
               if (!isVisible) return null;
-              
+
               return (
                 <button
                   key={index}
@@ -349,53 +380,61 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
             })}
           </div>
         )}
- 
-      {/* Minimalistički popust badge */}
-      {isOnSale && discountPercentage > 0 && !isViewMoreSlide && (
-        <div className="
-          absolute top-2 ltr:left-2 rtl:right-2 z-10
-          bg-red-600/90 text-white
-          rounded-full px-2 py-0.5
-          text-[10px] font-semibold
-          tracking-wide
-          shadow-sm
-          backdrop-blur-sm
-        ">
-          AKCIJA
-        </div>
-      )}
 
- 
-        {/* Featured Badge - pomaknut ako ima akciju */}
-        {item?.is_feature && !isViewMoreSlide && (
-          <div className={`flex items-center gap-1 py-1 px-2 bg-primary rounded-full shadow-md absolute ${isOnSale && discountPercentage > 0 ? 'top-10' : 'top-2'} ltr:left-2 rtl:right-2 z-10`}>
-            <BiBadgeCheck size={12} color="white" />
-            <span className="text-white text-[10px] uppercase font-bold tracking-wide">Premium</span>
-          </div>
-        )}
- 
+          {/* sTATUS / ICON BADGES (Sale + Featured) */}
+{/* 🔥 STATUS BADGES — top-left stacked */}
+{!isViewMoreSlide && (
+  <div className="absolute top-2 ltr:left-2 rtl:right-2 z-20 flex items-center gap-1.5">
+    {/* ⭐ FEATURED / PREMIUM */}
+    {item?.is_feature && (
+      <div className="flex items-center justify-center bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-400 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+        <IconRocket size={18} stroke={2} className="text-white" />
+      </div>
+    )}
+
+    {/* 🔥 SALE / AKCIJA */}
+    {isOnSale && discountPercentage > 0 && (
+      <div className="flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+        <IconRosetteDiscount size={18} stroke={2} className="text-white" />
+      </div>
+    )}
+  </div>
+)}
+
+
+
         {/* Like Button */}
         {!isViewMoreSlide && (
           <button
             onClick={handleLikeItem}
             className={`absolute h-8 w-8 ltr:right-2 rtl:left-2 top-2 bg-white/95 rounded-full flex items-center justify-center shadow-md z-20 transition-all duration-300 ease-out hover:scale-110 active:scale-90
-            ${isHovered || item?.is_liked ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"}`}
+            ${
+              isHovered || item?.is_liked
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-2"
+            }`}
           >
             {item?.is_liked ? (
-              <FaHeart size={14} className="text-red-500 transition-transform duration-300" />
+              <FaHeart
+                size={14}
+                className="text-red-500 transition-transform duration-300"
+              />
             ) : (
-              <FaRegHeart size={14} className="text-gray-500 transition-all duration-300 hover:text-red-400" />
+              <FaRegHeart
+                size={14}
+                className="text-gray-500 transition-all duration-300 hover:text-red-400"
+              />
             )}
           </button>
         )}
- 
+
         {/* COUNTERS (Images/Video) */}
         {!isViewMoreSlide && (
           <div className="absolute bottom-2 ltr:right-2 rtl:left-2 z-10 flex items-center gap-1.5">
             {hasVideo && (
-               <div className="bg-red-600/90 backdrop-blur-md text-white px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
-                  <FaYoutube size={12} />
-               </div>
+              <div className="bg-red-600/90 backdrop-blur-md text-white px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                <FaYoutube size={12} />
+              </div>
             )}
             {totalImages > 1 && (
               <div className="bg-black/50 backdrop-blur-md text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
@@ -419,19 +458,19 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
           </div>
         )}
       </div>
- 
+
       {/* Content */}
       <div className="flex flex-col gap-1.5 p-2 flex-grow">
         <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
           {translated_item?.name || item?.name}
         </h3>
- 
+
         {/* Location */}
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <IoLocationOutline size={12} />
           <span className="truncate max-w-[150px]">{displayCity}</span>
         </div>
- 
+
         {/* KEY ATTRIBUTES */}
         {keyAttributes.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-0.5">
@@ -445,31 +484,42 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
             ))}
           </div>
         )}
- 
+
         <div className="flex-grow" />
         <div className="border-t border-gray-100 mt-1.5" />
- 
+
         {/* 🔥 PRICE SECTION WITH AKCIJA SUPPORT */}
         <div className="flex items-center justify-between gap-2 mt-1">
           <div className="flex items-center gap-1 text-gray-400">
             <IoTimeOutline size={12} />
-            <span className="text-[10px]">{formatRelativeTime(item?.created_at)}</span>
+            <span className="text-[10px]">
+              {formatRelativeTime(item?.created_at)}
+            </span>
           </div>
-          
+
           {!isHidePrice && (
             <div className="flex items-center gap-1.5">
               {/* Stara cijena prekrižena */}
-              {isOnSale && oldPrice && discountPercentage > 0 && (
-                <span className="text-[10px] text-gray-400 line-through decoration-red-400">
-                  {formatPriceAbbreviated(oldPrice)}
-                </span>
-              )}
-              
+              {isOnSale && Number(oldPrice) > 0 && discountPercentage > 0 && (
+  <span className="text-[10px] text-gray-400 line-through decoration-red-400">
+    {formatPriceAbbreviated(Number(oldPrice))}
+  </span>
+)}
+
+
               {/* Trenutna cijena */}
-              <span className={`text-sm font-bold ${isOnSale && discountPercentage > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                {isJobCategory
-                  ? formatSalaryRange(item?.min_salary, item?.max_salary)
-                  : formatPriceAbbreviated(item?.price)}
+              <span
+className={`text-sm font-bold ${
+  isOnSale && discountPercentage > 0 && Number(currentPrice) > 0
+    ? "text-red-600"
+    : "text-gray-900"
+}`}
+
+              >
+{isJobCategory
+  ? formatSalaryRange(item?.min_salary, item?.max_salary)
+  : formatPriceOrInquiry(item?.price)}
+
               </span>
             </div>
           )}
@@ -478,5 +528,5 @@ const ProductCard = ({ item, handleLike, isLoading }) => {
     </CustomLink>
   );
 };
- 
+
 export default ProductCard;

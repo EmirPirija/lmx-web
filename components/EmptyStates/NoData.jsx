@@ -7,9 +7,6 @@ import CustomImage from "../Common/CustomImage";
 // OPCIJA 1: Moderna "Search" ilustracija (Plavi tonovi, profesionalno, čisto) - MOJA PREPORUKA
 const ILLUSTRATION_URL = "https://cdni.iconscout.com/illustration/premium/thumb/search-result-not-found-2130361-1800925.png?f=webp";
 
-// OPCIJA 2: "Empty Box" 3D stil (Vrlo moderno, koristi se u mnogim novim aplikacijama)
-// const ILLUSTRATION_URL = "https://cdni.iconscout.com/illustration/premium/thumb/empty-box-3390195-2841932.png?f=webp";
-
 // OPCIJA 3: Apstraktno / Minimalistički (Manje detalja, čistije)
 // const ILLUSTRATION_URL = "https://cdni.iconscout.com/illustration/free/thumb/free-no-data-not-found-4085817-3385486.png?f=webp";
 
@@ -42,13 +39,9 @@ const NoData = ({ name }) => {
 
       {/* Tekstualni dio - malo veći razmak */}
       <div className="max-w-md mx-auto space-y-4">
-        <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-          Nema pronađenih oglasa!
-        </h3>
         
         <p className="text-gray-500 text-base leading-relaxed">
           Žao nam je, ali nismo pronašli ono što tražite. <br className="hidden sm:block" />
-          Pokušajte promijeniti filtere ili ključne riječi pretrage.
         </p>
       </div>
       

@@ -17,6 +17,16 @@ import {
   X
 } from "lucide-react";
 
+function formatDateEu(dateString) {
+  const d = new Date(dateString);
+  return d.toLocaleDateString("hr-HR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+
 const ChatList = ({
   chatId,
   chats,
@@ -72,9 +82,17 @@ const ChatList = ({
       count: archivedCount > 0 ? archivedCount : null 
     },
   ];
+  
 
   return (
-    <div className="h-[60vh] max-h-[800px] flex flex-col lg:h-full bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div
+      className={cn(
+        // glavni container – dodan overflow-hidden da ništa ne “gura” van
+        "h-[60vh] max-h-[800px] flex flex-col lg:h-full",
+        "bg-gradient-to-br from-slate-50 via-white to-slate-50",
+        "overflow-hidden"
+      )}
+    >
       {/* Header */}
       <div className="p-4 lg:p-6 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
@@ -101,10 +119,12 @@ const ChatList = ({
         </div>
 
         {/* Search Bar */}
-        <div className={cn(
-          "relative transition-all duration-300",
-          isSearchFocused ? "ring-2 ring-primary/20" : ""
-        )}>
+        <div
+          className={cn(
+            "relative transition-all duration-300",
+            isSearchFocused ? "ring-2 ring-primary/20 rounded-xl" : ""
+          )}
+        >
           <Search 
             size={18} 
             className={cn(
@@ -151,12 +171,14 @@ const ChatList = ({
               <tab.icon size={16} />
               <span className="hidden sm:inline">{tab.label}</span>
               {tab.count && (
-                <span className={cn(
-                  "min-w-[20px] h-5 flex items-center justify-center px-1.5 rounded-full text-xs font-bold",
-                  activeTab === tab.id 
-                    ? "bg-primary text-white" 
-                    : "bg-slate-200 text-slate-600"
-                )}>
+                <span
+                  className={cn(
+                    "min-w-[20px] h-5 flex items-center justify-center px-1.5 rounded-full text-xs font-bold",
+                    activeTab === tab.id 
+                      ? "bg-primary text-white" 
+                      : "bg-slate-200 text-slate-600"
+                  )}
+                >
                   {tab.count > 99 ? "99+" : tab.count}
                 </span>
               )}
@@ -219,7 +241,14 @@ const ChatList = ({
       )}
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent" id="chatList">
+      <div
+        id="chatList"
+        className={cn(
+          "flex-1 relative scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent",
+          // ključni dio – min-h-0 da flex child ne raste preko roditelja
+          "overflow-y-auto min-h-0"
+        )}
+      >
         <div className="sticky top-0 h-2 bg-gradient-to-b from-white/80 to-transparent z-10 pointer-events-none" />
         
         {IsLoading ? (

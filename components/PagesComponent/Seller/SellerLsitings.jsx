@@ -8,9 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TbTransferVertical } from "react-icons/tb";
-import { IoGrid } from "react-icons/io5";
-import { MdViewStream } from "react-icons/md";
+import {
+  IconArrowsSort,
+  IconLayoutGrid,
+  IconListDetails,
+  IconClock,
+  IconArrowDown,
+  IconArrowUp,
+  IconFlame,
+} from "@tabler/icons-react";
 import { allItemApi } from "@/utils/api";
 import ProductHorizontalCardSkeleton from "@/components/Common/ProductHorizontalCardSkeleton";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton";
@@ -43,7 +49,7 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
   useEffect(() => {
     getSellerItems(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, CurrentLanguage.id, id, filterStatus]);
+  }, [sortBy, CurrentLanguage?.id, id, filterStatus]);
 
   const getSellerItems = async (page) => {
     try {
@@ -71,9 +77,11 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
         setSellerItems(list);
       }
 
-      setCurrentPage(res?.data?.data?.current_page || 1);
+      const current = res?.data?.data?.current_page || 1;
       const last = res?.data?.data?.last_page || 1;
-      setHasMore((res?.data?.data?.current_page || 1) < last);
+
+      setCurrentPage(current);
+      setHasMore(current < last);
     } catch (error) {
       console.log(error);
     } finally {
@@ -156,7 +164,7 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
         <div className="hidden sm:flex flex-col gap-3 rounded-xl border bg-white/90 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <TbTransferVertical className="h-4 w-4" />
+              <IconArrowsSort className="h-4 w-4" stroke={1.7} />
               <span className="whitespace-nowrap">Sortiraj po</span>
             </div>
 
@@ -166,15 +174,39 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
               </SelectTrigger>
               <SelectContent className="bg-white">
                 <SelectGroup>
-                  <SelectItem value="new-to-old">Najnovije prvo</SelectItem>
-                  <SelectItem value="old-to-new">Najstarije prvo</SelectItem>
+                  <SelectItem value="new-to-old">
+                    <span className="flex items-center gap-2">
+                      <IconClock className="h-4 w-4" stroke={1.7} />
+                      <span>Najnovije prvo</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="old-to-new">
+                    <span className="flex items-center gap-2">
+                      <IconClock
+                        className="h-4 w-4 rotate-180"
+                        stroke={1.7}
+                      />
+                      <span>Najstarije prvo</span>
+                    </span>
+                  </SelectItem>
                   <SelectItem value="price-high-to-low">
-                    Cijena: viša ka nižoj
+                    <span className="flex items-center gap-2">
+                      <IconArrowDown className="h-4 w-4" stroke={1.7} />
+                      <span>Cijena: viša ka nižoj</span>
+                    </span>
                   </SelectItem>
                   <SelectItem value="price-low-to-high">
-                    Cijena: niža ka višoj
+                    <span className="flex items-center gap-2">
+                      <IconArrowUp className="h-4 w-4" stroke={1.7} />
+                      <span>Cijena: niža ka višoj</span>
+                    </span>
                   </SelectItem>
-                  <SelectItem value="popular_items">Popularno</SelectItem>
+                  <SelectItem value="popular_items">
+                    <span className="flex items-center gap-2">
+                      <IconFlame className="h-4 w-4" stroke={1.7} />
+                      <span>Popularno</span>
+                    </span>
+                  </SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -191,7 +223,7 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
               }`}
               aria-label="Mrežni prikaz"
             >
-              <IoGrid className="h-4 w-4" />
+              <IconLayoutGrid className="h-4 w-4" stroke={1.7} />
             </button>
             <button
               type="button"
@@ -203,7 +235,7 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
               }`}
               aria-label="Listni prikaz"
             >
-              <MdViewStream className="h-4 w-4" />
+              <IconListDetails className="h-4 w-4" stroke={1.7} />
             </button>
           </div>
         </div>
@@ -283,7 +315,7 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
           "
         >
           <span className="flex items-center gap-2">
-            <TbTransferVertical className="h-4 w-4" />
+            <IconArrowsSort className="h-4 w-4" stroke={1.7} />
             <span>Sortiranje i prikaz</span>
           </span>
           <span className="text-[10px] text-slate-500">
@@ -342,20 +374,44 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
             </span>
 
             <Select value={sortBy} onValueChange={handleSortBy}>
-              <SelectTrigger className="h-9 w-full bg-white shadow-sm">
+              <SelectTrigger className="h-9 w-full bg:white shadow-sm">
                 <SelectValue placeholder="Sortiraj po" />
               </SelectTrigger>
               <SelectContent className="bg-white">
                 <SelectGroup>
-                  <SelectItem value="new-to-old">Najnovije prvo</SelectItem>
-                  <SelectItem value="old-to-new">Najstarije prvo</SelectItem>
+                  <SelectItem value="new-to-old">
+                    <span className="flex items-center gap-2">
+                      <IconClock className="h-4 w-4" stroke={1.7} />
+                      <span>Najnovije prvo</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="old-to-new">
+                    <span className="flex items-center gap-2">
+                      <IconClock
+                        className="h-4 w-4 rotate-180"
+                        stroke={1.7}
+                      />
+                      <span>Najstarije prvo</span>
+                    </span>
+                  </SelectItem>
                   <SelectItem value="price-high-to-low">
-                    Cijena: viša ka nižoj
+                    <span className="flex items-center gap-2">
+                      <IconArrowDown className="h-4 w-4" stroke={1.7} />
+                      <span>Cijena: viša ka nižoj</span>
+                    </span>
                   </SelectItem>
                   <SelectItem value="price-low-to-high">
-                    Cijena: niža ka višoj
+                    <span className="flex items-center gap-2">
+                      <IconArrowUp className="h-4 w-4" stroke={1.7} />
+                      <span>Cijena: niža ka višoj</span>
+                    </span>
                   </SelectItem>
-                  <SelectItem value="popular_items">Popularno</SelectItem>
+                  <SelectItem value="popular_items">
+                    <span className="flex items-center gap-2">
+                      <IconFlame className="h-4 w-4" stroke={1.7} />
+                      <span>Popularno</span>
+                    </span>
+                  </SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -377,7 +433,7 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
                     : "text-slate-700 hover:bg-slate-100"
                 }`}
               >
-                <IoGrid className="mr-1 h-3.5 w-3.5" />
+                <IconLayoutGrid className="mr-1 h-3.5 w-3.5" stroke={1.7} />
                 Mreža
               </button>
               <button
@@ -385,11 +441,14 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
                 onClick={() => toggleView("list")}
                 className={`flex flex-1 items-center justify-center rounded-full text-[11px] py-1.5 transition-colors ${
                   view === "list"
-                    ? "bg-slate-900 text-white"
+                    ? "bg-slate-900 text:white"
                     : "text-slate-700 hover:bg-slate-100"
                 }`}
               >
-                <MdViewStream className="mr-1 h-3.5 w-3.5" />
+                <IconListDetails
+                  className="mr-1 h-3.5 w-3.5"
+                  stroke={1.7}
+                />
                 Lista
               </button>
             </div>

@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/sonner";
 
 // --- DARK MODE IMPORTI ---
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { SmartThemeToggle } from "@/components/SmartThemeToggle";
 
 // Konfiguracija fonta
 const manrope = Manrope({
@@ -59,8 +58,6 @@ export default function RootLayout({ children }) {
             <Toaster position="top-center" />
           </Providers>
 
-          {/* 3. Pametno dugme za temu (Automatski "bježi" od footera) */}
-          <SmartThemeToggle />
 
           {/* 4. Ostali globalni elementi */}
           <div id="recaptcha-container"></div>

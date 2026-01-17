@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Filter from "../../Filter/Filter";
 import {
@@ -37,11 +37,22 @@ import {
 import { t, updateMetadata } from "@/utils";
 import { getSelectedLocation } from "@/redux/reducer/globalStateSlice";
 
+// ============================================
+// TRACKING IMPORT
+// ============================================
+import { useSearchTracking } from "@/hooks/useItemTracking";
+
 const Ads = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
   const newSearchParams = new URLSearchParams(searchParams);
   const BreadcrumbPath = useSelector(BreadcrumbPathData);
+
+  // ============================================
+  // SEARCH TRACKING HOOK
+  // ============================================
+  const { trackSearchImpressions, trackSearchClick } = useSearchTracking();
+  const lastImpressionIdRef = useRef(null);
 
   const [view, setView] = useState("grid");
   const [advertisements, setAdvertisements] = useState({
@@ -144,31 +155,16 @@ const Ads = () => {
   // Count active filters
   const getActiveFilterCount = () => {
     let count = 0;
-
-    // Location filter
     if (country || state || city || areaId) count++;
-
-    // KM Range filter
     if (km_range) count++;
-
     if (category) count++;
-
     if (featured_section) count++;
-
-    // Query filter
     if (query) count++;
-
-    // Date Posted filter
     if (date_posted) count++;
-
-    // Price Range filter
     if (isMinPrice && max_price) count++;
-
-    // Extra Details filters
     if (initialExtraDetails && Object.keys(initialExtraDetails).length > 0) {
       count += Object.keys(initialExtraDetails).length;
     }
-
     return count;
   };
 
@@ -180,14 +176,11 @@ const Ads = () => {
         const response = await FeaturedSectionApi.getFeaturedSections({
           slug: featured_section,
         });
-
         if (response?.data?.error === false) {
           setFeaturedTitle(
             response?.data?.data?.[0]?.translated_name ||
               response?.data?.data?.[0]?.title
           );
-        } else {
-          console.error(response?.data?.message);
         }
       } catch (error) {
         console.error("Error:", error);
@@ -259,7 +252,6 @@ const Ads = () => {
         tree: 0,
       });
       const data = res?.data?.data || [];
-
       const selectedCategory = data?.at(-1);
 
       if (selectedCategory) {
@@ -347,16 +339,37 @@ const Ads = () => {
       const data = res?.data;
 
       if (data.error === false) {
+        const items = data?.data?.data || [];
+        
+        // ============================================
+        // ✅ TRACK SEARCH IMPRESSIONS
+        // ============================================
+        if (items.length > 0) {
+          const itemIds = items.map(item => item.id);
+          const impressionId = await trackSearchImpressions(itemIds, {
+            search_query: query || null,
+            category_slug: slug || null,
+            sort_by: sortBy,
+            min_price: isMinPrice ? min_price : null,
+            max_price: max_price || null,
+            location: city || state || country || null,
+            results_count: data?.data?.total || items.length,
+            page: page,
+            featured_section: featured_section || null,
+          });
+          lastImpressionIdRef.current = impressionId;
+        }
+
         page > 1
           ? setAdvertisements((prev) => ({
               ...prev,
-              data: [...prev.data, ...data?.data?.data],
+              data: [...prev.data, ...items],
               currentPage: data?.data?.current_page,
               hasMore: data?.data?.last_page > data?.data?.current_page,
             }))
           : setAdvertisements((prev) => ({
               ...prev,
-              data: data?.data?.data,
+              data: items,
               currentPage: data?.data?.current_page,
               hasMore: data?.data?.last_page > data?.data?.current_page,
             }));
@@ -390,6 +403,13 @@ const Ads = () => {
       return item;
     });
     setAdvertisements((prev) => ({ ...prev, data: updatedItems }));
+  };
+
+  // ============================================
+  // ✅ HANDLE ITEM CLICK - Track search click
+  // ============================================
+  const handleItemClick = (itemId, position) => {
+    trackSearchClick(itemId, position, lastImpressionIdRef.current);
   };
 
   const handleClearLocation = () => {
@@ -437,7 +457,6 @@ const Ads = () => {
     const updatedExtraDetails = { ...extraDetails };
     delete updatedExtraDetails[keyToRemove];
     setExtraDetails(updatedExtraDetails);
-
     newSearchParams.delete(keyToRemove);
     window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
   };
@@ -484,7 +503,6 @@ const Ads = () => {
       ? t("within3Months")
       : "";
 
-  // Helper komponenta za konzistentan i ljepši izgled filter tagova
   const FilterTag = ({ label, onClear }) => (
     <Badge
       variant="secondary"
@@ -503,7 +521,6 @@ const Ads = () => {
     <Layout>
       <BreadCrumb />
 
-      {/* Filter Sidebar Logic */}
       <Filter
         customFields={customFields}
         extraDetails={extraDetails}
@@ -518,136 +535,131 @@ const Ads = () => {
       <div className="container mt-8">
         <div className="flex flex-col gap-6">
           
-          {/* --- Header Section: Title & Controls --- */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-          <div>
-                <p className="text-sm text-gray-500 mt-1">
-                    {advertisements?.data?.length || 0} {
-                        ((advertisements?.data?.length || 0) % 10 === 1 && (advertisements?.data?.length || 0) % 100 !== 11)
-                        ? "rezultat"
-                        : "rezultata"
-                    }
-                </p>
-             </div>
+            <div>
+              <p className="text-sm text-gray-500 mt-1">
+                {advertisements?.data?.length || 0} {
+                  ((advertisements?.data?.length || 0) % 10 === 1 && (advertisements?.data?.length || 0) % 100 !== 11)
+                  ? "rezultat"
+                  : "rezultata"
+                }
+              </p>
+            </div>
 
-             <div className="flex items-center gap-3 md:self-auto space-between">
-                <div className="flex items-center gap-2">
-                   <TbTransferVertical className="text-gray-400 hidden sm:block" size={18} />
-                   <Select value={sortBy} onValueChange={handleSortBy}>
-                        <SelectTrigger className="w-[170px] h-10 border-gray-200 bg-white focus:ring-1 focus:ring-primary/20 font-medium">
-                            <SelectValue placeholder={t("sortBy")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                <SelectItem value="new-to-old">{t("newestToOldest")}</SelectItem>
-                                <SelectItem value="old-to-new">{t("oldestToNewest")}</SelectItem>
-                                <SelectItem value="price-high-to-low">{t("priceHighToLow")}</SelectItem>
-                                <SelectItem value="price-low-to-high">{t("priceLowToHigh")}</SelectItem>
-                                <SelectItem value="popular_items">{t("popular")}</SelectItem>
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                </div>
+            <div className="flex items-center gap-3 md:self-auto space-between">
+              <div className="flex items-center gap-2">
+                <TbTransferVertical className="text-gray-400 hidden sm:block" size={18} />
+                <Select value={sortBy} onValueChange={handleSortBy}>
+                  <SelectTrigger className="w-[170px] h-10 border-gray-200 bg-white focus:ring-1 focus:ring-primary/20 font-medium">
+                    <SelectValue placeholder={t("sortBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="new-to-old">{t("newestToOldest")}</SelectItem>
+                      <SelectItem value="old-to-new">{t("oldestToNewest")}</SelectItem>
+                      <SelectItem value="price-high-to-low">{t("priceHighToLow")}</SelectItem>
+                      <SelectItem value="price-low-to-high">{t("priceLowToHigh")}</SelectItem>
+                      <SelectItem value="popular_items">{t("popular")}</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                {/* Grid/List Switcher Container */}
-                <div className="bg-gray-100 p-1 rounded-lg flex items-center border border-gray-200">
-                    <button
-                        onClick={() => setView("list")}
-                        className={`p-2 rounded-md transition-all duration-200 ${
-                            view === "list" 
-                            ? "bg-white text-primary shadow-sm" 
-                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                        }`}
-                        title={t("listView")}
-                    >
-                        <CiGrid2H size={20} />
-                    </button>
-                    <button
-                        onClick={() => setView("grid")}
-                        className={`p-2 rounded-md transition-all duration-200 ${
-                            view === "grid" 
-                            ? "bg-white text-primary shadow-sm" 
-                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                        }`}
-                        title={t("gridView")}
-                    >
-                        <IoGrid size={18} />
-                    </button>
-                </div>
-             </div>
+              <div className="bg-gray-100 p-1 rounded-lg flex items-center border border-gray-200">
+                <button
+                  onClick={() => setView("list")}
+                  className={`p-2 rounded-md transition-all duration-200 ${
+                    view === "list" 
+                    ? "bg-white text-primary shadow-sm" 
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                  }`}
+                  title={t("listView")}
+                >
+                  <CiGrid2H size={20} />
+                </button>
+                <button
+                  onClick={() => setView("grid")}
+                  className={`p-2 rounded-md transition-all duration-200 ${
+                    view === "grid" 
+                    ? "bg-white text-primary shadow-sm" 
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                  }`}
+                  title={t("gridView")}
+                >
+                  <IoGrid size={18} />
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* --- Active Filters Section --- */}
           {(activeFilterCount > 0) && (
-             <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <span className="text-sm font-medium text-gray-500 mr-2 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                    {t("filters")}:
-                </span>
-                
-                {category && <FilterTag label={`${t("category")}: ${category}`} onClear={handleClearCategory} />}
-                
-                {query && <FilterTag label={`${t("search")}: ${query}`} onClear={handleClearQuery} />}
-                
-                {(country || state || city || area) && (
+            <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <span className="text-sm font-medium text-gray-500 mr-2 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                {t("filters")}:
+              </span>
+              
+              {category && <FilterTag label={`${t("category")}: ${category}`} onClear={handleClearCategory} />}
+              {query && <FilterTag label={`${t("search")}: ${query}`} onClear={handleClearQuery} />}
+              
+              {(country || state || city || area) && (
+                <FilterTag 
+                  label={`${t("location")}: ${selectedLocation?.translated_name || selectedLocation?.name}`} 
+                  onClear={handleClearLocation} 
+                />
+              )}
+              
+              {Number(km_range) > 0 && (
+                <FilterTag label={`${t("nearByRange")}: ${km_range} KM`} onClear={handleClearRange} />
+              )}
+              
+              {date_posted && (
+                <FilterTag label={`${t("datePosted")}: ${postedSince}`} onClear={handleClearDatePosted} />
+              )}
+              
+              {isMinPrice && max_price && (
+                <FilterTag label={`${t("budget")}: ${min_price}-${max_price}`} onClear={handleClearBudget} />
+              )}
+              
+              {featured_section && (
+                <FilterTag label={`${t("featuredSection")}: ${featuredTitle}`} onClear={handleClearFeaturedSection} />
+              )}
+              
+              {initialExtraDetails &&
+                Object.entries(initialExtraDetails || {}).map(([key, value]) => {
+                  const field = customFields.find((f) => f.id.toString() === key.toString());
+                  const fieldName = field?.translated_name || field?.name;
+                  
+                  const getTranslatedValue = (val) => {
+                    if (!field?.values || !field?.translated_value) return val;
+                    const idx = field.values.indexOf(val);
+                    return idx !== -1 ? field.translated_value[idx] : val;
+                  };
+                  
+                  const displayValue = Array.isArray(value)
+                    ? value.map((v) => getTranslatedValue(v)).join(", ")
+                    : getTranslatedValue(value);
+                  
+                  return (
                     <FilterTag 
-                        label={`${t("location")}: ${selectedLocation?.translated_name || selectedLocation?.name}`} 
-                        onClear={handleClearLocation} 
+                      key={key} 
+                      label={`${fieldName}: ${displayValue}`} 
+                      onClear={() => handleClearExtraDetail(key)} 
                     />
-                )}
-                
-                {Number(km_range) > 0 && (
-                    <FilterTag label={`${t("nearByRange")}: ${km_range} KM`} onClear={handleClearRange} />
-                )}
-                
-                {date_posted && (
-                    <FilterTag label={`${t("datePosted")}: ${postedSince}`} onClear={handleClearDatePosted} />
-                )}
-                
-                {isMinPrice && max_price && (
-                    <FilterTag label={`${t("budget")}: ${min_price}-${max_price}`} onClear={handleClearBudget} />
-                )}
-                
-                {featured_section && (
-                    <FilterTag label={`${t("featuredSection")}: ${featuredTitle}`} onClear={handleClearFeaturedSection} />
-                )}
-                
-                {initialExtraDetails &&
-                  Object.entries(initialExtraDetails || {}).map(([key, value]) => {
-                    const field = customFields.find((f) => f.id.toString() === key.toString());
-                    const fieldName = field?.translated_name || field?.name;
-                    
-                    const getTranslatedValue = (val) => {
-                      if (!field?.values || !field?.translated_value) return val;
-                      const idx = field.values.indexOf(val);
-                      return idx !== -1 ? field.translated_value[idx] : val;
-                    };
-                    
-                    const displayValue = Array.isArray(value)
-                      ? value.map((v) => getTranslatedValue(v)).join(", ")
-                      : getTranslatedValue(value);
-                    
-                    return (
-                        <FilterTag 
-                            key={key} 
-                            label={`${fieldName}: ${displayValue}`} 
-                            onClear={() => handleClearExtraDetail(key)} 
-                        />
-                    );
-                  })}
+                  );
+                })}
 
-                {activeFilterCount > 1 && (
-                  <button
-                    onClick={handleClearAll}
-                    className="text-sm text-red-500 hover:text-red-700 font-medium underline-offset-4 hover:underline transition-all ml-2"
-                  >
-                    {t("clearAll")}
-                  </button>
-                )}
-             </div>
+              {activeFilterCount > 1 && (
+                <button
+                  onClick={handleClearAll}
+                  className="text-sm text-red-500 hover:text-red-700 font-medium underline-offset-4 hover:underline transition-all ml-2"
+                >
+                  {t("clearAll")}
+                </button>
+              )}
+            </div>
           )}
 
-          {/* --- Products Grid --- */}
           <div className="grid grid-cols-12 gap-6">
             {advertisements?.isLoading ? (
               Array.from({ length: 12 }).map((_, index) =>
@@ -665,12 +677,19 @@ const Ads = () => {
               advertisements.data?.map((item, index) =>
                 view === "list" ? (
                   <div className="col-span-12" key={index}>
-                    <ProductHorizontalCard item={item} handleLike={handleLike} />
+                    <ProductHorizontalCard 
+                      item={item} 
+                      handleLike={handleLike}
+                      onItemClick={() => handleItemClick(item.id, index)}
+                    />
                   </div>
                 ) : (
-                  // Optimizovano: xl:col-span-3 znači 4 kartice u redu na velikim ekranima
                   <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3" key={index}>
-                    <ProductCard item={item} handleLike={handleLike} />
+                    <ProductCard 
+                      item={item} 
+                      handleLike={handleLike}
+                      onItemClick={() => handleItemClick(item.id, index)}
+                    />
                   </div>
                 )
               )
@@ -681,7 +700,6 @@ const Ads = () => {
             )}
           </div>
 
-          {/* --- Load More Button --- */}
           {advertisements.data && advertisements.data.length > 0 && advertisements.hasMore && (
             <div className="text-center mt-8 pb-12">
               <Button
@@ -691,10 +709,10 @@ const Ads = () => {
                 onClick={handleProdLoadMore}
               >
                 {advertisements.isLoadMore ? (
-                    <span className="flex items-center gap-2">
-                        <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-                        {t("loading")}...
-                    </span>
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                    {t("loading")}...
+                  </span>
                 ) : t("loadMore")}
               </Button>
             </div>

@@ -27,7 +27,7 @@ import ShareDropdown from "@/components/Common/ShareDropdown";
 // HELPER FUNKCIJE
 // ============================================
 const formatBosnianPrice = (price) => {
-  if (!price || price === 0) return "Besplatno";
+  if (!price || price === 0) return "Na upit";
   return new Intl.NumberFormat('bs-BA', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,

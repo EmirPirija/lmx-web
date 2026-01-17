@@ -42,7 +42,7 @@ const FeaturedSections = ({ featuredData, setFeaturedData, allEmpty }) => {
                     </CustomLink>
                   )}
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-6 mt-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 mt-6">
                   {ele?.section_data.slice(0, 4).map((data) => (
                     <ProductCard
                       key={data?.id}

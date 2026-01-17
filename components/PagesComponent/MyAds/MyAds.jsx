@@ -1,7 +1,5 @@
 "use client";
-import { t } from "@/utils";
-import { CgArrowsExchangeAltV } from "react-icons/cg";
-import { ArrowUpDown, Filter } from "lucide-react";
+
 import {
   Select,
   SelectContent,
@@ -10,6 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  IconArrowsSort,
+  IconFilter,
+  IconSortAscending,
+  IconSortDescending,
+  IconCurrencyDollar,
+  IconTrendingUp,
+} from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import AdsCard from "./MyAdsCard.jsx";
@@ -23,10 +29,7 @@ import { useSelector } from "react-redux";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton.jsx";
 import NoData from "@/components/EmptyStates/NoData";
 import { Button } from "@/components/ui/button";
-import {
-  CurrentLanguageData,
-  getIsRtl,
-} from "@/redux/reducer/languageSlice.js";
+import { getIsRtl } from "@/redux/reducer/languageSlice.js";
 import { Checkbox } from "@/components/ui/checkbox";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog.jsx";
 import { toast } from "sonner";
@@ -36,7 +39,6 @@ import { useNavigate } from "@/components/Common/useNavigate";
 
 const MyAds = () => {
   const { navigate } = useNavigate();
-  const CurrentLanguage = useSelector(CurrentLanguageData);
   const searchParams = useSearchParams();
   const isRTL = useSelector(getIsRtl);
 
@@ -176,7 +178,7 @@ const MyAds = () => {
 
   useEffect(() => {
     getMyItemsData(1);
-  }, [sortValue, status, CurrentLanguage?.id]);
+  }, [sortValue, status]);
 
   const updateURLParams = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -266,14 +268,14 @@ const MyAds = () => {
       renewAds({ ids: idsToRenew });
     } else {
       if (!selectedPackageId) {
-        toast.error(t("pleaseSelectPackage"));
+        toast.error("Molimo odaberite paket.");
         return;
       }
       const subPackage = ItemPackages.find(
         (p) => Number(p.id) === Number(selectedPackageId)
       );
       if (!subPackage?.is_active) {
-        toast.error(t("purchasePackageFirst"));
+        toast.error("Prvo morate kupiti paket.");
         navigate("/user-subscription");
         return;
       }
@@ -289,7 +291,7 @@ const MyAds = () => {
       });
 
       if (res?.data?.error === false) {
-        toast.success("Oglas je skriven");
+        toast.success("Oglas je skriven.");
 
         const currentItem = MyItems.find((item) => item.id === adId);
 
@@ -314,11 +316,13 @@ const MyAds = () => {
           inactive: prev.inactive + 1,
         }));
       } else {
-        toast.error(res?.data?.message || "Greška pri skrivanju oglasa");
+        toast.error(
+          res?.data?.message || "Došlo je do greške pri skrivanju oglasa."
+        );
       }
     } catch (error) {
       console.error(error);
-      toast.error("Greška pri skrivanju oglasa");
+      toast.error("Došlo je do greške pri skrivanju oglasa.");
     }
   };
 
@@ -330,7 +334,7 @@ const MyAds = () => {
       });
 
       if (res?.data?.error === false) {
-        toast.success("Oglas je aktiviran");
+        toast.success("Oglas je aktiviran.");
 
         if (status === "inactive") {
           setMyItems((prevItems) =>
@@ -350,11 +354,13 @@ const MyAds = () => {
           approved: prev.approved + 1,
         }));
       } else {
-        toast.error(res?.data?.message || "Greška pri aktiviranju oglasa");
+        toast.error(
+          res?.data?.message || "Došlo je do greške pri aktiviranju oglasa."
+        );
       }
     } catch (error) {
       console.error(error);
-      toast.error("Greška pri aktiviranju oglasa");
+      toast.error("Došlo je do greške pri aktiviranju oglasa.");
     }
   };
 
@@ -378,8 +384,8 @@ const MyAds = () => {
 
         toast.success(
           isJobCategory
-            ? "Posao je označen kao popunjen"
-            : "Oglas je označen kao prodat"
+            ? "Posao je označen kao popunjen."
+            : "Oglas je označen kao prodat."
         );
 
         setMyItems((prevItems) =>
@@ -403,11 +409,13 @@ const MyAds = () => {
           updateURLParams("status", "sold out");
         }
       } else {
-        toast.error(res?.data?.message || "Greška pri označavanju oglasa");
+        toast.error(
+          res?.data?.message || "Došlo je do greške pri označavanju oglasa."
+        );
       }
     } catch (error) {
       console.error(error);
-      toast.error("Greška pri označavanju oglasa");
+      toast.error("Došlo je do greške pri označavanju oglasa.");
     }
   };
 
@@ -457,8 +465,11 @@ const MyAds = () => {
     { value: "sold out", label: "Završeni" },
     { value: "featured", label: "Istaknuti" },
     { value: "expired", label: "Istekli" },
-    { value: "resubmitted", label: "Za obnoviti" },
+    { value: "resubmitted", label: "Za obnovu" },
   ];
+
+  const isHomeStickySpacerNeeded = isSticky;
+  const isHomeStickyHeight = containerHeight ? `${containerHeight}px` : "124px";
 
   return (
     <>
@@ -468,12 +479,12 @@ const MyAds = () => {
         className="absolute w-full h-px bg-transparent translate-y-[-1px]"
       />
 
-      {isSticky && (
+      {isHomeStickySpacerNeeded && (
         <div
           style={{
-            height: containerHeight ? `${containerHeight}px` : "124px",
+            height: isHomeStickyHeight,
           }}
-          className="w-full mb-3 bg-transparent"
+          className="hidden md:block w-full mb-3 bg-transparent"
         />
       )}
 
@@ -481,6 +492,7 @@ const MyAds = () => {
       <div
         ref={containerRef}
         className={`
+          hidden md:block
           transition-all duration-500 ease-in-out z-40
           ${
             isSticky
@@ -490,7 +502,7 @@ const MyAds = () => {
         `}
       >
         <div
-          className={`flex flex-row-reverse justify-between gap-4  ${
+          className={`flex flex-row-reverse justify-between gap-4 ${
             isSticky ? "container mx-auto max-w-7xl" : ""
           }`}
         >
@@ -498,22 +510,22 @@ const MyAds = () => {
           <div className="hidden md:flex flex-row items-center justify-between transition-all duration-300">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
-                <CgArrowsExchangeAltV size={22} className="text-gray-500" />
+                <IconArrowsSort size={22} className="text-gray-500" />
                 <span className="whitespace-nowrap text-sm font-medium text-gray-600">
-                  {"Poredaj po"}
+                  Poredaj po
                 </span>
               </div>
 
               <Select value={sortValue} onValueChange={handleSortChange}>
                 <SelectTrigger
-                  className={`w-[170px] transition-all duration-300 ${
+                  className={`w-[200px] transition-all duration-300 ${
                     isSticky
                       ? "bg-white border-gray-300 h-9 text-xs shadow-sm"
                       : "bg-white border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 h-10"
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <ArrowUpDown className="h-3.5 w-3.5 text-gray-500" />
+                    <IconArrowsSort className="h-3.5 w-3.5 text-gray-500" />
                     <SelectValue placeholder="Poredaj po" />
                   </div>
                 </SelectTrigger>
@@ -526,31 +538,61 @@ const MyAds = () => {
                       value="new-to-old"
                       className="cursor-pointer hover:bg-gray-50"
                     >
-                      Najnovije prvo
+                      <div className="flex items-center gap-2">
+                        <IconSortDescending
+                          size={16}
+                          className="text-gray-500"
+                        />
+                        <span>Najnovije prvo</span>
+                      </div>
                     </SelectItem>
                     <SelectItem
                       value="old-to-new"
                       className="cursor-pointer hover:bg-gray-50"
                     >
-                      Najstarije prvo
+                      <div className="flex items-center gap-2">
+                        <IconSortAscending
+                          size={16}
+                          className="text-gray-500"
+                        />
+                        <span>Najstarije prvo</span>
+                      </div>
                     </SelectItem>
                     <SelectItem
                       value="price-high-to-low"
                       className="cursor-pointer hover:bg-gray-50"
                     >
-                      Cijena: najviša prvo
+                      <div className="flex items-center gap-2">
+                        <IconCurrencyDollar
+                          size={16}
+                          className="text-gray-500"
+                        />
+                        <span>Cijena: najviša prvo</span>
+                      </div>
                     </SelectItem>
                     <SelectItem
                       value="price-low-to-high"
                       className="cursor-pointer hover:bg-gray-50"
                     >
-                      Cijena: najniža prvo
+                      <div className="flex items-center gap-2">
+                        <IconCurrencyDollar
+                          size={16}
+                          className="text-gray-500"
+                        />
+                        <span>Cijena: najniža prvo</span>
+                      </div>
                     </SelectItem>
                     <SelectItem
                       value="popular_items"
                       className="cursor-pointer hover:bg-gray-50"
                     >
-                      Popularno
+                      <div className="flex items-center gap-2">
+                        <IconTrendingUp
+                          size={16}
+                          className="text-gray-500"
+                        />
+                        <span>Popularno</span>
+                      </div>
                     </SelectItem>
                   </SelectGroup>
                 </SelectContent>
@@ -560,7 +602,6 @@ const MyAds = () => {
 
           {/* Desktop: TABOVI (statusi) */}
           <div className="hidden md:flex gap-2 pb-1 overflow-x-auto max-w-full">
-
             {tabs.map((item) => {
               const isActive = status === item.value;
               const count = statusCounts[item.value] || 0;
@@ -601,22 +642,25 @@ const MyAds = () => {
       </div>
 
       {/* MOBILE: dva plutajuća dugmeta (samo ikonice) */}
-      <div className="fixed bottom-6 left-1/2 z-50 flex gap-3 -translate-x-1/2 sm:hidden">
+      <div className="fixed bottom-24 left-1/2 z-50 flex gap-3 -translate-x-1/2 sm:hidden">
+        {/* FILTER */}
         <button
           type="button"
           onClick={() => setIsStatusSheetOpen(true)}
           className="flex items-center justify-center rounded-full bg-white shadow-lg border border-gray-200 p-3"
           aria-label="Filter oglasa"
         >
-          <Filter className="h-4 w-4 text-gray-800" />
+          <IconFilter stroke={2} />
         </button>
+
+        {/* SORT */}
         <button
           type="button"
           onClick={() => setIsSortSheetOpen(true)}
           className="flex items-center justify-center rounded-full bg-white shadow-lg border border-gray-200 p-3"
           aria-label="Sortiranje"
         >
-          <ArrowUpDown className="h-4 w-4 text-gray-800" />
+          <IconArrowsSort stroke={2} />
         </button>
       </div>
 
@@ -634,23 +678,18 @@ const MyAds = () => {
                 onCheckedChange={handleSelectAll}
                 className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
-              <span className="text-sm font-medium">
-                {t("selectAll") || "Označi sve"}
-              </span>
+              <span className="text-sm font-medium">Označi sve</span>
             </div>
           </div>
           <p className="text-sm text-gray-600">
-            {renewIds.length}{" "}
-            {renewIds.length === 1
-              ? t("ad") || "oglas"
-              : t("ads") || "oglasa"}{" "}
-            {t("selected") || "označeno"}
+            {renewIds.length} {renewIds.length === 1 ? "oglas" : "oglasa"}{" "}
+            označeno
           </p>
         </div>
       )}
 
       {/* Lista oglasa */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 mt-[30px] xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 mt-[30px] xl:grid-cols-4 gap-4">
         {IsLoading ? (
           [...Array(6)].map((_, i) => <ProductCardSkeleton key={i} />)
         ) : MyItems && MyItems?.length > 0 ? (
@@ -669,7 +708,7 @@ const MyAds = () => {
           ))
         ) : (
           <div className="col-span-full">
-            <NoData name={t("advertisement")} />
+            <NoData name="oglasa" />
           </div>
         )}
       </div>
@@ -683,7 +722,7 @@ const MyAds = () => {
             disabled={IsLoading || IsLoadMore}
             onClick={() => getMyItemsData(currentPage + 1)}
           >
-            {IsLoadMore ? t("loading") : t("loadMore")}
+            {IsLoadMore ? "Učitavanje..." : "Učitaj još"}
           </Button>
         </div>
       )}
@@ -697,7 +736,7 @@ const MyAds = () => {
               variant="ghost"
               className="rounded-full px-6 hover:bg-gray-100"
             >
-              {t("cancel") || "Otkaži"}
+              Otkaži
             </Button>
             <Button
               onClick={() => {
@@ -707,7 +746,7 @@ const MyAds = () => {
               }}
               className="bg-red-50 text-red-600 hover:bg-red-100 rounded-full px-6"
             >
-              {t("remove") || "Ukloni"}
+              Ukloni
             </Button>
             <Button
               onClick={() =>
@@ -716,7 +755,7 @@ const MyAds = () => {
               disabled={isRenewingAd}
               className="bg-black text-white rounded-full px-6 hover:bg-gray-800"
             >
-              {isRenewingAd ? t("loading") : t("renew")}
+              {isRenewingAd ? "Učitavanje..." : "Obnovi"}
             </Button>
           </div>
         </div>
@@ -841,7 +880,7 @@ const MyAds = () => {
             >
               <SelectTrigger className="h-9 w-full bg-white shadow-sm border border-gray-200">
                 <div className="flex items-center gap-2">
-                  <ArrowUpDown className="h-3.5 w-3.5 text-gray-500" />
+                  <IconArrowsSort className="h-3.5 w-3.5 text-gray-500" />
                   <SelectValue placeholder="Poredaj oglase" />
                 </div>
               </SelectTrigger>
@@ -851,31 +890,58 @@ const MyAds = () => {
                     value="new-to-old"
                     className="cursor-pointer hover:bg-gray-50"
                   >
-                    Najnovije prvo
+                    <div className="flex items-center gap-2">
+                      <IconSortDescending
+                        size={16}
+                        className="text-gray-500"
+                      />
+                      <span>Najnovije prvo</span>
+                    </div>
                   </SelectItem>
                   <SelectItem
                     value="old-to-new"
                     className="cursor-pointer hover:bg-gray-50"
                   >
-                    Najstarije prvo
+                    <div className="flex items-center gap-2">
+                      <IconSortAscending
+                        size={16}
+                        className="text-gray-500"
+                      />
+                      <span>Najstarije prvo</span>
+                    </div>
                   </SelectItem>
                   <SelectItem
                     value="price-high-to-low"
                     className="cursor-pointer hover:bg-gray-50"
                   >
-                    Cijena: najviša prvo
+                    <div className="flex items-center gap-2">
+                      <IconCurrencyDollar
+                        size={16}
+                        className="text-gray-500"
+                      />
+                      <span>Cijena: najviša prvo</span>
+                    </div>
                   </SelectItem>
                   <SelectItem
                     value="price-low-to-high"
                     className="cursor-pointer hover:bg-gray-50"
                   >
-                    Cijena: najniža prvo
+                    <div className="flex items-center gap-2">
+                      <IconCurrencyDollar
+                        size={16}
+                        className="text-gray-500"
+                      />
+                      <span>Cijena: najniža prvo</span>
+                    </div>
                   </SelectItem>
                   <SelectItem
                     value="popular_items"
                     className="cursor-pointer hover:bg-gray-50"
                   >
-                    Popularno
+                    <div className="flex items-center gap-2">
+                      <IconTrendingUp size={16} className="text-gray-500" />
+                      <span>Popularno</span>
+                    </div>
                   </SelectItem>
                 </SelectGroup>
               </SelectContent>
@@ -900,14 +966,14 @@ const MyAds = () => {
         open={IsDeleteDialog}
         onCancel={() => setIsDeleteDialog(false)}
         onConfirm={handleRemove}
-        title={t("areYouSure")}
+        title="Jeste li sigurni?"
         description={
           selectedIds.length === 1
-            ? t("areYouSureToDeleteAd")
-            : t("areYouSureToDeleteAds")
+            ? "Jeste li sigurni da želite obrisati ovaj oglas?"
+            : "Jeste li sigurni da želite obrisati ove oglase?"
         }
-        cancelText={t("cancel")}
-        confirmText={t("yes")}
+        cancelText="Otkaži"
+        confirmText="Da"
         confirmDisabled={IsDeleting}
       />
     </>

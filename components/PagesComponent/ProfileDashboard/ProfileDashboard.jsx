@@ -92,7 +92,7 @@ const ProfileDashboard = () => {
 
   return (
     <Layout>
-      <div className="bg-gray-50/50 min-h-screen pb-12">
+      <div className="">
         <BreadCrumb title2={currentConfig.title} />
         
         <div className="container mt-8">
@@ -126,9 +126,9 @@ const ProfileDashboard = () => {
             <div
               className={cn(
                 "bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300",
-                isChat 
-                  ? "h-[calc(100vh-290px)] overflow-hidden shadow-md" 
-                  : "p-4 sm:p-6 lg:p-8 min-h-[500px]"
+                isChat
+                ? "sm:h-[640px] lg:h-[800px] overflow-hidden shadow-md"
+                : "p-4 sm:p-6 lg:p-8 min-h-[500px]"
               )}
             >
               {currentConfig.component}

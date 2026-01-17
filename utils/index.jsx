@@ -60,6 +60,8 @@ export const getSlug = (pathname) => {
   return segments[segments.length - 1];
 };
 
+
+
 export const formatDate = (createdAt) => {
   const date = new Date(createdAt);
   const now = new Date();
@@ -381,7 +383,7 @@ export const formatPriceAbbreviated = (price) => {
   }
 
   if (Number(price) === 0) {
-    return t("Free");
+    return t("Na upit");
   }
 
   const settingsData = store.getState()?.Settings?.data?.data;
@@ -781,25 +783,23 @@ export const formatChatMessageTime = (dateString) => {
     .getState()
     ?.CurrentLanguage?.language?.code?.toLowerCase();
   const locale = languageLocaleMap?.[langCode] || "en-US";
+
   return date.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false, // 24h format
   });
 };
 
 export const formatDateMonthYear = (dateString) => {
   if (!dateString) return "";
+  const d = new Date(dateString);
 
-  const langCode = store
-    .getState()
-    ?.CurrentLanguage?.language?.code?.toLowerCase();
-  const locale = languageLocaleMap?.[langCode] || "en-US";
-  return new Date(dateString).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+
+  return `${day}/${month}/${year}`;
 };
 
 export const formatMessageDate = (dateString) => {
@@ -813,7 +813,7 @@ export const formatMessageDate = (dateString) => {
   } else if (messageDate.toDateString() === yesterday.toDateString()) {
     return t("yesterday");
   } else {
-    return formatDateMonthYear(dateString);
+    return formatDateMonthYear(dateString); // d/m/yyyy
   }
 };
 

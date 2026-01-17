@@ -183,7 +183,7 @@ const ProfileNavigation = () => {
         </div>
 
         {/* Desktop Navigation */}
-        <div className="w-full bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        <div className="hidden w-full bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="p-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {allNavigationLinks.map((link) => {
               const Icon = link.icon;
@@ -222,7 +222,7 @@ const ProfileNavigation = () => {
       </div>
 
       {/* Mobile: Sticky Bottom Navigation */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg pb-safe">
+      <div className="hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg pb-safe">
         <div className="grid grid-cols-5 gap-0">
           {mainNavigationLinks.map((link) => {
             const Icon = link.icon;
