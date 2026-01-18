@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { 
-  MdVerified, 
-  MdOutlineMail, 
-  MdPhone, 
-  MdCalendarMonth, 
+import {
+  MdVerified,
+  MdOutlineMail,
+  MdPhone,
+  MdCalendarMonth,
   MdStar,
   MdContentCopy,
   MdCheck,
@@ -19,6 +19,7 @@ import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 
 import {
   Dialog,
@@ -48,9 +49,10 @@ const formatLastSeen = (timestamp) => {
   });
 };
 
-const SellerDetailCard = ({ 
-  seller, 
+const SellerDetailCard = ({
+  seller,
   ratings,
+  badges,
   // ✅ TRACKING PROPS
   onPhoneReveal,
   onPhoneClick,
@@ -167,6 +169,29 @@ const SellerDetailCard = ({
               )}
             </h3>
           </div>
+
+          {/* --- BADGES --- */}
+          {badges && badges.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+              {badges.slice(0, 3).map((badge) => (
+                <div key={badge.id} className="relative group">
+                  <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                      {badge.name}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                        <div className="border-4 border-transparent border-t-gray-900" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {badges.length > 3 && (
+                <span className="text-xs text-gray-500">+{badges.length - 3}</span>
+              )}
+            </div>
+          )}
 
           {/* --- STATUS --- */}
           <div className="mb-4 text-center h-5">

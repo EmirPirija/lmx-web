@@ -9,7 +9,7 @@ import { LiaAdSolid } from "react-icons/lia";
 import { LuHeart } from "react-icons/lu";
 import { MdOutlineRateReview, MdWorkOutline } from "react-icons/md";
 import { RiLogoutCircleLine } from "react-icons/ri";
-import { HiOutlineDotsHorizontal } from "react-icons/hi";
+import { HiOutlineDotsHorizontal, HiOutlineBadgeCheck } from "react-icons/hi";
 import FirebaseData from "@/utils/Firebase";
 import { logoutSuccess, userSignUpData } from "@/redux/reducer/authSlice";
 import { toast } from "sonner";
@@ -129,6 +129,7 @@ const ProfileNavigation = () => {
     { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
     { href: "/my-ads", icon: LiaAdSolid, label: t("myAds") },
     { href: "/favorites", icon: LuHeart, label: t("favorites") },
+    { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: t("badges") },
     { href: "/transactions", icon: BiReceipt, label: t("transaction") },
     { href: "/reviews", icon: MdOutlineRateReview, label: t("myReviews") },
     { href: "/job-applications", icon: MdWorkOutline, label: t("jobApplications") },
