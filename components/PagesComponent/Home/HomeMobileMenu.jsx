@@ -273,23 +273,6 @@ const HomeMobileMenu = ({
             </span>
           </CustomLink>
 
-          {/* PROFIL */}
-          <CustomLink
-            href="/profile"
-            className="flex flex-col items-center gap-1 flex-1"
-          >
-            <IconUserCircle
-              size={24}
-              className={isProfileActive ? "text-primary" : ""}
-            />
-            <span
-              className={`text-[11px] ${
-                isProfileActive ? "text-primary font-medium" : ""
-              }`}
-            >
-              {t("myProfile")}
-            </span>
-          </CustomLink>
 
           {/* PORUKE + BADGE */}
           <CustomLink
@@ -352,86 +335,26 @@ const HomeMobileMenu = ({
             </span>
           </CustomLink>
 
-          {/* VIŠE */}
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <button className="flex flex-col items-center gap-1 flex-1">
-                <IconDots size={24} />
-                <span className="text-[11px]">Više</span>
-              </button>
-            </SheetTrigger>
 
-            <SheetContent
-              side="bottom"
-              className="p-0 overflow-y-auto max-h-[80vh] rounded-t-2xl border-t bg-background"
+          {/* PROFIL */}
+          <CustomLink
+            href="/profile"
+            className="flex flex-col items-center gap-1 flex-1"
+          >
+            <IconUserCircle
+              size={24}
+              className={isProfileActive ? "text-primary" : ""}
+            />
+            <span
+              className={`text-[11px] ${
+                isProfileActive ? "text-primary font-medium" : ""
+              }`}
             >
-              <div className="p-4 flex flex-col gap-4">
-                {/* KORISNIČKE INFORMACIJE */}
-                <div className="flex items-center justify-between gap-3">
-                  {UserData ? (
-                    <CustomLink
-                      href="/profile"
-                      className="flex items-center gap-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <p className="font-medium">{UserData?.name}</p>
-                    </CustomLink>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <button onClick={handleLogin}>
-                        {t("login")}
-                      </button>
-                      <span className="border-l h-6"></span>
-                      <button onClick={handleRegister}>
-                        {t("register")}
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {t("myProfile")}
+            </span>
+          </CustomLink>
 
-                {/* LOKACIJA */}
-                <div
-                  className="flex items-center gap-1 cursor-pointer"
-                  onClick={openLocationEditModal}
-                >
-                  <IconMapPin size={16} />
-                  <p className="line-clamp-2">
-                    {locationText || t("addLocation")}
-                  </p>
-                </div>
-              </div>
-
-              {showMenu && showCategories ? (
-                <Tabs defaultValue="menu">
-                  <TabsList className="flex items-center justify-between bg-muted rounded-none">
-                    <TabsTrigger
-                      value="menu"
-                      className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      {t("menu")}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="categories"
-                      className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      {t("multipleCategories")}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="menu">{navItems}</TabsContent>
-                  <TabsContent value="categories" className="mt-4 px-4 pb-4">
-                    <FilterTree />
-                  </TabsContent>
-                </Tabs>
-              ) : showMenu ? (
-                navItems
-              ) : showCategories ? (
-                <div className="px-4 pb-4 flex flex-col gap-4">
-                  <h1 className="font-medium">{t("multipleCategories")}</h1>
-                  <FilterTree />
-                </div>
-              ) : null}
-            </SheetContent>
-          </Sheet>
+         
         </div>
       </div>
     </>

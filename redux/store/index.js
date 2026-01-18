@@ -8,6 +8,8 @@ import CurrentLanguageReducer from '../reducer/languageSlice'
 import locationReducer from '../reducer/locationSlice';
 import globalStateReducer from '../reducer/globalStateSlice';
 import authReducer from '../reducer/authSlice'
+import gamificationReducer from '../reducer/gamificationSlice'
+
 
 const persistConfig = {
   key: 'root',
@@ -23,7 +25,8 @@ const rootReducer = combineReducers({
   BreadcrumbPath: BreadcrumbPathReducer,
   CurrentLanguage: CurrentLanguageReducer,
   Location: locationReducer,
-  GlobalState: globalStateReducer
+  GlobalState: globalStateReducer,
+  Gamification: gamificationReducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

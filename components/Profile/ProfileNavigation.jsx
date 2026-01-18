@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HiOutlineBadgeCheck } from "react-icons/hi";
 
 const ProfileNavigation = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -128,6 +129,7 @@ const ProfileNavigation = () => {
     { href: "/chat", icon: BiChat, label: t("chat") },
     { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
     { href: "/my-ads", icon: LiaAdSolid, label: t("myAds") },
+    { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: t("badges") },
     { href: "/favorites", icon: LuHeart, label: t("favorites") },
     { href: "/transactions", icon: BiReceipt, label: t("transaction") },
     { href: "/reviews", icon: MdOutlineRateReview, label: t("myReviews") },

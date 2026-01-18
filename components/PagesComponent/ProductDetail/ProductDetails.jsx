@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { allItemApi, getMyItemsApi, setItemTotalClickApi, deleteItemApi } from "@/utils/api";
 import ProductFeature from "./ProductFeature";
+import { gamificationApi } from "@/utils/api";
 import ProductDescription from "./ProductDescription";
 import ProductDetailCard from "./ProductDetailCard";
 import SellerDetailCard from "./SellerDetailCard";
@@ -91,6 +92,7 @@ const formatDate = (dateString) => {
   
   return `${day}. ${month} ${year}`;
 };
+
 
 // ============================================
 // KOMPONENTA: HISTORIJA CIJENA
@@ -440,6 +442,29 @@ const ProductDetails = ({ slug }) => {
   const isShare = searchParams.get("share") == "true" ? true : false;
   const isMyListing = pathName?.startsWith("/my-listing") ? true : false;
   const [productDetails, setProductDetails] = useState(null);
+  const [badges, setBadges] = useState([]);
+
+const fetchSellerBadges = async (sellerId) => {
+  try {
+    const res = await gamificationApi.getUserBadges({ user_id: sellerId });
+    if (!res?.data?.error) {
+      setBadges(res?.data?.data?.badges || []);
+    }
+  } catch (e) {
+    console.error("Error fetching seller badges:", e);
+  }
+};
+
+useEffect(() => {
+  const sellerId =
+    productDetails?.seller?.id ??
+    productDetails?.user?.id ??
+    productDetails?.user_id ??
+    productDetails?.seller_id;
+
+  if (sellerId) fetchSellerBadges(sellerId);
+}, [productDetails]);
+
   const isAvailableNow =
   productDetails &&
   (
@@ -780,6 +805,7 @@ const ProductDetails = ({ slug }) => {
                       <SellerDetailCard 
                         productDetails={productDetails} 
                         setProductDetails={setProductDetails}
+                        badges={badges}
                         // ✅ TRACKING PROPS
                         onPhoneReveal={trackPhoneReveal}
                         onPhoneClick={trackPhoneClick}

@@ -75,15 +75,28 @@ const getReferrer = () => {
 const postForm = async (endpoint, data) => {
   try {
     const form = new FormData();
-    Object.entries(data || {}).forEach(([k, v]) => {
+    const baseData = {
+      ...data,
+      visitor_id: getVisitorId(),
+      device_type: getDeviceType(),
+      ...getUTMParams(),
+      referrer_url: getReferrer(),
+      timestamp: new Date().toISOString(),
+    };
+
+    Object.entries(baseData).forEach(([k, v]) => {
       if (v === undefined || v === null) return;
+      
+      // FIX: Ako je objekat (npr filters) ili niz item_ids, stringify ga
       if (typeof v === "object") form.append(k, JSON.stringify(v));
       else form.append(k, String(v));
     });
 
+    // 🔥 FIX ZA CTR: keepalive: true osigurava da request preživi navigaciju
     const res = await fetch(`${API_BASE}/${endpoint}`, {
       method: "POST",
       body: form,
+      keepalive: true, 
     });
 
     // optional debug
@@ -417,6 +430,7 @@ const Search = () => {
   const trackSearchImpressions = useCallback(async (ads, query) => {
     if (!ads?.length || !query) return;
 
+    // 🔥 Generate unique impression ID
     const impressionId = "imp_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now();
     impressionIdRef.current = impressionId;
 
@@ -426,19 +440,15 @@ const Search = () => {
       category: selectedItem?.slug && selectedItem.slug !== "all-categories" ? selectedItem.slug : null,
     };
 
+    // 🔥 Send Impressions
     await postForm("track/search-impressions", {
       impression_id: impressionId,
-      item_ids: itemIds,
+      item_ids: itemIds, // postForm will stringify this
       search_query: query,
       search_type: "autocomplete",
       page: 1,
       results_total: ads.length,
       filters,
-      visitor_id: getVisitorId(),
-      device_type: getDeviceType(),
-      ...getUTMParams(),
-      referrer_url: getReferrer(),
-      timestamp: new Date().toISOString(),
     });
   }, [selectedItem?.slug]);
 
@@ -447,15 +457,11 @@ const Search = () => {
     const impressionId = impressionIdRef.current;
     if (!impressionId || !itemId) return;
 
+    // 🔥 Send Click (using keepalive: true inside postForm)
     await postForm("track/search-click", {
       impression_id: impressionId,
       item_id: itemId,
       position,
-      visitor_id: getVisitorId(),
-      device_type: getDeviceType(),
-      ...getUTMParams(),
-      referrer_url: getReferrer(),
-      timestamp: new Date().toISOString(),
     });
   }, []);
 
@@ -728,7 +734,11 @@ const Search = () => {
       setShowSuggestions(false);
       setSelectedIndex(-1);
 
-      if (ad?.id) await trackSearchClick(ad.id, position);
+      // 🔥 TRACK CLICK PRIJE NAVIGACIJE
+      if (ad?.id) {
+        // ne koristimo await da ne blokiramo UI, postForm ima keepalive: true
+        trackSearchClick(ad.id, position);
+      }
 
       // adjust if your details route differs
       if (ad?.slug) navigate(`/ad-details/${ad.slug}`);

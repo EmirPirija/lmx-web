@@ -66,6 +66,15 @@ export const GET_USER_INFO = "get-user-info";
 export const LOGOUT = "logout";
 export const SET_ITEM_TOTAL_CLICK = "set-item-total-click";
 
+// ============================================
+// GAMIFICATION API
+// ============================================
+export const GET_USER_BADGES = "gamification/user-badges";
+export const GET_USER_POINTS = "gamification/user-points";
+export const GET_LEADERBOARD = "gamification/leaderboard";
+export const GET_ALL_BADGES = "gamification/badges";
+export const GET_POINTS_HISTORY = "gamification/points-history";
+
 // 1. SETTINGS API
 export const settingsApi = {
   getSettings: ({ type } = {}) => {
@@ -1475,6 +1484,45 @@ export const publicTrackingApi = {
 
     return Api.post("track/search-click", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
+// ============================================
+// GAMIFICATION API
+// ============================================
+
+export const gamificationApi = {
+  // Dohvati sve bedževe korisnika
+  getUserBadges: ({ user_id } = {}) => {
+    return Api.get(GET_USER_BADGES, {
+      params: { user_id },
+    });
+  },
+
+  // Dohvati points korisnika
+  getUserPoints: ({ user_id } = {}) => {
+    return Api.get(GET_USER_POINTS, {
+      params: { user_id },
+    });
+  },
+
+  // Dohvati leaderboard
+  getLeaderboard: ({ period = "weekly", page = 1 } = {}) => {
+    return Api.get(GET_LEADERBOARD, {
+      params: { period, page },
+    });
+  },
+
+  // Dohvati sve dostupne bedževe (katalog)
+  getAllBadges: () => {
+    return Api.get(GET_ALL_BADGES);
+  },
+
+  // Dohvati historiju points-ova
+  getPointsHistory: ({ page = 1 } = {}) => {
+    return Api.get(GET_POINTS_HISTORY, {
+      params: { page },
     });
   },
 };

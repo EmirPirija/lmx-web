@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import SellerLsitings from "./SellerLsitings";
 import SellerDetailCard from "./SellerDetailCard";
-import { getSellerApi } from "@/utils/api";
+import { getSellerApi, gamificationApi } from "@/utils/api";
 import SellerRating from "./SellerRating";
 import SellerSkeleton from "./SellerSkeleton";
 import NoData from "@/components/EmptyStates/NoData";
@@ -22,7 +22,9 @@ const Seller = ({ id, searchParams }) => {
 
   const [seller, setSeller] = useState(null);
   const [ratings, setRatings] = useState(null);
+  const [badges, setBadges] = useState([]);
   const [isSellerDataLoading, setIsSellerDataLoading] = useState(false);
+
 
   const [isLoadMoreReview, setIsLoadMoreReview] = useState(false);
   const [reviewHasMore, setReviewHasMore] = useState(false);
@@ -41,6 +43,26 @@ const Seller = ({ id, searchParams }) => {
     getSeller(reviewCurrentPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [CurrentLanguage?.id, id]);
+
+
+
+useEffect(() => {
+  if (seller?.id) {
+    fetchSellerBadges();
+  }
+}, [seller?.id]);
+
+const fetchSellerBadges = async () => {
+  try {
+    const res = await gamificationApi.getUserBadges({ user_id: seller?.id });
+    if (!res.data.error) {
+      setBadges(res.data.data.badges || []);
+    }
+  } catch (error) {
+    console.error("Error fetching seller badges:", error);
+  }
+};
+
 
   const getSeller = async (page) => {
     if (page === 1) {
@@ -141,7 +163,7 @@ const Seller = ({ id, searchParams }) => {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
               {/* Lijeva kolona – detalji prodavača */}
               <div className="col-span-12 lg:col-span-4">
-                <SellerDetailCard seller={seller} ratings={ratings} />
+              <SellerDetailCard seller={seller} ratings={ratings} badges={badges} />
               </div>
 
               {/* Desna kolona – tabovi + sadržaj */}
