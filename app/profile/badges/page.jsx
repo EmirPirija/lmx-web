@@ -22,57 +22,6 @@ import { t } from "@/utils";
 import { toast } from "sonner";
 import Checkauth from "@/HOC/Checkauth";
 
-// ============================================
-// MOCK PODACI - Koriste se kada backend ne radi
-// ============================================
-const MOCK_USER_BADGES = {
-  badges: [
-    {
-      id: 1,
-      name: "Novi korisnik",
-      description: "Dobrodošli na platformu!",
-      icon: null,
-      earned_at: new Date().toISOString(),
-      unlocked: true,
-    },
-    {
-      id: 2,
-      name: "Prva objava",
-      description: "Objavili ste svoj prvi oglas",
-      icon: null,
-      earned_at: new Date(Date.now() - 86400000).toISOString(),
-      unlocked: true,
-    },
-    {
-      id: 3,
-      name: "Pro član",
-      description: "Nadogradili ste na Pro plan",
-      icon: null,
-      earned_at: new Date().toISOString(),
-      unlocked: true,
-    },
-  ],
-};
-
-const MOCK_ALL_BADGES = [
-  { id: 1, name: "Novi korisnik", description: "Dobrodošli na platformu!", icon: null },
-  { id: 2, name: "Prva objava", description: "Objavili ste svoj prvi oglas", icon: null },
-  { id: 3, name: "Pro član", description: "Nadogradili ste na Pro plan", icon: null },
-  { id: 4, name: "Super prodavač", description: "Prodali ste 10+ artikala", icon: null },
-  { id: 5, name: "Recenzent", description: "Ostavili ste 5+ recenzija", icon: null },
-  { id: 6, name: "Verifikovan", description: "Verificirali ste identitet", icon: null },
-  { id: 7, name: "Top korisnik", description: "Dostigli ste Level 10", icon: null },
-  { id: 8, name: "Premium", description: "6 mjeseci Pro članstva", icon: null },
-];
-
-const MOCK_USER_POINTS = {
-  total_points: 250,
-  level: 3,
-  level_name: "Aktivni korisnik",
-  points_to_next_level: 500,
-  current_level_points: 250,
-};
-
 const BadgesPage = () => {
   const dispatch = useDispatch();
   const { data: userBadges, loading: badgesLoading } = useSelector(
@@ -122,9 +71,9 @@ const BadgesPage = () => {
     } catch (error) {
       console.error("Error fetching badges, using mock data:", error);
       // Koristi mock podatke kada API potpuno ne radi
-      dispatch(setUserBadges(MOCK_USER_BADGES));
-      dispatch(setAllBadges(MOCK_ALL_BADGES));
-      dispatch(setUserPoints(MOCK_USER_POINTS));
+      // dispatch(setUserBadges(MOCK_USER_BADGES));
+      // dispatch(setAllBadges(MOCK_ALL_BADGES));
+      // dispatch(setUserPoints(MOCK_USER_POINTS));
     } finally {
       dispatch(setUserBadgesLoading(false));
       dispatch(setAllBadgesLoading(false));

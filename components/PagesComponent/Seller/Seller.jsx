@@ -148,17 +148,6 @@ const fetchSellerBadges = async () => {
         <>
           <BreadCrumb title2={seller?.name} />
           <div className="container mx-auto mt-6 mb-10 space-y-6">
-            {/* Naslov + opis */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  {seller?.name}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Pregled profila prodavača i njegovih oglasa.
-                </p>
-              </div>
-            </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
               {/* Lijeva kolona – detalji prodavača */}

@@ -1,72 +1,108 @@
 "use client";
 import React from "react";
-import Image from "next/image";
-import { t } from "@/utils";
+import {
+  IconRocket,
+  IconShieldCheck,
+  IconCrown,
+  IconFlame,
+  IconStar,
+  IconDiamond,
+  IconMedal,
+  IconBolt,
+  IconUsers,
+  IconGift,
+  IconTrendingUp,
+  IconLock,
+} from "@tabler/icons-react";
 
-const Badge = ({ badge, size = "md", showName = true, showDescription = false, className = "" }) => {
-  const sizes = {
-    sm: "w-12 h-12",
+const BADGES = {
+  early_adopter: {
+    icon: IconRocket,
+    gradient: "from-[#ff8c1a] via-[#ffb347] to-[#ff7a00]",
+  },
+  verified: {
+    icon: IconShieldCheck,
+    gradient: "from-[#1fd1b9] via-[#2ee5c9] to-[#0fb9b1]",
+  },
+  top_seller: {
+    icon: IconCrown,
+    gradient: "from-[#ffb703] via-[#ff9500] to-[#ff7a00]",
+  },
+  hot_seller: {
+    icon: IconFlame,
+    gradient: "from-[#ff5f6d] via-[#ff9966] to-[#ff7a00]",
+  },
+  featured: {
+    icon: IconStar,
+    gradient: "from-[#3a86ff] via-[#4ea8ff] to-[#00b4d8]",
+  },
+  vip: {
+    icon: IconDiamond,
+    gradient: "from-[#8338ec] via-[#5f27cd] to-[#341f97]",
+  },
+  winner: {
+    icon: IconMedal,
+    gradient: "from-[#ffd166] via-[#ffb703] to-[#fb8500]",
+  },
+  streak: {
+    icon: IconBolt,
+    gradient: "from-[#00f5d4] via-[#2ec4b6] to-[#06d6a0]",
+  },
+  community: {
+    icon: IconUsers,
+    gradient: "from-[#00b4d8] via-[#48cae4] to-[#90dbf4]",
+  },
+  generous: {
+    icon: IconGift,
+    gradient: "from-[#f72585] via-[#ff4d6d] to-[#ff758f]",
+  },
+  default: {
+    icon: IconTrendingUp,
+    gradient: "from-gray-500 via-gray-600 to-gray-700",
+  },
+};
+
+const Badge = ({ badge, size = "md" }) => {
+  const isUnlocked = badge?.unlocked || badge?.earned_at;
+
+  const key =
+    badge?.code?.toLowerCase()?.replace(/\s+/g, "_") ||
+    badge?.name?.toLowerCase()?.replace(/\s+/g, "_");
+
+  const meta = BADGES[key] || BADGES.default;
+  const Icon = meta.icon;
+
+  const sizeMap = {
+    sm: "w-8 h-8",
     md: "w-16 h-16",
     lg: "w-24 h-24",
-    xl: "w-32 h-32",
   };
 
-  const isUnlocked = badge?.unlocked || badge?.earned_at;
-  
   return (
-    <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <div className={`relative ${sizes[size]} ${!isUnlocked ? "opacity-40 grayscale" : ""}`}>
-        {badge?.icon ? (
-          <Image
-            src={badge.icon}
-            alt={badge.name}
-            fill
-            className="object-contain"
-          />
-        ) : (
-          <div className={`${sizes[size]} rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center`}>
-            <span className="text-white text-2xl font-bold">
-              {badge?.name?.charAt(0) || "?"}
-            </span>
-          </div>
-        )}
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative">
         
-        {/* Locked overlay */}
-        {!isUnlocked && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-gray-600"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-        )}
-      </div>
+        {/* Badge */}
+        <div
+          className={`
+            ${sizeMap[size]}
+            relative rounded-2xl
+            bg-gradient-to-br ${meta.gradient}
+            flex items-center justify-center
+            /* shadow-xl uklonjen */
+            transition-all duration-300
+            ${isUnlocked ? "hover:scale-105" : "opacity-40 grayscale"}
+          `}
+        >
+          <Icon className="w-1/2 h-1/2 text-white" />
 
-      {showName && (
-        <div className="text-center">
-          <p className={`font-semibold ${!isUnlocked ? "text-gray-400" : "text-gray-900 dark:text-white"}`}>
-            {badge?.name || t("unknownBadge")}
-          </p>
-          {badge?.earned_at && (
-            <p className="text-xs text-gray-500">
-              {new Date(badge.earned_at).toLocaleDateString()}
-            </p>
+          {!isUnlocked && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-2xl">
+              <IconLock className="w-6 h-6 text-white" />
+            </div>
           )}
         </div>
-      )}
-
-      {showDescription && badge?.description && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-xs">
-          {badge.description}
-        </p>
-      )}
+      </div>
     </div>
   );
 };

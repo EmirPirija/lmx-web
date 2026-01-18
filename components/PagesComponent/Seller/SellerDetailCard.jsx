@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { 
-  MdVerified, 
-  MdOutlineMail, 
-  MdPhone, 
-  MdCalendarMonth, 
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  MdOutlineMail,
+  MdPhone,
+  MdCalendarMonth,
   MdStar,
   MdContentCopy,
   MdCheck,
-  MdClose
+  MdVerified,
 } from "react-icons/md";
 import { extractYear } from "@/utils";
 import { usePathname } from "next/navigation";
@@ -22,17 +22,12 @@ import { toast } from "sonner";
 
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 
-
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose
 } from "@/components/ui/dialog";
 
-// Helper za formatiranje vremena - SVE NA BOSANSKOM
+// Helper za formatiranje vremena - SVE NA BOSANSKOM (ijekavica)
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
   const now = new Date();
@@ -45,326 +40,303 @@ const formatLastSeen = (timestamp) => {
   if (diffInSeconds < 3600) return `Prije ${Math.floor(diffInSeconds / 60)} min`;
   if (diffInSeconds < 86400) return `Prije ${Math.floor(diffInSeconds / 3600)} h`;
   if (diffInSeconds < 172800) return "Jučer";
-  
-  return lastSeen.toLocaleDateString("bs-BA", {
-    day: 'numeric', month: 'numeric', year: 'numeric'
-  });
+
+  return lastSeen.toLocaleDateString("bs-BA", { day: "numeric", month: "numeric", year: "numeric" });
 };
 
-const SellerDetailCard = ({ 
-  seller, 
+const SellerDetailCard = ({
+  seller,
   ratings,
-  // ✅ TRACKING PROPS
   onPhoneReveal,
   onPhoneClick,
   badges,
-  onWhatsAppClick,
-  onViberClick,
-  onMessageClick,
   onEmailClick,
   onProfileClick,
 }) => {
   const pathname = usePathname();
+  const CompanyName = useSelector(getCompanyName);
+
   const memberSinceYear = seller?.created_at ? extractYear(seller.created_at) : "";
   const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
-  const CompanyName = useSelector(getCompanyName);
-  const FbTitle = seller?.name + " | " + CompanyName;
+  const FbTitle = `${seller?.name || "Prodavač"} | ${CompanyName}`;
 
-  // State za kopiranje broja
   const [isCopied, setIsCopied] = useState(false);
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
 
-  const isOnline = seller?.is_online || false;
+  const isOnline = Boolean(seller?.is_online);
   const lastSeenText = !isOnline && seller?.last_seen ? formatLastSeen(seller.last_seen) : null;
 
-  // Funkcija za kopiranje
+  const ratingValue = useMemo(() => Number(seller?.average_rating || 0).toFixed(1), [seller?.average_rating]);
+  const ratingCount = useMemo(() => ratings?.data?.length || 0, [ratings]);
+
   const handleCopyPhone = () => {
-    if (seller?.mobile) {
-      navigator.clipboard.writeText(seller.mobile);
-      setIsCopied(true);
-      toast.success("Broj telefona kopiran!");
-      
-      // Resetuj ikonicu nakon 2 sekunde
-      setTimeout(() => setIsCopied(false), 2000);
-    }
+    if (!seller?.mobile) return;
+    navigator.clipboard.writeText(seller.mobile);
+    setIsCopied(true);
+    toast.success("Broj telefona je kopiran!");
+    setTimeout(() => setIsCopied(false), 1800);
   };
 
-  // ✅ HANDLER ZA OTVARANJE TELEFON MODALA
   const handleOpenPhoneModal = () => {
     setIsPhoneModalOpen(true);
-    // Track phone reveal
-    if (onPhoneReveal) {
-      onPhoneReveal();
-    }
+    if (onPhoneReveal) onPhoneReveal();
   };
 
-  // ✅ HANDLER ZA KLIK NA POZIV
   const handlePhoneCall = () => {
-    if (onPhoneClick) {
-      onPhoneClick();
-    }
+    if (onPhoneClick) onPhoneClick();
   };
 
-  // ✅ HANDLER ZA EMAIL
   const handleEmailClick = () => {
-    if (onEmailClick) {
-      onEmailClick();
-    }
+    if (onEmailClick) onEmailClick();
   };
 
-  // ✅ HANDLER ZA PROFIL KORISNIKA
   const handleProfileClick = () => {
-    if (onProfileClick) {
-      onProfileClick();
-    }
+    if (onProfileClick) onProfileClick();
   };
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden relative group hover:shadow-md transition-all duration-300">
-        
-        {/* --- HEADER BACKGROUND --- */}
-        <div className="h-24 bg-gradient-to-r from-primary/10 to-primary/5 w-full absolute top-0 left-0 z-0"></div>
+      <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden relative">
+        {/* HERO HEADER */}
+        <div className="relative h-28 bg-gradient-to-r from-primary/14 via-primary/8 to-transparent">
+          {/* subtle pattern */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 120" fill="none">
+            <path d="M0 80 C60 30 120 120 200 70 C270 30 320 110 400 60" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+          </svg>
 
-        {/* --- SHARE BUTTON --- */}
-        <div className="absolute top-3 right-3 z-10">
-          <ShareDropdown
-            url={currentUrl}
-            title={FbTitle}
-            headline={FbTitle}
-            companyName={CompanyName}
-            className="bg-white/80 backdrop-blur-sm hover:bg-white border-none shadow-sm rounded-full p-2 text-slate-600 transition-all"
-          />
+          {/* SHARE */}
+          <div className="absolute top-3 right-3">
+            <ShareDropdown
+              url={currentUrl}
+              title={FbTitle}
+              headline={FbTitle}
+              companyName={CompanyName}
+              className="bg-white/90 backdrop-blur-sm hover:bg-white border border-slate-100 rounded-full p-2 text-slate-700 transition-all"
+            />
+          </div>
         </div>
 
-        <div className="relative z-10 px-6 pt-8 pb-6 flex flex-col items-center">
-          
-          {/* --- AVATAR --- */}
-          <div className="relative mb-3">
-            <div className="p-1 bg-white rounded-full shadow-sm">
+        <div className="px-6 pb-6 -mt-10 flex flex-col items-center">
+          {/* AVATAR + STATUS DOT */}
+          <div className="relative">
+            <div className="p-1.5 rounded-full bg-white border border-slate-100">
               <CustomImage
                 src={seller?.profile}
-                alt="Seller Image"
-                width={100}
-                height={100}
-                className="w-[100px] h-[100px] aspect-square rounded-full object-cover border border-slate-100"
+                alt="Prodavač"
+                width={108}
+                height={108}
+                className="w-[108px] h-[108px] rounded-full object-cover"
               />
             </div>
-            {isOnline ? (
-              <div className="absolute bottom-2 right-2" title="Online">
-                <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75"></span>
-                <span className="relative block w-4 h-4 rounded-full bg-green-500 border-2 border-white"></span>
-              </div>
-            ) : (
-              <div className="absolute bottom-2 right-2" title="Offline">
-                 <span className="block w-4 h-4 rounded-full bg-slate-300 border-2 border-white"></span>
-              </div>
-            )}
-            </div>
 
-                      {/* --- BADGES --- */}
-          {badges && badges.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+            {/* Online dot (clean, no ping) */}
+            <span
+              className={cn(
+                "absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-white",
+                isOnline ? "bg-emerald-500" : "bg-slate-300"
+              )}
+              title={isOnline ? "Na mreži" : "Van mreže"}
+            />
+          </div>
+
+          {/* BADGES (small, neat) */}
+          {badges?.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               {badges.slice(0, 3).map((badge) => (
                 <div key={badge.id} className="relative group">
-                  <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
+                  <div className="rounded-xl border border-slate-100 bg-white px-1.5 py-1">
+                    <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
+                  </div>
+
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                    <div className="bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap">
                       {badge.name}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                        <div className="border-4 border-transparent border-t-gray-900" />
+                        <div className="border-4 border-transparent border-t-slate-900" />
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
+
               {badges.length > 3 && (
-                <span className="text-xs text-gray-500">+{badges.length - 3}</span>
+                <span className="text-xs font-medium text-slate-500 bg-slate-50 border border-slate-100 px-2 py-1 rounded-full">
+                  +{badges.length - 3}
+                </span>
               )}
             </div>
           )}
 
-            
-            
+          {/* NAME + VERIFIED PILL */}
+          <div className="mt-4 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                {seller?.name}
+              </h3>
 
-          {/* --- NAME --- */}
-          <div className="text-center mb-1">
-            <h3 className="text-xl font-bold text-slate-900 flex items-center justify-center gap-1.5">
-              {seller?.name}
               {seller?.is_verified === 1 && (
-                <MdVerified className="text-blue-500 text-lg" title="Verifikovan korisnik" />
-              )}
-            </h3>
-          </div>
-
-  
-          {/* --- BADGES --- NOVI KOD */}
-          {badges && badges.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-              {badges.slice(0, 3).map((badge) => (
-                <div key={badge.id} className="relative group">
-                  <Badge badge={badge} size="sm" showName={false} showDescription={false} />
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                      {badge.name}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                        <div className="border-4 border-transparent border-t-gray-900" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {badges.length > 3 && (
-                <span className="text-xs text-gray-500">+{badges.length - 3}</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-semibold">
+                  <MdVerified className="text-base" />
+                  Verifikovan
+                </span>
               )}
             </div>
-          )}
 
-          {/* --- STATUS --- */}
-          <div className="mb-4 text-center h-5">
-             {isOnline ? (
-               <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                 Na mreži
-               </span>
-             ) : (
-               <span className="text-xs text-slate-500">
-                 {lastSeenText ? `Na mreži: ${lastSeenText}` : "Van mreže"}
-               </span>
-             )}
+            {/* STATUS LINE */}
+            <div className="mt-1 h-6">
+              {isOnline ? (
+                <span className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                  Na mreži
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500">
+                  {lastSeenText ? `Na mreži: ${lastSeenText}` : "Van mreže"}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* --- STATS --- */}
-          <div className="flex items-center justify-center gap-4 w-full mb-6 text-sm">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-100">
+          {/* STATS ROW */}
+          <div className="mt-5 w-full flex items-center justify-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-50 border border-slate-100">
               <MdStar className="text-yellow-500 text-lg" />
-              <span className="font-bold">{Number(seller?.average_rating || 0).toFixed(1)}</span>
-              <span className="text-yellow-600/70 text-xs">({ratings?.data?.length || 0})</span>
+              <span className="font-extrabold text-slate-900">{ratingValue}</span>
+              <span className="text-xs text-slate-500">({ratingCount})</span>
             </div>
 
             {memberSinceYear && (
-               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-100">
-                 <MdCalendarMonth className="text-slate-400 text-lg" />
-                 <span className="font-medium">{memberSinceYear}</span>
-               </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white border border-slate-100">
+                <MdCalendarMonth className="text-slate-400 text-lg" />
+                <span className="text-sm font-semibold text-slate-700">{memberSinceYear}</span>
+              </div>
             )}
           </div>
 
-          {/* --- CONTACT BUTTONS --- */}
+          {/* CONTACT BUTTONS */}
           {seller?.show_personal_details === 1 && (seller?.email || seller?.mobile) && (
-            <div className="grid grid-cols-2 gap-3 w-full">
-              
-              {/* TELEFON DUGME (Otvara Modal) */}
+            <div className="mt-6 grid grid-cols-2 gap-3 w-full">
+              {/* PHONE */}
               {seller?.mobile ? (
                 <button
                   onClick={handleOpenPhoneModal}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all duration-200",
-                    "bg-primary text-white hover:bg-primary/90 shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
+                    "flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold",
+                    "bg-primary text-white hover:bg-primary/90 active:scale-[0.98] transition-all"
                   )}
                 >
-                  <MdPhone className="text-lg" />
+                  <MdPhone className="text-xl" />
                   <span>Pozovi</span>
                 </button>
               ) : (
-                 <button disabled className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium bg-slate-100 text-slate-400 cursor-not-allowed">
-                    <MdPhone className="text-lg" />
-                    <span>Nema broj</span>
-                 </button>
+                <button
+                  disabled
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 text-slate-400 cursor-not-allowed"
+                >
+                  <MdPhone className="text-xl" />
+                  <span>Nema broj</span>
+                </button>
               )}
 
-              {/* EMAIL DUGME */}
+              {/* EMAIL */}
               {seller?.email ? (
-                <a 
+                <a
                   href={`mailto:${seller?.email}`}
                   onClick={handleEmailClick}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-all duration-200",
-                    "bg-white border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-95"
+                    "flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold",
+                    "bg-white border border-slate-200 text-slate-800 hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-[0.98] transition-all"
                   )}
                 >
-                  <MdOutlineMail className="text-lg" />
+                  <MdOutlineMail className="text-xl" />
                   <span>Email</span>
                 </a>
               ) : (
-                  <button disabled className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium bg-slate-100 text-slate-400 cursor-not-allowed">
-                    <MdOutlineMail className="text-lg" />
-                    <span>Nema email</span>
-                 </button>
+                <button
+                  disabled
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 text-slate-400 cursor-not-allowed"
+                >
+                  <MdOutlineMail className="text-xl" />
+                  <span>Nema email</span>
+                </button>
               )}
             </div>
           )}
         </div>
 
-        <div className="bg-slate-50 border-t border-slate-100 p-3 text-center">
-            <CustomLink 
-              href={`/seller/${seller?.id}`} 
-              className="text-xs font-medium text-slate-500 hover:text-primary transition-colors"
-              onClick={handleProfileClick}
-            >
-                Pogledaj sve oglase ovog korisnika &rarr;
-            </CustomLink>
+        {/* FOOTER ACTION */}
+        <div className="px-4 pb-4">
+          <CustomLink
+            href={`/seller/${seller?.id}`}
+            onClick={handleProfileClick}
+            className="block w-full text-center text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-100 rounded-2xl py-3 hover:bg-white hover:border-slate-200 transition-colors"
+          >
+            Pogledaj sve oglase ovog korisnika →
+          </CustomLink>
         </div>
       </div>
 
-      {/* 🔥 MODAL ZA TELEFON */}
+      {/* MODAL ZA TELEFON */}
       <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>
-        <DialogContent className="sm:max-w-sm w-[90%] rounded-2xl p-0 overflow-hidden bg-white">
-          
-          <div className="bg-primary/10 p-6 flex flex-col items-center justify-center border-b border-primary/10">
-             <CustomImage
+        <DialogContent className="sm:max-w-sm w-[92%] rounded-3xl p-0 overflow-hidden bg-white border border-slate-100">
+          {/* header */}
+          <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-primary/12 to-transparent border-b border-slate-100 flex flex-col items-center">
+            <div className="p-1.5 rounded-full bg-white border border-slate-100">
+              <CustomImage
                 src={seller?.profile}
-                alt="Seller"
-                width={70}
-                height={70}
-                className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm mb-3"
-             />
-             <h3 className="font-bold text-lg text-slate-800">{seller?.name}</h3>
-             <p className="text-slate-500 text-sm">Kontakt telefon</p>
+                alt="Prodavač"
+                width={72}
+                height={72}
+                className="w-16 h-16 rounded-full object-cover"
+              />
+            </div>
+            <h3 className="mt-3 font-extrabold text-lg text-slate-900">{seller?.name}</h3>
+            <p className="text-slate-500 text-sm">Kontakt telefon</p>
           </div>
 
+          {/* content */}
           <div className="p-6 space-y-4">
-             {/* Prikaz broja */}
-             <div 
-               onClick={handleCopyPhone}
-               className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-100 transition-colors active:scale-[0.98]"
-             >
-                <p className="text-2xl font-bold text-slate-800 tracking-wide">
-                  {seller?.mobile}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Klikni da kopiraš broj
-                </p>
-             </div>
+            <button
+              type="button"
+              onClick={handleCopyPhone}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center hover:bg-slate-100 active:scale-[0.99] transition-all"
+            >
+              <p className="text-2xl font-extrabold text-slate-900 tracking-wide">
+                {seller?.mobile}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Klikni da kopiraš broj
+              </p>
+            </button>
 
-             {/* Dugmad */}
-             <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={handleCopyPhone}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-95 transition-all"
-                >
-                  {isCopied ? <MdCheck className="text-green-500 text-xl" /> : <MdContentCopy className="text-xl" />}
-                  <span>{isCopied ? "Kopirano" : "Kopiraj"}</span>
-                </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={handleCopyPhone}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 active:scale-[0.98] transition-all"
+              >
+                {isCopied ? <MdCheck className="text-emerald-600 text-xl" /> : <MdContentCopy className="text-xl" />}
+                <span>{isCopied ? "Kopirano" : "Kopiraj"}</span>
+              </button>
 
-                <a 
-                  href={`tel:${seller?.mobile}`}
-                  onClick={handlePhoneCall}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
-                >
-                  <MdPhone className="text-xl" />
-                  <span>Pozovi</span>
-                </a>
-             </div>
+              <a
+                href={`tel:${seller?.mobile}`}
+                onClick={handlePhoneCall}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-primary text-white hover:bg-primary/90 active:scale-[0.98] transition-all"
+              >
+                <MdPhone className="text-xl" />
+                <span>Pozovi</span>
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsPhoneModalOpen(false)}
+              className="w-full text-sm font-semibold text-slate-600 hover:text-slate-900 py-2"
+            >
+              Zatvori
+            </button>
           </div>
-
-          <div className="bg-slate-50 p-3 text-center border-t border-slate-100">
-             <button onClick={() => setIsPhoneModalOpen(false)} className="text-sm text-slate-500 hover:text-slate-800">
-               Zatvori
-             </button>
-          </div>
-
         </DialogContent>
       </Dialog>
     </>
