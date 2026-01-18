@@ -18,7 +18,7 @@ const MembershipTierSelector = ({ onSelectTier }) => {
   }, []);
 
   const fetchTiers = async () => {
-    dispatch(setMembershipTiersLoading(true));
+    // dispatch(setMembershipTiersLoading(true));
     try {
       const res = await membershipApi.getMembershipTiers();
       if (!res.data.error) {
