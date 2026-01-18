@@ -2,19 +2,29 @@
 import React from "react";
 import { t } from "@/utils";
 
+// Default podaci kada nema userPoints
+const DEFAULT_POINTS = {
+  total_points: 0,
+  level: 1,
+  level_name: "Početnik",
+  points_to_next_level: 100,
+  current_level_points: 0,
+};
+
 const UserLevel = ({ userPoints, showProgress = true }) => {
-  if (!userPoints) return null;
+  // Koristi default ako nema podataka umjesto da vraća null
+  const points = userPoints || DEFAULT_POINTS;
 
   const {
     total_points = 0,
     level = 1,
     level_name = "",
-    points_to_next_level = 0,
+    points_to_next_level = 100,
     current_level_points = 0,
-  } = userPoints;
+  } = points;
 
   const progressPercentage = points_to_next_level > 0
-    ? (current_level_points / points_to_next_level) * 100
+    ? Math.min((current_level_points / points_to_next_level) * 100, 100)
     : 100;
 
   return (

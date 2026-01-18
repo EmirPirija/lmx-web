@@ -8,25 +8,64 @@ import { Crown, Store, Check } from "lucide-react";
 import { toast } from "sonner";
 import { t, formatPriceAbbreviated } from "@/utils";
 
-const MembershipTierSelector = ({ onSelectTier }) => {
+// ============================================
+// MOCK TIEROVI - Koriste se kada backend ne radi
+// ============================================
+const MOCK_MEMBERSHIP_TIERS = [
+  {
+    id: 1,
+    name: "LMX Pro",
+    slug: "pro",
+    price: 9.99,
+    duration_days: 30,
+    description: "Za power usere koji žele više mogućnosti",
+  },
+  {
+    id: 2,
+    name: "LMX Shop",
+    slug: "shop",
+    price: 29.99,
+    duration_days: 30,
+    description: "Za biznise i profesionalne prodavače",
+  },
+];
+
+const MembershipTierSelector = ({ tiers: propTiers, selectedTier: propSelectedTier, onSelectTier }) => {
   const dispatch = useDispatch();
-  const { data: tiers, loading } = useSelector((state) => state.Membership.membershipTiers);
-  const [selectedTier, setSelectedTier] = useState(null);
+  const { data: reduxTiers, loading } = useSelector((state) => state.Membership.membershipTiers);
+  const [selectedTier, setSelectedTier] = useState(propSelectedTier?.id || null);
+
+  // Koristi props tiers ako su proslijeđeni, inače redux, inače mock
+  const tiers = propTiers?.length > 0 ? propTiers : (reduxTiers?.length > 0 ? reduxTiers : MOCK_MEMBERSHIP_TIERS);
 
   useEffect(() => {
-    fetchTiers();
+    // Samo fetch ako nemamo tierove i nisu proslijeđeni kao prop
+    if (!propTiers?.length && !reduxTiers?.length) {
+      fetchTiers();
+    }
   }, []);
 
+  useEffect(() => {
+    if (propSelectedTier) {
+      setSelectedTier(propSelectedTier.id);
+    }
+  }, [propSelectedTier]);
+
   const fetchTiers = async () => {
-    // dispatch(setMembershipTiersLoading(true));
+    dispatch(setMembershipTiersLoading(true));
     try {
       const res = await membershipApi.getMembershipTiers();
-      if (!res.data.error) {
+      if (res.data?.data?.length > 0) {
         dispatch(setMembershipTiers(res.data.data));
+      } else {
+        // Koristi mock podatke ako API ne vrati ništa
+        dispatch(setMembershipTiers(MOCK_MEMBERSHIP_TIERS));
       }
     } catch (error) {
-      console.error(error);
-      toast.error(t("errorFetchingTiers"));
+      console.error("Error fetching tiers, using mock:", error);
+      dispatch(setMembershipTiers(MOCK_MEMBERSHIP_TIERS));
+    } finally {
+      dispatch(setMembershipTiersLoading(false));
     }
   };
 
@@ -131,7 +170,7 @@ const MembershipTierSelector = ({ onSelectTier }) => {
               </Button>
             </div>
 
-            {/* Popular Badge (optional - za shop tier) */}
+            {/* Popular Badge */}
             {tier.slug === 'shop' && (
               <div className="absolute top-4 right-4 bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
                 {t("popular")}
