@@ -9,6 +9,7 @@ import locationReducer from '../reducer/locationSlice';
 import globalStateReducer from '../reducer/globalStateSlice';
 import authReducer from '../reducer/authSlice'
 import gamificationReducer from '../reducer/gamificationSlice'
+import membershipReducer from '../reducer/membershipSlice'
 
 
 const persistConfig = {
@@ -26,7 +27,8 @@ const rootReducer = combineReducers({
   CurrentLanguage: CurrentLanguageReducer,
   Location: locationReducer,
   GlobalState: globalStateReducer,
-  Gamification: gamificationReducer
+  Gamification: gamificationReducer,
+  Membership: membershipReducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

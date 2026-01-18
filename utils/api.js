@@ -75,6 +75,11 @@ export const GET_LEADERBOARD = "gamification/leaderboard";
 export const GET_ALL_BADGES = "gamification/badges";
 export const GET_POINTS_HISTORY = "gamification/points-history";
 
+export const GET_USER_MEMBERSHIP = "membership/user-membership";
+export const GET_MEMBERSHIP_TIERS = "membership/tiers";
+export const UPGRADE_MEMBERSHIP = "membership/upgrade";
+export const CANCEL_MEMBERSHIP = "membership/cancel";
+
 // 1. SETTINGS API
 export const settingsApi = {
   getSettings: ({ type } = {}) => {
@@ -1524,5 +1529,40 @@ export const gamificationApi = {
     return Api.get(GET_POINTS_HISTORY, {
       params: { page },
     });
+  },
+};
+
+// ============================================
+// MEMBERSHIP API
+// ============================================
+export const membershipApi = {
+  // Dohvati membership status korisnika
+  getUserMembership: ({ user_id } = {}) => {
+    return Api.get(GET_USER_MEMBERSHIP, {
+      params: { user_id },
+    });
+  },
+
+  // Dohvati sve dostupne membership tier-ove (Pro, Shop pakete)
+  getMembershipTiers: () => {
+    return Api.get(GET_MEMBERSHIP_TIERS);
+  },
+
+  // Upgrade na Pro ili Shop membership
+  upgradeMembership: ({ tier_id, payment_method } = {}) => {
+    const formData = new FormData();
+    if (tier_id) formData.append("tier_id", tier_id);
+    if (payment_method) formData.append("payment_method", payment_method);
+
+    return Api.post(UPGRADE_MEMBERSHIP, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  // Cancel membership
+  cancelMembership: () => {
+    return Api.post(CANCEL_MEMBERSHIP);
   },
 };

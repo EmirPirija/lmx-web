@@ -6,6 +6,8 @@ import { toast } from "sonner"; // Koristimo sonner za notifikacije
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
+import UpgradeMembershipCard from "@/components/PagesComponent/Membership/UpgradeMembershipCard";
+
 
 // Icons
 import { 
@@ -358,6 +360,9 @@ const Profile = () => {
                   </div>
                </div>
             </div>
+
+            {/* MEMBERSHIP UPGRADE CARD */}
+            <UpgradeMembershipCard />
 
             {/* QUICK STATS / INFO (Opcionalni vizualni dodatak) */}
              <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100 hidden lg:block">
