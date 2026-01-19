@@ -59,21 +59,17 @@ const BadgesPage = () => {
       // All badges - koristi mock ako API ne vrati podatke
       const allBadgesData = allBadgesRes.data?.data?.length > 0
         ? allBadgesRes.data.data
-        : MOCK_ALL_BADGES;
+        : null;
       dispatch(setAllBadges(allBadgesData));
 
       // User points - koristi mock ako API ne vrati podatke
       const pointsData = pointsRes.data?.data?.total_points !== undefined
         ? pointsRes.data.data
-        : MOCK_USER_POINTS;
+        : undefined;
       dispatch(setUserPoints(pointsData));
 
     } catch (error) {
       console.error("Error fetching badges, using mock data:", error);
-      // Koristi mock podatke kada API potpuno ne radi
-      // dispatch(setUserBadges(MOCK_USER_BADGES));
-      // dispatch(setAllBadges(MOCK_ALL_BADGES));
-      // dispatch(setUserPoints(MOCK_USER_POINTS));
     } finally {
       dispatch(setUserBadgesLoading(false));
       dispatch(setAllBadgesLoading(false));
@@ -84,10 +80,10 @@ const BadgesPage = () => {
   const earnedBadges = userBadges?.badges || [];
   const earnedBadgeIds = earnedBadges.map((b) => b.id);
   const lockedBadges =
-    (allBadges || MOCK_ALL_BADGES)?.filter((badge) => !earnedBadgeIds.includes(badge.id)) || [];
+    (allBadges)?.filter((badge) => !earnedBadgeIds.includes(badge.id)) || [];
 
   // Koristi mock points ako nema podataka
-  const displayPoints = userPoints || MOCK_USER_POINTS;
+  const displayPoints = userPoints;
 
   return (
     <Layout>
@@ -137,7 +133,7 @@ const BadgesPage = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {(allBadges || MOCK_ALL_BADGES)?.length || 0}
+                    {(allBadges)?.length || 0}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{t("totalBadges")}</p>
                 </div>

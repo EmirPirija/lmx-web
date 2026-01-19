@@ -80,6 +80,9 @@ export const GET_MEMBERSHIP_TIERS = "membership/tiers";
 export const UPGRADE_MEMBERSHIP = "membership/upgrade";
 export const CANCEL_MEMBERSHIP = "membership/cancel";
 
+export const GET_SELLER_SETTINGS = "get-seller-settings";
+export const UPDATE_SELLER_SETTINGS = "update-seller-settings";
+
 // 1. SETTINGS API
 export const settingsApi = {
   getSettings: ({ type } = {}) => {
@@ -1564,5 +1567,143 @@ export const membershipApi = {
   // Cancel membership
   cancelMembership: () => {
     return Api.post(CANCEL_MEMBERSHIP);
+  },
+};
+
+// ============================================
+// ITEM QUESTIONS API (Javna pitanja na oglasima)
+// ============================================
+export const ITEM_QUESTIONS = "item-questions";
+export const ADD_QUESTION = "add-question";
+export const ANSWER_QUESTION = "answer-question";
+export const LIKE_QUESTION = "like-question";
+export const DELETE_QUESTION = "delete-question";
+export const REPORT_QUESTION = "report-question";
+
+export const itemQuestionsApi = {
+  getQuestions: ({ item_id, page = 1 } = {}) => {
+    return Api.get(ITEM_QUESTIONS, {
+      params: { item_id, page },
+    });
+  },
+
+  addQuestion: ({ item_id, question } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (question) formData.append("question", question);
+    return Api.post(ADD_QUESTION, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  answerQuestion: ({ question_id, answer } = {}) => {
+    const formData = new FormData();
+    if (question_id) formData.append("question_id", question_id);
+    if (answer) formData.append("answer", answer);
+    return Api.post(ANSWER_QUESTION, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  likeQuestion: ({ question_id } = {}) => {
+    const formData = new FormData();
+    if (question_id) formData.append("question_id", question_id);
+    return Api.post(LIKE_QUESTION, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  deleteQuestion: ({ question_id } = {}) => {
+    const formData = new FormData();
+    if (question_id) formData.append("question_id", question_id);
+    return Api.post(DELETE_QUESTION, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  reportQuestion: ({ question_id, reason } = {}) => {
+    const formData = new FormData();
+    if (question_id) formData.append("question_id", question_id);
+    if (reason) formData.append("reason", reason);
+    return Api.post(REPORT_QUESTION, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
+// ============================================
+// ITEM CONVERSATIONS API
+// ============================================
+export const CHECK_ITEM_CONVERSATION = "check-item-conversation";
+
+export const itemConversationApi = {
+  checkConversation: ({ item_id } = {}) => {
+    return Api.get(CHECK_ITEM_CONVERSATION, {
+      params: { item_id },
+    });
+  },
+};
+
+// ============================================
+// SELLER SETTINGS API
+// ============================================
+
+export const sellerSettingsApi = {
+  getSettings: () => {
+    return Api.get(GET_SELLER_SETTINGS);
+  },
+
+  updateSettings: ({
+    show_phone,
+    show_email,
+    show_whatsapp,
+    show_viber,
+    whatsapp_number,
+    viber_number,
+    business_hours,
+    response_time,
+    accepts_offers,
+    auto_reply_enabled,
+    auto_reply_message,
+    vacation_mode,
+    vacation_message,
+    preferred_contact_method,
+    business_description,
+    return_policy,
+    shipping_info,
+    social_facebook,
+    social_instagram,
+    social_tiktok,
+    social_youtube,
+    social_website,
+  } = {}) => {
+    const formData = new FormData();
+
+    if (show_phone !== undefined) formData.append("show_phone", show_phone ? 1 : 0);
+    if (show_email !== undefined) formData.append("show_email", show_email ? 1 : 0);
+    if (show_whatsapp !== undefined) formData.append("show_whatsapp", show_whatsapp ? 1 : 0);
+    if (show_viber !== undefined) formData.append("show_viber", show_viber ? 1 : 0);
+    if (whatsapp_number) formData.append("whatsapp_number", whatsapp_number);
+    if (viber_number) formData.append("viber_number", viber_number);
+    if (business_hours) formData.append("business_hours", JSON.stringify(business_hours));
+    if (response_time) formData.append("response_time", response_time);
+    if (accepts_offers !== undefined) formData.append("accepts_offers", accepts_offers ? 1 : 0);
+    if (auto_reply_enabled !== undefined) formData.append("auto_reply_enabled", auto_reply_enabled ? 1 : 0);
+    if (auto_reply_message) formData.append("auto_reply_message", auto_reply_message);
+    if (vacation_mode !== undefined) formData.append("vacation_mode", vacation_mode ? 1 : 0);
+    if (vacation_message) formData.append("vacation_message", vacation_message);
+    if (preferred_contact_method) formData.append("preferred_contact_method", preferred_contact_method);
+    if (business_description) formData.append("business_description", business_description);
+    if (return_policy) formData.append("return_policy", return_policy);
+    if (shipping_info) formData.append("shipping_info", shipping_info);
+    if (social_facebook) formData.append("social_facebook", social_facebook);
+    if (social_instagram) formData.append("social_instagram", social_instagram);
+    if (social_tiktok) formData.append("social_tiktok", social_tiktok);
+    if (social_youtube) formData.append("social_youtube", social_youtube);
+    if (social_website) formData.append("social_website", social_website);
+
+    return Api.post(UPDATE_SELLER_SETTINGS, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
   },
 };

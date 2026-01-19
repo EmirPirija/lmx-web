@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { 
-  MdVerified, 
-  MdPhone, 
+import { useState, useEffect, useCallback } from "react";
+import {
+  MdVerified,
+  MdPhone,
   MdStar,
   MdContentCopy,
   MdCheck,
@@ -10,7 +10,9 @@ import {
   MdChatBubbleOutline,
   MdLocalOffer,
   MdWorkOutline,
-  MdCalendarMonth
+  MdCalendarMonth,
+  MdForum,
+  MdAdd
 } from "react-icons/md";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
@@ -21,54 +23,83 @@ import CustomImage from "@/components/Common/CustomImage";
 import { toast } from "sonner";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import { itemOfferApi } from "@/utils/api";
+import { itemOfferApi, itemConversationApi } from "@/utils/api";
 import MakeOfferModal from "./MakeOfferModal";
 import ApplyJobModal from "./ApplyJobModal";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
- 
+
 import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
- 
-// Formatiranje datuma pridruživanja (Januar 2026)
+
 const formatJoinDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return "";
- 
+
   const months = [
     "januar", "februar", "mart", "april", "maj", "juni",
     "juli", "august", "septembar", "oktobar", "novembar", "decembar"
   ];
- 
+
   return `${months[date.getMonth()]} ${date.getFullYear()}`;
 };
- 
-const SellerDetailCard = ({ productDetails, setProductDetails }) => {
+
+const SellerDetailCard = ({ productDetails, setProductDetails, badges }) => {
   const dispatch = useDispatch();
   const { navigate } = useNavigate();
   const pathname = usePathname();
   const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
   const CompanyName = useSelector(getCompanyName);
-  
+
   const seller = productDetails?.user;
   const FbTitle = seller?.name + " | " + CompanyName;
- 
+
   const loggedInUser = useSelector(userSignUpData);
   const isLoggedIn = useSelector(getIsLoggedIn);
   const loggedInUserId = loggedInUser?.id;
   const [IsStartingChat, setIsStartingChat] = useState(false);
   const [IsOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
- 
+
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
- 
+
+  // Provjera postojeće konverzacije
+  const [existingConversation, setExistingConversation] = useState(null);
+  const [isCheckingConversation, setIsCheckingConversation] = useState(false);
+
+  const checkExistingConversation = useCallback(async () => {
+    if (!isLoggedIn || !productDetails?.id) return;
+
+    try {
+      setIsCheckingConversation(true);
+      const response = await itemConversationApi.checkConversation({
+        item_id: productDetails.id
+      });
+
+      if (response?.data?.error === false && response?.data?.data) {
+        setExistingConversation(response.data.data);
+      } else {
+        setExistingConversation(null);
+      }
+    } catch (error) {
+      console.error("Greška pri provjeri konverzacije:", error);
+      setExistingConversation(null);
+    } finally {
+      setIsCheckingConversation(false);
+    }
+  }, [isLoggedIn, productDetails?.id]);
+
+  useEffect(() => {
+    checkExistingConversation();
+  }, [checkExistingConversation]);
+
   const joinDate = formatJoinDate(seller?.created_at);
- 
+
   const isAllowedToMakeOffer =
     productDetails?.price > 0 &&
     !productDetails?.is_already_offered &&
@@ -77,7 +108,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
   const isApplied = productDetails?.is_already_job_applied;
   const item_id = productDetails?.id;
- 
+
   const handleChat = async () => {
     if (!isLoggedIn) {
       dispatch(setIsLoginOpen(true));
@@ -97,7 +128,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
       setIsStartingChat(false);
     }
   };
- 
+
   const handleMakeOffer = () => {
     if (!isLoggedIn) {
       dispatch(setIsLoginOpen(true));
@@ -105,7 +136,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
     }
     setIsOfferModalOpen(true);
   };
- 
+
   const handleCopyPhone = () => {
     if (seller?.mobile) {
       navigator.clipboard.writeText(seller.mobile);
@@ -114,18 +145,16 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
       setTimeout(() => setIsCopied(false), 2000);
     }
   };
- 
+
   return (
     <>
-      <div 
+      <div
         data-seller-card
         className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden relative group"
       >
-        
-        {/* Dekorativna pozadina */}
+
         <div className="h-20 bg-gradient-to-br from-slate-50 to-slate-100 w-full absolute top-0 left-0 z-0 border-b border-slate-100"></div>
- 
-        {/* Dijeli profil */}
+
         <div className="absolute top-3 right-3 z-10">
           <ShareDropdown
             url={`${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller?.id}`}
@@ -135,10 +164,9 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
             className="bg-white hover:bg-slate-50 border border-slate-200 shadow-sm rounded-full p-2 text-slate-500 transition-all"
           />
         </div>
- 
+
         <div className="relative z-10 px-5 pt-6 pb-5">
-          
-          {/* INFO SEKCIJA */}
+
           <div className="flex flex-col items-center justify-center text-center">
             <div className="relative mb-3 cursor-pointer group/avatar" onClick={() => navigate(`/seller/${seller?.id}`)}>
               <div className="p-1.5 bg-white rounded-full shadow-md group-hover/avatar:shadow-lg transition-shadow">
@@ -157,40 +185,36 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
               )}
             </div>
 
-            
-                      {/* --- BADGES --- */}
-          {badges && badges.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-              {badges.slice(0, 3).map((badge) => (
-                <div key={badge.id} className="relative group">
-                  <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                      {badge.name}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                        <div className="border-4 border-transparent border-t-gray-900" />
+            {badges && badges.length > 0 && (
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+                {badges.slice(0, 3).map((badge) => (
+                  <div key={badge.id} className="relative group">
+                    <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                        {badge.name}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                          <div className="border-4 border-transparent border-t-gray-900" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {badges.length > 3 && (
-                <span className="text-xs text-gray-500">+{badges.length - 3}</span>
-              )}
-            </div>
-          )}
- 
+                ))}
+                {badges.length > 3 && (
+                  <span className="text-xs text-gray-500">+{badges.length - 3}</span>
+                )}
+              </div>
+            )}
+
             <div className="mb-1">
-              <CustomLink 
+              <CustomLink
                 href={`/seller/${seller?.id}`}
                 className="text-xl font-bold text-slate-900 hover:text-primary transition-colors"
               >
                 {seller?.name}
               </CustomLink>
             </div>
-            
-            {/* STATISTIKA I DATUM */}
+
             <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
               {seller?.average_rating > 0 && (
                 <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
@@ -199,7 +223,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
                   <span className="text-slate-400 text-xs">({seller?.reviews_count || 0})</span>
                 </div>
               )}
-              
+
               {joinDate && (
                 <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100" title="Datum pridruživanja">
                   <MdCalendarMonth className="text-slate-400 text-base" />
@@ -208,23 +232,53 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
               )}
             </div>
           </div>
- 
+
           <div className="h-px w-full bg-slate-100 my-5"></div>
- 
+
           {/* DUGMAD */}
           <div className="w-full flex flex-col gap-3">
-            
-            {/* Započni chat - Glavno dugme */}
+
+            {/* Ako postoji konverzacija - prikaži "Vidi konverzaciju" */}
+            {existingConversation && (
+              <button
+                onClick={() => navigate("/chat?activeTab=buying&chatid=" + existingConversation.id)}
+                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white bg-primary hover:bg-primary/90 active:scale-[0.98] transition-all shadow-sm"
+              >
+                <MdForum className="text-xl" />
+                <span>Vidi konverzaciju</span>
+                {existingConversation.unread_count > 0 && (
+                  <span className="ml-1 px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                    {existingConversation.unread_count}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Započni chat */}
             <button
               data-chat-button
               onClick={handleChat}
-              disabled={IsStartingChat}
-              className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] transition-all shadow-sm disabled:opacity-70 disabled:cursor-wait"
+              disabled={IsStartingChat || isCheckingConversation}
+              className={cn(
+                "flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-70 disabled:cursor-wait active:scale-[0.98]",
+                existingConversation
+                  ? "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                  : "bg-slate-900 text-white hover:bg-slate-800"
+              )}
             >
-              <MdChatBubbleOutline className="text-xl" />
-              <span>{IsStartingChat ? "Pokrećem..." : "Pošalji poruku"}</span>
+              {existingConversation ? (
+                <>
+                  <MdAdd className="text-xl" />
+                  <span>{IsStartingChat ? "Pokrećem..." : "Nova poruka"}</span>
+                </>
+              ) : (
+                <>
+                  <MdChatBubbleOutline className="text-xl" />
+                  <span>{IsStartingChat ? "Pokrećem..." : "Pošalji poruku"}</span>
+                </>
+              )}
             </button>
- 
+
             {/* Telefon */}
             {seller?.show_personal_details === 1 && seller?.mobile && (
               <button
@@ -235,7 +289,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
                 <span>Prikaži broj telefona</span>
               </button>
             )}
- 
+
             {/* Ponudi */}
             {isAllowedToMakeOffer && (
               <button
@@ -246,7 +300,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
                 <span>Ponudi svoju cijenu</span>
               </button>
             )}
- 
+
             {/* Apliciraj za posao */}
             {isJobCategory && (
               <button
@@ -254,8 +308,8 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
                 disabled={isApplied}
                 className={cn(
                   "flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white transition-all shadow-sm",
-                  isApplied 
-                    ? "bg-slate-400 cursor-not-allowed" 
+                  isApplied
+                    ? "bg-slate-400 cursor-not-allowed"
                     : "bg-purple-600 hover:bg-purple-700 active:scale-[0.98]"
                 )}
               >
@@ -264,10 +318,9 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
               </button>
             )}
           </div>
- 
-          {/* Link na profil */}
+
           <div className="mt-5 text-center">
-            <CustomLink 
+            <CustomLink
               href={`/seller/${seller?.id}`}
               className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-primary transition-colors uppercase tracking-wide"
             >
@@ -276,18 +329,18 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
           </div>
         </div>
       </div>
- 
+
       {/* MODAL ZA TELEFON */}
       <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>
         <DialogContent className="sm:max-w-sm w-[90%] p-0 gap-0 rounded-3xl overflow-hidden bg-white border-none shadow-2xl">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 relative flex flex-col items-center justify-center">
-            <button 
+            <button
               onClick={() => setIsPhoneModalOpen(false)}
               className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
             >
               <MdClose size={20} />
             </button>
-            
+
             <CustomImage
               src={seller?.profile}
               alt={seller?.name || "Prodavač"}
@@ -298,9 +351,9 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
             <h3 className="font-bold text-xl">{seller?.name}</h3>
             <p className="text-slate-300 text-sm">Kontakt informacije</p>
           </div>
- 
+
           <div className="p-6 bg-white">
-            <div 
+            <div
               onClick={handleCopyPhone}
               className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 text-center cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all group"
             >
@@ -311,17 +364,17 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
                 Klikni za kopiranje
               </p>
             </div>
- 
+
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button 
+              <button
                 onClick={handleCopyPhone}
                 className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all"
               >
                 {isCopied ? <MdCheck className="text-green-600 text-xl" /> : <MdContentCopy className="text-xl" />}
                 <span>{isCopied ? "Kopirano!" : "Kopiraj"}</span>
               </button>
- 
-              <a 
+
+              <a
                 href={`tel:${seller?.mobile}`}
                 className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold bg-green-600 text-white hover:bg-green-700 active:scale-[0.98] transition-all shadow-lg shadow-green-200"
               >
@@ -332,7 +385,7 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
           </div>
         </DialogContent>
       </Dialog>
- 
+
       <MakeOfferModal
         isOpen={IsOfferModalOpen}
         onClose={() => setIsOfferModalOpen(false)}
@@ -349,5 +402,5 @@ const SellerDetailCard = ({ productDetails, setProductDetails }) => {
     </>
   );
 };
- 
+
 export default SellerDetailCard;

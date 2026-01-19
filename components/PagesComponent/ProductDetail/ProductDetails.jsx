@@ -13,6 +13,7 @@ import MyAdsListingDetailCard from "./MyAdsListingDetailCard";
 import AdsStatusChangeCards from "./AdsStatusChangeCards";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Layout from "@/components/Layout/Layout";
+import ProductQuestions from "./ProductQuestions";
 import ProductGallery from "./ProductGallery";
 import {
   getFilteredCustomFields,
@@ -768,6 +769,15 @@ useEffect(() => {
                       onDescriptionExpand={trackDescriptionExpand}
                     />
                   </div>
+
+                  {/* JAVNA PITANJA */}
+                <div className={getAnimationClass()} style={getStaggerDelay(6)}>
+                  <ProductQuestions 
+                    productDetails={productDetails}
+                    isSeller={isMyListing}
+                  />
+                </div>
+
                 </div>
               </div>
  

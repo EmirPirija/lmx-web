@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useSelector } from "react-redux";
-import { toast } from "sonner"; // Koristimo sonner za notifikacije
+import { toast } from "sonner";
+import { MdStorefront, MdArrowForward } from "react-icons/md";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
@@ -483,6 +484,50 @@ const Profile = () => {
                     <p className="text-xs text-gray-500">Upravljajte privatnošću i obavijestima.</p>
                   </div>
               </div>
+
+              {/* 4. SELLER SETTINGS CARD */}
+<div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/20 shadow-sm p-6 md:p-8">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <div className="p-3 bg-primary/10 rounded-xl text-primary">
+        <MdStorefront size={24}/>
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900">Postavke prodavača</h3>
+        <p className="text-sm text-gray-600 mt-0.5">
+          Prilagodite kontakte, radno vrijeme, auto-reply i još mnogo toga
+        </p>
+      </div>
+    </div>
+    <CustomLink
+      href="/profile/seller-settings"
+      className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 active:scale-[0.98] transition-all shadow-sm"
+    >
+      <span>Otvori</span>
+      <MdArrowForward />
+    </CustomLink>
+  </div>
+
+  <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="bg-white/80 rounded-lg p-3 text-center">
+      <div className="text-2xl font-bold text-primary">WhatsApp</div>
+      <div className="text-xs text-gray-500 mt-1">Kontakt opcija</div>
+    </div>
+    <div className="bg-white/80 rounded-lg p-3 text-center">
+      <div className="text-2xl font-bold text-primary">Viber</div>
+      <div className="text-xs text-gray-500 mt-1">Kontakt opcija</div>
+    </div>
+    <div className="bg-white/80 rounded-lg p-3 text-center">
+      <div className="text-2xl font-bold text-primary">Auto-reply</div>
+      <div className="text-xs text-gray-500 mt-1">Automatski odgovor</div>
+    </div>
+    <div className="bg-white/80 rounded-lg p-3 text-center">
+      <div className="text-2xl font-bold text-primary">Vacation</div>
+      <div className="text-xs text-gray-500 mt-1">Način odmora</div>
+    </div>
+  </div>
+</div>
+
               
               <div className="grid gap-4">
                   {/* Notification Toggle */}

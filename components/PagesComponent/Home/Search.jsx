@@ -799,7 +799,7 @@ const Search = () => {
         <div
           ref={searchContainerRef}
           className={cn(
-            "relative flex-1 transition-transform duration-300 ease-out z-[99999]",
+            "relative flex-1 transition-transform duration-300 ease-out z-[9]",
             isSearchActive ? "scale-[1.02]" : "scale-100"
           )}
         >
