@@ -9,7 +9,12 @@ import {
   MdContentCopy,
   MdCheck,
   MdVerified,
+  MdBeachAccess,
+  MdAccessTime,
+  MdStorefront,
+  MdWorkspacePremium,
 } from "react-icons/md";
+import { FaWhatsapp } from "react-icons/fa";
 import { extractYear } from "@/utils";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -26,6 +31,37 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
+
+// Helper za parsiranje radnog vremena
+const parseBusinessHours = (hours) => {
+  if (!hours) return null;
+  try {
+    return typeof hours === 'string' ? JSON.parse(hours) : hours;
+  } catch {
+    return null;
+  }
+};
+
+// Helper za provjeru da li je trenutno otvoreno
+const isCurrentlyOpen = (businessHours) => {
+  if (!businessHours) return null;
+  
+  const now = new Date();
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = days[now.getDay()];
+  const todayHours = businessHours[today];
+  
+  if (!todayHours || todayHours.closed) return false;
+  
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+  const [openHour, openMin] = (todayHours.open || '09:00').split(':').map(Number);
+  const [closeHour, closeMin] = (todayHours.close || '17:00').split(':').map(Number);
+  
+  const openTime = openHour * 60 + openMin;
+  const closeTime = closeHour * 60 + closeMin;
+  
+  return currentTime >= openTime && currentTime <= closeTime;
+};
 
 // Helper za formatiranje vremena - SVE NA BOSANSKOM (ijekavica)
 const formatLastSeen = (timestamp) => {
@@ -52,6 +88,9 @@ const SellerDetailCard = ({
   badges,
   onEmailClick,
   onProfileClick,
+  sellerSettings,
+  isPro = false,
+  isShop = false,
 }) => {
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
@@ -68,6 +107,16 @@ const SellerDetailCard = ({
 
   const ratingValue = useMemo(() => Number(seller?.average_rating || 0).toFixed(1), [seller?.average_rating]);
   const ratingCount = useMemo(() => ratings?.data?.length || 0, [ratings]);
+  
+  // Seller settings
+  const settings = sellerSettings || {};
+  const vacationMode = settings.vacation_mode ?? false;
+  const vacationMessage = settings.vacation_message || "Prodavač je trenutno na godišnjem odmoru.";
+  const responseTime = settings.response_time || null;
+  const businessHours = parseBusinessHours(settings.business_hours);
+  const currentlyOpen = isShop ? isCurrentlyOpen(businessHours) : null;
+  const showWhatsapp = settings.show_whatsapp ?? false;
+  const whatsappNumber = settings.whatsapp_number || seller?.mobile;
 
   const handleCopyPhone = () => {
     if (!seller?.mobile) return;
@@ -170,7 +219,7 @@ const SellerDetailCard = ({
 
           {/* NAME + VERIFIED PILL */}
           <div className="mt-4 text-center">
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
                 {seller?.name}
               </h3>
@@ -179,6 +228,20 @@ const SellerDetailCard = ({
                 <span className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-semibold">
                   <MdVerified className="text-base" />
                   Verifikovan
+                </span>
+              )}
+              
+              {/* Pro/Shop badge */}
+              {isShop && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2.5 py-1 text-xs font-bold shadow-sm">
+                  <MdStorefront className="text-base" />
+                  Shop
+                </span>
+              )}
+              {isPro && !isShop && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-1 text-xs font-bold shadow-sm">
+                  <MdWorkspacePremium className="text-base" />
+                  Pro
                 </span>
               )}
             </div>
@@ -196,7 +259,49 @@ const SellerDetailCard = ({
                 </span>
               )}
             </div>
+            
+            {/* Business hours status za Shop korisnike */}
+            {isShop && businessHours && currentlyOpen !== null && (
+              <div className="mt-2">
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full",
+                  currentlyOpen 
+                    ? "bg-green-50 text-green-700 border border-green-100" 
+                    : "bg-slate-100 text-slate-600 border border-slate-200"
+                )}>
+                  <MdAccessTime className="text-sm" />
+                  {currentlyOpen ? "Trenutno otvoreno" : "Zatvoreno"}
+                </span>
+              </div>
+            )}
+            
+            {/* Response time */}
+            {responseTime && (
+              <div className="mt-2">
+                <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                  <MdAccessTime className="text-sm" />
+                  Obično odgovara {responseTime}
+                </span>
+              </div>
+            )}
           </div>
+          
+          {/* Vacation mode alert */}
+          {(isPro || isShop) && vacationMode && (
+            <div className="mt-4 w-full">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-100 rounded-xl">
+                    <MdBeachAccess className="text-amber-600 text-xl" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-amber-800 text-sm">Na godišnjem odmoru</p>
+                    <p className="text-amber-700 text-xs mt-1">{vacationMessage}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* STATS ROW */}
           <div className="mt-5 w-full flex items-center justify-center gap-3">
@@ -216,50 +321,65 @@ const SellerDetailCard = ({
 
           {/* CONTACT BUTTONS */}
           {seller?.show_personal_details === 1 && (seller?.email || seller?.mobile) && (
-            <div className="mt-6 grid grid-cols-2 gap-3 w-full">
-              {/* PHONE */}
-              {seller?.mobile ? (
-                <button
-                  onClick={handleOpenPhoneModal}
-                  className={cn(
-                    "flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold",
-                    "bg-primary text-white hover:bg-primary/90 active:scale-[0.98] transition-all"
-                  )}
-                >
-                  <MdPhone className="text-xl" />
-                  <span>Pozovi</span>
-                </button>
-              ) : (
-                <button
-                  disabled
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 text-slate-400 cursor-not-allowed"
-                >
-                  <MdPhone className="text-xl" />
-                  <span>Nema broj</span>
-                </button>
-              )}
+            <div className="mt-6 flex flex-col gap-3 w-full">
+              <div className="grid grid-cols-2 gap-3">
+                {/* PHONE */}
+                {seller?.mobile ? (
+                  <button
+                    onClick={handleOpenPhoneModal}
+                    className={cn(
+                      "flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold",
+                      "bg-primary text-white hover:bg-primary/90 active:scale-[0.98] transition-all"
+                    )}
+                  >
+                    <MdPhone className="text-xl" />
+                    <span>Pozovi</span>
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 text-slate-400 cursor-not-allowed"
+                  >
+                    <MdPhone className="text-xl" />
+                    <span>Nema broj</span>
+                  </button>
+                )}
 
-              {/* EMAIL */}
-              {seller?.email ? (
+                {/* EMAIL */}
+                {seller?.email ? (
+                  <a
+                    href={`mailto:${seller?.email}`}
+                    onClick={handleEmailClick}
+                    className={cn(
+                      "flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold",
+                      "bg-white border border-slate-200 text-slate-800 hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-[0.98] transition-all"
+                    )}
+                  >
+                    <MdOutlineMail className="text-xl" />
+                    <span>Email</span>
+                  </a>
+                ) : (
+                  <button
+                    disabled
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 text-slate-400 cursor-not-allowed"
+                  >
+                    <MdOutlineMail className="text-xl" />
+                    <span>Nema email</span>
+                  </button>
+                )}
+              </div>
+              
+              {/* WhatsApp dugme */}
+              {showWhatsapp && whatsappNumber && (
                 <a
-                  href={`mailto:${seller?.email}`}
-                  onClick={handleEmailClick}
-                  className={cn(
-                    "flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold",
-                    "bg-white border border-slate-200 text-slate-800 hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-[0.98] transition-all"
-                  )}
+                  href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-green-500 text-white hover:bg-green-600 active:scale-[0.98] transition-all"
                 >
-                  <MdOutlineMail className="text-xl" />
-                  <span>Email</span>
+                  <FaWhatsapp className="text-xl" />
+                  <span>WhatsApp</span>
                 </a>
-              ) : (
-                <button
-                  disabled
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 text-slate-400 cursor-not-allowed"
-                >
-                  <MdOutlineMail className="text-xl" />
-                  <span>Nema email</span>
-                </button>
               )}
             </div>
           )}
