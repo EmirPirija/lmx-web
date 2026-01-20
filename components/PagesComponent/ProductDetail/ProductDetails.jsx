@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { allItemApi, getMyItemsApi, setItemTotalClickApi, deleteItemApi } from "@/utils/api";
 import ProductFeature from "./ProductFeature";
-import { gamificationApi } from "@/utils/api";
+import { getSellerApi, gamificationApi } from "@/utils/api";
 import ProductDescription from "./ProductDescription";
 import ProductDetailCard from "./ProductDetailCard";
 import SellerDetailCard from "./SellerDetailCard";
@@ -104,6 +104,8 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
   if (!priceHistory || priceHistory.length === 0) {
     return null;
   }
+  
+
  
   // Sortiraj po datumu (najnoviji prvi)
   const sortedHistory = [...priceHistory].sort((a, b) => 
@@ -116,6 +118,7 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
   const percentChange = oldestPrice > 0 ? ((priceChange / oldestPrice) * 100).toFixed(1) : 0;
   const isPriceDown = priceChange < 0;
   const isPriceUp = priceChange > 0;
+  
  
   // Prikaži samo prve 3 ako nije prošireno
   const displayedHistory = isExpanded ? sortedHistory : sortedHistory.slice(0, 3);
@@ -444,6 +447,7 @@ const ProductDetails = ({ slug }) => {
   const isMyListing = pathName?.startsWith("/my-listing") ? true : false;
   const [productDetails, setProductDetails] = useState(null);
   const [badges, setBadges] = useState([]);
+  const [sellerSettings, setSellerSettings] = useState(null);
 
 const fetchSellerBadges = async (sellerId) => {
   try {
@@ -545,6 +549,23 @@ useEffect(() => {
       trackView(source, sourceDetail);
     }
   }, [itemId, isMyListing, trackView, searchParams]);
+
+  useEffect(() => {
+    const fetchSellerSettings = async () => {
+      if (productDetails?.user?.id) {
+        try {
+          const response = await getSellerApi.getSeller({ id: productDetails.user.id });
+          if (response?.data?.error === false) {
+            setSellerSettings(response.data.data?.seller_settings);
+          }
+        } catch (error) {
+          console.error("Error fetching seller settings:", error);
+        }
+      }
+    };
+    
+    fetchSellerSettings();
+  }, [productDetails?.user?.id]);
   
   const IsShowFeaturedAd = isMyListing && !productDetails?.is_feature && productDetails?.status === "approved";
   const isMyAdExpired = isMyListing && productDetails?.status === "expired";
@@ -812,19 +833,20 @@ useEffect(() => {
  
                   {!isMyListing && (
                     <div className={getAnimationClass()} style={getStaggerDelay(7)} data-seller-card>
-                      <SellerDetailCard 
-                        productDetails={productDetails} 
-                        setProductDetails={setProductDetails}
-                        badges={badges}
-                        // ✅ TRACKING PROPS
-                        onPhoneReveal={trackPhoneReveal}
-                        onPhoneClick={trackPhoneClick}
-                        onWhatsAppClick={trackWhatsApp}
-                        onViberClick={trackViber}
-                        onMessageClick={trackMessage}
-                        onEmailClick={trackEmail}
-                        onProfileClick={trackSellerProfileClick}
-                      />
+<SellerDetailCard 
+  productDetails={productDetails} 
+  setProductDetails={setProductDetails}
+  badges={badges}
+  sellerSettings={sellerSettings}
+  onPhoneReveal={trackPhoneReveal}
+  onPhoneClick={trackPhoneClick}
+  onWhatsAppClick={trackWhatsApp}
+  onViberClick={trackViber}
+  onMessageClick={trackMessage}
+  onEmailClick={trackEmail}
+  onProfileClick={trackSellerProfileClick}
+/>
+
                     </div>
                   )}
                   {isMyListing && (

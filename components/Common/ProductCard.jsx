@@ -498,27 +498,27 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
           </div>
 
           {!isHidePrice && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-col items-center">
               {/* Stara cijena prekrižena */}
               {isOnSale && Number(oldPrice) > 0 && discountPercentage > 0 && (
-  <span className="text-[10px] text-gray-400 line-through decoration-red-400">
-    {formatPriceAbbreviated(Number(oldPrice))}
-  </span>
-)}
+                <span className="text-[10px] text-gray-400 line-through decoration-red-400">
+                  {formatPriceAbbreviated(Number(oldPrice))}
+                </span>
+              )}
 
 
               {/* Trenutna cijena */}
               <span
-className={`text-sm font-bold ${
-  isOnSale && discountPercentage > 0 && Number(currentPrice) > 0
-    ? "text-red-600"
-    : "text-gray-900"
-}`}
+                className={`text-sm font-bold ${
+                  isOnSale && discountPercentage > 0 && Number(currentPrice) > 0
+                    ? "text-red-600"
+                    : "text-gray-900"
+                }`}
 
-              >
-{isJobCategory
-  ? formatSalaryRange(item?.min_salary, item?.max_salary)
-  : formatPriceOrInquiry(item?.price)}
+                              >
+                {isJobCategory
+                  ? formatSalaryRange(item?.min_salary, item?.max_salary)
+                  : formatPriceOrInquiry(item?.price)}
 
               </span>
             </div>

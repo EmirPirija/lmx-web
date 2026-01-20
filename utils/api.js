@@ -1647,12 +1647,20 @@ export const itemConversationApi = {
 // ============================================
 // SELLER SETTINGS API
 // ============================================
-
+ 
 export const sellerSettingsApi = {
+  // Dohvati vlastite postavke (zahtjeva auth)
   getSettings: () => {
     return Api.get(GET_SELLER_SETTINGS);
   },
-
+ 
+  // Dohvati javne postavke prodavača po user_id (bez auth)
+  getPublicSettings: ({ user_id } = {}) => {
+    return Api.get("get-public-seller-settings", {
+      params: { user_id },
+    });
+  },
+ 
   updateSettings: ({
     show_phone,
     show_email,
@@ -1678,30 +1686,30 @@ export const sellerSettingsApi = {
     social_website,
   } = {}) => {
     const formData = new FormData();
-
+ 
     if (show_phone !== undefined) formData.append("show_phone", show_phone ? 1 : 0);
     if (show_email !== undefined) formData.append("show_email", show_email ? 1 : 0);
     if (show_whatsapp !== undefined) formData.append("show_whatsapp", show_whatsapp ? 1 : 0);
     if (show_viber !== undefined) formData.append("show_viber", show_viber ? 1 : 0);
-    if (whatsapp_number) formData.append("whatsapp_number", whatsapp_number);
-    if (viber_number) formData.append("viber_number", viber_number);
+    if (whatsapp_number !== undefined) formData.append("whatsapp_number", whatsapp_number);
+    if (viber_number !== undefined) formData.append("viber_number", viber_number);
     if (business_hours) formData.append("business_hours", JSON.stringify(business_hours));
     if (response_time) formData.append("response_time", response_time);
     if (accepts_offers !== undefined) formData.append("accepts_offers", accepts_offers ? 1 : 0);
     if (auto_reply_enabled !== undefined) formData.append("auto_reply_enabled", auto_reply_enabled ? 1 : 0);
-    if (auto_reply_message) formData.append("auto_reply_message", auto_reply_message);
+    if (auto_reply_message !== undefined) formData.append("auto_reply_message", auto_reply_message);
     if (vacation_mode !== undefined) formData.append("vacation_mode", vacation_mode ? 1 : 0);
-    if (vacation_message) formData.append("vacation_message", vacation_message);
+    if (vacation_message !== undefined) formData.append("vacation_message", vacation_message);
     if (preferred_contact_method) formData.append("preferred_contact_method", preferred_contact_method);
-    if (business_description) formData.append("business_description", business_description);
-    if (return_policy) formData.append("return_policy", return_policy);
-    if (shipping_info) formData.append("shipping_info", shipping_info);
-    if (social_facebook) formData.append("social_facebook", social_facebook);
-    if (social_instagram) formData.append("social_instagram", social_instagram);
-    if (social_tiktok) formData.append("social_tiktok", social_tiktok);
-    if (social_youtube) formData.append("social_youtube", social_youtube);
-    if (social_website) formData.append("social_website", social_website);
-
+    if (business_description !== undefined) formData.append("business_description", business_description);
+    if (return_policy !== undefined) formData.append("return_policy", return_policy);
+    if (shipping_info !== undefined) formData.append("shipping_info", shipping_info);
+    if (social_facebook !== undefined) formData.append("social_facebook", social_facebook);
+    if (social_instagram !== undefined) formData.append("social_instagram", social_instagram);
+    if (social_tiktok !== undefined) formData.append("social_tiktok", social_tiktok);
+    if (social_youtube !== undefined) formData.append("social_youtube", social_youtube);
+    if (social_website !== undefined) formData.append("social_website", social_website);
+ 
     return Api.post(UPDATE_SELLER_SETTINGS, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });

@@ -106,7 +106,7 @@ const BreadCrumb = ({ title2 }) => {
         <Breadcrumb>
           <BreadcrumbList className="flex flex-wrap gap-1 text-sm">
             {items?.map((item, index) => {
-              const delay = `${index * 60}ms`; // mali stagger
+              const delay = `${index * 60}ms`;
               const isLast = index === items.length - 1;
 
               return (

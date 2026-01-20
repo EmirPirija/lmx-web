@@ -17,20 +17,17 @@ import {
   MdStorefront,
   MdLocalShipping,
   MdAssignmentReturn,
-  MdLink,
   MdSave,
   MdExpandMore,
   MdExpandLess,
-  MdInfo,
-  MdCheck,
-  MdClose,
-  MdSettings,
+  MdLock,
   MdContactPhone,
   MdMessage,
   MdShare,
   MdSchedule,
-  MdQuestionAnswer,
-  MdLocalOffer
+  MdLocalOffer,
+  MdStar,
+  MdArrowForward,
 } from "react-icons/md";
 import {
   FaViber,
@@ -38,11 +35,13 @@ import {
   FaInstagram,
   FaTiktok,
   FaYoutube,
-  FaGlobe
+  FaGlobe,
+  FaCrown,
 } from "react-icons/fa";
-import { sellerSettingsApi } from "@/utils/api";
-import { userSignUpData, setUserData } from "@/redux/reducer/authSlice";
+import { sellerSettingsApi, membershipApi } from "@/utils/api";
+import { userSignUpData } from "@/redux/reducer/authSlice";
 import { cn } from "@/lib/utils";
+import CustomLink from "@/components/Common/CustomLink";
  
 // Sekcija wrapper komponenta
 const SettingsSection = ({
@@ -51,28 +50,44 @@ const SettingsSection = ({
   description,
   children,
   defaultOpen = true,
-  badge = null
+  badge = null,
+  locked = false,
+  lockedMessage = null,
+  onUpgradeClick = null,
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
  
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+    <div className={cn(
+      "bg-white rounded-2xl border overflow-hidden shadow-sm",
+      locked ? "border-slate-200 opacity-80" : "border-slate-100"
+    )}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
-            <Icon className="text-primary text-xl" />
+          <div className={cn(
+            "p-2.5 rounded-xl",
+            locked 
+              ? "bg-slate-100" 
+              : "bg-gradient-to-br from-primary/10 to-primary/5"
+          )}>
+            <Icon className={cn("text-xl", locked ? "text-slate-400" : "text-primary")} />
           </div>
           <div className="text-left">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-800">{title}</h3>
               {badge && (
-                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                <span className={cn(
+                  "px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1",
+                  badge === "Pro" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                )}>
+                  <FaCrown className="text-[10px]" />
                   {badge}
                 </span>
               )}
+              {locked && <MdLock className="text-slate-400" />}
             </div>
             <p className="text-sm text-slate-500">{description}</p>
           </div>
@@ -86,9 +101,29 @@ const SettingsSection = ({
  
       {isOpen && (
         <div className="px-5 pb-5 border-t border-slate-100">
-          <div className="pt-5 space-y-5">
-            {children}
-          </div>
+          {locked ? (
+            <div className="pt-5">
+              <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 text-center">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                  <MdLock className="text-2xl text-slate-400" />
+                </div>
+                <p className="text-slate-600 font-medium mb-2">{lockedMessage}</p>
+                <p className="text-sm text-slate-500 mb-4">Nadogradite na {badge} da otključate ovu funkcionalnost</p>
+                <CustomLink
+                  href="/membership/upgrade"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-all"
+                >
+                  <FaCrown />
+                  <span>Nadogradi na {badge}</span>
+                  <MdArrowForward />
+                </CustomLink>
+              </div>
+            </div>
+          ) : (
+            <div className="pt-5 space-y-5">
+              {children}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -107,7 +142,7 @@ const SettingSwitch = ({
   <div className={cn(
     "flex items-start justify-between gap-4 p-4 rounded-xl transition-colors",
     checked ? "bg-green-50/50 border border-green-100" : "bg-slate-50/50 border border-slate-100",
-    disabled && "opacity-50"
+    disabled && "opacity-50 cursor-not-allowed"
   )}>
     <div className="flex items-start gap-3">
       {Icon && (
@@ -173,6 +208,11 @@ const SellerSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
  
+  // ✅ MEMBERSHIP STATUS
+  const [isPro, setIsPro] = useState(false);
+  const [isShop, setIsShop] = useState(false);
+  const [membershipTier, setMembershipTier] = useState(null);
+ 
   // Kontakt postavke
   const [showPhone, setShowPhone] = useState(true);
   const [showEmail, setShowEmail] = useState(true);
@@ -182,7 +222,7 @@ const SellerSettings = () => {
   const [viberNumber, setViberNumber] = useState("");
   const [preferredContact, setPreferredContact] = useState("message");
  
-  // Radno vrijeme
+  // Radno vrijeme (Shop only)
   const [businessHours, setBusinessHours] = useState({
     monday: { open: "09:00", close: "17:00", enabled: true },
     tuesday: { open: "09:00", close: "17:00", enabled: true },
@@ -197,13 +237,13 @@ const SellerSettings = () => {
   // Ponude
   const [acceptsOffers, setAcceptsOffers] = useState(true);
  
-  // Auto-reply
+  // Auto-reply (Pro only)
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [autoReplyMessage, setAutoReplyMessage] = useState(
     "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku."
   );
  
-  // Vacation mode
+  // Vacation mode (Pro only)
   const [vacationMode, setVacationMode] = useState(false);
   const [vacationMessage, setVacationMessage] = useState(
     "Trenutno sam na odmoru. Vratit ću se uskoro!"
@@ -221,10 +261,56 @@ const SellerSettings = () => {
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
  
+    // ✅ Dohvati membership status
+    const fetchMembership = useCallback(async () => {
+        try {
+          const res = await membershipApi.getUserMembership();
+          console.log("Membership API response:", res?.data); // DEBUG
+          
+          if (res?.data?.error === false && res?.data?.data) {
+            const membership = res.data.data;
+            const tier = membership?.tier?.toLowerCase(); // "pro", "shop", "free"
+            const status = membership?.status?.toLowerCase();
+            
+            console.log("Membership tier:", tier, "status:", status); // DEBUG
+            
+            // Provjeri da li je membership aktivan
+            if (status === 'active') {
+              // tier može biti "pro" ili "shop"
+              const isPro = tier === 'pro' || tier === 'shop';
+              const isShop = tier === 'shop';
+              
+              setIsPro(isPro);
+              setIsShop(isShop);
+              setMembershipTier(membership);
+              
+              console.log("isPro:", isPro, "isShop:", isShop); // DEBUG
+            } else {
+              setIsPro(false);
+              setIsShop(false);
+              setMembershipTier(null);
+            }
+          } else {
+            // Nema membership ili greška
+            setIsPro(false);
+            setIsShop(false);
+            setMembershipTier(null);
+          }
+        } catch (error) {
+          console.error("Error fetching membership:", error);
+          setIsPro(false);
+          setIsShop(false);
+        }
+      }, []);
+ 
   // Dohvati postavke
   const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Dohvati i membership i settings paralelno
+      await fetchMembership();
+      
       const response = await sellerSettingsApi.getSettings();
  
       if (response?.data?.error === false && response?.data?.data) {
@@ -268,7 +354,7 @@ const SellerSettings = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchMembership]);
  
   useEffect(() => {
     fetchSettings();
@@ -279,7 +365,7 @@ const SellerSettings = () => {
     try {
       setIsSaving(true);
  
-      const response = await sellerSettingsApi.updateSettings({
+      const settingsToSave = {
         show_phone: showPhone,
         show_email: showEmail,
         show_whatsapp: showWhatsapp,
@@ -287,13 +373,8 @@ const SellerSettings = () => {
         whatsapp_number: whatsappNumber,
         viber_number: viberNumber,
         preferred_contact_method: preferredContact,
-        business_hours: businessHours,
         response_time: responseTime,
         accepts_offers: acceptsOffers,
-        auto_reply_enabled: autoReplyEnabled,
-        auto_reply_message: autoReplyMessage,
-        vacation_mode: vacationMode,
-        vacation_message: vacationMessage,
         business_description: businessDescription,
         return_policy: returnPolicy,
         shipping_info: shippingInfo,
@@ -302,7 +383,22 @@ const SellerSettings = () => {
         social_tiktok: socialTiktok,
         social_youtube: socialYoutube,
         social_website: socialWebsite,
-      });
+      };
+ 
+      // Pro features
+      if (isPro) {
+        settingsToSave.auto_reply_enabled = autoReplyEnabled;
+        settingsToSave.auto_reply_message = autoReplyMessage;
+        settingsToSave.vacation_mode = vacationMode;
+        settingsToSave.vacation_message = vacationMessage;
+      }
+ 
+      // Shop features
+      if (isShop) {
+        settingsToSave.business_hours = businessHours;
+      }
+ 
+      const response = await sellerSettingsApi.updateSettings(settingsToSave);
  
       if (response?.data?.error === false) {
         toast.success("Postavke su uspješno sačuvane!");
@@ -329,7 +425,7 @@ const SellerSettings = () => {
     responseTime, acceptsOffers, autoReplyEnabled, autoReplyMessage,
     vacationMode, vacationMessage, businessDescription,
     returnPolicy, shippingInfo, socialFacebook, socialInstagram,
-    socialTiktok, socialYoutube, socialWebsite
+    socialTiktok, socialYoutube, socialWebsite, businessHours
   ]);
  
   const responseTimeOptions = [
@@ -346,6 +442,26 @@ const SellerSettings = () => {
     { value: "viber", label: "Viber", icon: FaViber },
     { value: "email", label: "Email", icon: MdEmail },
   ];
+ 
+  const daysOfWeek = [
+    { key: "monday", label: "Ponedjeljak" },
+    { key: "tuesday", label: "Utorak" },
+    { key: "wednesday", label: "Srijeda" },
+    { key: "thursday", label: "Četvrtak" },
+    { key: "friday", label: "Petak" },
+    { key: "saturday", label: "Subota" },
+    { key: "sunday", label: "Nedjelja" },
+  ];
+ 
+  const updateBusinessHour = (day, field, value) => {
+    setBusinessHours(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value
+      }
+    }));
+  };
  
   if (isLoading) {
     return (
@@ -380,8 +496,54 @@ const SellerSettings = () => {
         )}
       </div>
  
+      {/* Membership Status Card */}
+      <div className={cn(
+        "rounded-2xl p-4 flex items-center justify-between",
+        isShop ? "bg-purple-50 border border-purple-200" :
+        isPro ? "bg-blue-50 border border-blue-200" :
+        "bg-slate-50 border border-slate-200"
+      )}>
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "p-2.5 rounded-xl",
+            isShop ? "bg-purple-100" : isPro ? "bg-blue-100" : "bg-slate-200"
+          )}>
+            {isShop || isPro ? (
+              <FaCrown className={cn("text-xl", isShop ? "text-purple-600" : "text-blue-600")} />
+            ) : (
+              <MdStar className="text-xl text-slate-500" />
+            )}
+          </div>
+          <div>
+            <p className={cn(
+              "font-bold",
+              isShop ? "text-purple-800" : isPro ? "text-blue-800" : "text-slate-700"
+            )}>
+              {isShop ? "🏪 Shop Membership" : isPro ? "⭐ Pro Membership" : "Besplatni plan"}
+            </p>
+            <p className={cn(
+              "text-sm",
+              isShop ? "text-purple-600" : isPro ? "text-blue-600" : "text-slate-500"
+            )}>
+              {isShop ? "Sve Pro funkcije + Radno vrijeme" : 
+               isPro ? "Auto-reply, Vacation mode i više" : 
+               "Nadogradite za više funkcionalnosti"}
+            </p>
+          </div>
+        </div>
+        {!isPro && (
+          <CustomLink
+            href="/membership/upgrade"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-all text-sm"
+          >
+            <FaCrown />
+            <span>Nadogradi</span>
+          </CustomLink>
+        )}
+      </div>
+ 
       {/* Vacation Mode Alert */}
-      {vacationMode && (
+      {isPro && vacationMode && (
         <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <MdBeachAccess className="text-2xl text-amber-600 flex-shrink-0" />
           <div className="flex-1">
@@ -541,12 +703,14 @@ const SellerSettings = () => {
         />
       </SettingsSection>
  
-      {/* SEKCIJA 4: Automatski odgovori */}
+      {/* SEKCIJA 4: Automatski odgovori (PRO) */}
       <SettingsSection
         icon={MdAutorenew}
         title="Automatski odgovori"
         description="Automatski odgovarajte na nove poruke"
         badge="Pro"
+        locked={!isPro}
+        lockedMessage="Automatski odgovori su dostupni samo za Pro korisnike"
       >
         <SettingSwitch
           icon={MdAutorenew}
@@ -576,11 +740,14 @@ const SellerSettings = () => {
         )}
       </SettingsSection>
  
-      {/* SEKCIJA 5: Vacation mode */}
+      {/* SEKCIJA 5: Vacation mode (PRO) */}
       <SettingsSection
         icon={MdBeachAccess}
         title="Vacation mode"
         description="Obavijestite kupce da ste privremeno nedostupni"
+        badge="Pro"
+        locked={!isPro}
+        lockedMessage="Vacation mode je dostupan samo za Pro korisnike"
       >
         <SettingSwitch
           icon={MdBeachAccess}
@@ -607,7 +774,65 @@ const SellerSettings = () => {
         )}
       </SettingsSection>
  
-      {/* SEKCIJA 6: Poslovne informacije */}
+      {/* SEKCIJA 6: Radno vrijeme (SHOP) */}
+      <SettingsSection
+        icon={MdAccessTime}
+        title="Radno vrijeme"
+        description="Postavite radno vrijeme vaše trgovine"
+        badge="Shop"
+        locked={!isShop}
+        lockedMessage="Radno vrijeme je dostupno samo za Shop korisnike"
+        defaultOpen={false}
+      >
+        <div className="space-y-3">
+          {daysOfWeek.map(({ key, label }) => (
+            <div
+              key={key}
+              className={cn(
+                "flex items-center justify-between p-3 rounded-xl border",
+                businessHours[key]?.enabled ? "bg-green-50/50 border-green-100" : "bg-slate-50 border-slate-100"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={businessHours[key]?.enabled || false}
+                  onCheckedChange={(checked) => updateBusinessHour(key, 'enabled', checked)}
+                />
+                <span className={cn(
+                  "font-medium",
+                  businessHours[key]?.enabled ? "text-slate-800" : "text-slate-500"
+                )}>
+                  {label}
+                </span>
+              </div>
+              
+              {businessHours[key]?.enabled && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={businessHours[key]?.open || "09:00"}
+                    onChange={(e) => updateBusinessHour(key, 'open', e.target.value)}
+                    className="w-24 h-9 text-sm"
+                  />
+                  <span className="text-slate-400">-</span>
+                  <Input
+                    type="time"
+                    value={businessHours[key]?.close || "17:00"}
+                    onChange={(e) => updateBusinessHour(key, 'close', e.target.value)}
+                    className="w-24 h-9 text-sm"
+                  />
+                </div>
+              )}
+              
+              {!businessHours[key]?.enabled && (
+                <span className="text-sm text-slate-400">Zatvoreno</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </SettingsSection>
+ 
+      {/* SEKCIJA 7: Poslovne informacije */}
       <SettingsSection
         icon={MdStorefront}
         title="Poslovne informacije"
@@ -666,7 +891,7 @@ const SellerSettings = () => {
         </div>
       </SettingsSection>
  
-      {/* SEKCIJA 7: Društvene mreže */}
+      {/* SEKCIJA 8: Društvene mreže */}
       <SettingsSection
         icon={MdShare}
         title="Društvene mreže"
