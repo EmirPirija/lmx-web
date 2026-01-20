@@ -12,8 +12,12 @@ import {
   MdWorkOutline,
   MdCalendarMonth,
   MdForum,
-  MdAdd
+  MdAdd,
+  MdBeachAccess,
+  MdStorefront,
+  MdWorkspacePremium,
 } from "react-icons/md";
+import { FaWhatsapp } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
@@ -57,6 +61,19 @@ const SellerDetailCard = ({ productDetails, setProductDetails, badges }) => {
 
   const seller = productDetails?.user;
   const FbTitle = seller?.name + " | " + CompanyName;
+  
+  // Seller settings i membership status iz productDetails ili seller objekta
+  const sellerSettings = productDetails?.seller_settings || seller?.seller_settings || {};
+  const isPro = productDetails?.is_pro || seller?.is_pro || false;
+  const isShop = productDetails?.is_shop || seller?.is_shop || false;
+  
+  // Vacation mode
+  const vacationMode = sellerSettings?.vacation_mode ?? false;
+  const vacationMessage = sellerSettings?.vacation_message || "Prodavač je trenutno na godišnjem odmoru.";
+  
+  // WhatsApp
+  const showWhatsapp = sellerSettings?.show_whatsapp ?? false;
+  const whatsappNumber = sellerSettings?.whatsapp_number || seller?.mobile;
 
   const loggedInUser = useSelector(userSignUpData);
   const isLoggedIn = useSelector(getIsLoggedIn);
@@ -206,13 +223,29 @@ const SellerDetailCard = ({ productDetails, setProductDetails, badges }) => {
               </div>
             )}
 
-            <div className="mb-1">
+            <div className="mb-1 flex flex-col items-center gap-2">
               <CustomLink
                 href={`/seller/${seller?.id}`}
                 className="text-xl font-bold text-slate-900 hover:text-primary transition-colors"
               >
                 {seller?.name}
               </CustomLink>
+              
+              {/* Pro/Shop badge */}
+              <div className="flex items-center gap-2">
+                {isShop && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2.5 py-1 text-xs font-bold shadow-sm">
+                    <MdStorefront className="text-sm" />
+                    Shop
+                  </span>
+                )}
+                {isPro && !isShop && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-1 text-xs font-bold shadow-sm">
+                    <MdWorkspacePremium className="text-sm" />
+                    Pro
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
@@ -234,6 +267,23 @@ const SellerDetailCard = ({ productDetails, setProductDetails, badges }) => {
           </div>
 
           <div className="h-px w-full bg-slate-100 my-5"></div>
+          
+          {/* Vacation mode alert */}
+          {(isPro || isShop) && vacationMode && (
+            <div className="w-full mb-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1.5 bg-amber-100 rounded-lg flex-shrink-0">
+                    <MdBeachAccess className="text-amber-600 text-lg" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-amber-800 text-sm">Na godišnjem odmoru</p>
+                    <p className="text-amber-700 text-xs mt-0.5">{vacationMessage}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* DUGMAD */}
           <div className="w-full flex flex-col gap-3">
@@ -288,6 +338,19 @@ const SellerDetailCard = ({ productDetails, setProductDetails, badges }) => {
                 <MdPhone className="text-lg" />
                 <span>Prikaži broj telefona</span>
               </button>
+            )}
+            
+            {/* WhatsApp */}
+            {showWhatsapp && whatsappNumber && (
+              <a
+                href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#1da851] active:scale-[0.98] transition-all shadow-sm"
+              >
+                <FaWhatsapp className="text-lg" />
+                <span>WhatsApp</span>
+              </a>
             )}
 
             {/* Ponudi */}

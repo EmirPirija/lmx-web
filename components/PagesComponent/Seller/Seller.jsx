@@ -24,6 +24,11 @@ const Seller = ({ id, searchParams }) => {
   const [ratings, setRatings] = useState(null);
   const [badges, setBadges] = useState([]);
   const [isSellerDataLoading, setIsSellerDataLoading] = useState(false);
+  
+  // Seller settings i membership status
+  const [sellerSettings, setSellerSettings] = useState(null);
+  const [isPro, setIsPro] = useState(false);
+  const [isShop, setIsShop] = useState(false);
 
 
   const [isLoadMoreReview, setIsLoadMoreReview] = useState(false);
@@ -83,6 +88,14 @@ const fetchSellerBadges = async () => {
           }));
         }
         setSeller(res?.data?.data?.seller);
+        
+        // Dohvati seller settings i membership status iz API odgovora
+        if (res?.data?.data?.seller_settings) {
+          setSellerSettings(res.data.data.seller_settings);
+        }
+        setIsPro(res?.data?.data?.is_pro || false);
+        setIsShop(res?.data?.data?.is_shop || false);
+        
         setReviewCurrentPage(sellerRatings?.current_page || 1);
         if (sellerRatings?.current_page < sellerRatings?.last_page) {
           setReviewHasMore(true);
@@ -152,7 +165,14 @@ const fetchSellerBadges = async () => {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
               {/* Lijeva kolona – detalji prodavača */}
               <div className="col-span-12 lg:col-span-4">
-              <SellerDetailCard seller={seller} ratings={ratings} badges={badges} />
+              <SellerDetailCard 
+                seller={seller} 
+                ratings={ratings} 
+                badges={badges}
+                sellerSettings={sellerSettings}
+                isPro={isPro}
+                isShop={isShop}
+              />
               </div>
 
               {/* Desna kolona – tabovi + sadržaj */}
