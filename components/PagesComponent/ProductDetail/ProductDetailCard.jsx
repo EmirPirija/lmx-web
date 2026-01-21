@@ -239,8 +239,6 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
   return (
     <>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      
-
         <div className="p-5 lg:p-6">
           {/* Featured badge - Manji i minimalističkiji */}
           {productDetails?.is_feature === 1 && (

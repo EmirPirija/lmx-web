@@ -304,6 +304,7 @@ const ProductDetailsSkeleton = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
         <div className="col-span-1 lg:col-span-8">
           <div className="flex flex-col gap-5 lg:gap-7">
+            
             <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
               <div className="w-full aspect-[4/3] lg:aspect-[870/500] bg-gradient-to-br from-slate-100 to-slate-200" />
               <div className="p-3 lg:p-4">
@@ -750,15 +751,23 @@ useEffect(() => {
           </div>
  
           <div className="container mt-4 lg:mt-8 pb-8 lg:pb-12">
+          {isMyListing && (
             <div className={getAnimationClass()} style={getStaggerDelay(1)}>
               <MobileProductHeader productDetails={productDetails} isMyListing={isMyListing} />
             </div>
- 
+          )}
+        
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
               {/* LIJEVA KOLONA */}
               <div className="col-span-1 lg:col-span-8">
                 <div className="flex flex-col gap-5 lg:gap-7">
                   <div className={getAnimationClass()} style={getStaggerDelay(2)}>
+                  <ProductDetailCard
+                        productDetails={productDetails}
+                        setProductDetails={setProductDetails}
+                        onFavoriteToggle={trackFavorite}
+                        onShareClick={trackShare}
+                      />
                     <ProductGallery 
                       galleryImages={galleryImages} 
                       videoData={videoData} 
@@ -833,19 +842,19 @@ useEffect(() => {
  
                   {!isMyListing && (
                     <div className={getAnimationClass()} style={getStaggerDelay(7)} data-seller-card>
-<SellerDetailCard 
-  productDetails={productDetails} 
-  setProductDetails={setProductDetails}
-  badges={badges}
-  sellerSettings={sellerSettings}
-  onPhoneReveal={trackPhoneReveal}
-  onPhoneClick={trackPhoneClick}
-  onWhatsAppClick={trackWhatsApp}
-  onViberClick={trackViber}
-  onMessageClick={trackMessage}
-  onEmailClick={trackEmail}
-  onProfileClick={trackSellerProfileClick}
-/>
+                    <SellerDetailCard 
+                      productDetails={productDetails} 
+                      setProductDetails={setProductDetails}
+                      badges={badges}
+                      sellerSettings={sellerSettings}
+                      onPhoneReveal={trackPhoneReveal}
+                      onPhoneClick={trackPhoneClick}
+                      onWhatsAppClick={trackWhatsApp}
+                      onViberClick={trackViber}
+                      onMessageClick={trackMessage}
+                      onEmailClick={trackEmail}
+                      onProfileClick={trackSellerProfileClick}
+                    />
 
                     </div>
                   )}
@@ -887,6 +896,7 @@ useEffect(() => {
                 </div>
               </div>
             </div>
+            
  
             {!isMyListing && (
               <div className={`mt-8 lg:mt-12 ${getAnimationClass()}`} style={getStaggerDelay(13)}>
@@ -939,6 +949,7 @@ useEffect(() => {
                 confirmDisabled={isDeleting}
             />
           </div>
+          
 
           {/* ======================================================== */}
           {/* FIKSIRANE TRAKE NA DNU - IZVAN KONTEJNERA               */}

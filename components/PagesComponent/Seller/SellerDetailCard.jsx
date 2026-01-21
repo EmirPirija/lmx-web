@@ -14,8 +14,11 @@ import {
   MdStorefront,
   MdWorkspacePremium,
   MdSchedule,
+  MdLocalShipping,
+  MdAssignmentReturn,
+  MdOpenInNew,
 } from "react-icons/md";
-import { FaWhatsapp, FaViber } from "react-icons/fa";
+import { FaWhatsapp, FaViber, FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaGlobe } from "react-icons/fa";
 import { extractYear } from "@/utils";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -90,6 +93,7 @@ const formatLastSeen = (timestamp) => {
  
 // Response time labele
 const responseTimeLabels = {
+  auto: null, // ne prikazujemo ako je auto
   instant: "par minuta",
   few_hours: "par sati",
   same_day: "24 sata",
@@ -138,6 +142,21 @@ const SellerDetailCard = ({
   const showViber = Boolean(settings.show_viber);
   const whatsappNumber = settings.whatsapp_number || seller?.mobile;
   const viberNumber = settings.viber_number || seller?.mobile;
+  
+  // Business info
+  const businessDescription = settings.business_description || null;
+  const returnPolicy = settings.return_policy || null;
+  const shippingInfo = settings.shipping_info || null;
+  
+  // Social media
+  const socialFacebook = settings.social_facebook || null;
+  const socialInstagram = settings.social_instagram || null;
+  const socialTiktok = settings.social_tiktok || null;
+  const socialYoutube = settings.social_youtube || null;
+  const socialWebsite = settings.social_website || null;
+  
+  const hasSocialLinks = socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite;
+  const hasBusinessInfo = businessDescription || returnPolicy || shippingInfo;
  
   const handleCopyPhone = () => {
     if (!seller?.mobile) return;
@@ -282,7 +301,7 @@ const SellerDetailCard = ({
             )}
             
             {/* RESPONSE TIME */}
-            {responseTime && responseTimeLabels[responseTime] && (
+            {responseTime && responseTime !== 'auto' && responseTimeLabels[responseTime] && (
               <div className="mt-2">
                 <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
                   <MdAccessTime className="text-sm" />
@@ -384,6 +403,109 @@ const SellerDetailCard = ({
                   <span>Viber</span>
                 </a>
               )}
+            </div>
+          )}
+          
+          {/* BUSINESS INFO */}
+          {hasBusinessInfo && (
+            <div className="mt-6 w-full space-y-3">
+              <div className="h-px w-full bg-slate-100" />
+              
+              {businessDescription && (
+                <div className="p-4 bg-slate-50 rounded-2xl">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">O prodavaču</p>
+                  <p className="text-sm text-slate-700 leading-relaxed">{businessDescription}</p>
+                </div>
+              )}
+              
+              {(returnPolicy || shippingInfo) && (
+                <div className="grid grid-cols-1 gap-3">
+                  {shippingInfo && (
+                    <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                      <MdLocalShipping className="text-blue-500 text-lg flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-blue-700">Dostava</p>
+                        <p className="text-xs text-blue-600 mt-0.5">{shippingInfo}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {returnPolicy && (
+                    <div className="flex items-start gap-3 p-3 bg-green-50 rounded-xl border border-green-100">
+                      <MdAssignmentReturn className="text-green-500 text-lg flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-green-700">Povrat</p>
+                        <p className="text-xs text-green-600 mt-0.5">{returnPolicy}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* SOCIAL MEDIA LINKS */}
+          {hasSocialLinks && (
+            <div className="mt-6 w-full">
+              <div className="h-px w-full bg-slate-100 mb-4" />
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 text-center">Pratite na mrežama</p>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                {socialFacebook && (
+                  <a
+                    href={socialFacebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1877F2] text-white hover:opacity-90 transition-opacity"
+                    title="Facebook"
+                  >
+                    <FaFacebook className="text-lg" />
+                  </a>
+                )}
+                {socialInstagram && (
+                  <a
+                    href={socialInstagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] text-white hover:opacity-90 transition-opacity"
+                    title="Instagram"
+                  >
+                    <FaInstagram className="text-lg" />
+                  </a>
+                )}
+                {socialTiktok && (
+                  <a
+                    href={socialTiktok}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-black text-white hover:opacity-90 transition-opacity"
+                    title="TikTok"
+                  >
+                    <FaTiktok className="text-lg" />
+                  </a>
+                )}
+                {socialYoutube && (
+                  <a
+                    href={socialYoutube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#FF0000] text-white hover:opacity-90 transition-opacity"
+                    title="YouTube"
+                  >
+                    <FaYoutube className="text-lg" />
+                  </a>
+                )}
+                {socialWebsite && (
+                  <a
+                    href={socialWebsite}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-700 text-white hover:opacity-90 transition-opacity"
+                    title="Web stranica"
+                  >
+                    <FaGlobe className="text-lg" />
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>
