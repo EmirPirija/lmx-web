@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  IoEyeOutline, 
+import { itemStatisticsApi } from "@/utils/api";
+import {
+  IoEyeOutline,
   IoHeartOutline,
   IoCallOutline,
   IoChatbubbleOutline,
@@ -20,19 +21,23 @@ import Link from "next/link";
 // ============================================
 const fetchQuickStats = async (itemId) => {
   try {
-    const response = await fetch(`/api/item-statistics/${itemId}/quick`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    return data.data;
+    const response = await itemStatisticsApi.getQuickStats({ itemId });
+    const payload = response?.data;
+
+    // Podrži više formata odgovora
+    const ok =
+      payload?.error === false ||
+      payload?.error === 0 ||
+      payload?.success === true ||
+      payload?.status === true ||
+      payload?.ok === true;
+
+    if (ok) return payload?.data ?? null;
+
+    // Fallback ako backend ne šalje flags
+    return payload?.data ?? null;
   } catch (error) {
-    console.error('Error fetching quick stats:', error);
+    console.error("Error fetching quick stats:", error);
     return null;
   }
 };
@@ -41,9 +46,10 @@ const fetchQuickStats = async (itemId) => {
 // HELPER
 // ============================================
 const formatNumber = (num) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num?.toString() || '0';
+  if (num === null || num === undefined) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toString();
 };
 
 // ============================================
@@ -62,9 +68,13 @@ const MiniStatItem = ({ icon: Icon, value, label, color = "slate" }) => {
     <div className="flex flex-col items-center gap-1">
       <div className="flex items-center gap-1">
         <Icon className={colorClasses[color]} size={14} />
-        <span className="text-sm font-bold text-slate-800">{formatNumber(value)}</span>
+        <span className="text-sm font-bold text-slate-800">
+          {formatNumber(value)}
+        </span>
       </div>
-      <span className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</span>
+      <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+        {label}
+      </span>
     </div>
   );
 };
@@ -109,55 +119,66 @@ const ItemStatisticsCard = ({ itemId, itemSlug }) => {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <IoStatsChartOutline className="text-blue-500" size={16} />
-          <span className="text-xs font-semibold text-slate-600">Statistika</span>
+          <span className="text-xs font-semibold text-slate-600">
+            Statistika
+          </span>
         </div>
-        
+
         {trend !== 0 && (
-          <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-            trend > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-          }`}>
-            {trend > 0 ? <IoTrendingUp size={12} /> : <IoTrendingDown size={12} />}
-            {trend > 0 ? '+' : ''}{trend}%
+          <div
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+              trend > 0
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }`}
+          >
+            {trend > 0 ? (
+              <IoTrendingUp size={12} />
+            ) : (
+              <IoTrendingDown size={12} />
+            )}
+            {trend > 0 ? "+" : ""}
+            {trend}%
           </div>
         )}
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-5 gap-2">
-        <MiniStatItem 
-          icon={IoEyeOutline} 
-          value={stats.total_views} 
-          label="Pregleda" 
+        <MiniStatItem
+          icon={IoEyeOutline}
+          value={stats.total_views}
+          label="Pregleda"
           color="blue"
         />
-        <MiniStatItem 
-          icon={IoHeartOutline} 
-          value={stats.total_favorites} 
-          label="Favorita" 
+        <MiniStatItem
+          icon={IoHeartOutline}
+          value={stats.total_favorites}
+          label="Favorita"
           color="red"
         />
-        <MiniStatItem 
-          icon={IoCallOutline} 
-          value={stats.total_phone_clicks} 
-          label="Poziva" 
+        <MiniStatItem
+          icon={IoCallOutline}
+          value={stats.total_phone_clicks}
+          label="Poziva"
           color="green"
         />
-        <MiniStatItem 
-          icon={IoChatbubbleOutline} 
-          value={stats.total_messages} 
-          label="Poruka" 
+        <MiniStatItem
+          icon={IoChatbubbleOutline}
+          value={stats.total_messages}
+          label="Poruka"
           color="blue"
         />
-        <MiniStatItem 
-          icon={IoShareSocialOutline} 
-          value={stats.total_shares} 
-          label="Dijeljenja" 
+        <MiniStatItem
+          icon={IoShareSocialOutline}
+          value={stats.total_shares}
+          label="Dijeljenja"
           color="purple"
         />
       </div>
 
       {/* View Full Stats Link */}
-      <Link 
+      <Link
         href={`/my-ads/${itemSlug}/statistics`}
         className="mt-3 flex items-center justify-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
       >
@@ -233,6 +254,78 @@ export const TodayStatsBadge = ({ itemId }) => {
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500 text-white text-xs font-medium rounded-full">
       <IoEyeOutline size={12} />
       {stats.today_views} danas
+    </div>
+  );
+};
+
+// ============================================
+// QUICK STATS ROW - Za korištenje u MyAdsCard
+// ============================================
+export const QuickStatsRow = ({ itemId }) => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      const data = await fetchQuickStats(itemId);
+      setStats(data);
+      setLoading(false);
+    };
+
+    if (itemId) {
+      loadStats();
+    }
+  }, [itemId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-3 animate-pulse">
+        <div className="h-4 w-16 bg-slate-200 rounded"></div>
+        <div className="h-4 w-12 bg-slate-200 rounded"></div>
+        <div className="h-4 w-12 bg-slate-200 rounded"></div>
+      </div>
+    );
+  }
+
+  if (!stats) return null;
+
+  return (
+    <div className="flex items-center gap-3 text-xs">
+      <span className="flex items-center gap-1 text-slate-500">
+        <IoEyeOutline size={13} className="text-blue-500" />
+        <span className="font-medium text-slate-700">
+          {formatNumber(stats.total_views)}
+        </span>
+      </span>
+      <span className="flex items-center gap-1 text-slate-500">
+        <IoHeartOutline size={13} className="text-red-500" />
+        <span className="font-medium text-slate-700">
+          {formatNumber(stats.total_favorites)}
+        </span>
+      </span>
+      <span className="flex items-center gap-1 text-slate-500">
+        <IoChatbubbleOutline size={13} className="text-green-500" />
+        <span className="font-medium text-slate-700">
+          {formatNumber(stats.total_messages)}
+        </span>
+      </span>
+      {stats.views_trend !== 0 && (
+        <span
+          className={`flex items-center gap-0.5 ${
+            stats.views_trend > 0 ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {stats.views_trend > 0 ? (
+            <IoTrendingUp size={12} />
+          ) : (
+            <IoTrendingDown size={12} />
+          )}
+          <span className="font-medium">
+            {stats.views_trend > 0 ? "+" : ""}
+            {stats.views_trend}%
+          </span>
+        </span>
+      )}
     </div>
   );
 };
