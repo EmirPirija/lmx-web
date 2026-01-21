@@ -1,18 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { store } from "@/redux/store";
 
 // ============================================
 // API BASE URL
 // ============================================
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') + '/api' || '/api';
+const getApiBase = () => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const endPoint = process.env.NEXT_PUBLIC_END_POINT || '/api/';
+  return `${apiUrl.replace(/\/$/, '')}${endPoint.replace(/\/$/, '')}`;
+};
 
 // ============================================
 // HELPER FUNKCIJE
 // ============================================
 const getAuthToken = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
+    try {
+      const state = store.getState();
+      return state?.UserSignup?.data?.token || null;
+    } catch (e) {
+      return null;
+    }
   }
   return null;
 };
@@ -99,7 +109,8 @@ const trackingRequest = async (endpoint, data) => {
       }
     });
 
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
+    const apiBase = getApiBase();
+    const res = await fetch(`${apiBase}/${endpoint}`, {
       method: "POST",
       headers,
       body: form,
