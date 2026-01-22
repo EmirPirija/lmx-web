@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
+import Link from "next/link";
+import { useMediaQuery } from "usehooks-ts";
+
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { membershipApi, chatListApi, getNotificationList, getMyItemsApi } from "@/utils/api";
 import { truncate } from "@/utils";
-import { useMediaQuery } from "usehooks-ts";
 import CustomImage from "@/components/Common/CustomImage";
 import { useNavigate } from "@/components/Common/useNavigate";
 
@@ -32,24 +34,36 @@ import {
   IoBriefcaseOutline,
 } from "react-icons/io5";
 import { Crown, Store } from "lucide-react";
-import { FaAngleDown } from "react-icons/fa";
 import { MdVerified } from "react-icons/md";
 
 // ============================================
 // HELPERS
 // ============================================
 const formatNumber = (num) => {
-  const n = Number(num || 0);
-  if (Number.isNaN(n)) return "0";
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
-  if (n >= 1000) return (n / 1000).toFixed(1) + "K";
-  return n.toString();
+  if (!num && num !== 0) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toString();
 };
 
-const isBrowser = () => typeof window !== "undefined" && typeof document !== "undefined";
+const getApiData = (res) => res?.data?.data ?? null;
 
-const focusableSelector =
-  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+// Pokušaj izvući listu iz paginated ili plain odgovora
+const extractList = (payload) => {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data; // paginator shape: {data: [...]}
+  return [];
+};
+
+const extractTotal = (payload) => {
+  if (!payload) return 0;
+  // paginator / custom meta
+  if (typeof payload?.total === "number") return payload.total;
+  if (typeof payload?.meta?.total === "number") return payload.meta.total;
+  if (typeof payload?.pagination?.total === "number") return payload.pagination.total;
+  return 0;
+};
 
 // ============================================
 // MEMBERSHIP BADGE
@@ -62,16 +76,13 @@ const MembershipBadge = ({ tier, size = "sm" }) => {
     shop: { icon: Store, bg: "bg-blue-100", text: "text-blue-700", label: "Shop" },
   };
 
-  const key = String(tier || "").toLowerCase();
-  const config = configs[key] || configs.pro;
+  const config = configs[String(tier).toLowerCase()] || configs.pro;
   const Icon = config.icon;
   const sizeClasses = { xs: "text-[10px] px-1.5 py-0.5", sm: "text-xs px-2 py-0.5" };
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full font-semibold ${config.bg} ${config.text} ${
-        sizeClasses[size] || sizeClasses.sm
-      }`}
+      className={`inline-flex items-center gap-1 rounded-full font-semibold ${config.bg} ${config.text} ${sizeClasses[size]}`}
     >
       <Icon size={size === "xs" ? 10 : 12} />
       {config.label}
@@ -81,463 +92,75 @@ const MembershipBadge = ({ tier, size = "sm" }) => {
 
 // ============================================
 // MENU ITEM
-// - badge: crveni alert (unread)
-// - count: sivi broj (informativno, npr. broj oglasa)
-// - proOnly: ako je free, vodi na upgrade
 // ============================================
-const MenuItem = ({
-  icon: Icon,
-  label,
-  onClick,
-  badge = 0,
-  count = null,
-  isNew = false,
-  external = false,
-  danger = false,
-  proOnly = false,
-  disabled = false,
-}) => {
-  const badgeNum = Number(badge || 0);
-
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      disabled={disabled}
+const MenuItem = ({ icon: Icon, label, href, onClick, badge, isNew, external, danger }) => {
+  const content = (
+    <div
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
+        danger ? "text-red-600 hover:bg-red-50" : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+      }`}
       onClick={onClick}
-      className={[
-        "w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all",
-        disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
-        danger
-          ? "text-red-600 hover:bg-red-50"
-          : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-      ].join(" ")}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onClick?.();
+      }}
     >
       <Icon size={18} className={danger ? "text-red-500" : "text-slate-400"} />
       <span className="flex-1 text-sm font-medium">{label}</span>
 
-      {count !== null && (
-        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-semibold rounded-full">
-          {count}
-        </span>
-      )}
-
-      {badgeNum > 0 && (
+      {typeof badge === "number" && badge > 0 && (
         <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] text-center">
-          {badgeNum > 99 ? "99+" : badgeNum}
+          {badge > 99 ? "99+" : badge}
         </span>
-      )}
-
-      {proOnly && (
-        <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded">PRO</span>
       )}
 
       {isNew && <span className="px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded">NOVO</span>}
 
       {external && <IoChevronForward size={14} className="text-slate-300" />}
-    </button>
+    </div>
   );
+
+  if (href && !onClick) {
+    return (
+      <Link href={href} className="block">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 };
 
-// ============================================
-// MENU SECTION
-// ============================================
 const MenuSection = ({ title, children }) => (
   <div className="py-2">
     {title && (
-      <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-        {title}
-      </p>
+      <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
     )}
-    <div className="space-y-1">{children}</div>
+    {children}
   </div>
 );
 
 // ============================================
-// LOADING SKELETON (mini)
+// MODAL (SHEET)
 // ============================================
-const SkeletonLine = ({ className = "" }) => (
-  <div className={`animate-pulse bg-slate-200 rounded ${className}`} />
-);
+const SheetModal = ({ open, onClose, children }) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const panelRef = useRef(null);
 
-// ============================================
-// STATS HOOK (fetch on open + cache)
-// ============================================
-const useProfileMenuStats = ({ userData, isOpen }) => {
-  const cacheRef = useRef({ ts: 0, data: null });
-  const [loading, setLoading] = useState(false);
-
-  const [stats, setStats] = useState({
-    activeAds: 0,
-    totalViews: 0,
-    unreadMessages: 0,
-    unreadNotifications: 0,
-    rating: 0,
-    membershipTier: "free",
-    isVerified: false,
-  });
-
-  const userId = userData?.id;
-
+  // Close on escape
   useEffect(() => {
-    if (!userId || !isOpen) return;
-
-    const now = Date.now();
-    const cacheAge = now - (cacheRef.current.ts || 0);
-    const CACHE_TTL_MS = 90 * 1000; // 90s
-
-    // serve cache odmah (snappy)
-    if (cacheRef.current.data && cacheAge < CACHE_TTL_MS) {
-      setStats(cacheRef.current.data);
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchAll = async () => {
-      setLoading(true);
-
-      try {
-        const [membershipRes, chatRes, notifRes, adsRes] = await Promise.allSettled([
-          membershipApi.getUserMembership({}),
-          chatListApi.chatList({ type: "all", page: 1 }),
-          getNotificationList.getNotification({ page: 1 }),
-          getMyItemsApi.getMyItems({ status: "approved", page: 1 }),
-        ]);
-
-        // Membership
-        let membershipTier = (userData?.membership_tier || "free").toString().toLowerCase();
-        if (membershipRes.status === "fulfilled" && membershipRes.value?.data?.data) {
-          const data = membershipRes.value.data.data;
-          membershipTier = (data?.tier?.slug || data?.membership_tier || membershipTier || "free")
-            .toString()
-            .toLowerCase();
-        }
-
-        // Unread messages (sum, ne broj chatova)
-        let unreadMessages = 0;
-        if (chatRes.status === "fulfilled" && chatRes.value?.data?.data?.data) {
-          const chats = chatRes.value.data.data.data;
-          unreadMessages = chats.reduce((sum, chat) => {
-            const c = Number(chat?.unread_count ?? chat?.unread ?? 0);
-            return sum + (Number.isNaN(c) ? 0 : c);
-          }, 0);
-        }
-
-        // Unread notifications
-        let unreadNotifications = 0;
-        if (notifRes.status === "fulfilled" && notifRes.value?.data?.data) {
-          const maybe = notifRes.value.data.data;
-          const notifs = maybe?.data || maybe;
-          if (Array.isArray(notifs)) {
-            unreadNotifications = notifs.filter((n) => !n?.read_at && !n?.is_read).length;
-          }
-        }
-
-        // Active ads count
-        let activeAds = 0;
-        if (adsRes.status === "fulfilled" && adsRes.value?.data?.data) {
-          const d = adsRes.value.data.data;
-          activeAds = Number(d?.total ?? d?.count ?? 0) || 0;
-        }
-
-        // Total views (fallback)
-        const totalViews = Number(userData?.total_views ?? userData?.profile_views ?? 0) || 0;
-
-        // Rating (safe)
-        const rawRating = Number(userData?.rating ?? userData?.avg_rating ?? 0);
-        const rating = Number.isNaN(rawRating) ? 0 : rawRating;
-
-        // Verified status
-        const isVerified = userData?.is_verified === 1 || userData?.verified === true;
-
-        const next = {
-          activeAds,
-          totalViews,
-          unreadMessages,
-          unreadNotifications,
-          rating: Number(rating.toFixed(1)),
-          membershipTier,
-          isVerified,
-        };
-
-        if (!cancelled) {
-          setStats(next);
-          cacheRef.current = { ts: Date.now(), data: next };
-        }
-      } catch (e) {
-        // silent fail
-        // eslint-disable-next-line no-console
-        console.error("Error fetching user stats:", e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    fetchAll();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, isOpen, userData]);
-
-  return { stats, loading };
-};
-
-// ============================================
-// CONTENT (shared za modal)
-// ============================================
-const ProfileMenuContent = ({
-  userData,
-  placeholderImage,
-  stats,
-  loading,
-  isMobile,
-  onClose,
-  onLogout,
-  onNavigate,
-  onUpgrade,
-}) => {
-  const isPro = stats.membershipTier === "pro" || stats.membershipTier === "shop";
-  const isFree = stats.membershipTier === "free";
-
-  const MENU = useMemo(
-    () => [
-      {
-        title: "Profil",
-        items: [
-          { icon: IoPersonOutline, label: "Moj profil", action: () => onNavigate("/profile") },
-          { icon: IoSettingsOutline, label: "Postavke", action: () => onNavigate("/profile") },
-        ],
-      },
-      {
-        title: "Oglasi",
-        items: [
-          {
-            icon: IoLayersOutline,
-            label: "Moji oglasi",
-            action: () => onNavigate("/my-ads"),
-            count: stats.activeAds,
-          },
-          { icon: IoHeartOutline, label: "Favoriti", action: () => onNavigate("/favorites") },
-          {
-            icon: IoStatsChartOutline,
-            label: "Statistika",
-            action: () => (isFree ? onUpgrade() : onNavigate("/my-ads")),
-            proOnly: isFree,
-          },
-        ],
-      },
-      {
-        title: "Finansije",
-        items: [
-          { icon: IoCardOutline, label: "Pretplata", action: () => onNavigate("/user-subscription") },
-          { icon: IoReceiptOutline, label: "Transakcije", action: () => onNavigate("/transactions") },
-        ],
-      },
-      {
-        title: "Podrška",
-        items: [
-          {
-            icon: IoChatbubbleOutline,
-            label: "Poruke",
-            action: () => onNavigate("/chat"),
-            badge: stats.unreadMessages,
-          },
-          {
-            icon: IoNotificationsOutline,
-            label: "Obavijesti",
-            action: () => onNavigate("/notifications"),
-            badge: stats.unreadNotifications,
-          },
-          {
-            icon: IoBriefcaseOutline,
-            label: "Prijave za posao",
-            action: () => window.open("https://poslovi.lmx.ba/", "_blank"),
-            external: true,
-          },
-          { icon: IoHelpCircleOutline, label: "Pomoć", action: () => onNavigate("/contact-us") },
-        ],
-      },
-    ],
-    [stats.activeAds, stats.unreadMessages, stats.unreadNotifications, isFree, onNavigate, onUpgrade]
-  );
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100/60 border-b border-slate-100">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative">
-              <CustomImage
-                src={userData?.profile || placeholderImage}
-                alt={userData?.name || "User"}
-                width={52}
-                height={52}
-                className="rounded-full w-13 h-13 aspect-square object-cover border-2 border-white shadow-sm"
-              />
-              {stats.isVerified && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
-                  <MdVerified className="text-white" size={12} />
-                </div>
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <p className="font-semibold text-slate-800 truncate">{userData?.name || "Korisnik"}</p>
-                <MembershipBadge tier={stats.membershipTier} size="sm" />
-              </div>
-              <p className="text-xs text-slate-500 truncate">{userData?.email || ""}</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/70 transition-colors"
-            aria-label="Zatvori"
-          >
-            <IoClose size={22} className="text-slate-500" />
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <div className="bg-white rounded-xl p-2.5 border border-slate-100">
-            <div className="flex items-center gap-2">
-              <IoLayersOutline className="text-blue-500" size={16} />
-              <p className="text-xs text-slate-500">Oglasi</p>
-            </div>
-            <div className="mt-1">
-              {loading ? (
-                <SkeletonLine className="h-4 w-12" />
-              ) : (
-                <p className="text-sm font-bold text-slate-800">{stats.activeAds}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-2.5 border border-slate-100">
-            <div className="flex items-center gap-2">
-              <IoChatbubbleOutline className="text-amber-500" size={16} />
-              <p className="text-xs text-slate-500">Poruke</p>
-            </div>
-            <div className="mt-1">
-              {loading ? (
-                <SkeletonLine className="h-4 w-16" />
-              ) : (
-                <p className="text-sm font-bold text-slate-800">{stats.unreadMessages}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-2.5 border border-slate-100">
-            <div className="flex items-center gap-2">
-              <IoStarOutline className="text-amber-500" size={16} />
-              <p className="text-xs text-slate-500">Ocjena</p>
-            </div>
-            <div className="mt-1">
-              {loading ? (
-                <SkeletonLine className="h-4 w-10" />
-              ) : (
-                <p className="text-sm font-bold text-slate-800">{stats.rating}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Primary action */}
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => onNavigate("/ad-listing")}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
-          >
-            <IoAddCircleOutline size={18} />
-            Dodaj oglas
-          </button>
-        </div>
-
-        {/* Optional: views (manje upadljivo) */}
-        <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1.5">
-            <IoEyeOutline size={14} className="text-green-500" />
-            {loading ? <SkeletonLine className="h-3 w-10" /> : <span>{formatNumber(stats.totalViews)} pregleda</span>}
-          </span>
-
-          {isPro && (
-            <span className="inline-flex items-center gap-1.5 text-slate-500">
-              <IoCardOutline size={14} className="text-slate-400" />
-              Pro aktivan
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Menu */}
-      <div className={["flex-1 overflow-y-auto", isMobile ? "p-2" : "p-3"].join(" ")}>
-        {MENU.map((section) => (
-          <div key={section.title}>
-            <MenuSection title={section.title}>
-              {section.items.map((it) => (
-                <MenuItem
-                  key={it.label}
-                  icon={it.icon}
-                  label={it.label}
-                  onClick={() => it.action?.()}
-                  badge={it.badge}
-                  count={it.count}
-                  external={it.external}
-                  danger={it.danger}
-                  proOnly={it.proOnly}
-                />
-              ))}
-            </MenuSection>
-            <div className="h-px bg-slate-100 mx-3" />
-          </div>
-        ))}
-
-        <MenuSection>
-          <MenuItem icon={IoLogOutOutline} label="Odjavi se" onClick={onLogout} danger />
-        </MenuSection>
-      </div>
-
-      {/* Upgrade banner */}
-      {isFree && (
-        <div className="p-3 border-t border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50">
-          <button
-            type="button"
-            onClick={onUpgrade}
-            className="w-full flex items-center gap-3 group text-left"
-          >
-            <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-              <Crown className="text-white" size={16} />
-            </div>
-            <div className="flex-1">
-              <h5 className="text-sm font-semibold text-amber-800">Nadogradi na Pro</h5>
-              <p className="text-xs text-amber-600">Napredna statistika i više</p>
-            </div>
-            <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={18} />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============================================
-// MODAL WRAPPER (portal + focus trap + esc + outside click)
-// ============================================
-const ProfileModal = ({ open, onClose, children, isMobile }) => {
-  const modalRef = useRef(null);
-
-  // lock body scroll
-  useEffect(() => {
-    if (!isBrowser()) return;
     if (!open) return;
+    const handleEscape = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [open, onClose]);
 
+  // Lock body scroll
+  useEffect(() => {
+    if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -545,73 +168,28 @@ const ProfileModal = ({ open, onClose, children, isMobile }) => {
     };
   }, [open]);
 
-  // focus trap + ESC
-  useEffect(() => {
-    if (!isBrowser() || !open) return;
+  // Click outside to close
+  const onOverlayMouseDown = (e) => {
+    // ako klikneš direktno na overlay (ne na panel)
+    if (panelRef.current && !panelRef.current.contains(e.target)) onClose?.();
+  };
 
-    const el = modalRef.current;
-    if (!el) return;
-
-    const focusables = Array.from(el.querySelectorAll(focusableSelector));
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-
-    // focus first interactive
-    (first || el).focus?.();
-
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-        return;
-      }
-
-      if (e.key !== "Tab" || focusables.length === 0) return;
-
-      // trap
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
-
-  if (!open || !isBrowser()) return null;
+  if (!open) return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center"
-      aria-hidden={!open}
-    >
-      {/* overlay */}
-      <button
-        type="button"
-        aria-label="Zatvori overlay"
-        className="absolute inset-0 bg-black/35"
-        onClick={onClose}
+    <div className="fixed inset-0 z-[9999]" role="dialog" aria-modal="true">
+      <div
+        className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
+        onMouseDown={onOverlayMouseDown}
       />
 
-      {/* panel */}
       <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        tabIndex={-1}
+        ref={panelRef}
         className={[
-          "relative bg-white shadow-2xl border border-slate-100 overflow-hidden",
+          "fixed z-[10000] bg-white border border-slate-100 shadow-2xl overflow-hidden",
           isMobile
-            ? "w-full h-[92vh] rounded-t-2xl animate-in slide-in-from-bottom duration-200"
-            : "w-[420px] max-w-[92vw] max-h-[82vh] rounded-2xl animate-in fade-in zoom-in-95 duration-150",
+            ? "inset-x-0 bottom-0 rounded-t-2xl max-h-[92vh] animate-in slide-in-from-bottom duration-200"
+            : "top-16 right-4 w-[380px] rounded-2xl max-h-[80vh] animate-in fade-in slide-in-from-top-2 duration-150",
         ].join(" ")}
       >
         {children}
@@ -622,10 +200,10 @@ const ProfileModal = ({ open, onClose, children, isMobile }) => {
 };
 
 // ============================================
-// MAIN COMPONENT
+// GLAVNA KOMPONENTA
 // ============================================
 const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const { navigate } = useNavigate();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -633,83 +211,331 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   const settings = useSelector(settingsData);
   const placeholderImage = settings?.placeholder_image;
 
-  const { stats, loading } = useProfileMenuStats({ userData, isOpen: open });
+  const [userStats, setUserStats] = useState({
+    activeAds: 0,
+    totalViews: 0,
+    unreadMessages: 0,
+    unreadNotifications: 0,
+    rating: "0.0",
+    membershipTier: "free",
+    isVerified: false,
+  });
+  const [loading, setLoading] = useState(false);
 
-  const handleClose = useCallback(() => setOpen(false), []);
-  const handleOpen = useCallback(() => setOpen(true), []);
+  const hasUnread = useMemo(
+    () => (userStats.unreadMessages || 0) + (userStats.unreadNotifications || 0) > 0,
+    [userStats.unreadMessages, userStats.unreadNotifications]
+  );
 
   const handleNavigate = useCallback(
     (path) => {
-      setOpen(false);
+      setIsOpen(false);
       navigate(path);
     },
     [navigate]
   );
 
-  const handleUpgrade = useCallback(() => {
-    setOpen(false);
-    navigate("/membership/upgrade");
-  }, [navigate]);
-
   const handleLogout = useCallback(() => {
-    setOpen(false);
-    setIsLogout?.(true);
+    setIsOpen(false);
+    setIsLogout(true);
   }, [setIsLogout]);
 
-  if (!userData) return null;
+  const isPro = userStats.membershipTier === "pro" || userStats.membershipTier === "shop";
 
+  const fetchAllData = useCallback(async () => {
+    if (!userData) return;
+    setLoading(true);
+
+    try {
+      // Buyer + Seller chatovi (backend ne prihvata "all")
+      const chatBuyerPromise = chatListApi.chatList({ type: "buyer", page: 1 });
+      const chatSellerPromise = chatListApi.chatList({ type: "seller", page: 1 });
+
+      const results = await Promise.allSettled([
+        membershipApi.getUserMembership({}),
+        chatBuyerPromise,
+        chatSellerPromise,
+        getNotificationList.getNotification({ page: 1 }),
+        // Pošto getItem traži offset/limit, a nama treba total:
+        // plus user_id da bude "moji oglasi" (ne svi oglasi).
+        getMyItemsApi.getMyItems({ status: "approved", user_id: userData?.id, offset: 0, limit: 1 }),
+      ]);
+
+      const [membershipRes, chatBuyerRes, chatSellerRes, notifRes, adsRes] = results;
+
+      // Membership
+      let membershipTier = userData?.membership_tier || "free";
+      if (membershipRes.status === "fulfilled") {
+        const membershipData = getApiData(membershipRes.value);
+        membershipTier = membershipData?.tier || membershipData?.membership_tier || membershipTier;
+      }
+
+      // Chat unread (sum unread_chat_count / unread_count)
+      const computeUnreadFromChatRes = (settled) => {
+        if (settled.status !== "fulfilled") return 0;
+        const payload = getApiData(settled.value);
+        const chats = extractList(payload);
+        return chats.reduce((sum, chat) => {
+          const v =
+            chat?.unread_chat_count ??
+            chat?.unread_count ??
+            chat?.unread ??
+            (chat?.is_read === 0 ? 1 : 0);
+          return sum + (Number(v) || 0);
+        }, 0);
+      };
+
+      const unreadMessages = computeUnreadFromChatRes(chatBuyerRes) + computeUnreadFromChatRes(chatSellerRes);
+
+      // Notifications unread
+      let unreadNotifications = 0;
+      if (notifRes.status === "fulfilled") {
+        const payload = getApiData(notifRes.value);
+        const list = extractList(payload);
+        unreadNotifications = list.filter((n) => !n?.read_at && !n?.is_read).length;
+      }
+
+      // Active ads count
+      let activeAds = 0;
+      if (adsRes.status === "fulfilled") {
+        const payload = getApiData(adsRes.value);
+        activeAds = extractTotal(payload) || payload?.total || 0;
+      }
+
+      // Total views + rating + verified (iz userData)
+      const totalViews = userData?.total_views || userData?.profile_views || 0;
+      const ratingRaw = userData?.rating || userData?.avg_rating || 0;
+      const rating = Number.isFinite(Number(ratingRaw)) ? Number(ratingRaw).toFixed(1) : "0.0";
+      const isVerified = userData?.is_verified === 1 || userData?.verified === true;
+
+      setUserStats({
+        activeAds,
+        totalViews,
+        unreadMessages,
+        unreadNotifications,
+        rating,
+        membershipTier: String(membershipTier).toLowerCase(),
+        isVerified,
+      });
+    } catch (e) {
+      console.error("Error fetching user stats:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [userData]);
+
+  // Fetch on mount / user change
+  useEffect(() => {
+    if (!userData) return;
+    fetchAllData();
+  }, [userData, fetchAllData]);
+
+  // Optional: refresh counts when opening (da badge bude svjež)
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchAllData();
+  }, [isOpen, fetchAllData]);
+
+  // Header button (clean)
   return (
     <div className="relative">
-      {/* Trigger */}
       <button
-        type="button"
-        onClick={() => (open ? handleClose() : handleOpen())}
-        className="flex items-center gap-2 px-2 py-1.5 rounded-full hover:bg-slate-100 transition-colors"
+        onClick={() => setIsOpen(true)}
+        className="relative flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors p-1"
         aria-haspopup="dialog"
-        aria-expanded={open}
+        aria-expanded={isOpen}
+        aria-label="Otvori profil meni"
       >
         <div className="relative">
           <CustomImage
             src={userData?.profile || placeholderImage}
-            alt={userData?.name || "User"}
+            alt={userData?.name || "Profil"}
             width={32}
             height={32}
-            className="rounded-full w-8 h-8 aspect-square object-cover border-2 border-slate-200"
+            className="rounded-full w-8 h-8 aspect-square object-cover border border-slate-200"
           />
-          {stats.isVerified && (
+
+          {userStats.isVerified && (
             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
               <MdVerified className="text-white" size={10} />
             </div>
           )}
-        </div>
 
-        <div className="hidden sm:block text-left">
-          <p className="text-sm font-medium text-slate-700 leading-tight max-w-[110px] truncate">
-            {truncate(userData?.name, 14)}
-          </p>
-          {stats.membershipTier !== "free" && <MembershipBadge tier={stats.membershipTier} size="xs" />}
+          {/* clean unread dot */}
+          {hasUnread && (
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
         </div>
-
-        <FaAngleDown
-          className={`text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          size={12}
-        />
       </button>
 
-      {/* Modal */}
-      <ProfileModal open={open} onClose={handleClose} isMobile={isMobile}>
-        <ProfileMenuContent
-          userData={userData}
-          placeholderImage={placeholderImage}
-          stats={stats}
-          loading={loading}
-          isMobile={isMobile}
-          onClose={handleClose}
-          onLogout={handleLogout}
-          onNavigate={handleNavigate}
-          onUpgrade={handleUpgrade}
-        />
-      </ProfileModal>
+      <SheetModal open={isOpen} onClose={() => setIsOpen(false)}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-100">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900 leading-tight">
+              {truncate(userData?.name || "Moj profil", 22)}
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <MembershipBadge tier={userStats.membershipTier} size="xs" />
+              {loading && <span className="text-[11px] text-slate-400">učitavam…</span>}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+            aria-label="Zatvori"
+          >
+            <IoClose size={22} className="text-slate-600" />
+          </button>
+        </div>
+
+        <div className={["overflow-y-auto", isMobile ? "max-h-[calc(92vh-64px)]" : "max-h-[calc(80vh-64px)]"].join(" ")}>
+          {/* User Card */}
+          <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100/60">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <CustomImage
+                  src={userData?.profile || placeholderImage}
+                  alt={userData?.name || "Profil"}
+                  width={56}
+                  height={56}
+                  className="rounded-full w-14 h-14 aspect-square object-cover border-2 border-white shadow-sm"
+                />
+                {userStats.isVerified && (
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
+                    <MdVerified className="text-white" size={14} />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-slate-900 truncate">{userData?.name}</p>
+                <p className="text-xs text-slate-500 truncate">{userData?.email}</p>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-4 gap-2 mt-4 bg-white rounded-xl p-3">
+              <div className="text-center">
+                <IoLayersOutline className="mx-auto text-blue-500" size={18} />
+                <p className="text-sm font-bold text-slate-800">{userStats.activeAds}</p>
+                <p className="text-[10px] text-slate-400">Oglasi</p>
+              </div>
+              <div className="text-center">
+                <IoEyeOutline className="mx-auto text-green-500" size={18} />
+                <p className="text-sm font-bold text-slate-800">{formatNumber(userStats.totalViews)}</p>
+                <p className="text-[10px] text-slate-400">Pregledi</p>
+              </div>
+              <div className="text-center">
+                <IoChatbubbleOutline className="mx-auto text-amber-500" size={18} />
+                <p className="text-sm font-bold text-slate-800">{userStats.unreadMessages}</p>
+                <p className="text-[10px] text-slate-400">Poruke</p>
+              </div>
+              <div className="text-center">
+                <IoStarOutline className="mx-auto text-amber-500" size={18} />
+                <p className="text-sm font-bold text-slate-800">{userStats.rating}</p>
+                <p className="text-[10px] text-slate-400">Ocjena</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary action */}
+          <div className="p-4 border-b border-slate-100">
+            <Link
+              href="/ad-listing"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors w-full"
+            >
+              <IoAddCircleOutline size={18} />
+              Dodaj oglas
+            </Link>
+          </div>
+
+          {/* Menu */}
+          <div className="p-2">
+            <MenuSection title="Profil">
+              <MenuItem icon={IoPersonOutline} label="Moj profil" onClick={() => handleNavigate("/profile")} />
+              <MenuItem icon={IoSettingsOutline} label="Postavke" onClick={() => handleNavigate("/profile")} />
+            </MenuSection>
+
+            <div className="h-px bg-slate-100 mx-3" />
+
+            <MenuSection title="Oglasi">
+              <MenuItem
+                icon={IoLayersOutline}
+                label="Moji oglasi"
+                onClick={() => handleNavigate("/my-ads")}
+                badge={userStats.activeAds}
+              />
+              <MenuItem icon={IoHeartOutline} label="Favoriti" onClick={() => handleNavigate("/favorites")} />
+              <MenuItem icon={IoStatsChartOutline} label="Statistika" onClick={() => handleNavigate("/my-ads")} isNew={isPro} />
+            </MenuSection>
+
+            <div className="h-px bg-slate-100 mx-3" />
+
+            <MenuSection title="Finansije">
+              <MenuItem icon={IoCardOutline} label="Pretplata" onClick={() => handleNavigate("/user-subscription")} />
+              <MenuItem icon={IoReceiptOutline} label="Transakcije" onClick={() => handleNavigate("/transactions")} />
+            </MenuSection>
+
+            <div className="h-px bg-slate-100 mx-3" />
+
+            <MenuSection title="Komunikacija">
+              <MenuItem
+                icon={IoChatbubbleOutline}
+                label="Poruke"
+                onClick={() => handleNavigate("/chat")}
+                badge={userStats.unreadMessages}
+              />
+              <MenuItem
+                icon={IoNotificationsOutline}
+                label="Obavijesti"
+                onClick={() => handleNavigate("/notifications")}
+                badge={userStats.unreadNotifications}
+              />
+            </MenuSection>
+
+            <div className="h-px bg-slate-100 mx-3" />
+
+            <MenuSection title="Podrška">
+              <MenuItem
+                icon={IoBriefcaseOutline}
+                label="Prijave za posao"
+                onClick={() => window.open("https://poslovi.lmx.ba/", "_blank")}
+                external
+              />
+              <MenuItem icon={IoHelpCircleOutline} label="Pomoć" onClick={() => handleNavigate("/contact-us")} />
+            </MenuSection>
+
+            <div className="h-px bg-slate-100 mx-3" />
+
+            <MenuSection>
+              <MenuItem icon={IoLogOutOutline} label="Odjavi se" onClick={handleLogout} danger />
+            </MenuSection>
+          </div>
+
+          {/* Upgrade banner */}
+          {userStats.membershipTier === "free" && (
+            <div className="p-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-t border-amber-100">
+              <Link
+                href="/membership/upgrade"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 group"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                  <Crown className="text-white" size={16} />
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold text-amber-800">Nadogradi na Pro</h5>
+                  <p className="text-xs text-amber-600">Napredna statistika i više</p>
+                </div>
+                <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={18} />
+              </Link>
+            </div>
+          )}
+        </div>
+      </SheetModal>
     </div>
   );
 };
