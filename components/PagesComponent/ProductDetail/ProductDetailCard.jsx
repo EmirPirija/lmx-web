@@ -1,19 +1,15 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { 
   MdFavorite, 
   MdFavoriteBorder, 
-  MdCalendarToday,
-  MdVisibility,
   MdStar,
   MdTrendingDown,
   MdTrendingUp,
   MdHistory,
-  MdLocalOffer
 } from "react-icons/md";
-import { FiPercent } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -22,6 +18,9 @@ import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { manageFavouriteApi } from "@/utils/api";
 import ShareDropdown from "@/components/Common/ShareDropdown";
+import { createPortal } from "react-dom";
+
+
 
 // ============================================
 // HELPER FUNKCIJE
@@ -74,71 +73,142 @@ const formatShortDate = (dateString) => {
   return `${day}. ${month} ${year}`;
 };
 
+
 // ============================================
-// DESKTOP MODAL ZA HISTORIJU
+// DESKTOP MODAL ZA HISTORIJU (PORTAL + ANIMACIJA, BEZ OVERLAY/BLUR)
 // ============================================
 const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice }) => {
-  if (!isOpen || !priceHistory) return null;
+  const modalRef = useRef(null);
 
-  const sortedHistory = [...priceHistory].sort((a, b) => 
-    new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
-  );
+  const sortedHistory = useMemo(() => {
+    if (!priceHistory) return [];
+    return [...priceHistory].sort(
+      (a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
+    );
+  }, [priceHistory]);
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 hidden lg:flex">
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+  // ESC zatvaranje + fokus
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    // fokus nakon mounta
+    setTimeout(() => modalRef.current?.focus(), 0);
+
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
+  // ništa ne prikazuj ako nema historije
+  if (!priceHistory) return null;
+
+  // PORTAL: renderuj uvijek u body, ne u parent container
+  if (typeof window === "undefined") return null;
+
+  return createPortal(
+    // “wrapper” postoji uvijek (za smooth exit animaciju), ali klikovi samo kad je otvoren
+    <div
+      className={cn(
+        "fixed inset-0 z-[100] hidden lg:flex items-center justify-center p-4",
+        isOpen ? "pointer-events-auto" : "pointer-events-none"
+      )}
+      aria-hidden={!isOpen}
+    >
+      {/* NEMA OVERLAYA - samo modal “pluta” */}
+
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        className={cn(
+          "relative bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden",
+          "transition-all duration-300 ease-out will-change-transform",
+          isOpen ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-3 scale-[0.98]"
+        )}
+      >
         <div className="flex items-center justify-between p-4 border-b border-slate-100">
           <h3 className="text-lg font-bold text-slate-800">Historija cijene</h3>
-          <button onClick={onClose} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
             <IoClose size={20} />
           </button>
         </div>
+
         <div className="p-0 max-h-[60vh] overflow-y-auto">
           {sortedHistory.map((item, index) => {
             const itemPrice = item.price || item.old_price;
             const itemDate = item.created_at || item.date;
-            const prevPrice = index < sortedHistory.length - 1 
-              ? (sortedHistory[index + 1]?.price || sortedHistory[index + 1]?.old_price)
-              : itemPrice;
-            
+
+            const prevPrice =
+              index < sortedHistory.length - 1
+                ? sortedHistory[index + 1]?.price || sortedHistory[index + 1]?.old_price
+                : itemPrice;
+
             const itemChange = index === 0 ? currentPrice - itemPrice : itemPrice - prevPrice;
             const isChangeDown = itemChange < 0;
             const isChangeUp = itemChange > 0;
 
             return (
-              <div key={index} className="flex items-center justify-between p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
+              <div
+                key={index}
+                className="flex items-center justify-between p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors"
+              >
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-9 h-9 rounded-full flex items-center justify-center",
-                    isChangeDown && "bg-green-50 text-green-600",
-                    isChangeUp && "bg-red-50 text-red-600",
-                    !isChangeDown && !isChangeUp && "bg-slate-50 text-slate-400"
-                  )}>
-                    {isChangeDown ? <MdTrendingDown size={18} /> : isChangeUp ? <MdTrendingUp size={18} /> : <MdHistory size={18} />}
+                  <div
+                    className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center",
+                      isChangeDown && "bg-green-50 text-green-600",
+                      isChangeUp && "bg-red-50 text-red-600",
+                      !isChangeDown && !isChangeUp && "bg-slate-50 text-slate-400"
+                    )}
+                  >
+                    {isChangeDown ? (
+                      <MdTrendingDown size={18} />
+                    ) : isChangeUp ? (
+                      <MdTrendingUp size={18} />
+                    ) : (
+                      <MdHistory size={18} />
+                    )}
                   </div>
                   <div>
                     <p className="font-bold text-slate-800">{formatBosnianPrice(itemPrice)}</p>
                     <p className="text-xs text-slate-400">{formatShortDate(itemDate)}</p>
                   </div>
                 </div>
+
                 {(isChangeDown || isChangeUp) && index > 0 && (
-                  <div className={cn(
-                    "px-2 py-1 rounded-md text-xs font-bold",
-                    isChangeDown ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                  )}>
-                    {isChangeDown ? "" : "+"}{formatBosnianPrice(Math.abs(itemChange))}
+                  <div
+                    className={cn(
+                      "px-2 py-1 rounded-md text-xs font-bold",
+                      isChangeDown ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                    )}
+                  >
+                    {isChangeDown ? "" : "+"}
+                    {formatBosnianPrice(Math.abs(itemChange))}
                   </div>
                 )}
-                {index === 0 && <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded-md">Trenutna</span>}
+
+                {index === 0 && (
+                  <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded-md">
+                    Trenutna
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+
 
 // ============================================
 // GLAVNA KOMPONENTA
@@ -238,7 +308,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="overflow-hidden">
         <div className="p-5 lg:p-6">
           {/* Featured badge - Manji i minimalističkiji */}
           {productDetails?.is_feature === 1 && (
@@ -300,9 +370,8 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
           </div>
 
 
-
           {/* RAZDJELNIK */}
-          <div className="h-px w-full bg-slate-200 my-4"></div>
+          {/* <div className="h-px w-full bg-slate-200 my-4"></div> */}
 
           {/* AKCIJE - Minimalističke */}
           <div className="flex items-center justify-between">
@@ -349,7 +418,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
       {/* MOBILE DRAWER */}
       {hasHistory && (
         <>
-          <div className={`fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[60] transition-opacity duration-300 lg:hidden ${showHistoryDrawer ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`} onClick={() => setShowHistoryDrawer(false)} />
+          <div className={`fixed inset-0 z-[60] transition-opacity duration-300 lg:hidden ${showHistoryDrawer ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`} onClick={() => setShowHistoryDrawer(false)} />
           <div ref={historyDrawerRef} className={`fixed bottom-0 left-0 right-0 z-[61] bg-white rounded-t-2xl shadow-xl transition-transform duration-300 ease-out lg:hidden flex flex-col max-h-[85vh] ${showHistoryDrawer ? "translate-y-0" : "translate-y-full"}`}>
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <h3 className="font-bold text-lg text-slate-800">Historija cijena</h3>

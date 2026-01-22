@@ -15,6 +15,7 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Layout from "@/components/Layout/Layout";
 import ProductQuestions from "./ProductQuestions";
 import ProductGallery from "./ProductGallery";
+import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
 import {
   getFilteredCustomFields,
   getYouTubeVideoId,
@@ -762,23 +763,22 @@ useEffect(() => {
               <div className="col-span-1 lg:col-span-8">
                 <div className="flex flex-col gap-5 lg:gap-7">
                   <div className={getAnimationClass()} style={getStaggerDelay(2)}>
-                  <ProductDetailCard
-                        productDetails={productDetails}
-                        setProductDetails={setProductDetails}
-                        onFavoriteToggle={trackFavorite}
-                        onShareClick={trackShare}
-                      />
                     <ProductGallery 
                       galleryImages={galleryImages} 
                       videoData={videoData} 
                       directVideo={directVideo}
-                      // ✅ TRACKING PROPS
                       onGalleryOpen={trackGalleryOpen}
                       onImageView={trackImageView}
                       onImageZoom={trackImageZoom}
                       onVideoPlay={trackVideoPlay}
                     />
                   </div>
+                  <ProductDetailCard
+                        productDetails={productDetails}
+                        setProductDetails={setProductDetails}
+                        onFavoriteToggle={trackFavorite}
+                        onShareClick={trackShare}
+                      />
                   {IsShowFeaturedAd && (
                     <div
                       className={`hidden lg:block ${getAnimationClass()}`}
@@ -819,15 +819,9 @@ useEffect(() => {
                   <div className={`hidden lg:block ${getAnimationClass()}`} style={getStaggerDelay(6)}>
                     {isMyListing ? (
                       <MyAdsListingDetailCard productDetails={productDetails} />
-                    ) : (
-                      <ProductDetailCard 
-                        productDetails={productDetails} 
-                        setProductDetails={setProductDetails}
-                        onFavoriteToggle={trackFavorite}
-                        onShareClick={trackShare}
-                      />
-                    )}
+                    ) : null}
                   </div>
+
  
                   {/* TEASER ZA HISTORIJU CIJENA - VIDLJIV SVIMA (ako ima historije) */}
                   {productDetails?.price_history && productDetails.price_history.length > 0 && (
@@ -858,6 +852,15 @@ useEffect(() => {
 
                     </div>
                   )}
+
+{isMyListing && (
+  <div className={getAnimationClass()} style={getStaggerDelay(7.5)}>
+    <AdStatisticsSection 
+      itemId={productDetails?.id} 
+      itemName={productDetails?.translated_item?.name || productDetails?.name} 
+    />
+  </div>
+)}
                   {isMyListing && (
                     <div
                       className={`hidden lg:block ${getAnimationClass()}`}

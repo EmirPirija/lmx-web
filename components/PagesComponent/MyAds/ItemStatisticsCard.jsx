@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { useState, useEffect } from "react";
 import { 
   IoEyeOutline, 
@@ -14,23 +14,29 @@ import {
 } from "react-icons/io5";
 import { FaWhatsapp } from "react-icons/fa";
 import Link from "next/link";
-
+import { itemStatisticsApi } from "@/utils/api";
+ 
 // ============================================
 // API FUNKCIJA
 // ============================================
 const fetchQuickStats = async (itemId) => {
   try {
-    const response = await fetch(`/api/item-statistics/${itemId}/quick`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await itemStatisticsApi.getQuickStats({ itemId });
     
-    if (!response.ok) return null;
+    // Podrži različite formate odgovora
+    const payload = response?.data;
+    const ok =
+      payload?.error === false ||
+      payload?.error === 0 ||
+      payload?.success === true ||
+      payload?.status === true ||
+      payload?.ok === true;
+ 
+    if (ok || payload?.data) {
+      return payload?.data ?? null;
+    }
     
-    const data = await response.json();
-    return data.data;
+    return null;
   } catch (error) {
     console.error('Error fetching quick stats:', error);
     return null;
