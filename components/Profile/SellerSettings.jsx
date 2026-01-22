@@ -39,6 +39,35 @@ import { FaViber, FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaGlobe } from "
    Helpers
 ========================================================= */
 
+function payloadFromServer(s) {
+    return {
+      avatar_id: s.avatar_id || "lmx-01",
+      show_phone: s.show_phone ?? true,
+      show_email: s.show_email ?? true,
+      show_whatsapp: s.show_whatsapp ?? false,
+      show_viber: s.show_viber ?? false,
+      whatsapp_number: s.whatsapp_number || "",
+      viber_number: s.viber_number || "",
+      preferred_contact_method: s.preferred_contact_method || "message",
+      business_hours: normalizeBusinessHours(s.business_hours),
+      response_time: s.response_time || "auto",
+      accepts_offers: s.accepts_offers ?? true,
+      auto_reply_enabled: s.auto_reply_enabled ?? false,
+      auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
+      vacation_mode: s.vacation_mode ?? false,
+      vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
+      business_description: s.business_description || "",
+      return_policy: s.return_policy || "",
+      shipping_info: s.shipping_info || "",
+      social_facebook: s.social_facebook || "",
+      social_instagram: s.social_instagram || "",
+      social_tiktok: s.social_tiktok || "",
+      social_youtube: s.social_youtube || "",
+      social_website: s.social_website || "",
+    };
+  }
+  
+
 const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
 
 const defaultBusinessHours = {
@@ -392,67 +421,52 @@ const SellerSettings = () => {
     try {
       setIsLoading(true);
       setLoadError("");
-
+  
       const response = await sellerSettingsApi.getSettings();
-
+  
       if (response?.data?.error === false && response?.data?.data) {
         const s = response.data.data;
-
+        
+  
+        // setState iz s
         setAvatarId(s.avatar_id || "lmx-01");
-
         setShowPhone(s.show_phone ?? true);
         setShowEmail(s.show_email ?? true);
         setShowWhatsapp(s.show_whatsapp ?? false);
         setShowViber(s.show_viber ?? false);
-
         setWhatsappNumber(s.whatsapp_number || "");
         setViberNumber(s.viber_number || "");
         setPreferredContact(s.preferred_contact_method || "message");
-
-        // SAFE normalize
         setBusinessHours(normalizeBusinessHours(s.business_hours));
-
         setResponseTime(s.response_time || "auto");
         setAcceptsOffers(s.accepts_offers ?? true);
-
         setAutoReplyEnabled(s.auto_reply_enabled ?? false);
         setAutoReplyMessage(s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
-
         setVacationMode(s.vacation_mode ?? false);
         setVacationMessage(s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!");
-
         setBusinessDescription(s.business_description || "");
         setReturnPolicy(s.return_policy || "");
         setShippingInfo(s.shipping_info || "");
-
         setSocialFacebook(s.social_facebook || "");
         setSocialInstagram(s.social_instagram || "");
         setSocialTiktok(s.social_tiktok || "");
         setSocialYoutube(s.social_youtube || "");
         setSocialWebsite(s.social_website || "");
-
-        // Snimi initial snapshot nakon što smo setovali state (na kraju ticka)
-        // (bez ovoga bi hasChanges mogao odmah skočiti)
-        setTimeout(() => {
-          initialPayloadRef.current = JSON.stringify({
-            ...buildPayload(),
-            business_hours: normalizeBusinessHours(s.business_hours),
-            avatar_id: s.avatar_id || "lmx-01",
-          });
-          setHasChanges(false);
-        }, 0);
+  
+        // snapshot iz response-a (NE iz buildPayload!)
+        initialPayloadRef.current = JSON.stringify(payloadFromServer(s));
+        setHasChanges(false);
       } else {
-        const msg = response?.data?.message || "Ne mogu dohvatiti postavke.";
-        setLoadError(msg);
+        setLoadError(response?.data?.message || "Ne mogu dohvatiti postavke.");
       }
     } catch (error) {
-      const msg = "Greška pri dohvaćanju postavki (provjeri backend / auth).";
-      setLoadError(msg);
-      console.error("Greška pri dohvaćanju postavki:", error);
+      setLoadError("Greška pri dohvaćanju postavki (provjeri backend).");
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
-  }, [buildPayload]);
+  }, []); // ✅ prazno
+  
 
   useEffect(() => {
     fetchSettings();
@@ -482,6 +496,7 @@ const SellerSettings = () => {
     } catch (error) {
       toast.error("Greška pri čuvanju postavki");
       console.error(error);
+      console.log("DATA:", error.response.data)
     } finally {
       setIsSaving(false);
     }
