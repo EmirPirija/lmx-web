@@ -26,7 +26,18 @@ const getAuthToken = () => {
   }
   return null;
 };
-
+ 
+const getVisitorId = () => {
+  if (typeof window === 'undefined') return null;
+  
+  let visitorId = localStorage.getItem('visitor_id');
+  if (!visitorId) {
+    visitorId = 'v_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    localStorage.setItem('visitor_id', visitorId);
+  }
+  return visitorId;
+};
+ 
 const getDeviceType = () => {
   if (typeof window === 'undefined') return 'unknown';
   
@@ -35,7 +46,7 @@ const getDeviceType = () => {
   if (/mobile|iphone|android/i.test(ua)) return 'mobile';
   return 'desktop';
 };
-
+ 
 const getUTMParams = () => {
   if (typeof window === 'undefined') return {};
   
@@ -47,20 +58,20 @@ const getUTMParams = () => {
     utm_content: params.get('utm_content'),
   };
 };
-
+ 
 const getReferrer = () => {
   if (typeof window === 'undefined') return null;
   return document.referrer || null;
 };
-
+ 
 const trackingRequest = async (endpoint, data) => {
   try {
     const token = getAuthToken();
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-
+ 
     const form = new FormData();
-
+ 
     const base = {
       ...data,
       visitor_id: getVisitorId(),
@@ -69,11 +80,10 @@ const trackingRequest = async (endpoint, data) => {
       referrer_url: getReferrer(),
       timestamp: new Date().toISOString(),
     };
-
+ 
     Object.entries(base).forEach(([k, v]) => {
       if (v === undefined || v === null) return;
-
-      // === FIX POČINJE OVDJE ===
+ 
       // Ako je polje 'extra_data', moramo ga ručno raspakovati da ga PHP prepozna kao niz
       if (k === 'extra_data' && Array.isArray(v)) {
         v.forEach((item, index) => {
@@ -82,43 +92,38 @@ const trackingRequest = async (endpoint, data) => {
               form.append(`extra_data[${index}][${subKey}]`, String(subVal));
             });
           } else {
-             // Ako je slučajno obična vrijednost unutar niza
              form.append(`extra_data[${index}]`, String(item));
           }
         });
-        return; // Preskačemo standardno dodavanje za extra_data
+        return;
       }
-      // === FIX ZAVRŠAVA OVDJE ===
-
-      // Za sve ostale objekte (npr. filters) i dalje koristi JSON.stringify ako je potrebno
+ 
       if (typeof v === "object") {
          form.append(k, JSON.stringify(v));
       } else {
          form.append(k, String(v));
       }
     });
-
+ 
     const apiBase = getApiBase();
     const res = await fetch(`${apiBase}/${endpoint}`, {
       method: "POST",
       headers,
       body: form,
     });
-
+ 
     const text = await res.text();
     let payload = null;
     try { payload = JSON.parse(text); } catch {}
-
-    // console.log("TRACK RES:", endpoint, res.status, payload ?? text);
-
+ 
     return res.ok;
   } catch (e) {
     console.error("Tracking error:", endpoint, e);
     return false;
   }
 };
-
-
+ 
+ 
 // ============================================
 // MAIN TRACKING HOOK
 // ============================================
