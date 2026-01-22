@@ -2,19 +2,20 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { 
   MdCheckCircle, 
-  MdCancel, 
+  MdPauseCircle, 
   MdSell,
   MdRefresh,
-  MdWarning
+  MdWarning,
+  MdArrowForward,
+  MdInfo
 } from "react-icons/md";
 import { chanegItemStatusApi } from "@/utils/api";
 import SoldOutModal from "./SoldOutModal";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
-import { t } from "@/utils";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
-
-
+ 
+ 
 const AdsStatusChangeCards = ({
   productDetails,
   setProductDetails,
@@ -26,40 +27,61 @@ const AdsStatusChangeCards = ({
   const [showSoldOut, setShowSoldOut] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedRadioValue, setSelectedRadioValue] = useState(null);
-
+  const [pendingAction, setPendingAction] = useState(null);
+ 
   const isJobAd = productDetails?.category?.is_job_category === 1;
   const isSoftRejected = productDetails?.status === "soft rejected" || productDetails?.status === "resubmitted";
   const canChangeStatus = productDetails?.status === "approved" || productDetails?.status === "inactive";
   const isShowRejectedReason = productDetails?.rejected_reason && (productDetails?.status === "soft rejected" || productDetails?.status === "permanent rejected");
-
-  // Status options configuration
-  const statusOptions = [
-    {
-      value: "approved",
-      label: t("active") || "Aktivno",
-      description: "Oglas je vidljiv svima",
+  
+  const currentStatus = productDetails?.status;
+ 
+  // Status info za prikaz
+  const statusInfo = {
+    approved: { 
+      label: "Aktivan", 
+      color: "green", 
       icon: MdCheckCircle,
-      color: "green",
-      disabled: false
+      bgClass: "bg-green-50 border-green-200",
+      textClass: "text-green-700",
+      dotClass: "bg-green-500"
     },
-    {
-      value: "inactive",
-      label: t("deactivate") || "Deaktiviraj",
-      description: "Privremeno sakrij oglas",
-      icon: MdCancel,
-      color: "orange",
-      disabled: false
+    inactive: { 
+      label: "Neaktivan", 
+      color: "orange", 
+      icon: MdPauseCircle,
+      bgClass: "bg-orange-50 border-orange-200",
+      textClass: "text-orange-700",
+      dotClass: "bg-orange-500"
     },
-    {
-      value: "sold out",
-      label: isJobAd ? t("jobClosed") || "Posao zatvoren" : t("soldOut") || "Prodano",
-      description: isJobAd ? "Označite poziciju kao popunjenu" : "Označite artikal kao prodan",
+    "sold out": { 
+      label: isJobAd ? "Pozicija popunjena" : "Prodano", 
+      color: "blue", 
       icon: MdSell,
-      color: "blue",
-      disabled: productDetails?.status === "inactive"
+      bgClass: "bg-blue-50 border-blue-200",
+      textClass: "text-blue-700",
+      dotClass: "bg-blue-500"
+    },
+    review: {
+      label: "Na pregledu",
+      color: "yellow",
+      icon: MdInfo,
+      bgClass: "bg-yellow-50 border-yellow-200",
+      textClass: "text-yellow-700",
+      dotClass: "bg-yellow-500"
+    },
+    pending: {
+      label: "Na čekanju",
+      color: "yellow",
+      icon: MdInfo,
+      bgClass: "bg-yellow-50 border-yellow-200",
+      textClass: "text-yellow-700",
+      dotClass: "bg-yellow-500"
     }
-  ];
-
+  };
+ 
+  const currentStatusInfo = statusInfo[currentStatus] || statusInfo.pending;
+ 
   const resubmitAdForReview = async () => {
     try {
       const res = await chanegItemStatusApi.changeItemStatus({
@@ -67,7 +89,7 @@ const AdsStatusChangeCards = ({
         status: "resubmitted",
       });
       if (res?.data?.error === false) {
-        toast.success(t("adResubmitted") || "Oglas ponovo poslan");
+        toast.success("Oglas je uspješno ponovo poslan na pregled");
         setProductDetails((prev) => ({ ...prev, status: "resubmitted" }));
       }
     } catch (error) {
@@ -75,36 +97,46 @@ const AdsStatusChangeCards = ({
       toast.error(error.message);
     }
   };
-
-  const updateItemStatus = async () => {
-    if (productDetails?.status === status) {
-      toast.error(t("changeStatusToSave") || "Promijenite status da sačuvate");
-      return;
-    }
-    if (status === "sold out") {
+ 
+  const executeStatusChange = async (newStatus) => {
+    if (newStatus === "sold out") {
       setShowSoldOut(true);
       return;
     }
+    
     try {
       setIsChangingStatus(true);
       const res = await chanegItemStatusApi.changeItemStatus({
         item_id: productDetails?.id,
-        status: status === "approved" ? "active" : status,
+        status: newStatus === "approved" ? "active" : newStatus,
       });
       if (res?.data?.error === false) {
-        setProductDetails((prev) => ({ ...prev, status }));
-        toast.success(t("statusUpdated") || "Status ažuriran");
+        setProductDetails((prev) => ({ ...prev, status: newStatus }));
+        setStatus(newStatus);
+        toast.success("Status oglasa je uspješno ažuriran");
         navigate("/my-ads");
       } else {
-        toast.error(res?.data?.message);
+        toast.error(res?.data?.message || "Greška pri ažuriranju statusa");
       }
     } catch (error) {
       console.log("error", error);
+      toast.error("Došlo je do greške");
     } finally {
       setIsChangingStatus(false);
+      setPendingAction(null);
     }
   };
-
+ 
+  const handleActionClick = (action) => {
+    setPendingAction(action);
+  };
+ 
+  const confirmAction = () => {
+    if (pendingAction) {
+      executeStatusChange(pendingAction);
+    }
+  };
+ 
   const makeItemSoldOut = async () => {
     try {
       setIsChangingStatus(true);
@@ -114,11 +146,11 @@ const AdsStatusChangeCards = ({
         sold_to: selectedRadioValue,
       });
       if (res?.data?.error === false) {
-        toast.success(t("statusUpdated") || "Status ažuriran");
+        toast.success("Status oglasa je uspješno ažuriran");
         setProductDetails((prev) => ({ ...prev, status: "sold out" }));
         setShowConfirmModal(false);
       } else {
-        toast.error(t("failedToUpdateStatus") || "Greška pri ažuriranju");
+        toast.error("Greška pri ažuriranju statusa");
       }
     } catch (error) {
       console.error(error);
@@ -126,150 +158,200 @@ const AdsStatusChangeCards = ({
       setIsChangingStatus(false);
     }
   };
-
-  // REJECTED VIEW
+ 
+  // ODBIJENI OGLAS - PRIKAZ
   if (isSoftRejected) {
     return (
-      <>
-        <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
-          <div className="bg-red-50 px-5 py-4 border-b border-red-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <MdWarning className="text-red-600" size={22} />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900">{t("adWasRejectedResubmitNow") || "Oglas odbijen"}</h3>
-                <p className="text-sm text-slate-600">Molimo pregledajte razlog i pošaljite ponovo</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-5 space-y-4">
-            {productDetails?.rejected_reason && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-red-900 mb-1">
-                  {t("rejectedReason") || "Razlog odbijanja"}:
-                </p>
-                <p className="text-sm text-red-700">{productDetails?.rejected_reason}</p>
-              </div>
-            )}
-
-            <button
-              className="w-full py-3 px-4 bg-primary text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-              disabled={productDetails?.status === "resubmitted"}
-              onClick={resubmitAdForReview}
-            >
-              <MdRefresh size={20} />
-              {productDetails?.status === "resubmitted"
-                ? t("resubmitted") || "Ponovo poslano"
-                : t("resubmit") || "Pošalji ponovo"}
-            </button>
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        {/* Status traka */}
+        <div className="bg-gradient-to-r from-red-500 to-red-600 px-5 py-3">
+          <div className="flex items-center gap-2 text-white">
+            <MdWarning size={20} />
+            <span className="font-bold text-sm">Oglas je odbijen</span>
           </div>
         </div>
-      </>
-    );
-  }
-
-  // NORMAL STATUS CHANGE VIEW
-  return (
-    <>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h3 className="font-bold text-slate-900">{t("changeStatus") || "Promijeni status"}</h3>
-          <p className="text-sm text-slate-500 mt-0.5">Izaberite novi status za vaš oglas</p>
-        </div>
-
-        <div className="p-5 space-y-3">
-          {/* Rejected Reason Warning */}
-          {isShowRejectedReason && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-sm font-semibold text-red-900 mb-1">
-                {t("rejectedReason") || "Razlog odbijanja"}:
+ 
+        <div className="p-5">
+          {/* Razlog odbijanja */}
+          {productDetails?.rejected_reason && (
+            <div className="bg-red-50 rounded-xl p-4 mb-4">
+              <p className="text-xs font-bold text-red-800 uppercase tracking-wider mb-1">
+                Razlog odbijanja
               </p>
-              <p className="text-sm text-red-700">{productDetails?.rejected_reason}</p>
+              <p className="text-sm text-red-700 leading-relaxed">
+                {productDetails?.rejected_reason}
+              </p>
             </div>
           )}
-
-          {/* Status Cards */}
-          <div className="space-y-3">
-            {statusOptions.map((option) => {
-              const Icon = option.icon;
-              const isSelected = status === option.value;
-              const isDisabled = !canChangeStatus || option.disabled;
-
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => !isDisabled && setStatus(option.value)}
-                  disabled={isDisabled}
-                  className={cn(
-                    "w-full p-4 rounded-lg border-2 transition-all text-left",
-                    "hover:shadow-sm active:scale-[0.99]",
-                    isSelected && option.color === "green" && "border-green-500 bg-green-50",
-                    isSelected && option.color === "orange" && "border-orange-500 bg-orange-50",
-                    isSelected && option.color === "blue" && "border-blue-500 bg-blue-50",
-                    !isSelected && !isDisabled && "border-slate-200 hover:border-slate-300",
-                    isDisabled && "opacity-50 cursor-not-allowed hover:shadow-none"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                      isSelected && option.color === "green" && "bg-green-100",
-                      isSelected && option.color === "orange" && "bg-orange-100",
-                      isSelected && option.color === "blue" && "bg-blue-100",
-                      !isSelected && "bg-slate-100"
-                    )}>
-                      <Icon 
-                        size={22} 
-                        className={cn(
-                          isSelected && option.color === "green" && "text-green-600",
-                          isSelected && option.color === "orange" && "text-orange-600",
-                          isSelected && option.color === "blue" && "text-blue-600",
-                          !isSelected && "text-slate-500"
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-slate-900">{option.label}</h4>
-                        {isSelected && (
-                          <span className={cn(
-                            "text-xs font-bold px-2 py-0.5 rounded-full",
-                            option.color === "green" && "bg-green-100 text-green-700",
-                            option.color === "orange" && "bg-orange-100 text-orange-700",
-                            option.color === "blue" && "bg-blue-100 text-blue-700"
-                          )}>
-                            Izabrano
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-600 mt-0.5">{option.description}</p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Save Button */}
+ 
+          {/* Info tekst */}
+          <p className="text-sm text-slate-600 mb-4">
+            {productDetails?.status === "resubmitted" 
+              ? "Vaš oglas je poslan na ponovni pregled. Obavijestit ćemo vas o rezultatu."
+              : "Ispravite oglas prema navedenom razlogu i pošaljite ga ponovo na pregled."}
+          </p>
+ 
+          {/* Dugme za ponovno slanje */}
           <button
-            className="w-full py-3 px-4 bg-primary text-white font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 mt-4"
-            onClick={updateItemStatus}
-            disabled={IsChangingStatus || !canChangeStatus}
+            className={cn(
+              "w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all",
+              "flex items-center justify-center gap-2",
+              productDetails?.status === "resubmitted"
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                : "bg-primary text-white hover:bg-primary/90 active:scale-[0.98]"
+            )}
+            disabled={productDetails?.status === "resubmitted"}
+            onClick={resubmitAdForReview}
           >
-            {IsChangingStatus ? "Čuvanje..." : t("save") || "Sačuvaj promjene"}
+            <MdRefresh size={20} />
+            {productDetails?.status === "resubmitted"
+              ? "Oglas je poslan na pregled"
+              : "Pošalji ponovo na pregled"}
           </button>
-
-          {/* Disabled info */}
-          {!canChangeStatus && (
-            <p className="text-xs text-slate-500 text-center mt-2">
-              Status se može promijeniti samo kada je oglas aktivan ili deaktiviran
+        </div>
+      </div>
+    );
+  }
+ 
+  // GLAVNI PRIKAZ - PROMJENA STATUSA
+  return (
+    <>
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        {/* Trenutni status - header */}
+        <div className={cn("px-5 py-4 border-b", currentStatusInfo.bgClass)}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn("w-3 h-3 rounded-full animate-pulse", currentStatusInfo.dotClass)} />
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Trenutni status</p>
+                <p className={cn("font-bold", currentStatusInfo.textClass)}>
+                  {currentStatusInfo.label}
+                </p>
+              </div>
+            </div>
+            <currentStatusInfo.icon className={cn("text-2xl", currentStatusInfo.textClass)} />
+          </div>
+        </div>
+ 
+        {/* Razlog odbijanja ako postoji */}
+        {isShowRejectedReason && (
+          <div className="mx-5 mt-4 bg-red-50 rounded-xl p-4 border border-red-100">
+            <p className="text-xs font-bold text-red-800 uppercase tracking-wider mb-1">
+              Razlog odbijanja
             </p>
+            <p className="text-sm text-red-700">{productDetails?.rejected_reason}</p>
+          </div>
+        )}
+ 
+        {/* Brze akcije */}
+        <div className="p-5">
+          {canChangeStatus ? (
+            <>
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-3">
+                Brze akcije
+              </p>
+              
+              <div className="space-y-2">
+                {/* Aktiviraj/Deaktiviraj toggle */}
+                {currentStatus === "inactive" && (
+                  <button
+                    onClick={() => handleActionClick("approved")}
+                    disabled={IsChangingStatus}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-green-50 hover:bg-green-100 border border-green-200 transition-all active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                        <MdCheckCircle className="text-green-600 text-xl" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-green-800">Aktiviraj oglas</p>
+                        <p className="text-xs text-green-600">Oglas će biti vidljiv svima</p>
+                      </div>
+                    </div>
+                    <MdArrowForward className="text-green-600 text-xl" />
+                  </button>
+                )}
+ 
+                {currentStatus === "approved" && (
+                  <button
+                    onClick={() => handleActionClick("inactive")}
+                    disabled={IsChangingStatus}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-all active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                        <MdPauseCircle className="text-orange-600 text-xl" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-orange-800">Pauziraj oglas</p>
+                        <p className="text-xs text-orange-600">Privremeno sakrij od posjetilaca</p>
+                      </div>
+                    </div>
+                    <MdArrowForward className="text-orange-600 text-xl" />
+                  </button>
+                )}
+ 
+                {/* Označi kao prodano - samo ako je aktivan */}
+                {currentStatus === "approved" && (
+                  <button
+                    onClick={() => handleActionClick("sold out")}
+                    disabled={IsChangingStatus}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <MdSell className="text-blue-600 text-xl" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-blue-800">
+                          {isJobAd ? "Pozicija popunjena" : "Označi kao prodano"}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          {isJobAd ? "Zatvorite oglas za posao" : "Artikal je prodat"}
+                        </p>
+                      </div>
+                    </div>
+                    <MdArrowForward className="text-blue-600 text-xl" />
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                <MdInfo className="text-slate-400 text-xl" />
+              </div>
+              <p className="text-sm text-slate-500">
+                Promjena statusa nije moguća za ovaj oglas
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Status se može mijenjati samo za aktivne ili pauzirane oglase
+              </p>
+            </div>
           )}
         </div>
       </div>
-
+ 
+      {/* Confirmation dialog */}
+      <ReusableAlertDialog
+        open={!!pendingAction && pendingAction !== "sold out"}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={confirmAction}
+        title={
+          pendingAction === "approved" 
+            ? "Aktivirati oglas?" 
+            : "Pauzirati oglas?"
+        }
+        description={
+          pendingAction === "approved"
+            ? "Oglas će ponovo biti vidljiv svim posjetiocima."
+            : "Oglas će biti skriven dok ga ponovo ne aktivirate."
+        }
+        cancelText="Odustani"
+        confirmText={pendingAction === "approved" ? "Da, aktiviraj" : "Da, pauziraj"}
+        confirmDisabled={IsChangingStatus}
+      />
+ 
       <SoldOutModal
         productDetails={productDetails}
         showSoldOut={showSoldOut}
@@ -278,19 +360,22 @@ const AdsStatusChangeCards = ({
         setSelectedRadioValue={setSelectedRadioValue}
         setShowConfirmModal={setShowConfirmModal}
       />
-
+ 
       <ReusableAlertDialog
         open={showConfirmModal}
         onCancel={() => setShowConfirmModal(false)}
         onConfirm={makeItemSoldOut}
-        title={isJobAd ? t("confirmHire") : t("confirmSoldOut")}
-        description={isJobAd ? t("markAsClosedDescription") : t("cantUndoChanges")}
-        cancelText={t("cancel")}
-        confirmText={t("confirm")}
+        title={isJobAd ? "Potvrdite zatvaranje pozicije" : "Potvrdite prodaju"}
+        description={isJobAd 
+          ? "Jeste li sigurni da želite zatvoriti ovu poziciju? Ova akcija se ne može poništiti."
+          : "Jeste li sigurni da želite označiti artikal kao prodan? Ova akcija se ne može poništiti."
+        }
+        cancelText="Odustani"
+        confirmText="Potvrdi"
         confirmDisabled={IsChangingStatus}
       />
     </>
   );
 };
-
+ 
 export default AdsStatusChangeCards;

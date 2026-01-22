@@ -510,3 +510,8 @@ body {
   background-color: rgba(247, 148, 29, 0.2);
   color: inherit;
 }
+
+
+.flex-1 {
+  background: #F5F1EC;
+}
