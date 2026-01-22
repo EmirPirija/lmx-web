@@ -16,6 +16,7 @@ import Layout from "@/components/Layout/Layout";
 import ProductQuestions from "./ProductQuestions";
 import ProductGallery from "./ProductGallery";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
+import ItemStatisticsDashboard from "@/components/PagesComponent/MyAds/ItemStatisticsDashboard";
 import {
   getFilteredCustomFields,
   getYouTubeVideoId,
@@ -78,6 +79,8 @@ const formatPrice = (price) => {
   }).format(price) + ' KM';
 };
 
+
+
 // Formatiranje datuma
 const formatDate = (dateString) => {
   if (!dateString) return "";
@@ -95,6 +98,52 @@ const formatDate = (dateString) => {
   return `${day}. ${month} ${year}`;
 };
 
+const StatisticsModal = ({ isOpen, onClose, itemId, itemName }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Overlay */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-4xl max-h-[90vh] mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <IoStatsChart className="text-blue-500" />
+              Statistika oglasa
+            </h2>
+            {itemName && (
+              <p className="text-sm text-slate-500 mt-0.5 truncate max-w-md">
+                {itemName}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            <MdClose size={24} className="text-slate-500" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-6">
+          {/* ✅ koristi komponentu koju već imaš importovanu */}
+          <AdStatisticsSection itemId={itemId} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 // ============================================
 // KOMPONENTA: HISTORIJA CIJENA
@@ -105,7 +154,6 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
   if (!priceHistory || priceHistory.length === 0) {
     return null;
   }
-  
 
  
   // Sortiraj po datumu (najnoviji prvi)
@@ -120,6 +168,9 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
   const isPriceDown = priceChange < 0;
   const isPriceUp = priceChange > 0;
   
+  // ============================================
+// STATISTIKA MODAL
+// ============================================
  
   // Prikaži samo prve 3 ako nije prošireno
   const displayedHistory = isExpanded ? sortedHistory : sortedHistory.slice(0, 3);
@@ -139,6 +190,8 @@ const PriceHistory = ({ priceHistory = [], currentPrice }) => {
               <p className="text-xs text-slate-500">{sortedHistory.length} {sortedHistory.length === 1 ? 'promjena' : sortedHistory.length < 5 ? 'promjene' : 'promjena'}</p>
             </div>
           </div>
+
+          
           
           {/* Oznaka za ukupnu promjenu */}
           {(isPriceDown || isPriceUp) && (
@@ -486,6 +539,8 @@ useEffect(() => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpenInApp, setIsOpenInApp] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+
   
   // Stanja za historiju cijena
   const [showMobilePriceHistory, setShowMobilePriceHistory] = useState(false);
@@ -689,7 +744,7 @@ useEffect(() => {
     const product = response?.data?.data?.data?.[0];
     if (!product) throw new Error("Oglas nije pronađen");
     setProductDetails(product);
-    setItemId(product.id); // ✅ POSTAVI ITEM ID ZA TRACKING
+    setItemId(product.id); // ITEM ID ZA TRACKING
     
     const videoLink = product?.video_link;
     if (videoLink) {
@@ -855,12 +910,23 @@ useEffect(() => {
 
 {isMyListing && (
   <div className={getAnimationClass()} style={getStaggerDelay(7.5)}>
-    <AdStatisticsSection 
-      itemId={productDetails?.id} 
-      itemName={productDetails?.translated_item?.name || productDetails?.name} 
-    />
+    <button
+      onClick={() => setShowStatsModal(true)}
+      className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 active:scale-[0.98]"
+    >
+      <IoStatsChart size={22} />
+      <span>Pogledaj statistiku oglasa</span>
+    </button>
   </div>
 )}
+ 
+{/* Statistics Modal */}
+<StatisticsModal
+  isOpen={showStatsModal}
+  onClose={() => setShowStatsModal(false)}
+  itemId={productDetails?.id}
+  itemName={productDetails?.translated_item?.name || productDetails?.name}
+/>
                   {isMyListing && (
                     <div
                       className={`hidden lg:block ${getAnimationClass()}`}
