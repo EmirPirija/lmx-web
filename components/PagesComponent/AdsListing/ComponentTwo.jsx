@@ -472,29 +472,60 @@ const ComponentTwo = ({
               </div>
             </>
           ) : (
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="price"
-                className={
-                  !isPriceOptional && langId === defaultLangId
-                    ? "requiredInputLabel"
-                    : ""
-                }
-              >
-                Cijena
-              </Label>
+            <>
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor="price"
+                  className={
+                    !isPriceOptional && langId === defaultLangId
+                      ? "requiredInputLabel"
+                      : ""
+                  }
+                >
+                  Cijena
+                </Label>
 
-              <Input
-                type="number"
-                name="price"
-                id="price"
-                min={0}
-                placeholder={placeholderLabel}
-                value={current.price || ""}
-                onChange={handleField("price")}
-                className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+                <Input
+                  type="number"
+                  name="price"
+                  id="price"
+                  min={0}
+                  placeholder={placeholderLabel}
+                  value={current.price || ""}
+                  onChange={handleField("price")}
+                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* 📦 INVENTORY COUNT FIELD */}
+              <div className="flex flex-col gap-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="inventory_count" className="flex items-center gap-2 text-base font-semibold text-gray-800">
+                      📦 Količina na zalihi
+                    </Label>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Ostavite prazno ako prodajete samo jedan artikal
+                    </p>
+                  </div>
+                </div>
+                <Input
+                  type="number"
+                  name="inventory_count"
+                  id="inventory_count"
+                  min={1}
+                  placeholder="npr: 10"
+                  value={current.inventory_count || ""}
+                  onChange={handleField("inventory_count")}
+                  className="mt-2 border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                />
+                {current.inventory_count && parseInt(current.inventory_count) > 1 && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    ✨ Super! Moći ćete pratiti prodaju i količinu na zalihi za ovaj oglas.
+                  </p>
+                )}
+              </div>
+            </>
           )}
 
           <div className="flex flex-col gap-2">

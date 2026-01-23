@@ -555,13 +555,17 @@ export const deleteItemApi = {
 };
 
 export const chanegItemStatusApi = {
-  changeItemStatus: ({ item_id, status, sold_to } = {}) => {
+  changeItemStatus: ({ item_id, status, sold_to, quantity_sold, sale_receipt, sale_note } = {}) => {
     const formData = new FormData();
 
     // Append only if the value is defined and not an empty string
     if (item_id) formData.append("item_id", item_id);
     if (status) formData.append("status", status);
     if (sold_to) formData.append("sold_to", sold_to);
+    // Inventory & Receipt fields
+    if (quantity_sold) formData.append("quantity_sold", quantity_sold);
+    if (sale_receipt) formData.append("sale_receipt", sale_receipt);
+    if (sale_note) formData.append("sale_note", sale_note);
 
     return Api.post(UPDATE_ITEM_STATUS, formData, {
       headers: {
@@ -839,6 +843,8 @@ export const addItemApi = {
     is_avaible,
 
     show_only_to_premium,
+    // Inventory management
+    inventory_count,
   } = {}) => {
     const formData = new FormData();
 
@@ -917,6 +923,11 @@ export const addItemApi = {
     // ✅ KLJUČNO: always send 0/1
     formData.append("available_now", availableNow01 ?? 0);
 
+    // ✅ Inventory management - količina na zalihi
+    if (inventory_count !== undefined && inventory_count !== null && inventory_count !== "") {
+      formData.append("inventory_count", inventory_count);
+    }
+
     return Api.post(ADD_ITEM, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -966,6 +977,8 @@ export const editItemApi = {
     is_avaible,
 
     show_only_to_premium,
+    // Inventory management
+    inventory_count,
   } = {}) => {
     const formData = new FormData();
 
@@ -1036,6 +1049,11 @@ export const editItemApi = {
 
     if (show_only_to_premium !== undefined) {
       formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
+    }
+
+    // ✅ Inventory management - količina na zalihi
+    if (inventory_count !== undefined && inventory_count !== null && inventory_count !== "") {
+      formData.append("inventory_count", inventory_count);
     }
 
     custom_field_files.forEach(({ key, files }) => {
@@ -1647,6 +1665,25 @@ export const itemConversationApi = {
     return Api.get(CHECK_ITEM_CONVERSATION, {
       params: { item_id },
     });
+  },
+};
+
+// ============================================
+// MY PURCHASES API (Kupovina sa računima)
+// ============================================
+export const MY_PURCHASES = "my-purchases";
+
+export const myPurchasesApi = {
+  // Dohvati sve kupovine korisnika (gdje je korisnik bio kupac)
+  getPurchases: ({ page = 1, status } = {}) => {
+    return Api.get(MY_PURCHASES, {
+      params: { page, status },
+    });
+  },
+
+  // Dohvati detalje pojedinačne kupovine
+  getPurchaseDetail: ({ purchase_id } = {}) => {
+    return Api.get(`${MY_PURCHASES}/${purchase_id}`);
   },
 };
 

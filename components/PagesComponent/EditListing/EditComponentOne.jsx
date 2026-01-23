@@ -210,7 +210,7 @@ const EditComponentOne = ({
                       className="data-[state=checked]:bg-orange-500"
                     />
                   </div>
- 
+
                   {/* OLD PRICE INPUT */}
                   {current.is_on_sale && (
                     <div className="flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300">
@@ -241,6 +241,38 @@ const EditComponentOne = ({
                         </p>
                       )}
                     </div>
+                  )}
+                </div>
+
+                {/* 📦 INVENTORY COUNT FIELD */}
+                <div className="flex flex-col gap-4 col-span-1 md:col-span-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <span className="text-xl">📦</span>
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor="inventory_count" className="flex items-center gap-2 text-base font-semibold text-gray-800">
+                        {t("inventoryCount") || "Količina na zalihi"}
+                      </Label>
+                      <p className="text-sm text-gray-500">
+                        {t("inventoryDescription") || "Ostavite prazno ako prodajete samo jedan artikal"}
+                      </p>
+                    </div>
+                  </div>
+                  <Input
+                    type="number"
+                    name="inventory_count"
+                    id="inventory_count"
+                    min={1}
+                    placeholder={t("inventoryPlaceholder") || "npr: 10"}
+                    value={current.inventory_count || ""}
+                    onChange={handleField("inventory_count")}
+                    className="bg-white border-blue-200 focus:border-blue-400 focus:ring-blue-400"
+                  />
+                  {current.inventory_count && parseInt(current.inventory_count) > 1 && (
+                    <p className="text-xs text-blue-600">
+                      ✨ {t("inventoryTrackingEnabled") || "Super! Moći ćete pratiti prodaju i količinu na zalihi za ovaj oglas."}
+                    </p>
                   )}
                 </div>
               </>

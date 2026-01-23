@@ -439,6 +439,8 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
       ...(Object.keys(customFieldTranslations).length > 0 && { custom_field_translations: customFieldTranslations }),
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
       ...(scheduledDateTime ? { scheduled_at: scheduledDateTime } : {}),
+      // Inventory management
+      ...(defaultDetails.inventory_count ? { inventory_count: parseInt(defaultDetails.inventory_count) } : {}),
     };
   
     debugSchedule("payload built", {

@@ -2,7 +2,7 @@
 import { t } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import { usePathname } from "next/navigation";
-import { BiChat, BiDollarCircle, BiReceipt, BiTrashAlt } from "react-icons/bi";
+import { BiChat, BiDollarCircle, BiReceipt, BiTrashAlt, BiShoppingBag } from "react-icons/bi";
 import { FiUser } from "react-icons/fi";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { LiaAdSolid } from "react-icons/lia";
@@ -117,6 +117,7 @@ const ProfileNavigation = () => {
 const moreNavigationLinks = [
   { href: "/notifications", icon: IoMdNotificationsOutline, label: t("notifications") },
   { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
+  { href: "/purchases", icon: BiShoppingBag, label: t("myPurchases") },
   { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: t("badges") },
   { href: "/transactions", icon: BiReceipt, label: t("transaction") },
   { href: "/reviews", icon: MdOutlineRateReview, label: t("myReviews") },
@@ -131,6 +132,7 @@ const moreNavigationLinks = [
     { href: "/chat", icon: BiChat, label: t("chat") },
     { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
     { href: "/my-ads", icon: LiaAdSolid, label: t("myAds") },
+    { href: "/purchases", icon: BiShoppingBag, label: t("myPurchases") },
     { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: t("badges") },
     { href: "/favorites", icon: LuHeart, label: t("favorites") },
     { href: "/transactions", icon: BiReceipt, label: t("transaction") },

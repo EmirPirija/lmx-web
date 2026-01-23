@@ -1052,6 +1052,8 @@ export const getMainDetailsTranslations = (
         country_code: countryCodeFromRegion,
         is_on_sale: listingData?.is_on_sale || false,
         old_price: listingData?.old_price || "",
+        // Inventory management
+        inventory_count: listingData?.inventory_count || "",
       };
     } else {
       // Other languages: get translation if available

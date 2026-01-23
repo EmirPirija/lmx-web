@@ -726,5 +726,41 @@
   "receiptUploaded":"Receipt uploaded! Admin will review it and activate your package if approved.",
   "confirmingPayment": "Confirming Payment",
   "uploadReceipt":" Upload Receipt",
-  "featuredSection": "Featured Section"
+  "featuredSection": "Featured Section",
+  
+  "inventoryCount": "Inventory Count",
+  "inventoryDescription": "Leave empty if selling only one item",
+  "inventoryPlaceholder": "e.g. 10",
+  "inventoryTrackingEnabled": "Great! You can track sales and stock for this listing.",
+  "remainingInStock": "Remaining in stock",
+  "currentStock": "Current stock",
+  "quantitySold": "Quantity sold",
+  "of": "of",
+  "available": "available",
+  "remainingAfterSale": "Remaining after sale",
+  
+  "uploadReceipt": "Upload Receipt",
+  "receiptWillBeSentToBuyer": "The receipt will be sent to the buyer's profile",
+  "dropReceiptHere": "Drop receipt here",
+  "dragAndDropReceipt": "Drag & drop receipt here or click to select",
+  "saleNote": "Sale note",
+  "saleNotePlaceholder": "Add a note for the buyer (optional)",
+  "saleDetails": "Sale details",
+  "confirmSale": "Confirm sale",
+  "sellingTo": "Selling to",
+  
+  "myPurchases": "My Purchases",
+  "purchaseHistory": "Purchase History",
+  "viewReceipt": "View Receipt",
+  "downloadReceipt": "Download Receipt",
+  "noReceiptAvailable": "No receipt available",
+  "purchasedFrom": "Purchased from",
+  "purchaseDate": "Purchase date",
+  "noPurchasesFound": "No purchases found",
+  "noPurchasesDescription": "Items you purchase will appear here with receipts from sellers",
+  
+  "akcija": "Sale / Discount",
+  "akcijaDescription": "Show old price crossed out and highlight the new price",
+  "oldPrice": "Old price (before sale)",
+  "oldPriceMustBeHigher": "Old price must be higher than the new price"
 }

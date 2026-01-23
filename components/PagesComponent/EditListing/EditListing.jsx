@@ -414,6 +414,10 @@ const EditListing = ({ id }) => {
       // DODANO - Akcija/Sale polja
       allData.is_on_sale = defaultDetails.is_on_sale || false;
       allData.old_price = defaultDetails.is_on_sale ? defaultDetails.old_price : null;
+      // DODANO - Inventory count
+      if (defaultDetails.inventory_count) {
+        allData.inventory_count = parseInt(defaultDetails.inventory_count);
+      }
     }
  
     // 🔍 DEBUG - Šta šaljemo na API
