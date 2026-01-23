@@ -337,32 +337,32 @@ const AdsListing = () => {
       max_salary,
       country_code,
     } = defaultDetails;
-
+ 
     const catId = categoryPath.at(-1)?.id;
-
+ 
     if (!catId) {
       toast.error(t("selectCategory"));
       return setStep(1);
     }
-
+ 
     if (scheduledDateTime) {
       setScheduledAt(scheduledDateTime);
     }
-
+ 
     if (isEmpty(name) || isEmpty(description) || isEmpty(contact)) {
       toast.error(t("completeDetails"));
       return setStep(2);
     }
-
+ 
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
       toast.error(t("invalidPhoneNumber"));
       return setStep(2);
     }
-
+ 
     if (is_job_category) {
       const min = min_salary ? Number(min_salary) : null;
       const max = max_salary ? Number(max_salary) : null;
-
+ 
       if (min !== null && min < 0) {
         toast.error(t("enterValidSalaryMin"));
         return setStep(2);
@@ -391,17 +391,17 @@ const AdsListing = () => {
         return setStep(2);
       }
     }
-
+ 
     if (!isEmpty(video_link) && !isValidURL(video_link)) {
       toast.error(t("enterValidUrl"));
       return setStep(2);
     }
-
+ 
     if (!isEmpty(slug) && !SLUG_RE.test(slug.trim())) {
       toast.error(t("addValidSlug"));
       return setStep(2);
     }
-
+ 
     if (
       customFields.length !== 0 &&
       !validateExtraDetails({
@@ -431,10 +431,11 @@ const AdsListing = () => {
       return;
     }
     
-    postAd();
+    postAd(scheduledDateTime); 
   };
 
-  const postAd = async () => {
+
+  const postAd = async (scheduledDateTime = null) => {
     const catId = categoryPath.at(-1)?.id;
     const customFieldTranslations =
       prepareCustomFieldTranslations(extraDetails);
@@ -475,7 +476,8 @@ const AdsListing = () => {
         custom_field_translations: customFieldTranslations,
       }),
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
-      ...(scheduledAt && { scheduled_at: scheduledAt }),
+      ...(scheduledDateTime && { scheduled_at: scheduledDateTime }),
+
     };
     
     if (is_job_category) {
