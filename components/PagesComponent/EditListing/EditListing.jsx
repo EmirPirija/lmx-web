@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import {
   editItemApi,
@@ -34,8 +34,12 @@ import {
 import AdLanguageSelector from "../AdsListing/AdLanguageSelector";
 import PageLoader from "@/components/Common/PageLoader";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
-// Dodani icon importi iz lucide-react da odgovaraju adslisting.jsx
-import { CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin } from "lucide-react";
+// Enhanced icon imports
+import { 
+  CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin,
+  Smartphone, Monitor, Camera, FileText, Target, BarChart3, 
+  Sparkles, AlertTriangle, Lightbulb
+} from "lucide-react";
 
 
 const EditListing = ({ id }) => {
@@ -54,6 +58,9 @@ const EditListing = ({ id }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [video, setVideo] = useState(null);
   const [scheduledAt, setScheduledAt] = useState(null);
+  
+  // 🆕 NEW: Mobile Preview state
+  const [isMobilePreview, setIsMobilePreview] = useState(false);
 
 
   const languages = useSelector(getLanguages);
@@ -122,11 +129,169 @@ const EditListing = ({ id }) => {
     return Math.round(score);
   }, [selectedCategoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, OtherImages, Location]);
 
-  // 🏆 Kvalitetne značke - KOPIRANO IZ ADS LISTING
+  // 🏆 Enhanced quality badges
   const qualityBadges = useMemo(() => {
     const badges = [];
+    
+    // Badge for many photos
+    if (uploadedImages.length > 0 && OtherImages.length >= 3) {
+      badges.push({
+        icon: <Camera className="w-3 h-3" />,
+        label: "Galerija",
+        color: "bg-blue-500",
+        tip: "Odlično! Više slika povećava povjerenje kupaca."
+      });
+    }
+    
+    // Badge for detailed description
+    if (defaultDetails.description && defaultDetails.description.length >= 200) {
+      badges.push({
+        icon: <FileText className="w-3 h-3" />,
+        label: "Detaljan opis",
+        color: "bg-purple-500",
+        tip: "Detaljan opis pomaže kupcima da bolje razumiju proizvod."
+      });
+    }
+    
+    // Badge for completeness
+    if (completenessScore >= 90) {
+      badges.push({
+        icon: <Award className="w-3 h-3" />,
+        label: "Premium oglas",
+        color: "bg-gradient-to-r from-yellow-500 to-orange-500",
+        tip: "Vaš oglas je odlično popunjen i ima veću vidljivost!"
+      });
+    } else if (completenessScore >= 70) {
+      badges.push({
+        icon: <Target className="w-3 h-3" />,
+        label: "Kvalitetan",
+        color: "bg-green-500",
+        tip: "Dobar oglas! Dodajte još detalja za bolju vidljivost."
+      });
+    }
+
     return badges;
   }, [uploadedImages, OtherImages, defaultDetails, completenessScore]);
+
+  // 📊 SEO Score calculation
+  const seoScore = useMemo(() => {
+    let score = 0;
+    const tips = [];
+    
+    // Title optimization (30 points max)
+    if (defaultDetails.name) {
+      const titleLength = defaultDetails.name.length;
+      if (titleLength >= 20 && titleLength <= 70) {
+        score += 30;
+      } else if (titleLength >= 10 && titleLength < 20) {
+        score += 15;
+        tips.push({ text: "Naslov bi trebao imati 20-70 karaktera", type: "warning" });
+      } else if (titleLength > 70) {
+        score += 20;
+        tips.push({ text: "Naslov je predugačak, skratite ga", type: "warning" });
+      } else {
+        tips.push({ text: "Dodajte duži, opisniji naslov", type: "error" });
+      }
+    } else {
+      tips.push({ text: "Dodajte naslov oglasa", type: "error" });
+    }
+    
+    // Description optimization (30 points max)
+    if (defaultDetails.description) {
+      const descLength = defaultDetails.description.length;
+      if (descLength >= 200) {
+        score += 30;
+      } else if (descLength >= 100) {
+        score += 20;
+        tips.push({ text: "Dodajte detaljniji opis (min 200 karaktera)", type: "warning" });
+      } else if (descLength >= 50) {
+        score += 10;
+        tips.push({ text: "Opis je prekratak, kupci vole detalje", type: "warning" });
+      } else {
+        tips.push({ text: "Dodajte duži opis proizvoda", type: "error" });
+      }
+    } else {
+      tips.push({ text: "Dodajte opis oglasa", type: "error" });
+    }
+    
+    // Images (25 points max)
+    if (uploadedImages.length > 0) {
+      score += 10;
+      if (OtherImages.length >= 3) {
+        score += 15;
+      } else if (OtherImages.length >= 1) {
+        score += 5;
+        tips.push({ text: `Dodajte još ${3 - OtherImages.length} slike za bolju vidljivost`, type: "info" });
+      } else {
+        tips.push({ text: "Dodajte dodatne slike proizvoda", type: "warning" });
+      }
+    } else {
+      tips.push({ text: "Dodajte glavnu sliku", type: "error" });
+    }
+    
+    // Price (10 points)
+    if (defaultDetails.price && Number(defaultDetails.price) > 0) {
+      score += 10;
+    } else if (!is_job_category && !isPriceOptional) {
+      tips.push({ text: "Dodajte cijenu proizvoda", type: "warning" });
+    }
+    
+    // Location (5 points)
+    if (Location?.city) {
+      score += 5;
+    }
+    
+    return { score, tips };
+  }, [defaultDetails, uploadedImages, OtherImages, Location, is_job_category, isPriceOptional]);
+
+  // 🔧 Dynamic tips based on current step
+  const currentTips = useMemo(() => {
+    const tips = [];
+    
+    switch(step) {
+      case 1:
+        if (!defaultDetails.name) {
+          tips.push({
+            icon: <AlertTriangle className="w-4 h-4" />,
+            text: "Naslov je obavezan - koristite ključne riječi",
+            type: "warning"
+          });
+        }
+        if (!defaultDetails.description || defaultDetails.description.length < 100) {
+          tips.push({
+            icon: <Lightbulb className="w-4 h-4" />,
+            text: "Detaljan opis povećava šanse za prodaju do 40%",
+            type: "info"
+          });
+        }
+        break;
+      case 3:
+        if (uploadedImages.length === 0) {
+          tips.push({
+            icon: <Camera className="w-4 h-4" />,
+            text: "Oglasi sa slikama dobijaju 10x više pregleda",
+            type: "warning"
+          });
+        }
+        if (OtherImages.length < 3) {
+          tips.push({
+            icon: <Sparkles className="w-4 h-4" />,
+            text: "Više slika = više povjerenja kupaca",
+            type: "info"
+          });
+        }
+        break;
+      case 4:
+        tips.push({
+          icon: <MapPin className="w-4 h-4" />,
+          text: "Precizna lokacija pomaže kupcima da vas lakše pronađu",
+          type: "info"
+        });
+        break;
+    }
+    
+    return tips;
+  }, [step, defaultDetails, uploadedImages, OtherImages]);
 
   useEffect(() => {
     getSingleListingData();
@@ -676,18 +841,39 @@ const getPreviewImage = () => {
                   </div>
                 </div>
 
-                {/* 📱 DESNA STRANA - LIVE PREVIEW PANEL - NOVO */}
+                {/* 📱 DESNA STRANA - LIVE PREVIEW PANEL - ENHANCED */}
                 <div className="lg:col-span-1">
                   <div className="sticky top-4 border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-white shadow-sm">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Zap className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
+                    {/* Header with Device Toggle */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-primary" />
+                        <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
+                      </div>
+                      
+                      {/* Device Toggle */}
+                      <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                        <button
+                          onClick={() => setIsMobilePreview(false)}
+                          className={`p-1.5 rounded-md transition-all ${!isMobilePreview ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                          title="Desktop pregled"
+                        >
+                          <Monitor className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setIsMobilePreview(true)}
+                          className={`p-1.5 rounded-md transition-all ${isMobilePreview ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                          title="Mobilni pregled"
+                        >
+                          <Smartphone className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Ad Preview Card */}
-                    <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                    <div className={`border rounded-lg overflow-hidden bg-white shadow-sm transition-all duration-300 ${isMobilePreview ? 'max-w-[280px] mx-auto' : ''}`}>
                       {/* Image Preview */}
-                      <div className="relative aspect-video bg-gray-100">
+                      <div className={`relative bg-gray-100 ${isMobilePreview ? 'aspect-square' : 'aspect-video'}`}>
                         {getPreviewImage() ? (
                           <img 
                             src={getPreviewImage()} 
@@ -697,8 +883,8 @@ const getPreviewImage = () => {
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <div className="text-center text-gray-400">
-                              <Upload className="w-12 h-12 mx-auto mb-2" />
-                              <p className="text-sm">{t("Bez slike")}</p>
+                              <Upload className={`mx-auto mb-2 ${isMobilePreview ? 'w-8 h-8' : 'w-12 h-12'}`} />
+                              <p className={isMobilePreview ? 'text-xs' : 'text-sm'}>{t("Bez slike")}</p>
                             </div>
                           </div>
                         )}
@@ -712,21 +898,21 @@ const getPreviewImage = () => {
                       </div>
 
                       {/* Content Preview */}
-                      <div className="p-4 space-y-3">
+                      <div className={`space-y-3 ${isMobilePreview ? 'p-3' : 'p-4'}`}>
                         {/* Title */}
-                        <h4 className="font-semibold text-lg line-clamp-2">
+                        <h4 className={`font-semibold line-clamp-2 ${isMobilePreview ? 'text-sm' : 'text-lg'}`}>
                           {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
                         </h4>
 
                         {/* Price */}
                         {!is_job_category && (
-                          <p className="text-2xl font-bold text-primary">
+                          <p className={`font-bold text-primary ${isMobilePreview ? 'text-xl' : 'text-2xl'}`}>
                             {defaultDetails.price ? `${defaultDetails.price} KM` : "0 KM"}
                           </p>
                         )}
 
                         {is_job_category && (
-                          <div className="flex gap-2 text-sm">
+                          <div className={`flex gap-2 ${isMobilePreview ? 'text-xs flex-wrap' : 'text-sm'}`}>
                             {defaultDetails.min_salary && (
                               <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
                                 {t("from")} {defaultDetails.min_salary} KM
@@ -741,18 +927,19 @@ const getPreviewImage = () => {
                         )}
 
                         {/* Location */}
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <MapPin className="w-4 h-4" />
+                        <div className={`flex items-center gap-2 text-gray-500 ${isMobilePreview ? 'text-xs' : 'text-sm'}`}>
+                          <MapPin className={isMobilePreview ? 'w-3 h-3' : 'w-4 h-4'} />
                           <span>{Location?.city || t("Lokacija oglasa")}</span>
                         </div>
 
                         {/* Quality Badges */}
                         {qualityBadges.length > 0 && (
-                          <div className="flex flex-wrap gap-2 pt-2 border-t">
+                          <div className="flex flex-wrap gap-1.5 pt-2 border-t">
                             {qualityBadges.map((badge, idx) => (
                               <span 
                                 key={idx}
-                                className={`text-xs px-2 py-1 rounded-full text-white ${badge.color}`}
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-white ${badge.color} ${isMobilePreview ? 'text-[10px]' : 'text-xs'}`}
+                                title={badge.tip}
                               >
                                 {badge.icon} {badge.label}
                               </span>
@@ -762,8 +949,56 @@ const getPreviewImage = () => {
                       </div>
                     </div>
 
+                    {/* 📊 SEO Score */}
+                    <div className="mt-6 p-4 bg-white rounded-lg border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-primary" />
+                          <span className="font-medium text-sm">SEO Ocjena</span>
+                        </div>
+                        <span className={`font-bold text-lg ${
+                          seoScore.score >= 80 ? 'text-green-600' : 
+                          seoScore.score >= 50 ? 'text-yellow-600' : 'text-red-500'
+                        }`}>
+                          {seoScore.score}/100
+                        </span>
+                      </div>
+                      
+                      {/* SEO Progress Bar */}
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
+                        <div 
+                          className={`h-full transition-all duration-500 ${
+                            seoScore.score >= 80 ? 'bg-green-500' : 
+                            seoScore.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${seoScore.score}%` }}
+                        />
+                      </div>
+                      
+                      {/* SEO Tips */}
+                      {seoScore.tips.length > 0 && (
+                        <div className="space-y-1.5">
+                          {seoScore.tips.slice(0, 3).map((tip, idx) => (
+                            <div 
+                              key={idx}
+                              className={`flex items-start gap-2 text-xs p-2 rounded ${
+                                tip.type === 'error' ? 'bg-red-50 text-red-700' :
+                                tip.type === 'warning' ? 'bg-yellow-50 text-yellow-700' :
+                                'bg-blue-50 text-blue-700'
+                              }`}
+                            >
+                              {tip.type === 'error' ? <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> :
+                               tip.type === 'warning' ? <Lightbulb className="w-3 h-3 mt-0.5 flex-shrink-0" /> :
+                               <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0" />}
+                              <span>{tip.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Tips & Completeness */}
-                    <div className="mt-6 space-y-4">
+                    <div className="mt-4 space-y-4">
                       {/* Completeness Progress */}
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
@@ -778,7 +1013,30 @@ const getPreviewImage = () => {
                         </div>
                       </div>
 
-                      {/* Tips */}
+                      {/* Dynamic Tips */}
+                      {currentTips.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Savjeti za ovaj korak</p>
+                          {currentTips.map((tip, idx) => (
+                            <div 
+                              key={idx}
+                              className={`flex items-start gap-2 p-3 rounded-lg ${
+                                tip.type === 'warning' ? 'bg-yellow-50 border border-yellow-200' :
+                                'bg-blue-50 border border-blue-200'
+                              }`}
+                            >
+                              <span className={tip.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'}>
+                                {tip.icon}
+                              </span>
+                              <p className={`text-xs ${tip.type === 'warning' ? 'text-yellow-800' : 'text-blue-800'}`}>
+                                {tip.text}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Additional Tips */}
                       <div className="space-y-2">
                         {uploadedImages.length === 0 && (
                           <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -806,7 +1064,6 @@ const getPreviewImage = () => {
                             </p>
                           </div>
                         )}
-
                       </div>
                     </div>
                   </div>

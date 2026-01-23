@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import ComponentOne from "./ComponentOne";
 import {
   addItemApi,
@@ -33,7 +33,14 @@ import {
 } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
-import { CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin } from "lucide-react";
+import { 
+  CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin,
+  Smartphone, Monitor, Save, Clock, Camera, FileText, Target, Eye, 
+  Sparkles, AlertTriangle, Lightbulb, BarChart3, RefreshCw, Trash2
+} from "lucide-react";
+
+// 🔧 DRAFT STORAGE KEY
+const DRAFT_STORAGE_KEY = "ad_listing_draft";
 
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -45,7 +52,7 @@ const AdsListing = () => {
   const [currentPage, setCurrentPage] = useState();
   const [lastPage, setLastPage] = useState();
   const [scheduledAt, setScheduledAt] = useState(null);
-const [isScheduledAd, setIsScheduledAd] = useState(false);
+  const [isScheduledAd, setIsScheduledAd] = useState(false);
   const [availableNow, setAvailableNow] = useState(false);
   const [disabledTab, setDisabledTab] = useState({
     categoryTab: false,
@@ -65,6 +72,14 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
   const [createdAdSlug, setCreatedAdSlug] = useState("");
   const [recentCategories, setRecentCategories] = useState([]);
   const userData = useSelector(userSignUpData);
+
+  // 🆕 NEW: Auto-save & UX States
+  const [isMobilePreview, setIsMobilePreview] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const autoSaveTimerRef = useRef(null);
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
@@ -145,12 +160,176 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
     return Math.round(score);
   }, [categoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, otherImages, location]);
 
-  // 🏆 Calculate quality badges
+  // 🏆 Calculate quality badges - ENHANCED
   const qualityBadges = useMemo(() => {
     const badges = [];
+    
+    // Badge for many photos
+    if (uploadedImages.length > 0 && otherImages.length >= 3) {
+      badges.push({
+        icon: <Camera className="w-3 h-3" />,
+        label: "Galerija",
+        color: "bg-blue-500",
+        tip: "Odlično! Više slika povećava povjerenje kupaca."
+      });
+    }
+    
+    // Badge for detailed description
+    if (defaultDetails.description && defaultDetails.description.length >= 200) {
+      badges.push({
+        icon: <FileText className="w-3 h-3" />,
+        label: "Detaljan opis",
+        color: "bg-purple-500",
+        tip: "Detaljan opis pomaže kupcima da bolje razumiju proizvod."
+      });
+    }
+    
+    // Badge for completeness
+    if (completenessScore >= 90) {
+      badges.push({
+        icon: <Award className="w-3 h-3" />,
+        label: "Premium oglas",
+        color: "bg-gradient-to-r from-yellow-500 to-orange-500",
+        tip: "Vaš oglas je odlično popunjen i ima veću vidljivost!"
+      });
+    } else if (completenessScore >= 70) {
+      badges.push({
+        icon: <Target className="w-3 h-3" />,
+        label: "Kvalitetan",
+        color: "bg-green-500",
+        tip: "Dobar oglas! Dodajte još detalja za bolju vidljivost."
+      });
+    }
 
     return badges;
   }, [uploadedImages, otherImages, defaultDetails, completenessScore]);
+
+  // 📊 SEO Score calculation - NEW
+  const seoScore = useMemo(() => {
+    let score = 0;
+    const tips = [];
+    
+    // Title optimization (30 points max)
+    if (defaultDetails.name) {
+      const titleLength = defaultDetails.name.length;
+      if (titleLength >= 20 && titleLength <= 70) {
+        score += 30;
+      } else if (titleLength >= 10 && titleLength < 20) {
+        score += 15;
+        tips.push({ text: "Naslov bi trebao imati 20-70 karaktera", type: "warning" });
+      } else if (titleLength > 70) {
+        score += 20;
+        tips.push({ text: "Naslov je predugačak, skratite ga", type: "warning" });
+      } else {
+        tips.push({ text: "Dodajte duži, opisniji naslov", type: "error" });
+      }
+    } else {
+      tips.push({ text: "Dodajte naslov oglasa", type: "error" });
+    }
+    
+    // Description optimization (30 points max)
+    if (defaultDetails.description) {
+      const descLength = defaultDetails.description.length;
+      if (descLength >= 200) {
+        score += 30;
+      } else if (descLength >= 100) {
+        score += 20;
+        tips.push({ text: "Dodajte detaljniji opis (min 200 karaktera)", type: "warning" });
+      } else if (descLength >= 50) {
+        score += 10;
+        tips.push({ text: "Opis je prekratak, kupci vole detalje", type: "warning" });
+      } else {
+        tips.push({ text: "Dodajte duži opis proizvoda", type: "error" });
+      }
+    } else {
+      tips.push({ text: "Dodajte opis oglasa", type: "error" });
+    }
+    
+    // Images (25 points max)
+    if (uploadedImages.length > 0) {
+      score += 10;
+      if (otherImages.length >= 3) {
+        score += 15;
+      } else if (otherImages.length >= 1) {
+        score += 5;
+        tips.push({ text: `Dodajte još ${3 - otherImages.length} slike za bolju vidljivost`, type: "info" });
+      } else {
+        tips.push({ text: "Dodajte dodatne slike proizvoda", type: "warning" });
+      }
+    } else {
+      tips.push({ text: "Dodajte glavnu sliku", type: "error" });
+    }
+    
+    // Price (10 points)
+    if (defaultDetails.price && Number(defaultDetails.price) > 0) {
+      score += 10;
+    } else if (!is_job_category && !isPriceOptional) {
+      tips.push({ text: "Dodajte cijenu proizvoda", type: "warning" });
+    }
+    
+    // Location (5 points)
+    if (location?.city) {
+      score += 5;
+    }
+    
+    return { score, tips };
+  }, [defaultDetails, uploadedImages, otherImages, location, is_job_category, isPriceOptional]);
+
+  // 🔧 Dynamic tips based on current step
+  const currentTips = useMemo(() => {
+    const tips = [];
+    
+    switch(step) {
+      case 1:
+        tips.push({
+          icon: <Lightbulb className="w-4 h-4" />,
+          text: "Odaberite najprecizniju kategoriju za bolju vidljivost",
+          type: "info"
+        });
+        break;
+      case 2:
+        if (!defaultDetails.name) {
+          tips.push({
+            icon: <AlertTriangle className="w-4 h-4" />,
+            text: "Naslov je obavezan - koristite ključne riječi",
+            type: "warning"
+          });
+        }
+        if (!defaultDetails.description || defaultDetails.description.length < 100) {
+          tips.push({
+            icon: <Lightbulb className="w-4 h-4" />,
+            text: "Detaljan opis povećava šanse za prodaju do 40%",
+            type: "info"
+          });
+        }
+        break;
+      case 4:
+        if (uploadedImages.length === 0) {
+          tips.push({
+            icon: <Camera className="w-4 h-4" />,
+            text: "Oglasi sa slikama dobijaju 10x više pregleda",
+            type: "warning"
+          });
+        }
+        if (otherImages.length < 3) {
+          tips.push({
+            icon: <Sparkles className="w-4 h-4" />,
+            text: "Više slika = više povjerenja kupaca",
+            type: "info"
+          });
+        }
+        break;
+      case 5:
+        tips.push({
+          icon: <MapPin className="w-4 h-4" />,
+          text: "Precizna lokacija pomaže kupcima da vas lakše pronađu",
+          type: "info"
+        });
+        break;
+    }
+    
+    return tips;
+  }, [step, defaultDetails, uploadedImages, otherImages]);
 
   // Load recent categories from localStorage
   useEffect(() => {
@@ -158,6 +337,132 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
     if (stored) {
       setRecentCategories(JSON.parse(stored));
     }
+  }, []);
+
+  // 🔧 AUTO-SAVE: Check for existing draft on mount
+  useEffect(() => {
+    const draft = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (draft) {
+      try {
+        const parsedDraft = JSON.parse(draft);
+        // Check if draft is not too old (24 hours)
+        const draftAge = Date.now() - (parsedDraft.savedAt || 0);
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+        
+        if (draftAge < maxAge && parsedDraft.translations) {
+          setHasDraft(true);
+          setShowDraftModal(true);
+        } else {
+          // Draft is too old, clear it
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        }
+      } catch (e) {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  // 🔧 AUTO-SAVE: Save draft function
+  const saveDraft = useCallback(() => {
+    // Don't save if no meaningful data
+    if (!defaultDetails.name && !defaultDetails.description && categoryPath.length === 0) {
+      return;
+    }
+
+    setIsSaving(true);
+    
+    const draftData = {
+      step,
+      categoryPath,
+      translations,
+      extraDetails,
+      location,
+      savedAt: Date.now(),
+      // Note: We can't save File objects, so images are not saved in draft
+    };
+    
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+      setLastSaved(new Date());
+      setHasDraft(true);
+    } catch (e) {
+      console.error("Failed to save draft:", e);
+    }
+    
+    setTimeout(() => setIsSaving(false), 500);
+  }, [step, categoryPath, translations, extraDetails, location, defaultDetails]);
+
+  // 🔧 AUTO-SAVE: Trigger on data changes
+  useEffect(() => {
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    
+    // Set new timer (auto-save after 3 seconds of inactivity)
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveDraft();
+    }, 3000);
+    
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [translations, extraDetails, location, categoryPath, saveDraft]);
+
+  // 🔧 RESTORE DRAFT function
+  const restoreDraft = useCallback(() => {
+    const draft = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (draft) {
+      try {
+        const parsedDraft = JSON.parse(draft);
+        
+        if (parsedDraft.categoryPath?.length > 0) {
+          setCategoryPath(parsedDraft.categoryPath);
+          setDisabledTab({
+            categoryTab: true,
+            detailTab: false,
+            extraDetailTabl: false,
+            images: false,
+            location: false,
+          });
+        }
+        
+        if (parsedDraft.translations) {
+          setTranslations(parsedDraft.translations);
+        }
+        
+        if (parsedDraft.extraDetails) {
+          setExtraDetails(parsedDraft.extraDetails);
+        }
+        
+        if (parsedDraft.location) {
+          setLocation(parsedDraft.location);
+        }
+        
+        // Go to the step they were on, or step 2 if they had a category
+        if (parsedDraft.step > 1) {
+          setStep(parsedDraft.step);
+        } else if (parsedDraft.categoryPath?.length > 0) {
+          setStep(2);
+        }
+        
+        toast.success("Nacrt uspješno učitan!");
+        setShowDraftModal(false);
+      } catch (e) {
+        toast.error("Greška pri učitavanju nacrta");
+      }
+    }
+  }, []);
+
+  // 🔧 CLEAR DRAFT function
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setHasDraft(false);
+    setShowDraftModal(false);
+    setLastSaved(null);
+    toast.info("Nacrt je obrisan");
   }, []);
 
   // Save recent category
@@ -459,6 +764,11 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
       });
   
       if (res?.data?.error === false) {
+        // 🔧 Clear draft on successful submission
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        setHasDraft(false);
+        setLastSaved(null);
+        
         setIsScheduledAd(!!scheduledDateTime);
         setScheduledAt(scheduledDateTime);
         setOpenSuccessModal(true);
@@ -582,11 +892,70 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
 
   return (
     <Layout>
+      {/* 🔧 DRAFT RESTORATION MODAL */}
+      {showDraftModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Pronađen nacrt oglasa</h3>
+                <p className="text-sm text-gray-500">
+                  Sačuvan {lastSaved ? new Date(lastSaved).toLocaleString('hr') : 'ranije'}
+                </p>
+              </div>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Pronašli smo nedovršen oglas. Želite li nastaviti gdje ste stali ili početi ispočetka?
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={clearDraft}
+                className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Počni ispočetka
+              </button>
+              <button
+                onClick={restoreDraft}
+                className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Nastavi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <BreadCrumb title2={t("adListing")} />
       <div className="container">
         <div className="flex flex-col gap-8 mt-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-medium">{t("adListing")}</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-medium">{t("adListing")}</h1>
+              
+              {/* 🔧 AUTO-SAVE INDICATOR */}
+              {hasDraft && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  {isSaving ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span>Spremam...</span>
+                    </>
+                  ) : lastSaved ? (
+                    <>
+                      <Save className="w-4 h-4 text-green-500" />
+                      <span>Sačuvano u {lastSaved.toLocaleTimeString('hr', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </>
+                  ) : null}
+                </div>
+              )}
+            </div>
             
             {/* 🏆 Quality Score Badge */}
             <div className="flex items-center gap-4">
@@ -770,15 +1139,36 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
             {/* 📱 Live Preview Panel - 1 column */}
             <div className="lg:col-span-1">
               <div className="sticky top-4 border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-white shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
+                {/* Header with Device Toggle */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
+                  </div>
+                  
+                  {/* 📱 DEVICE TOGGLE - NEW */}
+                  <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setIsMobilePreview(false)}
+                      className={`p-1.5 rounded-md transition-all ${!isMobilePreview ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                      title="Desktop pregled"
+                    >
+                      <Monitor className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setIsMobilePreview(true)}
+                      className={`p-1.5 rounded-md transition-all ${isMobilePreview ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                      title="Mobilni pregled"
+                    >
+                      <Smartphone className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Ad Preview Card */}
-                <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                <div className={`border rounded-lg overflow-hidden bg-white shadow-sm transition-all duration-300 ${isMobilePreview ? 'max-w-[280px] mx-auto' : ''}`}>
                   {/* Image Preview */}
-                  <div className="relative aspect-video bg-gray-100">
+                  <div className={`relative bg-gray-100 ${isMobilePreview ? 'aspect-square' : 'aspect-video'}`}>
                     {uploadedImages.length > 0 ? (
                       <img 
                         src={URL.createObjectURL(uploadedImages[0])} 
@@ -788,8 +1178,8 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <div className="text-center text-gray-400">
-                          <Upload className="w-12 h-12 mx-auto mb-2" />
-                          <p className="text-sm">{t("Bez slike")}</p>
+                          <Upload className={`mx-auto mb-2 ${isMobilePreview ? 'w-8 h-8' : 'w-12 h-12'}`} />
+                          <p className={isMobilePreview ? 'text-xs' : 'text-sm'}>{t("Bez slike")}</p>
                         </div>
                       </div>
                     )}
@@ -803,21 +1193,21 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                   </div>
 
                   {/* Content Preview */}
-                  <div className="p-4 space-y-3">
+                  <div className={`space-y-3 ${isMobilePreview ? 'p-3' : 'p-4'}`}>
                     {/* Title */}
-                    <h4 className="font-semibold text-lg line-clamp-2">
+                    <h4 className={`font-semibold line-clamp-2 ${isMobilePreview ? 'text-sm' : 'text-lg'}`}>
                       {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
                     </h4>
 
                     {/* Price */}
                     {!is_job_category && (
-                      <p className="text-2xl font-bold text-primary">
+                      <p className={`font-bold text-primary ${isMobilePreview ? 'text-xl' : 'text-2xl'}`}>
                         {defaultDetails.price ? `${defaultDetails.price} KM` : "0 KM"}
                       </p>
                     )}
 
                     {is_job_category && (
-                      <div className="flex gap-2 text-sm">
+                      <div className={`flex gap-2 ${isMobilePreview ? 'text-xs flex-wrap' : 'text-sm'}`}>
                         {defaultDetails.min_salary && (
                           <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
                             {t("from")} {defaultDetails.min_salary} KM
@@ -831,24 +1221,20 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                       </div>
                     )}
 
-                    {/* Description */}
-                    {/* <p className="text-sm text-gray-600 line-clamp-3">
-                      {defaultDetails.description || t("Vaš opis ovdje")}
-                    </p> */}
-
                     {/* Location */}
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <MapPin className="w-4 h-4" />
+                    <div className={`flex items-center gap-2 text-gray-500 ${isMobilePreview ? 'text-xs' : 'text-sm'}`}>
+                      <MapPin className={isMobilePreview ? 'w-3 h-3' : 'w-4 h-4'} />
                       <span>{location?.city || t("Lokacija oglasa")}</span>
                     </div>
 
                     {/* Quality Badges */}
                     {qualityBadges.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-2 border-t">
+                      <div className="flex flex-wrap gap-1.5 pt-2 border-t">
                         {qualityBadges.map((badge, idx) => (
                           <span 
                             key={idx}
-                            className={`text-xs px-2 py-1 rounded-full text-white ${badge.color}`}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-white ${badge.color} ${isMobilePreview ? 'text-[10px]' : 'text-xs'}`}
+                            title={badge.tip}
                           >
                             {badge.icon} {badge.label}
                           </span>
@@ -858,8 +1244,56 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                   </div>
                 </div>
 
+                {/* 📊 SEO Score - NEW */}
+                <div className="mt-6 p-4 bg-white rounded-lg border">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-primary" />
+                      <span className="font-medium text-sm">SEO Ocjena</span>
+                    </div>
+                    <span className={`font-bold text-lg ${
+                      seoScore.score >= 80 ? 'text-green-600' : 
+                      seoScore.score >= 50 ? 'text-yellow-600' : 'text-red-500'
+                    }`}>
+                      {seoScore.score}/100
+                    </span>
+                  </div>
+                  
+                  {/* SEO Progress Bar */}
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
+                    <div 
+                      className={`h-full transition-all duration-500 ${
+                        seoScore.score >= 80 ? 'bg-green-500' : 
+                        seoScore.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${seoScore.score}%` }}
+                    />
+                  </div>
+                  
+                  {/* SEO Tips */}
+                  {seoScore.tips.length > 0 && (
+                    <div className="space-y-1.5">
+                      {seoScore.tips.slice(0, 3).map((tip, idx) => (
+                        <div 
+                          key={idx}
+                          className={`flex items-start gap-2 text-xs p-2 rounded ${
+                            tip.type === 'error' ? 'bg-red-50 text-red-700' :
+                            tip.type === 'warning' ? 'bg-yellow-50 text-yellow-700' :
+                            'bg-blue-50 text-blue-700'
+                          }`}
+                        >
+                          {tip.type === 'error' ? <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" /> :
+                           tip.type === 'warning' ? <Lightbulb className="w-3 h-3 mt-0.5 flex-shrink-0" /> :
+                           <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0" />}
+                          <span>{tip.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Tips & Completeness */}
-                <div className="mt-6 space-y-4">
+                <div className="mt-4 space-y-4">
                   {/* Completeness Progress */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
@@ -874,7 +1308,30 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                     </div>
                   </div>
 
-                  {/* Tips */}
+                  {/* Dynamic Tips based on current step */}
+                  {currentTips.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Savjeti za ovaj korak</p>
+                      {currentTips.map((tip, idx) => (
+                        <div 
+                          key={idx}
+                          className={`flex items-start gap-2 p-3 rounded-lg ${
+                            tip.type === 'warning' ? 'bg-yellow-50 border border-yellow-200' :
+                            'bg-blue-50 border border-blue-200'
+                          }`}
+                        >
+                          <span className={tip.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'}>
+                            {tip.icon}
+                          </span>
+                          <p className={`text-xs ${tip.type === 'warning' ? 'text-yellow-800' : 'text-blue-800'}`}>
+                            {tip.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Additional Tips */}
                   <div className="space-y-2">
                     {uploadedImages.length === 0 && (
                       <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -902,7 +1359,6 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                         </p>
                       </div>
                     )}
-
                   </div>
                 </div>
               </div>
