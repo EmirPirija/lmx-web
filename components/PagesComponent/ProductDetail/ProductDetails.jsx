@@ -474,13 +474,16 @@ const MobileProductHeader = ({ productDetails, isMyListing }) => {
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-500">Status:</span>
               <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                productDetails.status === 'approved' ? 'bg-green-100 text-green-700' :
-                productDetails.status === 'review' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-slate-100 text-slate-600'
-              }`}>
-                {productDetails.status === 'approved' ? 'Aktivan' :
-                 productDetails.status === 'review' ? 'Na pregledu' : productDetails.status}
-              </span>
+                  productDetails.status === 'approved' ? 'bg-green-100 text-green-700' :
+                  productDetails.status === 'review' ? 'bg-yellow-100 text-yellow-700' :
+                  productDetails.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                  'bg-slate-100 text-slate-600'
+                }`}>
+                  {productDetails.status === 'approved' ? 'Aktivan' :
+                   productDetails.status === 'review' ? 'Na pregledu' :
+                   productDetails.status === 'scheduled' ? 'Zakazano' :
+                   productDetails.status}
+                </span>
             </div>
           </div>
         )}
@@ -807,11 +810,42 @@ useEffect(() => {
           </div>
  
           <div className="container mt-4 lg:mt-8 pb-8 lg:pb-12">
-          {isMyListing && (
-            <div className={getAnimationClass()} style={getStaggerDelay(1)}>
-              <MobileProductHeader productDetails={productDetails} isMyListing={isMyListing} />
-            </div>
-          )}
+           {isMyListing && (
+              <div className={getAnimationClass()} style={getStaggerDelay(1)}>
+                <MobileProductHeader productDetails={productDetails} isMyListing={isMyListing} />
+              </div>
+            )}
+ 
+            {/* Banner za zakazane oglase */}
+            {isMyListing && productDetails?.status === 'scheduled' && productDetails?.scheduled_at && (
+              <div className={`${getAnimationClass()} mb-4`} style={getStaggerDelay(1.5)}>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 rounded-xl">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-blue-800 mb-1">Oglas je zakazan</h4>
+                      <p className="text-sm text-blue-600">
+                        Vaš oglas će biti automatski objavljen{' '}
+                        <span className="font-bold">
+                          {new Date(productDetails.scheduled_at).toLocaleString('bs-BA', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
         
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
               {/* LIJEVA KOLONA */}
@@ -1075,21 +1109,18 @@ useEffect(() => {
               <div className="container flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-500 font-medium">Status</p>
-                  <p
-                    className={`text-sm font-bold truncate ${
-                      productDetails?.status === "approved"
-                        ? "text-green-600"
-                        : productDetails?.status === "pending"
-                        ? "text-yellow-600"
-                        : "text-slate-700"
-                    }`}
-                  >
-                    {productDetails?.status === "approved"
-                      ? "Aktivan"
-                      : productDetails?.status === "pending"
-                      ? "Na čekanju"
-                      : productDetails?.status}
-                  </p>
+                  <p className={`text-sm font-bold truncate ${
+                productDetails?.status === "approved" ? "text-green-600" :
+                productDetails?.status === "pending" ? "text-yellow-600" :
+                productDetails?.status === "scheduled" ? "text-blue-600" :
+                "text-slate-700"
+              }`}
+              >
+                {productDetails?.status === "approved" ? "Aktivan" :
+                 productDetails?.status === "pending" ? "Na čekanju" :
+                 productDetails?.status === "scheduled" ? `Zakazano za ${new Date(productDetails?.scheduled_at).toLocaleString('bs-BA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` :
+                 productDetails?.status}
+              </p>
                 </div>
 
                 <div className="flex items-center gap-2">

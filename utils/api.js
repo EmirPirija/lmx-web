@@ -831,7 +831,7 @@ export const addItemApi = {
     translations,
     custom_field_translations,
     region_code,
-
+    scheduled_at,
     // podrži sve varijante imena koje se mogu desiti u kodu
     available_now,
     isAvailable,
@@ -850,6 +850,12 @@ export const addItemApi = {
     if (price) formData.append("price", price);
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
+
+       // ✅ schedule
+       if (scheduled_at) {
+        formData.append("scheduled_at", scheduled_at);
+        console.log("FORMDATA: scheduled_at", scheduled_at);
+      }
 
     // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(

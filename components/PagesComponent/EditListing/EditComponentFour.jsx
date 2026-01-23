@@ -231,13 +231,19 @@ const EditComponentFour = ({
       setScheduledAt(null);
     }
     setShowPublishModal(false);
-    handleFullSubmission();
+    handleFullSubmission(selectedDateTime)
+
   };
  
   // Handler za "Zakaži objavu"
   const handleSchedule = (scheduledDateTime) => {
     if (setScheduledAt) {
       setScheduledAt(scheduledDateTime);
+      console.log('NOW ISO:', new Date().toISOString());
+console.log('SCHEDULED ISO:', scheduledDateTime);
+console.log('DIFF MIN:', (new Date(scheduledDateTime) - new Date()) / 60000);
+console.log('SCHEDULED LOCAL:', new Date(scheduledDateTime).toString());
+
     }
     setShowPublishModal(false);
     handleFullSubmission(scheduledDateTime);

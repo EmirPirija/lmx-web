@@ -53,6 +53,8 @@ const EditListing = ({ id }) => {
   const [isAdPlaced, setIsAdPlaced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [video, setVideo] = useState(null);
+  const [scheduledAt, setScheduledAt] = useState(null);
+
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
@@ -255,7 +257,7 @@ const EditListing = ({ id }) => {
   const isEmpty = (x) => !x || !x.toString().trim();
   const isNegative = (n) => Number(n) < 0;
 
-  const handleFullSubmission = () => {
+  const handleFullSubmission = (scheduledDateTime = null) => {
     const {
       name,
       description,
@@ -358,10 +360,10 @@ const EditListing = ({ id }) => {
       toast.error(t("pleaseSelectCity"));
       return;
     }
-    editAd();
+    editAd(scheduledDateTime);
   };
 
-  const editAd = async () => {
+  const editAd = async (scheduledDateTime = null) => {
     const nonDefaultTranslations = filterNonDefaultTranslations(
       translations,
       defaultLangId
@@ -401,6 +403,7 @@ const EditListing = ({ id }) => {
       ...(Object.keys(customFieldTranslations).length > 0 && {
         custom_field_translations: customFieldTranslations,
       }),
+      ...(scheduledDateTime && { scheduled_at: scheduledDateTime }),
     };
  
     if (is_job_category) {
@@ -667,6 +670,7 @@ const getPreviewImage = () => {
                         setLocation={setLocation}
                         handleFullSubmission={handleFullSubmission}
                         isAdPlaced={isAdPlaced}
+                        setScheduledAt={setScheduledAt}
                       />
                     )}
                   </div>
@@ -815,6 +819,8 @@ const getPreviewImage = () => {
             openSuccessModal={openSuccessModal}
             setOpenSuccessModal={setOpenSuccessModal}
             createdAdSlug={CreatedAdSlug}
+            scheduledDate={scheduledAt}
+
           />
         </>
       )}

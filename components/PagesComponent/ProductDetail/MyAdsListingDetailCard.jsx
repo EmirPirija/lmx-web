@@ -12,7 +12,8 @@ import {
   MdEdit, 
   MdHistory, 
   MdTrendingDown, 
-  MdTrendingUp
+  MdTrendingUp,
+  MdSchedule
 } from "react-icons/md";
 import { FiPercent } from "react-icons/fi";
 import { toast } from "sonner";
@@ -55,6 +56,18 @@ const formatNumber = (num) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num?.toString() || '0';
+};
+ 
+const formatScheduledDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleString('bs-BA', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 // ============================================
@@ -178,6 +191,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
   
   const isEditable = productDetails?.status && !["permanent rejected", "inactive", "sold out", "expired"].includes(productDetails.status);
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
+  const isScheduled = productDetails?.status === 'scheduled' && productDetails?.scheduled_at;
   const isShowReceivedJobApplications = isJobCategory && (productDetails?.status === "approved" || productDetails?.status === "featured" || productDetails?.status === "sold out");
  
   // Sale Logic
@@ -316,6 +330,23 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               />
             )}
           </div>
+ 
+          {/* SCHEDULED BANNER */}
+          {isScheduled && (
+            <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <MdSchedule className="text-blue-600" size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-blue-800">Oglas je zakazan</p>
+                  <p className="text-xs text-blue-600 truncate">
+                    Objava: {formatScheduledDate(productDetails.scheduled_at)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* CIJENA + HISTORY BUTTON */}
           <div className="flex items-center gap-3 mb-4">
@@ -469,14 +500,25 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] p-3">
         <div className="container flex items-center gap-3">
           
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-500 font-medium">Status</p>
+        <div className="flex-1 min-w-0">
+        <p className="text-xs text-slate-500 font-medium">Status</p>
+              {productDetails?.status === 'scheduled' && (
+                <MdSchedule className="text-blue-500" size={12} />
+              )}
             <p className={`text-sm font-bold truncate ${
               productDetails?.status === 'approved' ? 'text-green-600' : 
-              productDetails?.status === 'pending' ? 'text-yellow-600' : 'text-slate-700'
+              productDetails?.status === 'pending' ? 'text-yellow-600' : 
+              productDetails?.status === 'scheduled' ? 'text-blue-600' :
+              productDetails?.status === 'review' ? 'text-orange-600' :
+              'text-slate-700'
             }`}>
               {productDetails?.status === 'approved' ? 'Aktivan' : 
-               productDetails?.status === 'pending' ? 'Na čekanju' : productDetails?.status}
+               productDetails?.status === 'pending' ? 'Na čekanju' : 
+               productDetails?.status === 'scheduled' ? `Zakazano ${formatScheduledDate(productDetails?.scheduled_at)}` :
+               productDetails?.status === 'review' ? 'Na pregledu' :
+               productDetails?.status === 'sold out' ? 'Prodano' :
+               productDetails?.status === 'expired' ? 'Istekao' :
+               productDetails?.status}
             </p>
           </div>
           

@@ -30,7 +30,7 @@ export default function Footer() {
   const showDownloadLinks =
     settings?.play_store_link && settings?.app_store_link;
 
-  const marginTop = showDownloadLinks ? "mt-[150px]" : "mt-48";
+  const marginTop = showDownloadLinks ? "mt-[150px]" : "";
 
   return (
     <footer className={`bg-[#1a1a1a] text-white ${marginTop}`}>
