@@ -6,12 +6,13 @@ import { IoLocationOutline } from "react-icons/io5";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import ManualAddress from "../AdsListing/ManualAddress";
+import PublishOptionsModal from "../AdsListing/PublishOptionsModal";
 import { getIsBrowserSupported } from "@/redux/reducer/locationSlice";
 import { getIsPaidApi } from "@/redux/reducer/settingSlice";
 import { getLocationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
-
+ 
 const MapComponent = dynamic(() => import("@/components/Common/MapComponent"), {
   ssr: false,
   loading: () => (
@@ -23,21 +24,23 @@ const MapComponent = dynamic(() => import("@/components/Common/MapComponent"), {
     </div>
   ),
 });
-
+ 
 const EditComponentFour = ({
   location,
   setLocation,
   handleFullSubmission,
   isAdPlaced,
   handleGoBack,
+  // NOVO: opcioni prop za scheduled_at
+  setScheduledAt,
 }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const [showManualAddress, setShowManualAddress] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const isBrowserSupported = useSelector(getIsBrowserSupported);
-  const [IsGettingCurrentLocation, setIsGettingCurrentLocation] =
-    useState(false);
+  const [IsGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
   const IsPaidApi = useSelector(getIsPaidApi);
-
+ 
   const getLocationWithMap = async (pos) => {
     try {
       const { lat, lng } = pos;
@@ -46,7 +49,7 @@ const EditComponentFour = ({
         lng,
         lang: IsPaidApi ? "en" : CurrentLanguage?.code,
       });
-
+ 
       if (response?.data.error === false) {
         if (IsPaidApi) {
           let city = "";
@@ -93,7 +96,7 @@ const EditComponentFour = ({
           ]
             .filter(Boolean)
             .join(", ");
-
+ 
           const cityData = {
             lat: results?.latitude,
             long: results?.longitude,
@@ -115,7 +118,7 @@ const EditComponentFour = ({
       toast.error("Došlo je do greške");
     }
   };
-
+ 
   const getCurrentLocation = async () => {
     if (navigator.geolocation) {
       setIsGettingCurrentLocation(true);
@@ -147,7 +150,7 @@ const EditComponentFour = ({
                     state = getAddressComponent("administrative_area_level_1");
                   if (!country) country = getAddressComponent("country");
                 });
-
+ 
                 const cityData = {
                   lat: latitude,
                   long: longitude,
@@ -205,7 +208,41 @@ const EditComponentFour = ({
       toast.error("Geolokacija nije podržana");
     }
   };
-
+ 
+  // Handler za klik na dugme "Objavi"
+  const handlePublishClick = () => {
+    // Provjeri da li je lokacija unijeta
+    if (
+      !location?.country ||
+      !location?.state ||
+      !location?.city ||
+      !location?.address
+    ) {
+      toast.error(t("pleaseSelectCity"));
+      return;
+    }
+    // Otvori modal
+    setShowPublishModal(true);
+  };
+ 
+  // Handler za "Objavi odmah"
+  const handlePublishNow = () => {
+    if (setScheduledAt) {
+      setScheduledAt(null);
+    }
+    setShowPublishModal(false);
+    handleFullSubmission();
+  };
+ 
+  // Handler za "Zakaži objavu"
+  const handleSchedule = (scheduledDateTime) => {
+    if (setScheduledAt) {
+      setScheduledAt(scheduledDateTime);
+    }
+    setShowPublishModal(false);
+    handleFullSubmission(scheduledDateTime);
+  };
+ 
   return (
     <>
       <div className="flex flex-col gap-8 pb-24">
@@ -232,7 +269,7 @@ const EditComponentFour = ({
             </button>
           </div>
         )}
-
+ 
         <div className="flex gap-6 flex-col">
           <div className="rounded-xl overflow-hidden shadow-lg border-2 border-gray-200">
             <MapComponent
@@ -257,7 +294,7 @@ const EditComponentFour = ({
             </div>
           </div>
         </div>
-
+ 
         {!IsPaidApi && (
           <>
             <div className="relative flex items-center justify-center">
@@ -283,7 +320,7 @@ const EditComponentFour = ({
           </>
         )}
       </div>
-
+ 
       {/* Sticky Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
@@ -300,21 +337,30 @@ const EditComponentFour = ({
                 : 'bg-primary text-white hover:bg-primary/90'
             }`}
             disabled={isAdPlaced}
-            onClick={handleFullSubmission}
+            onClick={handlePublishClick}
           >
-            {isAdPlaced ? "Postavljam..." : "Objavi odmah"}
+            {isAdPlaced ? "Spremam..." : "Spremi izmjene"}
           </button>
         </div>
       </div>
-
+ 
       <ManualAddress
         key={showManualAddress}
         showManualAddress={showManualAddress}
         setShowManualAddress={setShowManualAddress}
         setLocation={setLocation}
       />
+ 
+      {/* Publish Options Modal */}
+      <PublishOptionsModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        onPublishNow={handlePublishNow}
+        onSchedule={handleSchedule}
+        isSubmitting={isAdPlaced}
+      />
     </>
   );
 };
-
+ 
 export default EditComponentFour;

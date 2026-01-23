@@ -44,6 +44,7 @@ const AdsListing = () => {
   const [categoryPath, setCategoryPath] = useState([]);
   const [currentPage, setCurrentPage] = useState();
   const [lastPage, setLastPage] = useState();
+  const [scheduledAt, setScheduledAt] = useState(null);
   const [availableNow, setAvailableNow] = useState(false);
   const [disabledTab, setDisabledTab] = useState({
     categoryTab: false,
@@ -324,7 +325,7 @@ const AdsListing = () => {
   const isEmpty = (x) => !x || !x.toString().trim();
   const isNegative = (n) => Number(n) < 0;
 
-  const handleFullSubmission = () => {
+  const handleFullSubmission = (scheduledDateTime = null) => {
     const {
       name,
       description,
@@ -342,6 +343,10 @@ const AdsListing = () => {
     if (!catId) {
       toast.error(t("selectCategory"));
       return setStep(1);
+    }
+
+    if (scheduledDateTime) {
+      setScheduledAt(scheduledDateTime);
     }
 
     if (isEmpty(name) || isEmpty(description) || isEmpty(contact)) {
@@ -470,6 +475,7 @@ const AdsListing = () => {
         custom_field_translations: customFieldTranslations,
       }),
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
+      ...(scheduledAt && { scheduled_at: scheduledAt }),
     };
     
     if (is_job_category) {
@@ -778,6 +784,7 @@ const AdsListing = () => {
                     handleFullSubmission={handleFullSubmission}
                     isAdPlaced={isAdPlaced}
                     handleGoBack={handleGoBack}
+                    setScheduledAt={setScheduledAt}
                   />
                 )}
               </div>
