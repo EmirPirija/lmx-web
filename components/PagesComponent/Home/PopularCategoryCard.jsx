@@ -7,12 +7,12 @@ const PopularCategoryCard = ({ item }) => {
       href={`/ads?category=${item?.slug}`}
       className="flex flex-col gap-4"
     >
-      <div className="border p-2.5 rounded-full">
+      <div className="rounded-full">
         <CustomImage
           src={item?.image}
           width={96}
           height={96}
-          className="aspect-square w-full rounded-full"
+          className="w-full"
           alt="Category"
           loading="eager"
         />

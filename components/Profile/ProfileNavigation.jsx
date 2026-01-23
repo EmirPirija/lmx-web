@@ -28,6 +28,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { HiOutlineBadgeCheck } from "react-icons/hi";
 
+// Na vrhu dodaj import:
+import { BiShoppingBag } from "react-icons/bi";
+
 const ProfileNavigation = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const { navigate } = useNavigate();
@@ -118,6 +121,7 @@ const moreNavigationLinks = [
   { href: "/notifications", icon: IoMdNotificationsOutline, label: t("notifications") },
   { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
   { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: t("badges") },
+  { href: "/purchases", icon: BiShoppingBag, label: "Moje kupovine" },
   { href: "/transactions", icon: BiReceipt, label: t("transaction") },
   { href: "/reviews", icon: MdOutlineRateReview, label: t("myReviews") },
   { href: "/job-applications", icon: MdWorkOutline, label: t("jobApplications") },
@@ -131,6 +135,7 @@ const moreNavigationLinks = [
     { href: "/chat", icon: BiChat, label: t("chat") },
     { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
     { href: "/my-ads", icon: LiaAdSolid, label: t("myAds") },
+    { href: "/purchases", icon: BiShoppingBag, label: "Moje kupovine" },
     { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: t("badges") },
     { href: "/favorites", icon: LuHeart, label: t("favorites") },
     { href: "/transactions", icon: BiReceipt, label: t("transaction") },

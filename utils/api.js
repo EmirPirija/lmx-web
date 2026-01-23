@@ -837,7 +837,7 @@ export const addItemApi = {
     isAvailable,
     is_available,
     is_avaible,
-
+    inventory_count,
     show_only_to_premium,
   } = {}) => {
     const formData = new FormData();
@@ -959,7 +959,7 @@ export const editItemApi = {
     is_on_sale,
     old_price,
     video,
-
+    inventory_count,
     available_now,
     isAvailable,
     is_available,
@@ -1719,5 +1719,74 @@ export const sellerSettingsApi = {
     return Api.post(UPDATE_SELLER_SETTINGS, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+  },
+};
+
+
+// ============================================
+// INVENTORY & SALES API
+// ============================================
+export const ITEM_SALE = "item-sale";
+export const MY_PURCHASES = "my-purchases";
+export const ITEM_RESERVE = "item-reserve";
+ 
+export const inventoryApi = {
+  // Označi kao prodano s detaljima
+  recordSale: ({ 
+    item_id, 
+    buyer_id, 
+    quantity_sold, 
+    sale_receipt, 
+    sale_note,
+    sale_price 
+  } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (buyer_id) formData.append("buyer_id", buyer_id);
+    if (quantity_sold) formData.append("quantity_sold", quantity_sold);
+    if (sale_receipt) formData.append("sale_receipt", sale_receipt);
+    if (sale_note) formData.append("sale_note", sale_note);
+    if (sale_price) formData.append("sale_price", sale_price);
+ 
+    return Api.post(ITEM_SALE, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+ 
+  // Rezerviši artikal
+  reserveItem: ({ item_id, reserved_for_user_id, reservation_note } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (reserved_for_user_id) formData.append("reserved_for_user_id", reserved_for_user_id);
+    if (reservation_note) formData.append("reservation_note", reservation_note);
+ 
+    return Api.post(ITEM_RESERVE, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+ 
+  // Ukloni rezervaciju
+  removeReservation: ({ item_id } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    formData.append("remove_reservation", 1);
+ 
+    return Api.post(ITEM_RESERVE, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+ 
+export const myPurchasesApi = {
+  // Dohvati kupovine korisnika
+  getPurchases: ({ page = 1, status } = {}) => {
+    return Api.get(MY_PURCHASES, {
+      params: { page, status },
+    });
+  },
+ 
+  // Dohvati detalj kupovine
+  getPurchaseDetail: ({ sale_id } = {}) => {
+    return Api.get(`${MY_PURCHASES}/${sale_id}`);
   },
 };

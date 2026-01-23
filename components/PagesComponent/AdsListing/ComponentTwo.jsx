@@ -497,6 +497,36 @@ const ComponentTwo = ({
             </div>
           )}
 
+          {/* 📦 KOLIČINA NA ZALIHI */}
+<div className="flex flex-col gap-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+  <div className="flex items-center gap-3">
+    <span className="text-2xl">📦</span>
+    <div>
+      <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-800">
+        Količina na zalihi
+      </Label>
+      <p className="text-sm text-gray-500">
+        Ostavite prazno ako prodajete samo jedan artikal
+      </p>
+    </div>
+  </div>
+  <Input
+    type="number"
+    name="inventory_count"
+    id="inventory_count"
+    min={1}
+    placeholder="npr. 10"
+    value={current.inventory_count || ""}
+    onChange={handleField("inventory_count")}
+    className="mt-2 border-2 border-blue-200 rounded-xl bg-white"
+  />
+  {current.inventory_count && parseInt(current.inventory_count) > 1 && (
+    <p className="text-xs text-blue-600 mt-1">
+      ✨ Moći ćete pratiti prodaju i zalihe za ovaj oglas!
+    </p>
+  )}
+</div>
+
           <div className="flex flex-col gap-2">
             <Label
               htmlFor="phonenumber"

@@ -231,8 +231,7 @@ const ComponentFive = ({
       setScheduledAt(null);
     }
     setShowPublishModal(false);
-    handleFullSubmission(selectedDateTime)
-
+    handleFullSubmission()
   };
  
   // Handler za "Zakaži objavu"
