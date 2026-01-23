@@ -7,13 +7,15 @@ import {
   MdRefresh,
   MdWarning,
   MdArrowForward,
-  MdInfo
+  MdInfo,
+  MdInventory
 } from "react-icons/md";
 import { chanegItemStatusApi } from "@/utils/api";
 import SoldOutModal from "./SoldOutModal";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
+import { t } from "@/utils";
  
  
 const AdsStatusChangeCards = ({
@@ -28,6 +30,9 @@ const AdsStatusChangeCards = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedRadioValue, setSelectedRadioValue] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
+  
+  // New state for enhanced sold flow
+  const [pendingSaleDetails, setPendingSaleDetails] = useState(null);
  
   const isJobAd = productDetails?.category?.is_job_category === 1;
   const isSoftRejected = productDetails?.status === "soft rejected" || productDetails?.status === "resubmitted";
@@ -35,6 +40,10 @@ const AdsStatusChangeCards = ({
   const isShowRejectedReason = productDetails?.rejected_reason && (productDetails?.status === "soft rejected" || productDetails?.status === "permanent rejected");
   
   const currentStatus = productDetails?.status;
+  
+  // Check if item has inventory
+  const hasInventory = productDetails?.inventory_count && productDetails?.inventory_count > 0;
+  const inventoryCount = productDetails?.inventory_count || 0;
  
   // Status info za prikaz
   const statusInfo = {
@@ -137,26 +146,72 @@ const AdsStatusChangeCards = ({
     }
   };
  
-  const makeItemSoldOut = async () => {
+  const makeItemSoldOut = async (saleDetails = null) => {
     try {
       setIsChangingStatus(true);
-      const res = await chanegItemStatusApi.changeItemStatus({
+      
+      // Prepare API call with optional enhanced details
+      const apiParams = {
         item_id: productDetails?.id,
         status: "sold out",
-        sold_to: selectedRadioValue,
-      });
+        sold_to: saleDetails?.buyerId || selectedRadioValue,
+      };
+      
+      // Add inventory and receipt details if provided
+      if (saleDetails) {
+        if (saleDetails.quantitySold) {
+          apiParams.quantity_sold = saleDetails.quantitySold;
+        }
+        if (saleDetails.receiptFile) {
+          apiParams.sale_receipt = saleDetails.receiptFile;
+        }
+        if (saleDetails.saleNote) {
+          apiParams.sale_note = saleDetails.saleNote;
+        }
+      }
+      
+      const res = await chanegItemStatusApi.changeItemStatus(apiParams);
+      
       if (res?.data?.error === false) {
-        toast.success("Status oglasa je uspješno ažuriran");
-        setProductDetails((prev) => ({ ...prev, status: "sold out" }));
+        toast.success(t("statusUpdated") || "Status oglasa je uspješno ažuriran");
+        
+        // Update local state
+        const newInventoryCount = saleDetails?.remainingAfterSale ?? 0;
+        const newStatus = newInventoryCount > 0 ? "approved" : "sold out";
+        
+        setProductDetails((prev) => ({ 
+          ...prev, 
+          status: newStatus,
+          inventory_count: newInventoryCount,
+        }));
+        
         setShowConfirmModal(false);
+        setPendingSaleDetails(null);
+        
+        // Navigate back only if fully sold out
+        if (newStatus === "sold out") {
+          navigate("/my-ads");
+        }
       } else {
-        toast.error("Greška pri ažuriranju statusa");
+        toast.error(res?.data?.message || "Greška pri ažuriranju statusa");
       }
     } catch (error) {
       console.error(error);
+      toast.error("Došlo je do greške");
     } finally {
       setIsChangingStatus(false);
     }
+  };
+  
+  // Handler for enhanced sold flow (with receipt and inventory)
+  const handleSoldWithDetails = (saleDetails) => {
+    setPendingSaleDetails(saleDetails);
+    setShowConfirmModal(true);
+  };
+  
+  // Confirm sale with details
+  const confirmSaleWithDetails = () => {
+    makeItemSoldOut(pendingSaleDetails);
   };
  
   // ODBIJENI OGLAS - PRIKAZ
@@ -314,6 +369,17 @@ const AdsStatusChangeCards = ({
                     <MdArrowForward className="text-blue-600 text-xl" />
                   </button>
                 )}
+                
+                {/* Inventory info - prikaži ako ima zalihe */}
+                {hasInventory && currentStatus === "approved" && (
+                  <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="flex items-center gap-2 text-sm">
+                      <MdInventory className="text-slate-500" size={18} />
+                      <span className="text-slate-600">{t("currentStock") || "Trenutno na zalihi"}:</span>
+                      <span className="font-bold text-slate-800">{inventoryCount}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -359,16 +425,23 @@ const AdsStatusChangeCards = ({
         selectedRadioValue={selectedRadioValue}
         setSelectedRadioValue={setSelectedRadioValue}
         setShowConfirmModal={setShowConfirmModal}
+        onSoldWithDetails={handleSoldWithDetails}
       />
  
       <ReusableAlertDialog
         open={showConfirmModal}
-        onCancel={() => setShowConfirmModal(false)}
-        onConfirm={makeItemSoldOut}
+        onCancel={() => {
+          setShowConfirmModal(false);
+          setPendingSaleDetails(null);
+        }}
+        onConfirm={pendingSaleDetails ? confirmSaleWithDetails : makeItemSoldOut}
         title={isJobAd ? "Potvrdite zatvaranje pozicije" : "Potvrdite prodaju"}
-        description={isJobAd 
-          ? "Jeste li sigurni da želite zatvoriti ovu poziciju? Ova akcija se ne može poništiti."
-          : "Jeste li sigurni da želite označiti artikal kao prodan? Ova akcija se ne može poništiti."
+        description={
+          pendingSaleDetails?.remainingAfterSale > 0
+            ? `Prodajete ${pendingSaleDetails.quantitySold} komad(a). Na zalihi će ostati ${pendingSaleDetails.remainingAfterSale}.${pendingSaleDetails.receiptFile ? " Račun će biti poslan kupcu." : ""}`
+            : isJobAd 
+              ? "Jeste li sigurni da želite zatvoriti ovu poziciju? Ova akcija se ne može poništiti."
+              : "Jeste li sigurni da želite označiti artikal kao prodan? Ova akcija se ne može poništiti."
         }
         cancelText="Odustani"
         confirmText="Potvrdi"
