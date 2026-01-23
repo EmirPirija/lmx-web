@@ -137,6 +137,11 @@ const AdsStatusChangeCards = ({
   };
  
   const handleActionClick = (action) => {
+    // Za "sold out" direktno otvori modal, ne koristi ReusableAlertDialog
+    if (action === "sold out") {
+      setShowSoldOut(true);
+      return;
+    }
     setPendingAction(action);
   };
  
