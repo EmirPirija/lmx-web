@@ -38,11 +38,13 @@ const AdsStatusChangeCards = ({
  
   const isJobAd = productDetails?.category?.is_job_category === 1;
   const isSoftRejected = productDetails?.status === "soft rejected" || productDetails?.status === "resubmitted";
-  const canChangeStatus = productDetails?.status === "approved" || productDetails?.status === "inactive" || productDetails?.status === "reserved";
+  // Rezervacija više ne mijenja glavni status, pa uklanjamo "reserved" iz uslova
+  const canChangeStatus = productDetails?.status === "approved" || productDetails?.status === "inactive";
   const isShowRejectedReason = productDetails?.rejected_reason && (productDetails?.status === "soft rejected" || productDetails?.status === "permanent rejected");
   
   const currentStatus = productDetails?.status;
-  const isReserved = currentStatus === "reserved";
+  // Rezervacija se sada provjerava preko reservation_status, ne preko status
+  const isReserved = productDetails?.reservation_status === "reserved";
   
   // Check if item has inventory
   const hasInventory = productDetails?.inventory_count && productDetails?.inventory_count > 0;
@@ -159,7 +161,7 @@ const AdsStatusChangeCards = ({
     setPendingAction(action);
   };
   
-  // Handle reservation
+  // Handle reservation - status ostaje "approved", samo reservation_status se mijenja
   const handleReserve = async () => {
     try {
       setIsReserving(true);
@@ -170,7 +172,7 @@ const AdsStatusChangeCards = ({
         toast.success("Oglas je označen kao rezervisan");
         setProductDetails((prev) => ({ 
           ...prev, 
-          status: "reserved",
+          // Status ostaje isti (approved), samo dodajemo reservation_status
           reservation_status: "reserved"
         }));
       } else {
@@ -184,7 +186,7 @@ const AdsStatusChangeCards = ({
     }
   };
   
-  // Handle remove reservation
+  // Handle remove reservation - samo uklanja reservation_status, status ostaje isti
   const handleRemoveReservation = async () => {
     try {
       setIsReserving(true);
@@ -195,7 +197,7 @@ const AdsStatusChangeCards = ({
         toast.success("Rezervacija je uklonjena");
         setProductDetails((prev) => ({ 
           ...prev, 
-          status: "approved",
+          // Samo uklanjamo reservation_status, status ostaje "approved"
           reservation_status: "none"
         }));
       } else {
@@ -348,9 +350,18 @@ const AdsStatusChangeCards = ({
               <div className={cn("w-3 h-3 rounded-full animate-pulse", currentStatusInfo.dotClass)} />
               <div>
                 <p className="text-xs text-slate-500 font-medium">Trenutni status</p>
-                <p className={cn("font-bold", currentStatusInfo.textClass)}>
-                  {currentStatusInfo.label}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className={cn("font-bold", currentStatusInfo.textClass)}>
+                    {currentStatusInfo.label}
+                  </p>
+                  {/* Rezervisano badge - prikazuje se uz status ako je rezervisan */}
+                  {isReserved && currentStatus === "approved" && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-700 text-xs font-bold">
+                      <MdLock size={12} />
+                      Rezervisano
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <currentStatusInfo.icon className={cn("text-2xl", currentStatusInfo.textClass)} />
@@ -415,8 +426,8 @@ const AdsStatusChangeCards = ({
                   </button>
                 )}
  
-                {/* Rezerviši - samo ako je aktivan */}
-                {currentStatus === "approved" && !isJobAd && (
+                {/* Rezerviši - samo ako je aktivan i NIJE već rezervisan */}
+                {currentStatus === "approved" && !isJobAd && !isReserved && (
                   <button
                     onClick={handleReserve}
                     disabled={IsChangingStatus || isReserving}
@@ -435,8 +446,8 @@ const AdsStatusChangeCards = ({
                   </button>
                 )}
 
-                {/* Ukloni rezervaciju - samo ako je rezervisano */}
-                {currentStatus === "reserved" && (
+                {/* Ukloni rezervaciju - samo ako JE rezervisano */}
+                {isReserved && (
                   <button
                     onClick={handleRemoveReservation}
                     disabled={IsChangingStatus || isReserving}
@@ -448,15 +459,15 @@ const AdsStatusChangeCards = ({
                       </div>
                       <div className="text-left">
                         <p className="font-bold text-green-800">Ukloni rezervaciju</p>
-                        <p className="text-xs text-green-600">Vrati oglas u aktivne</p>
+                        <p className="text-xs text-green-600">Artikal više nije rezervisan</p>
                       </div>
                     </div>
                     <MdArrowForward className="text-green-600 text-xl" />
                   </button>
                 )}
 
-                {/* Označi kao prodano - ako je aktivan ILI rezervisan */}
-                {(currentStatus === "approved" || currentStatus === "reserved") && (
+                {/* Označi kao prodano - ako je aktivan (uključujući i rezervisane) */}
+                {currentStatus === "approved" && (
                   <button
                     onClick={() => handleActionClick("sold out")}
                     disabled={IsChangingStatus}
@@ -480,7 +491,7 @@ const AdsStatusChangeCards = ({
                 )}
                 
                 {/* Inventory info - prikaži ako ima zalihe */}
-                {hasInventory && (currentStatus === "approved" || currentStatus === "reserved") && (
+                {hasInventory && currentStatus === "approved" && (
                   <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="flex items-center gap-2 text-sm">
                       <MdInventory className="text-slate-500" size={18} />

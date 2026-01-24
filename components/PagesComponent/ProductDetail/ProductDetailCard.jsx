@@ -232,9 +232,8 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
   const hasHistory = !isJobCategory && productDetails?.price_history && productDetails.price_history.length > 0;
   
-  // Check if item is reserved
-  const isReserved = productDetails?.status === 'reserved' || 
-                     productDetails?.reservation_status === 'reserved';
+  // Check if item is reserved - sada provjeravamo samo reservation_status
+  const isReserved = productDetails?.reservation_status === 'reserved';
 
   // Sale/Akcija logika
   const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;

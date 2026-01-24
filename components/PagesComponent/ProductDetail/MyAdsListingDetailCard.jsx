@@ -505,24 +505,28 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               {productDetails?.status === 'scheduled' && (
                 <MdSchedule className="text-blue-500" size={12} />
               )}
-            <p className={`text-sm font-bold truncate ${
-              productDetails?.status === 'approved' ? 'text-green-600' : 
-              productDetails?.status === 'reserved' ? 'text-amber-600' : 
-              productDetails?.status === 'pending' ? 'text-yellow-600' : 
-              productDetails?.status === 'scheduled' ? 'text-blue-600' :
-              productDetails?.status === 'review' ? 'text-orange-600' :
-              productDetails?.status === 'sold out' ? 'text-blue-600' :
-              'text-slate-700'
-            }`}>
-              {productDetails?.status === 'approved' ? 'Aktivan' : 
-               productDetails?.status === 'reserved' ? '🔒 Rezervisano' : 
-               productDetails?.status === 'pending' ? 'Na čekanju' : 
-               productDetails?.status === 'scheduled' ? `Zakazano ${formatScheduledDate(productDetails?.scheduled_at)}` :
-               productDetails?.status === 'review' ? 'Na pregledu' :
-               productDetails?.status === 'sold out' ? 'Prodano' :
-               productDetails?.status === 'expired' ? 'Istekao' :
-               productDetails?.status}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className={`text-sm font-bold truncate ${
+                productDetails?.status === 'approved' ? 'text-green-600' : 
+                productDetails?.status === 'pending' ? 'text-yellow-600' : 
+                productDetails?.status === 'scheduled' ? 'text-blue-600' :
+                productDetails?.status === 'review' ? 'text-orange-600' :
+                productDetails?.status === 'sold out' ? 'text-blue-600' :
+                'text-slate-700'
+              }`}>
+                {productDetails?.status === 'approved' ? 'Aktivan' : 
+                 productDetails?.status === 'pending' ? 'Na čekanju' : 
+                 productDetails?.status === 'scheduled' ? `Zakazano ${formatScheduledDate(productDetails?.scheduled_at)}` :
+                 productDetails?.status === 'review' ? 'Na pregledu' :
+                 productDetails?.status === 'sold out' ? 'Prodano' :
+                 productDetails?.status === 'expired' ? 'Istekao' :
+                 productDetails?.status}
+              </p>
+              {/* Rezervisano badge - prikaži zasebno */}
+              {productDetails?.reservation_status === 'reserved' && (
+                <span className="text-xs font-bold text-amber-600">🔒</span>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-2">

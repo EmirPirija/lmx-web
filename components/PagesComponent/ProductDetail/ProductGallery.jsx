@@ -31,9 +31,8 @@ const ProductGallery = ({
   onImageZoom,
   onVideoPlay,
 }) => {
-  // Check if item is reserved
-  const isReserved = productDetails?.status === 'reserved' || 
-                     productDetails?.reservation_status === 'reserved';
+  // Check if item is reserved - sada provjeravamo samo reservation_status
+  const isReserved = productDetails?.reservation_status === 'reserved';
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
