@@ -1,21 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useMemo } from "react";
 import { IoSearch } from "react-icons/io5";
 import { t } from "@/utils";
 import { MdArrowBack, MdOutlineKeyboardArrowRight } from "react-icons/md";
 import { BiCurrentLocation } from "react-icons/bi";
 import { DialogHeader, DialogTitle } from "../ui/dialog";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "../ui/skeleton";
-import NoData from "../EmptyStates/NoData";
-import { Loader2 } from "lucide-react";
-import { useInView } from "react-intersection-observer";
-import {
-  getAreasApi,
-  getCitiesApi,
-  getCoutriesApi,
-  getLocationApi,
-  getStatesApi,
-} from "@/utils/api";
+import { MapPin, X } from "lucide-react";
+import { getLocationApi } from "@/utils/api";
 import {
   getIsBrowserSupported,
   resetCityData,
@@ -25,387 +16,251 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { getMinRange } from "@/redux/reducer/settingSlice";
 import { usePathname } from "next/navigation";
-import { useDebounce } from "use-debounce";
-import SearchAutocomplete from "./SearchAutocomplete";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { useNavigate } from "../Common/useNavigate";
-
+import {
+  ENTITIES,
+  getRegionsByEntity,
+  getMunicipalitiesByRegion,
+  searchMunicipalities,
+  POPULAR_CITIES,
+  getFullLocationFromMunicipalityId,
+} from "@/lib/bih-locations";
+ 
+// Default koordinate za BiH (Sarajevo)
+const BIH_DEFAULT_COORDS = {
+  lat: 43.8563,
+  long: 18.4131,
+};
+ 
 const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const dispatch = useDispatch();
   const { navigate } = useNavigate();
   const pathname = usePathname();
   const minLength = useSelector(getMinRange);
-  const { ref, inView } = useInView();
   const IsBrowserSupported = useSelector(getIsBrowserSupported);
-
-  const viewHistory = useRef([]);
-  const skipNextSearchEffect = useRef(false);
-
+ 
   const [search, setSearch] = useState("");
-  const [debouncedSearch] = useDebounce(search, 500);
   const [locationStatus, setLocationStatus] = useState(null);
-  const [currentView, setCurrentView] = useState("countries");
+  const [currentView, setCurrentView] = useState("entities"); // entities, regions, municipalities
   const [selectedLocation, setSelectedLocation] = useState({
-    country: null,
-    state: null,
-    city: null,
-    area: null,
+    entity: null,
+    region: null,
+    municipality: null,
   });
-  const [locationData, setLocationData] = useState({
-    items: [],
-    currentPage: 1,
-    hasMore: false,
-    isLoading: false,
-    isLoadMore: true,
-  });
-
-  useEffect(() => {
-    if (skipNextSearchEffect.current) {
-      skipNextSearchEffect.current = false;
-      return;
+ 
+  // Dohvati podatke za trenutni view
+  const regions = useMemo(() => {
+    return selectedLocation.entity ? getRegionsByEntity(selectedLocation.entity.id) : [];
+  }, [selectedLocation.entity]);
+ 
+  const municipalities = useMemo(() => {
+    return selectedLocation.region ? getMunicipalitiesByRegion(selectedLocation.region.id) : [];
+  }, [selectedLocation.region]);
+ 
+  // Search rezultati
+  const searchResults = useMemo(() => {
+    if (search.length < 2) return [];
+    return searchMunicipalities(search).slice(0, 10);
+  }, [search]);
+ 
+  // Trenutni items za prikaz
+  const currentItems = useMemo(() => {
+    switch (currentView) {
+      case "entities":
+        return ENTITIES;
+      case "regions":
+        return regions;
+      case "municipalities":
+        return municipalities;
+      default:
+        return [];
     }
-    fetchData(debouncedSearch);
-  }, [debouncedSearch]);
-
-  useEffect(() => {
-    if (inView && locationData?.hasMore && !locationData?.isLoading) {
-      fetchData(debouncedSearch, locationData?.currentPage + 1);
-    }
-  }, [inView]);
-
+  }, [currentView, regions, municipalities]);
+ 
   const handleSubmitLocation = () => {
     minLength > 0
       ? dispatch(setKilometerRange(minLength))
       : dispatch(setKilometerRange(0));
-    // avoid redirect if already on home page otherwise router.push triggering server side api calls
     if (pathname !== "/") {
       navigate("/");
     }
   };
-
-  const fetchData = async (
-    search = "",
-    page = 1,
-    view = currentView,
-    location = selectedLocation
-  ) => {
-    try {
-      setLocationData((prev) => ({
-        ...prev,
-        isLoading: page === 1,
-        isLoadMore: page > 1,
-      }));
-
-      let response;
-
-      const params = { page };
-      if (search) {
-        params.search = search;
-      }
-
-      switch (view) {
-        case "countries":
-          response = await getCoutriesApi.getCoutries(params);
-          break;
-        case "states":
-          response = await getStatesApi.getStates({
-            ...params,
-            country_id: location.country.id,
-          });
-          break;
-        case "cities":
-          response = await getCitiesApi.getCities({
-            ...params,
-            state_id: location.state.id,
-          });
-          break;
-        case "areas":
-          response = await getAreasApi.getAreas({
-            ...params,
-            city_id: location.city.id,
-          });
-          break;
-      }
-
-      if (response.data.error === false) {
-        const items = response.data.data.data;
-
-        // MOD: if no results and not on countries, auto-save & close
-        if (items.length === 0 && view !== "countries" && !search) {
-          switch (view) {
-            case "states":
-              saveCity({
-                city: "",
-                state: "",
-                country: location.country.name,
-                lat: location.country.latitude,
-                long: location.country.longitude,
-                formattedAddress: location.country.translated_name,
-              });
-              break;
-            case "cities":
-              saveCity({
-                city: "",
-                state: location.state.name,
-                country: location.country.name,
-                lat: location.state.latitude,
-                long: location.state.longitude,
-                formattedAddress: [
-                  location?.state.translated_name,
-                  location?.country.translated_name,
-                ]
-                  .filter(Boolean)
-                  .join(", "),
-              });
-              break;
-            case "areas":
-              saveCity({
-                city: location.city.name,
-                state: location.state.name,
-                country: location.country.name,
-                lat: location.city.latitude,
-                long: location.city.longitude,
-                formattedAddress: [
-                  location?.city.translated_name,
-                  location?.state.translated_name,
-                  location?.country.translated_name,
-                ]
-                  .filter(Boolean)
-                  .join(", "),
-              });
-              break;
-          }
-
-          handleSubmitLocation();
-          OnHide();
-          return; // stop further processing
-        }
-        setLocationData((prev) => ({
-          ...prev,
-          items:
-            page > 1
-              ? [...prev.items, ...response.data.data.data]
-              : response.data.data.data,
-          hasMore:
-            response.data.data.current_page < response.data.data.last_page,
-          currentPage: response.data.data.current_page,
-        }));
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLocationData((prev) => ({
-        ...prev,
-        isLoading: false,
-        isLoadMore: false,
-      }));
-    }
-  };
-
-  const handleItemSelect = async (item) => {
-
-    // MOD: push current state onto history
-    viewHistory.current.push({
-      view: currentView,
-      location: selectedLocation,
-      dataState: locationData,
-      search: search,
-    });
-
-    let nextView = "";
-    let newLocation = {};
-
+ 
+  const handleItemSelect = (item) => {
     switch (currentView) {
-      case "countries":
-        newLocation = {
-          ...selectedLocation,
-          country: item,
-          state: null,
-          city: null,
-          area: null,
-        };
-        nextView = "states";
+      case "entities":
+        setSelectedLocation({
+          entity: item,
+          region: null,
+          municipality: null,
+        });
+        setCurrentView("regions");
+        setSearch("");
         break;
-      case "states":
-        newLocation = {
-          ...selectedLocation,
-          state: item,
-          city: null,
-          area: null,
-        };
-        nextView = "cities";
+      case "regions":
+        setSelectedLocation((prev) => ({
+          ...prev,
+          region: item,
+          municipality: null,
+        }));
+        setCurrentView("municipalities");
+        setSearch("");
         break;
-      case "cities":
-        newLocation = {
-          ...selectedLocation,
-          city: item,
-          area: null,
-        };
-        nextView = "areas";
-        break;
-      case "areas":
+      case "municipalities":
+        // Sačuvaj lokaciju i zatvori
+        const fullAddress = `${item.name}, ${selectedLocation.region?.name}, ${selectedLocation.entity?.name}, Bosna i Hercegovina`;
         saveCity({
-          country: selectedLocation?.country?.name,
-          state: selectedLocation?.state?.name,
-          city: selectedLocation?.city?.name,
-          area: item?.name,
-          areaId: item?.id,
-          lat: item?.latitude,
-          long: item?.longitude,
-          formattedAddress: [
-            item?.translated_name,
-            selectedLocation?.city?.translated_name,
-            selectedLocation?.state?.translated_name,
-            selectedLocation?.country?.translated_name,
-          ]
-            .filter(Boolean)
-            .join(", "),
+          country: "Bosna i Hercegovina",
+          state: selectedLocation.region?.name || "",
+          city: item.name,
+          area: "",
+          lat: BIH_DEFAULT_COORDS.lat,
+          long: BIH_DEFAULT_COORDS.long,
+          formattedAddress: fullAddress,
         });
         handleSubmitLocation();
         OnHide();
-        return;
-    }
-    setSelectedLocation(newLocation);
-    setCurrentView(nextView);
-    await fetchData("", 1, nextView, newLocation);
-    if (search) {
-      skipNextSearchEffect.current = true;
-      setSearch("");
+        break;
     }
   };
-
+ 
+  // Quick select iz pretrage
+  const handleQuickSelect = (result) => {
+    const fullAddress = `${result.name}, ${result.regionName}, ${result.entityName}, Bosna i Hercegovina`;
+    saveCity({
+      country: "Bosna i Hercegovina",
+      state: result.regionName || "",
+      city: result.name,
+      area: "",
+      lat: BIH_DEFAULT_COORDS.lat,
+      long: BIH_DEFAULT_COORDS.long,
+      formattedAddress: fullAddress,
+    });
+    handleSubmitLocation();
+    OnHide();
+  };
+ 
+  // Popularni grad select
+  const handlePopularCity = (city) => {
+    const fullLocation = getFullLocationFromMunicipalityId(city.id);
+    if (fullLocation) {
+      saveCity({
+        country: "Bosna i Hercegovina",
+        state: fullLocation.region?.name || "",
+        city: fullLocation.municipality?.name || "",
+        area: "",
+        lat: BIH_DEFAULT_COORDS.lat,
+        long: BIH_DEFAULT_COORDS.long,
+        formattedAddress: fullLocation.formatted,
+      });
+      handleSubmitLocation();
+      OnHide();
+    }
+  };
+ 
   const getPlaceholderText = () => {
     switch (currentView) {
-      case "countries":
-        return `${t("search")} ${t("country")}`;
-      case "states":
-        return `${t("search")} ${t("state")}`;
-      case "cities":
-        return `${t("search")} ${t("city")}`;
-      case "areas":
-        return `${t("search")} ${t("area")}`;
+      case "entities":
+        return "Pretraži grad ili općinu...";
+      case "regions":
+        return selectedLocation.entity?.id === "fbih" ? "Pretraži kanton..." : "Pretraži regiju...";
+      case "municipalities":
+        return "Pretraži grad/općinu...";
       default:
-        return `${t("search")} Location`;
+        return "Pretraži...";
     }
   };
-
+ 
   const getFormattedLocation = () => {
-    if (!selectedLocation) return t("location");
     const parts = [];
-    if (selectedLocation.area?.translated_name)
-      parts.push(selectedLocation.area.translated_name);
-    if (selectedLocation.city?.translated_name)
-      parts.push(selectedLocation.city.translated_name);
-    if (selectedLocation.state?.translated_name)
-      parts.push(selectedLocation.state.translated_name);
-    if (selectedLocation.country?.translated_name)
-      parts.push(selectedLocation.country.translated_name);
-
-    return parts.length > 0 ? parts.join(", ") : t("location");
+    if (selectedLocation.municipality?.name) parts.push(selectedLocation.municipality.name);
+    if (selectedLocation.region?.name) parts.push(selectedLocation.region.name);
+    if (selectedLocation.entity?.shortName) parts.push(selectedLocation.entity.shortName);
+    return parts.length > 0 ? parts.join(", ") : "Bosna i Hercegovina";
   };
-
-  const handleBack = async () => {
-    const prev = viewHistory.current.pop();
-    if (!prev) return;
-
-    setCurrentView(prev.view);
-    setSelectedLocation(prev.location);
-
-    if (search !== prev.search) {
-      skipNextSearchEffect.current = true;
-      setSearch(prev.search);
+ 
+  const handleBack = () => {
+    switch (currentView) {
+      case "regions":
+        setSelectedLocation({ entity: null, region: null, municipality: null });
+        setCurrentView("entities");
+        break;
+      case "municipalities":
+        setSelectedLocation((prev) => ({ ...prev, region: null, municipality: null }));
+        setCurrentView("regions");
+        break;
     }
-    if (prev.dataState) {
-      setLocationData(prev.dataState);
-    } else {
-      await fetchData(prev.search ?? "", 1, prev.view, prev.location);
-    }
+    setSearch("");
   };
-
+ 
   const getTitle = () => {
     switch (currentView) {
-      case "countries":
-        return t("country");
-      case "states":
-        return t("state");
-      case "cities":
-        return t("city");
-      case "areas":
-        return t("area");
+      case "entities":
+        return "Entitet";
+      case "regions":
+        return selectedLocation.entity?.id === "fbih" ? "Kanton" : "Regija";
+      case "municipalities":
+        return "Grad/Općina";
     }
   };
-
+ 
   const handleAllSelect = () => {
     switch (currentView) {
-      case "countries":
-        resetCityData();
-        handleSubmitLocation();
-        OnHide();
-        break;
-      case "states":
+      case "entities":
         saveCity({
-          city: "",
+          country: "Bosna i Hercegovina",
           state: "",
-          country: selectedLocation?.country?.name,
-          lat: selectedLocation?.country?.latitude,
-          long: selectedLocation?.country?.longitude,
-          formattedAddress: selectedLocation?.country?.translated_name,
-        });
-        handleSubmitLocation();
-        OnHide();
-        break;
-      case "cities":
-        saveCity({
           city: "",
-          state: selectedLocation?.state?.name,
-          country: selectedLocation?.country?.name,
-          lat: selectedLocation?.state?.latitude,
-          long: selectedLocation?.state?.longitude,
-          formattedAddress: [
-            selectedLocation?.state?.translated_name,
-            selectedLocation?.country?.translated_name,
-          ]
-            .filter(Boolean)
-            .join(", "),
+          area: "",
+          lat: BIH_DEFAULT_COORDS.lat,
+          long: BIH_DEFAULT_COORDS.long,
+          formattedAddress: "Bosna i Hercegovina",
         });
         handleSubmitLocation();
         OnHide();
         break;
-      case "areas":
+      case "regions":
         saveCity({
-          city: selectedLocation?.city?.name,
-          state: selectedLocation?.state?.name,
-          country: selectedLocation?.country?.name,
-          lat: selectedLocation?.city?.latitude,
-          long: selectedLocation?.city?.longitude,
-          formattedAddress: [
-            selectedLocation?.city?.translated_name,
-            selectedLocation?.state?.translated_name,
-            selectedLocation?.country?.translated_name,
-          ]
-            .filter(Boolean)
-            .join(", "),
+          country: "Bosna i Hercegovina",
+          state: selectedLocation.entity?.name || "",
+          city: "",
+          area: "",
+          lat: BIH_DEFAULT_COORDS.lat,
+          long: BIH_DEFAULT_COORDS.long,
+          formattedAddress: `${selectedLocation.entity?.name}, Bosna i Hercegovina`,
+        });
+        handleSubmitLocation();
+        OnHide();
+        break;
+      case "municipalities":
+        saveCity({
+          country: "Bosna i Hercegovina",
+          state: selectedLocation.region?.name || "",
+          city: "",
+          area: "",
+          lat: BIH_DEFAULT_COORDS.lat,
+          long: BIH_DEFAULT_COORDS.long,
+          formattedAddress: `${selectedLocation.region?.name}, ${selectedLocation.entity?.name}, Bosna i Hercegovina`,
         });
         handleSubmitLocation();
         OnHide();
         break;
     }
   };
-
+ 
   const getAllButtonTitle = () => {
     switch (currentView) {
-      case "countries":
-        return t("allCountries");
-      case "states":
-        return `${t("allIn")} ${selectedLocation.country?.translated_name}`;
-      case "cities":
-        return `${t("allIn")} ${selectedLocation.state?.translated_name}`;
-      case "areas":
-        return `${t("allIn")} ${selectedLocation.city?.translated_name}`;
+      case "entities":
+        return "Cijela Bosna i Hercegovina";
+      case "regions":
+        return `Sve u ${selectedLocation.entity?.shortName || selectedLocation.entity?.name}`;
+      case "municipalities":
+        return `Sve u ${selectedLocation.region?.name}`;
     }
   };
-
+ 
   const getCurrentLocationUsingFreeApi = async (latitude, longitude) => {
     try {
       const response = await getLocationApi.getLocation({
@@ -441,7 +296,7 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
       setLocationStatus("error");
     }
   };
-
+ 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       setLocationStatus("fetching");
@@ -462,15 +317,23 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
         }
       );
     } else {
-      toast.error(t("geoLocationNotSupported"));
+      console.error("Geolocation not supported");
     }
   };
-
+ 
+  // Filter items based on search
+  const filteredItems = useMemo(() => {
+    if (!search || currentView === "entities") return currentItems;
+    return currentItems.filter((item) =>
+      item.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [currentItems, search, currentView]);
+ 
   return (
     <>
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2 text-xl ltr:text-left rtl:text-right">
-          {currentView !== "countries" && (
+          {currentView !== "entities" && (
             <button onClick={handleBack}>
               <MdArrowBack size={20} className="rtl:scale-x-[-1]" />
             </button>
@@ -478,30 +341,69 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
           {getFormattedLocation()}
         </DialogTitle>
       </DialogHeader>
-
-      <div className="flex items-center gap-2 border rounded-sm py-2 px-4 relative">
-        <IoSearch className="size-5 text-primary" />
-        {currentView === "countries" ? (
-          <SearchAutocomplete saveOnSuggestionClick={true} OnHide={OnHide} />
-        ) : (
-          <input
-            type="text"
-            className="w-full outline-none text-sm"
-            placeholder={getPlaceholderText()}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+ 
+      {/* Search input */}
+      <div className="flex items-center gap-2 border rounded-lg py-2 px-4 relative">
+        <IoSearch className="size-5 text-primary shrink-0" />
+        <input
+          type="text"
+          className="w-full outline-none text-sm"
+          placeholder={getPlaceholderText()}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="text-gray-400 hover:text-gray-600">
+            <X className="h-4 w-4" />
+          </button>
         )}
       </div>
-
-      {/* Current Location Wrapper */}
-
+ 
+      {/* Search rezultati dropdown */}
+      {search.length >= 2 && currentView === "entities" && searchResults.length > 0 && (
+        <div className="border rounded-lg max-h-[200px] overflow-y-auto">
+          {searchResults.map((result) => (
+            <button
+              key={result.id}
+              onClick={() => handleQuickSelect(result)}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 border-b last:border-b-0"
+            >
+              <MapPin className="h-4 w-4 text-primary shrink-0" />
+              <div>
+                <p className="font-medium text-sm">{result.name}</p>
+                <p className="text-xs text-gray-500">
+                  {result.regionName} • {result.entityName}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+ 
+      {/* Popularni gradovi */}
+      {currentView === "entities" && !search && (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500 font-medium">Popularni gradovi:</p>
+          <div className="flex flex-wrap gap-2">
+            {POPULAR_CITIES.slice(0, 6).map((city) => (
+              <button
+                key={city.id}
+                onClick={() => handlePopularCity(city)}
+                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-primary/10 hover:text-primary rounded-full transition-colors"
+              >
+                {city.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+ 
+      {/* Current Location */}
       {IsBrowserSupported && (
-        <div className="flex items-center gap-2 border rounded p-2 px-4">
+        <div className="flex items-center gap-2 border rounded-lg p-2 px-4">
           <BiCurrentLocation className="text-primary size-5 shrink-0" />
           <button
             className="flex flex-col items-start ltr:text-left rtl:text-right"
-            disabled={false}
             onClick={getCurrentLocation}
           >
             <p className="text-sm font-medium text-primary">
@@ -519,80 +421,53 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
           </button>
         </div>
       )}
-      <div className="border border-sm rounded-sm">
+ 
+      {/* Lista lokacija */}
+      <div className="border rounded-lg">
         <button
-          className="flex items-center gap-1 p-3 text-sm font-medium justify-between w-full border-b ltr:text-left rtl:text-right"
+          className="flex items-center gap-1 p-3 text-sm font-medium justify-between w-full border-b ltr:text-left rtl:text-right hover:bg-gray-50"
           onClick={handleAllSelect}
         >
           <span>{getAllButtonTitle()}</span>
           <div className="bg-muted rounded-sm">
-            <MdOutlineKeyboardArrowRight
-              size={20}
-              className="rtl:scale-x-[-1]"
-            />
+            <MdOutlineKeyboardArrowRight size={20} className="rtl:scale-x-[-1]" />
           </div>
         </button>
-        <div className="overflow-y-auto h-[300px]">
-          {locationData.isLoading ? (
-            <PlacesSkeleton />
-          ) : (
-            <>
-              {locationData.items.length > 0 ? (
-                locationData.items.map((item, index) => (
-                  <button
-                    className={cn(
-                      "flex items-center ltr:text-left rtl:text-right gap-1 p-3 text-sm font-medium justify-between w-full",
-                      index !== locationData.length - 1 && "border-b"
-                    )}
-                    onClick={() => handleItemSelect(item)}
-                    key={item?.id}
-                    ref={
-                      index === locationData.items.length - 1 &&
-                      locationData.hasMore
-                        ? ref
-                        : null
-                    }
-                  >
-                    <span>{item?.translated_name || item?.name}</span>
-                    <div className="bg-muted rounded-sm">
-                      <MdOutlineKeyboardArrowRight
-                        size={20}
-                        className="rtl:scale-x-[-1]"
-                      />
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <NoData name={getTitle()} />
-              )}
-              {locationData.isLoadMore && (
-                <div className="p-4 flex justify-center">
-                  <Loader2 className="size-4 animate-spin" />
+        
+        <div className="overflow-y-auto max-h-[300px]">
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item, index) => (
+              <button
+                className={cn(
+                  "flex items-center ltr:text-left rtl:text-right gap-1 p-3 text-sm font-medium justify-between w-full hover:bg-gray-50",
+                  index !== filteredItems.length - 1 && "border-b"
+                )}
+                onClick={() => handleItemSelect(item)}
+                key={item?.id}
+              >
+                <div className="flex flex-col items-start">
+                  <span>{item?.shortName || item?.name}</span>
+                  {item?.shortName && item?.name !== item?.shortName && (
+                    <span className="text-xs text-gray-500">{item?.name}</span>
+                  )}
+                  {item?.type === "grad" && (
+                    <span className="text-[10px] text-primary">Grad</span>
+                  )}
                 </div>
-              )}
-            </>
+                <div className="bg-muted rounded-sm">
+                  <MdOutlineKeyboardArrowRight size={20} className="rtl:scale-x-[-1]" />
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="p-8 text-center text-gray-500 text-sm">
+              {search ? `Nema rezultata za "${search}"` : "Nema podataka"}
+            </div>
           )}
         </div>
       </div>
     </>
   );
 };
-
+ 
 export default LocationSelector;
-
-const PlacesSkeleton = () => {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div key={index} className="flex items-center gap-3 p-3">
-          <Skeleton className="h-4 w-4 rounded-full" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-[85%]" />
-            <Skeleton className="h-3 w-[60%]" />
-          </div>
-          <Skeleton className="h-5 w-5 rounded-sm" />
-        </div>
-      ))}
-    </div>
-  );
-};

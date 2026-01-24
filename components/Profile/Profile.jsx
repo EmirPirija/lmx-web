@@ -24,7 +24,10 @@ import {
   MdCheckCircle,
   MdEdit,
   MdCameraAlt,
+  MdMyLocation,
 } from "react-icons/md";
+import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 // UI Components
 import { Label } from "../ui/label";
@@ -87,6 +90,16 @@ const Profile = () => {
   const [VerificationStatus, setVerificationStatus] = useState("");
   const [RejectionReason, setRejectionReason] = useState("");
 
+  // BiH Lokacija
+  const { userLocation, saveLocation, getFormattedAddress, hasLocation } = useUserLocation();
+  const [bihLocation, setBihLocation] = useState({
+    entityId: null,
+    regionId: null,
+    municipalityId: null,
+    address: "",
+    formattedAddress: "",
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -97,6 +110,13 @@ const Profile = () => {
     region_code: "",
     country_code: "",
   });
+
+  // Sync BiH lokacije sa userLocation hook-om
+  useEffect(() => {
+    if (userLocation) {
+      setBihLocation(userLocation);
+    }
+  }, [userLocation]);
 
   // --- API FETCHING ---
   const getVerificationProgress = async () => {
@@ -217,10 +237,17 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData?.name.trim() || !formData?.address.trim()) {
-      toast.error("Ime i Adresa su obavezna polja!");
+    if (!formData?.name.trim()) {
+      toast.error("Ime je obavezno polje!");
       return;
     }
+    
+    // Provjeri BiH lokaciju umjesto stare adrese
+    if (!bihLocation?.municipalityId) {
+      toast.error("Molimo odaberite vašu lokaciju!");
+      return;
+    }
+    
     const mobileNumber = formData.phone || "";
     if (Boolean(mobileNumber) && !isValidPhoneNumber(`+${formData.country_code}${mobileNumber}`)) {
       toast.error("Uneseni broj telefona nije ispravan.");
@@ -229,11 +256,18 @@ const Profile = () => {
 
     setIsLoading(true);
     try {
+      // Sačuvaj BiH lokaciju lokalno
+      saveLocation(bihLocation);
+      
+      // Generiši formatiranu adresu za backend
+      const formattedAddress = bihLocation.formattedAddress || 
+        (bihLocation.address ? `${bihLocation.address}, ${bihLocation.formattedAddress}` : bihLocation.formattedAddress);
+      
       const response = await updateProfileApi.updateProfile({
         name: formData.name,
         email: formData.email,
         mobile: mobileNumber,
-        address: formData.address,
+        address: formattedAddress || formData.address, // Koristi BiH adresu
         profile: profileFile,
         fcm_id: fetchFCM || "",
         notification: formData.notification,
@@ -495,28 +529,37 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* 2. ADDRESS CARD */}
+            {/* 2. LOKACIJA CARD - BiH Location Selector */}
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-50">
                 <div className="p-2 bg-gray-50 rounded-lg text-gray-600">
-                  <MdOutlineLocationOn size={20} />
+                  <MdMyLocation size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Adresa</h3>
-                  <p className="text-xs text-gray-500">Vaša lokacija za dostavu i naplatu.</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Lokacija</h3>
+                  <p className="text-xs text-gray-500">Vaša lokacija će se automatski koristiti prilikom objave oglasa.</p>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="address" className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                  Adresa Stanovanja <span className="text-red-500">*</span>
-                </Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="min-h-[100px] resize-y focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Unesite vašu punu adresu"
-                />
+              
+              <BiHLocationSelector
+                value={bihLocation}
+                onChange={setBihLocation}
+                showAddress={true}
+                label="Vaša lokacija u BiH"
+              />
+              
+              {/* Info box */}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <MdOutlineLocationOn className="text-blue-600 mt-0.5 shrink-0" size={18} />
+                  <div>
+                    <p className="text-sm text-blue-800 font-medium">Zašto je lokacija važna?</p>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Kada postavite lokaciju u profilu, ona će se automatski popuniti prilikom kreiranja novih oglasa. 
+                      Ne morate je svaki put ponovo unositi!
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

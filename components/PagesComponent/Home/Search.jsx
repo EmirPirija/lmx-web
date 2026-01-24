@@ -23,7 +23,6 @@ import {
   IconChevronRight,
   IconWorld,
   IconStarFilled,
-  IconTag,
 } from "@tabler/icons-react";
 
 // =========================
@@ -71,7 +70,6 @@ const getReferrer = () => {
 
 // Uses same endpoints as your api.js publicTrackingApi:
 // POST /track/search-impressions
-// POST /track/search-click
 const postForm = async (endpoint, data) => {
   try {
     const form = new FormData();
@@ -86,22 +84,17 @@ const postForm = async (endpoint, data) => {
 
     Object.entries(baseData).forEach(([k, v]) => {
       if (v === undefined || v === null) return;
-      
-      // FIX: Ako je objekat (npr filters) ili niz item_ids, stringify ga
+
+      // If object/array, stringify
       if (typeof v === "object") form.append(k, JSON.stringify(v));
       else form.append(k, String(v));
     });
 
-    // 🔥 FIX ZA CTR: keepalive: true osigurava da request preživi navigaciju
     const res = await fetch(`${API_BASE}/${endpoint}`, {
       method: "POST",
       body: form,
-      keepalive: true, 
+      keepalive: true,
     });
-
-    // optional debug
-    // const txt = await res.text();
-    // console.log("TRACK", endpoint, res.status, txt);
 
     return res.ok;
   } catch (e) {
@@ -116,157 +109,9 @@ const postForm = async (endpoint, data) => {
 const SEARCH_HISTORY_KEY = "lmx_search_history";
 const MAX_HISTORY_ITEMS = 8;
 
-// Common search terms for autocorrect suggestions (Bosnian + English)
-const COMMON_TERMS = [
-  "iphone",
-  "samsung",
-  "xiaomi",
-  "huawei",
-  "macbook",
-  "laptop",
-  "telefon",
-  "mobitel",
-  "playstation",
-  "xbox",
-  "nintendo",
-  "golf",
-  "audi",
-  "bmw",
-  "mercedes",
-  "volkswagen",
-  "passat",
-  "polo",
-  "arteon",
-  "tiguan",
-  "touareg",
-  "skoda",
-  "seat",
-  "opel",
-  "peugeot",
-  "renault",
-  "fiat",
-  "ford",
-  "toyota",
-  "honda",
-  "mazda",
-  "hyundai",
-  "kia",
-  "volvo",
-  "stan",
-  "kuća",
-  "kuca",
-  "apartman",
-  "garsonjera",
-  "namještaj",
-  "namjestaj",
-  "kauč",
-  "kauc",
-  "sto",
-  "stolica",
-  "ormar",
-  "krevet",
-  "madrac",
-  "tepih",
-  "zavjese",
-  "lusteri",
-  "bicikl",
-  "biciklo",
-  "motor",
-  "skuter",
-  "auto",
-  "automobil",
-  "vozilo",
-  "dijelovi",
-  "gume",
-  "felge",
-  "branici",
-  "farovi",
-  "retrovizor",
-  "mjenjač",
-  "mjenjac",
-  "tv",
-  "televizor",
-  "monitor",
-  "računar",
-  "racunar",
-  "kompjuter",
-  "tablet",
-  "sat",
-  "nakit",
-  "odjeća",
-  "odjeca",
-  "jakna",
-  "hlače",
-  "hlace",
-  "majica",
-  "cipele",
-  "patike",
-  "tenisice",
-  "torba",
-  "ranac",
-  "novčanik",
-  "novcanik",
-  "sunčane",
-  "suncane",
-  "naočale",
-  "naocale",
-  "frižider",
-  "frizider",
-  "veš mašina",
-  "ves masina",
-  "šporet",
-  "sporet",
-  "peć",
-  "pec",
-  "klima",
-  "bojler",
-  "usisivač",
-  "usisivac",
-  "mikser",
-  "blender",
-  "toster",
-  "kuhalo",
-  "gitara",
-  "klavir",
-  "violina",
-  "bubnjevi",
-  "mikrofon",
-  "zvučnik",
-  "zvucnik",
-  "slušalice",
-  "slusalice",
-  "knjiga",
-  "udžbenik",
-  "udzbenika",
-  "skripta",
-  "rječnik",
-  "rjecnik",
-  "pas",
-  "mačka",
-  "macka",
-  "papagaj",
-  "hrčak",
-  "hrcak",
-  "akvarijum",
-  "terarijum",
-  "alat",
-  "bušilica",
-  "busilica",
-  "brusilica",
-  "šrafciger",
-  "srafciger",
-  "ključ",
-  "kljuc",
-  "sarajevo",
-  "mostar",
-  "banja luka",
-  "tuzla",
-  "zenica",
-  "bihać",
-  "bihac",
-  "travnik",
-];
-
+// =========================
+// DID YOU MEAN (NO COMMON_TERMS)
+// =========================
 const levenshteinDistance = (str1, str2) => {
   const m = str1.length;
   const n = str2.length;
@@ -278,32 +123,58 @@ const levenshteinDistance = (str1, str2) => {
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       if (str1[i - 1] === str2[j - 1]) dp[i][j] = dp[i - 1][j - 1];
-      else dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      else
+        dp[i][j] =
+          1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
     }
   }
   return dp[m][n];
 };
 
-const findSimilarTerms = (query, maxSuggestions = 3) => {
-  if (!query || query.length < 2) return [];
+const findSimilarTermsFromPool = (query, pool, maxSuggestions = 3) => {
+  if (!query || query.trim().length < 2) return [];
   const queryLower = query.toLowerCase().trim();
+
+  const candidates = (pool || [])
+    .map((x) => (x ?? "").toString().trim())
+    .filter(Boolean);
+
+  const uniq = Array.from(new Set(candidates.map((s) => s.toLowerCase()))).map(
+    (lower) => candidates.find((c) => c.toLowerCase() === lower) || lower
+  );
+
   const suggestions = [];
-  for (const term of COMMON_TERMS) {
-    if (term === queryLower) continue;
-    if (term.startsWith(queryLower)) {
+  for (const term of uniq) {
+    const termLower = term.toLowerCase();
+    if (termLower === queryLower) continue;
+
+    if (termLower.startsWith(queryLower)) {
       suggestions.push({ term, distance: 0 });
       continue;
     }
-    if (queryLower.startsWith(term)) continue;
-    if (Math.abs(term.length - queryLower.length) <= 3) {
-      const distance = levenshteinDistance(queryLower, term);
+
+    if (queryLower.startsWith(termLower)) continue;
+
+    if (Math.abs(termLower.length - queryLower.length) <= 3) {
+      const distance = levenshteinDistance(queryLower, termLower);
       if (distance <= Math.max(2, Math.floor(queryLower.length / 3))) {
         suggestions.push({ term, distance });
       }
     }
   }
-  suggestions.sort((a, b) => (a.distance !== b.distance ? a.distance - b.distance : a.term.localeCompare(b.term)));
+
+  suggestions.sort((a, b) =>
+    a.distance !== b.distance
+      ? a.distance - b.distance
+      : a.term.localeCompare(b.term)
+  );
+
   return suggestions.slice(0, maxSuggestions).map((s) => s.term);
+};
+
+const formatAdCount = (n) => {
+  const num = Number(n) || 0;
+  return num === 1 ? "1 oglas" : `${num} oglasa`;
 };
 
 const Search = () => {
@@ -324,6 +195,7 @@ const Search = () => {
     ...cateData,
   ];
 
+  // kept from original (if you have category selector elsewhere)
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("all-categories");
   const selectedItem = categoryList.find((item) => item.slug === value);
@@ -340,10 +212,6 @@ const Search = () => {
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
   const [didYouMean, setDidYouMean] = useState([]);
-
-  // NEW: show real ads in dropdown + track impressions/clicks
-  const [topAds, setTopAds] = useState([]);
-  const impressionIdRef = useRef(null);
 
   // Keyboard navigation state
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -371,8 +239,12 @@ const Search = () => {
   const saveToHistory = useCallback((query) => {
     if (!query || query.length < 2) return;
     try {
-      const history = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
-      const filtered = history.filter((item) => item.toLowerCase() !== query.toLowerCase());
+      const history = JSON.parse(
+        localStorage.getItem(SEARCH_HISTORY_KEY) || "[]"
+      );
+      const filtered = history.filter(
+        (item) => item.toLowerCase() !== query.toLowerCase()
+      );
       const newHistory = [query, ...filtered].slice(0, MAX_HISTORY_ITEMS);
       localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
       setSearchHistory(newHistory);
@@ -384,7 +256,9 @@ const Search = () => {
   const removeFromHistory = useCallback((query, e) => {
     e.stopPropagation();
     try {
-      const history = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
+      const history = JSON.parse(
+        localStorage.getItem(SEARCH_HISTORY_KEY) || "[]"
+      );
       const newHistory = history.filter((item) => item !== query);
       localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
       setSearchHistory(newHistory);
@@ -408,7 +282,7 @@ const Search = () => {
     }
   }, [hasMoreCats, inView, isCatLoadMore, open, catCurrentPage, getCategories]);
 
-  // Flatten categories for search
+  // Flatten categories
   const flattenCategories = useCallback((categories, parentPath = []) => {
     let result = [];
     categories.forEach((cat) => {
@@ -420,52 +294,45 @@ const Search = () => {
       };
       result.push(current);
       if (cat.subcategories?.length) {
-        result = result.concat(flattenCategories(cat.subcategories, [...parentPath, name]));
+        result = result.concat(
+          flattenCategories(cat.subcategories, [...parentPath, name])
+        );
       }
     });
     return result;
   }, []);
 
   // TRACK: search impressions (public endpoint)
-  const trackSearchImpressions = useCallback(async (ads, query) => {
-    if (!ads?.length || !query) return;
+  const trackSearchImpressions = useCallback(
+    async (ads, query) => {
+      if (!ads?.length || !query) return;
 
-    // 🔥 Generate unique impression ID
-    const impressionId = "imp_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now();
-    impressionIdRef.current = impressionId;
+      const impressionId =
+        "imp_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now();
 
-    const itemIds = ads.map((a) => a.id).filter(Boolean);
+      const itemIds = ads.map((a) => a.id).filter(Boolean);
 
-    const filters = {
-      category: selectedItem?.slug && selectedItem.slug !== "all-categories" ? selectedItem.slug : null,
-    };
+      const filters = {
+        category:
+          selectedItem?.slug && selectedItem.slug !== "all-categories"
+            ? selectedItem.slug
+            : null,
+      };
 
-    // 🔥 Send Impressions
-    await postForm("track/search-impressions", {
-      impression_id: impressionId,
-      item_ids: itemIds, // postForm will stringify this
-      search_query: query,
-      search_type: "autocomplete",
-      page: 1,
-      results_total: ads.length,
-      filters,
-    });
-  }, [selectedItem?.slug]);
+      await postForm("track/search-impressions", {
+        impression_id: impressionId,
+        item_ids: itemIds,
+        search_query: query,
+        search_type: "autocomplete",
+        page: 1,
+        results_total: ads.length,
+        filters,
+      });
+    },
+    [selectedItem?.slug]
+  );
 
-  // TRACK: search click (public endpoint)
-  const trackSearchClick = useCallback(async (itemId, position) => {
-    const impressionId = impressionIdRef.current;
-    if (!impressionId || !itemId) return;
-
-    // 🔥 Send Click (using keepalive: true inside postForm)
-    await postForm("track/search-click", {
-      impression_id: impressionId,
-      item_id: itemId,
-      position,
-    });
-  }, []);
-
-  // Search API (includes tracking)
+  // Search API
   const performSearch = useCallback(
     async (query) => {
       if (!query || query.length < 2) {
@@ -473,8 +340,6 @@ const Search = () => {
         setSuggestedCategories([]);
         setSuggestedUsers([]);
         setDidYouMean([]);
-        setTopAds([]);
-        impressionIdRef.current = null;
         return;
       }
 
@@ -485,7 +350,9 @@ const Search = () => {
 
       try {
         const response = await fetch(
-          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(query)}&per_page=50`,
+          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(
+            query
+          )}&per_page=50`,
           { signal: abortControllerRef.current.signal }
         );
 
@@ -495,13 +362,18 @@ const Search = () => {
         const ads = result?.data?.data || result?.data?.data?.data || [];
 
         if (!ads || ads.length === 0) {
-          const similar = findSimilarTerms(query);
+          // ✅ DID YOU MEAN bez COMMON_TERMS: pool = kategorije + historija
+          const flatCats = flattenCategories(cateData);
+          const pool = [
+            ...flatCats.map((c) => c.search_name).filter(Boolean),
+            ...searchHistory,
+          ];
+          const similar = findSimilarTermsFromPool(query, pool, 3);
+
           setDidYouMean(similar);
           setSuggestions([]);
           setSuggestedCategories([]);
           setSuggestedUsers([]);
-          setTopAds([]);
-          impressionIdRef.current = null;
           return;
         }
 
@@ -509,9 +381,6 @@ const Search = () => {
 
         // ✅ TRACK impressions for returned results
         await trackSearchImpressions(ads, query);
-
-        // Show top ads in dropdown (first 5)
-        setTopAds(ads.slice(0, 5));
 
         // Extract unique search suggestions from ad titles
         const titleWords = new Set();
@@ -535,23 +404,26 @@ const Search = () => {
           .slice(0, 5);
         setSuggestions(searchSuggestions);
 
-        // Extract categories
+        // ✅ KATEGORIJE ZA PRONAĐENE OGLASE + COUNT
         const categoryMap = new Map();
         const flatCats = flattenCategories(cateData);
         const catLookup = new Map(flatCats.map((c) => [c.id, c]));
 
         ads.forEach((ad) => {
-          if (ad.category_id && catLookup.has(ad.category_id)) {
-            const cat = catLookup.get(ad.category_id);
-            const existing = categoryMap.get(cat.id);
-            if (existing) existing.count += 1;
-            else categoryMap.set(cat.id, { ...cat, count: 1 });
-          }
+          const catId = ad.category_id ?? ad.category?.id ?? null;
+          if (!catId) return;
+
+          const cat = catLookup.get(catId);
+          if (!cat) return;
+
+          const existing = categoryMap.get(cat.id);
+          if (existing) existing.count += 1;
+          else categoryMap.set(cat.id, { ...cat, count: 1 });
         });
 
         const catResults = Array.from(categoryMap.values())
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 4);
+          .sort((a, b) => (b.count || 0) - (a.count || 0))
+          .slice(0, 6);
         setSuggestedCategories(catResults);
 
         // Extract users
@@ -565,7 +437,7 @@ const Search = () => {
         });
 
         const userResults = Array.from(userMap.values())
-          .sort((a, b) => b.adCount - a.adCount)
+          .sort((a, b) => (b.adCount || 0) - (a.adCount || 0))
           .slice(0, 3);
         setSuggestedUsers(userResults);
       } catch (error) {
@@ -574,7 +446,7 @@ const Search = () => {
         setIsSearching(false);
       }
     },
-    [cateData, flattenCategories, trackSearchImpressions]
+    [cateData, flattenCategories, trackSearchImpressions, searchHistory]
   );
 
   // Debounced search
@@ -588,8 +460,6 @@ const Search = () => {
       setSuggestedCategories([]);
       setSuggestedUsers([]);
       setDidYouMean([]);
-      setTopAds([]);
-      impressionIdRef.current = null;
       return;
     }
 
@@ -604,7 +474,10 @@ const Search = () => {
   // Close suggestions on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
         setShowSuggestions(false);
         setSelectedIndex(-1);
         if (!searchQuery) setIsSearchFocused(false);
@@ -728,25 +601,6 @@ const Search = () => {
     [saveToHistory, performSearch]
   );
 
-  // NEW: click on a top ad -> track click + navigate
-  const handleAdClick = useCallback(
-    async (ad, position) => {
-      setShowSuggestions(false);
-      setSelectedIndex(-1);
-
-      // 🔥 TRACK CLICK PRIJE NAVIGACIJE
-      if (ad?.id) {
-        // ne koristimo await da ne blokiramo UI, postForm ima keepalive: true
-        trackSearchClick(ad.id, position);
-      }
-
-      // adjust if your details route differs
-      if (ad?.slug) navigate(`/ad-details/${ad.slug}`);
-      else if (ad?.id) navigate(`/ad-details/${ad.id}`);
-    },
-    [navigate, trackSearchClick]
-  );
-
   const handleInputFocus = useCallback(() => {
     setShowSuggestions(true);
     setSelectedIndex(-1);
@@ -760,17 +614,23 @@ const Search = () => {
   const hasResults =
     suggestions.length > 0 ||
     suggestedCategories.length > 0 ||
-    suggestedUsers.length > 0 ||
-    topAds.length > 0;
+    suggestedUsers.length > 0;
 
   const showHistory = searchQuery.length < 2 && searchHistory.length > 0;
   const showNoResults =
-    searchQuery.length >= 2 && !isSearching && !hasResults && didYouMean.length === 0;
+    searchQuery.length >= 2 &&
+    !isSearching &&
+    !hasResults &&
+    didYouMean.length === 0;
   const showDidYouMean =
-    searchQuery.length >= 2 && !isSearching && !hasResults && didYouMean.length > 0;
+    searchQuery.length >= 2 &&
+    !isSearching &&
+    !hasResults &&
+    didYouMean.length > 0;
 
   const shouldShowDropdown =
-    showSuggestions && (showHistory || isSearching || hasResults || showDidYouMean || showNoResults);
+    showSuggestions &&
+    (showHistory || isSearching || hasResults || showDidYouMean || showNoResults);
 
   const isSearchActive = isSearchFocused || !!searchQuery || showSuggestions;
 
@@ -781,7 +641,9 @@ const Search = () => {
           <div
             className={cn(
               "transition-all duration-300 ease-in-out overflow-hidden",
-              isSearchActive ? "w-0 opacity-0 -translate-x-2" : "w-[40px] sm:w-[90px] opacity-100 translate-x-0"
+              isSearchActive
+                ? "w-0 opacity-0 -translate-x-2"
+                : "w-[40px] sm:w-[90px] opacity-100 translate-x-0"
             )}
           >
             <Link href="/" className="block cursor-pointer" aria-label="Početna">
@@ -808,7 +670,11 @@ const Search = () => {
             className="w-full flex items-center gap-2 rounded-full bg-muted/70 px-3 py-1.5 sm:py-2 border-2 border-primary/40 hover:border-primary transition-all duration-200"
             role="search"
           >
-            <IconWorld stroke={1.7} className="min-w-4 min-h-4 text-slate-500" aria-hidden="true" />
+            <IconWorld
+              stroke={1.7}
+              className="min-w-4 min-h-4 text-slate-500"
+              aria-hidden="true"
+            />
             <input
               ref={inputRef}
               id="lmx-search-input"
@@ -825,6 +691,7 @@ const Search = () => {
               aria-expanded={shouldShowDropdown}
               aria-controls={shouldShowDropdown ? dropdownId : undefined}
             />
+
             {!isSearching && searchQuery && (
               <button
                 type="button"
@@ -834,8 +701,6 @@ const Search = () => {
                   setSuggestedCategories([]);
                   setSuggestedUsers([]);
                   setDidYouMean([]);
-                  setTopAds([]);
-                  impressionIdRef.current = null;
                   setShowSuggestions(true);
                   inputRef.current && inputRef.current.focus();
                 }}
@@ -845,6 +710,7 @@ const Search = () => {
                 <IconX className="w-4 h-4 text-slate-500" />
               </button>
             )}
+
             {isSearching ? (
               <div className="p-2" aria-label="Pretraživanje" aria-busy="true">
                 <IconLoader2 className="w-4 h-4 animate-spin text-primary" />
@@ -877,43 +743,55 @@ const Search = () => {
                   <span className="flex items-center gap-2">
                     <IconSearch className="w-4 h-4 text-primary" />
                     <span>
-                      Pretraži oglase za <span className="font-medium">"{searchQuery}"</span>
+                      Pretraži oglase za{" "}
+                      <span className="font-medium">"{searchQuery}"</span>
                     </span>
                   </span>
                 </button>
               )}
 
-              {/* TOP ADS (NEW + CLICK TRACKING) */}
-              {topAds.length > 0 && (
+              {/* ✅ KATEGORIJE ZA PRONAĐENE OGLASE (UMJESTO "RELEVANTNI OGLASI") */}
+              {suggestedCategories.length > 0 && (
                 <div className="p-3 border-b border-gray-100">
-                  <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
-                    <IconTag className="w-3 h-3" />
-                    Najrelevantniji oglasi
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                      <IconFolder className="w-3 h-3" />
+                      Kategorije za pronađene oglase
+                    </div>
+                    <button
+                      onClick={handleViewAllCategories}
+                      className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-all duration-200 hover:gap-2 group"
+                    >
+                      <span>Pogledaj sve</span>
+                      <IconChevronRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                    </button>
                   </div>
+
                   <ul className="space-y-1">
-                    {topAds.map((ad, idx) => (
+                    {suggestedCategories.map((category) => (
                       <li
-                        key={ad.id ?? idx}
-                        onClick={() => handleAdClick(ad, idx + 1)}
+                        key={category.id}
                         className="flex items-center justify-between px-2 py-2 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                        onClick={() => handleCategoryClick(category)}
                         role="option"
                       >
-                        <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <IconFolder className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="text-sm text-gray-800 truncate">
-                            {ad.translated_name || ad.name || "Oglas"}
-                          </span>
-                          <span className="text-xs text-gray-400 truncate">
-                            {ad.category?.translated_name || ad.category_name || ad.category || ""}
+                            {category.search_name ||
+                              category.translated_name ||
+                              category.name}
                           </span>
                         </div>
-                        {ad.price !== undefined && ad.price !== null && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
-                            {ad.price}
-                          </span>
-                        )}
+
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
+                          {formatAdCount(category.count)}
+                        </span>
                       </li>
                     ))}
                   </ul>
+
+                  {hasMoreCats && <div ref={ref} className="h-4 w-full" />}
                 </div>
               )}
 
@@ -968,7 +846,8 @@ const Search = () => {
               {showDidYouMean && (
                 <div className="p-4">
                   <div className="text-sm text-gray-500 mb-2">
-                    Nema rezultata za <span className="font-medium">"{searchQuery}"</span>
+                    Nema rezultata za{" "}
+                    <span className="font-medium">"{searchQuery}"</span>
                   </div>
                   <div className="text-sm">
                     <span className="text-gray-500">Da li ste mislili: </span>
@@ -981,7 +860,9 @@ const Search = () => {
                         >
                           {term}
                         </button>
-                        {index < didYouMean.length - 1 && <span className="text-gray-400">, </span>}
+                        {index < didYouMean.length - 1 && (
+                          <span className="text-gray-400">, </span>
+                        )}
                       </span>
                     ))}
                     <span className="text-gray-500">?</span>
@@ -995,7 +876,8 @@ const Search = () => {
                     <IconSearch className="w-6 h-6 text-gray-400" />
                   </div>
                   <p className="text-sm text-gray-500">
-                    Nema rezultata za <span className="font-medium">"{searchQuery}"</span>
+                    Nema rezultata za{" "}
+                    <span className="font-medium">"{searchQuery}"</span>
                   </p>
                 </div>
               )}
@@ -1015,49 +897,12 @@ const Search = () => {
                         role="option"
                       >
                         <IconSearch className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 truncate">{suggestion}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {suggestedCategories.length > 0 && (
-                <div className="p-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
-                      <IconFolder className="w-3 h-3" />
-                      Kategorije
-                    </div>
-                    <button
-                      onClick={handleViewAllCategories}
-                      className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-all duration-200 hover:gap-2 group"
-                    >
-                      <span>Pogledaj sve</span>
-                      <IconChevronRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
-                    </button>
-                  </div>
-                  <ul className="space-y-1">
-                    {suggestedCategories.map((category) => (
-                      <li
-                        key={category.id}
-                        className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
-                        onClick={() => handleCategoryClick(category)}
-                        role="option"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <IconFolder className="w-4 h-4 text-primary flex-shrink-0" />
-                          <span className="text-sm text-gray-700 truncate">
-                            {category.search_name || category.translated_name || category.name}
-                          </span>
-                        </div>
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
-                          {category.count}
+                        <span className="text-sm text-gray-700 truncate">
+                          {suggestion}
                         </span>
                       </li>
                     ))}
                   </ul>
-                  {hasMoreCats && <div ref={ref} className="h-4 w-full" />}
                 </div>
               )}
 
@@ -1078,13 +923,19 @@ const Search = () => {
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
                             {user.profile ? (
-                              <img src={user.profile} alt={user.name} className="w-full h-full object-cover" />
+                              <img
+                                src={user.profile}
+                                alt={user.name}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
                               <IconUser className="w-3.5 h-3.5 text-gray-500" />
                             )}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm text-gray-700">{user.name}</span>
+                            <span className="text-sm text-gray-700">
+                              {user.name}
+                            </span>
                             {user.average_rating && (
                               <span className="text-xs text-gray-400 flex items-center gap-1">
                                 <IconStarFilled className="w-2.5 h-2.5 text-yellow-400" />

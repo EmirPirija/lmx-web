@@ -526,7 +526,7 @@ const HomeHeader = () => {
               <GrLocation
                 size={20}
                 className="flex-shrink-0"
-                title={locationText ? locationText : t("addLocation")}
+                title={"Lokacija"}
               />
             </button>
 
