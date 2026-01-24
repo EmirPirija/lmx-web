@@ -4,24 +4,16 @@ import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { 
   getFullLocationFromMunicipalityId, 
-  formatBiHAddress, 
-  BIH_COUNTRY_ISO2,
   searchMunicipalities 
 } from "@/lib/bih-locations";
 
 /**
  * useUserLocation - Hook za upravljanje lokacijom korisnika
- * 
- * Ovaj hook:
- * 1. Učitava korisnikovu sačuvanu lokaciju iz profila (localStorage + Redux)
- * 2. Omogućuje ažuriranje lokacije
- * 3. Konvertuje između različitih formata lokacije
- * 4. Omogućuje auto-popunjavanje lokacije za oglase
  */
 
 const STORAGE_KEY = "user_bih_location";
 
-// Default koordinate za BiH (Sarajevo) - potrebno jer backend zahtijeva lat/long
+// Default koordinate za BiH (Sarajevo)
 const BIH_DEFAULT_COORDS = {
   lat: 43.8563,
   long: 18.4131,
@@ -32,7 +24,7 @@ export const useUserLocation = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Učitaj sačuvanu lokaciju pri mount-u
+  // Učitaj sačuvanu lokaciju pri mount-u i kad se promijeni user
   useEffect(() => {
     loadSavedLocation();
   }, [userData?.id]);
@@ -45,12 +37,17 @@ export const useUserLocation = () => {
       if (savedLocation) {
         const parsed = JSON.parse(savedLocation);
         // Provjeri da li lokacija pripada trenutnom korisniku
-        if (parsed.userId === userData?.id) {
+        if (parsed.userId === userData?.id && parsed.location?.municipalityId) {
           setUserLocation(parsed.location);
+        } else {
+          setUserLocation(null);
         }
+      } else {
+        setUserLocation(null);
       }
     } catch (error) {
       console.error("Error loading saved location:", error);
+      setUserLocation(null);
     } finally {
       setIsLoading(false);
     }
@@ -59,14 +56,14 @@ export const useUserLocation = () => {
   // Sačuvaj lokaciju u localStorage
   const saveLocation = useCallback((location) => {
     try {
-      if (userData?.id) {
+      if (userData?.id && location?.municipalityId) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           userId: userData.id,
           location,
           savedAt: new Date().toISOString(),
         }));
+        setUserLocation(location);
       }
-      setUserLocation(location);
     } catch (error) {
       console.error("Error saving location:", error);
     }
@@ -82,32 +79,35 @@ export const useUserLocation = () => {
     }
   }, []);
 
-  // Konvertuj BiH lokaciju u format za API (ad-listing)
+  // Konvertuj BiH lokaciju u format za API
   const getLocationForAd = useCallback(() => {
     if (!userLocation?.municipalityId) return null;
 
-    const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
-    if (!fullLocation) return null;
+    try {
+      const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
+      if (!fullLocation) return null;
 
-    const formattedAddr = userLocation.address 
-      ? `${userLocation.address}, ${fullLocation.formatted}`
-      : fullLocation.formatted;
+      const formattedAddr = userLocation.address 
+        ? `${userLocation.address}, ${fullLocation.formatted}`
+        : fullLocation.formatted;
 
-    // Vrati u formatu koji očekuje addItemApi - SA default koordinatama za BiH
-    return {
-      country: "Bosna i Hercegovina",
-      state: fullLocation.region?.name || "",
-      city: fullLocation.municipality?.name || "",
-      address: formattedAddr,
-      lat: BIH_DEFAULT_COORDS.lat,  // Default koordinate za BiH
-      long: BIH_DEFAULT_COORDS.long,
-      // Dodatni podaci za prikaz
-      entityId: userLocation.entityId,
-      regionId: userLocation.regionId,
-      municipalityId: userLocation.municipalityId,
-      formattedAddress: formattedAddr,
-      address_translated: formattedAddr,
-    };
+      return {
+        country: "Bosna i Hercegovina",
+        state: fullLocation.region?.name || "",
+        city: fullLocation.municipality?.name || "",
+        address: formattedAddr,
+        lat: BIH_DEFAULT_COORDS.lat,
+        long: BIH_DEFAULT_COORDS.long,
+        entityId: userLocation.entityId,
+        regionId: userLocation.regionId,
+        municipalityId: userLocation.municipalityId,
+        formattedAddress: formattedAddr,
+        address_translated: formattedAddr,
+      };
+    } catch (error) {
+      console.error("Error getting location for ad:", error);
+      return null;
+    }
   }, [userLocation]);
 
   // Provjeri da li korisnik ima sačuvanu lokaciju
@@ -117,60 +117,54 @@ export const useUserLocation = () => {
   const getFormattedAddress = useCallback(() => {
     if (!userLocation?.municipalityId) return "";
     
-    const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
-    if (!fullLocation) return "";
-    
-    if (userLocation.address) {
-      return `${userLocation.address}, ${fullLocation.formatted}`;
+    try {
+      const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
+      if (!fullLocation) return "";
+      
+      if (userLocation.address) {
+        return `${userLocation.address}, ${fullLocation.formatted}`;
+      }
+      return fullLocation.formatted;
+    } catch (error) {
+      return "";
     }
-    return fullLocation.formatted;
   }, [userLocation]);
 
   // Dohvati samo ime grada/općine
   const getCityName = useCallback(() => {
     if (!userLocation?.municipalityId) return "";
     
-    const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
-    return fullLocation?.municipality?.name || "";
-  }, [userLocation]);
-
-  // Dohvati puni opis lokacije
-  const getLocationSummary = useCallback(() => {
-    if (!userLocation?.municipalityId) return null;
-    
-    const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
-    if (!fullLocation) return null;
-
-    return {
-      city: fullLocation.municipality?.name,
-      region: fullLocation.region?.name,
-      entity: fullLocation.entity?.shortName || fullLocation.entity?.name,
-      country: "Bosna i Hercegovina",
-      type: fullLocation.municipality?.type,
-      formatted: fullLocation.formatted,
-    };
+    try {
+      const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
+      return fullLocation?.municipality?.name || "";
+    } catch (error) {
+      return "";
+    }
   }, [userLocation]);
 
   // Konvertuj lokaciju iz API formata u BiH format (za edit listing)
   const convertApiLocationToBiH = useCallback((apiLocation) => {
-    if (!apiLocation) return null;
+    if (!apiLocation?.city) return null;
     
-    // Probaj naći matching općinu po imenu
-    const cityName = apiLocation.city?.toLowerCase();
-    if (!cityName) return null;
-
-    // Pretraži sve općine
-    const results = searchMunicipalities(cityName);
-    
-    if (results.length > 0) {
-      const match = results[0];
-      return {
-        entityId: match.entityId,
-        regionId: match.regionId,
-        municipalityId: match.id,
-        address: "",
-        formattedAddress: `${match.name}, ${match.regionName}, ${match.entityName}, Bosna i Hercegovina`,
-      };
+    try {
+      const cityName = apiLocation.city.toLowerCase().trim();
+      const results = searchMunicipalities(cityName);
+      
+      if (results.length > 0) {
+        // Nađi najbolji match
+        const exactMatch = results.find(r => r.name.toLowerCase() === cityName);
+        const match = exactMatch || results[0];
+        
+        return {
+          entityId: match.entityId,
+          regionId: match.regionId,
+          municipalityId: match.id,
+          address: "",
+          formattedAddress: `${match.name}, ${match.regionName}, ${match.entityName}, Bosna i Hercegovina`,
+        };
+      }
+    } catch (error) {
+      console.error("Error converting API location:", error);
     }
     
     return null;
@@ -191,38 +185,8 @@ export const useUserLocation = () => {
     getLocationForAd,
     getFormattedAddress,
     getCityName,
-    getLocationSummary,
     convertApiLocationToBiH,
   };
-};
-
-/**
- * Konvertuj lokaciju iz API formata u BiH format
- * Koristi se kada učitavaš postojeći oglas koji ima country/state/city
- */
-export const convertApiLocationToBiH = (apiLocation) => {
-  if (!apiLocation) return null;
-  
-  // Probaj naći matching općinu po imenu
-  const cityName = apiLocation.city?.toLowerCase();
-  if (!cityName) return null;
-
-  // Pretraži sve općine
-  const { searchMunicipalities } = require("@/lib/bih-locations");
-  const results = searchMunicipalities(cityName);
-  
-  if (results.length > 0) {
-    const match = results[0];
-    return {
-      entityId: match.entityId,
-      regionId: match.regionId,
-      municipalityId: match.id,
-      address: "",
-      formattedAddress: `${match.name}, ${match.regionName}, ${match.entityName}, Bosna i Hercegovina`,
-    };
-  }
-  
-  return null;
 };
 
 export default useUserLocation;
