@@ -144,6 +144,31 @@ export const useUserLocation = () => {
     };
   }, [userLocation]);
 
+  // Konvertuj lokaciju iz API formata u BiH format (za edit listing)
+  const convertApiLocationToBiH = useCallback((apiLocation) => {
+    if (!apiLocation) return null;
+    
+    // Probaj naći matching općinu po imenu
+    const cityName = apiLocation.city?.toLowerCase();
+    if (!cityName) return null;
+
+    // Pretraži sve općine
+    const results = searchMunicipalities(cityName);
+    
+    if (results.length > 0) {
+      const match = results[0];
+      return {
+        entityId: match.entityId,
+        regionId: match.regionId,
+        municipalityId: match.id,
+        address: "",
+        formattedAddress: `${match.name}, ${match.regionName}, ${match.entityName}, Bosna i Hercegovina`,
+      };
+    }
+    
+    return null;
+  }, []);
+
   return {
     // State
     userLocation,
@@ -160,6 +185,7 @@ export const useUserLocation = () => {
     getFormattedAddress,
     getCityName,
     getLocationSummary,
+    convertApiLocationToBiH,
   };
 };
 

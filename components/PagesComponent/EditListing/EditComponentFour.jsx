@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaLocationCrosshairs } from "react-icons/fa6";
 import dynamic from "next/dynamic";
 import { BiMapPin } from "react-icons/bi";
@@ -12,6 +12,9 @@ import { getIsPaidApi } from "@/redux/reducer/settingSlice";
 import { getLocationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
+import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import { MdCheckCircle, MdInfoOutline } from "react-icons/md";
  
 const MapComponent = dynamic(() => import("@/components/Common/MapComponent"), {
   ssr: false,
@@ -40,6 +43,58 @@ const EditComponentFour = ({
   const isBrowserSupported = useSelector(getIsBrowserSupported);
   const [IsGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
   const IsPaidApi = useSelector(getIsPaidApi);
+
+  // BiH Location system
+  const { userLocation, hasLocation, getLocationForAd, getFormattedAddress, getCityName, convertApiLocationToBiH } = useUserLocation();
+  const [useBiHLocation, setUseBiHLocation] = useState(true);
+  const [bihLocation, setBihLocation] = useState({
+    entityId: null,
+    regionId: null,
+    municipalityId: null,
+    address: "",
+    formattedAddress: "",
+  });
+  const [locationInitialized, setLocationInitialized] = useState(false);
+
+  // Inicijaliziraj BiH lokaciju iz postojeće lokacije oglasa
+  useEffect(() => {
+    if (location?.city && !locationInitialized) {
+      // Pokušaj konvertovati postojeću lokaciju u BiH format
+      const converted = convertApiLocationToBiH(location);
+      if (converted) {
+        setBihLocation(converted);
+      }
+      setLocationInitialized(true);
+    }
+  }, [location, locationInitialized]);
+
+  // Sync BiH location sa glavnom lokacijom
+  const handleBihLocationChange = (newBihLocation) => {
+    setBihLocation(newBihLocation);
+    
+    if (newBihLocation?.municipalityId) {
+      // Konvertuj BiH lokaciju u API format
+      const { getFullLocationFromMunicipalityId } = require("@/lib/bih-locations");
+      const fullLocation = getFullLocationFromMunicipalityId(newBihLocation.municipalityId);
+      
+      if (fullLocation) {
+        const formattedAddress = newBihLocation.address 
+          ? `${newBihLocation.address}, ${fullLocation.formatted}`
+          : fullLocation.formatted;
+        
+        setLocation({
+          country: "Bosna i Hercegovina",
+          state: fullLocation.region?.name || "",
+          city: fullLocation.municipality?.name || "",
+          address: formattedAddress,
+          lat: location?.lat || null,
+          long: location?.long || null,
+          formattedAddress: formattedAddress,
+          address_translated: formattedAddress,
+        });
+      }
+    }
+  };
  
   const getLocationWithMap = async (pos) => {
     try {
@@ -239,11 +294,6 @@ const EditComponentFour = ({
   const handleSchedule = (scheduledDateTime) => {
     if (setScheduledAt) {
       setScheduledAt(scheduledDateTime);
-      console.log('NOW ISO:', new Date().toISOString());
-console.log('SCHEDULED ISO:', scheduledDateTime);
-console.log('DIFF MIN:', (new Date(scheduledDateTime) - new Date()) / 60000);
-console.log('SCHEDULED LOCAL:', new Date(scheduledDateTime).toString());
-
     }
     setShowPublishModal(false);
     handleFullSubmission(scheduledDateTime);
@@ -252,6 +302,39 @@ console.log('SCHEDULED LOCAL:', new Date(scheduledDateTime).toString());
   return (
     <>
       <div className="flex flex-col gap-8 pb-24">
+
+        {/* BiH Location Selector */}
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-primary/10 p-2 rounded-lg">
+              <IoLocationOutline className="text-primary" size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Lokacija oglasa</h3>
+              <p className="text-sm text-gray-500">Gdje se nalazi vaš artikal?</p>
+            </div>
+          </div>
+          
+          <BiHLocationSelector
+            value={bihLocation}
+            onChange={handleBihLocationChange}
+            showAddress={true}
+            label=""
+          />
+        </div>
+
+        {/* Separator za mapu */}
+        {(location?.city || bihLocation?.municipalityId) && (
+          <>
+            <div className="relative flex items-center justify-center">
+              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-200"></div>
+              <div className="relative bg-white text-gray-600 text-sm font-semibold rounded-full px-4 py-2 border-2 border-gray-200 uppercase">
+                ili koristite mapu
+              </div>
+            </div>
+          </>
+        )}
+
         {isBrowserSupported && (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
@@ -259,8 +342,8 @@ console.log('SCHEDULED LOCAL:', new Date(scheduledDateTime).toString());
                 <FaLocationCrosshairs className="text-white" size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">Dodajte lokaciju</h3>
-                <p className="text-sm text-gray-600">Omogućite automatsko pronalaženje vaše lokacije</p>
+                <h3 className="text-lg font-semibold text-gray-800">Precizna lokacija (opcionalno)</h3>
+                <p className="text-sm text-gray-600">Automatski pronađite vašu tačnu lokaciju</p>
               </div>
             </div>
             <button
@@ -289,19 +372,19 @@ console.log('SCHEDULED LOCAL:', new Date(scheduledDateTime).toString());
               <BiMapPin className="text-blue-600" size={32} />
             </div>
             <div className="flex-1">
-              <h6 className="font-semibold text-gray-800 text-lg mb-2">Adresa</h6>
+              <h6 className="font-semibold text-gray-800 text-lg mb-2">Adresa oglasa</h6>
               {location?.address_translated || location?.address ? (
                 <p className="text-gray-600 leading-relaxed">
                   {location?.address_translated || location?.address}
                 </p>
               ) : (
-                <p className="text-gray-400 italic">Dodajte vašu adresu koristeći mapu ili ručno</p>
+                <p className="text-gray-400 italic">Odaberite lokaciju iznad ili koristite mapu</p>
               )}
             </div>
           </div>
         </div>
  
-        {!IsPaidApi && (
+        {!IsPaidApi && !location?.city && !bihLocation?.municipalityId && (
           <>
             <div className="relative flex items-center justify-center">
               <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-200"></div>
