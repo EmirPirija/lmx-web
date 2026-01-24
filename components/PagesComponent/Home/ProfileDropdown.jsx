@@ -9,7 +9,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { membershipApi, chatListApi, getNotificationList, getMyItemsApi } from "@/utils/api";
-import { truncate } from "@/utils";
+import { truncate, t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 import { useNavigate } from "@/components/Common/useNavigate";
 
@@ -19,7 +19,6 @@ import {
   IoSettingsOutline,
   IoLayersOutline,
   IoHeartOutline,
-  IoStatsChartOutline,
   IoCardOutline,
   IoReceiptOutline,
   IoChatbubbleOutline,
@@ -30,10 +29,14 @@ import {
   IoClose,
   IoAddCircleOutline,
   IoStarOutline,
-  IoEyeOutline,
-  IoBriefcaseOutline,
+  IoTrophyOutline,
+  IoShieldCheckmarkOutline,
+  IoStorefrontOutline,
+  IoBagHandleOutline,
+  IoRibbonOutline,
+  IoSparklesOutline,
 } from "react-icons/io5";
-import { Crown, Store } from "lucide-react";
+import { Crown, Store, Sparkles, TrendingUp } from "lucide-react";
 import { MdVerified } from "react-icons/md";
 
 // ============================================
@@ -48,17 +51,15 @@ const formatNumber = (num) => {
 
 const getApiData = (res) => res?.data?.data ?? null;
 
-// Pokušaj izvući listu iz paginated ili plain odgovora
 const extractList = (payload) => {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data; // paginator shape: {data: [...]}
+  if (Array.isArray(payload?.data)) return payload.data;
   return [];
 };
 
 const extractTotal = (payload) => {
   if (!payload) return 0;
-  // paginator / custom meta
   if (typeof payload?.total === "number") return payload.total;
   if (typeof payload?.meta?.total === "number") return payload.meta.total;
   if (typeof payload?.pagination?.total === "number") return payload.pagination.total;
@@ -72,18 +73,16 @@ const MembershipBadge = ({ tier, size = "sm" }) => {
   if (!tier || tier === "free") return null;
 
   const configs = {
-    pro: { icon: Crown, bg: "bg-amber-100", text: "text-amber-700", label: "Pro" },
-    shop: { icon: Store, bg: "bg-blue-100", text: "text-blue-700", label: "Shop" },
+    pro: { icon: Crown, bg: "bg-gradient-to-r from-amber-100 to-yellow-100", text: "text-amber-700", border: "border-amber-200", label: "Pro" },
+    shop: { icon: Store, bg: "bg-gradient-to-r from-blue-100 to-indigo-100", text: "text-blue-700", border: "border-blue-200", label: "Shop" },
   };
 
   const config = configs[String(tier).toLowerCase()] || configs.pro;
   const Icon = config.icon;
-  const sizeClasses = { xs: "text-[10px] px-1.5 py-0.5", sm: "text-xs px-2 py-0.5" };
+  const sizeClasses = { xs: "text-[10px] px-2 py-0.5", sm: "text-xs px-2.5 py-1" };
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full font-semibold ${config.bg} ${config.text} ${sizeClasses[size]}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${config.bg} ${config.text} ${config.border} ${sizeClasses[size]} shadow-sm`}>
       <Icon size={size === "xs" ? 10 : 12} />
       {config.label}
     </span>
@@ -93,11 +92,13 @@ const MembershipBadge = ({ tier, size = "sm" }) => {
 // ============================================
 // MENU ITEM
 // ============================================
-const MenuItem = ({ icon: Icon, label, href, onClick, badge, isNew, external, danger }) => {
+const MenuItem = ({ icon: Icon, label, href, onClick, badge, isNew, external, danger, description }) => {
   const content = (
     <div
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
-        danger ? "text-red-600 hover:bg-red-50" : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group ${
+        danger 
+          ? "text-red-600 hover:bg-red-50" 
+          : "text-slate-700 hover:bg-slate-50/80 hover:text-slate-900"
       }`}
       onClick={onClick}
       role="button"
@@ -106,16 +107,32 @@ const MenuItem = ({ icon: Icon, label, href, onClick, badge, isNew, external, da
         if (e.key === "Enter" || e.key === " ") onClick?.();
       }}
     >
-      <Icon size={18} className={danger ? "text-red-500" : "text-slate-400"} />
-      <span className="flex-1 text-sm font-medium">{label}</span>
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+        danger 
+          ? "bg-red-50 group-hover:bg-red-100" 
+          : "bg-slate-100 group-hover:bg-slate-200/70"
+      }`}>
+        <Icon size={18} className={danger ? "text-red-500" : "text-slate-500 group-hover:text-slate-700"} />
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium block">{label}</span>
+        {description && (
+          <span className="text-[11px] text-slate-400 block truncate">{description}</span>
+        )}
+      </div>
 
       {typeof badge === "number" && badge > 0 && (
-        <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] text-center">
+        <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] text-center animate-pulse">
           {badge > 99 ? "99+" : badge}
         </span>
       )}
 
-      {isNew && <span className="px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded">NOVO</span>}
+      {isNew && (
+        <span className="px-1.5 py-0.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[9px] font-bold rounded uppercase tracking-wide">
+          Novo
+        </span>
+      )}
 
       {external && <IoChevronForward size={14} className="text-slate-300" />}
     </div>
@@ -133,13 +150,17 @@ const MenuItem = ({ icon: Icon, label, href, onClick, badge, isNew, external, da
 };
 
 const MenuSection = ({ title, children }) => (
-  <div className="py-2">
+  <div className="py-1.5">
     {title && (
-      <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
+      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+        {title}
+      </p>
     )}
-    {children}
+    <div className="space-y-0.5">{children}</div>
   </div>
 );
+
+const MenuDivider = () => <div className="h-px bg-slate-100 mx-3 my-1" />;
 
 // ============================================
 // MODAL (SHEET)
@@ -148,7 +169,6 @@ const SheetModal = ({ open, onClose, children }) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const panelRef = useRef(null);
 
-  // Close on escape
   useEffect(() => {
     if (!open) return;
     const handleEscape = (event) => {
@@ -158,7 +178,6 @@ const SheetModal = ({ open, onClose, children }) => {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [open, onClose]);
 
-  // Lock body scroll
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -168,9 +187,7 @@ const SheetModal = ({ open, onClose, children }) => {
     };
   }, [open]);
 
-  // Click outside to close
   const onOverlayMouseDown = (e) => {
-    // ako klikneš direktno na overlay (ne na panel)
     if (panelRef.current && !panelRef.current.contains(e.target)) onClose?.();
   };
 
@@ -179,23 +196,48 @@ const SheetModal = ({ open, onClose, children }) => {
   return createPortal(
     <div className="fixed inset-0 z-[9999]" role="dialog" aria-modal="true">
       <div
-        className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onMouseDown={onOverlayMouseDown}
       />
 
       <div
         ref={panelRef}
         className={[
-          "fixed z-[10000] bg-white border border-slate-100 shadow-2xl overflow-hidden",
+          "fixed z-[10000] bg-white shadow-2xl overflow-hidden",
           isMobile
-            ? "inset-x-0 bottom-0 rounded-t-2xl max-h-[92vh] animate-in slide-in-from-bottom duration-200"
-            : "top-16 right-4 w-[380px] rounded-2xl max-h-[80vh] animate-in fade-in slide-in-from-top-2 duration-150",
+            ? "inset-x-0 bottom-0 rounded-t-3xl max-h-[90vh] animate-in slide-in-from-bottom duration-300"
+            : "top-16 right-4 w-[360px] rounded-2xl max-h-[85vh] animate-in fade-in slide-in-from-top-2 duration-200",
         ].join(" ")}
+        style={{
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)"
+        }}
       >
         {children}
       </div>
     </div>,
     document.body
+  );
+};
+
+// ============================================
+// QUICK STAT ITEM
+// ============================================
+const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
+  const colors = {
+    blue: "text-blue-500 bg-blue-50",
+    green: "text-green-500 bg-green-50",
+    amber: "text-amber-500 bg-amber-50",
+    purple: "text-purple-500 bg-purple-50",
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1 p-2">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
+        <Icon size={16} />
+      </div>
+      <span className="text-sm font-bold text-slate-800">{value}</span>
+      <span className="text-[10px] text-slate-400 font-medium">{label}</span>
+    </div>
   );
 };
 
@@ -222,8 +264,8 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  const hasUnread = useMemo(
-    () => (userStats.unreadMessages || 0) + (userStats.unreadNotifications || 0) > 0,
+  const totalUnread = useMemo(
+    () => (userStats.unreadMessages || 0) + (userStats.unreadNotifications || 0),
     [userStats.unreadMessages, userStats.unreadNotifications]
   );
 
@@ -247,7 +289,6 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     setLoading(true);
 
     try {
-      // Buyer + Seller chatovi (backend ne prihvata "all")
       const chatBuyerPromise = chatListApi.chatList({ type: "buyer", page: 1 });
       const chatSellerPromise = chatListApi.chatList({ type: "seller", page: 1 });
 
@@ -256,38 +297,29 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         chatBuyerPromise,
         chatSellerPromise,
         getNotificationList.getNotification({ page: 1 }),
-        // Pošto getItem traži offset/limit, a nama treba total:
-        // plus user_id da bude "moji oglasi" (ne svi oglasi).
         getMyItemsApi.getMyItems({ status: "approved", user_id: userData?.id, offset: 0, limit: 1 }),
       ]);
 
       const [membershipRes, chatBuyerRes, chatSellerRes, notifRes, adsRes] = results;
 
-      // Membership
       let membershipTier = userData?.membership_tier || "free";
       if (membershipRes.status === "fulfilled") {
         const membershipData = getApiData(membershipRes.value);
         membershipTier = membershipData?.tier || membershipData?.membership_tier || membershipTier;
       }
 
-      // Chat unread (sum unread_chat_count / unread_count)
       const computeUnreadFromChatRes = (settled) => {
         if (settled.status !== "fulfilled") return 0;
         const payload = getApiData(settled.value);
         const chats = extractList(payload);
         return chats.reduce((sum, chat) => {
-          const v =
-            chat?.unread_chat_count ??
-            chat?.unread_count ??
-            chat?.unread ??
-            (chat?.is_read === 0 ? 1 : 0);
+          const v = chat?.unread_chat_count ?? chat?.unread_count ?? chat?.unread ?? (chat?.is_read === 0 ? 1 : 0);
           return sum + (Number(v) || 0);
         }, 0);
       };
 
       const unreadMessages = computeUnreadFromChatRes(chatBuyerRes) + computeUnreadFromChatRes(chatSellerRes);
 
-      // Notifications unread
       let unreadNotifications = 0;
       if (notifRes.status === "fulfilled") {
         const payload = getApiData(notifRes.value);
@@ -295,14 +327,12 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         unreadNotifications = list.filter((n) => !n?.read_at && !n?.is_read).length;
       }
 
-      // Active ads count
       let activeAds = 0;
       if (adsRes.status === "fulfilled") {
         const payload = getApiData(adsRes.value);
         activeAds = extractTotal(payload) || payload?.total || 0;
       }
 
-      // Total views + rating + verified (iz userData)
       const totalViews = userData?.total_views || userData?.profile_views || 0;
       const ratingRaw = userData?.rating || userData?.avg_rating || 0;
       const rating = Number.isFinite(Number(ratingRaw)) ? Number(ratingRaw).toFixed(1) : "0.0";
@@ -324,60 +354,78 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     }
   }, [userData]);
 
-  // Fetch on mount / user change
   useEffect(() => {
     if (!userData) return;
     fetchAllData();
   }, [userData, fetchAllData]);
 
-  // Optional: refresh counts when opening (da badge bude svjež)
   useEffect(() => {
     if (!isOpen) return;
     fetchAllData();
   }, [isOpen, fetchAllData]);
 
-  // Header button (clean)
   return (
     <div className="relative">
+      {/* TRIGGER BUTTON */}
       <button
         onClick={() => setIsOpen(true)}
-        className="relative flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors p-1"
+        className="relative flex items-center justify-center rounded-full hover:bg-slate-100 transition-all duration-200 p-1 hover:scale-105"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        aria-label="Otvori profil meni"
+        aria-label="Otvori korisnički meni"
       >
         <div className="relative">
           <CustomImage
             src={userData?.profile || placeholderImage}
             alt={userData?.name || "Profil"}
-            width={32}
-            height={32}
-            className="rounded-full w-8 h-8 aspect-square object-cover border border-slate-200"
+            width={36}
+            height={36}
+            className="rounded-full w-9 h-9 aspect-square object-cover border-2 border-slate-200 hover:border-primary/50 transition-colors"
           />
 
           {userStats.isVerified && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
               <MdVerified className="text-white" size={10} />
             </div>
           )}
 
-          {/* clean unread dot */}
-          {hasUnread && (
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          {totalUnread > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+              {totalUnread > 9 ? "9+" : totalUnread}
+            </span>
           )}
         </div>
       </button>
 
+      {/* DROPDOWN MODAL */}
       <SheetModal open={isOpen} onClose={() => setIsOpen(false)}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 leading-tight">
-              {truncate(userData?.name || "Moj profil", 22)}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              <MembershipBadge tier={userStats.membershipTier} size="xs" />
-              {loading && <span className="text-[11px] text-slate-400">učitavam…</span>}
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <CustomImage
+                src={userData?.profile || placeholderImage}
+                alt={userData?.name || "Profil"}
+                width={48}
+                height={48}
+                className="rounded-full w-12 h-12 aspect-square object-cover border-2 border-white shadow-md"
+              />
+              {userStats.isVerified && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
+                  <MdVerified className="text-white" size={12} />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate max-w-[160px]">
+                {userData?.name || "Korisnik"}
+              </p>
+              <p className="text-xs text-slate-500 truncate max-w-[160px]">
+                {userData?.email}
+              </p>
+              <div className="mt-1">
+                <MembershipBadge tier={userStats.membershipTier} size="xs" />
+              </div>
             </div>
           </div>
 
@@ -386,152 +434,212 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
             className="p-2 rounded-full hover:bg-slate-100 transition-colors"
             aria-label="Zatvori"
           >
-            <IoClose size={22} className="text-slate-600" />
+            <IoClose size={22} className="text-slate-500" />
           </button>
         </div>
 
-        <div className={["overflow-y-auto", isMobile ? "max-h-[calc(92vh-64px)]" : "max-h-[calc(80vh-64px)]"].join(" ")}>
-          {/* User Card */}
-          <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100/60">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <CustomImage
-                  src={userData?.profile || placeholderImage}
-                  alt={userData?.name || "Profil"}
-                  width={56}
-                  height={56}
-                  className="rounded-full w-14 h-14 aspect-square object-cover border-2 border-white shadow-sm"
-                />
-                {userStats.isVerified && (
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
-                    <MdVerified className="text-white" size={14} />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-900 truncate">{userData?.name}</p>
-                <p className="text-xs text-slate-500 truncate">{userData?.email}</p>
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-4 gap-2 mt-4 bg-white rounded-xl p-3">
-              <div className="text-center">
-                <IoLayersOutline className="mx-auto text-blue-500" size={18} />
-                <p className="text-sm font-bold text-slate-800">{userStats.activeAds}</p>
-                <p className="text-[10px] text-slate-400">Oglasi</p>
-              </div>
-              <div className="text-center">
-                <IoEyeOutline className="mx-auto text-green-500" size={18} />
-                <p className="text-sm font-bold text-slate-800">{formatNumber(userStats.totalViews)}</p>
-                <p className="text-[10px] text-slate-400">Pregledi</p>
-              </div>
-              <div className="text-center">
-                <IoChatbubbleOutline className="mx-auto text-amber-500" size={18} />
-                <p className="text-sm font-bold text-slate-800">{userStats.unreadMessages}</p>
-                <p className="text-[10px] text-slate-400">Poruke</p>
-              </div>
-              <div className="text-center">
-                <IoStarOutline className="mx-auto text-amber-500" size={18} />
-                <p className="text-sm font-bold text-slate-800">{userStats.rating}</p>
-                <p className="text-[10px] text-slate-400">Ocjena</p>
-              </div>
+        {/* SCROLLABLE CONTENT */}
+        <div className={["overflow-y-auto overscroll-contain", isMobile ? "max-h-[calc(90vh-80px)]" : "max-h-[calc(85vh-80px)]"].join(" ")}>
+          
+          {/* QUICK STATS */}
+          <div className="px-4 py-3 bg-gradient-to-br from-slate-50/50 to-white border-b border-slate-100">
+            <div className="grid grid-cols-4 gap-1 bg-white rounded-xl p-2 shadow-sm border border-slate-100">
+              <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="blue" />
+              <QuickStat icon={IoChatbubbleOutline} value={userStats.unreadMessages} label="Poruke" color="green" />
+              <QuickStat icon={IoNotificationsOutline} value={userStats.unreadNotifications} label="Obavijesti" color="amber" />
+              <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="purple" />
             </div>
           </div>
 
-          {/* Primary action */}
-          <div className="p-4 border-b border-slate-100">
+          {/* PRIMARY ACTION - DODAJ OGLAS */}
+          <div className="px-4 py-3">
             <Link
               href="/ad-listing"
               onClick={() => setIsOpen(false)}
-              className="flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors w-full"
+              className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 w-full group"
             >
-              <IoAddCircleOutline size={18} />
-              Dodaj oglas
+              <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+              {t("adListing")}
             </Link>
           </div>
 
-          {/* Menu */}
-          <div className="p-2">
-            <MenuSection title="Profil">
-              <MenuItem icon={IoPersonOutline} label="Moj profil" onClick={() => handleNavigate("/profile")} />
-              <MenuItem icon={IoSettingsOutline} label="Postavke" onClick={() => handleNavigate("/profile")} />
-            </MenuSection>
-
-            <div className="h-px bg-slate-100 mx-3" />
-
-            <MenuSection title="Oglasi">
-              <MenuItem
-                icon={IoLayersOutline}
-                label="Moji oglasi"
-                onClick={() => handleNavigate("/my-ads")}
-                badge={userStats.activeAds}
+          {/* MENU SECTIONS */}
+          <div className="px-2 pb-2">
+            
+            {/* RAČUN */}
+            <MenuSection title="Račun">
+              <MenuItem 
+                icon={IoPersonOutline} 
+                label={t("myProfile")}
+                description="Uredi podatke i postavke"
+                onClick={() => handleNavigate("/profile")} 
               />
-              <MenuItem icon={IoHeartOutline} label="Favoriti" onClick={() => handleNavigate("/favorites")} />
-              <MenuItem icon={IoStatsChartOutline} label="Statistika" onClick={() => handleNavigate("/my-ads")} isNew={isPro} />
+              {!userStats.isVerified && (
+                <MenuItem 
+                  icon={IoShieldCheckmarkOutline} 
+                  label="Verifikacija"
+                  description="Potvrdi svoj identitet"
+                  onClick={() => handleNavigate("/user-verification")}
+                  isNew
+                />
+              )}
+              <MenuItem 
+                icon={IoStorefrontOutline} 
+                label="Postavke prodavača"
+                description="Prilagodi svoj profil prodavača"
+                onClick={() => handleNavigate("/profile/seller-settings")} 
+              />
             </MenuSection>
 
-            <div className="h-px bg-slate-100 mx-3" />
+            <MenuDivider />
 
-            <MenuSection title="Finansije">
-              <MenuItem icon={IoCardOutline} label="Pretplata" onClick={() => handleNavigate("/user-subscription")} />
-              <MenuItem icon={IoReceiptOutline} label="Transakcije" onClick={() => handleNavigate("/transactions")} />
+            {/* MOJI SADRŽAJI */}
+            <MenuSection title="Moji sadržaji">
+              <MenuItem 
+                icon={IoLayersOutline} 
+                label={t("myAds")}
+                description={`${userStats.activeAds} aktivnih oglasa`}
+                onClick={() => handleNavigate("/my-ads")} 
+              />
+              <MenuItem 
+                icon={IoHeartOutline} 
+                label={t("favorites")}
+                description="Sačuvani oglasi"
+                onClick={() => handleNavigate("/favorites")} 
+              />
+              <MenuItem 
+                icon={IoBagHandleOutline} 
+                label="Moje kupovine"
+                description="Historija kupovina"
+                onClick={() => handleNavigate("/purchases")} 
+              />
             </MenuSection>
 
-            <div className="h-px bg-slate-100 mx-3" />
+            <MenuDivider />
 
+            {/* KOMUNIKACIJA */}
             <MenuSection title="Komunikacija">
-              <MenuItem
-                icon={IoChatbubbleOutline}
-                label="Poruke"
-                onClick={() => handleNavigate("/chat")}
+              <MenuItem 
+                icon={IoChatbubbleOutline} 
+                label={t("chat")}
+                description="Razgovori sa korisnicima"
+                onClick={() => handleNavigate("/chat")} 
                 badge={userStats.unreadMessages}
               />
-              <MenuItem
-                icon={IoNotificationsOutline}
-                label="Obavijesti"
-                onClick={() => handleNavigate("/notifications")}
+              <MenuItem 
+                icon={IoNotificationsOutline} 
+                label={t("notifications")}
+                description="Sve obavijesti na jednom mjestu"
+                onClick={() => handleNavigate("/notifications")} 
                 badge={userStats.unreadNotifications}
               />
             </MenuSection>
 
-            <div className="h-px bg-slate-100 mx-3" />
+            <MenuDivider />
 
-            <MenuSection title="Podrška">
-              <MenuItem
-                icon={IoBriefcaseOutline}
-                label="Prijave za posao"
-                onClick={() => window.open("https://poslovi.lmx.ba/", "_blank")}
-                external
+            {/* FINANSIJE */}
+            <MenuSection title="Finansije">
+              <MenuItem 
+                icon={IoCardOutline} 
+                label={t("subscription")}
+                description="Upravljaj pretplatom"
+                onClick={() => handleNavigate("/user-subscription")} 
               />
-              <MenuItem icon={IoHelpCircleOutline} label="Pomoć" onClick={() => handleNavigate("/contact-us")} />
+              <MenuItem 
+                icon={IoReceiptOutline} 
+                label={t("transaction")}
+                description="Historija transakcija"
+                onClick={() => handleNavigate("/transactions")} 
+              />
             </MenuSection>
 
-            <div className="h-px bg-slate-100 mx-3" />
+            <MenuDivider />
 
+            {/* ZAJEDNICA */}
+            <MenuSection title="Zajednica">
+              <MenuItem 
+                icon={IoStarOutline} 
+                label={t("myReviews")}
+                description="Recenzije i ocjene"
+                onClick={() => handleNavigate("/reviews")} 
+              />
+              <MenuItem 
+                icon={IoRibbonOutline} 
+                label="Bedževi"
+                description="Tvoja postignuća"
+                onClick={() => handleNavigate("/profile/badges")} 
+              />
+              <MenuItem 
+                icon={IoTrophyOutline} 
+                label="Ljestvica"
+                description="Rangiranje korisnika"
+                onClick={() => handleNavigate("/leaderboard")} 
+              />
+            </MenuSection>
+
+            <MenuDivider />
+
+            {/* PODRŠKA */}
+            <MenuSection title="Podrška">
+              <MenuItem 
+                icon={IoHelpCircleOutline} 
+                label={t("contactUs")}
+                description="Kontaktiraj podršku"
+                onClick={() => handleNavigate("/contact-us")} 
+              />
+            </MenuSection>
+
+            <MenuDivider />
+
+            {/* ODJAVA */}
             <MenuSection>
-              <MenuItem icon={IoLogOutOutline} label="Odjavi se" onClick={handleLogout} danger />
+              <MenuItem 
+                icon={IoLogOutOutline} 
+                label={t("signOut")}
+                description="Odjavi se sa računa"
+                onClick={handleLogout} 
+                danger 
+              />
             </MenuSection>
           </div>
 
-          {/* Upgrade banner */}
+          {/* UPGRADE BANNER - za free korisnike */}
           {userStats.membershipTier === "free" && (
-            <div className="p-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-t border-amber-100">
+            <div className="p-4 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-t border-amber-100/50">
               <Link
                 href="/membership/upgrade"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 group"
+                className="flex items-center gap-4 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-amber-200/50 hover:shadow-md hover:border-amber-300 transition-all duration-200 group"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                  <Crown className="text-white" size={16} />
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                  <Sparkles className="text-white" size={24} />
                 </div>
                 <div className="flex-1">
-                  <h5 className="text-sm font-semibold text-amber-800">Nadogradi na Pro</h5>
-                  <p className="text-xs text-amber-600">Napredna statistika i više</p>
+                  <h5 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    Nadogradi na Pro
+                    <TrendingUp size={14} className="text-amber-500" />
+                  </h5>
+                  <p className="text-xs text-slate-600">Otključaj sve mogućnosti i prednosti</p>
                 </div>
-                <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={18} />
+                <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={20} />
               </Link>
+            </div>
+          )}
+
+          {/* PRO USER BANNER */}
+          {isPro && (
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100/50">
+              <div className="flex items-center gap-3 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200/50">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                  <IoSparklesOutline className="text-white" size={20} />
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold text-slate-800">
+                    {userStats.membershipTier === "shop" ? "Shop" : "Pro"} član
+                  </h5>
+                  <p className="text-xs text-slate-500">Uživaj u svim premium pogodnostima</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
