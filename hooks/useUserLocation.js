@@ -21,6 +21,12 @@ import {
 
 const STORAGE_KEY = "user_bih_location";
 
+// Default koordinate za BiH (Sarajevo) - potrebno jer backend zahtijeva lat/long
+const BIH_DEFAULT_COORDS = {
+  lat: 43.8563,
+  long: 18.4131,
+};
+
 export const useUserLocation = () => {
   const userData = useSelector(userSignUpData);
   const [userLocation, setUserLocation] = useState(null);
@@ -83,23 +89,24 @@ export const useUserLocation = () => {
     const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
     if (!fullLocation) return null;
 
-    // Vrati u formatu koji očekuje addItemApi
+    const formattedAddr = userLocation.address 
+      ? `${userLocation.address}, ${fullLocation.formatted}`
+      : fullLocation.formatted;
+
+    // Vrati u formatu koji očekuje addItemApi - SA default koordinatama za BiH
     return {
       country: "Bosna i Hercegovina",
       state: fullLocation.region?.name || "",
       city: fullLocation.municipality?.name || "",
-      address: userLocation.address 
-        ? `${userLocation.address}, ${fullLocation.formatted}`
-        : fullLocation.formatted,
-      lat: null, // BiH lokacije nemaju koordinate u ovom sistemu
-      long: null,
+      address: formattedAddr,
+      lat: BIH_DEFAULT_COORDS.lat,  // Default koordinate za BiH
+      long: BIH_DEFAULT_COORDS.long,
       // Dodatni podaci za prikaz
       entityId: userLocation.entityId,
       regionId: userLocation.regionId,
       municipalityId: userLocation.municipalityId,
-      formattedAddress: userLocation.address 
-        ? `${userLocation.address}, ${fullLocation.formatted}`
-        : fullLocation.formatted,
+      formattedAddress: formattedAddr,
+      address_translated: formattedAddr,
     };
   }, [userLocation]);
 
