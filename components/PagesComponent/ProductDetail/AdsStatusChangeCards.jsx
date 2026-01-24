@@ -8,9 +8,11 @@ import {
   MdWarning,
   MdArrowForward,
   MdInfo,
-  MdInventory
+  MdInventory,
+  MdLock,
+  MdLockOpen
 } from "react-icons/md";
-import { chanegItemStatusApi } from "@/utils/api";
+import { chanegItemStatusApi, inventoryApi } from "@/utils/api";
 import SoldOutModal from "./SoldOutModal";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import { useNavigate } from "@/components/Common/useNavigate";
@@ -36,14 +38,18 @@ const AdsStatusChangeCards = ({
  
   const isJobAd = productDetails?.category?.is_job_category === 1;
   const isSoftRejected = productDetails?.status === "soft rejected" || productDetails?.status === "resubmitted";
-  const canChangeStatus = productDetails?.status === "approved" || productDetails?.status === "inactive";
+  const canChangeStatus = productDetails?.status === "approved" || productDetails?.status === "inactive" || productDetails?.status === "reserved";
   const isShowRejectedReason = productDetails?.rejected_reason && (productDetails?.status === "soft rejected" || productDetails?.status === "permanent rejected");
   
   const currentStatus = productDetails?.status;
+  const isReserved = currentStatus === "reserved";
   
   // Check if item has inventory
   const hasInventory = productDetails?.inventory_count && productDetails?.inventory_count > 0;
   const inventoryCount = productDetails?.inventory_count || 0;
+  
+  // State for reservation
+  const [isReserving, setIsReserving] = useState(false);
  
   // Status info za prikaz
   const statusInfo = {
@@ -54,6 +60,14 @@ const AdsStatusChangeCards = ({
       bgClass: "bg-green-50 border-green-200",
       textClass: "text-green-700",
       dotClass: "bg-green-500"
+    },
+    reserved: { 
+      label: "Rezervisano", 
+      color: "amber", 
+      icon: MdLock,
+      bgClass: "bg-amber-50 border-amber-200",
+      textClass: "text-amber-700",
+      dotClass: "bg-amber-500"
     },
     inactive: { 
       label: "Neaktivan", 
@@ -143,6 +157,56 @@ const AdsStatusChangeCards = ({
       return;
     }
     setPendingAction(action);
+  };
+  
+  // Handle reservation
+  const handleReserve = async () => {
+    try {
+      setIsReserving(true);
+      const res = await inventoryApi.reserveItem({
+        item_id: productDetails?.id,
+      });
+      if (res?.data?.error === false) {
+        toast.success("Oglas je označen kao rezervisan");
+        setProductDetails((prev) => ({ 
+          ...prev, 
+          status: "reserved",
+          reservation_status: "reserved"
+        }));
+      } else {
+        toast.error(res?.data?.message || "Greška pri rezervaciji");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Došlo je do greške");
+    } finally {
+      setIsReserving(false);
+    }
+  };
+  
+  // Handle remove reservation
+  const handleRemoveReservation = async () => {
+    try {
+      setIsReserving(true);
+      const res = await inventoryApi.removeReservation({
+        item_id: productDetails?.id,
+      });
+      if (res?.data?.error === false) {
+        toast.success("Rezervacija je uklonjena");
+        setProductDetails((prev) => ({ 
+          ...prev, 
+          status: "approved",
+          reservation_status: "none"
+        }));
+      } else {
+        toast.error(res?.data?.message || "Greška pri uklanjanju rezervacije");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Došlo je do greške");
+    } finally {
+      setIsReserving(false);
+    }
   };
  
   const confirmAction = () => {
@@ -351,8 +415,48 @@ const AdsStatusChangeCards = ({
                   </button>
                 )}
  
-                {/* Označi kao prodano - samo ako je aktivan */}
-                {currentStatus === "approved" && (
+                {/* Rezerviši - samo ako je aktivan */}
+                {currentStatus === "approved" && !isJobAd && (
+                  <button
+                    onClick={handleReserve}
+                    disabled={IsChangingStatus || isReserving}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                        <MdLock className="text-amber-600 text-xl" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-amber-800">Rezerviši</p>
+                        <p className="text-xs text-amber-600">Označi da je artikal rezervisan</p>
+                      </div>
+                    </div>
+                    <MdArrowForward className="text-amber-600 text-xl" />
+                  </button>
+                )}
+
+                {/* Ukloni rezervaciju - samo ako je rezervisano */}
+                {currentStatus === "reserved" && (
+                  <button
+                    onClick={handleRemoveReservation}
+                    disabled={IsChangingStatus || isReserving}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-green-50 hover:bg-green-100 border border-green-200 transition-all active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                        <MdLockOpen className="text-green-600 text-xl" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-green-800">Ukloni rezervaciju</p>
+                        <p className="text-xs text-green-600">Vrati oglas u aktivne</p>
+                      </div>
+                    </div>
+                    <MdArrowForward className="text-green-600 text-xl" />
+                  </button>
+                )}
+
+                {/* Označi kao prodano - ako je aktivan ILI rezervisan */}
+                {(currentStatus === "approved" || currentStatus === "reserved") && (
                   <button
                     onClick={() => handleActionClick("sold out")}
                     disabled={IsChangingStatus}
@@ -376,7 +480,7 @@ const AdsStatusChangeCards = ({
                 )}
                 
                 {/* Inventory info - prikaži ako ima zalihe */}
-                {hasInventory && currentStatus === "approved" && (
+                {hasInventory && (currentStatus === "approved" || currentStatus === "reserved") && (
                   <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="flex items-center gap-2 text-sm">
                       <MdInventory className="text-slate-500" size={18} />

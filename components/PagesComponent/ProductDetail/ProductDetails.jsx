@@ -475,13 +475,17 @@ const MobileProductHeader = ({ productDetails, isMyListing }) => {
               <span className="text-sm text-slate-500">Status:</span>
               <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                   productDetails.status === 'approved' ? 'bg-green-100 text-green-700' :
+                  productDetails.status === 'reserved' ? 'bg-amber-100 text-amber-700' :
                   productDetails.status === 'review' ? 'bg-yellow-100 text-yellow-700' :
                   productDetails.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                  productDetails.status === 'sold out' ? 'bg-blue-100 text-blue-700' :
                   'bg-slate-100 text-slate-600'
                 }`}>
                   {productDetails.status === 'approved' ? 'Aktivan' :
+                   productDetails.status === 'reserved' ? '🔒 Rezervisano' :
                    productDetails.status === 'review' ? 'Na pregledu' :
                    productDetails.status === 'scheduled' ? 'Zakazano' :
+                   productDetails.status === 'sold out' ? 'Prodano' :
                    productDetails.status}
                 </span>
             </div>
@@ -856,6 +860,7 @@ useEffect(() => {
                       galleryImages={galleryImages} 
                       videoData={videoData} 
                       directVideo={directVideo}
+                      productDetails={productDetails}
                       onGalleryOpen={trackGalleryOpen}
                       onImageView={trackImageView}
                       onImageZoom={trackImageZoom}
@@ -1111,14 +1116,18 @@ useEffect(() => {
                   <p className="text-xs text-slate-500 font-medium">Status</p>
                   <p className={`text-sm font-bold truncate ${
                 productDetails?.status === "approved" ? "text-green-600" :
+                productDetails?.status === "reserved" ? "text-amber-600" :
                 productDetails?.status === "pending" ? "text-yellow-600" :
                 productDetails?.status === "scheduled" ? "text-blue-600" :
+                productDetails?.status === "sold out" ? "text-blue-600" :
                 "text-slate-700"
               }`}
               >
                 {productDetails?.status === "approved" ? "Aktivan" :
+                 productDetails?.status === "reserved" ? "🔒 Rezervisano" :
                  productDetails?.status === "pending" ? "Na čekanju" :
                  productDetails?.status === "scheduled" ? `Zakazano za ${new Date(productDetails?.scheduled_at).toLocaleString('bs-BA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` :
+                 productDetails?.status === "sold out" ? "Prodano" :
                  productDetails?.status}
               </p>
                 </div>
