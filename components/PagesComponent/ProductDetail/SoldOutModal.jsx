@@ -167,6 +167,28 @@ const SoldOutModal = ({
   const renderBuyerSelection = () => (
     <>
       <div className="mt-4 flex flex-col gap-5">
+        {/* INVENTORY STATUS - Prominent display */}
+        {hasInventory && (
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-4 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <MdInventory size={28} />
+                </div>
+                <div>
+                  <p className="text-sm text-blue-100">Trenutno na zalihi</p>
+                  <p className="text-3xl font-black">{inventoryCount} <span className="text-lg font-normal text-blue-200">kom.</span></p>
+                </div>
+              </div>
+              {inventoryCount <= 3 && (
+                <div className="bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-full">
+                  ⚠️ Niska zaliha
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+ 
         {/* Info o artiklu */}
         <div className="rounded-xl p-4 bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 flex items-center gap-4">
           <div className="relative">
@@ -177,14 +199,6 @@ const SoldOutModal = ({
               width={80}
               className="h-20 w-20 rounded-lg object-cover"
             />
-            {hasInventory && (
-              <div className={cn(
-                "absolute -top-2 -right-2 text-white text-xs font-bold px-2 py-0.5 rounded-full",
-                inventoryCount <= 3 ? "bg-orange-500" : "bg-blue-500"
-              )}>
-                {inventoryCount}x
-              </div>
-            )}
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-semibold text-slate-800 truncate">
@@ -193,16 +207,6 @@ const SoldOutModal = ({
             <p className="text-xl font-bold text-primary">
               {formatPriceAbbreviated(productDetails?.price)}
             </p>
-            {hasInventory && (
-              <p className={cn(
-                "text-xs flex items-center gap-1 mt-1",
-                inventoryCount <= 3 ? "text-orange-600" : "text-slate-500"
-              )}>
-                <MdInventory size={14} />
-                Na zalihi: <span className="font-semibold">{inventoryCount}</span>
-                {inventoryCount <= 3 && <span className="ml-1">(niska zaliha!)</span>}
-              </p>
-            )}
           </div>
         </div>
  
@@ -338,6 +342,22 @@ const SoldOutModal = ({
     return (
       <>
         <div className="mt-4 flex flex-col gap-5">
+          {/* INVENTORY STATUS - Mini version for step 2 */}
+          {hasInventory && (
+            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center gap-2">
+                <MdInventory className="text-blue-600" size={20} />
+                <span className="text-sm text-blue-800">Na zalihi:</span>
+                <span className="text-lg font-bold text-blue-700">{inventoryCount}</span>
+              </div>
+              {quantitySold > 0 && (
+                <div className="text-sm text-blue-600">
+                  Nakon prodaje: <span className="font-bold text-blue-700">{remainingAfterSale}</span>
+                </div>
+              )}
+            </div>
+          )}
+ 
           {/* Odabrani kupac */}
           {selectedBuyer && (
             <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
@@ -513,7 +533,7 @@ const SoldOutModal = ({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">Artikal:</span>
-                <span className="font-medium text-slate-800">{productDetails?.name}</span>
+                <span className="font-medium text-slate-800 truncate ml-2 max-w-[200px]">{productDetails?.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Količina:</span>

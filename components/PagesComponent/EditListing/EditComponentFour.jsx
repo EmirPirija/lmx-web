@@ -231,7 +231,7 @@ const EditComponentFour = ({
       setScheduledAt(null);
     }
     setShowPublishModal(false);
-    handleFullSubmission(selectedDateTime)
+    handleFullSubmission()
 
   };
  
