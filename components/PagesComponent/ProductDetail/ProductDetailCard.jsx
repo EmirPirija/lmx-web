@@ -332,10 +332,46 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
             </div>
           )}
  
+
+      <div className="flex items-center justify-between">
           {/* Naslov */}
           <h1 className="text-xl lg:text-2xl font-bold text-slate-900 mb-3 leading-tight">
             {productName}
           </h1>
+
+          {/* AKCIJE - Minimalističke */}
+          <div className="flex items-center justify-between">
+ 
+            {/* Action buttons */}
+            <div className="flex items-center gap-2">
+              <ShareDropdown
+                url={currentUrl}
+                title={FbTitle}
+                headline={headline}
+                companyName={CompanyName}
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+              />
+ 
+              <button
+                className={cn(
+                  "flex items-center justify-center w-9 h-9 rounded-full transition-colors",
+                  productDetails?.is_liked 
+                    ? "bg-red-50 text-red-600 hover:bg-red-100" 
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-red-600"
+                )}
+                onClick={handleLikeItem}
+                title={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}
+              >
+                {productDetails?.is_liked === true ? (
+                  <MdFavorite size={20} />
+                ) : (
+                  <MdFavoriteBorder size={20} />
+                )}
+              </button>
+            </div>
+          </div>
+          </div>
+          
  
           {/* CIJENA SA AKCIJOM */}
           <div className="mb-4">
@@ -381,43 +417,15 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
                 )}
               </div>
             )}
+
+            
           </div>
  
  
           {/* RAZDJELNIK */}
           {/* <div className="h-px w-full bg-slate-200 my-4"></div> */}
  
-          {/* AKCIJE - Minimalističke */}
-          <div className="flex items-center justify-between">
- 
-            {/* Action buttons */}
-            <div className="flex items-center gap-2">
-              <ShareDropdown
-                url={currentUrl}
-                title={FbTitle}
-                headline={headline}
-                companyName={CompanyName}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
-              />
- 
-              <button
-                className={cn(
-                  "flex items-center justify-center w-9 h-9 rounded-full transition-colors",
-                  productDetails?.is_liked 
-                    ? "bg-red-50 text-red-600 hover:bg-red-100" 
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-red-600"
-                )}
-                onClick={handleLikeItem}
-                title={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Dodaj u omiljene"}
-              >
-                {productDetails?.is_liked === true ? (
-                  <MdFavorite size={20} />
-                ) : (
-                  <MdFavoriteBorder size={20} />
-                )}
-              </button>
-            </div>
-          </div>
+          
         </div>
       </div>
  
