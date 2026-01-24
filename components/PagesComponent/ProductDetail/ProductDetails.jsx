@@ -567,6 +567,15 @@ useEffect(() => {
   const [showFeaturedDrawer, setShowFeaturedDrawer] = useState(false);
   const featuredDrawerRef = useRef(null);
 
+  // Provjera da li je bilo koji popup/drawer/modal otvoren
+  // Koristi se za skrivanje donje trake
+  const isAnyPopupOpen = showStatsModal || 
+                         showMobilePriceHistory || 
+                         showStatusDrawer || 
+                         showFeaturedDrawer || 
+                         isDeleteOpen || 
+                         isOpenInApp;
+
   // ============================================
   // TRACKING HOOKS
   // ============================================
@@ -1069,7 +1078,13 @@ useEffect(() => {
           
           {/* TRAKA ZA KUPCA (JAVNI OGLAS) */}
           {!isMyListing && (
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
+            <div 
+              className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
+                isAnyPopupOpen 
+                  ? "translate-y-full opacity-0 pointer-events-none" 
+                  : "translate-y-0 opacity-100"
+              }`}
+            >
               <div className="container flex items-center gap-3">
                 <div className="flex-1 min-w-0 flex items-center gap-2">
                   <div className="min-w-0">
@@ -1114,7 +1129,13 @@ useEffect(() => {
 
           {/* TRAKA ZA PRODAVAČA (MOJ OGLAS) */}
           {isMyListing && (
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
+            <div 
+              className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
+                isAnyPopupOpen 
+                  ? "translate-y-full opacity-0 pointer-events-none" 
+                  : "translate-y-0 opacity-100"
+              }`}
+            >
               <div className="container flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-500 font-medium">Status</p>
