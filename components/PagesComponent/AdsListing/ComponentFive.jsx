@@ -1,326 +1,315 @@
-import { useState } from "react";
-import { FaLocationCrosshairs } from "react-icons/fa6";
-import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
 import { BiMapPin } from "react-icons/bi";
 import { IoLocationOutline } from "react-icons/io5";
 import { toast } from "sonner";
-import { useSelector } from "react-redux";
 import ManualAddress from "./ManualAddress";
 import PublishOptionsModal from "./PublishOptionsModal";
-import { getIsBrowserSupported } from "@/redux/reducer/locationSlice";
-import { getIsPaidApi } from "@/redux/reducer/settingSlice";
-import { getLocationApi } from "@/utils/api";
-import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
- 
-const MapComponent = dynamic(() => import("@/components/Common/MapComponent"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[400px] bg-gray-100 rounded-xl flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-gray-600 font-medium">Učitavam mapu...</p>
-      </div>
-    </div>
-  ),
-});
- 
+import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import { MdCheckCircle, MdInfoOutline, MdEditLocation } from "react-icons/md";
+
+// Default koordinate za BiH (Sarajevo) - backend zahtijeva lat/long
+const BIH_DEFAULT_COORDS = {
+  lat: 43.8563,
+  long: 18.4131,
+};
+
 const ComponentFive = ({
   location,
   setLocation,
   handleFullSubmission,
   isAdPlaced,
   handleGoBack,
-  // NOVO: opcioni prop za scheduled_at
   setScheduledAt,
 }) => {
-  const CurrentLanguage = useSelector(CurrentLanguageData);
   const [showManualAddress, setShowManualAddress] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const isBrowserSupported = useSelector(getIsBrowserSupported);
-  const [IsGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
-  const IsPaidApi = useSelector(getIsPaidApi);
- 
-  const getLocationWithMap = async (pos) => {
+  
+  // BiH Location system
+  const { userLocation, hasLocation, getFormattedAddress } = useUserLocation();
+  const [bihLocation, setBihLocation] = useState({
+    entityId: null,
+    regionId: null,
+    municipalityId: null,
+    address: "",
+    formattedAddress: "",
+  });
+  const [locationSource, setLocationSource] = useState("none"); // "profile", "manual", "none"
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Učitaj lokaciju iz profila pri prvom renderovanju
+  useEffect(() => {
+    if (isInitialized) return;
+    
+    // Ako već ima lokacija (npr. vraćanje nazad), ne diraj
+    if (location?.city) {
+      setIsInitialized(true);
+      setLocationSource("manual");
+      return;
+    }
+
+    // Učitaj iz profila ako postoji
+    if (hasLocation && userLocation?.municipalityId) {
+      loadProfileLocation();
+      setIsInitialized(true);
+    }
+  }, [hasLocation, userLocation?.municipalityId, location?.city, isInitialized]);
+
+  // Funkcija za učitavanje lokacije iz profila
+  const loadProfileLocation = () => {
+    if (!userLocation?.municipalityId) return;
+
     try {
-      const { lat, lng } = pos;
-      const response = await getLocationApi.getLocation({
-        lat,
-        lng,
-        lang: IsPaidApi ? "en" : CurrentLanguage?.code,
-      });
- 
-      if (response?.data.error === false) {
-        if (IsPaidApi) {
-          let city = "";
-          let state = "";
-          let country = "";
-          const results = response?.data?.data?.results;
-          results?.forEach((result) => {
-            const addressComponents = result.address_components;
-            const getAddressComponent = (type) => {
-              const component = addressComponents.find((comp) =>
-                comp.types.includes(type)
-              );
-              return component ? component.long_name : "";
-            };
-            if (!city) city = getAddressComponent("locality");
-            if (!state)
-              state = getAddressComponent("administrative_area_level_1");
-            if (!country) country = getAddressComponent("country");
-          });
-          const locationData = {
-            lat,
-            long: lng,
-            city,
-            state,
-            country,
-            address: [city, state, country].filter(Boolean).join(", "),
-          };
-          setLocation(locationData);
-        } else {
-          const results = response?.data?.data;
-          const address_translated = [
-            results?.area_translation,
-            results?.city_translation,
-            results?.state_translation,
-            results?.country_translation,
-          ]
-            .filter(Boolean)
-            .join(", ");
-          const formattedAddress = [
-            results?.area,
-            results?.city,
-            results?.state,
-            results?.country,
-          ]
-            .filter(Boolean)
-            .join(", ");
- 
-          const cityData = {
-            lat: results?.latitude,
-            long: results?.longitude,
-            city: results?.city || "",
-            state: results?.state || "",
-            country: results?.country || "",
-            area: results?.area || "",
-            areaId: results?.area_id || "",
-            address: formattedAddress,
-            address_translated,
-          };
-          setLocation(cityData);
-        }
-      } else {
-        toast.error("Došlo je do greške");
+      const { getFullLocationFromMunicipalityId } = require("@/lib/bih-locations");
+      const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
+      
+      if (fullLocation) {
+        const formattedAddr = userLocation.address 
+          ? `${userLocation.address}, ${fullLocation.formatted}`
+          : fullLocation.formatted;
+        
+        setBihLocation(userLocation);
+        setLocation({
+          country: "Bosna i Hercegovina",
+          state: fullLocation.region?.name || "",
+          city: fullLocation.municipality?.name || "",
+          address: formattedAddr,
+          lat: BIH_DEFAULT_COORDS.lat,
+          long: BIH_DEFAULT_COORDS.long,
+          formattedAddress: formattedAddr,
+          address_translated: formattedAddr,
+        });
+        setLocationSource("profile");
       }
     } catch (error) {
-      console.error("Error fetching location data:", error);
-      toast.error("Došlo je do greške");
+      console.error("Error loading profile location:", error);
     }
   };
- 
-  const getCurrentLocation = async () => {
-    if (navigator.geolocation) {
-      setIsGettingCurrentLocation(true);
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const { latitude, longitude } = position.coords;
-            const response = await getLocationApi.getLocation({
-              lat: latitude,
-              lng: longitude,
-              lang: IsPaidApi ? "en" : CurrentLanguage?.code,
-            });
-            if (response?.data.error === false) {
-              if (IsPaidApi) {
-                let city = "";
-                let state = "";
-                let country = "";
-                const results = response?.data?.data?.results;
-                results?.forEach((result) => {
-                  const addressComponents = result.address_components;
-                  const getAddressComponent = (type) => {
-                    const component = addressComponents.find((comp) =>
-                      comp.types.includes(type)
-                    );
-                    return component ? component.long_name : "";
-                  };
-                  if (!city) city = getAddressComponent("locality");
-                  if (!state)
-                    state = getAddressComponent("administrative_area_level_1");
-                  if (!country) country = getAddressComponent("country");
-                });
- 
-                const cityData = {
-                  lat: latitude,
-                  long: longitude,
-                  city,
-                  state,
-                  country,
-                  address: [city, state, country].filter(Boolean).join(", "),
-                };
-                setLocation(cityData);
-              } else {
-                const result = response?.data?.data;
-                const cityData = {
-                  areaId: result?.area_id,
-                  area: result?.area,
-                  city: result?.city,
-                  state: result?.state,
-                  country: result?.country,
-                  lat: result?.latitude,
-                  long: result?.longitude,
-                  address: [
-                    result?.area,
-                    result?.city,
-                    result?.state,
-                    result?.country,
-                  ]
-                    .filter(Boolean)
-                    .join(", "),
-                  address_translated: [
-                    result?.area_translation,
-                    result?.city_translation,
-                    result?.state_translation,
-                    result?.country_translation,
-                  ]
-                    .filter(Boolean)
-                    .join(", "),
-                };
-                setLocation(cityData);
-              }
-            } else {
-              toast.error("Došlo je do greške");
-            }
-          } catch (error) {
-            console.error("Error fetching location data:", error);
-            toast.error("Došlo je do greške");
-          } finally {
-            setIsGettingCurrentLocation(false);
-          }
-        },
-        (error) => {
-          toast.error("Lokacija nije dozvoljena");
-          setIsGettingCurrentLocation(false);
+
+  // Handler za BiH location promjenu
+  const handleBihLocationChange = (newBihLocation) => {
+    setBihLocation(newBihLocation);
+    
+    if (newBihLocation?.municipalityId) {
+      try {
+        const { getFullLocationFromMunicipalityId } = require("@/lib/bih-locations");
+        const fullLocation = getFullLocationFromMunicipalityId(newBihLocation.municipalityId);
+        
+        if (fullLocation) {
+          const formattedAddr = newBihLocation.address 
+            ? `${newBihLocation.address}, ${fullLocation.formatted}`
+            : fullLocation.formatted;
+          
+          setLocation({
+            country: "Bosna i Hercegovina",
+            state: fullLocation.region?.name || "",
+            city: fullLocation.municipality?.name || "",
+            address: formattedAddr,
+            lat: BIH_DEFAULT_COORDS.lat,
+            long: BIH_DEFAULT_COORDS.long,
+            formattedAddress: formattedAddr,
+            address_translated: formattedAddr,
+          });
+          setLocationSource("manual");
         }
-      );
-    } else {
-      toast.error("Geolokacija nije podržana");
+      } catch (error) {
+        console.error("Error setting location:", error);
+      }
     }
   };
- 
-  // Handler za klik na dugme "Objavi"
+
+  // Reset i omogući ručni odabir
+  const handleUseManualLocation = () => {
+    setLocationSource("manual");
+    setBihLocation({
+      entityId: null,
+      regionId: null,
+      municipalityId: null,
+      address: "",
+      formattedAddress: "",
+    });
+    setLocation({});
+  };
+
+  // Vrati na profil lokaciju
+  const handleUseProfileLocation = () => {
+    loadProfileLocation();
+  };
+
+  // Handler za ManualAddress (dropdown)
+  const handleManualAddressSet = (newLocation) => {
+    // Dodaj default koordinate ako nema
+    const locationWithCoords = {
+      ...newLocation,
+      lat: newLocation.lat || BIH_DEFAULT_COORDS.lat,
+      long: newLocation.long || BIH_DEFAULT_COORDS.long,
+    };
+    setLocation(locationWithCoords);
+    setLocationSource("manual");
+    setShowManualAddress(false);
+  };
+
+  // Publish handlers
   const handlePublishClick = () => {
-    // Provjeri da li je lokacija unijeta
-    if (
-      !location?.country ||
-      !location?.state ||
-      !location?.city ||
-      !location?.address
-    ) {
+    if (!location?.country || !location?.state || !location?.city || !location?.address) {
       toast.error(t("pleaseSelectCity"));
       return;
     }
-    // Otvori modal
     setShowPublishModal(true);
   };
- 
-  // Handler za "Objavi odmah"
+
   const handlePublishNow = () => {
-    if (setScheduledAt) {
-      setScheduledAt(null);
-    }
+    if (setScheduledAt) setScheduledAt(null);
     setShowPublishModal(false);
-    handleFullSubmission()
+    handleFullSubmission();
   };
- 
-  // Handler za "Zakaži objavu"
+
   const handleSchedule = (scheduledDateTime) => {
-    if (setScheduledAt) {
-      setScheduledAt(scheduledDateTime);
-    }
+    if (setScheduledAt) setScheduledAt(scheduledDateTime);
     setShowPublishModal(false);
     handleFullSubmission(scheduledDateTime);
   };
- 
+
   return (
     <>
-      <div className="flex flex-col gap-8 pb-24">
-        {isBrowserSupported && (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-500 p-3 rounded-xl">
-                <FaLocationCrosshairs className="text-white" size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">Dodajte lokaciju</h3>
-                <p className="text-sm text-gray-600">Omogućite automatsko pronalaženje vaše lokacije</p>
-              </div>
-            </div>
-            <button
-              onClick={getCurrentLocation}
-              disabled={IsGettingCurrentLocation}
-              className={`bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-md hover:shadow-lg ${
-                IsGettingCurrentLocation ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-              }`}
-            >
-              <FaLocationCrosshairs size={20} />
-              {IsGettingCurrentLocation ? "Pronalazim..." : "Pronađi me"}
-            </button>
-          </div>
-        )}
- 
-        <div className="flex gap-6 flex-col">
-          <div className="rounded-xl overflow-hidden shadow-lg border-2 border-gray-200">
-            <MapComponent
-              location={location}
-              getLocationWithMap={getLocationWithMap}
-            />
-          </div>
-          
-          <div className="flex items-start gap-4 bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
-              <BiMapPin className="text-blue-600" size={32} />
+      <div className="flex flex-col gap-6 pb-24">
+        
+        {/* Ako je lokacija učitana iz profila */}
+        {locationSource === "profile" && location?.city && (
+          <div className="flex items-start gap-4 bg-green-50 border-2 border-green-200 rounded-xl p-4">
+            <div className="bg-green-500 p-2 rounded-lg">
+              <MdCheckCircle className="text-white" size={24} />
             </div>
             <div className="flex-1">
-              <h6 className="font-semibold text-gray-800 text-lg mb-2">Adresa</h6>
-              {location?.address_translated || location?.address ? (
-                <p className="text-gray-600 leading-relaxed">
-                  {location?.address_translated || location?.address}
-                </p>
-              ) : (
-                <p className="text-gray-400 italic">Dodajte vašu adresu koristeći mapu ili ručno</p>
-              )}
-            </div>
-          </div>
-        </div>
- 
-        {!IsPaidApi && (
-          <>
-            <div className="relative flex items-center justify-center">
-              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-200"></div>
-              <div className="relative bg-white text-gray-600 text-sm font-semibold rounded-full px-4 py-2 border-2 border-gray-200 uppercase">
-                ili
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-4 items-center justify-center bg-gray-50 rounded-xl p-8 border-2 border-gray-200">
-              <IoLocationOutline size={48} className="text-gray-400" />
-              <p className="text-xl font-semibold text-gray-800 text-center">
-                Na kojoj lokaciji prodajete artikal?
+              <h3 className="text-lg font-semibold text-green-800">Lokacija preuzeta iz profila</h3>
+              <p className="text-sm text-green-700 mt-1">
+                {location?.address || getFormattedAddress()}
               </p>
               <button
-                className="px-6 py-3 flex items-center gap-3 bg-white border-2 border-gray-300 hover:border-blue-500 rounded-xl font-semibold text-gray-700 hover:text-blue-600 transition-all shadow-sm hover:shadow-md hover:scale-105"
-                onClick={() => setShowManualAddress(true)}
+                onClick={handleUseManualLocation}
+                className="mt-3 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
               >
-                <IoLocationOutline size={22} />
-                Dodaj lokaciju ručno
+                <MdEditLocation size={18} />
+                Koristi drugu lokaciju za ovaj oglas
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Ako je ručno odabrana lokacija */}
+        {locationSource === "manual" && location?.city && (
+          <div className="flex items-start gap-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <div className="bg-blue-500 p-2 rounded-lg">
+              <MdEditLocation className="text-white" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-blue-800">Lokacija oglasa</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                {location?.address_translated || location?.address}
+              </p>
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={handleUseManualLocation}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  Promijeni lokaciju
+                </button>
+                {hasLocation && (
+                  <button
+                    onClick={handleUseProfileLocation}
+                    className="text-sm text-green-600 hover:text-green-800 underline"
+                  >
+                    Koristi profil lokaciju
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Odabir lokacije - prikaži ako nema lokacije ili je source "manual" bez odabrane lokacije */}
+        {(locationSource === "none" || (locationSource === "manual" && !location?.city)) && (
+          <>
+            {/* Info ako ima profil lokacija */}
+            {hasLocation && (
+              <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                <MdCheckCircle className="text-green-600 mt-0.5 shrink-0" size={20} />
+                <div className="flex-1">
+                  <p className="text-sm text-green-800 font-medium">Imate sačuvanu lokaciju u profilu</p>
+                  <p className="text-xs text-green-700 mt-1">{getFormattedAddress()}</p>
+                  <button
+                    onClick={handleUseProfileLocation}
+                    className="mt-2 text-sm text-green-700 hover:text-green-900 font-semibold underline"
+                  >
+                    Koristi ovu lokaciju
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* BiH Location Selector */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <IoLocationOutline className="text-primary" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">Odaberite lokaciju oglasa</h3>
+                  <p className="text-sm text-gray-500">Gdje se nalazi vaš artikal?</p>
+                </div>
+              </div>
+              
+              <BiHLocationSelector
+                value={bihLocation}
+                onChange={handleBihLocationChange}
+                showAddress={true}
+                label=""
+              />
+
+              {/* Alternativa - ručni dropdown */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowManualAddress(true)}
+                  className="w-full py-3 px-4 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 transition-all"
+                >
+                  <IoLocationOutline size={20} />
+                  Ili odaberi putem dropdown menija (država/grad/općina)
+                </button>
+              </div>
+            </div>
+
+            {/* Info ako nema profil lokacije */}
+            {!hasLocation && (
+              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <MdInfoOutline className="text-amber-600 mt-0.5 shrink-0" size={20} />
+                <div>
+                  <p className="text-sm text-amber-800 font-medium">Savjet</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Postavite svoju lokaciju u profilu i ona će se automatski popuniti prilikom svakog novog oglasa.
+                  </p>
+                </div>
+              </div>
+            )}
           </>
         )}
+
+        {/* Prikaz odabrane adrese */}
+        {location?.city && (
+          <div className="flex items-start gap-4 bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm">
+            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+              <BiMapPin className="text-blue-600" size={28} />
+            </div>
+            <div className="flex-1">
+              <h6 className="font-semibold text-gray-800 text-lg mb-1">Adresa oglasa</h6>
+              <p className="text-gray-600">
+                {location?.address_translated || location?.address}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
- 
+
       {/* Sticky Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
@@ -343,14 +332,15 @@ const ComponentFive = ({
           </button>
         </div>
       </div>
- 
+
+      {/* Manual Address Modal */}
       <ManualAddress
-        key={showManualAddress}
+        key={showManualAddress ? "open" : "closed"}
         showManualAddress={showManualAddress}
         setShowManualAddress={setShowManualAddress}
-        setLocation={setLocation}
+        setLocation={handleManualAddressSet}
       />
- 
+
       {/* Publish Options Modal */}
       <PublishOptionsModal
         isOpen={showPublishModal}
@@ -362,5 +352,5 @@ const ComponentFive = ({
     </>
   );
 };
- 
+
 export default ComponentFive;
