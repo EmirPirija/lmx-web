@@ -1,8 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
-import { getFullLocationFromMunicipalityId, formatBiHAddress, ENTITIES, getRegionsByEntity, getMunicipalitiesByRegion } from "@/lib/bih-locations";
+import { 
+  getFullLocationFromMunicipalityId, 
+  formatBiHAddress, 
+  BIH_COUNTRY_ISO2,
+  searchMunicipalities 
+} from "@/lib/bih-locations";
 
 /**
  * useUserLocation - Hook za upravljanje lokacijom korisnika
