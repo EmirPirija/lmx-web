@@ -1058,8 +1058,8 @@ useEffect(() => {
             {/* MOBILNI DRAWER ZA HISTORIJU CIJENA */}
             {productDetails?.price_history && productDetails.price_history.length > 0 && (
                 <>
-                    <div className={`fixed inset-0 bg-black/50 z-[60] transition-opacity duration-300 lg:hidden ${showMobilePriceHistory ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`} onClick={() => setShowMobilePriceHistory(false)} />
-                    <div ref={priceHistoryDrawerRef} className={`fixed bottom-12 left-0 right-0 z-[61] bg-white rounded-t-3x transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${showMobilePriceHistory ? "translate-y-0" : "translate-y-full"}`}>
+                    <div className={`fixed inset-0 bg-black/50 z-[101] transition-opacity duration-300 lg:hidden ${showMobilePriceHistory ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`} onClick={() => setShowMobilePriceHistory(false)} />
+                    <div ref={priceHistoryDrawerRef} className={`fixed bottom-0 left-0 right-0 z-[102] bg-white rounded-t-3xl transition-transform duration-300 ease-out transform lg:hidden flex flex-col max-h-[85vh] ${showMobilePriceHistory ? "translate-y-0" : "translate-y-full"}`}>
                         <div className="flex items-center justify-between p-4 border-b border-slate-100">
                             <h3 className="font-bold text-lg text-slate-800">Historija cijena</h3>
                             <button onClick={() => setShowMobilePriceHistory(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
