@@ -569,12 +569,28 @@ useEffect(() => {
 
   // Provjera da li je bilo koji popup/drawer/modal otvoren
   // Koristi se za skrivanje donje trake
-  const isAnyPopupOpen = showStatsModal || 
-                         showMobilePriceHistory || 
-                         showStatusDrawer || 
-                         showFeaturedDrawer || 
-                         isDeleteOpen || 
-                         isOpenInApp;
+  const [hideBottomBar, setHideBottomBar] = useState(false);
+  
+  // Pratimo sve popup stanja i ažuriramo hideBottomBar sa malim delay-om
+  useEffect(() => {
+    const isAnyOpen = showStatsModal || 
+                      showMobilePriceHistory || 
+                      showStatusDrawer || 
+                      showFeaturedDrawer || 
+                      isDeleteOpen || 
+                      isOpenInApp;
+    
+    if (isAnyOpen) {
+      // Odmah sakrij kada se otvori popup
+      setHideBottomBar(true);
+    } else {
+      // Mali delay prije nego se ponovo prikaže (da animacija bude glatka)
+      const timer = setTimeout(() => {
+        setHideBottomBar(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showStatsModal, showMobilePriceHistory, showStatusDrawer, showFeaturedDrawer, isDeleteOpen, isOpenInApp]);
 
   // ============================================
   // TRACKING HOOKS
@@ -1080,7 +1096,7 @@ useEffect(() => {
           {!isMyListing && (
             <div 
               className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
-                isAnyPopupOpen 
+                hideBottomBar 
                   ? "translate-y-full opacity-0 pointer-events-none" 
                   : "translate-y-0 opacity-100"
               }`}
@@ -1131,7 +1147,7 @@ useEffect(() => {
           {isMyListing && (
             <div 
               className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
-                isAnyPopupOpen 
+                hideBottomBar 
                   ? "translate-y-full opacity-0 pointer-events-none" 
                   : "translate-y-0 opacity-100"
               }`}
