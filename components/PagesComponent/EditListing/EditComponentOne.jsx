@@ -7,17 +7,17 @@ import {
   getCurrencyPosition,
   getCurrencySymbol,
 } from "@/redux/reducer/settingSlice";
-import { generateSlug, t } from "@/utils";
+import { generateSlug } from "@/utils";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css"; 
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
- 
+
 // Ikone
-import { MdOutlineTitle, MdAttachMoney, MdLink, MdPhoneIphone, MdChevronRight } from "react-icons/md";
+import { MdOutlineTitle, MdAttachMoney, MdLink, MdPhoneIphone, MdChevronRight, MdInventory } from "react-icons/md";
 import { BsTextParagraph, BsTag } from "react-icons/bs";
 import { FiLink, FiPercent } from "react-icons/fi";
- 
+
 const EditComponentOne = ({
   setTranslations,
   current,
@@ -35,7 +35,7 @@ const EditComponentOne = ({
     currencyPosition === "right"
       ? `00 ${currencySymbol}`
       : `${currencySymbol} 00`;
- 
+
   const handleField = useCallback((field) => (e) => {
     const value = e.target.value;
     setTranslations((prev) => {
@@ -43,18 +43,18 @@ const EditComponentOne = ({
         ...prev[langId],
         [field]: value,
       };
- 
+
       if (field === "name" && langId === defaultLangId) {
         updatedLangData.slug = generateSlug(value);
       }
- 
+
       return {
         ...prev,
         [langId]: updatedLangData,
       };
     });
   }, [langId, defaultLangId, setTranslations]);
- 
+
   const handlePhoneChange = useCallback((value, data) => {
     const dial = data?.dialCode || ""; 
     const iso2 = data?.countryCode || ""; 
@@ -73,60 +73,60 @@ const EditComponentOne = ({
       };
     });
   }, [langId, setTranslations]);
- 
+
   return (
     <div className="flex flex-col gap-6 relative">
       
-      {/* TITLE INPUT */}
+      {/* NASLOV */}
       <div className="flex flex-col gap-2">
         <Label
           htmlFor="title"
           className={`flex items-center gap-2 ${langId === defaultLangId ? "requiredInputLabel" : ""}`}
         >
           <MdOutlineTitle className="text-gray-500" size={16} />
-          {t("title")}
+          Naslov
         </Label>
         <Input
           type="text"
           name="title"
           id="title"
-          placeholder={t("enterTitle")}
+          placeholder="Unesite naslov oglasa"
           value={current.name || ""}
           onChange={handleField("name")}
           className="bg-white"
         />
       </div>
- 
-      {/* DESCRIPTION TEXTAREA */}
+
+      {/* OPIS */}
       <div className="flex flex-col gap-2">
         <Label
           htmlFor="description"
           className={`flex items-center gap-2 ${langId === defaultLangId ? "requiredInputLabel" : ""}`}
         >
           <BsTextParagraph className="text-gray-500" size={16} />
-          {t("description")}
+          Opis
         </Label>
         <Textarea
           name="description"
           id="description"
-          placeholder={t("enterDescription")}
+          placeholder="Unesite detaljan opis artikla..."
           value={current.description || ""}
           onChange={handleField("description")}
           className="min-h-[120px] bg-white resize-y"
         />
       </div>
- 
-      {/* PRICE / SALARY & PHONE SECTION */}
+
+      {/* CIJENA / PLATA & TELEFON */}
       {langId === defaultLangId && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* PRICE OR SALARY */}
+            {/* CIJENA ILI PLATA */}
             {is_job_category ? (
               <>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="min_salary" className="flex items-center gap-2">
                     <MdAttachMoney className="text-gray-500" size={16} />
-                    {t("salaryMin")}
+                    Minimalna plata
                   </Label>
                   <Input
                     type="number"
@@ -142,7 +142,7 @@ const EditComponentOne = ({
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="max_salary" className="flex items-center gap-2">
                     <MdAttachMoney className="text-gray-500" size={16} />
-                    {t("salaryMax")}
+                    Maksimalna plata
                   </Label>
                   <Input
                     type="number"
@@ -164,7 +164,7 @@ const EditComponentOne = ({
                     className={`flex items-center gap-2 ${!isPriceOptional && langId === defaultLangId ? "requiredInputLabel" : ""}`}
                   >
                     <MdAttachMoney className="text-gray-500" size={16} />
-                    {t("price")}
+                    Cijena
                   </Label>
                   <Input
                     type="number"
@@ -177,8 +177,8 @@ const EditComponentOne = ({
                     className="bg-white"
                   />
                 </div>
- 
-                {/* 🔥 AKCIJA / SALE TOGGLE */}
+
+                {/* AKCIJA / POPUST */}
                 <div className="flex flex-col gap-4 col-span-1 md:col-span-2 p-4 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -187,10 +187,10 @@ const EditComponentOne = ({
                       </div>
                       <div>
                         <Label htmlFor="is_on_sale" className="flex items-center gap-2 text-base font-semibold text-gray-800">
-                          {t("akcija") || "Akcija / Popust"}
+                          Akcija / Popust
                         </Label>
                         <p className="text-sm text-gray-500">
-                          {t("akcijaDescription") || "Prikaži staru cijenu prekriženo i istakni novu cijenu"}
+                          Prikaži staru cijenu prekriženo i istakni novu cijenu
                         </p>
                       </div>
                     </div>
@@ -211,12 +211,12 @@ const EditComponentOne = ({
                     />
                   </div>
 
-                  {/* OLD PRICE INPUT */}
+                  {/* STARA CIJENA */}
                   {current.is_on_sale && (
                     <div className="flex flex-col gap-2 animate-in slide-in-from-top-2 duration-300">
                       <Label htmlFor="old_price" className="flex items-center gap-2 text-sm font-medium text-gray-700">
                         <BsTag className="text-gray-500" size={14} />
-                        {t("oldPrice") || "Stara cijena (prije akcije)"}
+                        Stara cijena (prije akcije)
                       </Label>
                       <div className="relative">
                         <Input
@@ -237,25 +237,25 @@ const EditComponentOne = ({
                       </div>
                       {current.old_price && current.price && Number(current.old_price) <= Number(current.price) && (
                         <p className="text-xs text-orange-600">
-                          ⚠️ {t("oldPriceMustBeHigher") || "Stara cijena mora biti veća od nove cijene"}
+                          ⚠️ Stara cijena mora biti veća od nove cijene
                         </p>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* 📦 INVENTORY COUNT FIELD */}
+                {/* KOLIČINA NA ZALIHI */}
                 <div className="flex flex-col gap-4 col-span-1 md:col-span-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-lg">
-                      <span className="text-xl">📦</span>
+                      <MdInventory className="text-blue-600" size={20} />
                     </div>
                     <div className="flex-1">
                       <Label htmlFor="inventory_count" className="flex items-center gap-2 text-base font-semibold text-gray-800">
-                        {t("inventoryCount") || "Količina na zalihi"}
+                        Količina na zalihi
                       </Label>
                       <p className="text-sm text-gray-500">
-                        {t("inventoryDescription") || "Ostavite prazno ako prodajete samo jedan artikal"}
+                        Ostavite prazno ako prodajete samo jedan artikal
                       </p>
                     </div>
                   </div>
@@ -264,28 +264,28 @@ const EditComponentOne = ({
                     name="inventory_count"
                     id="inventory_count"
                     min={1}
-                    placeholder={t("inventoryPlaceholder") || "npr: 10"}
+                    placeholder="npr. 10"
                     value={current.inventory_count || ""}
                     onChange={handleField("inventory_count")}
                     className="bg-white border-blue-200 focus:border-blue-400 focus:ring-blue-400"
                   />
                   {current.inventory_count && parseInt(current.inventory_count) > 1 && (
                     <p className="text-xs text-blue-600">
-                      ✨ {t("inventoryTrackingEnabled") || "Super! Moći ćete pratiti prodaju i količinu na zalihi za ovaj oglas."}
+                      ✨ Odlično! Moći ćete pratiti prodaju i količinu na zalihi za ovaj oglas.
                     </p>
                   )}
                 </div>
               </>
             )}
- 
-            {/* PHONE INPUT */}
+
+            {/* TELEFON */}
             <div className="flex flex-col gap-2">
               <Label
                 htmlFor="phonenumber"
                 className={`flex items-center gap-2 ${langId === defaultLangId ? "requiredInputLabel" : ""}`}
               >
                 <MdPhoneIphone className="text-gray-500" size={16} />
-                {t("phoneNumber")}
+                Broj telefona
               </Label>
               <div className="phone-input-container">
                 <PhoneInput
@@ -305,38 +305,38 @@ const EditComponentOne = ({
               </div>
             </div>
           </div>
- 
+
           {/* VIDEO LINK */}
           <div className="flex flex-col gap-2">
             <Label htmlFor="videoLink" className="flex items-center gap-2">
               <MdLink className="text-gray-500" size={18} />
-              {t("videoLink")}
+              Video link
             </Label>
             <Input
               type="text"
               name="videoLink"
               id="videoLink"
-              placeholder={t("enterAdditionalLinks")}
+              placeholder="Unesite YouTube ili drugi video link"
               value={current.video_link || ""}
               onChange={handleField("video_link")}
               className="bg-white"
             />
           </div>
- 
-          {/* SLUG INPUT */}
+
+          {/* SLUG */}
           <div className="flex flex-col gap-2">
             <Label htmlFor="slug" className="flex items-center gap-2">
               <FiLink className="text-gray-500" size={16} />
-              {t("slug")}{" "}
+              Slug{" "}
               <span className="text-sm font-normal text-muted-foreground ml-1">
-                ({t("allowedSlug")})
+                (samo slova, brojevi i crtice)
               </span>
             </Label>
             <Input
               type="text"
               name="slug"
               id="slug"
-              placeholder={t("enterSlug")}
+              placeholder="npr. moj-oglas-123"
               onChange={handleField("slug")}
               value={current.slug || ""}
               className="bg-gray-50 text-gray-600"
@@ -344,27 +344,27 @@ const EditComponentOne = ({
           </div>
         </div>
       )}
- 
-      {/* 🚀 STICKY FOOTER ACTION BUTTONS */}
+
+      {/* FOOTER DUGMAD */}
       <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md border-t -mx-6 -mb-6 p-6 mt-4 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] rounded-b-lg">
         <button
           className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 hover:border-gray-300 transition-all"
           onClick={() => router.back()}
         >
-          {t("cancel")}
+          Odustani
         </button>
- 
+
         <button
           className="bg-primary hover:bg-primary/90 text-white px-8 py-2.5 rounded-xl text-lg font-medium shadow-sm flex items-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
           onClick={handleDetailsSubmit}
         >
-          {t("next")}
+          Nastavi
           <MdChevronRight size={22} />
         </button>
       </div>
- 
+
     </div>
   );
 };
- 
+
 export default memo(EditComponentOne);
