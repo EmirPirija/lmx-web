@@ -28,7 +28,7 @@ import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import { useNavigate } from "@/components/Common/useNavigate";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
+ 
 // ============================================
 // HELPER FUNKCIJE
 // ============================================
@@ -40,7 +40,7 @@ const formatBosnianPrice = (price) => {
     maximumFractionDigits: 0,
   }).format(Number(price)) + " KM";
 };
-
+ 
 const formatShortDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -51,7 +51,7 @@ const formatShortDate = (dateString) => {
   const year = date.getFullYear();
   return `${day}. ${month} ${year}`;
 };
-
+ 
 const formatNumber = (num) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -69,7 +69,7 @@ const formatScheduledDate = (dateString) => {
     minute: '2-digit'
   });
 };
-
+ 
 // ============================================
 // KOMPONENTA: QUICK STATS PRIKAZ
 // ============================================
@@ -77,7 +77,7 @@ const QuickStatsDisplay = ({ productDetails }) => {
   const views = productDetails?.clicks || 0;
   const favorites = productDetails?.favourites_count || productDetails?.favourites?.length || 0;
   const messages = productDetails?.total_messages || 0;
-
+ 
   return (
     <div className="flex items-center gap-4 text-sm text-slate-500">
       <div className="flex items-center gap-1.5" title="Pregledi">
@@ -97,17 +97,17 @@ const QuickStatsDisplay = ({ productDetails }) => {
     </div>
   );
 };
-
+ 
 // ============================================
 // KOMPONENTA: DESKTOP MODAL ZA HISTORIJU
 // ============================================
 const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice }) => {
   if (!isOpen || !priceHistory) return null;
-
+ 
   const sortedHistory = [...priceHistory].sort((a, b) => 
     new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
   );
-
+ 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 hidden lg:flex">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity" onClick={onClose} />
@@ -129,7 +129,7 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
             const itemChange = index === 0 ? currentPrice - itemPrice : itemPrice - prevPrice;
             const isChangeDown = itemChange < 0;
             const isChangeUp = itemChange > 0;
-
+ 
             return (
               <div key={index} className="flex items-center justify-between p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-3">
@@ -163,7 +163,7 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
     </div>
   );
 };
-
+ 
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -174,11 +174,11 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
   const [IsDeleteAccount, setIsDeleteAccount] = useState(false);
   const [IsDeletingAccount, setIsDeletingAccount] = useState(false);
   const [IsShowJobApplications, setIsShowJobApplications] = useState(false);
-
+ 
   const [status, setStatus] = useState(productDetails?.status || "");
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
   const statusDrawerRef = useRef(null);
-
+ 
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [showDesktopHistory, setShowDesktopHistory] = useState(false);
   const historyDrawerRef = useRef(null);
@@ -206,10 +206,10 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
   const savings = isOnSale && oldPrice && currentPrice ? Math.max(0, Number(oldPrice) - Number(currentPrice)) : 0;
   
   const hasHistory = !isJobCategory && productDetails?.price_history && productDetails.price_history.length > 0;
-
+ 
   // Statistika dostupna za sve aktivne i završene oglase
   const canViewStatistics = productDetails?.status && ["approved", "featured", "sold out"].includes(productDetails.status);
-
+ 
   const handleHistoryClick = () => {
     if (window.innerWidth >= 1024) {
       setShowDesktopHistory(true);
@@ -217,11 +217,11 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       setShowHistoryDrawer(true);
     }
   };
-
+ 
   const handleStatisticsClick = () => {
     navigate(`/my-ads/${productDetails?.slug}/statistics`);
   };
-
+ 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (statusDrawerRef.current && !statusDrawerRef.current.contains(event.target)) {
@@ -255,7 +255,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       document.body.style.overflow = 'unset';
     };
   }, [showHistoryDrawer]);
-
+ 
   useEffect(() => {
     if (showDesktopHistory) {
       document.body.style.overflow = 'hidden';
@@ -263,7 +263,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
       document.body.style.overflow = 'unset';
     }
   }, [showDesktopHistory]);
-
+ 
   const deleteAd = async () => {
     try {
       setIsDeletingAccount(true);
@@ -361,7 +361,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               </button>
             )}
           </div>
-
+ 
           {/* QUICK STATS - prikaži samo ako ima pregleda */}
           {(productDetails?.clicks > 0 || productDetails?.favourites?.length > 0) && (
             <div className="mb-4">
@@ -371,7 +371,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
  
           {/* RAZDJELNIK */}
           <div className="h-px w-full bg-slate-200 mb-4"></div>
-
+ 
           {/* STATISTICS BUTTON - Desktop */}
           {canViewStatistics && (
             <button 
@@ -382,7 +382,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               <span>Pogledaj detaljnu statistiku</span>
             </button>
           )}
-
+ 
           {/* DESKTOP ACTIONS */}
           <div className="hidden lg:flex items-center gap-3">
             <button 
@@ -426,7 +426,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
         priceHistory={productDetails?.price_history} 
         currentPrice={productDetails?.price} 
       />
-
+ 
       <ReusableAlertDialog
         open={IsDeleteAccount}
         onCancel={() => setIsDeleteAccount(false)}
@@ -437,7 +437,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
         confirmText={t("yes")}
         confirmDisabled={IsDeletingAccount}
       />
-
+ 
       {/* MOBILE HISTORY DRAWER */}
       {hasHistory && (
         <>
@@ -462,7 +462,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                     const itemChange = index === 0 ? currentPrice - itemPrice : itemPrice - prevPrice;
                     const isChangeDown = itemChange < 0;
                     const isChangeUp = itemChange > 0;
-
+ 
                     return (
                       <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                         <div className="flex items-center gap-3">
@@ -495,7 +495,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
           </div>
         </>
       )}
-
+ 
       {/* MOBILE ACTION BAR */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] p-3">
         <div className="container flex items-center gap-3">
@@ -507,12 +507,15 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               )}
             <p className={`text-sm font-bold truncate ${
               productDetails?.status === 'approved' ? 'text-green-600' : 
+              productDetails?.status === 'reserved' ? 'text-amber-600' : 
               productDetails?.status === 'pending' ? 'text-yellow-600' : 
               productDetails?.status === 'scheduled' ? 'text-blue-600' :
               productDetails?.status === 'review' ? 'text-orange-600' :
+              productDetails?.status === 'sold out' ? 'text-blue-600' :
               'text-slate-700'
             }`}>
               {productDetails?.status === 'approved' ? 'Aktivan' : 
+               productDetails?.status === 'reserved' ? '🔒 Rezervisano' : 
                productDetails?.status === 'pending' ? 'Na čekanju' : 
                productDetails?.status === 'scheduled' ? `Zakazano ${formatScheduledDate(productDetails?.scheduled_at)}` :
                productDetails?.status === 'review' ? 'Na pregledu' :
@@ -533,7 +536,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                 <IoStatsChartOutline size={20} />
               </button>
             )}
-
+ 
             {isEditable && (
               <>
                 <button
@@ -543,7 +546,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                 >
                   <MdHistory size={20} />
                 </button>
-
+ 
                 <Link 
                   href={`/edit-listing/${productDetails?.id}`}
                   className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 active:scale-95 transition-all"
@@ -553,7 +556,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
                 </Link>
               </>
             )}
-
+ 
             <button 
               className="w-10 h-10 flex items-center justify-center bg-red-600 text-white rounded-lg hover:bg-red-700 active:scale-95 transition-all"
               aria-label="Obriši"
@@ -562,7 +565,7 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
               <MdDelete size={20} />
             </button>
           </div>
-
+ 
         </div>
       </div>
     </>

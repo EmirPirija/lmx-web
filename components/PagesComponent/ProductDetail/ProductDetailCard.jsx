@@ -19,9 +19,9 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { manageFavouriteApi } from "@/utils/api";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import { createPortal } from "react-dom";
-
-
-
+ 
+ 
+ 
 // ============================================
 // HELPER FUNKCIJE
 // ============================================
@@ -32,7 +32,7 @@ const formatBosnianPrice = (price) => {
     maximumFractionDigits: 0,
   }).format(price) + ' KM';
 };
-
+ 
 const formatBosnianSalary = (min, max) => {
   if (!min && !max) return "Po dogovoru";
   const formatNum = (num) => new Intl.NumberFormat('bs-BA').format(num);
@@ -40,7 +40,7 @@ const formatBosnianSalary = (min, max) => {
   if (min) return `Od ${formatNum(min)} KM`;
   return `Do ${formatNum(max)} KM`;
 };
-
+ 
 const formatBosnianDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -56,7 +56,7 @@ const formatBosnianDate = (dateString) => {
   
   return `${day}. ${month} ${year}`;
 };
-
+ 
 const formatShortDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -72,44 +72,44 @@ const formatShortDate = (dateString) => {
   
   return `${day}. ${month} ${year}`;
 };
-
-
+ 
+ 
 // ============================================
 // DESKTOP MODAL ZA HISTORIJU (PORTAL + ANIMACIJA, BEZ OVERLAY/BLUR)
 // ============================================
 const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice }) => {
   const modalRef = useRef(null);
-
+ 
   const sortedHistory = useMemo(() => {
     if (!priceHistory) return [];
     return [...priceHistory].sort(
       (a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
     );
   }, [priceHistory]);
-
+ 
   // ESC zatvaranje + fokus
   useEffect(() => {
     if (!isOpen) return;
-
+ 
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose();
     };
-
+ 
     window.addEventListener("keydown", onKeyDown);
     // fokus nakon mounta
     setTimeout(() => modalRef.current?.focus(), 0);
-
+ 
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
-
+ 
   // ništa ne prikazuj ako nema historije
   if (!priceHistory) return null;
-
+ 
   // PORTAL: renderuj uvijek u body, ne u parent container
   if (typeof window === "undefined") return null;
-
+ 
   return createPortal(
-    // “wrapper” postoji uvijek (za smooth exit animaciju), ali klikovi samo kad je otvoren
+    // "wrapper" postoji uvijek (za smooth exit animaciju), ali klikovi samo kad je otvoren
     <div
       className={cn(
         "fixed inset-0 z-[100] hidden lg:flex items-center justify-center p-4",
@@ -117,8 +117,8 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
       )}
       aria-hidden={!isOpen}
     >
-      {/* NEMA OVERLAYA - samo modal “pluta” */}
-
+      {/* NEMA OVERLAYA - samo modal "pluta" */}
+ 
       <div
         ref={modalRef}
         tabIndex={-1}
@@ -139,21 +139,21 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
             <IoClose size={20} />
           </button>
         </div>
-
+ 
         <div className="p-0 max-h-[60vh] overflow-y-auto">
           {sortedHistory.map((item, index) => {
             const itemPrice = item.price || item.old_price;
             const itemDate = item.created_at || item.date;
-
+ 
             const prevPrice =
               index < sortedHistory.length - 1
                 ? sortedHistory[index + 1]?.price || sortedHistory[index + 1]?.old_price
                 : itemPrice;
-
+ 
             const itemChange = index === 0 ? currentPrice - itemPrice : itemPrice - prevPrice;
             const isChangeDown = itemChange < 0;
             const isChangeUp = itemChange > 0;
-
+ 
             return (
               <div
                 key={index}
@@ -181,7 +181,7 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
                     <p className="text-xs text-slate-400">{formatShortDate(itemDate)}</p>
                   </div>
                 </div>
-
+ 
                 {(isChangeDown || isChangeUp) && index > 0 && (
                   <div
                     className={cn(
@@ -193,7 +193,7 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
                     {formatBosnianPrice(Math.abs(itemChange))}
                   </div>
                 )}
-
+ 
                 {index === 0 && (
                   <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded-md">
                     Trenutna
@@ -208,8 +208,8 @@ const DesktopPriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice 
     document.body
   );
 };
-
-
+ 
+ 
 // ============================================
 // GLAVNA KOMPONENTA
 // ============================================
@@ -224,14 +224,18 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [showDesktopHistory, setShowDesktopHistory] = useState(false);
   const historyDrawerRef = useRef(null);
-
+ 
   const productName = translated_item?.name || productDetails?.name;
   const FbTitle = productName + " | " + CompanyName;
   const headline = `🚀 Pogledaj ovu odličnu ponudu! "${productName}" na ${CompanyName}.`;
   
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
   const hasHistory = !isJobCategory && productDetails?.price_history && productDetails.price_history.length > 0;
-
+  
+  // Check if item is reserved
+  const isReserved = productDetails?.status === 'reserved' || 
+                     productDetails?.reservation_status === 'reserved';
+ 
   // Sale/Akcija logika
   const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
   const oldPrice = productDetails?.old_price;
@@ -242,7 +246,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
       : 0
   );
   const savings = isOnSale && oldPrice && currentPrice ? Math.max(0, Number(oldPrice) - Number(currentPrice)) : 0;
-
+ 
   const handleHistoryClick = () => {
     if (window.innerWidth >= 1024) {
       setShowDesktopHistory(true);
@@ -250,7 +254,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
       setShowHistoryDrawer(true);
     }
   };
-
+ 
   const handleLikeItem = async () => {
     if (!isLoggedIn) {
       dispatch(setIsLoginOpen(true));
@@ -277,7 +281,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
       toast.error("Greška pri ažuriranju omiljenih");
     }
   };
-
+ 
   // Close drawer on outside click (mobile)
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -296,7 +300,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
       document.body.style.overflow = 'unset';
     };
   }, [showHistoryDrawer]);
-
+ 
   // Lock scroll for desktop modal
   useEffect(() => {
     if (showDesktopHistory) {
@@ -305,24 +309,34 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
       document.body.style.overflow = 'unset';
     }
   }, [showDesktopHistory]);
-
+ 
   return (
     <>
       <div className="overflow-hidden">
         <div className="p-5 lg:p-6">
+          {/* Reserved badge - Prominent warning */}
+          {isReserved && (
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-300 text-sm font-bold px-3 py-1.5 rounded-lg mb-3">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              REZERVISANO
+            </div>
+          )}
+          
           {/* Featured badge - Manji i minimalističkiji */}
-          {productDetails?.is_feature === 1 && (
+          {productDetails?.is_feature === 1 && !isReserved && (
             <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-md mb-3">
               <MdStar className="text-sm" />
               Istaknut
             </div>
           )}
-
+ 
           {/* Naslov */}
           <h1 className="text-xl lg:text-2xl font-bold text-slate-900 mb-3 leading-tight">
             {productName}
           </h1>
-
+ 
           {/* CIJENA SA AKCIJOM */}
           <div className="mb-4">
             {isOnSale && oldPrice && discountPercentage > 0 ? (
@@ -345,7 +359,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
                   )}
                 </div>
                 
-
+ 
               </div>
             ) : (
               <div className="flex items-center gap-3">
@@ -368,14 +382,14 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
               </div>
             )}
           </div>
-
-
+ 
+ 
           {/* RAZDJELNIK */}
           {/* <div className="h-px w-full bg-slate-200 my-4"></div> */}
-
+ 
           {/* AKCIJE - Minimalističke */}
           <div className="flex items-center justify-between">
-
+ 
             {/* Action buttons */}
             <div className="flex items-center gap-2">
               <ShareDropdown
@@ -385,7 +399,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
                 companyName={CompanyName}
                 className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
               />
-
+ 
               <button
                 className={cn(
                   "flex items-center justify-center w-9 h-9 rounded-full transition-colors",
@@ -406,7 +420,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
           </div>
         </div>
       </div>
-
+ 
       {/* DESKTOP MODAL */}
       <DesktopPriceHistoryModal 
         isOpen={showDesktopHistory} 
@@ -414,7 +428,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
         priceHistory={productDetails?.price_history} 
         currentPrice={productDetails?.price} 
       />
-
+ 
       {/* MOBILE DRAWER */}
       {hasHistory && (
         <>
@@ -439,7 +453,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
                     const itemChange = index === 0 ? productDetails.price - itemPrice : itemPrice - prevPrice;
                     const isChangeDown = itemChange < 0;
                     const isChangeUp = itemChange > 0;
-
+ 
                     return (
                       <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                         <div className="flex items-center gap-3">
@@ -475,5 +489,5 @@ const ProductDetailCard = ({ productDetails, setProductDetails }) => {
     </>
   );
 };
-
+ 
 export default ProductDetailCard;

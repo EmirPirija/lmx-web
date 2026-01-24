@@ -20,16 +20,20 @@ import { getIsRtl } from "@/redux/reducer/languageSlice";
 import ReactPlayer from "react-player";
 import { getPlaceholderImage } from "@/redux/reducer/settingSlice";
 import CustomImage from "@/components/Common/CustomImage";
-
+ 
 const ProductGallery = ({ 
   galleryImages, 
   videoData,
+  productDetails,
   // ✅ TRACKING PROPS
   onGalleryOpen,
   onImageView,
   onImageZoom,
   onVideoPlay,
 }) => {
+  // Check if item is reserved
+  const isReserved = productDetails?.status === 'reserved' || 
+                     productDetails?.reservation_status === 'reserved';
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -38,14 +42,14 @@ const ProductGallery = ({
   const carouselApi = useRef(null);
   const isRTL = useSelector(getIsRtl);
   const placeHolderImage = useSelector(getPlaceholderImage);
-
+ 
   const hasVideo = videoData?.url;
   const totalItems = galleryImages.length + (hasVideo ? 1 : 0);
-
+ 
   // Video je na zadnjem indexu
   const videoIndex = hasVideo ? galleryImages.length : -1;
   const isVideoSelected = selectedIndex === videoIndex;
-
+ 
   // Extract YouTube thumbnail
   const getYouTubeThumbnail = (url) => {
     if (!url) return null;
@@ -57,27 +61,27 @@ const ProductGallery = ({
     }
     return videoData?.thumbnail || null;
   };
-
+ 
   const videoThumbnail = getYouTubeThumbnail(videoData?.url) || videoData?.thumbnail;
-
+ 
   useEffect(() => {
     if (!carouselApi.current) return;
     const handleSelect = () => {
       setImageLoaded(false);
     };
     carouselApi.current.on("select", handleSelect);
-
+ 
     return () => {
       carouselApi.current?.off("select", handleSelect);
     };
   }, []);
-
+ 
   useEffect(() => {
     setImageLoaded(false);
     const timer = setTimeout(() => setImageLoaded(true), 100);
     return () => clearTimeout(timer);
   }, [selectedIndex]);
-
+ 
   // Reset video state when switching away
   useEffect(() => {
     if (!isVideoSelected) {
@@ -85,14 +89,14 @@ const ProductGallery = ({
       setIsVideoReady(false);
     }
   }, [isVideoSelected]);
-
+ 
   // ✅ TRACK IMAGE VIEW KADA SE PROMIJENI INDEX
   useEffect(() => {
     if (selectedIndex >= 0 && selectedIndex < galleryImages.length && onImageView) {
       onImageView(selectedIndex);
     }
   }, [selectedIndex, galleryImages.length, onImageView]);
-
+ 
   const handlePrevImage = () => {
     if (selectedIndex === 0) {
       setSelectedIndex(totalItems - 1);
@@ -100,7 +104,7 @@ const ProductGallery = ({
       setSelectedIndex(selectedIndex - 1);
     }
   };
-
+ 
   const handleNextImage = () => {
     if (selectedIndex === totalItems - 1) {
       setSelectedIndex(0);
@@ -108,11 +112,11 @@ const ProductGallery = ({
       setSelectedIndex(selectedIndex + 1);
     }
   };
-
+ 
   const handleImageClick = (index) => {
     setSelectedIndex(index);
   };
-
+ 
   // ✅ HANDLER ZA GALLERY OPEN (Lightbox)
   const handleGalleryOpen = useCallback(() => {
     if (!hasTrackedGalleryOpen && onGalleryOpen) {
@@ -120,14 +124,14 @@ const ProductGallery = ({
       setHasTrackedGalleryOpen(true);
     }
   }, [hasTrackedGalleryOpen, onGalleryOpen]);
-
+ 
   // ✅ HANDLER ZA ZOOM
   const handleImageZoom = useCallback(() => {
     if (onImageZoom) {
       onImageZoom();
     }
   }, [onImageZoom]);
-
+ 
   // ✅ HANDLER ZA VIDEO PLAY
   const handleVideoPlay = useCallback(() => {
     setIsVideoPlaying(true);
@@ -135,14 +139,14 @@ const ProductGallery = ({
       onVideoPlay();
     }
   }, [onVideoPlay]);
-
+ 
   // Scroll thumbnail into view
   useEffect(() => {
     if (carouselApi.current && selectedIndex >= 0 && selectedIndex < galleryImages.length) {
       carouselApi.current.scrollTo(selectedIndex);
     }
   }, [selectedIndex, galleryImages.length]);
-
+ 
   return (
     <PhotoProvider
       maskOpacity={0.95}
@@ -182,7 +186,7 @@ const ProductGallery = ({
               );
             })}
           </div>
-
+ 
           {/* Kontrole zuma (Zoom Controls) */}
           <div className="flex gap-2 items-center bg-black/50 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
             <button
@@ -237,7 +241,7 @@ const ProductGallery = ({
                     <RiPlayCircleFill size={48} className="text-white ml-1" />
                   </div>
                 </div>
-
+ 
                 {/* Video Label */}
                 <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
                   <span className="text-white text-sm font-medium flex items-center gap-2">
@@ -247,7 +251,7 @@ const ProductGallery = ({
                 </div>
               </div>
             )}
-
+ 
             {/* Actual Player - loads when playing */}
             {isVideoPlaying && (
               <>
@@ -313,7 +317,7 @@ const ProductGallery = ({
             </div>
           </div>
         )}
-
+ 
         {/* Navigation Arrows on Main Image */}
         <button
           onClick={handlePrevImage}
@@ -327,7 +331,19 @@ const ProductGallery = ({
         >
           <RiArrowRightLine size={24} className={`text-gray-800 dark:text-white ${isRTL ? "rotate-180" : ""}`} />
         </button>
-
+ 
+        {/* RESERVED BADGE - Prominent overlay when item is reserved */}
+        {isReserved && (
+          <div className="absolute top-4 left-4 z-30">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-pulse">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <span className="font-bold text-sm uppercase tracking-wider">Rezervisano</span>
+            </div>
+          </div>
+        )}
+ 
         {/* Counter Badge with Video Icon */}
         <div className="absolute top-4 right-4 flex items-center gap-2 z-30">
           {hasVideo && (
@@ -349,7 +365,7 @@ const ProductGallery = ({
             </span>
           </div>
         </div>
-
+ 
         {/* Progress Dots */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
           {galleryImages?.map((_, idx) => (
@@ -375,10 +391,10 @@ const ProductGallery = ({
           )}
         </div>
       </div>
-
+ 
       
     </PhotoProvider>
   );
 };
-
+ 
 export default ProductGallery;
