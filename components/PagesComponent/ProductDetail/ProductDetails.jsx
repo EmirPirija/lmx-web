@@ -1095,10 +1095,10 @@ useEffect(() => {
           {/* TRAKA ZA KUPCA (JAVNI OGLAS) */}
           {!isMyListing && (
             <div 
-              className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
+              className={`lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
                 hideBottomBar 
-                  ? "translate-y-full opacity-0 pointer-events-none" 
-                  : "translate-y-0 opacity-100"
+                  ? "translate-y-full opacity-0 z-[50]" 
+                  : "translate-y-0 opacity-100 z-[100]"
               }`}
             >
               <div className="container flex items-center gap-3">
@@ -1146,10 +1146,10 @@ useEffect(() => {
           {/* TRAKA ZA PRODAVAČA (MOJ OGLAS) */}
           {isMyListing && (
             <div 
-              className={`lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
+              className={`lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-3 safe-area-bottom transition-all duration-300 ease-out ${
                 hideBottomBar 
-                  ? "translate-y-full opacity-0 pointer-events-none" 
-                  : "translate-y-0 opacity-100"
+                  ? "translate-y-full opacity-0 z-[50]" 
+                  : "translate-y-0 opacity-100 z-[100]"
               }`}
             >
               <div className="container flex items-center gap-3">
