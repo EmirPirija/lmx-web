@@ -70,6 +70,7 @@ const getReferrer = () => {
   return document.referrer || null;
 };
 
+
 // Uses same endpoints as your api.js publicTrackingApi:
 // POST /track/search-impressions
 const postForm = async (endpoint, data) => {
@@ -178,6 +179,51 @@ const formatAdCount = (n) => {
   const num = Number(n) || 0;
   return num === 1 ? "1 oglas" : `${num} oglasa`;
 };
+
+const formatSavedSearchSubtitle = (qs) => {
+  const params = new URLSearchParams((qs || "").replace(/^\?/, ""));
+
+  const parts = [];
+
+  const q = params.get("query");
+  const category = params.get("category");
+
+  const min = params.get("min_price");
+  const max = params.get("max_price");
+
+  const city = params.get("city");
+  const state = params.get("state");
+  const country = params.get("country");
+  const km = params.get("km_range");
+
+  if (q) parts.push(`Upit: ${q}`);
+  if (category) parts.push(`Kategorija: ${category}`);
+
+  if (min || max) {
+    if (min && max) parts.push(`Cijena: ${min}–${max} KM`);
+    else if (max) parts.push(`Cijena: do ${max} KM`);
+    else parts.push(`Cijena: od ${min} KM`);
+  }
+
+  if (city || state || country) {
+    parts.push(`Lokacija: ${[city, state, country].filter(Boolean).join(", ")}`);
+  }
+
+  if (km) parts.push(`U blizini: ${km} km`);
+
+  const known = new Set([
+    "query","category","min_price","max_price","city","state","country","km_range",
+    "lang","sort_by","page","featured_section","lat","lng","area","areaId"
+  ]);
+
+  let extraCount = 0;
+  for (const [k] of params.entries()) if (!known.has(k)) extraCount++;
+  if (extraCount) parts.push(`+ ${extraCount} filtera`);
+
+  if (!parts.length) return "Svi oglasi (bez filtera)";
+  return parts.slice(0, 3).join(" • ");
+};
+
 
 const Search = () => {
   const {
@@ -334,6 +380,7 @@ const Search = () => {
     },
     [selectedItem?.slug]
   );
+
 
   // Search API
   const performSearch = useCallback(
@@ -829,8 +876,10 @@ const Search = () => {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{s.naziv}</p>
                           <p className="text-xs text-gray-500 truncate">
-                            {s.queryString ? `ads?${s.queryString}` : "Svi oglasi"}
+                            {formatSavedSearchSubtitle(s.queryString || s.query_string || "")}
                           </p>
+
+
                         </div>
                       </button>
                     ))}
