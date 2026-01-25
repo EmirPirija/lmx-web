@@ -101,12 +101,17 @@ export const sliderApi = {
 
 // 3. CATEGORY API
 export const categoryApi = {
-  getCategory: ({ category_id, page } = {}) => {
+  getCategory: ({ category_id, page = 1, per_page = 50, signal } = {}) => {
+    const params = { page, per_page };
+    if (category_id) params.category_id = category_id;
+
     return Api.get(GET_CATEGORIES, {
-      params: { category_id, page },
+      params,
+      signal, // axios v1+ podržava AbortController signal
     });
   },
 };
+
 // 3. MY ITEMS API
 export const getMyItemsApi = {
   getMyItems: ({ sort_by, page, status, id, category_id, slug } = {}) => {

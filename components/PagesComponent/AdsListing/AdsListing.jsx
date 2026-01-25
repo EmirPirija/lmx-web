@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import ComponentOne from "./ComponentOne";
 import {
   addItemApi,
@@ -10,11 +10,9 @@ import {
 import ComponentTwo from "./ComponentTwo";
 import {
   filterNonDefaultTranslations,
-  isValidURL,
   prepareCustomFieldFiles,
   prepareCustomFieldTranslations,
   t,
-  validateExtraDetails,
 } from "@/utils";
 import { toast } from "sonner";
 import ComponentThree from "./ComponentThree";
@@ -27,26 +25,39 @@ import Layout from "@/components/Layout/Layout";
 import Checkauth from "@/HOC/Checkauth";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import AdLanguageSelector from "./AdLanguageSelector";
-import {
-  getDefaultLanguageCode,
-  getLanguages,
-} from "@/redux/reducer/settingSlice";
+import { getDefaultLanguageCode, getLanguages } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
-import { CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Award,
+  TrendingUp,
+  Zap,
+  Star,
+  Upload,
+  MapPin,
+} from "lucide-react";
 
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
+  const userData = useSelector(userSignUpData);
+
   const [step, setStep] = useState(1);
-  const [categories, setCategories] = useState();
+
+  // ✅ default [] (ne undefined) da renderi budu stabilni
+  const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [isLoadMoreCat, setIsLoadMoreCat] = useState(false);
   const [categoryPath, setCategoryPath] = useState([]);
-  const [currentPage, setCurrentPage] = useState();
-  const [lastPage, setLastPage] = useState();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+
   const [scheduledAt, setScheduledAt] = useState(null);
-const [isScheduledAd, setIsScheduledAd] = useState(false);
+  const [isScheduledAd, setIsScheduledAd] = useState(false);
   const [availableNow, setAvailableNow] = useState(false);
+
+
   const [disabledTab, setDisabledTab] = useState({
     categoryTab: false,
     detailTab: true,
@@ -54,6 +65,7 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
     images: true,
     location: true,
   });
+
   const [customFields, setCustomFields] = useState([]);
   const [filePreviews, setFilePreviews] = useState({});
   const [uploadedImages, setUploadedImages] = useState([]);
@@ -64,17 +76,14 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
   const [createdAdSlug, setCreatedAdSlug] = useState("");
   const [recentCategories, setRecentCategories] = useState([]);
-  const userData = useSelector(userSignUpData);
+
+  const [allCategoriesTree, setAllCategoriesTree] = useState([]);
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
-  const defaultLangId = languages?.find(
-    (lang) => lang.code === defaultLanguageCode
-  )?.id;
+  const defaultLangId = languages?.find((lang) => lang.code === defaultLanguageCode)?.id;
 
-  const [extraDetails, setExtraDetails] = useState({
-    [defaultLangId]: {},
-  });
+  const [extraDetails, setExtraDetails] = useState({ [defaultLangId]: {} });
   const [langId, setLangId] = useState(defaultLangId);
 
   const countryCode = userData?.country_code?.replace("+", "") || "91";
@@ -91,26 +100,155 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
       region_code: regionCode,
     },
   });
+
   const hasTextbox = customFields.some((field) => field.type === "textbox");
 
   const defaultDetails = translations[defaultLangId] || {};
   const currentDetails = translations[langId] || {};
   const currentExtraDetails = extraDetails[langId] || {};
 
-  const is_job_category =
-    Number(categoryPath[categoryPath.length - 1]?.is_job_category) === 1;
-  const isPriceOptional =
-    Number(categoryPath[categoryPath.length - 1]?.price_optional) === 1;
+  const is_job_category = Number(categoryPath[categoryPath.length - 1]?.is_job_category) === 1;
+  const isPriceOptional = Number(categoryPath[categoryPath.length - 1]?.price_optional) === 1;
 
-  const allCategoryIdsString = categoryPath
-    .map((category) => category.id)
-    .join(",");
-  let lastItemId = categoryPath[categoryPath.length - 1]?.id;
+  const allCategoryIdsString = categoryPath.map((category) => category.id).join(",");
+  const lastItemId = categoryPath[categoryPath.length - 1]?.id;
 
+  // -------------------------------
+  // ✅ FAST CATEGORY FETCH: cache + abort + stale-guard
+  // -------------------------------
+  const categoriesCacheRef = useRef(new Map());
+  const categoriesAbortRef = useRef(null);
+  const categoriesReqSeqRef = useRef(0);
+
+  const CAT_CACHE_TTL = 1000 * 60 * 30; // 30min
+  const ROOT_PER_PAGE = 50; // total=23 pa uzmi sve u 1 request
+  const CHILD_PER_PAGE = 50;
+
+  const fetchCategories = useCallback(
+    async ({ categoryId = null, page = 1, append = false } = {}) => {
+      const langKey = CurrentLanguage?.id || "lang";
+      const catKey = categoryId ? String(categoryId) : "root";
+      const key = `${langKey}:${catKey}:${page}`;
+
+      // 1) cache hit
+      const cached = categoriesCacheRef.current.get(key);
+      if (cached && Date.now() - cached.ts < CAT_CACHE_TTL) {
+        if (!append) setCategories(cached.data);
+        else setCategories((prev) => [...prev, ...cached.data]);
+        setCurrentPage(cached.current_page);
+        setLastPage(cached.last_page);
+        return;
+      }
+
+      // 2) abort previous
+      if (categoriesAbortRef.current) {
+        categoriesAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      categoriesAbortRef.current = controller;
+
+      // 3) stale response guard
+      categoriesReqSeqRef.current += 1;
+      const reqSeq = categoriesReqSeqRef.current;
+
+      if (!append) setCategoriesLoading(true);
+      else setIsLoadMoreCat(true);
+
+      try {
+        const res = await categoryApi.getCategory({
+          category_id: categoryId || undefined,
+          page,
+          // ⚠️ traži per_page + language_id (update categoryApi da prosledi params)
+          per_page: categoryId ? CHILD_PER_PAGE : ROOT_PER_PAGE,
+          language_id: CurrentLanguage?.id,
+          signal: controller.signal, // ⚠️ update categoryApi da prosledi axios signal
+        });
+
+        // stale response ignore
+        if (reqSeq !== categoriesReqSeqRef.current) return;
+
+        const payload = res?.data?.data;
+        const list = payload?.data || [];
+        const cp = payload?.current_page || page;
+        const lp = payload?.last_page || 1;
+
+        categoriesCacheRef.current.set(key, {
+          ts: Date.now(),
+          data: list,
+          current_page: cp,
+          last_page: lp,
+        });
+
+        if (!append) setCategories(list);
+        else setCategories((prev) => [...prev, ...list]);
+
+        setCurrentPage(cp);
+        setLastPage(lp);
+      } catch (error) {
+        // axios cancel: CanceledError, fetch cancel: AbortError
+        const name = error?.name;
+        if (name !== "CanceledError" && name !== "AbortError") {
+          console.log("category fetch error", error);
+        }
+      } finally {
+        if (!append) setCategoriesLoading(false);
+        else setIsLoadMoreCat(false);
+      }
+    },
+    [CurrentLanguage?.id]
+  );
+
+  const handleFetchCategories = useCallback(
+    async (id) => {
+      await fetchCategories({ categoryId: id || lastItemId || null, page: 1, append: false });
+    },
+    [fetchCategories, lastItemId]
+  );
+
+  const preloadAllRootCategories = useCallback(async () => {
+    // samo root
+    const res1 = await categoryApi.getCategory({
+      page: 1,
+      per_page: 50,
+      language_id: CurrentLanguage?.id,
+    });
+  
+    const payload1 = res1?.data?.data;
+    const list1 = payload1?.data || [];
+    const lp = payload1?.last_page || 1;
+  
+    let all = [...list1];
+  
+    for (let p = 2; p <= lp; p++) {
+      const resP = await categoryApi.getCategory({
+        page: p,
+        per_page: 50,
+        language_id: CurrentLanguage?.id,
+      });
+      const pay = resP?.data?.data;
+      all = all.concat(pay?.data || []);
+    }
+  
+    setAllCategoriesTree(all);
+  }, [CurrentLanguage?.id]);
+  
+
+  const fetchMoreCategory = useCallback(async () => {
+    if (categoriesLoading || isLoadMoreCat) return;
+    if (currentPage >= lastPage) return;
+
+    await fetchCategories({
+      categoryId: lastItemId || null,
+      page: currentPage + 1,
+      append: true,
+    });
+  }, [categoriesLoading, isLoadMoreCat, currentPage, lastPage, lastItemId, fetchCategories]);
+
+  // -------------------------------
   // 🎯 Calculate completeness score
+  // -------------------------------
   const completenessScore = useMemo(() => {
     let score = 0;
-    let totalSteps = 5;
 
     // Step 1: Category (20%)
     if (categoryPath.length > 0) score += 20;
@@ -124,9 +262,11 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
     if (customFields.length === 0) {
       score += 20;
     } else {
-      const filledFields = Object.keys(currentExtraDetails).filter(
-        key => currentExtraDetails[key] && currentExtraDetails[key] !== ""
-      ).length;
+      const filledFields =
+        Object.keys(currentExtraDetails).filter(
+          (key) => currentExtraDetails[key] && currentExtraDetails[key] !== ""
+        ).length || 0;
+
       score += (filledFields / customFields.length) * 20;
     }
 
@@ -145,99 +285,68 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
     return Math.round(score);
   }, [categoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, otherImages, location]);
 
-  // 🏆 Calculate quality badges
   const qualityBadges = useMemo(() => {
     const badges = [];
-
     return badges;
-  }, [uploadedImages, otherImages, defaultDetails, completenessScore]);
+  }, []);
 
   // Load recent categories from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("recentCategories");
-    if (stored) {
-      setRecentCategories(JSON.parse(stored));
-    }
+    if (stored) setRecentCategories(JSON.parse(stored));
   }, []);
 
-  // Save recent category
   const saveRecentCategory = (category) => {
-    setRecentCategories(prev => {
-      const filtered = prev.filter(c => c.id !== category.id);
+    setRecentCategories((prev) => {
+      const filtered = prev.filter((c) => c.id !== category.id);
       const updated = [category, ...filtered].slice(0, 5);
       localStorage.setItem("recentCategories", JSON.stringify(updated));
       return updated;
     });
   };
 
+  
+
   useEffect(() => {
     if (step === 1) {
       handleFetchCategories();
+      if (!lastItemId) preloadAllRootCategories();
     }
-  }, [lastItemId, CurrentLanguage.id]);
+  }, [step, lastItemId, CurrentLanguage?.id, handleFetchCategories, preloadAllRootCategories]);
+  
 
   useEffect(() => {
     if (step !== 1 && allCategoryIdsString) {
       getCustomFieldsData();
     }
-  }, [allCategoryIdsString, CurrentLanguage.id]);
+  }, [allCategoryIdsString, CurrentLanguage?.id]);
 
   useEffect(() => {
     if (categoryPath.length > 0) {
       const lastCategoryId = categoryPath[categoryPath.length - 1]?.id;
       if (lastCategoryId) {
         getParentCategoriesApi
-          .getPaymentCategories({
-            child_category_id: lastCategoryId,
-          })
+          .getPaymentCategories({ child_category_id: lastCategoryId })
           .then((res) => {
             const updatedPath = res?.data?.data;
-            if (updatedPath?.length > 0) {
-              setCategoryPath(updatedPath);
-            }
+            if (updatedPath?.length > 0) setCategoryPath(updatedPath);
           })
-          .catch((err) => {
-            console.log("Error updating category path:", err);
-          });
+          .catch((err) => console.log("Error updating category path:", err));
       }
     }
-  }, [CurrentLanguage.id]);
+  }, [CurrentLanguage?.id]);
 
-  const handleFetchCategories = async (id) => {
-    setCategoriesLoading(true);
-    try {
-      const res = await categoryApi.getCategory({
-        category_id: id ? id : lastItemId,
-      });
-      const data = res?.data?.data?.data;
-      setCategories(data);
-      setCurrentPage(res?.data?.data?.current_page);
-      setLastPage(res?.data?.data?.last_page);
-    } catch (error) {
-      console.log("error", error);
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  
-  const debugSchedule = (...args) => {
-    console.log("[SCHEDULE DEBUG]", ...args);
-  };
+  const debugSchedule = (...args) => console.log("[SCHEDULE DEBUG]", ...args);
 
   const getCustomFieldsData = async () => {
     try {
-      const res = await getCustomFieldsApi.getCustomFields({
-        category_ids: allCategoryIdsString,
-      });
+      const res = await getCustomFieldsApi.getCustomFields({ category_ids: allCategoryIdsString });
       const data = res?.data?.data;
       setCustomFields(data);
 
       const initializedDetails = {};
-
       languages.forEach((lang) => {
         const langFields = {};
-
         data.forEach((item) => {
           if (lang.id !== defaultLangId && item.type !== "textbox") return;
 
@@ -250,19 +359,15 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
             case "fileinput":
               initialValue = null;
               break;
-            case "dropdown":
-            case "textbox":
-            case "number":
-            case "text":
-              initialValue = "";
-              break;
             default:
+              initialValue = "";
               break;
           }
           langFields[item.id] = initialValue;
         });
         initializedDetails[lang.id] = langFields;
       });
+
       setExtraDetails(initializedDetails);
     } catch (error) {
       console.log(error);
@@ -272,7 +377,7 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
   const handleCategoryTabClick = async (category) => {
     setCategoryPath((prevPath) => [...prevPath, category]);
     saveRecentCategory(category);
-    
+
     if (!(category?.subcategories_count > 0)) {
       setStep(2);
       setDisabledTab({
@@ -295,9 +400,8 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
         region_code: regionCode,
       },
     });
-    setExtraDetails({
-      [defaultLangId]: {},
-    });
+    setExtraDetails({ [defaultLangId]: {} });
+
     if (step !== 1) {
       setStep(1);
       setDisabledTab({
@@ -308,11 +412,13 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
         location: true,
       });
     }
+
     const index = categoryPath.findIndex((item) => item.id === id);
     if (index !== -1) {
       const newPath = categoryPath.slice(0, index);
       setCategoryPath(newPath);
     }
+
     if (index === 0) {
       setCategories([]);
       setCategoryPath([]);
@@ -320,16 +426,11 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
   };
 
   const handleDetailsSubmit = () => {
-    if (customFields?.length === 0) {
-      setStep(4);
-    } else {
-      setStep(3);
-    }
+    if (customFields?.length === 0) setStep(4);
+    else setStep(3);
   };
-  
-  const SLUG_RE = /^[a-z0-9-]+$/i;
+
   const isEmpty = (x) => !x || !x.toString().trim();
-  const isNegative = (n) => Number(n) < 0;
 
   const handleFullSubmission = (scheduledDateTime = null) => {
     debugSchedule("handleFullSubmission called", {
@@ -338,83 +439,42 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
       scheduledAt_state: scheduledAt,
       step,
     });
-  
-    const {
-      name,
-      description,
-      price,
-      slug,
-      contact,
-      video_link,
-      min_salary,
-      max_salary,
-      country_code,
-    } = defaultDetails;
-  
+
+    const { name, description, contact, country_code } = defaultDetails;
     const catId = categoryPath.at(-1)?.id;
-  
-    debugSchedule("current validation snapshot", {
-      catId,
-      name,
-      descriptionLen: description?.length,
-      contact,
-      country_code,
-      is_job_category,
-      isPriceOptional,
-      uploadedImagesCount: uploadedImages.length,
-      otherImagesCount: otherImages.length,
-      location,
-      customFieldsCount: customFields.length,
-    });
-  
+
     if (!catId) {
-      debugSchedule("FAIL: no catId");
       toast.error(t("selectCategory"));
       return setStep(1);
     }
-  
-    if (scheduledDateTime) {
-      debugSchedule("Setting scheduledAt state", scheduledDateTime);
-      setScheduledAt(scheduledDateTime);
-    } else {
-      debugSchedule("No scheduledDateTime passed (posting as normal ad)");
-    }
-  
+
+    if (scheduledDateTime) setScheduledAt(scheduledDateTime);
+
     if (isEmpty(name) || isEmpty(description) || isEmpty(contact)) {
-      debugSchedule("FAIL: missing basic details", { name, description, contact });
       toast.error(t("completeDetails"));
       return setStep(2);
     }
-  
+
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
-      debugSchedule("FAIL: invalid phone", `+${country_code}${contact}`);
       toast.error(t("invalidPhoneNumber"));
       return setStep(2);
     }
-  
-    // ... (ostatak validacija ostaje isti)
-  
+
     if (!location?.country || !location?.state || !location?.city || !location?.address) {
-      debugSchedule("FAIL: location incomplete", location);
       toast.error(t("pleaseSelectCity"));
       return;
     }
-  
-    debugSchedule("All validations passed -> calling postAd", { scheduledDateTime });
+
     postAd(scheduledDateTime);
   };
-  
-
 
   const postAd = async (scheduledDateTime = null) => {
     const catId = categoryPath.at(-1)?.id;
-  
-    debugSchedule("postAd called", { scheduledDateTime, catId });
-  
+
     const customFieldTranslations = prepareCustomFieldTranslations(extraDetails);
     const customFieldFiles = prepareCustomFieldFiles(extraDetails, defaultLangId);
     const nonDefaultTranslations = filterNonDefaultTranslations(translations, defaultLangId);
-  
+
     const allData = {
       name: defaultDetails.name,
       slug: (defaultDetails.slug || "").trim(),
@@ -436,92 +496,46 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
       city: location?.city,
       ...(location?.area_id ? { area_id: Number(location?.area_id) } : {}),
       ...(Object.keys(nonDefaultTranslations).length > 0 && { translations: nonDefaultTranslations }),
-      ...(Object.keys(customFieldTranslations).length > 0 && { custom_field_translations: customFieldTranslations }),
+      ...(Object.keys(customFieldTranslations).length > 0 && {
+        custom_field_translations: customFieldTranslations,
+      }),
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
       ...(scheduledDateTime ? { scheduled_at: scheduledDateTime } : {}),
     };
-  
-    debugSchedule("payload built", {
-      scheduled_at_in_payload: allData.scheduled_at,
-      slug: allData.slug,
-      keys: Object.keys(allData),
-    });
-  
+
     try {
       setIsAdPlaced(true);
       const res = await addItemApi.addItem(allData);
-  
-      debugSchedule("API response", {
-        error: res?.data?.error,
-        message: res?.data?.message,
-        data: res?.data?.data,
-        status: res?.status,
-      });
-  
+
       if (res?.data?.error === false) {
         setIsScheduledAd(!!scheduledDateTime);
         setScheduledAt(scheduledDateTime);
         setOpenSuccessModal(true);
         setCreatedAdSlug(res?.data?.data[0]?.slug);
-        debugSchedule("SUCCESS: scheduled flags set", { isScheduled: !!scheduledDateTime, scheduledDateTime });
+        
       } else {
         toast.error(res?.data?.message);
-        debugSchedule("BACKEND returned error=true", res?.data);
       }
     } catch (error) {
-      debugSchedule("API throw/catch error", {
-        message: error?.message,
-        response: error?.response?.data,
-        status: error?.response?.status,
-      });
       console.error(error);
     } finally {
       setIsAdPlaced(false);
     }
   };
 
-  
-
   const handleGoBack = () => {
     setStep((prev) => {
-      if (customFields.length === 0 && step === 4) {
-        return prev - 2;
-      } else {
-        return prev - 1;
-      }
+      if (customFields.length === 0 && step === 4) return prev - 2;
+      return prev - 1;
     });
   };
 
-  const fetchMoreCategory = async () => {
-    setIsLoadMoreCat(true);
-    try {
-      const response = await categoryApi.getCategory({
-        page: `${currentPage + 1}`,
-        category_id: lastItemId,
-      });
-      const { data } = response.data;
-      setCategories((prev) => [...prev, ...data.data]);
-      setCurrentPage(data?.current_page);
-      setLastPage(data?.last_page);
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setIsLoadMoreCat(false);
-    }
-  };
-
   const handleTabClick = (tab) => {
-    if (tab === 1 && !disabledTab.categoryTab) {
-      setStep(1);
-    } else if (tab === 2 && !disabledTab.detailTab) {
-      setStep(2);
-    } else if (tab === 3 && !disabledTab.extraDetailTabl) {
-      setStep(3);
-    } else if (tab === 4 && !disabledTab.images) {
-      setStep(4);
-    } else if (tab === 5 && !disabledTab.location) {
-      setStep(5);
-    }
+    if (tab === 1 && !disabledTab.categoryTab) setStep(1);
+    else if (tab === 2 && !disabledTab.detailTab) setStep(2);
+    else if (tab === 3 && !disabledTab.extraDetailTabl) setStep(3);
+    else if (tab === 4 && !disabledTab.images) setStep(4);
+    else if (tab === 5 && !disabledTab.location) setStep(5);
   };
 
   const handleDeatilsBack = () => {
@@ -534,9 +548,7 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
         region_code: regionCode,
       },
     });
-    setExtraDetails({
-      [defaultLangId]: {},
-    });
+    setExtraDetails({ [defaultLangId]: {} });
 
     if (step !== 1) {
       setStep(1);
@@ -548,35 +560,45 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
         loc: true,
       });
     }
-    if (categoryPath.length > 0) {
-      categoryPath.pop();
-    }
+
+    // ✅ ne mutiraj state (pop), nego setState
+    setCategoryPath((prev) => prev.slice(0, -1));
   };
 
   // 🎨 Step configuration
   const steps = [
     { id: 1, label: t("selectedCategory"), icon: Circle, disabled: disabledTab.categoryTab },
     { id: 2, label: t("details"), icon: Circle, disabled: disabledTab.detailTab },
-    ...(customFields?.length > 0 ? [{ id: 3, label: t("extraDetails"), icon: Circle, disabled: disabledTab.extraDetailTabl }] : []),
+    ...(customFields?.length > 0
+      ? [{ id: 3, label: t("extraDetails"), icon: Circle, disabled: disabledTab.extraDetailTabl }]
+      : []),
     { id: 4, label: t("images"), icon: Circle, disabled: disabledTab.images },
     { id: 5, label: t("location"), icon: Circle, disabled: disabledTab.location },
   ];
 
   const getStepProgress = (stepId) => {
-    const stepIndex = steps.findIndex(s => s.id === stepId);
-    const currentIndex = steps.findIndex(s => s.id === step);
-    
+    const stepIndex = steps.findIndex((s) => s.id === stepId);
+    const currentIndex = steps.findIndex((s) => s.id === step);
+
     if (stepIndex < currentIndex) return 100;
+
     if (stepIndex === currentIndex) {
       switch (stepId) {
-        case 1: return categoryPath.length > 0 ? 100 : 0;
-        case 2: return (defaultDetails.name && defaultDetails.description) ? 100 : 50;
-        case 3: return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
-        case 4: return uploadedImages.length > 0 ? 100 : 0;
-        case 5: return location?.address ? 100 : 0;
-        default: return 0;
+        case 1:
+          return categoryPath.length > 0 ? 100 : 0;
+        case 2:
+          return defaultDetails.name && defaultDetails.description ? 100 : 50;
+        case 3:
+          return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
+        case 4:
+          return uploadedImages.length > 0 ? 100 : 0;
+        case 5:
+          return location?.address ? 100 : 0;
+        default:
+          return 0;
       }
     }
+
     return 0;
   };
 
@@ -587,7 +609,7 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
         <div className="flex flex-col gap-8 mt-8">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-medium">{t("adListing")}</h1>
-            
+
             {/* 🏆 Quality Score Badge */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-2 rounded-full">
@@ -601,29 +623,28 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content - 2 columns */}
             <div className="lg:col-span-2 flex flex-col gap-6">
-              
               {/* 📊 Progress Stepper */}
               <div className="border rounded-lg p-6 bg-white shadow-sm">
                 <div className="relative">
-                  {/* Progress Bar Background */}
-                  <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
-                  
-                  {/* Active Progress Bar */}
-                  <div 
+                  <div
+                    className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full"
+                    style={{ zIndex: 0 }}
+                  />
+
+                  <div
                     className="absolute top-5 left-0 h-1 bg-primary rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${(steps.findIndex(s => s.id === step) / (steps.length - 1)) * 100}%`,
-                      zIndex: 1
+                    style={{
+                      width: `${(steps.findIndex((s) => s.id === step) / (steps.length - 1)) * 100}%`,
+                      zIndex: 1,
                     }}
                   />
 
-                  {/* Steps */}
                   <div className="relative flex justify-between" style={{ zIndex: 2 }}>
                     {steps.map((s, idx) => {
                       const progress = getStepProgress(s.id);
                       const isActive = s.id === step;
                       const isCompleted = progress === 100;
-                      
+
                       return (
                         <div key={s.id} className="flex flex-col items-center gap-2">
                           <button
@@ -632,30 +653,35 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                             className={`
                               relative w-10 h-10 rounded-full flex items-center justify-center
                               transition-all duration-300 transform
-                              ${isActive ? 'scale-110 shadow-lg' : 'scale-100'}
-                              ${isCompleted ? 'bg-primary text-white' : 'bg-white border-2'}
-                              ${isActive && !isCompleted ? 'border-primary border-4' : 'border-gray-300'}
-                              ${s.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}
+                              ${isActive ? "scale-110 shadow-lg" : "scale-100"}
+                              ${isCompleted ? "bg-primary text-white" : "bg-white border-2"}
+                              ${isActive && !isCompleted ? "border-primary border-4" : "border-gray-300"}
+                              ${s.disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105 cursor-pointer"}
                             `}
                           >
                             {isCompleted ? (
                               <CheckCircle2 className="w-5 h-5" />
                             ) : (
-                              <span className={`text-sm font-semibold ${isActive ? 'text-primary' : 'text-gray-400'}`}>
+                              <span
+                                className={`text-sm font-semibold ${
+                                  isActive ? "text-primary" : "text-gray-400"
+                                }`}
+                              >
                                 {idx + 1}
                               </span>
                             )}
-                            
-                            {/* Pulse animation for active step */}
+
                             {isActive && !isCompleted && (
                               <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20" />
                             )}
                           </button>
-                          
-                          <span className={`
-                            text-xs font-medium text-center max-w-[80px]
-                            ${isActive ? 'text-primary' : 'text-gray-500'}
-                          `}>
+
+                          <span
+                            className={`
+                              text-xs font-medium text-center max-w-[80px]
+                              ${isActive ? "text-primary" : "text-gray-500"}
+                            `}
+                          >
                             {s.label}
                           </span>
                         </div>
@@ -709,6 +735,7 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                     handleCategoryTabClick={handleCategoryTabClick}
                     categoriesLoading={categoriesLoading}
                     recentCategories={recentCategories}
+                    searchSourceCategories={allCategoriesTree}
                   />
                 )}
 
@@ -743,14 +770,14 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
 
                 {step == 4 && (
                   <ComponentFour
-                  uploadedImages={uploadedImages}
-                  setUploadedImages={setUploadedImages}
-                  otherImages={otherImages}
-                  setOtherImages={setOtherImages}
-                  uploadedVideo={uploadedVideo}
-                  setUploadedVideo={setUploadedVideo}
-                  setStep={setStep}
-                  handleGoBack={handleGoBack}
+                    uploadedImages={uploadedImages}
+                    setUploadedImages={setUploadedImages}
+                    otherImages={otherImages}
+                    setOtherImages={setOtherImages}
+                    uploadedVideo={uploadedVideo}
+                    setUploadedVideo={setUploadedVideo}
+                    setStep={setStep}
+                    handleGoBack={handleGoBack}
                   />
                 )}
 
@@ -775,13 +802,11 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                   <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
                 </div>
 
-                {/* Ad Preview Card */}
                 <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                  {/* Image Preview */}
                   <div className="relative aspect-video bg-gray-100">
                     {uploadedImages.length > 0 ? (
-                      <img 
-                        src={URL.createObjectURL(uploadedImages[0])} 
+                      <img
+                        src={URL.createObjectURL(uploadedImages[0])}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
@@ -793,8 +818,7 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                         </div>
                       </div>
                     )}
-                    
-                    {/* Image count badge */}
+
                     {(uploadedImages.length > 0 || otherImages.length > 0) && (
                       <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
                         {uploadedImages.length + otherImages.length} {t("slika")}
@@ -802,14 +826,11 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                     )}
                   </div>
 
-                  {/* Content Preview */}
                   <div className="p-4 space-y-3">
-                    {/* Title */}
                     <h4 className="font-semibold text-lg line-clamp-2">
                       {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
                     </h4>
 
-                    {/* Price */}
                     {!is_job_category && (
                       <p className="text-2xl font-bold text-primary">
                         {defaultDetails.price ? `${defaultDetails.price} KM` : "0 KM"}
@@ -831,22 +852,15 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                       </div>
                     )}
 
-                    {/* Description */}
-                    {/* <p className="text-sm text-gray-600 line-clamp-3">
-                      {defaultDetails.description || t("Vaš opis ovdje")}
-                    </p> */}
-
-                    {/* Location */}
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <MapPin className="w-4 h-4" />
                       <span>{location?.city || t("Lokacija oglasa")}</span>
                     </div>
 
-                    {/* Quality Badges */}
                     {qualityBadges.length > 0 && (
                       <div className="flex flex-wrap gap-2 pt-2 border-t">
                         {qualityBadges.map((badge, idx) => (
-                          <span 
+                          <span
                             key={idx}
                             className={`text-xs px-2 py-1 rounded-full text-white ${badge.color}`}
                           >
@@ -858,23 +872,20 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                   </div>
                 </div>
 
-                {/* Tips & Completeness */}
                 <div className="mt-6 space-y-4">
-                  {/* Completeness Progress */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{t("Ocjena kvaliteta oglasa")}</span>
                       <span className="text-primary font-semibold">{completenessScore}%</span>
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-primary to-green-500 transition-all duration-500"
                         style={{ width: `${completenessScore}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* Tips */}
                   <div className="space-y-2">
                     {uploadedImages.length === 0 && (
                       <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -889,7 +900,11 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                       <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <Star className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-blue-800">
-                          {t("Dodajte još fotografija").replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {t("veća vidljivost!")})
+                          {t("Dodajte još fotografija").replace(
+                            "{count}",
+                            3 - otherImages.length
+                          )}{" "}
+                          (+{(3 - otherImages.length) * 5}% {t("veća vidljivost!")})
                         </p>
                       </div>
                     )}
@@ -897,12 +912,9 @@ const [isScheduledAd, setIsScheduledAd] = useState(false);
                     {defaultDetails.description && defaultDetails.description.length < 100 && (
                       <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                         <Award className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-purple-800">
-                          {t("Detaljan opis")} (+10% {t("pouzdanost")})
-                        </p>
+                        <p className="text-xs text-purple-800">{t("Detaljan opis")} (+10% {t("pouzdanost")})</p>
                       </div>
                     )}
-
                   </div>
                 </div>
               </div>

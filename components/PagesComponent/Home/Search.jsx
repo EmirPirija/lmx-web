@@ -636,7 +636,7 @@ const Search = () => {
 
   return (
     <>
-      <div className="w-full flex items-center gap-3">
+      <div className="w-full flex items-center gap-3 z-[99]">
         {settings?.header_logo && (
           <div
             className={cn(

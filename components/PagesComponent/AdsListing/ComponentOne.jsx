@@ -5,156 +5,187 @@ import Fuse from "fuse.js";
 import { MdChevronRight } from "react-icons/md";
 import { FaStar, FaUser } from "react-icons/fa";
 import { IoSearchOutline } from "react-icons/io5";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 
 /* -------------------------------------------------------
-   CATEGORY ITEM
+   UI atoms
 ------------------------------------------------------- */
-const CategoryItem = memo(({ category, onClick, showPath = false, adCount = null }) => {
-  return (
-    <div
-      className="flex justify-between items-center cursor-pointer p-4 rounded-xl hover:bg-blue-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md group"
-      onClick={() => onClick(category)}
-    >
-      <div className="flex items-center gap-3">
-        <CustomImage
-          src={category?.image}
-          alt={category?.search_name}
-          height={56}
-          width={56}
-          loading="lazy"
-          className="h-14 w-14 rounded-xl object-cover border-2 border-gray-100 group-hover:border-blue-300 transition-all"
-        />
-        <div className="flex flex-col">
-          <span className="break-all font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
-            {category?.search_name}
-          </span>
-          {showPath && category?.full_path && (
-            <span className="text-xs text-gray-500 mt-0.5">{category.full_path}</span>
-          )}
-        </div>
-      </div>
+const SectionTitle = ({ children }) => (
+  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+    {children}
+  </h3>
+);
 
-      <div className="flex items-center gap-3">
-        {adCount !== null && adCount > 0 && (
-          <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-semibold">
-            {adCount.toLocaleString()}
-          </span>
-        )}
-        {category?.subcategories_count > 0 && !showPath && (
-          <MdChevronRight 
-            size={24} 
-            className="rtl:scale-x-[-1] flex-shrink-0 text-gray-400 group-hover:text-blue-600 transition-colors" 
-          />
-        )}
-      </div>
-    </div>
-  );
-});
-
-CategoryItem.displayName = "CategoryItem";
+const Pill = ({ children, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white hover:bg-gray-50 active:scale-[0.99] transition"
+  >
+    {children}
+  </button>
+);
 
 /* -------------------------------------------------------
-   USER ITEM
+   CATEGORY CARD
 ------------------------------------------------------- */
-const UserItem = memo(({ user, onClick }) => {
+const CategoryCard = memo(({ category, onClick, showPath = false, adCount = null }) => {
+  const hasChildren = Number(category?.subcategories_count || 0) > 0;
+
   return (
-    <div
-      className="flex justify-between items-center cursor-pointer p-4 rounded-xl hover:bg-blue-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md group"
-      onClick={() => onClick(user)}
+    <button
+      type="button"
+      onClick={() => onClick(category)}
+      className="
+        group w-full text-left
+        flex items-center gap-3
+        rounded-2xl border border-gray-200 bg-white
+        px-3 py-3
+        hover:border-blue-200 hover:shadow-sm hover:bg-blue-50/30
+        transition
+      "
     >
-      <div className="flex items-center gap-4">
+      <div className="h-12 w-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+        <CustomImage
+          src={category?.image}
+          alt={category?.search_name || category?.translated_name || category?.name}
+          height={44}
+          width={44}
+          loading="lazy"
+          className="h-10 w-10 object-contain"
+        />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <div className="truncate font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
+            {category?.search_name || category?.translated_name || category?.name}
+          </div>
+
+          {adCount !== null && adCount > 0 && (
+            <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+              {adCount.toLocaleString()}
+            </span>
+          )}
+        </div>
+
+        {showPath && category?.full_path ? (
+          <div className="mt-0.5 truncate text-xs text-gray-500">{category.full_path}</div>
+        ) : hasChildren ? (
+          <div className="mt-0.5 text-xs text-gray-500">
+            {category?.subcategories_count} podkategorija
+          </div>
+        ) : (
+          <div className="mt-0.5 text-xs text-gray-400">Bez podkategorija</div>
+        )}
+      </div>
+
+      {hasChildren && !showPath ? (
+        <MdChevronRight
+          size={22}
+          className="rtl:scale-x-[-1] text-gray-400 group-hover:text-blue-600 transition-colors shrink-0"
+        />
+      ) : (
+        <span className="w-5 shrink-0" />
+      )}
+    </button>
+  );
+});
+CategoryCard.displayName = "CategoryCard";
+
+/* -------------------------------------------------------
+   USER CARD
+------------------------------------------------------- */
+const UserCard = memo(({ user, onClick }) => {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(user)}
+      className="
+        group w-full text-left
+        flex items-center gap-3
+        rounded-2xl border border-gray-200 bg-white
+        px-3 py-3
+        hover:border-blue-200 hover:shadow-sm hover:bg-blue-50/30
+        transition
+      "
+    >
+      <div className="h-12 w-12 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
         {user?.profile ? (
           <CustomImage
             src={user.profile}
             alt={user.name}
-            height={56}
-            width={56}
+            height={48}
+            width={48}
             loading="lazy"
-            className="h-14 w-14 rounded-full object-cover border-2 border-gray-100 group-hover:border-blue-300 transition-all"
+            className="h-12 w-12 rounded-full object-cover"
           />
         ) : (
-          <div className="h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200 group-hover:border-blue-300 transition-all">
-            <FaUser className="text-gray-400" size={24} />
-          </div>
+          <FaUser className="text-gray-400" size={20} />
         )}
-        <div className="flex flex-col">
-          <span className="font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
-            {user?.name}
-          </span>
+      </div>
 
-          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-            {user?.average_rating && (
-              <span className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-full">
-                <FaStar className="text-yellow-500" size={12} />
-                <span className="font-semibold text-yellow-700">{user.average_rating.toFixed(1)}</span>
-              </span>
-            )}
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
+          {user?.name}
+        </div>
 
-            {user?.adCount > 0 && (
-              <span className="text-blue-600 font-medium">
-                {user.adCount === 1
-                  ? "1 oglas"
-                  : `${user.adCount} oglasa`}
-              </span>
-            )}
-          </div>
+        <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
+          {user?.average_rating && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-50 border border-yellow-100 text-yellow-700">
+              <FaStar size={11} />
+              {Number(user.average_rating).toFixed(1)}
+            </span>
+          )}
+
+          {user?.adCount > 0 && (
+            <span className="text-blue-600 font-medium">
+              {user.adCount === 1 ? "1 oglas" : `${user.adCount} oglasa`}
+            </span>
+          )}
         </div>
       </div>
 
-      <MdChevronRight 
-        size={24} 
-        className="rtl:scale-x-[-1] flex-shrink-0 text-gray-400 group-hover:text-blue-600 transition-colors" 
+      <MdChevronRight
+        size={22}
+        className="rtl:scale-x-[-1] text-gray-400 group-hover:text-blue-600 transition-colors shrink-0"
       />
-    </div>
+    </button>
   );
 });
-
-UserItem.displayName = "UserItem";
+UserCard.displayName = "UserCard";
 
 /* -------------------------------------------------------
-   SKELETON
+   Skeleton
 ------------------------------------------------------- */
-const CategorySkeleton = () => (
-  <>
-    {Array.from({ length: 6 }).map((_, i) => (
-      <div key={i} className="flex items-center gap-3 p-4 animate-pulse border border-gray-100 rounded-xl">
-        <div className="h-14 w-14 rounded-xl bg-gray-200" />
-        <div className="flex-1 space-y-2">
-          <div className="h-5 bg-gray-200 rounded w-3/4" />
-          <div className="h-3 bg-gray-100 rounded w-1/2" />
+const CardSkeleton = ({ rows = 9 }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    {Array.from({ length: rows }).map((_, i) => (
+      <div
+        key={i}
+        className="flex items-center gap-3 px-3 py-3 rounded-2xl border border-gray-200 bg-white animate-pulse"
+      >
+        <div className="h-12 w-12 rounded-xl bg-gray-200" />
+        <div className="flex-1">
+          <div className="h-4 bg-gray-200 rounded w-2/3" />
+          <div className="h-3 bg-gray-100 rounded w-1/2 mt-2" />
         </div>
       </div>
     ))}
-  </>
-);
-
-const UserSkeleton = () => (
-  <>
-    {Array.from({ length: 3 }).map((_, i) => (
-      <div key={i} className="flex items-center gap-4 p-4 animate-pulse border border-gray-100 rounded-xl">
-        <div className="h-14 w-14 rounded-full bg-gray-200" />
-        <div className="flex flex-col gap-2 flex-1">
-          <div className="h-5 bg-gray-200 rounded w-32" />
-          <div className="h-3 bg-gray-100 rounded w-24" />
-        </div>
-      </div>
-    ))}
-  </>
+  </div>
 );
 
 /* -------------------------------------------------------
-   FLATTEN CATEGORY TREE & BUILD LOOKUP MAP
+   Flatten category tree (if present)
 ------------------------------------------------------- */
 const flattenCategories = (categories = [], parentPath = [], parentId = null) => {
   let result = [];
 
   categories.forEach((cat) => {
     const name = cat.translated_name || cat.name || cat.translations?.[0]?.name || "";
-
     const current = {
       ...cat,
       search_name: name,
@@ -165,9 +196,7 @@ const flattenCategories = (categories = [], parentPath = [], parentId = null) =>
     result.push(current);
 
     if (cat.subcategories?.length) {
-      result = result.concat(
-        flattenCategories(cat.subcategories, [...parentPath, name], cat.id)
-      );
+      result = result.concat(flattenCategories(cat.subcategories, [...parentPath, name], cat.id));
     }
   });
 
@@ -175,10 +204,36 @@ const flattenCategories = (categories = [], parentPath = [], parentId = null) =>
 };
 
 /* -------------------------------------------------------
-   MAIN COMPONENT
+   Robust ads extraction (FIX)
+------------------------------------------------------- */
+const extractAds = (resultJson) => {
+  // covers:
+  // - result.data.data = []
+  // - result.data.data = { data: [] }
+  // - result.data.data.data = []
+  // - result.data = { data: { data: [] } } (various)
+  const d = resultJson?.data;
+
+  const candidates = [
+    d?.data,                 // could be [] or paginator object
+    d?.data?.data,           // could be [] (paginator.data)
+    resultJson?.data?.data,  // same as above but safe
+    resultJson?.data?.data?.data,
+  ];
+
+  for (const c of candidates) {
+    if (Array.isArray(c)) return c;
+    if (c && Array.isArray(c.data)) return c.data;
+  }
+
+  return [];
+};
+
+/* -------------------------------------------------------
+   MAIN
 ------------------------------------------------------- */
 const ComponentOne = ({
-  categories,
+  categories = [],
   categoriesLoading,
   fetchMoreCategory,
   lastPage,
@@ -186,374 +241,404 @@ const ComponentOne = ({
   isLoadMoreCat,
   handleCategoryTabClick,
   onUserClick,
+  recentCategories = [],
 }) => {
   const [search, setSearch] = useState("");
   const [suggestedCategories, setSuggestedCategories] = useState([]);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+
   const searchTimeoutRef = useRef(null);
-  const abortControllerRef = useRef(null);
+  const abortAdsRef = useRef(null);
 
-  // Flatten all categories and create lookup map
-  const { flattenedCategories, categoryMap } = useMemo(() => {
-    if (!categories?.length) return { flattenedCategories: [], categoryMap: new Map() };
-
-    const flattened = flattenCategories(categories);
+  // build index from whatever we have (tree or current level)
+  const localIndex = useMemo(() => {
+    const flattened = flattenCategories(categories || []);
     const map = new Map();
-    flattened.forEach((cat) => map.set(cat.id, cat));
-
-    return { flattenedCategories: flattened, categoryMap: map };
+    flattened.forEach((c) => map.set(c.id, c));
+    return { flattened, map };
   }, [categories]);
 
-  // Fuse for fallback name-based search
   const fuse = useMemo(() => {
-    if (!flattenedCategories.length) return null;
-    return new Fuse(flattenedCategories, {
+    if (!localIndex.flattened.length) return null;
+    if (localIndex.flattened.length > 8000) return null;
+    return new Fuse(localIndex.flattened, {
       keys: [
-        { name: "search_name", weight: 0.6 },
-        { name: "slug", weight: 0.4 },
+        { name: "search_name", weight: 0.75 },
+        { name: "slug", weight: 0.25 },
       ],
-      threshold: 0.3,
+      threshold: 0.35,
       ignoreLocation: true,
       minMatchCharLength: 2,
     });
-  }, [flattenedCategories]);
-
-  // Get all parent categories for a given category
-  const getParentChain = useCallback(
-    (categoryId) => {
-      const chain = [];
-      let current = categoryMap.get(categoryId);
-
-      while (current) {
-        chain.unshift(current);
-        current = current.parent_id ? categoryMap.get(current.parent_id) : null;
-      }
-
-      return chain;
-    },
-    [categoryMap]
-  );
-
-  // Search ads and extract categories + users
-  const searchAdCategories = useCallback(
-    async (query) => {
-      if (!query || query.length < 2 || !categoryMap.size) return;
-
-      // Cancel previous request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
-
-      setIsSearching(true);
-
-      try {
-        // Search ads API
-        const response = await fetch(
-          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(query)}&per_page=100`,
-          { signal: abortControllerRef.current.signal }
-        );
-
-        if (!response.ok) throw new Error("Search failed");
-
-        const result = await response.json();
-        const ads = result.data?.data || [];
-
-        if (!ads.length) {
-          // No ads found - fallback to Fuse.js
-          if (fuse) {
-            const fuseResults = fuse.search(query).slice(0, 10).map((r) => r.item);
-            setSuggestedCategories(fuseResults);
-          } else {
-            setSuggestedCategories([]);
-          }
-          setSuggestedUsers([]);
-          return;
-        }
-
-        // Count ads per category (including parent categories)
-        const categoryCounts = new Map();
-        // Track unique users and their ad counts
-        const userMap = new Map();
-
-        ads.forEach((ad) => {
-          const categoryId = ad.category_id;
-          
-          // Process categories
-          if (categoryId) {
-            const category = categoryMap.get(categoryId);
-            if (category) {
-              const current = categoryCounts.get(categoryId) || { count: 0 };
-              categoryCounts.set(categoryId, {
-                count: current.count + 1,
-              });
-            }
-          }
-          
-          // Process users
-          if (ad.user) {
-            const existingUser = userMap.get(ad.user.id);
-            if (existingUser) {
-              existingUser.adCount += 1;
-            } else {
-              userMap.set(ad.user.id, {
-                ...ad.user,
-                adCount: 1,
-              });
-            }
-          }
-        });
-
-        // Convert categories to array with full category data
-        const categoryResults = [];
-        categoryCounts.forEach((data, categoryId) => {
-          const category = categoryMap.get(categoryId);
-          if (category) {
-            categoryResults.push({
-              ...category,
-              adCount: data.count,
-              isLeaf: data.isLeaf,
-            });
-          }
-        });
-
-        // Sort categories: leaf categories first, then by ad count
-        categoryResults.sort((a, b) => {
-          if (a.isLeaf && !b.isLeaf) return -1;
-          if (!a.isLeaf && b.isLeaf) return 1;
-          return b.adCount - a.adCount;
-        });
-
-        // Convert users to array and sort by ad count
-        const userResults = Array.from(userMap.values()).sort(
-          (a, b) => b.adCount - a.adCount
-        );
-
-        if (categoryResults.length > 0) {
-          setSuggestedCategories(categoryResults.slice(0, 10));
-        } else {
-          // Fallback to Fuse.js
-          if (fuse) {
-            const fuseResults = fuse.search(query).slice(0, 10).map((r) => r.item);
-            setSuggestedCategories(fuseResults);
-          } else {
-            setSuggestedCategories([]);
-          }
-        }
-
-        // Set users (max 5)
-        setSuggestedUsers(userResults.slice(0, 5));
-
-      } catch (error) {
-        if (error.name !== "AbortError") {
-          console.error("Search error:", error);
-          // Fallback to Fuse.js on error
-          if (fuse) {
-            const fuseResults = fuse.search(query).slice(0, 10).map((r) => r.item);
-            setSuggestedCategories(fuseResults);
-          }
-          setSuggestedUsers([]);
-        }
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    [categoryMap, fuse, getParentChain]
-  );
+  }, [localIndex.flattened]);
 
   const searchUsers = useCallback(async (query) => {
     try {
-      const res = await fetch(
-        `https://admin.lmx.ba/customer/id?search=${encodeURIComponent(query)}`
-      );
+      // ✅ uzmi token iz ISTOG mjesta gdje ti axios Api već radi
+      // prilagodi ključ ako je kod vas drugačiji
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("access_token");
+  
+      // ✅ ako nema tokena, nema smisla zvat endpoint koji je 401
+      if (!token) return [];
+  
+      const url = `https://admin.lmx.ba/customer/id?search=${encodeURIComponent(query)}`;
+  
+      const res = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`, // ✅ ovo je ključ
+        },
+      });
+  
+      if (res.status === 401 || res.status === 403) {
+        // ✅ nemoj spamati konzolu svaki put, ali možeš ostaviti 1 log
+        // console.warn("[USER SEARCH] Unauthorized", res.status);
+        return [];
+      }
   
       if (!res.ok) return [];
   
       const data = await res.json();
-      return data.rows || [];
+      return data?.rows || [];
     } catch (e) {
       console.error("User search error", e);
       return [];
     }
   }, []);
   
-  // Debounced search
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
   
-    if (!search || search.length < 2) {
+
+  const searchAdsAndCategories = useCallback(
+    async (query) => {
+      const q = (query || "").trim();
+      if (!q || q.length < 2) return { cats: [], usersFromAds: [] };
+  
+      if (abortAdsRef.current) abortAdsRef.current.abort();
+      abortAdsRef.current = new AbortController();
+  
+      // ✅ Ako lokalno imaš kompletno stablo, penjemo se do top-level parenta (preko parent_id iz flattenCategories)
+      // ✅ Ako lokalno imaš samo parent kategorije, koristimo parent_category_id koji dolazi iz API-ja (backend fix)
+      const resolveSuggestedCategoryId = (leafId, apiParentId) => {
+        if (!leafId) return null;
+  
+        // 1) Ako je leaf u lokalnom indexu, popni se do vrha (root)
+        const localLeaf = localIndex.map.get(leafId);
+        if (localLeaf) {
+          let cur = localLeaf;
+          while (cur?.parent_id && localIndex.map.has(cur.parent_id)) {
+            cur = localIndex.map.get(cur.parent_id);
+          }
+          return cur?.id ?? leafId;
+        }
+  
+        // 2) Ako leaf nije lokalno učitan, ali imamo parent_category_id iz API-ja i parent postoji lokalno
+        if (apiParentId && localIndex.map.has(apiParentId)) return apiParentId;
+  
+        // 3) Fallback
+        return leafId;
+      };
+  
+      try {
+        const response = await fetch(
+          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(q)}&limit=100`,
+          { signal: abortAdsRef.current.signal }
+        );
+        if (!response.ok) throw new Error("Ads search failed");
+  
+        const result = await response.json();
+  
+        // ✅ koristi shared helper (već ga imaš u fajlu)
+        const ads = extractAds(result);
+  
+        if (!ads.length) return { cats: [], usersFromAds: [] };
+  
+        const categoryCounts = new Map();
+        const userMap = new Map();
+  
+        for (const ad of ads) {
+          // leaf category (iz itema)
+          const leafId = ad?.category_id ?? ad?.category?.id;
+          // parent category (iz eager-load category na backendu)
+          const apiParentId = ad?.category?.parent_category_id ?? null;
+  
+          // ✅ OVO je ključ: umjesto leafId, broji parent/root gdje može
+          const suggestedId = resolveSuggestedCategoryId(leafId, apiParentId);
+  
+          if (suggestedId) {
+            categoryCounts.set(
+              suggestedId,
+              (categoryCounts.get(suggestedId) || 0) + 1
+            );
+          }
+  
+          // usersFromAds
+          if (ad?.user?.id) {
+            const existing = userMap.get(ad.user.id);
+            if (existing) existing.adCount += 1;
+            else userMap.set(ad.user.id, { ...ad.user, adCount: 1 });
+          }
+        }
+  
+        // map suggested category ids -> category objects (lokalno)
+        const cats = [];
+        categoryCounts.forEach((count, cid) => {
+          const cat = localIndex.map.get(cid);
+          if (cat) cats.push({ ...cat, adCount: count });
+        });
+  
+        cats.sort((a, b) => (b.adCount || 0) - (a.adCount || 0));
+  
+        return {
+          cats: cats.slice(0, 12),
+          usersFromAds: Array.from(userMap.values())
+            .sort((a, b) => (b.adCount || 0) - (a.adCount || 0))
+            .slice(0, 6),
+        };
+      } catch (error) {
+        if (error?.name !== "AbortError")
+          console.error("Ads search error:", error);
+        return { cats: [], usersFromAds: [] };
+      }
+    },
+    [localIndex.map]
+  );
+  
+
+  const searchLocalCategories = useCallback(
+    (query) => {
+      const q = (query || "").trim();
+      if (q.length < 2) return [];
+
+      if (fuse) {
+        return fuse.search(q).slice(0, 12).map((r) => r.item);
+      }
+
+      const lc = q.toLowerCase();
+      return (categories || [])
+        .map((c) => ({ ...c, search_name: c.translated_name || c.name || "" }))
+        .filter((c) => {
+          const name = (c.search_name || "").toLowerCase();
+          const slug = (c.slug || "").toLowerCase();
+          return name.includes(lc) || slug.includes(lc);
+        })
+        .slice(0, 12);
+    },
+    [fuse, categories]
+  );
+
+  const mergeUniqueCats = (a = [], b = []) => {
+    const m = new Map();
+    [...a, ...b].forEach((c) => {
+      if (!c?.id) return;
+      // prefer one that has adCount/full_path if exists
+      const prev = m.get(c.id);
+      if (!prev) m.set(c.id, c);
+      else m.set(c.id, { ...prev, ...c, adCount: c.adCount ?? prev.adCount });
+    });
+    return Array.from(m.values());
+  };
+
+  // ✅ Debounced search: run BOTH, do not block categories if users exist
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    const q = (search || "").trim();
+    if (q.length < 2) {
       setSuggestedCategories([]);
       setSuggestedUsers([]);
+      setIsSearching(false);
       return;
     }
-  
+
     setIsSearching(true);
-  
+
     searchTimeoutRef.current = setTimeout(async () => {
-      // 1️⃣ prvo traži korisnike
-      const users = await searchUsers(search);
-  
-      if (users.length > 0) {
-        // Ako ima korisnika → NE TRAŽI OGLASE
-        setSuggestedUsers(
-          users.map(u => ({
-            ...u,
-            adCount: u.items_count || 0,
-          }))
-        );
-        setSuggestedCategories([]);
-        setIsSearching(false);
-        return;
-      }
-  
-      // 2️⃣ ako nema korisnika → traži oglase/kategorije
-      await searchAdCategories(search);
-    }, 400);
-  
+      const [users, adsPack] = await Promise.all([
+        searchUsers(q),
+        searchAdsAndCategories(q),
+      ]);
+
+      const usersFinal = (users?.length ? users : adsPack.usersFromAds || []).map((u) => ({
+        ...u,
+        adCount: u.items_count || u.adCount || 0,
+      }));
+
+      const localCats = searchLocalCategories(q);
+      const catsFinal = mergeUniqueCats(adsPack.cats || [], localCats);
+
+      setSuggestedUsers(usersFinal.slice(0, 6));
+      setSuggestedCategories(catsFinal.slice(0, 12));
+      setIsSearching(false);
+    }, 350);
+
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
-  }, [search, searchUsers, searchAdCategories]);
+  }, [search, searchUsers, searchAdsAndCategories, searchLocalCategories]);
   
-  // Cleanup on unmount
+
   useEffect(() => {
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      if (abortAdsRef.current) abortAdsRef.current.abort();
     };
   }, []);
 
-  // Handle user click - navigate to user profile
-  const handleUserClick = useCallback((user) => {
-    if (onUserClick) {
-      onUserClick(user);
-    } else {
-      // Default behavior - navigate to user profile
-      window.location.href = `/seller/${user.id}`;
-    }
-  }, [onUserClick]);
+  const handleUserClick = useCallback(
+    (user) => {
+      if (onUserClick) onUserClick(user);
+      else window.location.href = `/seller/${user.id}`;
+    },
+    [onUserClick]
+  );
 
-  const showSearchResults = search && search.length >= 2;
-  const hasResults = suggestedCategories.length > 0 || suggestedUsers.length > 0;
+  const showSearchResults = (search || "").trim().length >= 2;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* 🔍 SEARCH */}
-      <div className="relative">
+    <div className="flex flex-col gap-4">
+      {/* Search */}
+      <div className="sticky top-2 z-10 -mx-2 px-2 py-2 bg-white/80 backdrop-blur rounded-2xl">
         <div className="relative">
-          <IoSearchOutline 
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" 
-            size={22} 
-          />
+          <IoSearchOutline className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
             placeholder="Šta želite prodati? (npr. iPhone, Samsung, Golf...)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+            className="
+              w-full pl-11 pr-11 py-3
+              border border-gray-200 rounded-2xl
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+              bg-white transition
+            "
           />
+
+          {!!search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl hover:bg-gray-100 transition"
+              aria-label="Clear"
+            >
+              <X size={16} className="text-gray-500" />
+            </button>
+          )}
+
           {isSearching && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute right-10 top-1/2 -translate-y-1/2">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
         </div>
       </div>
 
-      {/* 📦 CATEGORY LIST */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {categoriesLoading ? (
-          <CategorySkeleton />
-        ) : showSearchResults ? (
-          isSearching ? (
-            <div className="col-span-full text-center py-12">
-              <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-gray-600 font-medium">Pretražujem...</p>
-            </div>
-          ) : hasResults ? (
-            <>
-              {/* Categories Section */}
-              {suggestedCategories.length > 0 && (
-                <>
-                  <div className="col-span-full mb-2">
-                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-                      Kategorije za "{search}"
-                    </h3>
-                  </div>
-                  {suggestedCategories.map((category) => (
-                    <CategoryItem
-                      key={category.id}
-                      category={category}
-                      onClick={handleCategoryTabClick}
-                      showPath
-                      adCount={category.adCount}
-                    />
-                  ))}
-                </>
-              )}
-            </>
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <div className="text-6xl mb-4">🔍</div>
-              <p className="text-gray-600 font-medium text-lg">
-                Nema pronađenih kategorija za "{search}"
-              </p>
-              <p className="text-gray-500 text-sm mt-2">Pokušajte sa drugim pojmom</p>
-            </div>
-          )
-        ) : (
-          categories.map((category) => (
-            <CategoryItem
-              key={category.id}
-              category={{
-                ...category,
-                search_name: category.translated_name || category.name || "",
-              }}
-              onClick={handleCategoryTabClick}
-            />
-          ))
-        )}
-      </div>
-
-      {/* 👥 USERS SECTION */}
-      {showSearchResults && !isSearching && suggestedUsers.length > 0 && (
-        <div className="mt-6">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Korisnici</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {suggestedUsers.map((user) => (
-              <UserItem
-                key={user.id}
-                user={user}
-                onClick={handleUserClick}
-              />
+      {/* Recent */}
+      {!showSearchResults && recentCategories?.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionTitle>Nedavno</SectionTitle>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {recentCategories.slice(0, 8).map((c) => (
+              <Pill key={c.id} onClick={() => handleCategoryTabClick(c)}>
+                <span className="text-sm font-medium text-gray-800">
+                  {c.translated_name || c.name}
+                </span>
+              </Pill>
             ))}
           </div>
         </div>
       )}
 
-      {/* LOAD MORE */}
-      {!search && lastPage > currentPage && (
-        <div className="text-center mt-4">
-          <Button
-            variant="outline"
-            className="text-base text-primary font-semibold px-8 py-3 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
-            disabled={isLoadMoreCat || categoriesLoading}
-            onClick={fetchMoreCategory}
-          >
-            {isLoadMoreCat ? "Učitavanje..." : "Učitaj još"}
-          </Button>
-        </div>
+      {/* Content */}
+      {categoriesLoading ? (
+        <CardSkeleton rows={9} />
+      ) : showSearchResults ? (
+        isSearching ? (
+          <div className="py-10 text-center text-gray-600">
+            <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            Pretražujem…
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {suggestedCategories.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <SectionTitle>Kategorije</SectionTitle>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {suggestedCategories.map((category) => (
+                    <CategoryCard
+                      key={category.id}
+                      category={category}
+                      onClick={handleCategoryTabClick}
+                      showPath={!!category.full_path}
+                      adCount={category.adCount ?? null}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">
+                Nema pronađenih kategorija za “{search}”
+              </div>
+            )}
+
+            {suggestedUsers.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <SectionTitle>Korisnici</SectionTitle>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {suggestedUsers.map((user) => (
+                    <UserCard key={user.id} user={user} onClick={handleUserClick} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {suggestedUsers.length === 0 && suggestedCategories.length === 0 && (
+              <div className="py-10 text-center">
+                <div className="text-5xl mb-3">🔍</div>
+                <div className="text-gray-700 font-semibold">
+                  Nema rezultata za “{search}”
+                </div>
+                <div className="text-gray-500 text-sm mt-1">Pokušajte s drugim pojmom.</div>
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <SectionTitle>Kategorije</SectionTitle>
+            <div className="text-xs text-gray-400">{categories?.length || 0} prikazano</div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {(categories || []).map((category) => (
+              <CategoryCard
+                key={category.id}
+                category={{
+                  ...category,
+                  search_name: category.translated_name || category.name || "",
+                }}
+                onClick={handleCategoryTabClick}
+              />
+            ))}
+          </div>
+
+          {!search && lastPage > currentPage && (
+            <div className="text-center mt-2">
+              <Button
+                variant="outline"
+                className="text-sm font-semibold px-6 py-2 rounded-xl border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition"
+                disabled={isLoadMoreCat || categoriesLoading}
+                onClick={fetchMoreCategory}
+              >
+                {isLoadMoreCat ? "Učitavanje..." : "Učitaj još"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
