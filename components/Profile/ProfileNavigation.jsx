@@ -2,13 +2,13 @@
 
 import CustomLink from "@/components/Common/CustomLink";
 import { usePathname } from "next/navigation";
-import { useSelector } from "react-redux";
-import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import FirebaseData from "@/utils/Firebase";
-import { logoutSuccess, userSignUpData } from "@/redux/reducer/authSlice";
-import { deleteUserApi, logoutApi } from "@/utils/api";
+import { logoutSuccess, userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
+import { deleteUserApi, logoutApi, chatListApi, getNotificationList } from "@/utils/api";
 import { deleteUser, getAuth } from "firebase/auth";
 
 import ReusableAlertDialog from "../Common/ReusableAlertDialog";
@@ -19,7 +19,14 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // Icons
 import { FiUser } from "react-icons/fi";
-import { BiChat, BiDollarCircle, BiReceipt, BiSearch, BiShoppingBag, BiTrashAlt } from "react-icons/bi";
+import {
+  BiChat,
+  BiDollarCircle,
+  BiReceipt,
+  BiSearch,
+  BiShoppingBag,
+  BiTrashAlt,
+} from "react-icons/bi";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { LiaAdSolid } from "react-icons/lia";
 import { LuHeart } from "react-icons/lu";
@@ -29,9 +36,12 @@ import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { HiOutlineBadgeCheck } from "react-icons/hi";
 
 const ProfileNavigation = () => {
+  const dispatch = useDispatch();
   const { navigate } = useNavigate();
   const pathname = usePathname();
+
   const userData = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -41,7 +51,108 @@ const ProfileNavigation = () => {
   const [showMoreDesktop, setShowMoreDesktop] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
+  // ✅ BADGE STATE
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
   const { signOut } = FirebaseData();
+
+  const badgeText = (n) => {
+    const num = Number(n) || 0;
+    if (num <= 0) return "";
+    return num > 99 ? "99+" : String(num);
+  };
+
+  const extractList = (res) => {
+    const root = res?.data;
+    if (!root || root?.error) return [];
+    const layer = root?.data;
+
+    if (Array.isArray(layer)) return layer;
+    if (layer && Array.isArray(layer?.data)) return layer.data;
+
+    return [];
+  };
+
+  // ✅ Dohvati broj nepročitanih poruka (buyer + seller), isto kao u HomeMobileMenu logici :contentReference[oaicite:0]{index=0}
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchUnreadChats = async () => {
+      if (!isLoggedIn) {
+        setUnreadMessages(0);
+        return;
+      }
+
+      try {
+        const [buyerRes, sellerRes] = await Promise.all([
+          chatListApi.chatList({ type: "buyer", page: 1 }),
+          chatListApi.chatList({ type: "seller", page: 1 }),
+        ]);
+
+        if (!mounted) return;
+
+        const buyerChats = extractList(buyerRes);
+        const sellerChats = extractList(sellerRes);
+
+        let count = 0;
+
+        buyerChats.forEach((chat) => {
+          if (chat?.is_muted === true) return;
+          count += Number(chat?.unread_chat_count || 0);
+        });
+
+        sellerChats.forEach((chat) => {
+          if (chat?.is_muted === true) return;
+          count += Number(chat?.unread_chat_count || 0);
+        });
+
+        setUnreadMessages(count);
+      } catch (e) {
+        console.error("Greška prilikom dohvatanja broja poruka:", e);
+      }
+    };
+
+    fetchUnreadChats();
+    const interval = setInterval(fetchUnreadChats, 30000); // refresh svakih 30s :contentReference[oaicite:1]{index=1}
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [isLoggedIn, pathname]);
+
+  // ✅ Dohvati broj nepročitanih obavijesti (logika kao u ProfileDropdown: !read_at && !is_read) :contentReference[oaicite:2]{index=2}
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchUnreadNotifications = async () => {
+      if (!isLoggedIn) {
+        setUnreadNotifications(0);
+        return;
+      }
+
+      try {
+        const res = await getNotificationList.getNotification({ page: 1 });
+        if (!mounted) return;
+
+        const list = extractList(res);
+
+        const unread = list.filter((n) => !n?.read_at && !n?.is_read).length;
+        setUnreadNotifications(unread);
+      } catch (e) {
+        console.error("Greška prilikom dohvatanja obavijesti:", e);
+      }
+    };
+
+    fetchUnreadNotifications();
+    const interval = setInterval(fetchUnreadNotifications, 45000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [isLoggedIn, pathname]);
 
   const handleLogout = async () => {
     try {
@@ -53,7 +164,7 @@ const ProfileNavigation = () => {
       });
 
       if (res?.data?.error === false) {
-        logoutSuccess();
+        dispatch(logoutSuccess());
         toast.success("Uspješno ste se odjavili.");
         setIsLogoutOpen(false);
         if (pathname !== "/") navigate("/");
@@ -61,7 +172,7 @@ const ProfileNavigation = () => {
         toast.error(res?.data?.message || "Odjava nije uspjela. Pokušajte ponovo.");
       }
     } catch (e) {
-      console.log("Failed to logout", e);
+      console.log("Odjava nije uspjela:", e);
       toast.error("Odjava nije uspjela. Pokušajte ponovo.");
     } finally {
       setIsLoggingOut(false);
@@ -77,16 +188,16 @@ const ProfileNavigation = () => {
       await deleteUser(user);
       await deleteUserApi.deleteUser();
 
-      logoutSuccess();
+      dispatch(logoutSuccess());
       toast.success("Račun je uspješno izbrisan.");
 
       setIsDeleteOpen(false);
       if (pathname !== "/") navigate("/");
     } catch (error) {
-      console.error("Error deleting user:", error?.message);
+      console.error("Greška prilikom brisanja računa:", error?.message);
       if (error?.code === "auth/requires-recent-login") {
-        logoutSuccess();
-        toast.error("Molimo prijavite se ponovo pa pokušajte brisanje računa.");
+        dispatch(logoutSuccess());
+        toast.error("Molimo da se prijavite ponovo, pa pokušajte brisanje računa.");
         setIsDeleteOpen(false);
       } else {
         toast.error("Brisanje računa nije uspjelo. Pokušajte ponovo.");
@@ -98,57 +209,80 @@ const ProfileNavigation = () => {
 
   const isActive = (href) => pathname === href;
 
-  const NavCard = ({ href, icon: Icon, label, subtle }) => (
+  const Badge = ({ value }) => {
+    const text = badgeText(value);
+    if (!text) return null;
+    return (
+      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">
+        {text}
+      </span>
+    );
+  };
+
+  const NavCard = ({ href, icon: Icon, label, subtle, badge }) => (
     <CustomLink
       href={href}
       className={[
         "group flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200",
         isActive(href)
-          ? "bg-[#00B8D4] text-white border-[#00B8D4] shadow-sm"
+          ? "bg-primary text-primary-foreground border-primary shadow-sm"
           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300",
       ].join(" ")}
     >
       <div
         className={[
-          "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
+          "relative w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
           isActive(href)
             ? "bg-white/15"
             : subtle
             ? "bg-slate-100"
-            : "bg-[#00B8D4]/10",
+            : "bg-primary/10",
         ].join(" ")}
       >
         <Icon
           size={20}
           className={[
             "transition-colors",
-            isActive(href) ? "text-white" : subtle ? "text-slate-500" : "text-[#00B8D4]",
+            isActive(href)
+              ? "text-primary-foreground"
+              : subtle
+              ? "text-slate-500"
+              : "text-primary",
           ].join(" ")}
         />
+        <Badge value={badge} />
       </div>
 
       <div className="min-w-0">
         <div className="text-sm font-semibold truncate">{label}</div>
-        <div className={["text-[11px] truncate", isActive(href) ? "text-white/80" : "text-slate-500"].join(" ")}>
+        <div
+          className={[
+            "text-[11px] truncate",
+            isActive(href) ? "text-white/80" : "text-slate-500",
+          ].join(" ")}
+        >
           {isActive(href) ? "Trenutno otvoreno" : "Otvori"}
         </div>
       </div>
     </CustomLink>
   );
 
-  // Desktop “osnovno” (najčešće)
-  const desktopPrimary = [
-    { href: "/profile", icon: FiUser, label: "Profil" },
-    { href: "/chat", icon: BiChat, label: "Poruke" },
-    { href: "/notifications", icon: IoMdNotificationsOutline, label: "Obavijesti" },
-    { href: "/my-ads", icon: LiaAdSolid, label: "Moji oglasi" },
-    { href: "/favorites", icon: LuHeart, label: "Omiljeni" },
-    { href: "/profile/saved-searches", icon: BiSearch, label: "Spašene pretrage" },
-    { href: "/user-subscription", icon: BiDollarCircle, label: "Pretplata" },
-    { href: "/purchases", icon: BiShoppingBag, label: "Moje kupovine" },
-  ];
+  // Desktop “osnovno”
+  const desktopPrimary = useMemo(
+    () => [
+      { href: "/profile", icon: FiUser, label: "Profil" },
+      { href: "/chat", icon: BiChat, label: "Poruke", badge: unreadMessages },
+      { href: "/notifications", icon: IoMdNotificationsOutline, label: "Obavijesti", badge: unreadNotifications },
+      { href: "/my-ads", icon: LiaAdSolid, label: "Moji oglasi" },
+      { href: "/favorites", icon: LuHeart, label: "Omiljeni" },
+      { href: "/profile/saved-searches", icon: BiSearch, label: "Spašene pretrage" },
+      { href: "/user-subscription", icon: BiDollarCircle, label: "Pretplata" },
+      { href: "/purchases", icon: BiShoppingBag, label: "Moje kupovine" },
+    ],
+    [unreadMessages, unreadNotifications]
+  );
 
-  // Desktop “više” (rjeđe)
+  // Desktop “više”
   const desktopMore = [
     { href: "/transactions", icon: BiReceipt, label: "Transakcije", subtle: true },
     { href: "/reviews", icon: MdOutlineRateReview, label: "Recenzije", subtle: true },
@@ -157,27 +291,33 @@ const ProfileNavigation = () => {
   ];
 
   // Mobile bottom nav (4 + Više)
-  const mobileMain = [
-    { href: "/profile", icon: FiUser, label: "Profil" },
-    { href: "/chat", icon: BiChat, label: "Poruke" },
-    { href: "/my-ads", icon: LiaAdSolid, label: "Oglasi" },
-    { href: "/favorites", icon: LuHeart, label: "Omiljeni" },
-  ];
+  const mobileMain = useMemo(
+    () => [
+      { href: "/profile", icon: FiUser, label: "Profil" },
+      { href: "/chat", icon: BiChat, label: "Poruke", badge: unreadMessages },
+      { href: "/my-ads", icon: LiaAdSolid, label: "Oglasi" },
+      { href: "/favorites", icon: LuHeart, label: "Omiljeni" },
+    ],
+    [unreadMessages]
+  );
 
-  const MobileNavItem = ({ href, icon: Icon, label }) => (
+  const MobileNavItem = ({ href, icon: Icon, label, badge }) => (
     <CustomLink
       href={href}
       className={[
-        "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all duration-200",
-        isActive(href) ? "text-[#00B8D4]" : "text-gray-500",
+        "relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all duration-200",
+        isActive(href) ? "text-primary" : "text-gray-500",
       ].join(" ")}
     >
-      <Icon size={22} className="shrink-0" />
+      <div className="relative">
+        <Icon size={22} className="shrink-0" />
+        <Badge value={badge} />
+      </div>
       <span className="text-[10px] font-medium leading-none">{label}</span>
     </CustomLink>
   );
 
-  const MobileMoreRow = ({ href, icon: Icon, label }) => (
+  const MobileMoreRow = ({ href, icon: Icon, label, badge }) => (
     <button
       type="button"
       onClick={() => {
@@ -185,16 +325,29 @@ const ProfileNavigation = () => {
         navigate(href);
       }}
       className={[
-        "w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-colors text-left",
-        isActive(href) ? "bg-[#00B8D4]/10 border-[#00B8D4]/30 text-[#00B8D4]" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50",
+        "w-full flex items-center justify-between gap-3 px-3 py-3 rounded-xl border transition-colors text-left",
+        isActive(href)
+          ? "bg-primary/10 border-primary/30 text-primary"
+          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50",
       ].join(" ")}
     >
-      <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
-        <Icon size={18} className={isActive(href) ? "text-[#00B8D4]" : "text-slate-500"} />
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="relative w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+          <Icon size={18} className={isActive(href) ? "text-primary" : "text-slate-500"} />
+          <Badge value={badge} />
+        </div>
+        <span className="text-sm font-semibold truncate">{label}</span>
       </div>
-      <span className="text-sm font-semibold">{label}</span>
+
+      {badgeText(badge) ? (
+        <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-full">
+          {badgeText(badge)}
+        </span>
+      ) : null}
     </button>
   );
+
+  const moreHasBadge = unreadNotifications > 0;
 
   return (
     <>
@@ -206,16 +359,20 @@ const ProfileNavigation = () => {
         <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-200 mb-4">
           <div className="px-6 py-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#00B8D4] to-[#0097A7] flex items-center justify-center text-white overflow-hidden shadow-sm shrink-0">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shadow-sm shrink-0 border border-primary/10">
                 {userData?.profile_image ? (
-                  <img src={userData.profile_image} alt="User" className="h-full w-full object-cover" />
+                  <img src={userData.profile_image} alt="Korisnik" className="h-full w-full object-cover" />
                 ) : (
                   <FiUser size={20} />
                 )}
               </div>
               <div className="min-w-0">
-                <h3 className="text-base font-bold text-slate-900 truncate">{userData?.name || "Korisnik"}</h3>
-                <p className="text-sm text-slate-500 truncate">{userData?.email || userData?.phone}</p>
+                <h3 className="text-base font-bold text-slate-900 truncate">
+                  {userData?.name || "Korisnik"}
+                </h3>
+                <p className="text-sm text-slate-500 truncate">
+                  {userData?.email || userData?.phone || ""}
+                </p>
               </div>
             </div>
 
@@ -255,7 +412,7 @@ const ProfileNavigation = () => {
               <button
                 type="button"
                 onClick={() => setShowMoreDesktop((v) => !v)}
-                className="text-sm font-semibold text-[#00B8D4] hover:opacity-80 transition-opacity"
+                className="text-sm font-semibold text-primary hover:opacity-80 transition-opacity"
               >
                 {showMoreDesktop ? "Sakrij dodatno" : "Prikaži dodatno"}
               </button>
@@ -265,7 +422,13 @@ const ProfileNavigation = () => {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {desktopPrimary.map((x) => (
-                <NavCard key={x.href} href={x.href} icon={x.icon} label={x.label} />
+                <NavCard
+                  key={x.href}
+                  href={x.href}
+                  icon={x.icon}
+                  label={x.label}
+                  badge={x.badge}
+                />
               ))}
             </div>
 
@@ -276,7 +439,13 @@ const ProfileNavigation = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {desktopMore.map((x) => (
-                    <NavCard key={x.href} href={x.href} icon={x.icon} label={x.label} subtle />
+                    <NavCard
+                      key={x.href}
+                      href={x.href}
+                      icon={x.icon}
+                      label={x.label}
+                      subtle
+                    />
                   ))}
                 </div>
               </div>
@@ -292,16 +461,20 @@ const ProfileNavigation = () => {
         {/* Mobile user header */}
         <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-200 mb-4">
           <div className="px-4 py-3 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#00B8D4] to-[#0097A7] flex items-center justify-center text-white overflow-hidden shadow-sm shrink-0">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shadow-sm shrink-0 border border-primary/10">
               {userData?.profile_image ? (
-                <img src={userData.profile_image} alt="User" className="h-full w-full object-cover" />
+                <img src={userData.profile_image} alt="Korisnik" className="h-full w-full object-cover" />
               ) : (
                 <FiUser size={18} />
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-bold text-slate-900 truncate">{userData?.name || "Korisnik"}</h3>
-              <p className="text-xs text-slate-500 truncate">{userData?.email || userData?.phone}</p>
+              <h3 className="text-sm font-bold text-slate-900 truncate">
+                {userData?.name || "Korisnik"}
+              </h3>
+              <p className="text-xs text-slate-500 truncate">
+                {userData?.email || userData?.phone || ""}
+              </p>
             </div>
           </div>
         </div>
@@ -314,7 +487,13 @@ const ProfileNavigation = () => {
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-lg pb-safe">
         <div className="grid grid-cols-5 gap-0">
           {mobileMain.map((x) => (
-            <MobileNavItem key={x.href} href={x.href} icon={x.icon} label={x.label} />
+            <MobileNavItem
+              key={x.href}
+              href={x.href}
+              icon={x.icon}
+              label={x.label}
+              badge={x.badge}
+            />
           ))}
 
           {/* MORE -> SHEET */}
@@ -323,11 +502,16 @@ const ProfileNavigation = () => {
               <button
                 type="button"
                 className={[
-                  "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all duration-200",
+                  "relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all duration-200",
                   "text-gray-500",
                 ].join(" ")}
               >
-                <HiOutlineDotsHorizontal size={22} className="shrink-0" />
+                <div className="relative">
+                  <HiOutlineDotsHorizontal size={22} className="shrink-0" />
+                  {moreHasBadge ? (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-600 border-2 border-white" />
+                  ) : null}
+                </div>
                 <span className="text-[10px] font-medium leading-none">Više</span>
               </button>
             </SheetTrigger>
@@ -352,7 +536,12 @@ const ProfileNavigation = () => {
                   Prečice
                 </div>
 
-                <MobileMoreRow href="/notifications" icon={IoMdNotificationsOutline} label="Obavijesti" />
+                <MobileMoreRow
+                  href="/notifications"
+                  icon={IoMdNotificationsOutline}
+                  label="Obavijesti"
+                  badge={unreadNotifications}
+                />
                 <MobileMoreRow href="/profile/saved-searches" icon={BiSearch} label="Spašene pretrage" />
                 <MobileMoreRow href="/user-subscription" icon={BiDollarCircle} label="Pretplata" />
                 <MobileMoreRow href="/purchases" icon={BiShoppingBag} label="Moje kupovine" />

@@ -347,7 +347,7 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
         <IoSearch className="size-5 text-primary shrink-0" />
         <input
           type="text"
-          className="w-full outline-none text-sm"
+          className="w-full outline-none text-sm bg-transparent"
           placeholder={getPlaceholderText()}
           value={search}
           onChange={(e) => setSearch(e.target.value)}

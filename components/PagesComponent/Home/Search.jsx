@@ -686,7 +686,7 @@ const Search = () => {
 
   return (
     <>
-      <div className="w-full flex items-center gap-3 z-[99]">
+      <div className="w-full flex items-center gap-3 z-[9999]">
         {settings?.header_logo && (
           <div
             className={cn(
@@ -705,9 +705,25 @@ const Search = () => {
                 className="w-full h-[42px] sm:h-[70px] object-contain ltr:object-left rtl:object-right"
               />
             </Link>
+            
           </div>
         )}
 
+<div className="flex items-center gap-2 min-w-[110px]">
+
+
+{/* desktop hint (suptilno) */}
+<div className="hidden xl:flex items-center">
+  <div className="h-6 w-px bg-slate-200 mx-3" />
+  <div className="text-xs text-slate-500">
+  Nešto domaće.
+
+Nešto drugačije.
+
+Nešto naše.
+  </div>
+</div>
+</div>
         <div
           ref={searchContainerRef}
           className={cn(
@@ -876,8 +892,8 @@ const Search = () => {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{s.naziv}</p>
                           <p className="text-xs text-gray-500 truncate">
-                            {formatSavedSearchSubtitle(s.queryString || s.query_string || "")}
-                          </p>
+                          {formatSavedSearchSubtitle(s.queryString || s.query_string || "")}
+                        </p>
 
 
                         </div>

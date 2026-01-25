@@ -1,72 +1,56 @@
 "use client";
-import LanguageDropdown from "@/components/Common/LanguageDropdown";
-import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
-import { getIsFreAdListing, settingsData } from "@/redux/reducer/settingSlice";
-import { t, truncate } from "@/utils";
-import CustomLink from "@/components/Common/CustomLink";
+
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
+import { useMediaQuery } from "usehooks-ts";
 import { useSelector } from "react-redux";
-import { GrLocation } from "react-icons/gr";
-import { BsChatDots } from "react-icons/bs";
-import { getCityData } from "@/redux/reducer/locationSlice";
-import HomeMobileMenu from "./HomeMobileMenu.jsx";
-import MailSentSuccessModal from "@/components/Auth/MailSentSuccessModal.jsx";
-import { useState, useEffect } from "react";
-import { ThemeToggle } from "@/components/ThemeToggle.jsx";
-import { IconMenu2 } from "@tabler/icons-react";
+import { toast } from "sonner";
+
+import FirebaseData from "@/utils/Firebase.js";
+import { t, truncate } from "@/utils";
+import { useNavigate } from "@/components/Common/useNavigate.jsx";
+import CustomLink from "@/components/Common/CustomLink";
+import CustomImage from "@/components/Common/CustomImage.jsx";
 
 import {
   getIsLoggedIn,
   logoutSuccess,
   userSignUpData,
 } from "@/redux/reducer/authSlice.js";
+import { getIsFreAdListing, settingsData } from "@/redux/reducer/settingSlice";
+import { CategoryData, getIsCatLoading } from "@/redux/reducer/categorySlice.js";
+import { getCityData } from "@/redux/reducer/locationSlice";
+
 import ProfileDropdown from "./ProfileDropdown.jsx";
-import { toast } from "sonner";
-import FirebaseData from "@/utils/Firebase.js";
-import {
-  CategoryData,
-  getIsCatLoading,
-} from "@/redux/reducer/categorySlice.js";
-import { IoIosAddCircleOutline } from "react-icons/io";
-import dynamic from "next/dynamic";
-import {
-  getIsLoginModalOpen,
-  setIsLoginOpen,
-} from "@/redux/reducer/globalStateSlice.js";
+import HomeMobileMenu from "./HomeMobileMenu.jsx";
+import HeaderCategories from "./HeaderCategories.jsx";
+import UnauthorizedModal from "@/components/Auth/UnauthorizedModal.jsx";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
+import MailSentSuccessModal from "@/components/Auth/MailSentSuccessModal.jsx";
+
+import { Skeleton } from "@/components/ui/skeleton.jsx";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import FilterTree from "@/components/Filter/FilterTree";
+import { deleteUser, getAuth } from "firebase/auth";
+
 import {
   deleteUserApi,
   getLimitsApi,
   logoutApi,
   chatListApi,
+  getNotificationList,
 } from "@/utils/api.js";
-import { useMediaQuery } from "usehooks-ts";
-import UnauthorizedModal from "@/components/Auth/UnauthorizedModal.jsx";
-import CustomImage from "@/components/Common/CustomImage.jsx";
-import { Loader2 } from "lucide-react";
-import { useNavigate } from "@/components/Common/useNavigate.jsx";
-import { usePathname } from "next/navigation.js";
-import { Skeleton } from "@/components/ui/skeleton.jsx";
-import HeaderCategories from "./HeaderCategories.jsx";
-import { deleteUser, getAuth } from "firebase/auth";
 
-// 🔥 IMPORTI ZA MOBILNI MENI U HEADERU
+import { Loader2 } from "lucide-react";
+import { IoIosAddCircleOutline } from "react-icons/io";
+import { GrLocation } from "react-icons/gr";
+import { BsChatDots } from "react-icons/bs";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import FilterTree from "@/components/Filter/FilterTree";
-import {
-  IconDots,
+  IconMenu2,
   IconBell,
-  IconCurrencyDollar,
-  IconHeart,
-  IconFileText,
-  IconMessage,
-  IconBriefcase,
-  IconTrash,
-  IconLogout,
   IconMapPin,
   IconHome,
   IconUserCircle,
@@ -74,47 +58,59 @@ import {
   IconCirclePlus,
   IconListDetails,
   IconLoader2,
+  IconCurrencyDollar,
+  IconHeart,
+  IconFileText,
+  IconMessage,
+  IconBriefcase,
+  IconTrash,
+  IconLogout,
 } from "@tabler/icons-react";
 
-const Search = dynamic(() => import("./Search.jsx"), {
-  ssr: false,
-});
+import {
+  getIsLoginModalOpen,
+  setIsLoginOpen,
+} from "@/redux/reducer/globalStateSlice.js";
+
+const Search = dynamic(() => import("./Search.jsx"), { ssr: false });
 const LoginModal = dynamic(() => import("@/components/Auth/LoginModal.jsx"), {
   ssr: false,
 });
 const RegisterModal = dynamic(
   () => import("@/components/Auth/RegisterModal.jsx"),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 const LocationModal = dynamic(
   () => import("@/components/Location/LocationModal.jsx"),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
-const HeaderCategoriesSkeleton = () => {
-  return (
-    <div className="container">
-      <div className="py-1.5 border-b">
-        <Skeleton className="w-full h-[40px]" />
-      </div>
+const HeaderCategoriesSkeleton = () => (
+  <div className="container">
+    <div className="py-1.5 border-b">
+      <Skeleton className="w-full h-[40px]" />
     </div>
-  );
+  </div>
+);
+
+// Helpers
+const safeList = (payload) => {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  if (Array.isArray(payload?.data?.data?.data)) return payload.data.data.data;
+  return [];
 };
 
 const HomeHeader = () => {
-  // 📦 Framework & Firebase
   const { navigate } = useNavigate();
   const { signOut } = FirebaseData();
   const pathname = usePathname();
 
-  // 🔥 Provjera da li smo na početnoj stranici
-  const isHomePage = pathname === "/";
+  const isLargeScreen = useMediaQuery("(min-width: 992px)");
 
-  // 🔌 Redux State
+  // Redux
   const userData = useSelector(userSignUpData);
   const IsLoggedin = useSelector(getIsLoggedIn);
   const IsLoginOpen = useSelector(getIsLoginModalOpen);
@@ -122,10 +118,9 @@ const HomeHeader = () => {
   const cateData = useSelector(CategoryData);
   const IsFreeAdListing = useSelector(getIsFreAdListing);
   const cityData = useSelector(getCityData);
-  const CurrentLanguage = useSelector(CurrentLanguageData);
   const settings = useSelector(settingsData);
 
-  // 🎛️ Local UI State
+  // Local UI
   const [IsRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [IsLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [IsLogout, setIsLogout] = useState(false);
@@ -134,29 +129,24 @@ const HomeHeader = () => {
   const [IsAdListingClicked, setIsAdListingClicked] = useState(false);
   const [IsMailSentSuccess, setIsMailSentSuccess] = useState(false);
 
-  // 🔥 CHAT COUNT STATE
-  const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
-
-  // 🔥 STANJE ZA MOBILNI MENI U HEADERU (za stranice koje nisu početna)
+  // Mobile header sheet
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // 📱 Media Query
-  const isLargeScreen = useMediaQuery("(min-width: 992px)");
-
-  // Delete account state
+  // Delete account (mobile dialog)
   const [manageDeleteAccount, setManageDeleteAccount] = useState({
     IsDeleteAccount: false,
     IsDeleting: false,
   });
 
-  useEffect(() => {
-    if (isLargeScreen && isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
-  }, [isLargeScreen, isMobileMenuOpen]);
-  
+  // Counts
+  const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
+  const [totalUnreadNotifications, setTotalUnreadNotifications] = useState(0);
 
-  // --- LOGIKA ZA BROJANJE PORUKA ---
+  useEffect(() => {
+    if (isLargeScreen && isMobileMenuOpen) setIsMobileMenuOpen(false);
+  }, [isLargeScreen, isMobileMenuOpen]);
+
+  // --- unread chat count (postojeće) ---
   useEffect(() => {
     let isMounted = true;
 
@@ -187,12 +177,10 @@ const HomeHeader = () => {
         const sellerChats = extractChatData(sellerRes);
 
         let count = 0;
-
         buyerChats.forEach((chat) => {
           if (chat.is_muted === true) return;
           count += Number(chat?.unread_chat_count || 0);
         });
-
         sellerChats.forEach((chat) => {
           if (chat.is_muted === true) return;
           count += Number(chat?.unread_chat_count || 0);
@@ -213,33 +201,71 @@ const HomeHeader = () => {
     };
   }, [IsLoggedin, pathname]);
 
+  // --- unread notifications count (novo, glatko) ---
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUnreadNotifications = async () => {
+      if (!IsLoggedin) {
+        setTotalUnreadNotifications(0);
+        return;
+      }
+
+      try {
+        const res = await getNotificationList.getNotification({ page: 1 });
+        if (!isMounted) return;
+
+        const payload = res?.data?.data ?? res?.data ?? null;
+        const list = safeList(payload);
+
+        // backend već ima read_at/is_read pattern (koristi se i u ProfileDropdown)
+        const unread = list.filter((n) => !n?.read_at && !n?.is_read).length;
+        setTotalUnreadNotifications(Number(unread || 0));
+      } catch (e) {
+        // tiho fail, da ne smeta UX
+        console.error("Greška prilikom dohvatanja notifikacija:", e);
+      }
+    };
+
+    fetchUnreadNotifications();
+    const interval = setInterval(fetchUnreadNotifications, 45000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [IsLoggedin, pathname]);
+
+  const locationText = cityData?.formattedAddress;
+
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
       await signOut();
+
       const res = await logoutApi.logoutApi({
         ...(userData?.fcm_id && { fcm_token: userData?.fcm_id }),
       });
+
       if (res?.data?.error === false) {
         logoutSuccess();
         toast.success(t("signOutSuccess"));
         setIsLogout(false);
-        if (pathname !== "/") {
-          navigate("/");
-        }
+        if (pathname !== "/") navigate("/");
       } else {
-        toast.error(res?.data?.message);
+        toast.error(res?.data?.message || "Odjava nije uspjela. Pokušajte ponovo.");
       }
     } catch (error) {
       console.log("Neuspješna odjava", error);
+      toast.error("Odjava nije uspjela. Pokušajte ponovo.");
     } finally {
       setIsLoggingOut(false);
     }
   };
 
   const handleAdListing = async () => {
-    setIsMobileMenuOpen(false); // Zatvori meni
-    
+    setIsMobileMenuOpen(false);
+
     if (!IsLoggedin) {
       setIsLoginOpen(true);
       return;
@@ -253,11 +279,10 @@ const HomeHeader = () => {
       navigate("/ad-listing");
       return;
     }
+
     try {
       setIsAdListingClicked(true);
-      const res = await getLimitsApi.getLimits({
-        package_type: "item_listing",
-      });
+      const res = await getLimitsApi.getLimits({ package_type: "item_listing" });
       if (res?.data?.error === false) {
         navigate("/ad-listing");
       } else {
@@ -276,118 +301,96 @@ const HomeHeader = () => {
     navigate("/profile");
   };
 
-  const locationText = cityData?.formattedAddress;
-
   const handleDeleteAcc = async () => {
     try {
       setManageDeleteAccount((prev) => ({ ...prev, IsDeleting: true }));
       const auth = getAuth();
       const user = auth.currentUser;
+
       await deleteUser(user);
       await deleteUserApi.deleteUser();
+
       logoutSuccess();
       toast.success(t("userDeleteSuccess"));
-      setManageDeleteAccount((prev) => ({
-        ...prev,
-        IsDeleteAccount: false,
-      }));
-      if (pathname !== "/") {
-        navigate("/");
-      }
+      setManageDeleteAccount({ IsDeleteAccount: false, IsDeleting: false });
+
+      if (pathname !== "/") navigate("/");
     } catch (error) {
-      console.error("Greška prilikom brisanja korisnika:", error.message);
-      if (error.code === "auth/requires-recent-login") {
+      console.error("Greška prilikom brisanja korisnika:", error?.message);
+      if (error?.code === "auth/requires-recent-login") {
         logoutSuccess();
         toast.error(t("deletePop"));
-        setManageDeleteAccount((prev) => ({
-          ...prev,
-          IsDeleteAccount: false,
-        }));
+        setManageDeleteAccount({ IsDeleteAccount: false, IsDeleting: false });
+      } else {
+        toast.error("Brisanje računa nije uspjelo. Pokušajte ponovo.");
       }
     } finally {
-      setManageDeleteAccount((prev) => ({
-        ...prev,
-        IsDeleting: false,
-      }));
+      setManageDeleteAccount((prev) => ({ ...prev, IsDeleting: false }));
     }
   };
 
   const handleChatClick = () => {
-    setIsMobileMenuOpen(false); // Zatvori meni
-    if (!IsLoggedin) {
-      setIsLoginOpen(true);
-    } else {
-      navigate("/chat");
-    }
+    setIsMobileMenuOpen(false);
+    if (!IsLoggedin) setIsLoginOpen(true);
+    else navigate("/chat");
   };
 
-  // 🔥 FUNKCIJE ZA MOBILNI MENI U HEADERU
+  const handleNotificationsClick = () => {
+    setIsMobileMenuOpen(false);
+    if (!IsLoggedin) setIsLoginOpen(true);
+    else navigate("/notifications");
+  };
+
   const openLocationEditModal = () => {
     setIsMobileMenuOpen(false);
     setIsLocationModalOpen(true);
   };
 
-  const handleMobileLogin = () => {
-    setIsMobileMenuOpen(false);
-    setIsLoginOpen(true);
-  };
-
-  const handleMobileRegister = () => {
-    setIsMobileMenuOpen(false);
-    setIsRegisterModalOpen(true);
-  };
-
-  const handleMobileSignOut = () => {
-    setIsMobileMenuOpen(false);
-    setIsLogout(true);
-  };
-
-  const handleMobileDeleteAccount = () => {
-    setIsMobileMenuOpen(false);
-    setManageDeleteAccount((prev) => ({
-      ...prev,
-      IsDeleteAccount: true,
-    }));
-  };
-
-  // Provjera aktivne stranice
+  // Mobile menu items (postojeće, samo zadržano)
   const isHomeActive = pathname === "/";
   const isProfileActive = pathname.startsWith("/profile");
   const isChatActive = pathname.startsWith("/chat");
   const isMyAdsActive = pathname.startsWith("/my-ads");
 
-  // 🔥 GLAVNE NAVIGACIJSKE STAVKE (Početna, Profil, Poruke, Objavi, Moji oglasi)
+  const showMobileMenu = !!userData;
+  const showMobileCategories = !pathname.startsWith("/ads");
+
   const mainNavItems = (
     <div className="flex flex-col border-b border-border pb-2 mb-2">
-      {/* POČETNA */}
       <CustomLink
         href="/"
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${isHomeActive ? 'bg-primary/10 text-primary' : ''}`}
+        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${
+          isHomeActive ? "bg-primary/10 text-primary" : ""
+        }`}
         onClick={() => setIsMobileMenuOpen(false)}
       >
         <IconHome size={22} className={isHomeActive ? "text-primary" : ""} />
         <span className={isHomeActive ? "font-medium" : ""}>Početna</span>
       </CustomLink>
 
-      {/* PROFIL */}
       <CustomLink
         href="/profile"
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${isProfileActive ? 'bg-primary/10 text-primary' : ''}`}
+        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${
+          isProfileActive ? "bg-primary/10 text-primary" : ""
+        }`}
         onClick={() => setIsMobileMenuOpen(false)}
       >
         <IconUserCircle size={22} className={isProfileActive ? "text-primary" : ""} />
-        <span className={isProfileActive ? "font-medium" : ""}>{t("myProfile")}</span>
+        <span className={isProfileActive ? "font-medium" : ""}>
+          {t("myProfile")}
+        </span>
       </CustomLink>
 
-      {/* PORUKE */}
       <button
         onClick={handleChatClick}
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg text-left w-full ${isChatActive ? 'bg-primary/10 text-primary' : ''}`}
+        className={`flex items-center gap-3 py-3 px-2 rounded-lg text-left w-full ${
+          isChatActive ? "bg-primary/10 text-primary" : ""
+        }`}
       >
         <div className="relative">
           <IconMessageCircle size={22} className={isChatActive ? "text-primary" : ""} />
           {IsLoggedin && totalUnreadMessages > 0 && (
-            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-[2px] rounded-full bg-red-600 text-white text-[10px] font-bold">
+            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-[2px] rounded-full bg-red-600 text-white text-[10px] font-bold border-2 border-background">
               {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
             </span>
           )}
@@ -395,7 +398,6 @@ const HomeHeader = () => {
         <span className={isChatActive ? "font-medium" : ""}>Poruke</span>
       </button>
 
-      {/* OBJAVI OGLAS */}
       <button
         onClick={handleAdListing}
         disabled={IsAdListingClicked}
@@ -409,10 +411,11 @@ const HomeHeader = () => {
         <span className="font-medium text-primary">{t("adListing")}</span>
       </button>
 
-      {/* MOJI OGLASI */}
       <CustomLink
         href="/my-ads"
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${isMyAdsActive ? 'bg-primary/10 text-primary' : ''}`}
+        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${
+          isMyAdsActive ? "bg-primary/10 text-primary" : ""
+        }`}
         onClick={() => setIsMobileMenuOpen(false)}
       >
         <IconListDetails size={22} className={isMyAdsActive ? "text-primary" : ""} />
@@ -421,17 +424,23 @@ const HomeHeader = () => {
     </div>
   );
 
-  // 🔥 OSTALE NAVIGACIJSKE STAVKE
   const secondaryNavItems = (
     <div className="flex flex-col">
-      <CustomLink
-        href="/notifications"
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
-        onClick={() => setIsMobileMenuOpen(false)}
+      <button
+        onClick={handleNotificationsClick}
+        className="flex items-center justify-between gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors text-left"
       >
-        <IconBell size={22} />
-        <span>{t("notifications")}</span>
-      </CustomLink>
+        <div className="flex items-center gap-3">
+          <IconBell size={22} />
+          <span>{t("notifications")}</span>
+        </div>
+        {IsLoggedin && totalUnreadNotifications > 0 && (
+          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+            {totalUnreadNotifications > 99 ? "99+" : totalUnreadNotifications}
+          </span>
+        )}
+      </button>
+
       <CustomLink
         href="/user-subscription"
         className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
@@ -440,6 +449,7 @@ const HomeHeader = () => {
         <IconCurrencyDollar size={22} />
         <span>{t("subscription")}</span>
       </CustomLink>
+
       <CustomLink
         href="/favorites"
         className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
@@ -448,6 +458,7 @@ const HomeHeader = () => {
         <IconHeart size={22} />
         <span>{t("favorites")}</span>
       </CustomLink>
+
       <CustomLink
         href="/transactions"
         className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
@@ -456,6 +467,7 @@ const HomeHeader = () => {
         <IconFileText size={22} />
         <span>{t("transaction")}</span>
       </CustomLink>
+
       <CustomLink
         href="/reviews"
         className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
@@ -464,6 +476,7 @@ const HomeHeader = () => {
         <IconMessage size={22} />
         <span>{t("myReviews")}</span>
       </CustomLink>
+
       <CustomLink
         href="/job-applications"
         className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
@@ -475,18 +488,24 @@ const HomeHeader = () => {
     </div>
   );
 
-  // 🔥 AKCIJE (Odjava, Brisanje računa)
   const actionItems = (
     <div className="flex flex-col border-t border-border pt-2 mt-2">
       <button
-        onClick={handleMobileSignOut}
+        onClick={() => {
+          setIsMobileMenuOpen(false);
+          setIsLogout(true);
+        }}
         className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors text-left w-full"
       >
         <IconLogout size={22} />
         <span>{t("signOut")}</span>
       </button>
+
       <button
-        onClick={handleMobileDeleteAccount}
+        onClick={() => {
+          setIsMobileMenuOpen(false);
+          setManageDeleteAccount((prev) => ({ ...prev, IsDeleteAccount: true }));
+        }}
         className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-destructive/10 transition-colors text-destructive text-left w-full"
       >
         <IconTrash size={22} />
@@ -495,241 +514,284 @@ const HomeHeader = () => {
     </div>
   );
 
-  const showMobileMenu = !!userData;
-  const showMobileCategories = !pathname.startsWith("/ads");
+  const logoSrc = settings?.header_logo;
+  const isOnHome = pathname === "/";
 
   return (
     <>
-      <header className="py-5 border-b">
+      {/* ✅ “glass” sticky header + animacije */}
+      <header className="sticky top-0 z-50 border-b bg-white/75 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
         <nav className="container">
-          <div className="space-between">
-            <CustomLink href="/">
-              {/* <CustomImage
-                src={settings?.header_logo}
-                alt="logo"
-                width={195}
-                height={52}
-                className="w-full h-[52px] object-contain ltr:object-left rtl:object-right max-w-[195px]"
-              /> */}
-            </CustomLink>
+          <div className="flex items-center justify-between gap-3 py-3 lg:py-4">
 
+            {/* CENTER: Search (desktop) */}
             {isLargeScreen && (
-              <div className="flex items-center leading-none rounded grow-[0.7]">
-                <Search />
+              <div className="flex-1 max-w-[720px]">
+                <div className="transition-transform duration-300 hover:scale-[1.01]">
+                  <Search />
+                </div>
               </div>
             )}
 
-            <button
-              className="hidden lg:flex items-center gap-1"
-              onClick={() => setIsLocationModalOpen(true)}
-            >
-              <GrLocation
-                size={20}
-                className="flex-shrink-0"
-                title={"Lokacija"}
-              />
-            </button>
-
+            {/* RIGHT: Actions (desktop) */}
             <div className="hidden lg:flex items-center gap-2">
-  {/* OVDJE JE BIO SHEET (HAMBURGER) - OBRISANO */}
-
-  {/* --- DUGME ZA PORUKE (DESKTOP) --- */}
-  {IsLoggedin && (
-    <button
-      onClick={handleChatClick}
-      className="relative p-2 text-gray-600 hover:text-primary transition-colors mx-1"
-      title={t("chat")}
-    >
-      <BsChatDots size={22} />
-      {totalUnreadMessages > 0 && (
-        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-0.5 bg-red-600 text-white text-[10px] font-bold rounded-full border-2 border-white box-content">
-          {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
-        </span>
-      )}
-    </button>
-  )}
-
-  {IsLoggedin ? (
-    <ProfileDropdown setIsLogout={setIsLogout} IsLogout={IsLogout} />
-  ) : (
-    <>
-      <button onClick={() => setIsLoginOpen(true)} title={t("login")}>
-        {truncate(t("login"), 12)}
-      </button>
-      <span className="border-l h-6 self-center"></span>
-      <button onClick={() => setIsRegisterModalOpen(true)} title={t("register")}>
-        {truncate(t("register"), 12)}
-      </button>
-    </>
-  )}
-
-  <button
-    className="bg-primary px-2 xl:px-4 py-2 items-center text-white rounded-md flex gap-1"
-    disabled={IsAdListingClicked}
-    onClick={handleAdListing}
-    title={t("adListing")}
-  >
-    {IsAdListingClicked ? (
-      <Loader2 size={20} className="animate-spin" />
-    ) : (
-      <IoIosAddCircleOutline size={20} />
-    )}
-  </button>
-</div>
-
-            {/* 🔥 MOBILNI MENI - PRIKAZUJE SE SAMO NA POČETNOJ */}
-            <HomeMobileMenu
-              setIsLocationModalOpen={setIsLocationModalOpen}
-              setIsRegisterModalOpen={setIsRegisterModalOpen}
-              setIsLogout={setIsLogout}
-              locationText={locationText}
-              handleAdListing={handleAdListing}
-              IsAdListingClicked={IsAdListingClicked}
-              setManageDeleteAccount={setManageDeleteAccount}
-            />
-          </div>
-
-          {!isLargeScreen && (
-  <div className="flex gap-2 mt-2">
-    <div className="flex-1 flex items-center leading-none rounded gap-2">
-      <Search />
-
-      {/* HAMBURGER (SAMO MOBITEL) */}
-      <div className="lg:hidden">
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <button
-              type="button"
-              className="relative flex items-center justify-center w-10 h-10 border rounded-md bg-background hover:bg-muted transition-colors"
-              aria-label="Meni"
-            >
-              <IconMenu2 size={22} />
-
-              {/* Badge za nepročitane poruke */}
-              {IsLoggedin && totalUnreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-[2px] rounded-full bg-red-600 text-white text-[9px] font-bold border-2 border-background">
-                  {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
-                </span>
-              )}
-            </button>
-          </SheetTrigger>
-
-          <SheetContent
-            side="bottom"
-            className="p-0 overflow-y-auto max-h-[85vh] rounded-t-2xl border-t bg-background"
-          >
-            {/* ZAGLAVLJE */}
-            <div className="p-4 border-b border-border">
-              {/* KORISNIČKE INFORMACIJE */}
-              <div className="flex items-center justify-between gap-3 mb-3">
-                {userData ? (
-                  <CustomLink
-                    href="/profile"
-                    className="flex items-center gap-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <IconUserCircle size={24} className="text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{userData?.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {userData?.email}
-                      </p>
-                    </div>
-                  </CustomLink>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleMobileLogin}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
-                    >
-                      {t("login")}
-                    </button>
-                    <button
-                      onClick={handleMobileRegister}
-                      className="px-4 py-2 border border-border rounded-lg font-medium"
-                    >
-                      {t("register")}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* LOKACIJA */}
-
-              {/* THEME TOGGLE PREBAČEN U MENI (umjesto da stoji pored Search) */}
-              <div className="mt-3 flex items-center justify-between p-2 bg-muted rounded-lg">
-              <div
-                className="flex items-center gap-2 p-2 bg-muted rounded-lg cursor-pointer"
-                onClick={openLocationEditModal}
+              {/* location */}
+              <button
+                className="group flex items-center gap-2 px-3 py-2 rounded-full border border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300 transition-all duration-200"
+                onClick={() => setIsLocationModalOpen(true)}
+                type="button"
+                aria-label="Lokacija"
+                title="Lokacija"
               >
-                <IconMapPin size={18} className="text-muted-foreground" />
-                <p className="text-sm line-clamp-1">
-                  {locationText || t("addLocation")}
-                </p>
-              </div>
-                <ThemeToggle />
-              </div>
+                <GrLocation size={18} className="text-slate-600" />
+                <span className="text-sm text-slate-700 max-w-[180px] truncate">
+                  {locationText || "Dodaj lokaciju"}
+                </span>
+              </button>
+
+              {/* notifications */}
+              <button
+                onClick={handleNotificationsClick}
+                className="relative w-10 h-10 rounded-full border border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300 grid place-items-center transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]"
+                title="Obavijesti"
+                type="button"
+                aria-label="Obavijesti"
+              >
+                <IconBell size={20} className="text-slate-700" />
+                {IsLoggedin && totalUnreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+                    {totalUnreadNotifications > 99 ? "99+" : totalUnreadNotifications}
+                  </span>
+                )}
+              </button>
+
+              {/* chat */}
+              <button
+                onClick={handleChatClick}
+                className="relative w-10 h-10 rounded-full border border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300 grid place-items-center transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]"
+                title="Poruke"
+                type="button"
+                aria-label="Poruke"
+              >
+                <BsChatDots size={20} className="text-slate-700" />
+                {IsLoggedin && totalUnreadMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+                    {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
+                  </span>
+                )}
+              </button>
+
+              {/* profile */}
+              {IsLoggedin ? (
+                <ProfileDropdown setIsLogout={setIsLogout} IsLogout={IsLogout} />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsLoginOpen(true)}
+                    className="px-3 py-2 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                    type="button"
+                    title="Prijava"
+                  >
+                    {truncate(t("login"), 12)}
+                  </button>
+                  <button
+                    onClick={() => setIsRegisterModalOpen(true)}
+                    className="px-3 py-2 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                    type="button"
+                    title="Registracija"
+                  >
+                    {truncate(t("register"), 12)}
+                  </button>
+                </div>
+              )}
+
+              {/* post ad */}
+              <button
+                className="ml-1 flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-white font-semibold shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                disabled={IsAdListingClicked}
+                onClick={handleAdListing}
+                title="Objavi oglas"
+                type="button"
+              >
+                {IsAdListingClicked ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <IoIosAddCircleOutline size={18} />
+                )}
+                <span className="hidden xl:inline">{t("adListing")}</span>
+              </button>
             </div>
 
-            {/* SADRŽAJ */}
-            {showMobileMenu && showMobileCategories ? (
-              <Tabs defaultValue="menu">
-                <TabsList className="flex items-center justify-between bg-muted rounded-none border-b">
-                  <TabsTrigger
-                    value="menu"
-                    className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none"
+            {/* MOBILE: desno mini akcije (samo ikone) */}
+            <div className="flex lg:hidden items-center gap-2">
+              <button
+                onClick={handleNotificationsClick}
+                className="relative w-10 h-10 rounded-full border border-slate-200 bg-white/70 hover:bg-white transition-all duration-200 active:scale-[0.98]"
+                type="button"
+                aria-label="Obavijesti"
+              >
+                <IconBell size={20} className="mx-auto text-slate-700" />
+                {IsLoggedin && totalUnreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-[2px] rounded-full bg-red-600 text-white text-[9px] font-bold border-2 border-white flex items-center justify-center">
+                    {totalUnreadNotifications > 99 ? "99+" : totalUnreadNotifications}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={handleChatClick}
+                className="relative w-10 h-10 rounded-full border border-slate-200 bg-white/70 hover:bg-white transition-all duration-200 active:scale-[0.98]"
+                type="button"
+                aria-label="Poruke"
+              >
+                <BsChatDots size={18} className="mx-auto text-slate-700" />
+                {IsLoggedin && totalUnreadMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-[2px] rounded-full bg-red-600 text-white text-[9px] font-bold border-2 border-white flex items-center justify-center">
+                    {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
+                  </span>
+                )}
+              </button>
+
+              {/* hamburger inline (mobilni) */}
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <button
+                    type="button"
+                    className="relative flex items-center justify-center w-10 h-10 border border-slate-200 rounded-full bg-white/70 hover:bg-white transition-all duration-200 active:scale-[0.98]"
+                    aria-label="Meni"
                   >
-                    {t("menu")}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="categories"
-                    className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none"
-                  >
-                    {t("multipleCategories")}
-                  </TabsTrigger>
-                </TabsList>
+                    <IconMenu2 size={20} />
+                  </button>
+                </SheetTrigger>
 
-                <TabsContent value="menu" className="px-4 py-2">
-                  {mainNavItems}
-                  {secondaryNavItems}
-                  {actionItems}
-                </TabsContent>
+                <SheetContent
+                  side="bottom"
+                  className="p-0 overflow-y-auto max-h-[85vh] rounded-t-2xl border-t bg-background"
+                >
+                  {/* header */}
+                  <div className="p-4 border-b border-border">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      {userData ? (
+                        <CustomLink
+                          href="/profile"
+                          className="flex items-center gap-2"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <IconUserCircle size={24} className="text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{userData?.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {userData?.email}
+                            </p>
+                          </div>
+                        </CustomLink>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              setIsMobileMenuOpen(false);
+                              setIsLoginOpen(true);
+                            }}
+                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
+                          >
+                            {t("login")}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsMobileMenuOpen(false);
+                              setIsRegisterModalOpen(true);
+                            }}
+                            className="px-4 py-2 border border-border rounded-lg font-medium"
+                          >
+                            {t("register")}
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-                <TabsContent value="categories" className="p-4">
-                  <FilterTree />
-                </TabsContent>
-              </Tabs>
-            ) : showMobileMenu ? (
-              <div className="px-4 py-2">
-                {mainNavItems}
-                {secondaryNavItems}
-                {actionItems}
+                    {/* Lokacija */}
+                    <div
+                      className="mt-1 flex items-center gap-2 p-3 bg-muted rounded-xl cursor-pointer hover:bg-muted/80 transition-colors"
+                      onClick={openLocationEditModal}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <IconMapPin size={18} className="text-muted-foreground" />
+                      <p className="text-sm line-clamp-1">
+                        {locationText || "Dodaj lokaciju"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* sadržaj */}
+                  {showMobileMenu && showMobileCategories ? (
+                    <Tabs defaultValue="menu">
+                      <TabsList className="flex items-center justify-between bg-muted rounded-none border-b">
+                        <TabsTrigger
+                          value="menu"
+                          className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none"
+                        >
+                          Meni
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="categories"
+                          className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none"
+                        >
+                          Kategorije
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="menu" className="px-4 py-2">
+                        {mainNavItems}
+                        {secondaryNavItems}
+                        {actionItems}
+                      </TabsContent>
+
+                      <TabsContent value="categories" className="p-4">
+                        <FilterTree />
+                      </TabsContent>
+                    </Tabs>
+                  ) : showMobileMenu ? (
+                    <div className="px-4 py-2">
+                      {mainNavItems}
+                      {secondaryNavItems}
+                      {actionItems}
+                    </div>
+                  ) : showMobileCategories ? (
+                    <div className="p-4">
+                      <h1 className="font-medium mb-4">Kategorije</h1>
+                      <FilterTree />
+                    </div>
+                  ) : null}
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+
+          {/* MOBILE: Search ispod (da ne bude zbijeno) */}
+          {!isLargeScreen && (
+            <div className="pb-3">
+              <div className="transition-transform duration-300 hover:scale-[1.01]">
+                <Search />
               </div>
-            ) : showMobileCategories ? (
-              <div className="p-4">
-                <h1 className="font-medium mb-4">{t("multipleCategories")}</h1>
-                <FilterTree />
-              </div>
-            ) : null}
-          </SheetContent>
-        </Sheet>
-      </div>
-    </div>
-  </div>
-)}
-
+            </div>
+          )}
         </nav>
+
+        {/* “soft” shadow ispod header-a */}
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-200/70 to-transparent" />
       </header>
 
+      {/* categories */}
       {isCategoryLoading && !cateData.length ? (
         <HeaderCategoriesSkeleton />
       ) : (
-        cateData &&
-        cateData.length > 0 && <HeaderCategories cateData={cateData} />
+        cateData && cateData.length > 0 && <HeaderCategories cateData={cateData} />
       )}
 
+      {/* modals */}
       <LoginModal
         key={IsLoginOpen}
         IsLoginOpen={IsLoginOpen}
@@ -742,6 +804,7 @@ const HomeHeader = () => {
         setIsRegisterModalOpen={setIsRegisterModalOpen}
         key={`${IsRegisterModalOpen}-register-modal`}
       />
+
       <MailSentSuccessModal
         IsMailSentSuccess={IsMailSentSuccess}
         setIsMailSentSuccess={setIsMailSentSuccess}
@@ -797,6 +860,7 @@ const HomeHeader = () => {
         IsLocationModalOpen={IsLocationModalOpen}
         setIsLocationModalOpen={setIsLocationModalOpen}
       />
+
       <UnauthorizedModal />
     </>
   );

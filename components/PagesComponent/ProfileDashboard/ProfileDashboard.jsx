@@ -313,7 +313,7 @@ const ProfileDashboard = () => {
                 >
                   {/* Header */}
                   <div className="px-5 py-4 border-b border-gray-100">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between">
                       {/* Naslov (animiran) */}
                       <div
                         className={cn(

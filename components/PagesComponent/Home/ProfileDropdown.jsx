@@ -1,27 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import Link from "next/link";
 import { useMediaQuery } from "usehooks-ts";
 
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { settingsData } from "@/redux/reducer/settingSlice";
-import { membershipApi, getNotificationList, getMyItemsApi, getMyReviewsApi } from "@/utils/api";
- import CustomImage from "@/components/Common/CustomImage";
+import {
+  membershipApi,
+  getNotificationList,
+  getMyItemsApi,
+  getMyReviewsApi,
+  sellerSettingsApi, // ✅ added
+} from "@/utils/api";
+
 import { useNavigate } from "@/components/Common/useNavigate";
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+// ✅ LMX avatar
+import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 // Icons
 import {
@@ -54,14 +54,14 @@ import { MdVerified } from "react-icons/md";
 const getApiData = (res) => res?.data?.data ?? null;
 
 const toNum = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
-  
-  const toRating = (v) => {
-    const n = toNum(v);
-    return n === null ? "0.0" : n.toFixed(1);
-  };
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const toRating = (v) => {
+  const n = toNum(v);
+  return n === null ? "0.0" : n.toFixed(1);
+};
 
 const extractList = (payload) => {
   if (!payload) return [];
@@ -78,6 +78,66 @@ const extractTotal = (payload) => {
   if (typeof payload?.meta?.pagination?.total === "number") return payload.meta.pagination.total;
   return 0;
 };
+
+// ============================================
+// ✅ AVATAR (same logic as Profile.jsx)
+// 1) if customAvatarUrl exists -> show <img>
+// 2) else -> LMX svg avatar by avatarId
+// ============================================
+function UserAvatar({
+  customAvatarUrl,
+  avatarId,
+  size = 36,
+  className = "",
+  ringClassName = "border-2 border-slate-200",
+  showVerified,
+  verifiedSize = 10,
+  showNotifBadge,
+  notifCount = 0,
+}) {
+  const [imgErr, setImgErr] = useState(false);
+  const showImg = Boolean(customAvatarUrl) && !imgErr;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <div
+        className={[
+          "w-full h-full rounded-full overflow-hidden relative bg-gray-100 shadow-sm",
+          ringClassName,
+          className,
+        ].join(" ")}
+      >
+        {showImg ? (
+          <img
+            src={customAvatarUrl}
+            alt="Avatar"
+            className="w-full h-full object-cover"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div className="w-full h-full bg-white flex items-center justify-center text-primary">
+            <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-2/3 h-2/3" />
+          </div>
+        )}
+      </div>
+
+      {showVerified && (
+        <div
+          className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white"
+          style={{ width: Math.max(14, Math.round(size * 0.33)), height: Math.max(14, Math.round(size * 0.33)) }}
+        >
+          <MdVerified className="text-white" size={verifiedSize} />
+        </div>
+      )}
+
+      {showNotifBadge && notifCount > 0 && (
+        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+          {notifCount > 9 ? "9+" : notifCount}
+        </span>
+      )}
+    </div>
+  );
+}
 
 // ============================================
 // MEMBERSHIP BADGE
@@ -234,6 +294,8 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   const settings = useSelector(settingsData);
   const placeholderImage = settings?.placeholder_image;
 
+  const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
+
   const [userStats, setUserStats] = useState({
     activeAds: 0,
     totalViews: 0,
@@ -242,6 +304,26 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     membershipTier: "free",
     isVerified: false,
   });
+
+  // ✅ same logic: if profile is placeholder -> treat as no custom image
+  const customAvatarUrl = useMemo(() => {
+    const p = userData?.profile || "";
+    if (!p) return "";
+    if (placeholderImage && p === placeholderImage) return "";
+    return p;
+  }, [userData?.profile, placeholderImage]);
+
+  // ✅ fetch seller avatar id for LMX fallback
+  const getSellerSettings = useCallback(async () => {
+    try {
+      const res = await sellerSettingsApi.getSettings();
+      if (res?.data?.error === false && res?.data?.data) {
+        setSellerAvatarId(res.data.data.avatar_id || "lmx-01");
+      }
+    } catch (e) {
+      // silent fallback
+    }
+  }, []);
 
   const handleNavigate = useCallback(
     (path) => {
@@ -271,7 +353,6 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
           offset: 0,
           limit: 1,
         }),
-        // ✅ prosječna ocjena (backend source of truth)
         getMyReviewsApi.getMyReviews({ page: 1 }),
       ]);
 
@@ -296,8 +377,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         activeAds = extractTotal(payload) || payload?.total || 0;
       }
 
-      // ✅ rating: prvo backend my-review, pa fallback na userData polja (ako postoje)
-     let ratingFromReviews = null;
+      let ratingFromReviews = null;
       if (reviewsRes?.status === "fulfilled") {
         const payload = getApiData(reviewsRes.value);
         ratingFromReviews = toNum(payload?.average_rating);
@@ -327,12 +407,15 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   useEffect(() => {
     if (!userData) return;
     fetchAllData();
-  }, [userData, fetchAllData]);
+    getSellerSettings();
+  }, [userData, fetchAllData, getSellerSettings]);
 
   useEffect(() => {
     if (!isOpen) return;
     fetchAllData();
-  }, [isOpen, fetchAllData]);
+    // (optional) refresh avatar id when opening
+    getSellerSettings();
+  }, [isOpen, fetchAllData, getSellerSettings]);
 
   const TriggerButton = (
     <button
@@ -342,27 +425,16 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
       aria-label="Otvori korisnički meni"
       type="button"
     >
-      <div className="relative">
-        <CustomImage
-          src={userData?.profile || placeholderImage}
-          alt={userData?.name || "Profil"}
-          width={36}
-          height={36}
-          className="rounded-full w-9 h-9 aspect-square object-cover border-2 border-slate-200 hover:border-primary/50 transition-colors"
-        />
-
-        {userStats.isVerified && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
-            <MdVerified className="text-white" size={10} />
-          </div>
-        )}
-
-        {userStats.unreadNotifications > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
-            {userStats.unreadNotifications > 9 ? "9+" : userStats.unreadNotifications}
-          </span>
-        )}
-      </div>
+      <UserAvatar
+        customAvatarUrl={customAvatarUrl}
+        avatarId={sellerAvatarId}
+        size={36}
+        ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
+        showVerified={userStats.isVerified}
+        verifiedSize={10}
+        showNotifBadge={true}
+        notifCount={userStats.unreadNotifications}
+      />
     </button>
   );
 
@@ -371,20 +443,15 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
       {/* HEADER */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <CustomImage
-              src={userData?.profile || placeholderImage}
-              alt={userData?.name || "Profil"}
-              width={48}
-              height={48}
-              className="rounded-full w-12 h-12 aspect-square object-cover border-2 border-white"
-            />
-            {userStats.isVerified && (
-              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white">
-                <MdVerified className="text-white" size={12} />
-              </div>
-            )}
-          </div>
+          <UserAvatar
+            customAvatarUrl={customAvatarUrl}
+            avatarId={sellerAvatarId}
+            size={48}
+            ringClassName="border-2 border-white"
+            showVerified={userStats.isVerified}
+            verifiedSize={12}
+            showNotifBadge={false}
+          />
 
           <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-900 truncate max-w-[220px]">
@@ -418,12 +485,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         <div className="px-4 py-3 bg-gradient-to-br from-slate-50/50 to-white border-b border-slate-100">
           <div className="grid grid-cols-3 gap-1 bg-white rounded-xl p-2 border border-slate-100">
             <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="blue" />
-            <QuickStat
-              icon={IoNotificationsOutline}
-              value={userStats.unreadNotifications}
-              label="Obavijesti"
-              color="amber"
-            />
+            <QuickStat icon={IoNotificationsOutline} value={userStats.unreadNotifications} label="Obavijesti" color="amber" />
             <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="purple" />
           </div>
         </div>
@@ -475,7 +537,12 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
               description={`${userStats.activeAds} aktivnih oglasa`}
               onClick={() => handleNavigate("/my-ads")}
             />
-            <MenuItem rememberScrollPosition={false} icon={IoHeartOutline} label={"Spašeni oglasi"} description="Sačuvani oglasi" onClick={() => handleNavigate("/favorites")} />
+            <MenuItem
+              icon={IoHeartOutline}
+              label={"Spašeni oglasi"}
+              description="Sačuvani oglasi"
+              onClick={() => handleNavigate("/favorites")}
+            />
             <MenuItem
               icon={IoSearchOutline}
               label="Spašene pretrage"
@@ -591,10 +658,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
       <div className="relative">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>{TriggerButton}</SheetTrigger>
-          <SheetContent
-            side="bottom"
-            className="p-0 overflow-hidden rounded-t-3xl border border-slate-200 max-h-[90vh]"
-          >
+          <SheetContent side="bottom" className="p-0 overflow-hidden rounded-t-3xl border border-slate-200 max-h-[90vh]">
             {MenuPanel}
           </SheetContent>
         </Sheet>
@@ -606,11 +670,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     <div className="relative">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>{TriggerButton}</PopoverTrigger>
-        <PopoverContent
-          align="end"
-          sideOffset={10}
-          className="w-[420px] p-0 overflow-hidden rounded-2xl border border-slate-200"
-        >
+        <PopoverContent align="end" sideOffset={10} className="w-[420px] p-0 overflow-hidden rounded-2xl border border-slate-200">
           {MenuPanel}
         </PopoverContent>
       </Popover>
