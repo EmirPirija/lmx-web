@@ -11,6 +11,8 @@ import useGetCategories from "@/components/Layout/useGetCategories";
 import CustomImage from "@/components/Common/CustomImage";
 import { useSelector } from "react-redux";
 import { settingsData } from "@/redux/reducer/settingSlice";
+import { useSavedSearches } from "@/hooks/useSavedSearches";
+
 
 // Tabler icons
 import {
@@ -188,6 +190,7 @@ const Search = () => {
 
   const pathname = usePathname();
   const { navigate } = useNavigate();
+  const { savedSearches, markUsed } = useSavedSearches();
   const settings = useSelector(settingsData);
 
   const categoryList = [
@@ -794,6 +797,47 @@ const Search = () => {
                   {hasMoreCats && <div ref={ref} className="h-4 w-full" />}
                 </div>
               )}
+
+              {searchQuery.length < 2 && savedSearches?.length > 0 && (
+                <div className="px-4 py-3 border-b">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Spašene pretrage
+                    </p>
+                    <button
+                      onClick={() => navigate("/profile/saved-searches")}
+                      className="text-xs text-gray-700 hover:text-black"
+                    >
+                      Uredi
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    {savedSearches.slice(0, 5).map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          markUsed(s.id);
+                          setShowSuggestions(false);
+                          navigate(s.queryString ? `/ads?${s.queryString}` : "/ads");
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <IconStarFilled size={16} className="text-gray-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{s.naziv}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {s.queryString ? `ads?${s.queryString}` : "Svi oglasi"}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+  
 
               {showHistory && (
                 <div className="p-3 border-b border-gray-100">

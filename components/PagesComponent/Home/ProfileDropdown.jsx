@@ -33,6 +33,7 @@ import {
   IoBagHandleOutline,
   IoRibbonOutline,
   IoSparklesOutline,
+  IoSearchOutline,
 } from "react-icons/io5";
 import { Crown, Store, Sparkles, TrendingUp } from "lucide-react";
 import { MdVerified } from "react-icons/md";
@@ -441,6 +442,12 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
             <MenuSection title="Moji sadržaji">
               <MenuItem icon={IoLayersOutline} label={t("myAds")} description={`${userStats.activeAds} aktivnih oglasa`} onClick={() => handleNavigate("/my-ads")} />
               <MenuItem icon={IoHeartOutline} label={t("favorites")} description="Sačuvani oglasi" onClick={() => handleNavigate("/favorites")} />
+              <MenuItem
+              icon={IoSearchOutline}
+                 label="Spašene pretrage"
+                 description="Brze prečice do tvojih filtera"
+                 onClick={() => handleNavigate("/profile/saved-searches")}
+               />
               <MenuItem icon={IoBagHandleOutline} label="Moje kupovine" description="Historija kupovina" onClick={() => handleNavigate("/purchases")} />
             </MenuSection>
 

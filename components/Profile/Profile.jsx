@@ -9,6 +9,7 @@ import "react-phone-input-2/lib/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
 import UpgradeMembershipCard from "@/components/PagesComponent/Membership/UpgradeMembershipCard";
 
+import { IoStarOutline } from "react-icons/io5";
 // ✅ LMX avatar (pretpostavka: imaš ga negdje exportovanog)
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 
@@ -595,6 +596,27 @@ const Profile = () => {
                     <MdArrowForward />
                   </CustomLink>
                 </div>
+
+                <div
+                    className="group cursor-pointer"
+                    onClick={() => navigate("/profile/saved-searches")}
+                  >
+                    <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-black transition-all duration-200 hover:shadow-lg">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                          <IoStarOutline className="w-6 h-6 text-gray-700" />
+                        </div>
+                      </div>
+                      <h4 className="font-semibold text-lg text-gray-900 mb-2">Spašene pretrage</h4>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Brz pristup tvojim omiljenim filterima.
+                      </p>
+                      <div className="text-sm font-medium text-gray-900 group-hover:text-black">
+                        Upravljaj →
+                      </div>
+                    </div>
+                  </div>
+
 
                 <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-white/80 rounded-lg p-3 text-center">

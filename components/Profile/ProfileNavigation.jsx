@@ -2,7 +2,7 @@
 import { t } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import { usePathname } from "next/navigation";
-import { BiChat, BiDollarCircle, BiReceipt, BiTrashAlt } from "react-icons/bi";
+import { BiChat, BiChevronDown, BiChevronUp, BiDotsHorizontalRounded, BiSearch } from "react-icons/bi";
 import { FiUser } from "react-icons/fi";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { LiaAdSolid } from "react-icons/lia";
@@ -20,6 +20,7 @@ import ReusableAlertDialog from "../Common/ReusableAlertDialog";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 import { useNavigate } from "../Common/useNavigate";
+import { BiDollarCircle, BiShoppingBag, BiReceipt, BiTrashAlt } from "react-icons/bi";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HiOutlineBadgeCheck } from "react-icons/hi";
-
-// Na vrhu dodaj import:
-import { BiShoppingBag } from "react-icons/bi";
 
 const ProfileNavigation = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -120,6 +118,7 @@ const ProfileNavigation = () => {
 const moreNavigationLinks = [
   { href: "/notifications", icon: IoMdNotificationsOutline, label: t("notifications") },
   { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
+  { href: "/profile/saved-searches", label: "Spašene pretrage" },
   { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: t("badges") },
   { href: "/purchases", icon: BiShoppingBag, label: "Moje kupovine" },
   { href: "/transactions", icon: BiReceipt, label: t("transaction") },
@@ -132,6 +131,7 @@ const moreNavigationLinks = [
   const allNavigationLinks = [
     { href: "/profile", icon: FiUser, label: t("profile") },
     { href: "/notifications", icon: IoMdNotificationsOutline, label: t("notifications") },
+    { href: "/profile/saved-searches", icon: BiSearch, label: "Spašene pretrage" },
     { href: "/chat", icon: BiChat, label: t("chat") },
     { href: "/user-subscription", icon: BiDollarCircle, label: t("subscription") },
     { href: "/my-ads", icon: LiaAdSolid, label: t("myAds") },

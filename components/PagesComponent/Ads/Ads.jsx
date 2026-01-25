@@ -25,7 +25,7 @@ import NoData from "@/components/EmptyStates/NoData";
 import { IoGrid } from "react-icons/io5";
 import { CiGrid2H } from "react-icons/ci";
 import { Badge } from "@/components/ui/badge";
-import { IoMdClose } from "react-icons/io"; 
+import { IoMdClose } from "react-icons/io";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import Layout from "@/components/Layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ import {
 } from "@/redux/reducer/breadCrumbSlice";
 import { t, updateMetadata } from "@/utils";
 import { getSelectedLocation } from "@/redux/reducer/globalStateSlice";
+
+// ✅ NOVO: Saved searches controls
+import SavedSearchControls from "./SavedSearchControls";
 
 // ============================================
 // TRACKING IMPORT
@@ -340,12 +343,10 @@ const Ads = () => {
 
       if (data.error === false) {
         const items = data?.data?.data || [];
-        
-        // ============================================
+
         // ✅ TRACK SEARCH IMPRESSIONS
-        // ============================================
         if (items.length > 0) {
-          const itemIds = items.map(item => item.id);
+          const itemIds = items.map((item) => item.id);
           const impressionId = await trackSearchImpressions(itemIds, {
             search_query: query || null,
             category_slug: slug || null,
@@ -405,9 +406,7 @@ const Ads = () => {
     setAdvertisements((prev) => ({ ...prev, data: updatedItems }));
   };
 
-  // ============================================
   // ✅ HANDLE ITEM CLICK - Track search click
-  // ============================================
   const handleItemClick = (itemId, position) => {
     trackSearchClick(itemId, position, lastImpressionIdRef.current);
   };
@@ -534,32 +533,47 @@ const Ads = () => {
 
       <div className="container mt-8">
         <div className="flex flex-col gap-6">
-          
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
             <div>
               <p className="text-sm text-gray-500 mt-1">
-                {advertisements?.data?.length || 0} {
-                  ((advertisements?.data?.length || 0) % 10 === 1 && (advertisements?.data?.length || 0) % 100 !== 11)
+                {advertisements?.data?.length || 0}{" "}
+                {((advertisements?.data?.length || 0) % 10 === 1 &&
+                  (advertisements?.data?.length || 0) % 100 !== 11)
                   ? "rezultat"
-                  : "rezultata"
-                }
+                  : "rezultata"}
               </p>
             </div>
 
             <div className="flex items-center gap-3 md:self-auto space-between">
+              {/* ✅ NOVO: Saved search kontrole + “⭐ Sačuvaj” badge */}
+              <SavedSearchControls />
+
               <div className="flex items-center gap-2">
-                <TbTransferVertical className="text-gray-400 hidden sm:block" size={18} />
+                <TbTransferVertical
+                  className="text-gray-400 hidden sm:block"
+                  size={18}
+                />
                 <Select value={sortBy} onValueChange={handleSortBy}>
                   <SelectTrigger className="w-[170px] h-10 border-gray-200 bg-white focus:ring-1 focus:ring-primary/20 font-medium">
                     <SelectValue placeholder={t("sortBy")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="new-to-old">{t("newestToOldest")}</SelectItem>
-                      <SelectItem value="old-to-new">{t("oldestToNewest")}</SelectItem>
-                      <SelectItem value="price-high-to-low">{t("priceHighToLow")}</SelectItem>
-                      <SelectItem value="price-low-to-high">{t("priceLowToHigh")}</SelectItem>
-                      <SelectItem value="popular_items">{t("popular")}</SelectItem>
+                      <SelectItem value="new-to-old">
+                        {t("newestToOldest")}
+                      </SelectItem>
+                      <SelectItem value="old-to-new">
+                        {t("oldestToNewest")}
+                      </SelectItem>
+                      <SelectItem value="price-high-to-low">
+                        {t("priceHighToLow")}
+                      </SelectItem>
+                      <SelectItem value="price-low-to-high">
+                        {t("priceLowToHigh")}
+                      </SelectItem>
+                      <SelectItem value="popular_items">
+                        {t("popular")}
+                      </SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -569,9 +583,9 @@ const Ads = () => {
                 <button
                   onClick={() => setView("list")}
                   className={`p-2 rounded-md transition-all duration-200 ${
-                    view === "list" 
-                    ? "bg-white text-primary shadow-sm" 
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                    view === "list"
+                      ? "bg-white text-primary shadow-sm"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                   }`}
                   title={t("listView")}
                 >
@@ -580,9 +594,9 @@ const Ads = () => {
                 <button
                   onClick={() => setView("grid")}
                   className={`p-2 rounded-md transition-all duration-200 ${
-                    view === "grid" 
-                    ? "bg-white text-primary shadow-sm" 
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                    view === "grid"
+                      ? "bg-white text-primary shadow-sm"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                   }`}
                   title={t("gridView")}
                 >
@@ -592,59 +606,85 @@ const Ads = () => {
             </div>
           </div>
 
-          {(activeFilterCount > 0) && (
+          {activeFilterCount > 0 && (
             <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
               <span className="text-sm font-medium text-gray-500 mr-2 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                 {t("filters")}:
               </span>
-              
-              {category && <FilterTag label={`${t("category")}: ${category}`} onClear={handleClearCategory} />}
-              {query && <FilterTag label={`${t("search")}: ${query}`} onClear={handleClearQuery} />}
-              
-              {(country || state || city || area) && (
-                <FilterTag 
-                  label={`${t("location")}: ${selectedLocation?.translated_name || selectedLocation?.name}`} 
-                  onClear={handleClearLocation} 
+
+              {category && (
+                <FilterTag
+                  label={`${t("category")}: ${category}`}
+                  onClear={handleClearCategory}
                 />
               )}
-              
+              {query && (
+                <FilterTag
+                  label={`${t("search")}: ${query}`}
+                  onClear={handleClearQuery}
+                />
+              )}
+
+              {(country || state || city || area) && (
+                <FilterTag
+                  label={`${t("location")}: ${
+                    selectedLocation?.translated_name || selectedLocation?.name
+                  }`}
+                  onClear={handleClearLocation}
+                />
+              )}
+
               {Number(km_range) > 0 && (
-                <FilterTag label={`${t("nearByRange")}: ${km_range} KM`} onClear={handleClearRange} />
+                <FilterTag
+                  label={`${t("nearByRange")}: ${km_range} KM`}
+                  onClear={handleClearRange}
+                />
               )}
-              
+
               {date_posted && (
-                <FilterTag label={`${t("datePosted")}: ${postedSince}`} onClear={handleClearDatePosted} />
+                <FilterTag
+                  label={`${t("datePosted")}: ${postedSince}`}
+                  onClear={handleClearDatePosted}
+                />
               )}
-              
+
               {isMinPrice && max_price && (
-                <FilterTag label={`${t("budget")}: ${min_price}-${max_price}`} onClear={handleClearBudget} />
+                <FilterTag
+                  label={`${t("budget")}: ${min_price}-${max_price}`}
+                  onClear={handleClearBudget}
+                />
               )}
-              
+
               {featured_section && (
-                <FilterTag label={`${t("featuredSection")}: ${featuredTitle}`} onClear={handleClearFeaturedSection} />
+                <FilterTag
+                  label={`${t("featuredSection")}: ${featuredTitle}`}
+                  onClear={handleClearFeaturedSection}
+                />
               )}
-              
+
               {initialExtraDetails &&
                 Object.entries(initialExtraDetails || {}).map(([key, value]) => {
-                  const field = customFields.find((f) => f.id.toString() === key.toString());
+                  const field = customFields.find(
+                    (f) => f.id.toString() === key.toString()
+                  );
                   const fieldName = field?.translated_name || field?.name;
-                  
+
                   const getTranslatedValue = (val) => {
                     if (!field?.values || !field?.translated_value) return val;
                     const idx = field.values.indexOf(val);
                     return idx !== -1 ? field.translated_value[idx] : val;
                   };
-                  
+
                   const displayValue = Array.isArray(value)
                     ? value.map((v) => getTranslatedValue(v)).join(", ")
                     : getTranslatedValue(value);
-                  
+
                   return (
-                    <FilterTag 
-                      key={key} 
-                      label={`${fieldName}: ${displayValue}`} 
-                      onClear={() => handleClearExtraDetail(key)} 
+                    <FilterTag
+                      key={key}
+                      label={`${fieldName}: ${displayValue}`}
+                      onClear={() => handleClearExtraDetail(key)}
                     />
                   );
                 })}
@@ -668,7 +708,10 @@ const Ads = () => {
                     <ProductHorizontalCardSkeleton />
                   </div>
                 ) : (
-                  <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3" key={index}>
+                  <div
+                    className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
+                    key={index}
+                  >
                     <ProductCardSkeleton />
                   </div>
                 )
@@ -677,16 +720,19 @@ const Ads = () => {
               advertisements.data?.map((item, index) =>
                 view === "list" ? (
                   <div className="col-span-12" key={index}>
-                    <ProductHorizontalCard 
-                      item={item} 
+                    <ProductHorizontalCard
+                      item={item}
                       handleLike={handleLike}
                       onItemClick={() => handleItemClick(item.id, index)}
                     />
                   </div>
                 ) : (
-                  <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3" key={index}>
-                    <ProductCard 
-                      item={item} 
+                  <div
+                    className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
+                    key={index}
+                  >
+                    <ProductCard
+                      item={item}
                       handleLike={handleLike}
                       onItemClick={() => handleItemClick(item.id, index)}
                     />
@@ -700,23 +746,27 @@ const Ads = () => {
             )}
           </div>
 
-          {advertisements.data && advertisements.data.length > 0 && advertisements.hasMore && (
-            <div className="text-center mt-8 pb-12">
-              <Button
-                variant="outline"
-                className="min-w-[200px] border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
-                disabled={advertisements.isLoading || advertisements.isLoadMore}
-                onClick={handleProdLoadMore}
-              >
-                {advertisements.isLoadMore ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-                    {t("loading")}...
-                  </span>
-                ) : t("loadMore")}
-              </Button>
-            </div>
-          )}
+          {advertisements.data &&
+            advertisements.data.length > 0 &&
+            advertisements.hasMore && (
+              <div className="text-center mt-8 pb-12">
+                <Button
+                  variant="outline"
+                  className="min-w-[200px] border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
+                  disabled={advertisements.isLoading || advertisements.isLoadMore}
+                  onClick={handleProdLoadMore}
+                >
+                  {advertisements.isLoadMore ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                      {t("loading")}...
+                    </span>
+                  ) : (
+                    t("loadMore")
+                  )}
+                </Button>
+              </div>
+            )}
         </div>
       </div>
     </Layout>
