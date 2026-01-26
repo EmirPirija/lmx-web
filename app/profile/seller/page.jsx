@@ -2,7 +2,7 @@
 
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import SellerSettings from "@/components/Profile/SellerSettings";
+import SellerDashboard from "@/components/Profile/SellerDashboard";
 import SellerAreaTabs from "@/components/Profile/SellerAreaTabs";
 
 import { useEffect } from "react";
@@ -12,7 +12,7 @@ import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { useRouter } from "next/navigation";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 
-export default function SellerSettingsPage() {
+export default function SellerDashboardPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const isLoggedIn = useSelector(getIsLoggedIn);
@@ -22,7 +22,6 @@ export default function SellerSettingsPage() {
       setBreadcrumbPath([
         { name: "Profil", slug: "/profile" },
         { name: "Prodaja", slug: "/profile/seller" },
-        { name: "Postavke prodavača", slug: "/profile/seller-settings" },
       ])
     );
   }, [dispatch]);
@@ -38,10 +37,10 @@ export default function SellerSettingsPage() {
 
   return (
     <Layout>
-      <BreadCrumb title2="Postavke prodavača" />
+      <BreadCrumb title2="Prodaja" />
       <div className="container py-6 lg:py-10">
         <SellerAreaTabs />
-        <SellerSettings />
+        <SellerDashboard />
       </div>
     </Layout>
   );
