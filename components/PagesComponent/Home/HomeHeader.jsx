@@ -1,5 +1,6 @@
 "use client";
 
+import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
@@ -128,6 +129,7 @@ const HomeHeader = () => {
   const [IsUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [IsAdListingClicked, setIsAdListingClicked] = useState(false);
   const [IsMailSentSuccess, setIsMailSentSuccess] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   // Mobile header sheet
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

@@ -709,7 +709,7 @@ const Search = () => {
           </div>
         )}
 
-<div className="flex items-center gap-2 min-w-[110px]">
+<div className="flex items-center gap-2">
 
 
 {/* desktop hint (suptilno) */}

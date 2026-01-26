@@ -18,16 +18,17 @@ import {
   Grid3X3,
   ArrowRight,
   ChevronRight,
-  Flame,
   Sparkles,
   TrendingUp,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ============================================
-// HELPERS
+// HELPERS (REAL DATA ONLY)
 // ============================================
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
 const formatCompact = (num) => {
   const n = Number(num || 0);
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -35,27 +36,32 @@ const formatCompact = (num) => {
   return String(n);
 };
 
-// Deterministic stats (no random jumping)
-const stableStats = (category) => {
-  const base = Number(category?.items_count || 0);
-  const seed = Number(category?.id || 1) * 9973;
-  const newToday = clamp((seed % 17) + 1, 1, 18);
-  const trend = clamp((seed % 61) + 35, 30, 95);
+// Prioritet: all_items_count (ako backend šalje), pa items_count, pa 0
+const getTotalItems = (category) =>
+  Number(category?.all_items_count ?? category?.items_count ?? 0) || 0;
 
-  return {
-    totalItems: base > 0 ? base : clamp((seed % 900) + 60, 60, 900),
-    newToday,
-    trend,
-  };
+const getSubcatsCount = (category) =>
+  Number(category?.subcategories_count ?? category?.subcategories?.length ?? 0) || 0;
+
+const countNested = (subcats = []) => {
+  // broj “trećih nivoa” (podkategorije unutar podkategorija)
+  let total = 0;
+  for (const s of subcats) {
+    const nested = Array.isArray(s?.subcategories) ? s.subcategories : [];
+    total += nested.length;
+  }
+  return total;
 };
 
 // ============================================
-// MEGA MENU CONTENT (fixes whitespace)
+// MEGA MENU CONTENT (NO MOCK DATA)
 // ============================================
-const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl }) => {
-  const stats = stableStats(category);
-
+const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl, maxItems }) => {
+  const totalItems = getTotalItems(category);
   const subcats = Array.isArray(category?.subcategories) ? category.subcategories : [];
+  const subcatsCount = getSubcatsCount(category);
+  const nestedCount = countNested(subcats);
+
   const [activeSubId, setActiveSubId] = useState(subcats?.[0]?.id ?? null);
 
   useEffect(() => {
@@ -73,6 +79,9 @@ const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl }) => 
   }, [activeSub]);
 
   const panelW = Math.max(760, (containerWidth || 900) - 32);
+
+  // “Popularnost” = udio po broju oglasa u odnosu na najveću kategoriju (real-data derivacija)
+  const popularityPct = maxItems > 0 ? clamp(Math.round((totalItems / maxItems) * 100), 0, 100) : 0;
 
   return (
     <div
@@ -98,48 +107,55 @@ const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl }) => 
                 <h3 className="font-semibold text-foreground text-base truncate">
                   {category?.translated_name}
                 </h3>
+
                 <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
                   <Sparkles className="w-3.5 h-3.5" />
-                  {formatCompact(stats.totalItems)} oglasa
+                  {formatCompact(totalItems)} oglasa
                 </span>
               </div>
 
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                Pregledaj podkategorije i detalje desno.
+                Brz pregled podkategorija i detalja.
               </p>
             </div>
           </div>
 
-          {/* Metrics (hard-fixed bar, no white gaps) */}
+          {/* Metrics (REAL) */}
           <div className="mt-5 space-y-3">
-            <div className="rounded-xl border border-border bg-background p-3">
+            <div className="rounded-xl border border-border bg-background p-3 transition-colors hover:bg-muted/30">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <TrendingUp className="w-4 h-4" />
-                  Trend
+                  Popularnost
                 </div>
-                <span className="text-xs font-semibold text-foreground">
-                  {stats.trend}/100
-                </span>
+                <span className="text-xs font-semibold text-foreground">{popularityPct}%</span>
               </div>
 
               <div className="mt-2 h-2 w-full rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${stats.trend}%` }}
+                  className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+                  style={{ width: `${popularityPct}%` }}
                 />
               </div>
+
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Udio po broju oglasa u odnosu na najveću kategoriju.
+              </p>
             </div>
 
-            <div className="rounded-xl border border-border bg-background p-3">
+            <div className="rounded-xl border border-border bg-background p-3 transition-colors hover:bg-muted/30">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Novo danas</span>
-                <span className="text-sm font-semibold text-foreground">
-                  +{stats.newToday}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Layers className="w-4 h-4" />
+                  Struktura
+                </div>
+                <span className="text-xs font-semibold text-foreground">
+                  {subcatsCount} / {nestedCount}
                 </span>
               </div>
+
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Procjena na osnovu aktivnosti.
+                Podkategorije / pod-podkategorije
               </p>
             </div>
           </div>
@@ -158,7 +174,7 @@ const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl }) => 
           </CustomLink>
         </div>
 
-        {/* RIGHT / SUBCATEGORY LIST + DETAILS (removes ugly empty whitespace) */}
+        {/* RIGHT / SUBCATEGORY LIST + DETAILS */}
         <div className="flex-1 min-w-0">
           <div className="flex h-full">
             {/* Subcategory list */}
@@ -192,15 +208,20 @@ const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl }) => 
                           )}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className={cn("text-sm font-medium truncate", isActive ? "text-foreground" : "text-foreground")}>
+                            <span className={cn("text-sm font-medium truncate")}>
                               {s.translated_name}
                             </span>
-                            <ChevronRight className={cn("w-4 h-4 shrink-0 text-muted-foreground", isActive ? "opacity-100" : "opacity-40")} />
+                            <ChevronRight
+                              className={cn(
+                                "w-4 h-4 shrink-0 text-muted-foreground transition-opacity",
+                                isActive ? "opacity-100" : "opacity-40"
+                              )}
+                            />
                           </div>
 
-                          {s.subcategories_count > 0 && (
+                          {getSubcatsCount(s) > 0 && (
                             <div className="mt-0.5 text-[11px] text-muted-foreground">
-                              {s.subcategories_count} podkategorija
+                              {getSubcatsCount(s)} podkategorija
                             </div>
                           )}
                         </button>
@@ -221,8 +242,8 @@ const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl }) => 
                         {activeSub.translated_name}
                       </h5>
                       <p className="text-xs text-muted-foreground">
-                        {activeSub.subcategories_count > 0
-                          ? `${activeSub.subcategories_count} podkategorija`
+                        {getSubcatsCount(activeSub) > 0
+                          ? `${getSubcatsCount(activeSub)} podkategorija`
                           : "Bez dodatnih podkategorija"}
                       </p>
                     </div>
@@ -298,6 +319,11 @@ const HeaderCategories = ({ cateData = [] }) => {
 
   const [fitCategoriesCount, setFitCategoriesCount] = useState(3);
 
+  const maxItems = useMemo(() => {
+    const counts = (cateData || []).map(getTotalItems);
+    return Math.max(0, ...counts);
+  }, [cateData]);
+
   useEffect(() => {
     const calculateFit = () => {
       if (!containerRef.current || !measureRef.current) return;
@@ -352,16 +378,18 @@ const HeaderCategories = ({ cateData = [] }) => {
   };
 
   const visibleCategories = useMemo(
-    () => cateData.slice(0, fitCategoriesCount),
+    () => (cateData || []).slice(0, fitCategoriesCount),
     [cateData, fitCategoriesCount]
   );
   const overflowCategories = useMemo(
-    () => cateData.slice(fitCategoriesCount),
+    () => (cateData || []).slice(fitCategoriesCount),
     [cateData, fitCategoriesCount]
   );
 
+  if (!Array.isArray(cateData) || cateData.length === 0) return null;
+
   return (
-    <div className="hidden lg:block border-b bg-background">
+    <div className="hidden lg:block border-b bg-background z-[9]">
       <div className="container" ref={containerRef}>
         {/* Hidden measurement row */}
         <div
@@ -382,22 +410,17 @@ const HeaderCategories = ({ cateData = [] }) => {
           <NavigationMenu>
             <NavigationMenuList className="rtl:flex-row-reverse">
               {visibleCategories.map((category, index) => {
-                const isHot = index === 0 && category?.subcategories_count > 0;
+                const isHot = index === 0 && getSubcatsCount(category) > 0;
 
                 return (
                   <NavigationMenuItem key={category.id}>
-                    {category.subcategories_count > 0 ? (
+                    {getSubcatsCount(category) > 0 ? (
                       <>
                         <NavigationMenuTrigger
                           onClick={() => handleCategoryClick(category.slug)}
                           className="group"
                         >
                           <span className="inline-flex items-center gap-2">
-                            {isHot && (
-                              <span className="inline-flex items-center text-amber-600">
-                                <Flame className="w-4 h-4" />
-                              </span>
-                            )}
                             {category.translated_name}
                           </span>
                         </NavigationMenuTrigger>
@@ -407,6 +430,7 @@ const HeaderCategories = ({ cateData = [] }) => {
                             category={category}
                             containerWidth={containerRef?.current?.offsetWidth}
                             buildCategoryUrl={buildCategoryUrl}
+                            maxItems={maxItems}
                           />
                         </NavigationMenuContent>
                       </>
@@ -442,10 +466,7 @@ const HeaderCategories = ({ cateData = [] }) => {
                     <div
                       className="overflow-hidden rounded-2xl border border-border bg-background shadow-none"
                       style={{
-                        width: Math.max(
-                          760,
-                          (containerRef?.current?.offsetWidth || 900) - 32
-                        ),
+                        width: Math.max(760, (containerRef?.current?.offsetWidth || 900) - 32),
                       }}
                     >
                       <div className="flex">
@@ -509,9 +530,9 @@ const HeaderCategories = ({ cateData = [] }) => {
                                     <span className="block text-sm font-medium text-foreground truncate">
                                       {c.translated_name}
                                     </span>
-                                    {c.subcategories_count > 0 && (
+                                    {getSubcatsCount(c) > 0 && (
                                       <span className="block text-[11px] text-muted-foreground truncate">
-                                        {c.subcategories_count} podkategorija
+                                        {getSubcatsCount(c)} podkategorija
                                       </span>
                                     )}
                                   </div>
@@ -519,8 +540,8 @@ const HeaderCategories = ({ cateData = [] }) => {
                                   <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </CustomLink>
 
-                                {/* show all subcategories (no "pogledaj sve") */}
-                                {c.subcategories_count > 0 && (
+                                {/* show all subcategories */}
+                                {getSubcatsCount(c) > 0 && (
                                   <ul className="mt-1 ml-[52px] space-y-0.5">
                                     {(c?.subcategories || []).map((sub) => (
                                       <li key={sub?.id}>
