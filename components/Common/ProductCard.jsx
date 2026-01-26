@@ -3,7 +3,7 @@ import {
   formatSalaryRange,
   t,
 } from "@/utils";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { BiBadgeCheck } from "react-icons/bi";
 import { FaHeart, FaRegHeart, FaYoutube } from "react-icons/fa";
 import { IoLocationOutline, IoTimeOutline } from "react-icons/io5";
@@ -135,6 +135,7 @@ const formatPriceOrInquiry = (price) => {
   return formatPriceAbbreviated(Number(price));
 };
 
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
   const userData = useSelector(userSignUpData);
@@ -181,6 +182,17 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
   }, [item?.image, item?.gallery_images]);
 
   const totalSlides = allSlides.length;
+  const lastSlideIndex = Math.max(0, totalSlides - 1);
+
+  // ✅ Clamp ako se broj slideova promijeni (npr. item se promijeni)
+  useEffect(() => {
+    setCurrentSlide((s) => clamp(s, 0, lastSlideIndex));
+  }, [lastSlideIndex]);
+
+  // ✅ Granice za prev/next (bez wrap-around)
+  const canPrev = currentSlide > 0;
+  const canNext = currentSlide < lastSlideIndex;
+
   const totalImages = totalSlides - 1;
   const hasVideo = item?.video_link && item?.video_link !== "";
 
@@ -189,14 +201,13 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
   }
 
   const isHidePrice = isJobCategory
-  ? [item?.min_salary, item?.max_salary].every(
-      (val) =>
-        val === null ||
-        val === undefined ||
-        (typeof val === "string" && val.trim() === "")
-    )
-  : false;
-
+    ? [item?.min_salary, item?.max_salary].every(
+        (val) =>
+          val === null ||
+          val === undefined ||
+          (typeof val === "string" && val.trim() === "")
+      )
+    : false;
 
   const productLink =
     userData?.id === item?.user_id
@@ -226,43 +237,50 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
     }
   };
 
+  // ✅ Prev/Next bez wrap-around
   const handlePrevSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
+    setCurrentSlide((prev) => Math.max(0, prev - 1));
   };
 
   const handleNextSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
+    setCurrentSlide((prev) => Math.min(lastSlideIndex, prev + 1));
   };
 
   const goToSlide = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentSlide(index);
+    setCurrentSlide(clamp(index, 0, lastSlideIndex));
   };
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
   };
 
+  // ✅ Swipe poštuje granice (nema wrap-around)
   const handleTouchEnd = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
     const swipeDistance = touchStartX.current - touchEndX.current;
     const minSwipeDistance = 50;
-    if (Math.abs(swipeDistance) > minSwipeDistance) {
-      if (swipeDistance > 0) {
-        setCurrentSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
-      } else {
-        setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
-      }
+
+    if (Math.abs(swipeDistance) <= minSwipeDistance) return;
+
+    if (swipeDistance > 0) {
+      // swipe left -> next
+      setCurrentSlide((prev) => Math.min(lastSlideIndex, prev + 1));
+    } else {
+      // swipe right -> prev
+      setCurrentSlide((prev) => Math.max(0, prev - 1));
     }
   };
 
@@ -324,28 +342,35 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
         {/* Navigation Arrows */}
         {totalSlides > 1 && (
           <>
-            <button
-              onClick={handlePrevSlide}
-              className={`absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
-              ${
-                isHovered
-                  ? "opacity-100 translate-x-0"
-                  : "opacity-0 ltr:-translate-x-4 rtl:translate-x-4 pointer-events-none"
-              }`}
-            >
-              <FiChevronLeft size={16} className="text-gray-700 rtl:rotate-180" />
-            </button>
-            <button
-              onClick={handleNextSlide}
-              className={`absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
-              ${
-                isHovered
-                  ? "opacity-100 translate-x-0"
-                  : "opacity-0 ltr:translate-x-4 rtl:-translate-x-4 pointer-events-none"
-              }`}
-            >
-              <FiChevronRight size={16} className="text-gray-700 rtl:rotate-180" />
-            </button>
+            {/* ✅ PREV: render only if canPrev */}
+            {canPrev && (
+              <button
+                onClick={handlePrevSlide}
+                className={`absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
+                ${
+                  isHovered
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 ltr:-translate-x-4 rtl:translate-x-4 pointer-events-none"
+                }`}
+              >
+                <FiChevronLeft size={16} className="text-gray-700 rtl:rotate-180" />
+              </button>
+            )}
+
+            {/* ✅ NEXT: render only if canNext */}
+            {canNext && (
+              <button
+                onClick={handleNextSlide}
+                className={`absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
+                ${
+                  isHovered
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 ltr:translate-x-4 rtl:-translate-x-4 pointer-events-none"
+                }`}
+              >
+                <FiChevronRight size={16} className="text-gray-700 rtl:rotate-180" />
+              </button>
+            )}
           </>
         )}
 
@@ -357,13 +382,9 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
             }`}
           >
             {allSlides.map((_, index) => {
+              // ✅ bez wrap-around logike
               const diff = Math.abs(index - currentSlide);
-              const isVisible =
-                diff === 0 ||
-                diff === 1 ||
-                (currentSlide === 0 && index === totalSlides - 1) ||
-                (currentSlide === totalSlides - 1 && index === 0);
-
+              const isVisible = diff === 0 || diff === 1;
               if (!isVisible) return null;
 
               return (
@@ -406,6 +427,25 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
           </button>
         )}
 
+        {/* STATUS BADGES (Sale + Featured) */}
+        {!isViewMoreSlide && (
+          <div className="absolute top-2 ltr:left-2 rtl:right-2 z-20 flex items-center gap-1.5">
+            {/* FEATURED */}
+            {item?.is_feature && (
+              <div className="flex items-center justify-center bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-400 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+                <IconRocket size={18} stroke={2} className="text-white" />
+              </div>
+            )}
+
+            {/* SALE */}
+            {isOnSale && discountPercentage > 0 && (
+              <div className="flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+                <IconRosetteDiscount size={18} stroke={2} className="text-white" />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* COUNTERS (Images/Video) */}
         {!isViewMoreSlide && (
           <div className="absolute bottom-2 ltr:right-2 rtl:left-2 z-10 flex items-center gap-1.5">
@@ -439,26 +479,8 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
 
       {/* Content */}
       <div className="flex flex-col gap-1.5 p-2 flex-gro relative">
-          {/* sTATUS / ICON BADGES (Sale + Featured) */}
-              {/* STATUS BADGES  */}
-              {!isViewMoreSlide && (
-                <div className="initial top-2 ltr:left-2 rtl:right-2 z-20 flex items-center gap-1.5">
-                  {/* ⭐ FEATURED / PREMIUM */}
-                  {item?.is_feature && (
-                    <div className="flex items-center justify-center bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-400 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
-                      <IconRocket size={18} stroke={2} className="text-white" />
-                    </div>
-                  )}
+      <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
 
-                  {/* 🔥 SALE / AKCIJA */}
-                  {isOnSale && discountPercentage > 0 && (
-                    <div className="flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
-                      <IconRosetteDiscount size={18} stroke={2} className="text-white" />
-                    </div>
-                  )}
-                </div>
-              )}
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
           {translated_item?.name || item?.name}
         </h3>
 
@@ -485,7 +507,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
         <div className="flex-grow" />
         <div className="border-t border-gray-100 mt-1.5" />
 
-        {/* 🔥 PRICE SECTION WITH AKCIJA SUPPORT */}
+        {/* PRICE SECTION WITH AKCIJA SUPPORT */}
         <div className="flex items-center justify-between gap-2 mt-1">
           <div className="flex items-center gap-1 text-gray-400">
             <IoTimeOutline size={12} />
@@ -503,7 +525,6 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
                 </span>
               )}
 
-
               {/* Trenutna cijena */}
               <span
                 className={`text-sm font-bold ${
@@ -511,12 +532,10 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
                     ? "text-red-600"
                     : "text-gray-900"
                 }`}
-
-                              >
+              >
                 {isJobCategory
                   ? formatSalaryRange(item?.min_salary, item?.max_salary)
                   : formatPriceOrInquiry(item?.price)}
-
               </span>
             </div>
           )}

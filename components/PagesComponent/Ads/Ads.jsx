@@ -544,17 +544,19 @@ const Ads = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 md:self-auto space-between">
-              {/* ✅ NOVO: Saved search kontrole + “⭐ Sačuvaj” badge */}
-              <SavedSearchControls />
+            {/* ✅ FIX: toolbar se lijepo slaže na mobitelu, ništa ne “gura” van container-a */}
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 md:justify-end w-full md:w-auto min-w-0">
+              <div className="w-full sm:w-auto min-w-0">
+                <SavedSearchControls />
+              </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <TbTransferVertical
                   className="text-gray-400 hidden sm:block"
                   size={18}
                 />
                 <Select value={sortBy} onValueChange={handleSortBy}>
-                  <SelectTrigger className="w-[170px] h-10 border-gray-200 bg-white focus:ring-1 focus:ring-primary/20 font-medium">
+                  <SelectTrigger className="w-full sm:w-[170px] h-10 border-gray-200 bg-white focus:ring-1 focus:ring-primary/20 font-medium">
                     <SelectValue placeholder={t("sortBy")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -571,15 +573,13 @@ const Ads = () => {
                       <SelectItem value="price-low-to-high">
                         {t("priceLowToHigh")}
                       </SelectItem>
-                      <SelectItem value="popular_items">
-                        {t("popular")}
-                      </SelectItem>
+                      <SelectItem value="popular_items">{t("popular")}</SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="bg-gray-100 p-1 rounded-lg flex items-center border border-gray-200">
+              <div className="bg-gray-100 p-1 rounded-lg flex items-center border border-gray-200 w-fit">
                 <button
                   onClick={() => setView("list")}
                   className={`p-2 rounded-md transition-all duration-200 ${

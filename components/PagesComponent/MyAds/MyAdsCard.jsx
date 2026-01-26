@@ -537,7 +537,8 @@ const MyAdsCard = ({
       <div className="flex flex-col gap-1.5 p-2 flex-grow">
         {/* Naslov + status ikonice (GetMyAdStatus) */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200 flex-1">
+        <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
+
             {translated_item?.name || data?.name}
           </h3>
           {status && (

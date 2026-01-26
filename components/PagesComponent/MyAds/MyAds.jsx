@@ -645,13 +645,16 @@ const MyAds = () => {
       <div className="fixed bottom-24 left-1/2 z-50 flex gap-3 -translate-x-1/2 sm:hidden">
         {/* FILTER */}
         <button
-          type="button"
-          onClick={() => setIsStatusSheetOpen(true)}
-          className="flex items-center justify-center rounded-full bg-white shadow-lg border border-gray-200 p-3"
-          aria-label="Filter oglasa"
-        >
-          <IconFilter stroke={2} />
-        </button>
+  type="button"
+  onClick={() => setIsStatusSheetOpen(true)}
+  className="flex items-center gap-2 justify-center rounded-full bg-white shadow-lg border border-gray-200 px-4 py-3"
+  aria-label="Filtriraj oglase"
+  style={{ gap: "5px" }}
+>
+  <IconFilter stroke={2} />
+  <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Filtriraj oglase</span>
+</button>
+
 
         {/* SORT */}
         <button
@@ -659,8 +662,10 @@ const MyAds = () => {
           onClick={() => setIsSortSheetOpen(true)}
           className="flex items-center justify-center rounded-full bg-white shadow-lg border border-gray-200 p-3"
           aria-label="Sortiranje"
+          style={{ gap: "5px" }}
         >
           <IconArrowsSort stroke={2} />
+          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Poredaj po</span>
         </button>
       </div>
 
