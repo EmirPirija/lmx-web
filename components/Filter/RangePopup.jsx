@@ -157,7 +157,7 @@ const RangePopup = ({ onClose }) => {
 
         </div>
 
-        {/* FOOTER */}
+        {/*  */}
         <div className="p-5 border-t bg-gray-50 flex gap-3">
            <button 
              onClick={handleReset}

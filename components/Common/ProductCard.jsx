@@ -381,28 +381,6 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
           </div>
         )}
 
-          {/* sTATUS / ICON BADGES (Sale + Featured) */}
-{/* 🔥 STATUS BADGES — top-left stacked */}
-{!isViewMoreSlide && (
-  <div className="absolute top-2 ltr:left-2 rtl:right-2 z-20 flex items-center gap-1.5">
-    {/* ⭐ FEATURED / PREMIUM */}
-    {item?.is_feature && (
-      <div className="flex items-center justify-center bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-400 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
-        <IconRocket size={18} stroke={2} className="text-white" />
-      </div>
-    )}
-
-    {/* 🔥 SALE / AKCIJA */}
-    {isOnSale && discountPercentage > 0 && (
-      <div className="flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
-        <IconRosetteDiscount size={18} stroke={2} className="text-white" />
-      </div>
-    )}
-  </div>
-)}
-
-
-
         {/* Like Button */}
         {!isViewMoreSlide && (
           <button
@@ -437,7 +415,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
               </div>
             )}
             {totalImages > 1 && (
-              <div className="bg-black/50 backdrop-blur-md text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+              <div className="bg-black/50 backdrop-blur-md text-white text-[12px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-3 w-3"
@@ -460,7 +438,26 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-1.5 p-2 flex-grow">
+      <div className="flex flex-col gap-1.5 p-2 flex-gro relative">
+          {/* sTATUS / ICON BADGES (Sale + Featured) */}
+              {/* STATUS BADGES  */}
+              {!isViewMoreSlide && (
+                <div className="initial top-2 ltr:left-2 rtl:right-2 z-20 flex items-center gap-1.5">
+                  {/* ⭐ FEATURED / PREMIUM */}
+                  {item?.is_feature && (
+                    <div className="flex items-center justify-center bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-400 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+                      <IconRocket size={18} stroke={2} className="text-white" />
+                    </div>
+                  )}
+
+                  {/* 🔥 SALE / AKCIJA */}
+                  {isOnSale && discountPercentage > 0 && (
+                    <div className="flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+                      <IconRosetteDiscount size={18} stroke={2} className="text-white" />
+                    </div>
+                  )}
+                </div>
+              )}
         <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
           {translated_item?.name || item?.name}
         </h3>

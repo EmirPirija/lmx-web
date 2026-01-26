@@ -13,8 +13,6 @@ import { useSelector } from "react-redux";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { useSavedSearches } from "@/hooks/useSavedSearches";
 
-
-// Tabler icons
 import {
   IconSearch,
   IconLoader2,
@@ -27,9 +25,6 @@ import {
   IconStarFilled,
 } from "@tabler/icons-react";
 
-// =========================
-// TRACKING HELPERS (FIXED)
-// =========================
 const API_BASE =
   (process.env.NEXT_PUBLIC_API_URL
     ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "") + "/api"
@@ -70,9 +65,6 @@ const getReferrer = () => {
   return document.referrer || null;
 };
 
-
-// Uses same endpoints as your api.js publicTrackingApi:
-// POST /track/search-impressions
 const postForm = async (endpoint, data) => {
   try {
     const form = new FormData();
@@ -87,8 +79,6 @@ const postForm = async (endpoint, data) => {
 
     Object.entries(baseData).forEach(([k, v]) => {
       if (v === undefined || v === null) return;
-
-      // If object/array, stringify
       if (typeof v === "object") form.append(k, JSON.stringify(v));
       else form.append(k, String(v));
     });
@@ -106,15 +96,9 @@ const postForm = async (endpoint, data) => {
   }
 };
 
-// =========================
-// SEARCH HISTORY
-// =========================
 const SEARCH_HISTORY_KEY = "lmx_search_history";
 const MAX_HISTORY_ITEMS = 8;
 
-// =========================
-// DID YOU MEAN (NO COMMON_TERMS)
-// =========================
 const levenshteinDistance = (str1, str2) => {
   const m = str1.length;
   const n = str2.length;
@@ -212,8 +196,22 @@ const formatSavedSearchSubtitle = (qs) => {
   if (km) parts.push(`U blizini: ${km} km`);
 
   const known = new Set([
-    "query","category","min_price","max_price","city","state","country","km_range",
-    "lang","sort_by","page","featured_section","lat","lng","area","areaId"
+    "query",
+    "category",
+    "min_price",
+    "max_price",
+    "city",
+    "state",
+    "country",
+    "km_range",
+    "lang",
+    "sort_by",
+    "page",
+    "featured_section",
+    "lat",
+    "lng",
+    "area",
+    "areaId",
   ]);
 
   let extraCount = 0;
@@ -223,7 +221,6 @@ const formatSavedSearchSubtitle = (qs) => {
   if (!parts.length) return "Svi oglasi (bez filtera)";
   return parts.slice(0, 3).join(" • ");
 };
-
 
 const Search = () => {
   const {
@@ -244,7 +241,6 @@ const Search = () => {
     ...cateData,
   ];
 
-  // kept from original (if you have category selector elsewhere)
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("all-categories");
   const selectedItem = categoryList.find((item) => item.slug === value);
@@ -252,7 +248,6 @@ const Search = () => {
   const hasMoreCats = catCurrentPage < catLastPage;
   const { ref, inView } = useInView();
 
-  // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -262,10 +257,8 @@ const Search = () => {
   const [searchHistory, setSearchHistory] = useState([]);
   const [didYouMean, setDidYouMean] = useState([]);
 
-  // Keyboard navigation state
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
-  // animacija logo / search
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const searchTimeoutRef = useRef(null);
@@ -274,7 +267,6 @@ const Search = () => {
   const inputRef = useRef(null);
   const dropdownId = "lmx-search-dropdown";
 
-  // Load search history from localStorage
   useEffect(() => {
     try {
       const history = localStorage.getItem(SEARCH_HISTORY_KEY);
@@ -284,7 +276,6 @@ const Search = () => {
     }
   }, []);
 
-  // Save to search history
   const saveToHistory = useCallback((query) => {
     if (!query || query.length < 2) return;
     try {
@@ -331,7 +322,6 @@ const Search = () => {
     }
   }, [hasMoreCats, inView, isCatLoadMore, open, catCurrentPage, getCategories]);
 
-  // Flatten categories
   const flattenCategories = useCallback((categories, parentPath = []) => {
     let result = [];
     categories.forEach((cat) => {
@@ -351,7 +341,6 @@ const Search = () => {
     return result;
   }, []);
 
-  // TRACK: search impressions (public endpoint)
   const trackSearchImpressions = useCallback(
     async (ads, query) => {
       if (!ads?.length || !query) return;
@@ -381,8 +370,6 @@ const Search = () => {
     [selectedItem?.slug]
   );
 
-
-  // Search API
   const performSearch = useCallback(
     async (query) => {
       if (!query || query.length < 2) {
@@ -412,7 +399,6 @@ const Search = () => {
         const ads = result?.data?.data || result?.data?.data?.data || [];
 
         if (!ads || ads.length === 0) {
-          // ✅ DID YOU MEAN bez COMMON_TERMS: pool = kategorije + historija
           const flatCats = flattenCategories(cateData);
           const pool = [
             ...flatCats.map((c) => c.search_name).filter(Boolean),
@@ -429,10 +415,8 @@ const Search = () => {
 
         setDidYouMean([]);
 
-        // ✅ TRACK impressions for returned results
         await trackSearchImpressions(ads, query);
 
-        // Extract unique search suggestions from ad titles
         const titleWords = new Set();
         const queryLower = query.toLowerCase();
 
@@ -454,7 +438,6 @@ const Search = () => {
           .slice(0, 5);
         setSuggestions(searchSuggestions);
 
-        // ✅ KATEGORIJE ZA PRONAĐENE OGLASE + COUNT
         const categoryMap = new Map();
         const flatCats = flattenCategories(cateData);
         const catLookup = new Map(flatCats.map((c) => [c.id, c]));
@@ -476,7 +459,6 @@ const Search = () => {
           .slice(0, 6);
         setSuggestedCategories(catResults);
 
-        // Extract users
         const userMap = new Map();
         ads.forEach((ad) => {
           if (ad.user) {
@@ -499,7 +481,6 @@ const Search = () => {
     [cateData, flattenCategories, trackSearchImpressions, searchHistory]
   );
 
-  // Debounced search
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     setSelectedIndex(-1);
@@ -521,7 +502,6 @@ const Search = () => {
     };
   }, [searchQuery, performSearch]);
 
-  // Close suggestions on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -537,7 +517,6 @@ const Search = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [searchQuery]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -685,387 +664,387 @@ const Search = () => {
   const isSearchActive = isSearchFocused || !!searchQuery || showSuggestions;
 
   return (
-    <>
-      <div className="w-full flex items-center gap-3 z-[9999]">
-        {settings?.header_logo && (
-          <div
-            className={cn(
-              "transition-all duration-300 ease-in-out overflow-hidden",
-              isSearchActive
-                ? "w-0 opacity-0 -translate-x-2"
-                : "w-[40px] sm:w-[90px] opacity-100 translate-x-0"
-            )}
-          >
-            <Link href="/" className="block cursor-pointer" aria-label="Početna">
-              <CustomImage
-                src={settings.header_logo}
-                width={195}
-                height={52}
-                alt="lmx logo"
-                className="w-full h-[42px] sm:h-[70px] object-contain ltr:object-left rtl:object-right"
-              />
-            </Link>
-            
-          </div>
-        )}
-
-<div className="flex items-center gap-2">
-
-
-{/* desktop hint (suptilno) */}
-<div className="hidden xl:flex items-center">
-  <div className="h-6 w-px bg-slate-200 mx-3" />
-  <div className="text-xs text-slate-500">
-  Nešto domaće.
-
-Nešto drugačije.
-
-Nešto naše.
-  </div>
-</div>
-</div>
+    <div className="w-full flex items-center gap-3 z-[9999]">
+      {settings?.header_logo && (
         <div
-          ref={searchContainerRef}
           className={cn(
-            "relative flex-1 transition-transform duration-300 ease-out z-[9]",
-            isSearchActive ? "scale-[1.02]" : "scale-100"
+            // USPORENO: logo transition kada je search aktivan
+            "flex-shrink-0 transition-all duration-[1800ms] ease-out",
+            isSearchActive
+              ? "xl:w-[90px] xl:opacity-100 w-0 opacity-0"
+              : "w-[40px] sm:w-[90px] opacity-100"
           )}
         >
-          <form
-            onSubmit={handleSearchNav}
-            className="w-full flex items-center gap-2 rounded-full bg-muted/70 px-3 py-1.5 sm:py-2 border-2 border-primary/40 hover:border-primary transition-all duration-200"
-            role="search"
-          >
-            <IconWorld
-              stroke={1.7}
-              className="min-w-4 min-h-4 text-slate-500"
-              aria-hidden="true"
+          <Link href="/" className="block cursor-pointer" aria-label="Početna">
+            <CustomImage
+              src={settings.header_logo}
+              width={195}
+              height={52}
+              alt="lmx logo"
+              className="w-full h-[42px] sm:h-[70px] object-contain ltr:object-left rtl:object-right"
             />
-            <input
-              ref={inputRef}
-              id="lmx-search-input"
-              type="text"
-              placeholder={t("searchAd")}
-              className="text-sm outline-none border-none w-full bg-transparent"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
-              autoComplete="off"
-              role="combobox"
-              aria-autocomplete="list"
-              aria-expanded={shouldShowDropdown}
-              aria-controls={shouldShowDropdown ? dropdownId : undefined}
-            />
+          </Link>
+        </div>
+      )}
 
-            {!isSearching && searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSuggestions([]);
-                  setSuggestedCategories([]);
-                  setSuggestedUsers([]);
-                  setDidYouMean([]);
-                  setShowSuggestions(true);
-                  inputRef.current && inputRef.current.focus();
-                }}
-                className="p-1 rounded-full hover:bg-muted transition-colors duration-150"
-                aria-label={t("clearSearch") || "Obriši pretragu"}
-              >
-                <IconX className="w-4 h-4 text-slate-500" />
-              </button>
-            )}
-
-            {isSearching ? (
-              <div className="p-2" aria-label="Pretraživanje" aria-busy="true">
-                <IconLoader2 className="w-4 h-4 animate-spin text-primary" />
-              </div>
-            ) : (
-              <button
-                className="flex items-center gap-2 bg-primary text-white p-2 rounded-full transition-all duration-200 hover:bg-primary/90 hover:scale-105 active:scale-95"
-                type="submit"
-                aria-label={t("searchAd") || "Pretraži oglase"}
-              >
-                <IconSearch size={16} className="text-white" />
-              </button>
-            )}
-          </form>
-
-          {shouldShowDropdown && (
-            <div
-              id={dropdownId}
-              className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-[420px] overflow-y-auto animate-in fade-in-0 slide-in-from-top-2 duration-200 z-[9999]"
-              role="listbox"
-              aria-label="Prijedlozi pretrage"
-            >
-              {searchQuery.length >= 2 && (
-                <button
-                  type="button"
-                  onClick={() => handleSearchNav(null, searchQuery)}
-                  className="w-full flex items-center justify-between px-3 py-2 border-b border-gray-100 text-left text-sm transition-all duration-200 hover:bg-gray-50"
-                  role="option"
-                >
-                  <span className="flex items-center gap-2">
-                    <IconSearch className="w-4 h-4 text-primary" />
-                    <span>
-                      Pretraži oglase za{" "}
-                      <span className="font-medium">"{searchQuery}"</span>
-                    </span>
-                  </span>
-                </button>
-              )}
-
-              {/* ✅ KATEGORIJE ZA PRONAĐENE OGLASE (UMJESTO "RELEVANTNI OGLASI") */}
-              {suggestedCategories.length > 0 && (
-                <div className="p-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
-                      <IconFolder className="w-3 h-3" />
-                      Kategorije za pronađene oglase
-                    </div>
-                    <button
-                      onClick={handleViewAllCategories}
-                      className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-all duration-200 hover:gap-2 group"
-                    >
-                      <span>Pogledaj sve</span>
-                      <IconChevronRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
-                    </button>
-                  </div>
-
-                  <ul className="space-y-1">
-                    {suggestedCategories.map((category) => (
-                      <li
-                        key={category.id}
-                        className="flex items-center justify-between px-2 py-2 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
-                        onClick={() => handleCategoryClick(category)}
-                        role="option"
-                      >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <IconFolder className="w-4 h-4 text-primary flex-shrink-0" />
-                          <span className="text-sm text-gray-800 truncate">
-                            {category.search_name ||
-                              category.translated_name ||
-                              category.name}
-                          </span>
-                        </div>
-
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
-                          {formatAdCount(category.count)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {hasMoreCats && <div ref={ref} className="h-4 w-full" />}
-                </div>
-              )}
-
-              {searchQuery.length < 2 && savedSearches?.length > 0 && (
-                <div className="px-4 py-3 border-b">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Spašene pretrage
-                    </p>
-                    <button
-                      onClick={() => navigate("/profile/saved-searches")}
-                      className="text-xs text-gray-700 hover:text-black"
-                    >
-                      Uredi
-                    </button>
-                  </div>
-
-                  <div className="space-y-1">
-                    {savedSearches.slice(0, 5).map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          markUsed(s.id);
-                          setShowSuggestions(false);
-                          navigate(s.queryString ? `/ads?${s.queryString}` : "/ads");
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                          <IconStarFilled size={16} className="text-gray-700" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{s.naziv}</p>
-                          <p className="text-xs text-gray-500 truncate">
-                          {formatSavedSearchSubtitle(s.queryString || s.query_string || "")}
-                        </p>
-
-
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-  
-
-              {showHistory && (
-                <div className="p-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
-                      <IconClock className="w-3 h-3" />
-                      Nedavne pretrage
-                    </div>
-                    <button
-                      onClick={clearAllHistory}
-                      className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200"
-                    >
-                      Obriši sve
-                    </button>
-                  </div>
-                  <ul className="space-y-1">
-                    {searchHistory.map((query, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
-                        onClick={() => handleHistoryClick(query)}
-                        role="option"
-                      >
-                        <div className="flex items-center gap-2">
-                          <IconClock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{query}</span>
-                        </div>
-                        <button
-                          onClick={(e) => removeFromHistory(query, e)}
-                          className="p-1 hover:bg-gray-200 rounded transition-all duration-200"
-                          aria-label="Obriši iz historije"
-                        >
-                          <IconX className="w-3 h-3 text-gray-400" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {isSearching && searchQuery.length >= 2 && !hasResults && (
-                <div className="flex items-center justify-center py-8">
-                  <div className="flex flex-col items-center gap-3">
-                    <IconLoader2 className="w-8 h-8 animate-spin text-primary" />
-                    <span className="text-sm text-gray-500">Tražim...</span>
-                  </div>
-                </div>
-              )}
-
-              {showDidYouMean && (
-                <div className="p-4">
-                  <div className="text-sm text-gray-500 mb-2">
-                    Nema rezultata za{" "}
-                    <span className="font-medium">"{searchQuery}"</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-gray-500">Da li ste mislili: </span>
-                    {didYouMean.map((term, index) => (
-                      <span key={term}>
-                        <button
-                          onClick={() => handleDidYouMeanClick(term)}
-                          className="text-primary font-medium hover:underline"
-                          role="option"
-                        >
-                          {term}
-                        </button>
-                        {index < didYouMean.length - 1 && (
-                          <span className="text-gray-400">, </span>
-                        )}
-                      </span>
-                    ))}
-                    <span className="text-gray-500">?</span>
-                  </div>
-                </div>
-              )}
-
-              {showNoResults && (
-                <div className="py-8 text-center">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-                    <IconSearch className="w-6 h-6 text-gray-400" />
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Nema rezultata za{" "}
-                    <span className="font-medium">"{searchQuery}"</span>
-                  </p>
-                </div>
-              )}
-
-              {suggestions.length > 0 && (
-                <div className="p-3 border-b border-gray-100">
-                  <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
-                    <IconSearch className="w-3 h-3" />
-                    Prijedlozi pretrage
-                  </div>
-                  <ul className="space-y-1">
-                    {suggestions.map((suggestion, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        role="option"
-                      >
-                        <IconSearch className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 truncate">
-                          {suggestion}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {suggestedUsers.length > 0 && (
-                <div className="p-3">
-                  <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
-                    <IconUser className="w-3 h-3" />
-                    Korisnici
-                  </div>
-                  <ul className="space-y-1">
-                    {suggestedUsers.map((user) => (
-                      <li
-                        key={user.id}
-                        className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
-                        onClick={() => handleUserClick(user)}
-                        role="option"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
-                            {user.profile ? (
-                              <img
-                                src={user.profile}
-                                alt={user.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <IconUser className="w-3.5 h-3.5 text-gray-500" />
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm text-gray-700">
-                              {user.name}
-                            </span>
-                            {user.average_rating && (
-                              <span className="text-xs text-gray-400 flex items-center gap-1">
-                                <IconStarFilled className="w-2.5 h-2.5 text-yellow-400" />
-                                {Number(user.average_rating).toFixed(1)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                          {user.adCount}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+      <div className="hidden xl:flex items-center flex-shrink-0 overflow-hidden">
+        <div className="h-6 w-px bg-slate-200 flex-shrink-0" />
+        <div
+          className={cn(
+            // USPORENO: animacija teksta kada input dobije focus / search aktivan
+            // Napomena: explicit transition properties da width/opacity/transform budu glatki
+            "text-xs text-slate-500 whitespace-nowrap transition-[width,margin,opacity,transform] duration-[4200ms] ease-out",
+            isSearchActive
+              ? "w-0 ml-0 opacity-0 -translate-x-4"
+              : "w-auto ml-3 opacity-100 translate-x-0"
           )}
+        >
+          Nešto domaće. Nešto drugačije. Nešto naše.
         </div>
       </div>
-    </>
+
+      <div ref={searchContainerRef} className="relative flex-1 z-[9]">
+        <form
+          onSubmit={handleSearchNav}
+          className={cn(
+            "w-full flex items-center gap-2 rounded-full bg-muted/70 px-3 py-1.5 sm:py-2 border-2 transition-all duration-2000",
+            isSearchActive
+              ? "border-primary shadow-sm"
+              : "border-primary/40 hover:border-primary"
+          )}
+          role="search"
+        >
+          <IconWorld
+            stroke={1.7}
+            className="min-w-4 min-h-4 text-slate-500"
+            aria-hidden="true"
+          />
+          <input
+            ref={inputRef}
+            id="lmx-search-input"
+            type="text"
+            placeholder={t("searchAd")}
+            className="text-sm outline-none border-none w-full bg-transparent"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={shouldShowDropdown}
+            aria-controls={shouldShowDropdown ? dropdownId : undefined}
+          />
+
+          {!isSearching && searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setSuggestions([]);
+                setSuggestedCategories([]);
+                setSuggestedUsers([]);
+                setDidYouMean([]);
+                setShowSuggestions(true);
+                inputRef.current && inputRef.current.focus();
+              }}
+              className="p-1 rounded-full hover:bg-muted transition-colors duration-150"
+              aria-label={t("clearSearch") || "Obriši pretragu"}
+            >
+              <IconX className="w-4 h-4 text-slate-500" />
+            </button>
+          )}
+
+          {isSearching ? (
+            <div className="p-2" aria-label="Pretraživanje" aria-busy="true">
+              <IconLoader2 className="w-4 h-4 animate-spin text-primary" />
+            </div>
+          ) : (
+            <button
+              className="flex items-center gap-2 bg-primary text-white p-2 rounded-full transition-all duration-200 hover:bg-primary/90 hover:scale-105 active:scale-95"
+              type="submit"
+              aria-label={t("searchAd") || "Pretraži oglase"}
+            >
+              <IconSearch size={16} className="text-white" />
+            </button>
+          )}
+        </form>
+
+        {shouldShowDropdown && (
+          <div
+            id={dropdownId}
+            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-[420px] overflow-y-auto animate-in fade-in-0 slide-in-from-top-2 duration-200 z-[9999]"
+            role="listbox"
+            aria-label="Prijedlozi pretrage"
+          >
+            {searchQuery.length >= 2 && (
+              <button
+                type="button"
+                onClick={() => handleSearchNav(null, searchQuery)}
+                className="w-full flex items-center justify-between px-3 py-2 border-b border-gray-100 text-left text-sm transition-all duration-200 hover:bg-gray-50"
+                role="option"
+              >
+                <span className="flex items-center gap-2">
+                  <IconSearch className="w-4 h-4 text-primary" />
+                  <span>
+                    Pretraži oglase za{" "}
+                    <span className="font-medium">"{searchQuery}"</span>
+                  </span>
+                </span>
+              </button>
+            )}
+
+            {suggestedCategories.length > 0 && (
+              <div className="p-3 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                    <IconFolder className="w-3 h-3" />
+                    Kategorije za pronađene oglase
+                  </div>
+                  <button
+                    onClick={handleViewAllCategories}
+                    className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-all duration-200 hover:gap-2 group"
+                  >
+                    <span>Pogledaj sve</span>
+                    <IconChevronRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </button>
+                </div>
+
+                <ul className="space-y-1">
+                  {suggestedCategories.map((category) => (
+                    <li
+                      key={category.id}
+                      className="flex items-center justify-between px-2 py-2 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                      onClick={() => handleCategoryClick(category)}
+                      role="option"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <IconFolder className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-sm text-gray-800 truncate">
+                          {category.search_name ||
+                            category.translated_name ||
+                            category.name}
+                        </span>
+                      </div>
+
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full flex-shrink-0">
+                        {formatAdCount(category.count)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {hasMoreCats && <div ref={ref} className="h-4 w-full" />}
+              </div>
+            )}
+
+            {searchQuery.length < 2 && savedSearches?.length > 0 && (
+              <div className="px-4 py-3 border-b">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Spašene pretrage
+                  </p>
+                  <button
+                    onClick={() => navigate("/profile/saved-searches")}
+                    className="text-xs text-gray-700 hover:text-black"
+                  >
+                    Uredi
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  {savedSearches.slice(0, 5).map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        markUsed(s.id);
+                        setShowSuggestions(false);
+                        navigate(
+                          s.queryString ? `/ads?${s.queryString}` : "/ads"
+                        );
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <IconStarFilled size={16} className="text-gray-700" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {s.naziv}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {formatSavedSearchSubtitle(
+                            s.queryString || s.query_string || ""
+                          )}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {showHistory && (
+              <div className="p-3 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                    <IconClock className="w-3 h-3" />
+                    Nedavne pretrage
+                  </div>
+                  <button
+                    onClick={clearAllHistory}
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200"
+                  >
+                    Obriši sve
+                  </button>
+                </div>
+                <ul className="space-y-1">
+                  {searchHistory.map((query, index) => (
+                    <li
+                      key={index}
+                      className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                      onClick={() => handleHistoryClick(query)}
+                      role="option"
+                    >
+                      <div className="flex items-center gap-2">
+                        <IconClock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">{query}</span>
+                      </div>
+                      <button
+                        onClick={(e) => removeFromHistory(query, e)}
+                        className="p-1 hover:bg-gray-200 rounded transition-all duration-200"
+                        aria-label="Obriši iz historije"
+                      >
+                        <IconX className="w-3 h-3 text-gray-400" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {isSearching && searchQuery.length >= 2 && !hasResults && (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex flex-col items-center gap-3">
+                  <IconLoader2 className="w-8 h-8 animate-spin text-primary" />
+                  <span className="text-sm text-gray-500">Tražim...</span>
+                </div>
+              </div>
+            )}
+
+            {showDidYouMean && (
+              <div className="p-4">
+                <div className="text-sm text-gray-500 mb-2">
+                  Nema rezultata za{" "}
+                  <span className="font-medium">"{searchQuery}"</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-gray-500">Da li ste mislili: </span>
+                  {didYouMean.map((term, index) => (
+                    <span key={term}>
+                      <button
+                        onClick={() => handleDidYouMeanClick(term)}
+                        className="text-primary font-medium hover:underline"
+                        role="option"
+                      >
+                        {term}
+                      </button>
+                      {index < didYouMean.length - 1 && (
+                        <span className="text-gray-400">, </span>
+                      )}
+                    </span>
+                  ))}
+                  <span className="text-gray-500">?</span>
+                </div>
+              </div>
+            )}
+
+            {showNoResults && (
+              <div className="py-8 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                  <IconSearch className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-sm text-gray-500">
+                  Nema rezultata za{" "}
+                  <span className="font-medium">"{searchQuery}"</span>
+                </p>
+              </div>
+            )}
+
+            {suggestions.length > 0 && (
+              <div className="p-3 border-b border-gray-100">
+                <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
+                  <IconSearch className="w-3 h-3" />
+                  Prijedlozi pretrage
+                </div>
+                <ul className="space-y-1">
+                  {suggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      role="option"
+                    >
+                      <IconSearch className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">
+                        {suggestion}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {suggestedUsers.length > 0 && (
+              <div className="p-3">
+                <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
+                  <IconUser className="w-3 h-3" />
+                  Korisnici
+                </div>
+                <ul className="space-y-1">
+                  {suggestedUsers.map((user) => (
+                    <li
+                      key={user.id}
+                      className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                      onClick={() => handleUserClick(user)}
+                      role="option"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
+                          {user.profile ? (
+                            <img
+                              src={user.profile}
+                              alt={user.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <IconUser className="w-3.5 h-3.5 text-gray-500" />
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-700">
+                            {user.name}
+                          </span>
+                          {user.average_rating && (
+                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                              <IconStarFilled className="w-2.5 h-2.5 text-yellow-400" />
+                              {Number(user.average_rating).toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        {user.adCount}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

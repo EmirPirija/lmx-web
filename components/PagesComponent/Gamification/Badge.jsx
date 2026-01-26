@@ -15,55 +15,69 @@ import {
   IconLock,
 } from "@tabler/icons-react";
 
+// LMx palette (iz tvog logo-a)
+const LMX = {
+  blueDeep: "#042361",
+  blue: "#093f88",
+  orange: "#fe8414",
+  teal: "#10b8b0",
+  tealDeep: "#0e8b86",
+};
+
 const BADGES = {
   early_adopter: {
     icon: IconRocket,
-    gradient: "from-[#ff8c1a] via-[#ffb347] to-[#ff7a00]",
+    colors: [LMX.blueDeep, LMX.orange, LMX.teal],
   },
   verified: {
     icon: IconShieldCheck,
-    gradient: "from-[#1fd1b9] via-[#2ee5c9] to-[#0fb9b1]",
+    colors: [LMX.tealDeep, LMX.teal, LMX.blue],
   },
   top_seller: {
     icon: IconCrown,
-    gradient: "from-[#ffb703] via-[#ff9500] to-[#ff7a00]",
+    colors: [LMX.orange, LMX.teal, LMX.blue],
   },
   hot_seller: {
     icon: IconFlame,
-    gradient: "from-[#ff5f6d] via-[#ff9966] to-[#ff7a00]",
+    colors: [LMX.orange, LMX.orange, LMX.teal],
   },
   featured: {
     icon: IconStar,
-    gradient: "from-[#3a86ff] via-[#4ea8ff] to-[#00b4d8]",
+    colors: [LMX.blue, LMX.teal, LMX.orange],
   },
   vip: {
     icon: IconDiamond,
-    gradient: "from-[#8338ec] via-[#5f27cd] to-[#341f97]",
+    colors: [LMX.blueDeep, LMX.blue, LMX.orange],
   },
   winner: {
     icon: IconMedal,
-    gradient: "from-[#ffd166] via-[#ffb703] to-[#fb8500]",
+    colors: [LMX.orange, LMX.teal, LMX.orange],
   },
   streak: {
     icon: IconBolt,
-    gradient: "from-[#00f5d4] via-[#2ec4b6] to-[#06d6a0]",
+    colors: [LMX.teal, LMX.tealDeep, LMX.blue],
   },
   community: {
     icon: IconUsers,
-    gradient: "from-[#00b4d8] via-[#48cae4] to-[#90dbf4]",
+    colors: [LMX.blue, LMX.teal, LMX.blueDeep],
   },
   generous: {
     icon: IconGift,
-    gradient: "from-[#f72585] via-[#ff4d6d] to-[#ff758f]",
+    colors: [LMX.orange, LMX.teal, LMX.orange],
   },
   default: {
     icon: IconTrendingUp,
-    gradient: "from-gray-500 via-gray-600 to-gray-700",
+    colors: ["#6b7280", "#4b5563", "#374151"], // gray-500 -> gray-700
   },
 };
 
+const buildGradient = (colors = []) => {
+  const stops = (colors.length ? colors : ["#6b7280", "#4b5563", "#374151"]).join(", ");
+  return `linear-gradient(135deg, ${stops})`;
+};
+
 const Badge = ({ badge, size = "md" }) => {
-  const isUnlocked = badge?.unlocked || badge?.earned_at;
+  const isUnlocked = Boolean(badge?.unlocked || badge?.earned_at);
 
   const key =
     badge?.code?.toLowerCase()?.replace(/\s+/g, "_") ||
@@ -81,17 +95,15 @@ const Badge = ({ badge, size = "md" }) => {
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative">
-        
-        {/* Badge */}
         <div
+          style={{ backgroundImage: buildGradient(meta.colors) }}
           className={`
             ${sizeMap[size]}
             relative rounded-2xl
-            bg-gradient-to-br ${meta.gradient}
             flex items-center justify-center
-            /* shadow-xl uklonjen */
             transition-all duration-300
             ${isUnlocked ? "hover:scale-105" : "opacity-40 grayscale"}
+            ring-1 ring-white/15
           `}
         >
           <Icon className="w-1/2 h-1/2 text-white" />

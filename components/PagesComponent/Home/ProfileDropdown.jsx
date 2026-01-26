@@ -463,15 +463,6 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
             </div>
           </div>
         </div>
-
-        <button
-          onClick={() => setIsOpen(false)}
-          className="p-2 rounded-full hover:bg-slate-100 transition-colors"
-          aria-label="Zatvori"
-          type="button"
-        >
-          <IoClose size={22} className="text-slate-500" />
-        </button>
       </div>
 
       {/* CONTENT */}
