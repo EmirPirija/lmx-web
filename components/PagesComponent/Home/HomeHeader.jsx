@@ -47,15 +47,15 @@ import {
 
 import { Loader2 } from "lucide-react";
 import { IoIosAddCircleOutline } from "react-icons/io";
-import { GrLocation } from "react-icons/gr";
-import { BsChatDots } from "react-icons/bs";
+import { MapPin, MessageSquareMore } from "lucide-react";
+
+
 import {
   IconMenu2,
   IconBell,
   IconMapPin,
   IconHome,
   IconUserCircle,
-  IconMessageCircle,
   IconCirclePlus,
   IconListDetails,
   IconLoader2,
@@ -413,7 +413,7 @@ const HomeHeader = () => {
         }`}
       >
         <div className="relative">
-          <IconMessageCircle
+          <MessageSquareMore
             size={22}
             className={isChatActive ? "text-primary" : ""}
           />
@@ -569,7 +569,7 @@ const HomeHeader = () => {
                   aria-label="Lokacija"
                   title="Lokacija"
                 >
-                  <GrLocation
+                  <MapPin
                     size={18}
                     className="text-slate-600 dark:text-slate-400"
                   />
@@ -626,7 +626,7 @@ const HomeHeader = () => {
                     type="button"
                     aria-label="Poruke"
                   >
-                    <BsChatDots
+                    <MessageSquareMore
                       size={20}
                       className="text-slate-700 dark:text-slate-300"
                     />
@@ -698,7 +698,7 @@ const HomeHeader = () => {
                     aria-label="Lokacija"
                     title={locationText || "Dodaj lokaciju"}
                   >
-                    <GrLocation
+                    <MapPin
                       size={16}
                       className="text-slate-600 dark:text-slate-400"
                     />
@@ -752,7 +752,7 @@ const HomeHeader = () => {
                     type="button"
                     aria-label="Poruke"
                   >
-                    <BsChatDots
+                    <MessageSquareMore
                       size={18}
                       className="text-slate-700 dark:text-slate-300"
                     />
@@ -819,7 +819,7 @@ const HomeHeader = () => {
                 aria-label="Poruke"
               >
                 <div className="relative">
-                  <BsChatDots size={22} strokeWidth={isChatActive ? 0.5 : 0} />
+                  <MessageSquareMore size={22} strokeWidth={isChatActive ? 0.5 : 0} />
                   {IsLoggedin && totalUnreadMessages > 0 && (
                     <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
                       {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}

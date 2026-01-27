@@ -1,7 +1,8 @@
-import React, { memo, useCallback, useState } from "react";
+"use client";
+
+import React, { memo, useCallback, useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   getCurrencyPosition,
@@ -13,7 +14,7 @@ import "react-phone-input-2/lib/style.css";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 
-// Ikone
+// Ikone za sekcije (React Icons)
 import {
   MdOutlineTitle,
   MdAttachMoney,
@@ -25,8 +26,18 @@ import {
 import { BsTextParagraph, BsTag } from "react-icons/bs";
 import { FiPercent } from "react-icons/fi";
 
+// Ikone za Editor (Lucide React)
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Link as LinkIcon,
+  Type,
+} from "lucide-react";
+
 // ============================================
-// ACCORDION SECTION (same style as ComponentTwo/Three)
+// ACCORDION SECTION
 // ============================================
 const AccordionSection = ({
   title,
@@ -96,9 +107,176 @@ const AccordionSection = ({
   );
 };
 
+// ========================================
+// RichTextarea Component (WYSIWYG - Real Bold)
+// ========================================
+const RichTextarea = ({
+  value = "",
+  onChange,
+  label,
+  placeholder = "Unesite opis...",
+  maxLength = 7000,
+  minHeight = 140,
+  required = false,
+  id = "rich-textarea",
+  name = "description",
+}) => {
+  const editorRef = useRef(null);
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Inicijalno postavljanje vrijednosti
+  useEffect(() => {
+    if (editorRef.current && !editorRef.current.innerHTML && value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, []);
+
+  const handleInput = (e) => {
+    const html = e.currentTarget.innerHTML;
+    onChange({ target: { value: html, name } });
+  };
+
+  const execCmd = (command, value = null) => {
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  };
+
+  const preventFocusLoss = (e) => e.preventDefault();
+
+  const handleLink = () => {
+    const url = prompt("Unesite URL linka:", "https://");
+    if (url) {
+      execCmd("createLink", url);
+    }
+  };
+
+  const plainText = editorRef.current?.innerText || value.replace(/<[^>]*>/g, '') || "";
+  const charCount = plainText.length;
+  const wordCount = plainText.trim() === "" ? 0 : plainText.trim().split(/\s+/).length;
+  const isOverLimit = charCount > maxLength;
+  const percentUsed = (charCount / maxLength) * 100;
+
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {label && (
+        <Label htmlFor={id} className={`flex items-center gap-2 ${required ? "requiredInputLabel" : ""}`}>
+          <BsTextParagraph className="text-gray-500" size={16} />
+          {label}
+        </Label>
+      )}
+
+      <div 
+        className={`w-full border-2 rounded-xl overflow-hidden bg-white transition-all ${
+          isFocused ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200"
+        }`}
+      >
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-gray-50/50 select-none">
+          <div className="flex items-center gap-1 text-gray-400 px-2 text-xs font-semibold uppercase tracking-wider border-r mr-1">
+             <Type className="w-4 h-4 mr-1" />
+             Uređivač
+          </div>
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("bold")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Podebljano (Bold)"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("italic")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Ukošeno (Italic)"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("insertUnorderedList")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Lista"
+          >
+            <List className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("insertOrderedList")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Numerisana lista"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </button>
+
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={handleLink}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Dodaj Link"
+          >
+            <LinkIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Editor Area */}
+        <div
+          ref={editorRef}
+          contentEditable
+          onInput={handleInput}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className="w-full px-4 py-3 outline-none min-h-[140px] prose prose-sm max-w-none text-gray-700"
+          style={{ minHeight: `${minHeight}px` }}
+          data-placeholder={placeholder}
+        />
+        
+        {!value && (
+          <div 
+            className="absolute px-4 py-3 text-gray-400 pointer-events-none top-[108px]" 
+            aria-hidden="true"
+          />
+        )}
+      </div>
+
+      {/* Counters */}
+      <div className="flex items-center justify-between text-xs mt-1 px-1">
+        <div className="text-gray-500">
+          <span className="font-medium text-gray-700">{wordCount}</span> riječi
+        </div>
+        <div className={`${isOverLimit ? "text-red-600 font-bold" : "text-gray-500"}`}>
+          {charCount} / {maxLength}
+        </div>
+      </div>
+
+      <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden mt-1">
+        <div
+          className={`h-full transition-all duration-500 ${
+            isOverLimit ? "bg-red-500" : percentUsed > 90 ? "bg-orange-500" : "bg-blue-500"
+          }`}
+          style={{ width: `${Math.min(percentUsed, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const baseInput =
-  "border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white";
-const baseTextarea =
   "border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white";
 
 const EditComponentOne = ({
@@ -136,7 +314,6 @@ const EditComponentOne = ({
           [field]: value,
         };
 
-        // ✅ i dalje generišemo slug u pozadini (bez slug inputa)
         if (field === "name" && langId === defaultLangId) {
           updatedLangData.slug = generateSlug(value);
         }
@@ -149,6 +326,17 @@ const EditComponentOne = ({
     },
     [langId, defaultLangId, setTranslations]
   );
+
+  const handlePriceOnRequest = (checked) => {
+    setTranslations((prev) => ({
+      ...prev,
+      [langId]: {
+        ...prev[langId],
+        price_on_request: checked,
+        price: checked ? "" : prev[langId].price, // Resetuje cijenu ako je "na upit"
+      },
+    }));
+  };
 
   const handlePhoneChange = useCallback(
     (value, data) => {
@@ -197,49 +385,45 @@ const EditComponentOne = ({
         <div className="flex flex-col gap-4">
           {/* NASLOV */}
           <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="title"
-              className={`flex items-center gap-2 ${
-                isDefaultLang ? "requiredInputLabel" : ""
-              }`}
-            >
-              <MdOutlineTitle className="text-gray-500" size={16} />
-              Naslov
-            </Label>
-            <Input
-              type="text"
-              name="title"
-              id="title"
-              placeholder="Unesite naslov oglasa"
-              value={current?.name || ""}
-              onChange={handleField("name")}
-              className={baseInput}
-            />
-          </div>
+  <Label
+    htmlFor="title"
+    className={`flex items-center gap-2 ${
+      isDefaultLang ? "requiredInputLabel" : ""
+    }`}
+  >
+    <MdOutlineTitle className="text-gray-500" size={16} />
+    Naslov
+  </Label>
+  <Input
+    type="text"
+    name="title"
+    id="title"
+    placeholder="Unesite naslov oglasa"
+    value={current?.name || ""}
+    onChange={handleField("name")}
+    maxLength={86} // 👈 OGRANIČENJE
+    className={baseInput}
+  />
+  {/* 👇 Opcionalno: Brojač karaktera */}
+  <div className="flex justify-end">
+    <span className="text-xs text-gray-400">
+      {(current?.name || "").length} / 86
+    </span>
+  </div>
+</div>
 
-          {/* OPIS */}
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="description"
-              className={`flex items-center gap-2 ${
-                isDefaultLang ? "requiredInputLabel" : ""
-              }`}
-            >
-              <BsTextParagraph className="text-gray-500" size={16} />
-              Opis
-            </Label>
-            <Textarea
-              name="description"
-              id="description"
-              placeholder="Unesite detaljan opis artikla..."
-              value={current?.description || ""}
-              onChange={handleField("description")}
-              className={`min-h-[140px] resize-y ${baseTextarea}`}
-            />
-            <p className="text-xs text-gray-500">
-              Savjet: kratki paragrafi i liste čine oglas čitljivijim.
-            </p>
-          </div>
+          {/* OPIS - ZAMIJENJENO SA RICHTEXTAREA */}
+          <RichTextarea
+            id="description"
+            name="description"
+            label="Detaljan opis"
+            placeholder="Unesite detaljan opis artikla..."
+            value={current?.description || ""}
+            onChange={handleField("description")}
+            maxLength={7000}
+            minHeight={160}
+            required={isDefaultLang}
+          />
         </div>
       </AccordionSection>
 
@@ -250,9 +434,12 @@ const EditComponentOne = ({
           subtitle={
             is_job_category
               ? "Minimalna i maksimalna plata"
-              : "Unesite cijenu (ili ostavite prazno ako je dozvoljeno)"
+              : current?.price_on_request
+              ? "Cijena na upit"
+              : "Unesite cijenu"
           }
-          badge={!is_job_category && isPriceOptional ? "optional" : "required"}
+          // 👇 PROMJENA: Ovdje je uslov za obavezno polje. Ako je "na upit" (true), značka je "optional". Ako nije na upit (false), značka je "required".
+          badge={!is_job_category && current?.price_on_request ? "optional" : "required"}
           isOpen={priceOpen}
           onToggle={() => setPriceOpen((v) => !v)}
         >
@@ -294,31 +481,52 @@ const EditComponentOne = ({
                 </div>
               </>
             ) : (
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <Label
-                  htmlFor="price"
-                  className={`flex items-center gap-2 ${
-                    !isPriceOptional ? "requiredInputLabel" : ""
-                  }`}
-                >
-                  <MdAttachMoney className="text-gray-500" size={16} />
-                  Cijena
-                </Label>
-                <Input
-                  type="number"
-                  name="price"
-                  id="price"
-                  placeholder={placeholderLabel}
-                  value={current?.price || ""}
-                  onChange={handleField("price")}
-                  min={0}
-                  className={baseInput}
-                />
-                {isPriceOptional && (
-                  <p className="text-xs text-gray-500">
-                    Može ostati prazno ako je dozvoljeno “Na upit”.
-                  </p>
-                )}
+              <div className="flex flex-col gap-4 md:col-span-2">
+                <div className="flex flex-col gap-2">
+                  <Label
+                    htmlFor="price"
+                    // 👇 PROMJENA: Ako nije "Na upit", dodaje crvenu zvjezdicu (requiredInputLabel)
+                    className={`flex items-center gap-2 ${
+                      !current?.price_on_request ? "requiredInputLabel" : ""
+                    }`}
+                  >
+                    <MdAttachMoney className="text-gray-500" size={16} />
+                    Cijena
+                  </Label>
+                  <Input
+                    type="number"
+                    name="price"
+                    id="price"
+                    placeholder={current?.price_on_request ? "Cijena na upit" : placeholderLabel}
+                    value={current?.price || ""}
+                    onChange={handleField("price")}
+                    min={0}
+                    disabled={current?.price_on_request}
+                    className={`${baseInput} transition-colors ${
+                      current?.price_on_request ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                    }`}
+                  />
+                </div>
+
+                {/* SWITCH CIJENA NA UPIT */}
+                <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <Switch
+                    id="price-on-request"
+                    checked={current?.price_on_request || false}
+                    onCheckedChange={handlePriceOnRequest}
+                  />
+                  <div className="flex flex-col">
+                    <Label 
+                      htmlFor="price-on-request" 
+                      className="font-medium text-gray-700 cursor-pointer"
+                    >
+                      Cijena na upit
+                    </Label>
+                    <span className="text-xs text-gray-500">
+                      Kupci će morati kontaktirati vas za cijenu
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -519,7 +727,7 @@ const EditComponentOne = ({
         </AccordionSection>
       )}
 
-      {/* FOOTER DUGMAD (same style as other steps) */}
+      {/* FOOTER DUGMAD */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
           <button

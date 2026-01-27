@@ -16,6 +16,7 @@ import {
   prepareCustomFieldTranslations,
   t,
   validateExtraDetails,
+  formatPriceAbbreviated,
 } from "@/utils";
 import EditComponentOne from "./EditComponentOne";
 import EditComponentTwo from "./EditComponentTwo";
@@ -34,9 +35,20 @@ import {
 import AdLanguageSelector from "../AdsListing/AdLanguageSelector";
 import PageLoader from "@/components/Common/PageLoader";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
-// Dodani icon importi iz lucide-react da odgovaraju adslisting.jsx
-import { CheckCircle2, Circle, Award, TrendingUp, Zap, Star, Upload, MapPin } from "lucide-react";
-
+import { 
+  CheckCircle2, 
+  Circle, 
+  Award, 
+  TrendingUp, 
+  Zap, 
+  Star, 
+  Upload, 
+  MapPin,
+  Clock,
+  Images,
+  ChevronRight 
+} from "lucide-react";
+import { IconRosetteDiscount, IconRocket } from "@tabler/icons-react";
 
 const EditListing = ({ id }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -54,7 +66,8 @@ const EditListing = ({ id }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [video, setVideo] = useState(null);
   const [scheduledAt, setScheduledAt] = useState(null);
-
+  
+  const [isFeatured, setIsFeatured] = useState(false);
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
@@ -85,19 +98,12 @@ const EditListing = ({ id }) => {
       selectedCategoryPath[selectedCategoryPath.length - 1]?.price_optional
     ) === 1;
 
-  // 🎯 Izračunavanje rezultata kompletnosti (Completeness Score) - KOPIRANO I PRILAGOĐENO IZ ADS LISTING
   const completenessScore = useMemo(() => {
     let score = 0;
-    
-    // Step 1: Category (Uvijek 20% kod edita jer je već odabrana)
     if (selectedCategoryPath.length > 0) score += 20;
-
-    // Step 2: Details (20%)
     if (defaultDetails.name && defaultDetails.description && defaultDetails.contact) {
       score += 20;
     }
-
-    // Step 3: Custom fields (20%)
     if (customFields.length === 0) {
       score += 20;
     } else {
@@ -106,23 +112,17 @@ const EditListing = ({ id }) => {
       ).length;
       score += (filledFields / customFields.length) * 20;
     }
-
-    // Step 4: Images (20%)
     if (uploadedImages.length > 0) {
       score += 10;
       if (OtherImages.length >= 3) score += 10;
       else score += (OtherImages.length / 3) * 10;
     }
-
-    // Step 5: Location (20%)
     if (Location?.country && Location?.state && Location?.city && Location?.address) {
       score += 20;
     }
-
     return Math.round(score);
   }, [selectedCategoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, OtherImages, Location]);
 
-  // 🏆 Kvalitetne značke - KOPIRANO IZ ADS LISTING
   const qualityBadges = useMemo(() => {
     const badges = [];
     return badges;
@@ -182,13 +182,10 @@ const EditListing = ({ id }) => {
         fetchCategoryPath(listingData?.category_id),
       ]);
 
-      // --- FIX POČINJE OVDJE ---
-      // Ako je slika string, stavi je u niz. Ako nema slike, stavi prazan niz.
       setUploadedImages(listingData?.image ? [listingData.image] : []);
-      // Osiguraj da je gallery_images uvijek niz
       setOtherImages(listingData?.gallery_images || []);
-      // --- FIX ZAVRŠAVA OVDJE ---
       setVideo(listingData?.video || null);
+      setIsFeatured(Number(listingData?.is_feature) === 1);
 
       const mainDetailsTranslation = getMainDetailsTranslations(
         listingData,
@@ -238,15 +235,10 @@ const EditListing = ({ id }) => {
   };
 
   const handleTabClick = (tab) => {
-    if (tab === 1) {
-      setStep(1);
-    } else if (tab === 2) {
-      setStep(2);
-    } else if (tab === 3) {
-      setStep(3);
-    } else if (tab === 4) {
-      setStep(4);
-    }
+    if (tab === 1) setStep(1);
+    else if (tab === 2) setStep(2);
+    else if (tab === 3) setStep(3);
+    else if (tab === 4) setStep(4);
   };
 
   const submitExtraDetails = () => {
@@ -276,7 +268,6 @@ const EditListing = ({ id }) => {
       return;
     }
 
-    // ✅ Validate phone number ONLY if user entered one as it is optional
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
       toast.error(t("invalidPhoneNumber"));
       return setStep(1);
@@ -286,7 +277,6 @@ const EditListing = ({ id }) => {
       const min = min_salary ? Number(min_salary) : null;
       const max = max_salary ? Number(max_salary) : null;
 
-      // Salary fields are optional, but validate if provided
       if (min !== null && min < 0) {
         toast.error(t("enterValidSalaryMin"));
         setStep(1);
@@ -309,7 +299,7 @@ const EditListing = ({ id }) => {
         }
       }
     } else {
-      if (!isPriceOptional && isEmpty(price)) {
+      if (!defaultDetails.price_on_request && isEmpty(price)) {
         toast.error(t("completeDetails"));
         return setStep(1);
       }
@@ -411,18 +401,14 @@ const EditListing = ({ id }) => {
       allData.max_salary = defaultDetails.max_salary;
     } else {
       allData.price = defaultDetails.price;
-      // DODANO - Akcija/Sale polja
       allData.is_on_sale = defaultDetails.is_on_sale || false;
       allData.old_price = defaultDetails.is_on_sale ? defaultDetails.old_price : null;
+      
+      if (defaultDetails.price_on_request) {
+          allData.price = 0; 
+      }
     }
  
-    // 🔍 DEBUG - Šta šaljemo na API
-    console.log('🚀 SENDING TO API - SALE FIELDS:', {
-      is_on_sale: allData.is_on_sale,
-      old_price: allData.old_price,
-      price: allData.price,
-    });
-    
     try {
       setIsAdPlaced(true);
       const res = await editItemApi.editItem(allData);
@@ -439,7 +425,6 @@ const EditListing = ({ id }) => {
     }
   };
 
-  // 🎨 Konfiguracija koraka za Stepper (prilagođeno za Edit - nema odabira kategorije kao korak 1)
   const steps = [
     { id: 1, label: t("details"), icon: Circle, disabled: false },
     ...(customFields?.length > 0 ? [{ id: 2, label: t("extraDetails"), icon: Circle, disabled: false }] : []),
@@ -453,7 +438,6 @@ const EditListing = ({ id }) => {
     
     if (stepIndex < currentIndex) return 100;
     if (stepIndex === currentIndex) {
-      // Logika za trenutni korak u Edit modu
       switch (stepId) {
         case 1: return (defaultDetails.name && defaultDetails.description) ? 100 : 50;
         case 2: return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
@@ -465,36 +449,65 @@ const EditListing = ({ id }) => {
     return 0;
   };
 
-  // Helper za prikaz slike (može biti string URL ili File objekt)
-// Helper za prikaz slike
-const getPreviewImage = () => {
-  // Provjeri da li postoji glavna slika
-  if (uploadedImages && uploadedImages.length > 0) {
-    const img = uploadedImages[0];
-
-    // Slučaj 1: Nova slika (File objekt)
-    if (img instanceof Blob || img instanceof File) {
-      return URL.createObjectURL(img);
+  const getPreviewImage = () => {
+    if (uploadedImages && uploadedImages.length > 0) {
+      const img = uploadedImages[0];
+      if (img instanceof Blob || img instanceof File) {
+        return URL.createObjectURL(img);
+      }
+      if (typeof img === 'string') {
+        return img;
+      }
     }
-    
-    // Slučaj 2: Postojeća slika sa servera (String URL)
-    if (typeof img === 'string') {
-      return img;
+    if (OtherImages && OtherImages.length > 0) {
+       const galleryImg = OtherImages[0];
+       if (typeof galleryImg === 'string') return galleryImg;
+       if (galleryImg?.image) return galleryImg.image;
+       if (galleryImg instanceof File) return URL.createObjectURL(galleryImg);
     }
-  }
-  
-  // Fallback: Ako nema glavne slike, prikaži prvu iz galerije (opcionalno)
-  if (OtherImages && OtherImages.length > 0) {
-     const galleryImg = OtherImages[0];
-     // API za galeriju nekad vraća objekt {id:..., image: 'url'}, nekad samo string
-     if (typeof galleryImg === 'string') return galleryImg;
-     if (galleryImg?.image) return galleryImg.image;
-     if (galleryImg instanceof File) return URL.createObjectURL(galleryImg);
-  }
+    return null;
+  };
 
-  return null;
-};
+  // 🔴 NOVO: Funkcija za izvlačenje ključnih atributa za Preview
+  const getPreviewAttributes = () => {
+    const attributes = [];
+    const targetFields = [
+      ["stanje oglasa", "stanje", "condition"],
+      ["godište", "godiste", "year"],
+      ["gorivo", "fuel"],
+      ["mjenjač", "mjenjac", "transmission"]
+    ];
 
+    targetFields.forEach(keys => {
+      // Nađi definiciju polja
+      const fieldDef = customFields.find(f => {
+        const name = (f.translated_name || f.name || "").toLowerCase();
+        return keys.some(key => name.includes(key));
+      });
+
+      if (fieldDef) {
+        // Izvuci vrijednost iz trenutno popunjenih podataka
+        const val = currentExtraDetails[fieldDef.id];
+        
+        if (Array.isArray(val) && val.length > 0) {
+          attributes.push(val[0]);
+        } else if (val && typeof val === 'string') {
+          attributes.push(val);
+        }
+      }
+    });
+
+    return attributes;
+  };
+
+  const isOnSale = defaultDetails.is_on_sale;
+  const oldPrice = Number(defaultDetails.old_price);
+  const currentPrice = Number(defaultDetails.price);
+  const showDiscount = isOnSale && oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice;
+  const discountPct = showDiscount
+    ? Math.round(((oldPrice - currentPrice) / oldPrice) * 100)
+    : 0;
+  const previewAttributes = getPreviewAttributes();
 
   return (
     <Layout>
@@ -507,7 +520,6 @@ const getPreviewImage = () => {
             <div className="flex flex-col gap-8 mt-8">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-medium">{t("editListing")}</h1>
-                 {/* 🏆 Quality Score Badge - NOVO */}
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-2 rounded-full">
                     <Award className="w-5 h-5 text-primary" />
@@ -517,19 +529,13 @@ const getPreviewImage = () => {
                 </div>
               </div>
 
-              {/* GRID LAYOUT DA ODGOVARA ADS LISTING */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                {/* LIJEVA STRANA - FORMA (2 KOLONE) */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
                   
-                  {/* 📊 Progress Stepper - NOVI DIZAJN */}
                   <div className="border rounded-lg p-6 bg-white shadow-sm">
                     <div className="relative">
-                      {/* Progress Bar Background */}
                       <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
-                      
-                      {/* Active Progress Bar */}
                       <div 
                         className="absolute top-5 left-0 h-1 bg-primary rounded-full transition-all duration-500"
                         style={{ 
@@ -537,43 +543,37 @@ const getPreviewImage = () => {
                           zIndex: 1
                         }}
                       />
-
-                      {/* Steps */}
                       <div className="relative flex justify-between" style={{ zIndex: 2 }}>
                         {steps.map((s, idx) => {
                           const progress = getStepProgress(s.id);
                           const isActive = s.id === step;
-                          const isCompleted = progress === 100;
+                          const isCompleted = progress === 100 && !isActive;
                           
                           return (
                             <div key={s.id} className="flex flex-col items-center gap-2">
-                              <button
-                                onClick={() => handleTabClick(s.id)}
+                              <div
                                 className={`
                                   relative w-10 h-10 rounded-full flex items-center justify-center
-                                  transition-all duration-300 transform
-                                  ${isActive ? 'scale-110 shadow-lg' : 'scale-100'}
-                                  ${isCompleted ? 'bg-primary text-white' : 'bg-white border-2'}
-                                  ${isActive && !isCompleted ? 'border-primary border-4' : 'border-gray-300'}
-                                  ${'hover:scale-105 cursor-pointer'}
+                                  transition-all duration-300 z-10 cursor-default
+                                  ${isActive ? 'scale-110 shadow-lg bg-white border-4 border-primary text-primary' : ''}
+                                  ${isCompleted ? 'bg-primary text-white border-2 border-primary' : ''}
+                                  ${!isActive && !isCompleted ? 'bg-white border-2 border-gray-300 text-gray-400' : ''}
                                 `}
                               >
                                 {isCompleted ? (
                                   <CheckCircle2 className="w-5 h-5" />
                                 ) : (
-                                  <span className={`text-sm font-semibold ${isActive ? 'text-primary' : 'text-gray-400'}`}>
+                                  <span className="text-sm font-bold">
                                     {idx + 1}
                                   </span>
                                 )}
-                                
                                 {isActive && !isCompleted && (
                                   <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20" />
                                 )}
-                              </button>
-                              
+                              </div>
                               <span className={`
-                                text-xs font-medium text-center max-w-[80px]
-                                ${isActive ? 'text-primary' : 'text-gray-500'}
+                                text-xs font-medium text-center max-w-[80px] transition-colors duration-300
+                                ${isActive ? 'text-primary font-bold' : 'text-gray-500'}
                               `}>
                                 {s.label}
                               </span>
@@ -584,7 +584,6 @@ const getPreviewImage = () => {
                     </div>
                   </div>
 
-                  {/* Language Selector */}
                   {(step === 1 || (step === 2 && hasTextbox)) && (
                     <div className="flex justify-end">
                       <AdLanguageSelector
@@ -596,31 +595,38 @@ const getPreviewImage = () => {
                     </div>
                   )}
 
-                  {/* Selected Category Path */}
-                  {step === 1 &&
-                    selectedCategoryPath &&
-                    selectedCategoryPath?.length > 0 && (
-                      <div className="flex flex-col gap-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                        <p className="font-medium text-sm text-primary">
+                  {step === 1 && selectedCategoryPath?.length > 0 && (
+                    <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-sm text-gray-500">
                           {t("selectedCategory")}
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedCategoryPath?.map((item, index) => {
-                            const shouldShowComma =
-                              selectedCategoryPath.length > 1 &&
-                              index !== selectedCategoryPath.length - 1;
-                            return (
-                              <span className="text-primary font-medium" key={item.id}>
-                                {item.name}
-                                {shouldShowComma && ", "}
-                              </span>
-                            );
-                          })}
-                        </div>
                       </div>
+                      
+                      <div className="flex flex-wrap items-center gap-2">
+                        {selectedCategoryPath?.map((item, index) => (
+                          <div key={item.id} className="flex items-center">
+                            <span
+                              className={`
+                                text-sm px-3 py-1.5 rounded-lg transition-all duration-200 cursor-default
+                                ${index === selectedCategoryPath.length - 1 
+                                  ? "bg-primary/10 text-primary font-semibold border border-primary/20" 
+                                  : "bg-gray-50 text-gray-700 border border-gray-200"
+                                }
+                              `}
+                            >
+                              {item.translated_name || item.name}
+                            </span>
+                            
+                            {index !== selectedCategoryPath.length - 1 && (
+                              <ChevronRight size={16} className="text-gray-400 mx-1" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
-                  {/* Glavni sadržaj komponenti */}
                   <div className="border rounded-lg p-6 bg-white shadow-sm">
                     {step == 1 && (
                       <EditComponentOne
@@ -676,18 +682,16 @@ const getPreviewImage = () => {
                   </div>
                 </div>
 
-                {/* 📱 DESNA STRANA - LIVE PREVIEW PANEL - NOVO */}
+                {/* 📱 DESNA STRANA - LIVE PREVIEW */}
                 <div className="lg:col-span-1">
-                  <div className="sticky top-4 border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-white shadow-sm">
-                    <div className="flex items-center gap-2 mb-4">
+                  <div className="sticky top-4 border rounded-2xl p-4 bg-gradient-to-br from-gray-50 to-white shadow-sm">
+                    <div className="flex items-center gap-2 mb-4 px-1">
                       <Zap className="w-5 h-5 text-primary" />
                       <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
                     </div>
 
-                    {/* Ad Preview Card */}
-                    <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                      {/* Image Preview */}
-                      <div className="relative aspect-video bg-gray-100">
+                    <div className="bg-white border border-gray-100 rounded-2xl flex flex-col h-full group overflow-hidden shadow-sm">
+                      <div className="relative aspect-square bg-gray-100">
                         {getPreviewImage() ? (
                           <img 
                             src={getPreviewImage()} 
@@ -695,76 +699,96 @@ const getPreviewImage = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <div className="text-center text-gray-400">
-                              <Upload className="w-12 h-12 mx-auto mb-2" />
-                              <p className="text-sm">{t("Bez slike")}</p>
-                            </div>
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <Upload className="w-12 h-12" />
                           </div>
                         )}
-                        
-                        {/* Image count badge */}
+
+                        <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5">
+                          {isFeatured && (
+                            <div className="flex items-center justify-center bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-400 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+                              <IconRocket size={18} stroke={2} className="text-white" />
+                            </div>
+                          )}
+                          {showDiscount && (
+                            <div className="flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
+                              <IconRosetteDiscount size={18} stroke={2} className="text-white" />
+                            </div>
+                          )}
+                        </div>
+
                         {(uploadedImages.length > 0 || OtherImages.length > 0) && (
-                          <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
-                            {uploadedImages.length + OtherImages.length} {t("slika")}
+                          <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[12px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <Images size={12} />
+                            <span className="text-xs">
+                              {uploadedImages.length + OtherImages.length}
+                            </span>
                           </div>
                         )}
                       </div>
 
-                      {/* Content Preview */}
-                      <div className="p-4 space-y-3">
-                        {/* Title */}
-                        <h4 className="font-semibold text-lg line-clamp-2">
+                      <div className="flex flex-col gap-1.5 p-2 flex-grow">
+                        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
                           {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
-                        </h4>
+                        </h3>
 
-                        {/* Price */}
-                        {!is_job_category && (
-                          <p className="text-2xl font-bold text-primary">
-                            {defaultDetails.price ? `${defaultDetails.price} KM` : "0 KM"}
-                          </p>
-                        )}
-
-                        {is_job_category && (
-                          <div className="flex gap-2 text-sm">
-                            {defaultDetails.min_salary && (
-                              <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
-                                {t("from")} {defaultDetails.min_salary} KM
-                              </span>
-                            )}
-                            {defaultDetails.max_salary && (
-                              <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
-                                {t("to")} {defaultDetails.max_salary} KM
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Location */}
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <MapPin className="w-4 h-4" />
-                          <span>{Location?.city || t("Lokacija oglasa")}</span>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <MapPin size={12} />
+                          <span className="truncate max-w-[150px]">
+                            {Location?.city || t("Lokacija")}
+                          </span>
                         </div>
 
-                        {/* Quality Badges */}
-                        {qualityBadges.length > 0 && (
-                          <div className="flex flex-wrap gap-2 pt-2 border-t">
-                            {qualityBadges.map((badge, idx) => (
-                              <span 
-                                key={idx}
-                                className={`text-xs px-2 py-1 rounded-full text-white ${badge.color}`}
+                        {/* 🔥 ATRIBUTI ZA PREVIEW (Stanje, Godište, itd.) */}
+                        {previewAttributes.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {previewAttributes.map((attr, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded text-[10px] font-medium border border-gray-100"
                               >
-                                {badge.icon} {badge.label}
+                                {attr}
                               </span>
                             ))}
                           </div>
                         )}
+
+                        <div className="border-t border-gray-100 mt-1.5" />
+
+                        <div className="flex items-center justify-between gap-2 mt-1">
+                          <div className="flex items-center gap-1 text-gray-400">
+                            <Clock size={12} />
+                            <span className="text-[10px]">{t("Upravo sada")}</span>
+                          </div>
+
+                          <div className="flex flex-col items-end">
+                            {showDiscount && (
+                              <span className="text-[10px] text-gray-400 line-through decoration-red-400">
+                                {formatPriceAbbreviated(oldPrice)}
+                              </span>
+                            )}
+
+                            {!is_job_category ? (
+                              <span className={`text-sm font-bold ${showDiscount ? "text-red-600" : "text-gray-900"}`}>
+                                {defaultDetails.price_on_request 
+                                  ? "Na upit" 
+                                  : defaultDetails.price 
+                                    ? formatPriceAbbreviated(currentPrice) 
+                                    : "0 KM"
+                                }
+                              </span>
+                            ) : (
+                              <div className="flex gap-1 text-sm font-bold text-gray-900">
+                                {defaultDetails.min_salary && <span>{defaultDetails.min_salary}</span>}
+                                {defaultDetails.max_salary && <span>- {defaultDetails.max_salary} KM</span>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Tips & Completeness */}
                     <div className="mt-6 space-y-4">
-                      {/* Completeness Progress */}
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="font-medium">{t("Ocjena kvaliteta oglasa")}</span>
@@ -778,7 +802,6 @@ const getPreviewImage = () => {
                         </div>
                       </div>
 
-                      {/* Tips */}
                       <div className="space-y-2">
                         {uploadedImages.length === 0 && (
                           <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -806,7 +829,6 @@ const getPreviewImage = () => {
                             </p>
                           </div>
                         )}
-
                       </div>
                     </div>
                   </div>
@@ -820,7 +842,6 @@ const getPreviewImage = () => {
             setOpenSuccessModal={setOpenSuccessModal}
             createdAdSlug={CreatedAdSlug}
             scheduledDate={scheduledAt}
-
           />
         </>
       )}

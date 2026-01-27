@@ -13,6 +13,7 @@ import {
   prepareCustomFieldFiles,
   prepareCustomFieldTranslations,
   t,
+  formatPriceAbbreviated,
 } from "@/utils";
 import { toast } from "sonner";
 import ComponentThree from "./ComponentThree";
@@ -37,7 +38,13 @@ import {
   Star,
   Upload,
   MapPin,
+  ArrowLeft,
+  X,
+  ChevronRight,
+  Clock,
+  Images // Ikona za slike
 } from "lucide-react";
+import { IconRosetteDiscount } from "@tabler/icons-react";
 
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -45,7 +52,6 @@ const AdsListing = () => {
 
   const [step, setStep] = useState(1);
 
-  // ✅ default [] (ne undefined) da renderi budu stabilni
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [isLoadMoreCat, setIsLoadMoreCat] = useState(false);
@@ -56,7 +62,6 @@ const AdsListing = () => {
   const [scheduledAt, setScheduledAt] = useState(null);
   const [isScheduledAd, setIsScheduledAd] = useState(false);
   const [availableNow, setAvailableNow] = useState(false);
-
 
   const [disabledTab, setDisabledTab] = useState({
     categoryTab: false,
@@ -113,15 +118,13 @@ const AdsListing = () => {
   const allCategoryIdsString = categoryPath.map((category) => category.id).join(",");
   const lastItemId = categoryPath[categoryPath.length - 1]?.id;
 
-  // -------------------------------
-  // ✅ FAST CATEGORY FETCH: cache + abort + stale-guard
-  // -------------------------------
+  // Caching refs
   const categoriesCacheRef = useRef(new Map());
   const categoriesAbortRef = useRef(null);
   const categoriesReqSeqRef = useRef(0);
 
   const CAT_CACHE_TTL = 1000 * 60 * 30; // 30min
-  const ROOT_PER_PAGE = 50; // total=23 pa uzmi sve u 1 request
+  const ROOT_PER_PAGE = 50; 
   const CHILD_PER_PAGE = 50;
 
   const fetchCategories = useCallback(
@@ -130,7 +133,6 @@ const AdsListing = () => {
       const catKey = categoryId ? String(categoryId) : "root";
       const key = `${langKey}:${catKey}:${page}`;
 
-      // 1) cache hit
       const cached = categoriesCacheRef.current.get(key);
       if (cached && Date.now() - cached.ts < CAT_CACHE_TTL) {
         if (!append) setCategories(cached.data);
@@ -140,14 +142,12 @@ const AdsListing = () => {
         return;
       }
 
-      // 2) abort previous
       if (categoriesAbortRef.current) {
         categoriesAbortRef.current.abort();
       }
       const controller = new AbortController();
       categoriesAbortRef.current = controller;
 
-      // 3) stale response guard
       categoriesReqSeqRef.current += 1;
       const reqSeq = categoriesReqSeqRef.current;
 
@@ -158,13 +158,11 @@ const AdsListing = () => {
         const res = await categoryApi.getCategory({
           category_id: categoryId || undefined,
           page,
-          // ⚠️ traži per_page + language_id (update categoryApi da prosledi params)
           per_page: categoryId ? CHILD_PER_PAGE : ROOT_PER_PAGE,
           language_id: CurrentLanguage?.id,
-          signal: controller.signal, // ⚠️ update categoryApi da prosledi axios signal
+          signal: controller.signal,
         });
 
-        // stale response ignore
         if (reqSeq !== categoriesReqSeqRef.current) return;
 
         const payload = res?.data?.data;
@@ -185,7 +183,6 @@ const AdsListing = () => {
         setCurrentPage(cp);
         setLastPage(lp);
       } catch (error) {
-        // axios cancel: CanceledError, fetch cancel: AbortError
         const name = error?.name;
         if (name !== "CanceledError" && name !== "AbortError") {
           console.log("category fetch error", error);
@@ -206,7 +203,6 @@ const AdsListing = () => {
   );
 
   const preloadAllRootCategories = useCallback(async () => {
-    // samo root
     const res1 = await categoryApi.getCategory({
       page: 1,
       per_page: 50,
@@ -244,21 +240,13 @@ const AdsListing = () => {
     });
   }, [categoriesLoading, isLoadMoreCat, currentPage, lastPage, lastItemId, fetchCategories]);
 
-  // -------------------------------
-  // 🎯 Calculate completeness score
-  // -------------------------------
+  // Completeness Score
   const completenessScore = useMemo(() => {
     let score = 0;
-
-    // Step 1: Category (20%)
     if (categoryPath.length > 0) score += 20;
-
-    // Step 2: Details (20%)
     if (defaultDetails.name && defaultDetails.description && defaultDetails.contact) {
       score += 20;
     }
-
-    // Step 3: Custom fields (20%)
     if (customFields.length === 0) {
       score += 20;
     } else {
@@ -266,31 +254,51 @@ const AdsListing = () => {
         Object.keys(currentExtraDetails).filter(
           (key) => currentExtraDetails[key] && currentExtraDetails[key] !== ""
         ).length || 0;
-
       score += (filledFields / customFields.length) * 20;
     }
-
-    // Step 4: Images (20%)
     if (uploadedImages.length > 0) {
       score += 10;
       if (otherImages.length >= 3) score += 10;
       else score += (otherImages.length / 3) * 10;
     }
-
-    // Step 5: Location (20%)
     if (location?.country && location?.state && location?.city && location?.address) {
       score += 20;
     }
-
     return Math.round(score);
   }, [categoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, otherImages, location]);
 
-  const qualityBadges = useMemo(() => {
-    const badges = [];
-    return badges;
-  }, []);
+  // 🔴 NOVO: Funkcija za izvlačenje ključnih atributa za Preview
+  const getPreviewAttributes = () => {
+    const attributes = [];
+    const targetFields = [
+      ["stanje oglasa", "stanje", "condition"],
+      ["godište", "godiste", "year"],
+      ["gorivo", "fuel"],
+      ["mjenjač", "mjenjac", "transmission"]
+    ];
 
-  // Load recent categories from localStorage
+    targetFields.forEach(keys => {
+      // Nađi definiciju polja
+      const fieldDef = customFields.find(f => {
+        const name = (f.translated_name || f.name || "").toLowerCase();
+        return keys.some(key => name.includes(key));
+      });
+
+      if (fieldDef) {
+        // Izvuci vrijednost iz trenutno popunjenih podataka
+        const val = currentExtraDetails[fieldDef.id];
+        
+        if (Array.isArray(val) && val.length > 0) {
+          attributes.push(val[0]);
+        } else if (val && typeof val === 'string') {
+          attributes.push(val);
+        }
+      }
+    });
+
+    return attributes;
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem("recentCategories");
     if (stored) setRecentCategories(JSON.parse(stored));
@@ -305,8 +313,6 @@ const AdsListing = () => {
     });
   };
 
-  
-
   useEffect(() => {
     if (step === 1) {
       handleFetchCategories();
@@ -314,7 +320,6 @@ const AdsListing = () => {
     }
   }, [step, lastItemId, CurrentLanguage?.id, handleFetchCategories, preloadAllRootCategories]);
   
-
   useEffect(() => {
     if (step !== 1 && allCategoryIdsString) {
       getCustomFieldsData();
@@ -336,8 +341,6 @@ const AdsListing = () => {
     }
   }, [CurrentLanguage?.id]);
 
-  const debugSchedule = (...args) => console.log("[SCHEDULE DEBUG]", ...args);
-
   const getCustomFieldsData = async () => {
     try {
       const res = await getCustomFieldsApi.getCustomFields({ category_ids: allCategoryIdsString });
@@ -349,7 +352,6 @@ const AdsListing = () => {
         const langFields = {};
         data.forEach((item) => {
           if (lang.id !== defaultLangId && item.type !== "textbox") return;
-
           let initialValue = "";
           switch (item.type) {
             case "checkbox":
@@ -367,7 +369,6 @@ const AdsListing = () => {
         });
         initializedDetails[lang.id] = langFields;
       });
-
       setExtraDetails(initializedDetails);
     } catch (error) {
       console.log(error);
@@ -388,6 +389,26 @@ const AdsListing = () => {
         location: false,
       });
     }
+  };
+
+  const handleCategoryBack = () => {
+    if (categoryPath.length > 0) {
+      const newPath = categoryPath.slice(0, -1);
+      setCategoryPath(newPath);
+      if (newPath.length === 0) {
+        setCategories([]); 
+        handleSelectedTabClick(null);
+      } else {
+        const prevId = newPath[newPath.length - 1].id;
+        handleSelectedTabClick(prevId);
+      }
+    }
+  };
+
+  const handleCategoryReset = () => {
+    setCategoryPath([]);
+    setCategories([]);
+    handleSelectedTabClick(null);
   };
 
   const handleSelectedTabClick = (id) => {
@@ -413,15 +434,16 @@ const AdsListing = () => {
       });
     }
 
-    const index = categoryPath.findIndex((item) => item.id === id);
-    if (index !== -1) {
-      const newPath = categoryPath.slice(0, index);
-      setCategoryPath(newPath);
+    if (id === null) {
+        setCategories([]);
+        setCategoryPath([]);
+        return;
     }
 
-    if (index === 0) {
-      setCategories([]);
-      setCategoryPath([]);
+    const index = categoryPath.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      const newPath = categoryPath.slice(0, index + 1);
+      setCategoryPath(newPath);
     }
   };
 
@@ -433,13 +455,6 @@ const AdsListing = () => {
   const isEmpty = (x) => !x || !x.toString().trim();
 
   const handleFullSubmission = (scheduledDateTime = null) => {
-    debugSchedule("handleFullSubmission called", {
-      scheduledDateTime,
-      isScheduledAd_state: isScheduledAd,
-      scheduledAt_state: scheduledAt,
-      step,
-    });
-
     const { name, description, contact, country_code } = defaultDetails;
     const catId = categoryPath.at(-1)?.id;
 
@@ -470,7 +485,6 @@ const AdsListing = () => {
 
   const postAd = async (scheduledDateTime = null) => {
     const catId = categoryPath.at(-1)?.id;
-
     const customFieldTranslations = prepareCustomFieldTranslations(extraDetails);
     const customFieldFiles = prepareCustomFieldFiles(extraDetails, defaultLangId);
     const nonDefaultTranslations = filterNonDefaultTranslations(translations, defaultLangId);
@@ -501,7 +515,16 @@ const AdsListing = () => {
       }),
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
       ...(scheduledDateTime ? { scheduled_at: scheduledDateTime } : {}),
+      
+      // Dodano za akciju
+      is_on_sale: defaultDetails.is_on_sale || false,
+      old_price: defaultDetails.is_on_sale ? defaultDetails.old_price : null,
     };
+    
+    // Ako je cijena na upit
+    if (defaultDetails.price_on_request) {
+        allData.price = 0;
+    }
 
     try {
       setIsAdPlaced(true);
@@ -512,7 +535,6 @@ const AdsListing = () => {
         setScheduledAt(scheduledDateTime);
         setOpenSuccessModal(true);
         setCreatedAdSlug(res?.data?.data[0]?.slug);
-        
       } else {
         toast.error(res?.data?.message);
       }
@@ -553,19 +575,17 @@ const AdsListing = () => {
     if (step !== 1) {
       setStep(1);
       setDisabledTab({
-        selectCategory: false,
-        details: true,
-        extraDet: true,
-        img: true,
-        loc: true,
+        categoryTab: false,
+        detailTab: true,
+        extraDetailTabl: true,
+        images: true,
+        location: true,
       });
     }
-
-    // ✅ ne mutiraj state (pop), nego setState
     setCategoryPath((prev) => prev.slice(0, -1));
   };
 
-  // 🎨 Step configuration
+  // Stepper
   const steps = [
     { id: 1, label: t("selectedCategory"), icon: Circle, disabled: disabledTab.categoryTab },
     { id: 2, label: t("details"), icon: Circle, disabled: disabledTab.detailTab },
@@ -579,28 +599,26 @@ const AdsListing = () => {
   const getStepProgress = (stepId) => {
     const stepIndex = steps.findIndex((s) => s.id === stepId);
     const currentIndex = steps.findIndex((s) => s.id === step);
-
     if (stepIndex < currentIndex) return 100;
-
     if (stepIndex === currentIndex) {
       switch (stepId) {
-        case 1:
-          return categoryPath.length > 0 ? 100 : 0;
-        case 2:
-          return defaultDetails.name && defaultDetails.description ? 100 : 50;
-        case 3:
-          return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
-        case 4:
-          return uploadedImages.length > 0 ? 100 : 0;
-        case 5:
-          return location?.address ? 100 : 0;
-        default:
-          return 0;
+        case 1: return categoryPath.length > 0 ? 100 : 0;
+        case 2: return defaultDetails.name && defaultDetails.description ? 100 : 50;
+        case 3: return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
+        case 4: return uploadedImages.length > 0 ? 100 : 0;
+        case 5: return location?.address ? 100 : 0;
+        default: return 0;
       }
     }
-
     return 0;
   };
+
+  // Preview Logic
+  const isOnSale = defaultDetails.is_on_sale;
+  const oldPrice = Number(defaultDetails.old_price);
+  const currentPrice = Number(defaultDetails.price);
+  const showDiscount = isOnSale && oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice;
+  const previewAttributes = getPreviewAttributes(); // Dohvati atribute za prikaz
 
   return (
     <Layout>
@@ -609,8 +627,6 @@ const AdsListing = () => {
         <div className="flex flex-col gap-8 mt-8">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-medium">{t("adListing")}</h1>
-
-            {/* 🏆 Quality Score Badge */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-2 rounded-full">
                 <Award className="w-5 h-5 text-primary" />
@@ -621,16 +637,13 @@ const AdsListing = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content - 2 columns */}
+            {/* Left Column */}
             <div className="lg:col-span-2 flex flex-col gap-6">
-              {/* 📊 Progress Stepper */}
+              
+              {/* FIXED STEPPER */}
               <div className="border rounded-lg p-6 bg-white shadow-sm">
                 <div className="relative">
-                  <div
-                    className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full"
-                    style={{ zIndex: 0 }}
-                  />
-
+                  <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
                   <div
                     className="absolute top-5 left-0 h-1 bg-primary rounded-full transition-all duration-500"
                     style={{
@@ -638,50 +651,36 @@ const AdsListing = () => {
                       zIndex: 1,
                     }}
                   />
-
                   <div className="relative flex justify-between" style={{ zIndex: 2 }}>
                     {steps.map((s, idx) => {
                       const progress = getStepProgress(s.id);
                       const isActive = s.id === step;
-                      const isCompleted = progress === 100;
+                      const isCompleted = progress === 100 && !isActive;
 
                       return (
                         <div key={s.id} className="flex flex-col items-center gap-2">
-                          <button
-                            onClick={() => handleTabClick(s.id)}
-                            disabled={s.disabled}
+                          <div
                             className={`
                               relative w-10 h-10 rounded-full flex items-center justify-center
-                              transition-all duration-300 transform
-                              ${isActive ? "scale-110 shadow-lg" : "scale-100"}
-                              ${isCompleted ? "bg-primary text-white" : "bg-white border-2"}
-                              ${isActive && !isCompleted ? "border-primary border-4" : "border-gray-300"}
-                              ${s.disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105 cursor-pointer"}
+                              transition-all duration-300 z-10 cursor-default
+                              ${isActive ? 'scale-110 shadow-lg bg-white border-4 border-primary text-primary' : ''}
+                              ${isCompleted ? 'bg-primary text-white border-2 border-primary' : ''}
+                              ${!isActive && !isCompleted ? 'bg-white border-2 border-gray-300 text-gray-400' : ''}
                             `}
                           >
                             {isCompleted ? (
                               <CheckCircle2 className="w-5 h-5" />
                             ) : (
-                              <span
-                                className={`text-sm font-semibold ${
-                                  isActive ? "text-primary" : "text-gray-400"
-                                }`}
-                              >
-                                {idx + 1}
-                              </span>
+                              <span className="text-sm font-bold">{idx + 1}</span>
                             )}
-
                             {isActive && !isCompleted && (
                               <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20" />
                             )}
-                          </button>
-
-                          <span
-                            className={`
-                              text-xs font-medium text-center max-w-[80px]
-                              ${isActive ? "text-primary" : "text-gray-500"}
-                            `}
-                          >
+                          </div>
+                          <span className={`
+                            text-xs font-medium text-center max-w-[80px] transition-colors duration-300
+                            ${isActive ? 'text-primary font-bold' : 'text-gray-500'}
+                          `}>
                             {s.label}
                           </span>
                         </div>
@@ -691,38 +690,58 @@ const AdsListing = () => {
                 </div>
               </div>
 
-              {/* Language Selector */}
               {(step == 2 || (step === 3 && hasTextbox)) && (
                 <div className="flex justify-end">
-                  <AdLanguageSelector
-                    langId={langId}
-                    setLangId={setLangId}
-                    languages={languages}
-                    setTranslations={setTranslations}
-                  />
+                  {/* AdLanguageSelector was here */}
                 </div>
               )}
 
-              {/* Selected Category Path */}
               {(step == 1 || step == 2) && categoryPath?.length > 0 && (
-                <div className="flex flex-col gap-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                  <p className="font-medium text-sm text-primary">{t("selectedCategory")}</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm text-gray-500">{t("selectedCategory")}</p>
+                    <button 
+                      onClick={handleCategoryReset}
+                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
+                    >
+                      <X size={14} />
+                      Očisti sve
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={handleCategoryBack}
+                      className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors mr-1"
+                      title="Vrati se korak nazad"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+
                     {categoryPath?.map((item, index) => (
-                      <button
-                        key={item.id}
-                        className="text-sm px-3 py-1 bg-white rounded-full hover:bg-primary/10 transition-colors border border-primary/20"
-                        onClick={() => handleSelectedTabClick(item?.id)}
-                      >
-                        {item.translated_name || item.name}
-                        {index !== categoryPath.length - 1 && " →"}
-                      </button>
+                      <div key={item.id} className="flex items-center">
+                        <button
+                          className={`
+                            text-sm px-3 py-1.5 rounded-lg transition-all duration-200
+                            ${index === categoryPath.length - 1 
+                              ? "bg-primary/10 text-primary font-semibold border border-primary/20" 
+                              : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
+                            }
+                          `}
+                          onClick={() => handleSelectedTabClick(item?.id)}
+                        >
+                          {item.translated_name || item.name}
+                        </button>
+                        
+                        {index !== categoryPath.length - 1 && (
+                          <ChevronRight size={16} className="text-gray-400 mx-1" />
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Step Content */}
               <div className="border rounded-lg p-6 bg-white shadow-sm">
                 {step == 1 && (
                   <ComponentOne
@@ -794,7 +813,7 @@ const AdsListing = () => {
               </div>
             </div>
 
-            {/* 📱 Live Preview Panel - 1 column */}
+            {/* 📱 Right Column - Live Preview */}
             <div className="lg:col-span-1">
               <div className="sticky top-4 border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-white shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
@@ -802,8 +821,9 @@ const AdsListing = () => {
                   <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
                 </div>
 
-                <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-                  <div className="relative aspect-video bg-gray-100">
+                <div className="bg-white border border-gray-100 rounded-2xl flex flex-col h-full group overflow-hidden shadow-sm">
+                  {/* Image Area */}
+                  <div className="relative aspect-square bg-gray-100">
                     {uploadedImages.length > 0 ? (
                       <img
                         src={URL.createObjectURL(uploadedImages[0])}
@@ -811,64 +831,88 @@ const AdsListing = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-center text-gray-400">
-                          <Upload className="w-12 h-12 mx-auto mb-2" />
-                          <p className="text-sm">{t("Bez slike")}</p>
-                        </div>
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <Upload className="w-12 h-12" />
                       </div>
                     )}
 
+                    {/* SALE BADGE */}
+                    {showDiscount && (
+                      <div className="absolute top-2 right-2 flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm z-10">
+                        <IconRosetteDiscount size={18} stroke={2} className="text-white" />
+                      </div>
+                    )}
+
+                    {/* Image Counter with Icon */}
                     {(uploadedImages.length > 0 || otherImages.length > 0) && (
-                      <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
-                        {uploadedImages.length + otherImages.length} {t("slika")}
+                      <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[12px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <Images size={12} />
+                        <span className="text-xs">
+                          {uploadedImages.length + otherImages.length}
+                        </span>
                       </div>
                     )}
                   </div>
 
-                  <div className="p-4 space-y-3">
-                    <h4 className="font-semibold text-lg line-clamp-2">
+                  {/* Content Area */}
+                  <div className="flex flex-col gap-1.5 p-2 flex-grow">
+                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
                       {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
-                    </h4>
+                    </h3>
 
-                    {!is_job_category && (
-                      <p className="text-2xl font-bold text-primary">
-                        {defaultDetails.price ? `${defaultDetails.price} KM` : "0 KM"}
-                      </p>
-                    )}
-
-                    {is_job_category && (
-                      <div className="flex gap-2 text-sm">
-                        {defaultDetails.min_salary && (
-                          <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
-                            {t("from")} {defaultDetails.min_salary} KM
-                          </span>
-                        )}
-                        {defaultDetails.max_salary && (
-                          <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">
-                            {t("to")} {defaultDetails.max_salary} KM
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <MapPin className="w-4 h-4" />
-                      <span>{location?.city || t("Lokacija oglasa")}</span>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <MapPin size={12} />
+                      <span className="truncate max-w-[150px]">{location?.city || t("Lokacija")}</span>
                     </div>
 
-                    {qualityBadges.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-2 border-t">
-                        {qualityBadges.map((badge, idx) => (
+                    {/* 🔥 ATRIBUTI ZA PREVIEW (Stanje, Godište, itd.) */}
+                    {previewAttributes.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {previewAttributes.map((attr, index) => (
                           <span
-                            key={idx}
-                            className={`text-xs px-2 py-1 rounded-full text-white ${badge.color}`}
+                            key={index}
+                            className="inline-flex px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded text-[10px] font-medium border border-gray-100"
                           >
-                            {badge.icon} {badge.label}
+                            {attr}
                           </span>
                         ))}
                       </div>
                     )}
+
+                    <div className="border-t border-gray-100 mt-1.5" />
+
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <div className="flex items-center gap-1 text-gray-400">
+                        <Clock size={12} />
+                        <span className="text-[10px]">{t("Upravo sada")}</span>
+                      </div>
+
+                      <div className="flex flex-col items-end">
+                        {/* Stara cijena (Prekrižena) */}
+                        {showDiscount && (
+                          <span className="text-[10px] text-gray-400 line-through decoration-red-400">
+                            {formatPriceAbbreviated(oldPrice)}
+                          </span>
+                        )}
+
+                        {/* Nova cijena */}
+                        {!is_job_category ? (
+                          <span className={`text-sm font-bold ${showDiscount ? "text-red-600" : "text-gray-900"}`}>
+                            {defaultDetails.price_on_request 
+                              ? "Na upit" 
+                              : defaultDetails.price 
+                                ? formatPriceAbbreviated(currentPrice) 
+                                : "0 KM"
+                            }
+                          </span>
+                        ) : (
+                          <div className="flex gap-1 text-sm font-bold text-gray-900">
+                            {defaultDetails.min_salary && <span>{defaultDetails.min_salary}</span>}
+                            {defaultDetails.max_salary && <span>- {defaultDetails.max_salary} KM</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -895,20 +939,14 @@ const AdsListing = () => {
                         </p>
                       </div>
                     )}
-
                     {uploadedImages.length > 0 && otherImages.length < 3 && (
                       <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <Star className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-blue-800">
-                          {t("Dodajte još fotografija").replace(
-                            "{count}",
-                            3 - otherImages.length
-                          )}{" "}
-                          (+{(3 - otherImages.length) * 5}% {t("veća vidljivost!")})
+                          {t("Dodajte još fotografija").replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {t("veća vidljivost!")})
                         </p>
                       </div>
                     )}
-
                     {defaultDetails.description && defaultDetails.description.length < 100 && (
                       <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                         <Award className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />

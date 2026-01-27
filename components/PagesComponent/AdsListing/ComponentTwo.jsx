@@ -3,21 +3,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 import {
   Bold,
   Italic,
   List,
   ListOrdered,
-  Link,
-  Smile,
-  Eye,
+  Link as LinkIcon,
   Type,
+  Percent,
+  Tag,
 } from "lucide-react";
 import {
   getCurrencyPosition,
@@ -27,28 +22,15 @@ import { generateSlug } from "@/utils";
 import PhoneInput from "react-phone-input-2";
 import { useSelector } from "react-redux";
 
-// Emoji lista
-const EMOJI_LIST = [
-  "😀","😃","😄","😁","😅","😂","🤣","😊","😇","🙂",
-  "🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋",
-  "😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸","🤩",
-  "🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣",
-  "😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬",
-  "🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗",
-  "🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯",
-  "👍","👎","👌","🤝","🙏","💪","🎉","🎊","🎈","🎁",
-  "⭐","✨","💫","🔥","💯","✅","❌","❗","❓","💡",
-];
-
 // ============================================
-// ACCORDION SECTION (same vibe as ComponentThree)
+// ACCORDION SECTION
 // ============================================
 const AccordionSection = ({
   title,
   subtitle,
   isOpen,
   onToggle,
-  badge, // "required" | "optional"
+  badge, 
   children,
 }) => {
   return (
@@ -107,7 +89,7 @@ const AccordionSection = ({
 };
 
 // ========================================
-// RichTextarea Component (Inline)
+// RichTextarea Component (WYSIWYG)
 // ========================================
 const RichTextarea = ({
   value = "",
@@ -115,107 +97,46 @@ const RichTextarea = ({
   label,
   placeholder = "Unesite opis...",
   maxLength = 7000,
-  minHeight = 120,
+  minHeight = 140,
   required = false,
   id = "rich-textarea",
   name = "description",
 }) => {
-  const [activeTab, setActiveTab] = useState("write");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const textareaRef = useRef(null);
+  const editorRef = useRef(null);
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Auto-resize textarea
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.max(
-        textareaRef.current.scrollHeight,
-        minHeight
-      )}px`;
+    if (editorRef.current && !editorRef.current.innerHTML && value) {
+      editorRef.current.innerHTML = value;
     }
-  }, [value, minHeight]);
+  }, []);
 
-  const charCount = value.length;
-  const wordCount = value.trim() === "" ? 0 : value.trim().split(/\s+/).length;
+  const handleInput = (e) => {
+    const html = e.currentTarget.innerHTML;
+    onChange({ target: { value: html, name } });
+  };
+
+  const execCmd = (command, value = null) => {
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  };
+
+  const preventFocusLoss = (e) => e.preventDefault();
+
+  const handleLink = () => {
+    const url = prompt("Unesite URL linka:", "https://");
+    if (url) {
+      execCmd("createLink", url);
+    }
+  };
+
+  const plainText = editorRef.current?.innerText || value.replace(/<[^>]*>/g, '') || "";
+  const charCount = plainText.length;
+  const wordCount = plainText.trim() === "" ? 0 : plainText.trim().split(/\s+/).length;
   const isOverLimit = charCount > maxLength;
   const percentUsed = (charCount / maxLength) * 100;
-
-  const getCounterColor = () => {
-    if (isOverLimit) return "text-red-600";
-    if (percentUsed > 90) return "text-orange-500";
-    if (percentUsed > 75) return "text-yellow-600";
-    return "text-gray-500";
-  };
-
-  const insertMarkdown = (before, after = "") => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = value.substring(start, end);
-    const newText =
-      value.substring(0, start) +
-      before +
-      selectedText +
-      after +
-      value.substring(end);
-
-    onChange({ target: { value: newText, name } });
-
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorPos = start + before.length + selectedText.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
-  };
-
-  const insertEmoji = (emoji) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const newText = value.substring(0, start) + emoji + value.substring(start);
-
-    onChange({ target: { value: newText, name } });
-    setShowEmojiPicker(false);
-
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorPos = start + emoji.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
-  };
-
-  // lightweight preview
-  const renderMarkdown = (text) => {
-    let html = text
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/__(.+?)__/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/_(.+?)_/g, "<em>$1</em>")
-      .replace(
-        /\[(.+?)\]\((.+?)\)/g,
-        '<a href="$2" class="text-blue-600 hover:underline" target="_blank" rel="noreferrer">$1</a>'
-      )
-      .replace(/\n/g, "<br />");
-
-    // unordered list
-    html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
-    html = html.replace(
-      /(<li>.*<\/li>)/s,
-      "<ul class='list-disc ml-6 my-2'>$1</ul>"
-    );
-
-    // ordered list
-    html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
-    html = html.replace(
-      /(<li>.*<\/li>)/s,
-      "<ol class='list-decimal ml-6 my-2'>$1</ol>"
-    );
-
-    return html;
-  };
 
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -225,179 +146,112 @@ const RichTextarea = ({
         </Label>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex items-center justify-between border-b-2 border-gray-200">
-          <TabsList className="bg-transparent border-0">
-            <TabsTrigger
-              value="write"
-              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none px-4 py-2"
-            >
-              <Type className="w-4 h-4 mr-2" />
-              Opis
-            </TabsTrigger>
-            <TabsTrigger
-              value="preview"
-              className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none px-4 py-2"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Pregled
-            </TabsTrigger>
-          </TabsList>
-
-          {activeTab === "write" && (
-            <div className="flex items-center gap-1 p-2">
-              <button
-                type="button"
-                onClick={() => insertMarkdown("**", "**")}
-                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Bold"
-              >
-                <Bold className="w-4 h-4 text-gray-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => insertMarkdown("*", "*")}
-                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Italic"
-              >
-                <Italic className="w-4 h-4 text-gray-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const textarea = textareaRef.current;
-                  if (!textarea) return;
-                  const start = textarea.selectionStart;
-                  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-                  const newText =
-                    value.substring(0, lineStart) + "- " + value.substring(lineStart);
-                  onChange({ target: { value: newText, name } });
-                }}
-                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Bullet List"
-              >
-                <List className="w-4 h-4 text-gray-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const textarea = textareaRef.current;
-                  if (!textarea) return;
-                  const start = textarea.selectionStart;
-                  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-                  const newText =
-                    value.substring(0, lineStart) + "1. " + value.substring(lineStart);
-                  onChange({ target: { value: newText, name } });
-                }}
-                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Numbered List"
-              >
-                <ListOrdered className="w-4 h-4 text-gray-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => insertMarkdown("[", "](url)")}
-                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Insert Link"
-              >
-                <Link className="w-4 h-4 text-gray-600" />
-              </button>
-
-              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Emoji"
-                  >
-                    <Smile className="w-4 h-4 text-gray-600" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-2">
-                  <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
-                    {EMOJI_LIST.map((emoji, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => insertEmoji(emoji)}
-                        className="text-2xl hover:bg-gray-100 rounded p-1 transition-colors"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-        </div>
-
-        <TabsContent value="write" className="mt-0">
-          <textarea
-            ref={textareaRef}
-            id={id}
-            name={name}
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            className={`w-full border-2 rounded-xl px-4 py-3 outline-none resize-none transition-colors focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              isOverLimit ? "border-red-500" : "border-gray-200"
-            }`}
-            style={{ minHeight: `${minHeight}px` }}
-          />
-        </TabsContent>
-
-        <TabsContent value="preview" className="mt-0">
-          <div
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 min-h-[120px] bg-gray-50 prose prose-sm max-w-none"
-            style={{ minHeight: `${minHeight}px` }}
-          >
-            {value ? (
-              <div dangerouslySetInnerHTML={{ __html: renderMarkdown(value) }} />
-            ) : (
-              <p className="text-gray-400 italic">Ništa za pregled...</p>
-            )}
+      <div 
+        className={`w-full border-2 rounded-xl overflow-hidden bg-white transition-all ${
+          isFocused ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200"
+        }`}
+      >
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-gray-50/50 select-none">
+          <div className="flex items-center gap-1 text-gray-400 px-2 text-xs font-semibold uppercase tracking-wider border-r mr-1">
+             <Type className="w-4 h-4 mr-1" />
+             Uređivač
           </div>
-        </TabsContent>
-      </Tabs>
 
-      <div className="flex items-center justify-between text-sm">
-        <div className="text-gray-600">
-          <span className="font-medium">{wordCount}</span>{" "}
-          {wordCount === 1 ? "riječ" : "riječi"}
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("bold")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Podebljano (Bold)"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("italic")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Ukošeno (Italic)"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("insertUnorderedList")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Lista"
+          >
+            <List className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => execCmd("insertOrderedList")}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Numerisana lista"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </button>
+
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={handleLink}
+            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            title="Dodaj Link"
+          >
+            <LinkIcon className="w-4 h-4" />
+          </button>
         </div>
-        <div className={`font-medium ${getCounterColor()}`}>
-          {charCount} / {maxLength} karaktera
-          {isOverLimit && (
-            <span className="ml-2 text-xs">
-              ({charCount - maxLength} preko dozvoljenog)
-            </span>
-          )}
+
+        {/* Editor Area */}
+        <div
+          ref={editorRef}
+          contentEditable
+          onInput={handleInput}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className="w-full px-4 py-3 outline-none min-h-[140px] prose prose-sm max-w-none text-gray-700"
+          style={{ minHeight: `${minHeight}px` }}
+          data-placeholder={placeholder}
+        />
+        
+        {!value && (
+          <div 
+            className="absolute px-4 py-3 text-gray-400 pointer-events-none top-[108px]"
+            aria-hidden="true"
+          >
+          </div>
+        )}
+      </div>
+
+      {/* Counters */}
+      <div className="flex items-center justify-between text-xs mt-1 px-1">
+        <div className="text-gray-500">
+          <span className="font-medium text-gray-700">{wordCount}</span> riječi
+        </div>
+        <div className={`${isOverLimit ? "text-red-600 font-bold" : "text-gray-500"}`}>
+          {charCount} / {maxLength}
         </div>
       </div>
 
-      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden mt-1">
         <div
-          className={`h-full transition-all duration-300 ${
-            isOverLimit
-              ? "bg-red-500"
-              : percentUsed > 90
-              ? "bg-orange-500"
-              : percentUsed > 75
-              ? "bg-yellow-500"
-              : "bg-green-500"
+          className={`h-full transition-all duration-500 ${
+            isOverLimit ? "bg-red-500" : percentUsed > 90 ? "bg-orange-500" : "bg-blue-500"
           }`}
           style={{ width: `${Math.min(percentUsed, 100)}%` }}
         />
       </div>
-
-      <p className="text-xs text-gray-500 mt-1">
-        💡 Kratki paragrafi i liste čine opis čitljivijim.
-      </p>
     </div>
   );
 };
@@ -439,7 +293,6 @@ const ComponentTwo = ({
         [field]: value,
       };
 
-      // ✅ still generate slug behind the scenes (no slug input in UI)
       if (field === "name" && langId === defaultLangId) {
         updatedLangData.slug = generateSlug(value);
       }
@@ -449,6 +302,19 @@ const ComponentTwo = ({
         [langId]: updatedLangData,
       };
     });
+  };
+
+  const handlePriceOnRequest = (checked) => {
+    setTranslations((prev) => ({
+      ...prev,
+      [langId]: {
+        ...prev[langId],
+        price_on_request: checked,
+        price: checked ? "" : prev[langId].price,
+        // Ako je na upit, gasi se i akcija
+        ...(checked === true && { is_on_sale: false, old_price: "" }),
+      },
+    }));
   };
 
   const handlePhoneChange = (value, data) => {
@@ -469,6 +335,19 @@ const ComponentTwo = ({
     });
   };
 
+  // Helper za izračun popusta
+  const priceNum = Number(current.price || 0);
+  const oldPriceNum = Number(current.old_price || 0);
+  const showDiscount =
+    current.is_on_sale &&
+    oldPriceNum > 0 &&
+    priceNum > 0 &&
+    oldPriceNum > priceNum;
+
+  const discountPct = showDiscount
+    ? Math.round(((oldPriceNum - priceNum) / oldPriceNum) * 100)
+    : 0;
+
   return (
     <div className="flex flex-col w-full gap-4 pb-24">
       {/* BASIC */}
@@ -480,46 +359,59 @@ const ComponentTwo = ({
         badge="required"
       >
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="title"
-              className={isDefaultLang ? "requiredInputLabel" : ""}
-            >
-              Naslov
-            </Label>
-            <Input
-              type="text"
-              name="title"
-              id="title"
-              placeholder="Unesite naslov oglasa"
-              value={current.name || ""}
-              onChange={handleField("name")}
-              className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+        <div className="flex flex-col gap-2">
+  <Label
+    htmlFor="title"
+    className={isDefaultLang ? "requiredInputLabel" : ""}
+  >
+    Naslov
+  </Label>
+  <Input
+    type="text"
+    name="title"
+    id="title"
+    placeholder="Unesite naslov oglasa"
+    value={current.name || ""}
+    onChange={handleField("name")}
+    maxLength={86} // 👈 OGRANIČENJE
+    className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  />
+  {/* 👇 Opcionalno: Brojač karaktera */}
+  <div className="flex justify-end">
+    <span className="text-xs text-gray-400">
+      {(current.name || "").length} / 86
+    </span>
+  </div>
+</div>
 
           <RichTextarea
             id="description"
             name="description"
             value={current.description || ""}
             onChange={handleField("description")}
-            label="Opis"
-            placeholder="Opišite vaš artikal detaljno..."
+            label="Detaljan opis"
+            placeholder="Navedite sve bitne informacije o artiklu..."
             maxLength={7000}
-            minHeight={140}
+            minHeight={160}
             required={isDefaultLang}
           />
         </div>
       </AccordionSection>
 
-      {/* PRICE / SALARY (default lang only) */}
+      {/* PRICE / SALARY + SALE (MERGED) */}
       {isDefaultLang && (
         <AccordionSection
           title={is_job_category ? "Plata" : "Cijena"}
-          subtitle={is_job_category ? "Minimalna i maksimalna plata" : "Unesite cijenu (ili ostavite prazno ako je dozvoljeno)"}
+          subtitle={
+            is_job_category
+              ? "Minimalna i maksimalna plata"
+              : current.price_on_request
+              ? "Cijena na upit"
+              : "Postavite cijenu i opcionalno popust"
+          }
           isOpen={priceOpen}
           onToggle={() => setPriceOpen((v) => !v)}
-          badge={!is_job_category && isPriceOptional ? "optional" : "required"}
+          badge={!is_job_category && current.price_on_request ? "optional" : "required"}
         >
           {is_job_category ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -552,34 +444,134 @@ const ComponentTwo = ({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="price"
-                className={!isPriceOptional ? "requiredInputLabel" : ""}
-              >
-                Cijena
-              </Label>
-              <Input
-                type="number"
-                name="price"
-                id="price"
-                min={0}
-                placeholder={placeholderLabel}
-                value={current.price || ""}
-                onChange={handleField("price")}
-                className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              {isPriceOptional && (
-                <p className="text-xs text-gray-500">
-                  Može ostati prazno ako je dozvoljeno “Na upit”.
-                </p>
+            <div className="flex flex-col gap-6">
+              {/* 1. INPUT ZA CIJENU */}
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor="price"
+                  className={!current.price_on_request ? "requiredInputLabel" : ""}
+                >
+                  Cijena
+                </Label>
+                <Input
+                  type="number"
+                  name="price"
+                  id="price"
+                  min={0}
+                  placeholder={current.price_on_request ? "Cijena na upit" : placeholderLabel}
+                  value={current.price || ""}
+                  onChange={handleField("price")}
+                  disabled={current.price_on_request}
+                  className={`border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    current.price_on_request ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                  }`}
+                />
+              </div>
+
+              {/* 2. SWITCH: CIJENA NA UPIT */}
+              <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <Switch
+                  id="price-on-request"
+                  checked={current.price_on_request || false}
+                  onCheckedChange={handlePriceOnRequest}
+                />
+                <div className="flex flex-col">
+                  <Label 
+                    htmlFor="price-on-request" 
+                    className="font-medium text-gray-700 cursor-pointer"
+                  >
+                    Cijena na upit
+                  </Label>
+                  <span className="text-xs text-gray-500">
+                    Kupci će morati kontaktirati vas za cijenu
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. SEKCIJA: AKCIJA / POPUST (Samo ako nije cijena na upit) */}
+              {!current.price_on_request && (
+                <div className="border-t-2 border-dashed border-gray-100 pt-4">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-50 rounded-lg border border-blue-100">
+                        <Percent className="text-blue-600" size={18} />
+                      </div>
+                      <div>
+                        <Label htmlFor="is_on_sale" className="text-base font-semibold text-gray-900 cursor-pointer">
+                          Akcija / Popust
+                        </Label>
+                        <p className="text-xs text-gray-500">
+                          Uključite da prikažete staru cijenu i popust.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Switch
+                      id="is_on_sale"
+                      checked={!!current.is_on_sale}
+                      onCheckedChange={(checked) => {
+                        setTranslations((prev) => ({
+                          ...prev,
+                          [langId]: {
+                            ...prev[langId],
+                            is_on_sale: checked,
+                            ...(checked === false && { old_price: "" }),
+                          },
+                        }));
+                      }}
+                      className="data-[state=checked]:bg-blue-600"
+                    />
+                  </div>
+
+                  {/* UNOS STARE CIJENE */}
+                  {current.is_on_sale && (
+                    <div className="pl-2 border-l-4 border-blue-100 ml-2">
+                      <div className="flex flex-col gap-2">
+                        <Label
+                          htmlFor="old_price"
+                          className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                        >
+                          <Tag className="text-gray-400" size={14} />
+                          Stara cijena (prije akcije)
+                        </Label>
+
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            name="old_price"
+                            id="old_price"
+                            placeholder={placeholderLabel}
+                            value={current.old_price || ""}
+                            onChange={handleField("old_price")}
+                            min={0}
+                            className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+
+                          {showDiscount && discountPct > 0 && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-2 py-1 rounded-full animate-in fade-in zoom-in">
+                              -{discountPct}%
+                            </div>
+                          )}
+                        </div>
+
+                        {current.old_price &&
+                          current.price &&
+                          Number(current.old_price) <= Number(current.price) && (
+                            <p className="text-xs text-amber-600 flex items-center gap-1">
+                              ⚠️ Stara cijena bi trebala biti veća od trenutne.
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
         </AccordionSection>
       )}
 
-      {/* STOCK (default lang only) */}
+      {/* STOCK */}
       {isDefaultLang && (
         <AccordionSection
           title="Zalihe"
@@ -616,7 +608,7 @@ const ComponentTwo = ({
         </AccordionSection>
       )}
 
-      {/* CONTACT (default lang only) */}
+      {/* CONTACT */}
       {isDefaultLang && (
         <AccordionSection
           title="Kontakt"
@@ -648,7 +640,7 @@ const ComponentTwo = ({
         </AccordionSection>
       )}
 
-      {/* MEDIA (default lang only) */}
+      {/* MEDIA */}
       {isDefaultLang && (
         <AccordionSection
           title="Multimedija"
