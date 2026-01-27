@@ -1,189 +1,463 @@
 "use client";
 
 import { memo, useMemo, useEffect, useState, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Fuse from "fuse.js";
-import { MdChevronRight } from "react-icons/md";
-import { FaStar, FaUser } from "react-icons/fa";
-import { IoSearchOutline } from "react-icons/io5";
-import { X } from "lucide-react";
+import {
+  Search,
+  X,
+  ChevronRight,
+  Star,
+  User,
+  Sparkles,
+  Clock,
+  TrendingUp,
+  Package,
+  Layers,
+  ArrowRight,
+  Loader2,
+  SearchX,
+  Zap,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import CustomImage from "@/components/Common/CustomImage";
 
-/* -------------------------------------------------------
-   UI atoms
-------------------------------------------------------- */
-const SectionTitle = ({ children }) => (
-  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-    {children}
-  </h3>
+// ═══════════════════════════════════════════════════════════════════
+// LMX BRAND COLORS
+// ═══════════════════════════════════════════════════════════════════
+const BRAND = {
+  blue: "#1A4B8C",
+  orange: "#F7941D",
+  teal: "#00A19B",
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// ANIMATION VARIANTS
+// ═══════════════════════════════════════════════════════════════════
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// SECTION HEADER
+// ═══════════════════════════════════════════════════════════════════
+const SectionHeader = ({ icon: Icon, title, count, action }) => (
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center gap-2.5">
+      <div className="p-2 bg-gradient-to-br from-[#1A4B8C]/10 to-[#00A19B]/10 rounded-xl">
+        <Icon size={18} className="text-[#1A4B8C]" />
+      </div>
+      <div>
+        <h3 className="font-semibold text-gray-900">{title}</h3>
+        {count !== undefined && (
+          <p className="text-xs text-gray-500">{count} dostupno</p>
+        )}
+      </div>
+    </div>
+    {action}
+  </div>
 );
 
-const Pill = ({ children, onClick }) => (
-  <button
+// ═══════════════════════════════════════════════════════════════════
+// RECENT CATEGORY PILL
+// ═══════════════════════════════════════════════════════════════════
+const RecentPill = memo(({ category, onClick, index }) => (
+  <motion.button
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay: index * 0.05 }}
+    whileHover={{ scale: 1.03, y: -2 }}
+    whileTap={{ scale: 0.97 }}
     type="button"
-    onClick={onClick}
-    className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 bg-white hover:bg-gray-50 active:scale-[0.99] transition"
+    onClick={() => onClick(category)}
+    className="
+      shrink-0 inline-flex items-center gap-2 px-4 py-2.5
+      rounded-full border-2 border-gray-100 bg-white
+      hover:border-[#1A4B8C]/30 hover:bg-[#1A4B8C]/5
+      shadow-sm hover:shadow-md
+      transition-all duration-200
+    "
   >
-    {children}
-  </button>
-);
+    {category?.image && (
+      <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100">
+        <CustomImage
+          src={category.image}
+          alt=""
+          width={24}
+          height={24}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    )}
+    <span className="text-sm font-medium text-gray-700">
+      {category.translated_name || category.name}
+    </span>
+  </motion.button>
+));
+RecentPill.displayName = "RecentPill";
 
-/* -------------------------------------------------------
-   CATEGORY CARD
-------------------------------------------------------- */
-const CategoryCard = memo(({ category, onClick, showPath = false, adCount = null }) => {
+// ═══════════════════════════════════════════════════════════════════
+// CATEGORY CARD - REDESIGNED
+// ═══════════════════════════════════════════════════════════════════
+const CategoryCard = memo(({ category, onClick, showPath = false, adCount = null, index = 0 }) => {
   const hasChildren = Number(category?.subcategories_count || 0) > 0;
+  const isPopular = adCount && adCount > 50;
 
   return (
-    <button
+    <motion.button
+      variants={itemVariants}
+      whileHover={{ scale: 1.02, y: -4 }}
+      whileTap={{ scale: 0.98 }}
       type="button"
       onClick={() => onClick(category)}
       className="
-        group w-full text-left
-        flex items-center gap-3
-        rounded-2xl border border-gray-200 bg-white
-        px-3 py-3
-        hover:border-blue-200 hover:shadow-sm hover:bg-blue-50/30
-        transition
+        group relative w-full text-left
+        rounded-2xl border-2 border-gray-100 bg-white
+        p-4 overflow-hidden
+        hover:border-[#1A4B8C]/30 hover:shadow-xl hover:shadow-[#1A4B8C]/5
+        transition-all duration-300
       "
     >
-      <div className="h-12 w-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-        <CustomImage
-          src={category?.image}
-          alt={category?.search_name || category?.translated_name || category?.name}
-          height={44}
-          width={44}
-          loading="lazy"
-          className="h-10 w-10 object-contain"
-        />
-      </div>
+      {/* Background gradient on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#1A4B8C]/5 via-transparent to-[#00A19B]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      
+      {/* Popular badge */}
+      {isPopular && (
+        <div className="absolute top-2 right-2">
+          <span className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-[#F7941D] to-[#F7941D]/80 text-white text-[10px] font-bold rounded-full">
+            <Zap size={10} />
+            Popular
+          </span>
+        </div>
+      )}
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <div className="truncate font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
-            {category?.search_name || category?.translated_name || category?.name}
+      <div className="relative flex items-center gap-4">
+        {/* Icon container with gradient border */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1A4B8C] to-[#00A19B] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
+          <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-100 group-hover:border-white flex items-center justify-center overflow-hidden transition-all duration-300">
+            <CustomImage
+              src={category?.image}
+              alt={category?.search_name || category?.translated_name || category?.name}
+              height={48}
+              width={48}
+              loading="lazy"
+              className="h-11 w-11 object-contain group-hover:scale-110 transition-transform duration-300"
+            />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="truncate font-semibold text-gray-800 group-hover:text-[#1A4B8C] transition-colors">
+              {category?.search_name || category?.translated_name || category?.name}
+            </span>
           </div>
 
-          {adCount !== null && adCount > 0 && (
-            <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-              {adCount.toLocaleString()}
-            </span>
+          {showPath && category?.full_path ? (
+            <p className="truncate text-xs text-gray-500">
+              {category.full_path}
+            </p>
+          ) : (
+            <div className="flex items-center gap-2">
+              {hasChildren && (
+                <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                  <Layers size={12} />
+                  {category?.subcategories_count} podkategorija
+                </span>
+              )}
+              {adCount !== null && adCount > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1A4B8C]/10 text-[#1A4B8C] text-[11px] font-semibold">
+                  <Package size={10} />
+                  {adCount.toLocaleString()}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
-        {showPath && category?.full_path ? (
-          <div className="mt-0.5 truncate text-xs text-gray-500">{category.full_path}</div>
-        ) : hasChildren ? (
-          <div className="mt-0.5 text-xs text-gray-500">
-            {category?.subcategories_count} podkategorija
+        {/* Arrow */}
+        <div className="shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-gray-100 group-hover:bg-[#1A4B8C] flex items-center justify-center transition-all duration-300">
+            <ChevronRight
+              size={18}
+              className="text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-300"
+            />
           </div>
-        ) : (
-          <div className="mt-0.5 text-xs text-gray-400">Bez podkategorija</div>
-        )}
+        </div>
       </div>
-
-      {hasChildren && !showPath ? (
-        <MdChevronRight
-          size={22}
-          className="rtl:scale-x-[-1] text-gray-400 group-hover:text-blue-600 transition-colors shrink-0"
-        />
-      ) : (
-        <span className="w-5 shrink-0" />
-      )}
-    </button>
+    </motion.button>
   );
 });
 CategoryCard.displayName = "CategoryCard";
 
-/* -------------------------------------------------------
-   USER CARD
-------------------------------------------------------- */
+// ═══════════════════════════════════════════════════════════════════
+// USER CARD - REDESIGNED
+// ═══════════════════════════════════════════════════════════════════
 const UserCard = memo(({ user, onClick }) => {
   return (
-    <button
+    <motion.button
+      variants={itemVariants}
+      whileHover={{ scale: 1.02, y: -4 }}
+      whileTap={{ scale: 0.98 }}
       type="button"
       onClick={() => onClick(user)}
       className="
-        group w-full text-left
-        flex items-center gap-3
-        rounded-2xl border border-gray-200 bg-white
-        px-3 py-3
-        hover:border-blue-200 hover:shadow-sm hover:bg-blue-50/30
-        transition
+        group relative w-full text-left
+        rounded-2xl border-2 border-gray-100 bg-white
+        p-4 overflow-hidden
+        hover:border-[#00A19B]/30 hover:shadow-xl hover:shadow-[#00A19B]/5
+        transition-all duration-300
       "
     >
-      <div className="h-12 w-12 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-        {user?.profile ? (
-          <CustomImage
-            src={user.profile}
-            alt={user.name}
-            height={48}
-            width={48}
-            loading="lazy"
-            className="h-12 w-12 rounded-full object-cover"
-          />
-        ) : (
-          <FaUser className="text-gray-400" size={20} />
-        )}
-      </div>
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#00A19B]/5 via-transparent to-[#1A4B8C]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">
-          {user?.name}
+      <div className="relative flex items-center gap-4">
+        {/* Avatar */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#00A19B] to-[#1A4B8C] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm" />
+          <div className="relative h-14 w-14 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-100 group-hover:border-white flex items-center justify-center overflow-hidden transition-all duration-300">
+            {user?.profile ? (
+              <CustomImage
+                src={user.profile}
+                alt={user.name}
+                height={56}
+                width={56}
+                loading="lazy"
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <User className="text-gray-400 group-hover:text-[#00A19B] transition-colors" size={24} />
+            )}
+          </div>
+          
+          {/* Online indicator (optional) */}
+          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
         </div>
 
-        <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
-          {user?.average_rating && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-50 border border-yellow-100 text-yellow-700">
-              <FaStar size={11} />
-              {Number(user.average_rating).toFixed(1)}
-            </span>
-          )}
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <span className="block truncate font-semibold text-gray-800 group-hover:text-[#00A19B] transition-colors">
+            {user?.name}
+          </span>
 
-          {user?.adCount > 0 && (
-            <span className="text-blue-600 font-medium">
-              {user.adCount === 1 ? "1 oglas" : `${user.adCount} oglasa`}
-            </span>
-          )}
+          <div className="flex items-center gap-2 mt-1">
+            {user?.average_rating && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
+                <Star size={11} className="fill-amber-400 text-amber-400" />
+                {Number(user.average_rating).toFixed(1)}
+              </span>
+            )}
+
+            {user?.adCount > 0 && (
+              <span className="text-xs text-[#1A4B8C] font-medium">
+                {user.adCount === 1 ? "1 oglas" : `${user.adCount} oglasa`}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Arrow */}
+        <div className="shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-gray-100 group-hover:bg-[#00A19B] flex items-center justify-center transition-all duration-300">
+            <ArrowRight
+              size={16}
+              className="text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-300"
+            />
+          </div>
         </div>
       </div>
-
-      <MdChevronRight
-        size={22}
-        className="rtl:scale-x-[-1] text-gray-400 group-hover:text-blue-600 transition-colors shrink-0"
-      />
-    </button>
+    </motion.button>
   );
 });
 UserCard.displayName = "UserCard";
 
-/* -------------------------------------------------------
-   Skeleton
-------------------------------------------------------- */
+// ═══════════════════════════════════════════════════════════════════
+// SKELETON LOADER
+// ═══════════════════════════════════════════════════════════════════
 const CardSkeleton = ({ rows = 9 }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {Array.from({ length: rows }).map((_, i) => (
       <div
         key={i}
-        className="flex items-center gap-3 px-3 py-3 rounded-2xl border border-gray-200 bg-white animate-pulse"
+        className="flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 bg-white animate-pulse"
       >
-        <div className="h-12 w-12 rounded-xl bg-gray-200" />
-        <div className="flex-1">
-          <div className="h-4 bg-gray-200 rounded w-2/3" />
-          <div className="h-3 bg-gray-100 rounded w-1/2 mt-2" />
+        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-gray-200 to-gray-100" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 bg-gray-200 rounded-lg w-3/4" />
+          <div className="h-3 bg-gray-100 rounded-lg w-1/2" />
         </div>
+        <div className="w-8 h-8 rounded-xl bg-gray-100" />
       </div>
     ))}
   </div>
 );
 
-/* -------------------------------------------------------
-   Flatten category tree (if present)
-------------------------------------------------------- */
+// ═══════════════════════════════════════════════════════════════════
+// EMPTY STATE
+// ═══════════════════════════════════════════════════════════════════
+const EmptyState = ({ search }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="py-16 text-center"
+  >
+    <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center">
+      <SearchX size={36} className="text-gray-400" />
+    </div>
+    <h3 className="text-lg font-semibold text-gray-800 mb-1">
+      Nema rezultata za "{search}"
+    </h3>
+    <p className="text-gray-500 text-sm max-w-xs mx-auto">
+      Pokušajte s drugim pojmom ili pregledajte kategorije ispod
+    </p>
+  </motion.div>
+);
+
+// ═══════════════════════════════════════════════════════════════════
+// SEARCH BAR - REDESIGNED
+// ═══════════════════════════════════════════════════════════════════
+const SearchBar = ({ value, onChange, isSearching }) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  return (
+    <motion.div
+      animate={{ scale: isFocused ? 1.01 : 1 }}
+      transition={{ duration: 0.2 }}
+      className="sticky top-2 z-10"
+    >
+      <div
+        className={`
+          relative rounded-2xl transition-all duration-300
+          ${isFocused
+            ? "shadow-xl shadow-[#1A4B8C]/10"
+            : "shadow-lg shadow-gray-200/50"
+          }
+        `}
+      >
+        {/* Gradient border effect when focused */}
+        <div
+          className={`
+            absolute inset-0 rounded-2xl bg-gradient-to-r from-[#1A4B8C] via-[#00A19B] to-[#F7941D]
+            transition-opacity duration-300
+            ${isFocused ? "opacity-100" : "opacity-0"}
+          `}
+          style={{ padding: "2px" }}
+        >
+          <div className="w-full h-full bg-white rounded-[14px]" />
+        </div>
+
+        <div className="relative">
+          {/* Search icon */}
+          <div
+            className={`
+              absolute left-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all duration-300
+              ${isFocused ? "bg-[#1A4B8C]/10" : "bg-gray-100"}
+            `}
+          >
+            <Search
+              size={18}
+              className={`transition-colors duration-300 ${isFocused ? "text-[#1A4B8C]" : "text-gray-400"}`}
+            />
+          </div>
+
+          <input
+            type="text"
+            placeholder="Šta želite prodati? (npr. iPhone, Golf, Stan...)"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            className={`
+              w-full pl-14 pr-14 py-4
+              border-2 rounded-2xl
+              focus:outline-none
+              bg-white transition-all duration-300
+              text-gray-800 placeholder:text-gray-400
+              ${isFocused ? "border-transparent" : "border-gray-100"}
+            `}
+          />
+
+          {/* Clear button */}
+          <AnimatePresence>
+            {value && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                type="button"
+                onClick={() => onChange("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-gray-100 hover:bg-red-100 hover:text-red-500 transition-colors"
+              >
+                <X size={16} />
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          {/* Loading spinner */}
+          <AnimatePresence>
+            {isSearching && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute right-14 top-1/2 -translate-y-1/2"
+              >
+                <Loader2 size={18} className="text-[#1A4B8C] animate-spin" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Search suggestions hint */}
+      <AnimatePresence>
+        {isFocused && !value && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 right-0 mt-2 p-3 bg-white rounded-xl border border-gray-100 shadow-lg"
+          >
+            <p className="text-xs text-gray-500 mb-2">Popularni pojmovi:</p>
+            <div className="flex flex-wrap gap-2">
+              {["iPhone", "Auto", "Stan", "Laptop", "Namještaj"].map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => onChange(term)}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-[#1A4B8C]/10 hover:text-[#1A4B8C] text-gray-600 text-xs font-medium rounded-full transition-colors"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════
 const flattenCategories = (categories = [], parentPath = [], parentId = null) => {
   let result = [];
-
   categories.forEach((cat) => {
     const name = cat.translated_name || cat.name || cat.translations?.[0]?.name || "";
     const current = {
@@ -192,46 +466,27 @@ const flattenCategories = (categories = [], parentPath = [], parentId = null) =>
       full_path: [...parentPath, name].join(" > "),
       parent_id: parentId,
     };
-
     result.push(current);
-
     if (cat.subcategories?.length) {
       result = result.concat(flattenCategories(cat.subcategories, [...parentPath, name], cat.id));
     }
   });
-
   return result;
 };
 
-/* -------------------------------------------------------
-   Robust ads extraction (FIX)
-------------------------------------------------------- */
 const extractAds = (resultJson) => {
-  // covers:
-  // - result.data.data = []
-  // - result.data.data = { data: [] }
-  // - result.data.data.data = []
-  // - result.data = { data: { data: [] } } (various)
   const d = resultJson?.data;
-
-  const candidates = [
-    d?.data,                 // could be [] or paginator object
-    d?.data?.data,           // could be [] (paginator.data)
-    resultJson?.data?.data,  // same as above but safe
-    resultJson?.data?.data?.data,
-  ];
-
+  const candidates = [d?.data, d?.data?.data, resultJson?.data?.data, resultJson?.data?.data?.data];
   for (const c of candidates) {
     if (Array.isArray(c)) return c;
     if (c && Array.isArray(c.data)) return c.data;
   }
-
   return [];
 };
 
-/* -------------------------------------------------------
-   MAIN
-------------------------------------------------------- */
+// ═══════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════
 const ComponentOne = ({
   categories = [],
   categoriesLoading,
@@ -251,7 +506,7 @@ const ComponentOne = ({
   const searchTimeoutRef = useRef(null);
   const abortAdsRef = useRef(null);
 
-  // build index from whatever we have (tree or current level)
+  // Build index
   const localIndex = useMemo(() => {
     const flattened = flattenCategories(categories || []);
     const map = new Map();
@@ -275,33 +530,23 @@ const ComponentOne = ({
 
   const searchUsers = useCallback(async (query) => {
     try {
-      // ✅ uzmi token iz ISTOG mjesta gdje ti axios Api već radi
-      // prilagodi ključ ako je kod vas drugačiji
       const token =
         localStorage.getItem("token") ||
         localStorage.getItem("authToken") ||
         localStorage.getItem("access_token");
-  
-      // ✅ ako nema tokena, nema smisla zvat endpoint koji je 401
       if (!token) return [];
-  
+
       const url = `https://admin.lmx.ba/customer/id?search=${encodeURIComponent(query)}`;
-  
       const res = await fetch(url, {
         headers: {
           Accept: "application/json",
-          Authorization: `Bearer ${token}`, // ✅ ovo je ključ
+          Authorization: `Bearer ${token}`,
         },
       });
-  
-      if (res.status === 401 || res.status === 403) {
-        // ✅ nemoj spamati konzolu svaki put, ali možeš ostaviti 1 log
-        // console.warn("[USER SEARCH] Unauthorized", res.status);
-        return [];
-      }
-  
+
+      if (res.status === 401 || res.status === 403) return [];
       if (!res.ok) return [];
-  
+
       const data = await res.json();
       return data?.rows || [];
     } catch (e) {
@@ -309,23 +554,17 @@ const ComponentOne = ({
       return [];
     }
   }, []);
-  
-  
 
   const searchAdsAndCategories = useCallback(
     async (query) => {
       const q = (query || "").trim();
       if (!q || q.length < 2) return { cats: [], usersFromAds: [] };
-  
+
       if (abortAdsRef.current) abortAdsRef.current.abort();
       abortAdsRef.current = new AbortController();
-  
-      // ✅ Ako lokalno imaš kompletno stablo, penjemo se do top-level parenta (preko parent_id iz flattenCategories)
-      // ✅ Ako lokalno imaš samo parent kategorije, koristimo parent_category_id koji dolazi iz API-ja (backend fix)
+
       const resolveSuggestedCategoryId = (leafId, apiParentId) => {
         if (!leafId) return null;
-  
-        // 1) Ako je leaf u lokalnom indexu, popni se do vrha (root)
         const localLeaf = localIndex.map.get(leafId);
         if (localLeaf) {
           let cur = localLeaf;
@@ -334,64 +573,49 @@ const ComponentOne = ({
           }
           return cur?.id ?? leafId;
         }
-  
-        // 2) Ako leaf nije lokalno učitan, ali imamo parent_category_id iz API-ja i parent postoji lokalno
         if (apiParentId && localIndex.map.has(apiParentId)) return apiParentId;
-  
-        // 3) Fallback
         return leafId;
       };
-  
+
       try {
         const response = await fetch(
           `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(q)}&limit=100`,
           { signal: abortAdsRef.current.signal }
         );
         if (!response.ok) throw new Error("Ads search failed");
-  
+
         const result = await response.json();
-  
-        // ✅ koristi shared helper (već ga imaš u fajlu)
         const ads = extractAds(result);
-  
+
         if (!ads.length) return { cats: [], usersFromAds: [] };
-  
+
         const categoryCounts = new Map();
         const userMap = new Map();
-  
+
         for (const ad of ads) {
-          // leaf category (iz itema)
           const leafId = ad?.category_id ?? ad?.category?.id;
-          // parent category (iz eager-load category na backendu)
           const apiParentId = ad?.category?.parent_category_id ?? null;
-  
-          // ✅ OVO je ključ: umjesto leafId, broji parent/root gdje može
           const suggestedId = resolveSuggestedCategoryId(leafId, apiParentId);
-  
+
           if (suggestedId) {
-            categoryCounts.set(
-              suggestedId,
-              (categoryCounts.get(suggestedId) || 0) + 1
-            );
+            categoryCounts.set(suggestedId, (categoryCounts.get(suggestedId) || 0) + 1);
           }
-  
-          // usersFromAds
+
           if (ad?.user?.id) {
             const existing = userMap.get(ad.user.id);
             if (existing) existing.adCount += 1;
             else userMap.set(ad.user.id, { ...ad.user, adCount: 1 });
           }
         }
-  
-        // map suggested category ids -> category objects (lokalno)
+
         const cats = [];
         categoryCounts.forEach((count, cid) => {
           const cat = localIndex.map.get(cid);
           if (cat) cats.push({ ...cat, adCount: count });
         });
-  
+
         cats.sort((a, b) => (b.adCount || 0) - (a.adCount || 0));
-  
+
         return {
           cats: cats.slice(0, 12),
           usersFromAds: Array.from(userMap.values())
@@ -399,14 +623,12 @@ const ComponentOne = ({
             .slice(0, 6),
         };
       } catch (error) {
-        if (error?.name !== "AbortError")
-          console.error("Ads search error:", error);
+        if (error?.name !== "AbortError") console.error("Ads search error:", error);
         return { cats: [], usersFromAds: [] };
       }
     },
     [localIndex.map]
   );
-  
 
   const searchLocalCategories = useCallback(
     (query) => {
@@ -434,7 +656,6 @@ const ComponentOne = ({
     const m = new Map();
     [...a, ...b].forEach((c) => {
       if (!c?.id) return;
-      // prefer one that has adCount/full_path if exists
       const prev = m.get(c.id);
       if (!prev) m.set(c.id, c);
       else m.set(c.id, { ...prev, ...c, adCount: c.adCount ?? prev.adCount });
@@ -442,7 +663,7 @@ const ComponentOne = ({
     return Array.from(m.values());
   };
 
-  // ✅ Debounced search: run BOTH, do not block categories if users exist
+  // Debounced search
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
@@ -479,7 +700,6 @@ const ComponentOne = ({
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
   }, [search, searchUsers, searchAdsAndCategories, searchLocalCategories]);
-  
 
   useEffect(() => {
     return () => {
@@ -499,122 +719,139 @@ const ComponentOne = ({
   const showSearchResults = (search || "").trim().length >= 2;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Search */}
-      <div className="sticky top-2 z-10 -mx-2 px-2 py-2 bg-white/80 backdrop-blur rounded-2xl">
-        <div className="relative">
-          <IoSearchOutline className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Šta želite prodati? (npr. iPhone, Samsung, Golf...)"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-              w-full pl-11 pr-11 py-3
-              border border-gray-200 rounded-2xl
-              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-              bg-white transition
-            "
-          />
+    <div className="flex flex-col gap-6">
+      {/* Search Bar */}
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        isSearching={isSearching}
+      />
 
-          {!!search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl hover:bg-gray-100 transition"
-              aria-label="Clear"
-            >
-              <X size={16} className="text-gray-500" />
-            </button>
-          )}
-
-          {isSearching && (
-            <div className="absolute right-10 top-1/2 -translate-y-1/2">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      {/* Recent Categories */}
+      <AnimatePresence>
+        {!showSearchResults && recentCategories?.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <SectionHeader
+              icon={Clock}
+              title="Nedavno korištene"
+            />
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+              {recentCategories.slice(0, 8).map((c, index) => (
+                <RecentPill
+                  key={c.id}
+                  category={c}
+                  onClick={handleCategoryTabClick}
+                  index={index}
+                />
+              ))}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Recent */}
-      {!showSearchResults && recentCategories?.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <SectionTitle>Nedavno</SectionTitle>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {recentCategories.slice(0, 8).map((c) => (
-              <Pill key={c.id} onClick={() => handleCategoryTabClick(c)}>
-                <span className="text-sm font-medium text-gray-800">
-                  {c.translated_name || c.name}
-                </span>
-              </Pill>
-            ))}
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       {categoriesLoading ? (
         <CardSkeleton rows={9} />
       ) : showSearchResults ? (
         isSearching ? (
-          <div className="py-10 text-center text-gray-600">
-            <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            Pretražujem…
+          <div className="py-16 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#1A4B8C]/10 to-[#00A19B]/10 flex items-center justify-center">
+              <Loader2 size={28} className="text-[#1A4B8C] animate-spin" />
+            </div>
+            <p className="text-gray-600 font-medium">Pretražujem...</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
-            {suggestedCategories.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                <SectionTitle>Kategorije</SectionTitle>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {suggestedCategories.map((category) => (
+          <div className="space-y-8">
+            {/* Categories Results */}
+            {suggestedCategories.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <SectionHeader
+                  icon={Layers}
+                  title="Kategorije"
+                  count={suggestedCategories.length}
+                />
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                >
+                  {suggestedCategories.map((category, index) => (
                     <CategoryCard
                       key={category.id}
                       category={category}
                       onClick={handleCategoryTabClick}
                       showPath={!!category.full_path}
                       adCount={category.adCount ?? null}
+                      index={index}
                     />
                   ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-gray-500">
-                Nema pronađenih kategorija za “{search}”
-              </div>
+                </motion.div>
+              </motion.div>
             )}
 
+            {/* Users Results */}
             {suggestedUsers.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <SectionTitle>Korisnici</SectionTitle>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                <SectionHeader
+                  icon={User}
+                  title="Prodavci"
+                  count={suggestedUsers.length}
+                />
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                >
                   {suggestedUsers.map((user) => (
                     <UserCard key={user.id} user={user} onClick={handleUserClick} />
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )}
 
+            {/* Empty State */}
             {suggestedUsers.length === 0 && suggestedCategories.length === 0 && (
-              <div className="py-10 text-center">
-                <div className="text-5xl mb-3">🔍</div>
-                <div className="text-gray-700 font-semibold">
-                  Nema rezultata za “{search}”
-                </div>
-                <div className="text-gray-500 text-sm mt-1">Pokušajte s drugim pojmom.</div>
-              </div>
+              <EmptyState search={search} />
             )}
           </div>
         )
       ) : (
-        <>
-          <div className="flex items-center justify-between">
-            <SectionTitle>Kategorije</SectionTitle>
-            <div className="text-xs text-gray-400">{categories?.length || 0} prikazano</div>
-          </div>
+        /* Default Categories List */
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <SectionHeader
+            icon={Sparkles}
+            title="Sve kategorije"
+            count={categories?.length || 0}
+            action={
+              <span className="text-xs text-gray-400">
+                Odaberite kategoriju za vaš oglas
+              </span>
+            }
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(categories || []).map((category) => (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            {(categories || []).map((category, index) => (
               <CategoryCard
                 key={category.id}
                 category={{
@@ -622,23 +859,44 @@ const ComponentOne = ({
                   search_name: category.translated_name || category.name || "",
                 }}
                 onClick={handleCategoryTabClick}
+                index={index}
               />
             ))}
-          </div>
+          </motion.div>
 
+          {/* Load More */}
           {!search && lastPage > currentPage && (
-            <div className="text-center mt-2">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center mt-6"
+            >
               <Button
                 variant="outline"
-                className="text-sm font-semibold px-6 py-2 rounded-xl border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition"
+                className="
+                  px-8 py-3 rounded-xl
+                  border-2 border-gray-200 hover:border-[#1A4B8C]
+                  hover:bg-[#1A4B8C]/5 hover:text-[#1A4B8C]
+                  font-semibold transition-all duration-300
+                "
                 disabled={isLoadMoreCat || categoriesLoading}
                 onClick={fetchMoreCategory}
               >
-                {isLoadMoreCat ? "Učitavanje..." : "Učitaj još"}
+                {isLoadMoreCat ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    Učitavam...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp size={16} className="mr-2" />
+                    Učitaj još kategorija
+                  </>
+                )}
               </Button>
-            </div>
+            </motion.div>
           )}
-        </>
+        </motion.div>
       )}
     </div>
   );

@@ -11,13 +11,10 @@ import {
 import {
   IconArrowsSort,
   IconFilter,
-  IconSortAscending,
-  IconSortDescending,
-  IconCurrencyDollar,
-  IconTrendingUp,
 } from "@tabler/icons-react";
+import { Clock, History, TrendingDown, TrendingUp, Flame } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import AdsCard from "./MyAdsCard.jsx";
 import {
   deleteItemApi,
@@ -76,9 +73,41 @@ const MyAds = () => {
   const containerRef = useRef(null);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  // mobile: dva bottom sheeta (filter + sort)
+  // mobile: bottom sheets
   const [isStatusSheetOpen, setIsStatusSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+
+  // scroll direction detection za mobile floating buttons
+  const [showMobileButtons, setShowMobileButtons] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const scrollThreshold = 10;
+
+  // Scroll direction handler
+  const handleScroll = useCallback(() => {
+    const currentScrollY = window.scrollY;
+    const scrollDiff = currentScrollY - lastScrollY;
+
+    // Samo reagiraj ako je scroll veći od threshold-a
+    if (Math.abs(scrollDiff) < scrollThreshold) return;
+
+    if (currentScrollY < 100) {
+      // Uvijek prikaži na vrhu stranice
+      setShowMobileButtons(true);
+    } else if (scrollDiff > 0) {
+      // Scroll down - sakrij
+      setShowMobileButtons(false);
+    } else {
+      // Scroll up - prikaži
+      setShowMobileButtons(true);
+    }
+
+    setLastScrollY(currentScrollY);
+  }, [lastScrollY]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -468,8 +497,29 @@ const MyAds = () => {
     { value: "resubmitted", label: "Za obnovu" },
   ];
 
+  // Helper za sort ikonu
+  const getSortIcon = (value, size = 16, className = "text-gray-500") => {
+    switch (value) {
+      case "new-to-old":
+        return <Clock size={size} className={className} />;
+      case "old-to-new":
+        return <History size={size} className={className} />;
+      case "price-high-to-low":
+        return <TrendingDown size={size} className={className} />;
+      case "price-low-to-high":
+        return <TrendingUp size={size} className={className} />;
+      case "popular_items":
+        return <Flame size={size} className={className} />;
+      default:
+        return <Clock size={size} className={className} />;
+    }
+  };
+
   const isHomeStickySpacerNeeded = isSticky;
   const isHomeStickyHeight = containerHeight ? `${containerHeight}px` : "124px";
+
+  // Trenutni aktivni tab label
+  const activeTabLabel = tabs.find((t) => t.value === status)?.label || "Aktivni";
 
   return (
     <>
@@ -481,127 +531,30 @@ const MyAds = () => {
 
       {isHomeStickySpacerNeeded && (
         <div
-          style={{
-            height: isHomeStickyHeight,
-          }}
+          style={{ height: isHomeStickyHeight }}
           className="hidden md:block w-full mb-3 bg-transparent"
         />
       )}
 
-      {/* Gornji bar (desktop sticky) */}
+      {/* Desktop: Gornji bar (sticky) */}
       <div
         ref={containerRef}
         className={`
-          hidden md:block
-          transition-all duration-500 ease-in-out z-40
+          hidden md:block transition-all duration-300 ease-out z-40
           ${
             isSticky
-              ? "fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md shadow-md border-b border-gray-200 py-3 rounded-none px-4 md:px-8"
-              : "relative w-full bg-muted rounded-lg py-3 px-4 gap-4 border border-transparent"
+              ? "fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100 py-3 rounded-none px-4 md:px-8"
+              : "relative w-full bg-white rounded-xl py-3 px-4 border border-gray-100 shadow-sm"
           }
         `}
       >
         <div
-          className={`flex flex-row-reverse justify-between gap-4 ${
+          className={`flex items-center justify-between gap-6 ${
             isSticky ? "container mx-auto max-w-7xl" : ""
           }`}
         >
-          {/* Desktop: sortiranje */}
-          <div className="hidden md:flex flex-row items-center justify-between transition-all duration-300">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <IconArrowsSort size={22} className="text-gray-500" />
-                <span className="whitespace-nowrap text-sm font-medium text-gray-600">
-                  Poredaj po
-                </span>
-              </div>
-
-              <Select value={sortValue} onValueChange={handleSortChange}>
-                <SelectTrigger
-                  className={`w-[200px] transition-all duration-300 ${
-                    isSticky
-                      ? "bg-white border-gray-300 h-9 text-xs shadow-sm"
-                      : "bg-white border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 h-10"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <IconArrowsSort className="h-3.5 w-3.5 text-gray-500" />
-                    <SelectValue placeholder="Poredaj po" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent
-                  align={isRTL ? "start" : "end"}
-                  className="bg-white border-gray-100 shadow-md"
-                >
-                  <SelectGroup>
-                    <SelectItem
-                      value="new-to-old"
-                      className="cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconSortDescending
-                          size={16}
-                          className="text-gray-500"
-                        />
-                        <span>Najnovije prvo</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem
-                      value="old-to-new"
-                      className="cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconSortAscending
-                          size={16}
-                          className="text-gray-500"
-                        />
-                        <span>Najstarije prvo</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem
-                      value="price-high-to-low"
-                      className="cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconCurrencyDollar
-                          size={16}
-                          className="text-gray-500"
-                        />
-                        <span>Cijena: najviša prvo</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem
-                      value="price-low-to-high"
-                      className="cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconCurrencyDollar
-                          size={16}
-                          className="text-gray-500"
-                        />
-                        <span>Cijena: najniža prvo</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem
-                      value="popular_items"
-                      className="cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconTrendingUp
-                          size={16}
-                          className="text-gray-500"
-                        />
-                        <span>Popularno</span>
-                      </div>
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Desktop: TABOVI (statusi) */}
-          <div className="hidden md:flex gap-2 pb-1 overflow-x-auto max-w-full">
+          {/* Desktop: Tabovi */}
+          <div className="flex items-center gap-0.5">
             {tabs.map((item) => {
               const isActive = status === item.value;
               const count = statusCounts[item.value] || 0;
@@ -611,24 +564,24 @@ const MyAds = () => {
                   key={item.value}
                   onClick={() => handleStatusChange(item.value)}
                   className={`
-                    group relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-all duration-300 shrink-0 border
+                    group relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium 
+                    whitespace-nowrap rounded-lg transition-all duration-200 ease-out
                     ${
                       isActive
-                        ? "bg-black text-white border-black shadow-md"
-                        : isSticky
-                        ? "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        ? "text-gray-900 bg-gray-100"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                     }
                   `}
                 >
                   <span>{item.label}</span>
                   <span
                     className={`
-                      flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[10px] rounded-full transition-colors
+                      flex items-center justify-center h-5 min-w-[20px] px-1.5 
+                      text-[11px] font-semibold rounded-md transition-all duration-200
                       ${
                         isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
+                          ? "bg-gray-900 text-white"
+                          : "bg-gray-200/70 text-gray-500 group-hover:bg-gray-200"
                       }
                     `}
                   >
@@ -638,81 +591,157 @@ const MyAds = () => {
               );
             })}
           </div>
+
+          {/* Desktop: Sortiranje */}
+          <div className="flex items-center">
+            <Select value={sortValue} onValueChange={handleSortChange}>
+              <SelectTrigger className="w-10 h-9 p-0 justify-center bg-gray-50 border-gray-200 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                {getSortIcon(sortValue, 18, "text-gray-600")}
+              </SelectTrigger>
+              <SelectContent
+                align={isRTL ? "start" : "end"}
+                className="bg-white border-gray-100 shadow-xl rounded-xl"
+              >
+                <SelectGroup>
+                  <SelectItem value="new-to-old" className="cursor-pointer hover:bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Clock size={16} className="text-gray-500" />
+                      <span>Najnovije prvo</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="old-to-new" className="cursor-pointer hover:bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <History size={16} className="text-gray-500" />
+                      <span>Najstarije prvo</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="price-high-to-low" className="cursor-pointer hover:bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <TrendingDown size={16} className="text-gray-500" />
+                      <span>Cijena: najviša prvo</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="price-low-to-high" className="cursor-pointer hover:bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp size={16} className="text-gray-500" />
+                      <span>Cijena: najniža prvo</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="popular_items" className="cursor-pointer hover:bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Flame size={16} className="text-gray-500" />
+                      <span>Popularno</span>
+                    </div>
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* MOBILE: dva plutajuća dugmeta (samo ikonice) */}
-      <div className="fixed bottom-24 left-1/2 z-50 flex gap-3 -translate-x-1/2 sm:hidden">
-        {/* FILTER */}
+      {/* MOBILE: Floating buttons sa scroll-aware animacijom */}
+      <div
+        className={`
+          fixed bottom-24 left-1/2 z-50 flex gap-2 -translate-x-1/2 sm:hidden
+          transition-all duration-300 ease-out
+          ${
+            showMobileButtons
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-4 pointer-events-none"
+          }
+        `}
+      >
+        {/* Filter button */}
         <button
-  type="button"
-  onClick={() => setIsStatusSheetOpen(true)}
-  className="flex items-center gap-2 justify-center rounded-full bg-white shadow-lg border border-gray-200 px-4 py-3"
-  aria-label="Filtriraj oglase"
-  style={{ gap: "5px" }}
->
-  <IconFilter stroke={2} />
-  <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Filtriraj oglase</span>
-</button>
+          type="button"
+          onClick={() => setIsStatusSheetOpen(true)}
+          className="
+            flex items-center gap-2 justify-center rounded-full 
+            bg-white/95 backdrop-blur-md shadow-lg border border-gray-200/80 
+            px-4 py-2.5 active:scale-95 transition-transform duration-150
+          "
+          aria-label="Filtriraj oglase"
+        >
+          <IconFilter size={18} stroke={2} className="text-gray-700" />
+          <span className="text-sm font-medium text-gray-700">{activeTabLabel}</span>
+          <span className="flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[11px] font-semibold rounded-full bg-gray-900 text-white">
+            {statusCounts[status] || 0}
+          </span>
+        </button>
 
-
-        {/* SORT */}
+        {/* Sort button */}
         <button
           type="button"
           onClick={() => setIsSortSheetOpen(true)}
-          className="flex items-center justify-center rounded-full bg-white shadow-lg border border-gray-200 p-3"
+          className="
+            flex items-center justify-center rounded-full 
+            bg-white/95 backdrop-blur-md shadow-lg border border-gray-200/80 
+            p-2.5 active:scale-95 transition-transform duration-150
+          "
           aria-label="Sortiranje"
-          style={{ gap: "5px" }}
         >
-          <IconArrowsSort stroke={2} />
-          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Poredaj po</span>
+          {getSortIcon(sortValue, 18, "text-gray-700")}
         </button>
       </div>
 
-      {/* Multi-select info bar za istekle oglase */}
+      {/* Multi-select bar za istekle oglase */}
       {canMultiSelect && renewIds.length > 0 && (
         <div
-          className={`flex items-center justify-between mt-[30px] ${
-            isSticky ? "pt-[20px]" : ""
-          }`}
+          className={`
+            flex items-center justify-between mt-6 p-3 bg-gray-50 rounded-xl border border-gray-100
+            animate-in fade-in slide-in-from-top-2 duration-300
+            ${isSticky ? "pt-4" : ""}
+          `}
         >
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={renewIds.length === expiredAds.length}
-                onCheckedChange={handleSelectAll}
-                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-              />
-              <span className="text-sm font-medium">Označi sve</span>
-            </div>
+            <Checkbox
+              checked={renewIds.length === expiredAds.length}
+              onCheckedChange={handleSelectAll}
+              className="data-[state=checked]:bg-gray-900 data-[state=checked]:border-gray-900"
+            />
+            <span className="text-sm font-medium text-gray-700">Označi sve</span>
           </div>
-          <p className="text-sm text-gray-600">
-            {renewIds.length} {renewIds.length === 1 ? "oglas" : "oglasa"}{" "}
-            označeno
+          <p className="text-sm text-gray-500">
+            <span className="font-semibold text-gray-900">{renewIds.length}</span>
+            {" "}{renewIds.length === 1 ? "oglas" : "oglasa"} označeno
           </p>
         </div>
       )}
 
       {/* Lista oglasa */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 mt-[30px] xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 mt-6 xl:grid-cols-4 gap-3 sm:gap-4">
         {IsLoading ? (
-          [...Array(6)].map((_, i) => <ProductCardSkeleton key={i} />)
+          [...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="animate-in fade-in duration-300"
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
+              <ProductCardSkeleton />
+            </div>
+          ))
         ) : MyItems && MyItems?.length > 0 ? (
-          MyItems.map((item) => (
-            <AdsCard
+          MyItems.map((item, index) => (
+            <div
               key={item?.id}
-              data={item}
-              isApprovedSort={sortValue === "approved"}
-              isSelected={renewIds.includes(item?.id)}
-              isSelectable={renewIds.length > 0 && item.status === "expired"}
-              onSelectionToggle={() => handleAdSelection(item?.id)}
-              onContextMenuAction={(action, id, buyerId) =>
-                handleContextMenuAction(action, id || item?.id, buyerId)
-              }
-            />
+              className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+              style={{ animationDelay: `${index * 30}ms` }}
+            >
+              <AdsCard
+                data={item}
+                isApprovedSort={sortValue === "approved"}
+                isSelected={renewIds.includes(item?.id)}
+                isSelectable={renewIds.length > 0 && item.status === "expired"}
+                onSelectionToggle={() => handleAdSelection(item?.id)}
+                onContextMenuAction={(action, id, buyerId) =>
+                  handleContextMenuAction(action, id || item?.id, buyerId)
+                }
+              />
+            </div>
           ))
         ) : (
-          <div className="col-span-full">
+          <div className="col-span-full animate-in fade-in duration-500">
             <NoData name="oglasa" />
           </div>
         )}
@@ -720,26 +749,43 @@ const MyAds = () => {
 
       {/* Load more */}
       {currentPage < lastPage && (
-        <div className="text-center mt-8 pb-8">
+        <div className="flex justify-center mt-8 pb-8">
           <Button
             variant="outline"
-            className="h-11 px-8 rounded-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-black transition-all"
+            className="
+              h-11 px-8 rounded-full border-gray-200 text-gray-700 
+              hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300
+              active:scale-95 transition-all duration-200
+            "
             disabled={IsLoading || IsLoadMore}
             onClick={() => getMyItemsData(currentPage + 1)}
           >
-            {IsLoadMore ? "Učitavanje..." : "Učitaj još"}
+            {IsLoadMore ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                Učitavanje...
+              </span>
+            ) : (
+              "Učitaj još"
+            )}
           </Button>
         </div>
       )}
 
-      {/* Floating actions za istaknute / brisanje / obnovu isteklh oglasa */}
+      {/* Floating actions za renewal/delete */}
       {renewIds.length > 0 && (
-        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none">
-          <div className="bg-white p-2 rounded-full shadow-xl border border-gray-200 flex gap-2 pointer-events-auto">
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none px-4">
+          <div
+            className="
+              bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl 
+              border border-gray-200/80 flex gap-2 pointer-events-auto
+              animate-in fade-in slide-in-from-bottom-4 duration-300
+            "
+          >
             <Button
               onClick={handleCancelSelection}
               variant="ghost"
-              className="rounded-full px-6 hover:bg-gray-100"
+              className="rounded-xl px-5 hover:bg-gray-100 transition-colors duration-200"
             >
               Otkaži
             </Button>
@@ -749,7 +795,7 @@ const MyAds = () => {
                 setSelectedIds([...renewIds]);
                 setIsDeleteDialog(true);
               }}
-              className="bg-red-50 text-red-600 hover:bg-red-100 rounded-full px-6"
+              className="bg-red-50 text-red-600 hover:bg-red-100 rounded-xl px-5 transition-colors duration-200"
             >
               Ukloni
             </Button>
@@ -758,18 +804,25 @@ const MyAds = () => {
                 isFreeAdListing ? handleRenew() : setIsChoosePackage(true)
               }
               disabled={isRenewingAd}
-              className="bg-black text-white rounded-full px-6 hover:bg-gray-800"
+              className="bg-gray-900 text-white rounded-xl px-5 hover:bg-gray-800 transition-colors duration-200"
             >
-              {isRenewingAd ? "Učitavanje..." : "Obnovi"}
+              {isRenewingAd ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Učitavanje...
+                </span>
+              ) : (
+                "Obnovi"
+              )}
             </Button>
           </div>
         </div>
       )}
 
-      {/* MOBILE: bottom sheet - filter (statusi) */}
+      {/* MOBILE: Bottom sheet - Filter */}
       <div
         className={`
-          sm:hidden fixed inset-0 z-50 transition-opacity duration-300
+          sm:hidden fixed inset-0 z-50 transition-all duration-300 ease-out
           ${
             isStatusSheetOpen
               ? "opacity-100 pointer-events-auto"
@@ -778,34 +831,43 @@ const MyAds = () => {
         `}
         onClick={() => setIsStatusSheetOpen(false)}
       >
-        <div className="absolute inset-0 bg-black/40" />
-
+        {/* Backdrop */}
         <div
           className={`
-            absolute left-0 right-0 bottom-0
-            rounded-t-2xl bg-white p-4 shadow-2xl
-            transition-transform duration-300 ease-out
+            absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300
+            ${isStatusSheetOpen ? "opacity-100" : "opacity-0"}
+          `}
+        />
+
+        {/* Sheet */}
+        <div
+          className={`
+            absolute left-0 right-0 bottom-0 rounded-t-3xl bg-white 
+            shadow-2xl transition-transform duration-300 ease-out
             ${isStatusSheetOpen ? "translate-y-0" : "translate-y-full"}
           `}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="mb-3 flex justify-center">
-            <div className="h-1.5 w-12 rounded-full bg-slate-200" />
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="h-1 w-10 rounded-full bg-gray-300" />
           </div>
 
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Filter oglasa</h2>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pb-3">
+            <h2 className="text-base font-semibold text-gray-900">Filtriraj oglase</h2>
             <button
               type="button"
               onClick={() => setIsStatusSheetOpen(false)}
-              className="text-xs text-muted-foreground"
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               Zatvori
             </button>
           </div>
 
-          <div className="space-y-2">
-            {tabs.map((item) => {
+          {/* Content */}
+          <div className="px-4 pb-8 space-y-1.5">
+            {tabs.map((item, index) => {
               const isActive = status === item.value;
               const count = statusCounts[item.value] || 0;
 
@@ -817,16 +879,25 @@ const MyAds = () => {
                     setIsStatusSheetOpen(false);
                   }}
                   className={`
-                    w-full flex items-center justify-between rounded-lg border px-3 py-2 text-xs
+                    w-full flex items-center justify-between rounded-xl px-4 py-3.5
+                    transition-all duration-200 ease-out
                     ${
                       isActive
-                        ? "bg-black text-white border-black"
-                        : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                        ? "bg-gray-900 text-white"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-100 active:scale-[0.98]"
                     }
                   `}
+                  style={{ animationDelay: `${index * 30}ms` }}
                 >
-                  <span>{item.label}</span>
-                  <span className="text-[11px]">{count}</span>
+                  <span className="font-medium">{item.label}</span>
+                  <span
+                    className={`
+                      text-sm font-semibold px-2 py-0.5 rounded-md
+                      ${isActive ? "bg-white/20 text-white" : "bg-gray-200 text-gray-600"}
+                    `}
+                  >
+                    {count}
+                  </span>
                 </button>
               );
             })}
@@ -834,10 +905,10 @@ const MyAds = () => {
         </div>
       </div>
 
-      {/* MOBILE: bottom sheet - sortiranje */}
+      {/* MOBILE: Bottom sheet - Sortiranje */}
       <div
         className={`
-          sm:hidden fixed inset-0 z-50 transition-opacity duration-300
+          sm:hidden fixed inset-0 z-50 transition-all duration-300 ease-out
           ${
             isSortSheetOpen
               ? "opacity-100 pointer-events-auto"
@@ -846,111 +917,75 @@ const MyAds = () => {
         `}
         onClick={() => setIsSortSheetOpen(false)}
       >
-        <div className="absolute inset-0 bg-black/40" />
-
+        {/* Backdrop */}
         <div
           className={`
-            absolute left-0 right-0 bottom-0
-            rounded-t-2xl bg-white p-4 shadow-2xl
-            transition-transform duration-300 ease-out
+            absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300
+            ${isSortSheetOpen ? "opacity-100" : "opacity-0"}
+          `}
+        />
+
+        {/* Sheet */}
+        <div
+          className={`
+            absolute left-0 right-0 bottom-0 rounded-t-3xl bg-white 
+            shadow-2xl transition-transform duration-300 ease-out
             ${isSortSheetOpen ? "translate-y-0" : "translate-y-full"}
           `}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="mb-3 flex justify-center">
-            <div className="h-1.5 w-12 rounded-full bg-slate-200" />
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="h-1 w-10 rounded-full bg-gray-300" />
           </div>
 
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Poredaj oglase</h2>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pb-3">
+            <h2 className="text-base font-semibold text-gray-900">Poredaj oglase</h2>
             <button
               type="button"
               onClick={() => setIsSortSheetOpen(false)}
-              className="text-xs text-muted-foreground"
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               Zatvori
             </button>
           </div>
 
-          <div className="space-y-2">
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Poredaj po
-            </span>
+          {/* Content */}
+          <div className="px-4 pb-8 space-y-1.5">
+            {[
+              { value: "new-to-old", label: "Najnovije prvo", icon: Clock },
+              { value: "old-to-new", label: "Najstarije prvo", icon: History },
+              { value: "price-high-to-low", label: "Cijena: najviša prvo", icon: TrendingDown },
+              { value: "price-low-to-high", label: "Cijena: najniža prvo", icon: TrendingUp },
+              { value: "popular_items", label: "Popularno", icon: Flame },
+            ].map((item, index) => {
+              const isActive = sortValue === item.value;
+              const Icon = item.icon;
 
-            <Select
-              value={sortValue}
-              onValueChange={(value) => {
-                handleSortChange(value);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full bg-white shadow-sm border border-gray-200">
-                <div className="flex items-center gap-2">
-                  <IconArrowsSort className="h-3.5 w-3.5 text-gray-500" />
-                  <SelectValue placeholder="Poredaj oglase" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="bg-white border-gray-100 shadow-md">
-                <SelectGroup>
-                  <SelectItem
-                    value="new-to-old"
-                    className="cursor-pointer hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconSortDescending
-                        size={16}
-                        className="text-gray-500"
-                      />
-                      <span>Najnovije prvo</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem
-                    value="old-to-new"
-                    className="cursor-pointer hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconSortAscending
-                        size={16}
-                        className="text-gray-500"
-                      />
-                      <span>Najstarije prvo</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem
-                    value="price-high-to-low"
-                    className="cursor-pointer hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconCurrencyDollar
-                        size={16}
-                        className="text-gray-500"
-                      />
-                      <span>Cijena: najviša prvo</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem
-                    value="price-low-to-high"
-                    className="cursor-pointer hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconCurrencyDollar
-                        size={16}
-                        className="text-gray-500"
-                      />
-                      <span>Cijena: najniža prvo</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem
-                    value="popular_items"
-                    className="cursor-pointer hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconTrendingUp size={16} className="text-gray-500" />
-                      <span>Popularno</span>
-                    </div>
-                  </SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              return (
+                <button
+                  key={item.value}
+                  onClick={() => {
+                    handleSortChange(item.value);
+                    setIsSortSheetOpen(false);
+                  }}
+                  className={`
+                    w-full flex items-center gap-3 rounded-xl px-4 py-3.5
+                    transition-all duration-200 ease-out
+                    ${
+                      isActive
+                        ? "bg-gray-900 text-white"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-100 active:scale-[0.98]"
+                    }
+                  `}
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <Icon size={18} className={isActive ? "text-white" : "text-gray-500"} />
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
