@@ -844,6 +844,7 @@ export const addItemApi = {
     is_avaible,
     inventory_count,
     show_only_to_premium,
+    video
   } = {}) => {
     const formData = new FormData();
 
@@ -860,6 +861,10 @@ export const addItemApi = {
        if (scheduled_at) {
         formData.append("scheduled_at", scheduled_at);
         console.log("FORMDATA: scheduled_at", scheduled_at);
+      }
+
+      if (video && (video instanceof File || video instanceof Blob)) {
+        formData.append("video", video);
       }
 
     // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)

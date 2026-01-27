@@ -240,7 +240,7 @@ const EditComponentThree = ({
       </div>
  
       {/* 🎬 VIDEO UPLOAD SECTION */}
-      <div style={{ display: "none" }} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <label className="flex items-center gap-2 font-semibold text-sm">
           <svg className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="m22 8-6 4 6 4V8Z"/>

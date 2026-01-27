@@ -222,117 +222,86 @@ const ComponentFour = ({
       </div>
  
       {/* 🎬 VIDEO UPLOAD SECTION */}
-      {/* <div className="flex flex-col gap-3">
-        <label className="flex items-center gap-2 font-semibold text-sm">
-          <svg className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="m22 8-6 4 6 4V8Z"/>
-            <rect width="14" height="12" x="2" y="6" rx="2"/>
-          </svg>
-          Video
-          <span className="text-gray-400 font-normal text-xs">(opciono, max 30s)</span>
-        </label>
- 
-        <div
-          onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
-          onDragLeave={() => setIsDraggingVideo(false)}
-          onDrop={handleVideoDrop}
-        >
-          <input
-            type="file"
-            accept="video/mp4,video/quicktime,video/webm"
-            onChange={handleVideoDrop}
-            className="hidden"
-            id="video-input"
-          />
- 
-          {!videoPreviewUrl ? (
-            <label
-              htmlFor="video-input"
-              className={`block border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all duration-300 ${
-                isDraggingVideo
-                  ? 'border-red-500 bg-red-50 scale-105'
-                  : 'border-gray-300 hover:border-red-400 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex flex-col items-center justify-center text-center gap-3">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                  isDraggingVideo ? 'bg-red-100' : 'bg-gray-100'
-                }`}>
-                  <svg className={`w-7 h-7 ${isDraggingVideo ? 'text-red-500' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" x2="12" y1="3" y2="15"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-gray-700 font-semibold">
-                    {isDraggingVideo ? "Spustite video ovdje" : "Dodajte video"}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">Prevucite ili kliknite za odabir</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">MP4</span>
-                  <span className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">MOV</span>
-                  <span className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-medium rounded">WebM</span>
-                </div>
-                <p className="text-xs text-gray-400">Max 30 sekundi, 100MB</p>
-              </div>
-            </label>
-          ) : (
-            <div className="relative rounded-xl overflow-hidden bg-black aspect-video group shadow-lg">
-              <video
-                ref={videoRef}
-                src={videoPreviewUrl}
-                className="w-full h-full object-contain"
-                onEnded={() => setPlayingVideo(false)}
-                playsInline
-                muted
-              />
-              
-              <div
-                onClick={toggleVideoPlay}
-                className={`absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-opacity ${
-                  playingVideo ? 'opacity-0 hover:opacity-100' : 'opacity-100'
-                }`}
-              >
-                <div className={`w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg transition-transform ${
-                  playingVideo ? 'scale-75' : 'scale-100 hover:scale-110'
-                }`}>
-                  {playingVideo ? (
-                    <FaPause className="w-6 h-6 text-gray-800" />
-                  ) : (
-                    <FaPlay className="w-6 h-6 text-gray-800 ml-1" />
-                  )}
-                </div>
-              </div>
- 
+<div className="flex flex-col gap-3">
+  <label className="flex items-center gap-2 font-semibold text-sm">
+    <svg className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="m22 8-6 4 6 4V8Z" />
+      <rect width="14" height="12" x="2" y="6" rx="2" />
+    </svg>
+    Video
+    <span className="text-gray-400 font-normal text-xs">(opciono, max 30s)</span>
+  </label>
 
-              {uploadedVideo && (
-                <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                  <span className="px-2 py-1 bg-black/70 text-white text-xs font-medium rounded-lg">
-                    {formatFileSize(uploadedVideo.size)}
-                  </span>
-                </div>
-              )}
- 
-              <button
-                onClick={handleRemoveVideo}
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
-              >
-                <MdClose size={20} />
-              </button>
-            </div>
-          )}
-        </div>
- 
-        {!videoPreviewUrl && (
-          <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-            <p className="text-xs text-blue-700">
-              💡 <strong>Savjet:</strong> Kratki video (15-30s) povećava šanse za prodaju do 50%!
-            </p>
+  <div
+    onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
+    onDragLeave={() => setIsDraggingVideo(false)}
+    onDrop={handleVideoDrop}
+  >
+    <input
+      type="file"
+      accept="video/mp4,video/quicktime,video/webm"
+      onChange={handleVideoDrop}
+      className="hidden"
+      id="video-input"
+    />
+
+    {!videoPreviewUrl ? (
+      <label
+        htmlFor="video-input"
+        className={`block border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all duration-300 ${
+          isDraggingVideo
+            ? "border-red-500 bg-red-50 scale-105"
+            : "border-gray-300 hover:border-red-400 hover:bg-gray-50"
+        }`}
+      >
+        <div className="flex flex-col items-center justify-center text-center gap-3">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+            isDraggingVideo ? "bg-red-100" : "bg-gray-100"
+          }`}>
+            <Upload className={`w-7 h-7 ${isDraggingVideo ? "text-red-500" : "text-gray-400"}`} />
           </div>
-        )}
-      </div> */}
+          <div>
+            <p className="text-gray-700 font-semibold">
+              {isDraggingVideo ? "Spustite video ovdje" : "Dodajte video"}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Prevucite ili kliknite za odabir</p>
+          </div>
+          <p className="text-xs text-gray-400">Max 30 sekundi</p>
+        </div>
+      </label>
+    ) : (
+      <div className="relative rounded-xl overflow-hidden bg-black aspect-video group shadow-lg">
+        <video
+          ref={videoRef}
+          src={videoPreviewUrl}
+          className="w-full h-full object-contain"
+          onEnded={() => setPlayingVideo(false)}
+          playsInline
+          muted
+        />
+        <div
+          onClick={toggleVideoPlay}
+          className={`absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-opacity ${
+            playingVideo ? "opacity-0 hover:opacity-100" : "opacity-100"
+          }`}
+        >
+          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+            {playingVideo ? <FaPause className="text-black" /> : <FaPlay className="text-black ml-1" />}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleRemoveVideo}
+          className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 hover:scale-110 transition-all"
+        >
+          <MdClose size={18} />
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+
  
       {/* Other Images Section */}
       <div className="flex flex-col gap-3">
