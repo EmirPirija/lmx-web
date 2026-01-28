@@ -51,7 +51,7 @@ import { IconRosetteDiscount } from "@tabler/icons-react";
 // - Images: compress + watermark IMMEDIATELY on select
 // - Video: we only validate size here (compression should be server-side)
 // =======================================================
-const WATERMARK_TEXT_DEFAULT = "LMX.ba";
+const WATERMARK_TEXT_DEFAULT = "lmx.ba";
 
 const isFileLike = (v) =>
   typeof File !== "undefined" &&
@@ -86,7 +86,7 @@ const compressAndWatermarkImage = async (
     watermarkOpacity = 0.55,
     watermarkPadding = 18,
     watermarkFontSize = 22,
-    minBytesToProcess = 250 * 1024, // ne diraj mini fajlove
+    minBytesToProcess = 0, // ne diraj mini fajlove
   } = {}
 ) => {
   if (!isFileLike(file)) return file;
@@ -652,10 +652,11 @@ const AdsListing = () => {
       price: defaultDetails.price,
       contact: defaultDetails.contact,
       video_link: defaultDetails?.video_link,
-      image: uploadedImages[0],
+      temp_main_image_id: uploadedImages?.[0]?.id ?? null,
+      temp_gallery_image_ids: (otherImages || []).map((x) => x?.id).filter(Boolean),
+      temp_video_id: uploadedVideo?.id ?? null,      
       gallery_images: otherImages,
       address: location?.address,
-      video: uploadedVideo,
       latitude: location?.lat,
       longitude: location?.long,
       custom_field_files: customFieldFiles,

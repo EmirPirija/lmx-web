@@ -453,21 +453,36 @@ export const updateProfileApi = {
   } = {}) => {
     const formData = new FormData();
 
-    // Append only if the value is defined and not an empty string
+    // Append only if the value is defined
     if (name) formData.append("name", name);
     if (email) formData.append("email", email);
-    formData.append("mobile", mobile);
+    
+    // Dodana provjera za mobile
+    if (mobile) formData.append("mobile", mobile);
+    
     if (fcm_id) formData.append("fcm_id", fcm_id);
     if (address) formData.append("address", address);
     if (country_code) formData.append("country_code", country_code);
 
-    // Assuming `profile` is a file object. If it's a URL or other type, handle accordingly.
     if (profile) {
       formData.append("profile", profile);
     }
-    formData.append("notification", notification);
-    formData.append("show_personal_details", show_personal_details);
-    formData.append("region_code", region_code);
+
+    // --- FIX: Provjera da li su vrijednosti definirane prije slanja ---
+    // Koristimo !== undefined jer vrijednost može biti 0 (što je falsy)
+    
+    if (notification !== undefined && notification !== null) {
+        formData.append("notification", notification);
+    }
+    
+    if (show_personal_details !== undefined && show_personal_details !== null) {
+        formData.append("show_personal_details", show_personal_details);
+    }
+    
+    if (region_code) {
+        formData.append("region_code", region_code);
+    }
+    // -------------------------------------------------------------
 
     return Api.post(UPDATE_PROFILE, formData, {
       headers: {
@@ -1682,6 +1697,7 @@ export const sellerSettingsApi = {
   updateSettings: ({
     show_phone,
     show_email,
+    avatar_id,
     show_whatsapp,
     show_viber,
     whatsapp_number,
@@ -1706,6 +1722,7 @@ export const sellerSettingsApi = {
     const formData = new FormData();
  
     if (show_phone !== undefined) formData.append("show_phone", show_phone ? 1 : 0);
+    if (avatar_id) formData.append("avatar_id", avatar_id);
     if (show_email !== undefined) formData.append("show_email", show_email ? 1 : 0);
     if (show_whatsapp !== undefined) formData.append("show_whatsapp", show_whatsapp ? 1 : 0);
     if (show_viber !== undefined) formData.append("show_viber", show_viber ? 1 : 0);

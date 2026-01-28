@@ -1,16 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { sellerSettingsApi } from "@/utils/api";
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
+import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 import { cn } from "@/lib/utils";
+import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
+// 1. IMPORTUJEMO TVOJU NOVU KOMPONENTU (Marketplace Stil)
+import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
+// 2. IMPORTUJEMO HELPER ZA KONVERZIJU REACT KOMPONENTE U STRING
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   MdPhone,
@@ -32,6 +38,8 @@ import {
   MdLocalOffer,
   MdAutoAwesome,
   MdPerson,
+  MdEdit,
+  MdCloudUpload,
 } from "react-icons/md";
 import { FaViber, FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaGlobe } from "react-icons/fa";
 
@@ -39,36 +47,69 @@ import { FaViber, FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaGlobe } from "
    Helpers
 ========================================================= */
 
-function payloadFromServer(s) {
-    return {
-      avatar_id: s.avatar_id || "lmx-01",
-      show_phone: s.show_phone ?? true,
-      show_email: s.show_email ?? true,
-      show_whatsapp: s.show_whatsapp ?? false,
-      show_viber: s.show_viber ?? false,
-      whatsapp_number: s.whatsapp_number || "",
-      viber_number: s.viber_number || "",
-      preferred_contact_method: s.preferred_contact_method || "message",
-      business_hours: normalizeBusinessHours(s.business_hours),
-      response_time: s.response_time || "auto",
-      accepts_offers: s.accepts_offers ?? true,
-      auto_reply_enabled: s.auto_reply_enabled ?? false,
-      auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
-      vacation_mode: s.vacation_mode ?? false,
-      vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
-      business_description: s.business_description || "",
-      return_policy: s.return_policy || "",
-      shipping_info: s.shipping_info || "",
-      social_facebook: s.social_facebook || "",
-      social_instagram: s.social_instagram || "",
-      social_tiktok: s.social_tiktok || "",
-      social_youtube: s.social_youtube || "",
-      social_website: s.social_website || "",
-    };
-  }
-  
+// Helper za konverziju SVG Stringa u Blob (Sliku)
+const svgStringToBlob = (svgString) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    
+    // Dodajemo xmlns i dimenzije ako fale
+    let stringToLoad = svgString;
+    if (!stringToLoad.includes("xmlns")) {
+        stringToLoad = stringToLoad.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    // Ako nema width/height, dodajemo ih da canvas zna dimenzije
+    if (!stringToLoad.includes("width=")) {
+         stringToLoad = stringToLoad.replace("<svg", '<svg width="500" height="500"');
+    }
 
-const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+    const svgBlob = new Blob([stringToLoad], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 500;
+      canvas.height = 500;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, 500, 500);
+
+      canvas.toBlob((blob) => {
+        resolve(blob);
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    };
+    img.src = url;
+  });
+};
+
+function payloadFromServer(s) {
+  return {
+    avatar_id: s.avatar_id || "lmx-01",
+    show_phone: s.show_phone ?? true,
+    show_email: s.show_email ?? true,
+    show_whatsapp: s.show_whatsapp ?? false,
+    show_viber: s.show_viber ?? false,
+    whatsapp_number: s.whatsapp_number || "",
+    viber_number: s.viber_number || "",
+    preferred_contact_method: s.preferred_contact_method || "message",
+    business_hours: normalizeBusinessHours(s.business_hours),
+    response_time: s.response_time || "auto",
+    accepts_offers: s.accepts_offers ?? true,
+    auto_reply_enabled: s.auto_reply_enabled ?? false,
+    auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
+    vacation_mode: s.vacation_mode ?? false,
+    vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
+    business_description: s.business_description || "",
+    return_policy: s.return_policy || "",
+    shipping_info: s.shipping_info || "",
+    social_facebook: s.social_facebook || "",
+    social_instagram: s.social_instagram || "",
+    social_tiktok: s.social_tiktok || "",
+    social_youtube: s.social_youtube || "",
+    social_website: s.social_website || "",
+  };
+}
+
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 const defaultBusinessHours = {
   monday: { open: "09:00", close: "17:00", enabled: true },
@@ -82,8 +123,6 @@ const defaultBusinessHours = {
 
 function normalizeBusinessHours(raw) {
   let obj = raw;
-
-  // Ako dođe string, pokušaj JSON.parse
   if (typeof obj === "string") {
     try {
       obj = JSON.parse(obj);
@@ -91,13 +130,9 @@ function normalizeBusinessHours(raw) {
       obj = null;
     }
   }
-
-  // Ako dođe array ili bilo šta drugo – fallback
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
     obj = {};
   }
-
-  // Popuni sve dane i osiguraj shape
   const out = {};
   for (const day of DAYS) {
     const base = defaultBusinessHours[day];
@@ -111,112 +146,17 @@ function normalizeBusinessHours(raw) {
   return out;
 }
 
-/* =========================================================
-   LMX SVG Avatars (inline)
-========================================================= */
-
+// Lista dostupnih avatara (Marketplace tema - imena odgovaraju switch-u u LmxAvatarSvg)
 const AVATARS = [
-  { id: "lmx-01", name: "LMX Sun" },
-  { id: "lmx-02", name: "LMX Moon" },
-  { id: "lmx-03", name: "LMX Wave" },
-  { id: "lmx-04", name: "LMX Bolt" },
-  { id: "lmx-05", name: "LMX Leaf" },
-  { id: "lmx-06", name: "LMX Star" },
-  { id: "lmx-07", name: "LMX Cube" },
-  { id: "lmx-08", name: "LMX Orb" },
+  { id: "lmx-01", name: "Shop" },
+  { id: "lmx-02", name: "Rocket" },
+  { id: "lmx-03", name: "Tag" },
+  { id: "lmx-04", name: "Gem" },
+  { id: "lmx-05", name: "Bolt" },
+  { id: "lmx-06", name: "Heart" },
+  { id: "lmx-07", name: "Star" },
+  { id: "lmx-08", name: "Box" },
 ];
-
-function LmxAvatarSvg({ avatarId, className }) {
-  // Minimalne, čiste forme (bez eksternih asseta)
-  // Ako želiš “character” stil kasnije, samo proširi case-ove.
-  switch (avatarId) {
-    case "lmx-02":
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          <path d="M42 44c-10 0-18-8-18-18 0-5.5 2.4-10.4 6.2-13.7C20.8 14.3 14 22.2 14 32c0 13.3 10.7 24 24 24 9.8 0 18.3-6 22-14.6-3.2 2.1-7 3.6-10 3.6Z" fill="currentColor" opacity="0.9"/>
-          <circle cx="40" cy="24" r="2" fill="currentColor" />
-          <circle cx="46" cy="30" r="1.5" fill="currentColor" opacity="0.9" />
-        </svg>
-      );
-    case "lmx-03":
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          <path d="M12 36c7-10 14-10 21 0s14 10 19 0 8-10 12-6" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round"/>
-          <path d="M10 44c8-8 16-8 24 0s16 8 20 0" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.8"/>
-        </svg>
-      );
-    case "lmx-04":
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          <path d="M36 10 18 36h14l-4 18 18-26H32l4-18Z" fill="currentColor" opacity="0.95"/>
-        </svg>
-      );
-    case "lmx-05":
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          <path d="M48 18c-10 0-18 6-22 16-3 7-2 14-2 14s7 1 14-2c10-4 16-12 16-22 0-2-.3-4-.9-6.1-1.6.7-3.3 1.1-5.1 1.1Z" fill="currentColor" opacity="0.95"/>
-          <path d="M26 48c8-8 14-14 20-22" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.75"/>
-        </svg>
-      );
-    case "lmx-06":
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          <path d="M32 12l5.5 12 13 1-10 8 3 13-11.5-6-11.5 6 3-13-10-8 13-1L32 12Z" fill="currentColor" opacity="0.95"/>
-        </svg>
-      );
-    case "lmx-07":
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          <path d="M20 26 32 18l12 8v14l-12 8-12-8V26Z" fill="none" stroke="currentColor" strokeWidth="3" opacity="0.95" />
-          <path d="M20 26l12 8 12-8" fill="none" stroke="currentColor" strokeWidth="3" opacity="0.65" />
-          <path d="M32 34v14" fill="none" stroke="currentColor" strokeWidth="3" opacity="0.65" />
-        </svg>
-      );
-    case "lmx-08":
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          <circle cx="32" cy="32" r="14" fill="none" stroke="currentColor" strokeWidth="4" opacity="0.95" />
-          <path d="M10 32h44" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
-          <path d="M32 10v44" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
-        </svg>
-      );
-    case "lmx-01":
-    default:
-      return (
-        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-          <circle cx="32" cy="32" r="14" fill="currentColor" opacity="0.9" />
-          <circle cx="32" cy="32" r="28" fill="currentColor" opacity="0.08" />
-          {Array.from({ length: 8 }).map((_, i) => {
-            const angle = (i * Math.PI) / 4;
-            const x1 = 32 + Math.cos(angle) * 20;
-            const y1 = 32 + Math.sin(angle) * 20;
-            const x2 = 32 + Math.cos(angle) * 26;
-            const y2 = 32 + Math.sin(angle) * 26;
-            return (
-              <line
-                key={i}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                opacity="0.75"
-              />
-            );
-          })}
-        </svg>
-      );
-  }
-}
 
 /* =========================================================
    UI components
@@ -304,25 +244,28 @@ const SettingInput = ({ label, placeholder, value, onChange, icon: Icon, type = 
 );
 
 /* =========================================================
-   Main
+   Main Component
 ========================================================= */
 
 const SellerSettings = () => {
+  const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Snapshot za hasChanges (ne pali na initial fetch)
-  const initialPayloadRef = useRef(null);
+  // Avatar states
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const fileInputRef = useRef(null);
 
+  const initialPayloadRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Avatar
+  // Settings states
   const [avatarId, setAvatarId] = useState("lmx-01");
-
-  // Kontakt
   const [showPhone, setShowPhone] = useState(true);
   const [showEmail, setShowEmail] = useState(true);
   const [showWhatsapp, setShowWhatsapp] = useState(false);
@@ -330,33 +273,28 @@ const SellerSettings = () => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [viberNumber, setViberNumber] = useState("");
   const [preferredContact, setPreferredContact] = useState("message");
-
-  // Radno vrijeme (držimo safe shape da nikad ne puca)
   const [businessHours, setBusinessHours] = useState(defaultBusinessHours);
   const [responseTime, setResponseTime] = useState("auto");
-
-  // Ponude
   const [acceptsOffers, setAcceptsOffers] = useState(true);
-
-  // Auto-reply
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [autoReplyMessage, setAutoReplyMessage] = useState("Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
-
-  // Vacation mode
   const [vacationMode, setVacationMode] = useState(false);
   const [vacationMessage, setVacationMessage] = useState("Trenutno sam na odmoru. Vratit ću se uskoro!");
-
-  // Poslovne informacije
   const [businessDescription, setBusinessDescription] = useState("");
   const [returnPolicy, setReturnPolicy] = useState("");
   const [shippingInfo, setShippingInfo] = useState("");
-
-  // Društvene mreže
   const [socialFacebook, setSocialFacebook] = useState("");
   const [socialInstagram, setSocialInstagram] = useState("");
   const [socialTiktok, setSocialTiktok] = useState("");
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
+
+  // Sync previewImage kad se currentUser učita
+  useEffect(() => {
+    if (currentUser?.profile_image) {
+      setPreviewImage(currentUser.profile_image);
+    }
+  }, [currentUser]);
 
   const responseTimeOptions = useMemo(
     () => [
@@ -421,14 +359,12 @@ const SellerSettings = () => {
     try {
       setIsLoading(true);
       setLoadError("");
-  
+
       const response = await sellerSettingsApi.getSettings();
-  
+
       if (response?.data?.error === false && response?.data?.data) {
         const s = response.data.data;
-        
-  
-        // setState iz s
+
         setAvatarId(s.avatar_id || "lmx-01");
         setShowPhone(s.show_phone ?? true);
         setShowEmail(s.show_email ?? true);
@@ -452,27 +388,24 @@ const SellerSettings = () => {
         setSocialTiktok(s.social_tiktok || "");
         setSocialYoutube(s.social_youtube || "");
         setSocialWebsite(s.social_website || "");
-  
-        // snapshot iz response-a (NE iz buildPayload!)
+
         initialPayloadRef.current = JSON.stringify(payloadFromServer(s));
         setHasChanges(false);
       } else {
         setLoadError(response?.data?.message || "Ne mogu dohvatiti postavke.");
       }
     } catch (error) {
-      setLoadError("Greška pri dohvaćanju postavki (provjeri backend).");
+      setLoadError("Greška pri dohvaćanju postavki.");
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  }, []); // ✅ prazno
-  
+  }, []);
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
-  // hasChanges: poredi sa snapshotom
   useEffect(() => {
     if (!initialPayloadRef.current) return;
     const now = JSON.stringify(buildPayload());
@@ -482,7 +415,6 @@ const SellerSettings = () => {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-
       const payload = buildPayload();
       const response = await sellerSettingsApi.updateSettings(payload);
 
@@ -496,10 +428,70 @@ const SellerSettings = () => {
     } catch (error) {
       toast.error("Greška pri čuvanju postavki");
       console.error(error);
-      console.log("DATA:", error.response.data)
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // --- FUNKCIJA ZA AŽURIRANJE SLIKE (Generator + Upload + Ikone) ---
+  const updateProfileImage = async (fileOrBlob) => {
+    if (!fileOrBlob) return;
+
+    // Instant Preview
+    const objectUrl = URL.createObjectURL(fileOrBlob);
+    setPreviewImage(objectUrl);
+
+    setIsAvatarUploading(true);
+    try {
+      const response = await updateProfileApi.updateProfile({
+        profile: fileOrBlob,
+        name: currentUser?.name,
+        mobile: currentUser?.mobile,
+        email: currentUser?.email,
+        notification: currentUser?.notification ?? 0,
+        show_personal_details: currentUser?.show_personal_details ?? 0,
+        country_code: currentUser?.country_code,
+      });
+
+      if (response?.data?.error === false) {
+        toast.success("Profilna slika je ažurirana!");
+        setIsAvatarModalOpen(false);
+        dispatch(userUpdateData({ data: response.data.data }));
+      } else {
+        toast.error(response?.data?.message || "Greška pri ažuriranju slike.");
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      toast.error("Došlo je do greške pri uploadu.");
+    } finally {
+      setIsAvatarUploading(false);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      updateProfileImage(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // --- GLAVNA LOGIKA: PRETVARANJE UVEZENE KOMPONENTE U SLIKU ---
+  const handleDefaultIconSelect = async (id) => {
+    setAvatarId(id);
+
+    // 1. Renderujemo UVEZENU React komponentu u statički HTML string
+    // Ovo osigurava da je slika identična onome što se vidi na ekranu
+    const svgString = renderToStaticMarkup(<LmxAvatarSvg avatarId={id} />);
+
+    // 2. Konvertujemo u sliku i šaljemo
+    const blob = await svgStringToBlob(svgString);
+    updateProfileImage(blob);
   };
 
   if (isLoading) {
@@ -516,11 +508,10 @@ const SellerSettings = () => {
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
           <p className="font-semibold">Ne mogu učitati Seller Settings</p>
           <p className="text-sm mt-1">{loadError}</p>
-          <p className="text-xs mt-2 opacity-80">
-            Ako dobijaš 500 na <code>/api/get-seller-settings</code>, backend najčešće nema migraciju ili baca exception.
-          </p>
         </div>
-        <Button onClick={fetchSettings} variant="outline">Pokušaj ponovo</Button>
+        <Button onClick={fetchSettings} variant="outline">
+          Pokušaj ponovo
+        </Button>
       </div>
     );
   }
@@ -560,48 +551,102 @@ const SellerSettings = () => {
         </div>
       )}
 
-      {/* SEKCIJA: Avatar */}
+      {/* SEKCIJA: Avatar & Izgled */}
       <SettingsSection
         icon={MdPerson}
-        title="Avatar (LMX)"
-        description="Izaberi default SVG avatar dok ne postaviš vlastitu sliku"
+        title="Avatar & Izgled"
+        description="Izaberite sliku s uređaja ili kreirajte jedinstveni avatar"
       >
-        <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-          <div className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-primary">
-            <LmxAvatarSvg avatarId={avatarId} className="w-10 h-10" />
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-slate-800">Trenutni avatar</p>
-            <p className="text-sm text-slate-500">{AVATARS.find(a => a.id === avatarId)?.name || avatarId}</p>
-          </div>
-        </div>
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Lijeva strana: Trenutni prikaz i Dugmad */}
+          <div className="flex flex-col gap-4 items-center p-6 bg-slate-50 rounded-xl border border-slate-100 min-w-[200px]">
+            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
+              {/* Prioritet: Preview Image (Nova) -> Current User Image (Stara) -> Fallback SVG */}
+              {previewImage ? (
+                <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-primary/20">
+                  {/* Prikazujemo UVEZENU komponentu kao fallback */}
+                  <LmxAvatarSvg avatarId={avatarId} className="w-24 h-24" />
+                </div>
+              )}
+            </div>
 
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-700">Izaberi avatar</Label>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-            {AVATARS.map((a) => {
-              const selected = a.id === avatarId;
-              return (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setAvatarId(a.id)}
-                  className={cn(
-                    "aspect-square rounded-xl border bg-white flex items-center justify-center transition-all",
-                    selected ? "border-primary ring-2 ring-primary/20" : "border-slate-200 hover:border-slate-300"
-                  )}
-                  title={a.name}
-                >
-                  <div className={cn("w-9 h-9 text-primary", selected ? "opacity-100" : "opacity-80")}>
-                    <LmxAvatarSvg avatarId={a.id} className="w-full h-full" />
-                  </div>
-                </button>
-              );
-            })}
+            <div className="w-full space-y-2">
+              {/* INPUT TYPE FILE (Skriven) */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileUpload}
+              />
+
+              {/* DUGME 1: Upload Slike */}
+              <Button
+                onClick={triggerFileInput}
+                variant="outline"
+                className="w-full gap-2 border-primary/20 text-primary hover:bg-primary/5"
+                disabled={isAvatarUploading}
+              >
+                <MdCloudUpload size={18} /> Odaberi sliku
+              </Button>
+
+              {/* DUGME 2: Avatar Generator */}
+              <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full gap-2 bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                    <MdEdit size={16} /> Kreiraj Svoj Avatar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none">
+                  <LmxAvatarGenerator
+                    onSave={updateProfileImage}
+                    onCancel={() => setIsAvatarModalOpen(false)}
+                    isSaving={isAvatarUploading}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
-          <p className="text-xs text-slate-400">
-            Tip: ako već imaš custom sliku (upload), možeš i dalje držati avatar kao fallback.
-          </p>
+
+          {/* Desna strana: Fallback opcije (Ikone) */}
+          <div className="flex-1 space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-slate-700 mb-2 block">Brzi izbor (Ikone)</Label>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                {AVATARS.map((a) => {
+                  const selected = a.id === avatarId;
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => handleDefaultIconSelect(a.id)}
+                      className={cn(
+                        "aspect-square rounded-xl border bg-white flex items-center justify-center transition-all p-1",
+                        selected
+                          ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                          : "border-slate-200 hover:border-slate-300"
+                      )}
+                      title={a.name}
+                    >
+                      <div className="w-full h-full">
+                        {/* Prikazujemo UVEZENU komponentu u gridu */}
+                        <LmxAvatarSvg avatarId={a.id} className="w-full h-full" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-3 bg-blue-50 text-blue-700 text-sm rounded-lg border border-blue-100 flex gap-2">
+              <MdInfo className="text-lg flex-shrink-0 mt-0.5" />
+              <p>
+                Bilo da izaberete sliku, kreirate avatar ili kliknete na jedan od gotovih avatara – vaša profilna slika
+                će se ažurirati na cijelom sajtu.
+              </p>
+            </div>
+          </div>
         </div>
       </SettingsSection>
 
@@ -911,11 +956,41 @@ const SellerSettings = () => {
         defaultOpen={false}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SettingInput label="Facebook" placeholder="https://facebook.com/..." value={socialFacebook} onChange={setSocialFacebook} icon={FaFacebook} />
-          <SettingInput label="Instagram" placeholder="https://instagram.com/..." value={socialInstagram} onChange={setSocialInstagram} icon={FaInstagram} />
-          <SettingInput label="TikTok" placeholder="https://tiktok.com/@..." value={socialTiktok} onChange={setSocialTiktok} icon={FaTiktok} />
-          <SettingInput label="YouTube" placeholder="https://youtube.com/..." value={socialYoutube} onChange={setSocialYoutube} icon={FaYoutube} />
-          <SettingInput label="Web stranica" placeholder="https://..." value={socialWebsite} onChange={setSocialWebsite} icon={FaGlobe} />
+          <SettingInput
+            label="Facebook"
+            placeholder="https://facebook.com/..."
+            value={socialFacebook}
+            onChange={setSocialFacebook}
+            icon={FaFacebook}
+          />
+          <SettingInput
+            label="Instagram"
+            placeholder="https://instagram.com/..."
+            value={socialInstagram}
+            onChange={setSocialInstagram}
+            icon={FaInstagram}
+          />
+          <SettingInput
+            label="TikTok"
+            placeholder="https://tiktok.com/@..."
+            value={socialTiktok}
+            onChange={setSocialTiktok}
+            icon={FaTiktok}
+          />
+          <SettingInput
+            label="YouTube"
+            placeholder="https://youtube.com/..."
+            value={socialYoutube}
+            onChange={setSocialYoutube}
+            icon={FaYoutube}
+          />
+          <SettingInput
+            label="Web stranica"
+            placeholder="https://..."
+            value={socialWebsite}
+            onChange={setSocialWebsite}
+            icon={FaGlobe}
+          />
         </div>
       </SettingsSection>
 

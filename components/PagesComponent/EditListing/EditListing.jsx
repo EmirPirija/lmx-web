@@ -509,35 +509,64 @@ const EditListing = ({ id }) => {
       defaultLangId
     );
  
-    const allData = {
-      id: id,
-      name: defaultDetails.name,
-      slug: defaultDetails.slug.trim(),
-      description: defaultDetails?.description,
-      price: defaultDetails.price,
-      contact: defaultDetails.contact,
-      region_code: defaultDetails?.region_code?.toUpperCase() || "",
-      video_link: defaultDetails?.video_link,
-      image: (uploadedImages[0] instanceof File || uploadedImages[0] instanceof Blob) ? uploadedImages[0] : null,
-      gallery_images: OtherImages?.filter((x) => x instanceof File || x instanceof Blob) || [],
-      address: Location?.address,
-      latitude: Location?.lat,
-      longitude: Location?.long,
-      custom_field_files: customFieldFiles,
-      country: Location?.country,
-      video: (video instanceof File) ? video : null,
-      state: Location?.state,
-      city: Location?.city,
-      ...(Location?.area_id ? { area_id: Number(Location?.area_id) } : {}),
-      delete_item_image_id: deleteImagesId,
-      ...(Object.keys(nonDefaultTranslations).length > 0 && {
-        translations: nonDefaultTranslations,
-      }),
-      ...(Object.keys(customFieldTranslations).length > 0 && {
-        custom_field_translations: customFieldTranslations,
-      }),
-      ...(scheduledDateTime && { scheduled_at: scheduledDateTime }),
-    };
+    const mainTempId =
+    uploadedImages?.[0] && typeof uploadedImages?.[0] === "object"
+      ? uploadedImages?.[0]?.id
+      : null;
+  
+  const galleryTempIds = (OtherImages || [])
+    .map((x) => (x && typeof x === "object" ? x.id : null))
+    .filter(Boolean);
+  
+  const videoTempId =
+    video && typeof video === "object" ? video.id : null;
+  
+  const allData = {
+    id: id,
+    name: defaultDetails.name,
+    slug: defaultDetails.slug.trim(),
+    description: defaultDetails?.description,
+    price: defaultDetails.price,
+    contact: defaultDetails.contact,
+    region_code: defaultDetails?.region_code?.toUpperCase() || "",
+    video_link: defaultDetails?.video_link,
+  
+    // ✅ OLD mode (fallback): šalji fajl samo ako je File/Blob
+    image:
+      uploadedImages?.[0] instanceof File || uploadedImages?.[0] instanceof Blob
+        ? uploadedImages[0]
+        : null,
+  
+    gallery_images:
+      OtherImages?.filter((x) => x instanceof File || x instanceof Blob) || [],
+  
+    video: video instanceof File ? video : null,
+  
+    // ✅ NEW mode: temp upload IDs (kad su objekti {id,url})
+    ...(mainTempId ? { temp_main_image_id: mainTempId } : {}),
+    ...(galleryTempIds.length ? { temp_gallery_image_ids: galleryTempIds } : {}),
+    ...(videoTempId ? { temp_video_id: videoTempId } : {}),
+  
+    address: Location?.address,
+    latitude: Location?.lat,
+    longitude: Location?.long,
+    custom_field_files: customFieldFiles,
+    country: Location?.country,
+    state: Location?.state,
+    city: Location?.city,
+    ...(Location?.area_id ? { area_id: Number(Location?.area_id) } : {}),
+  
+    delete_item_image_id: deleteImagesId,
+  
+    ...(Object.keys(nonDefaultTranslations).length > 0 && {
+      translations: nonDefaultTranslations,
+    }),
+    ...(Object.keys(customFieldTranslations).length > 0 && {
+      custom_field_translations: customFieldTranslations,
+    }),
+    ...(scheduledDateTime && { scheduled_at: scheduledDateTime }),
+  };
+  
  
     if (is_job_category) {
       allData.min_salary = defaultDetails.min_salary;

@@ -1,14 +1,37 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { IoInformationCircleOutline } from "react-icons/io5";
-import { HiOutlineUpload } from "react-icons/hi";
-import { MdClose } from "react-icons/md";
-import { FaPlay, FaPause } from "react-icons/fa";
-import { toast } from "sonner";
-import { t } from "@/utils";
-import CustomImage from "@/components/Common/CustomImage";
-import { Upload } from "lucide-react";
+"use client";
 
- 
+import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import Api from "@/api/AxiosInterceptors";
+import { Upload, X, Play, Pause } from "lucide-react";
+
+const formatFileSize = (bytes) => {
+  if (!bytes && bytes !== 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+};
+
+const getMediaUrl = (m) => {
+  if (!m) return "";
+  if (typeof m === "string") return m;
+  if (typeof m === "object" && m.url) return m.url;
+  if (typeof m === "object" && m.image) return m.image;
+  return "";
+};
+
+const getMediaName = (m) => {
+  if (!m) return "media";
+  if (m.name) return m.name;
+  const u = getMediaUrl(m);
+  return u ? u.split("/").pop() : "media";
+};
+
 const ComponentFour = ({
   uploadedImages,
   setUploadedImages,
@@ -22,417 +45,390 @@ const ComponentFour = ({
   const [isDraggingMain, setIsDraggingMain] = useState(false);
   const [isDraggingOther, setIsDraggingOther] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
-  const [playingVideo, setPlayingVideo] = useState(false);
+
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
-  const videoRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  // Preview URL cache (prevents generating new object URLs on every render)
-  const urlMapRef = useRef(new Map());
+  const mainImage = uploadedImages?.[0] ?? null;
 
-  const getPreviewUrl = (img) => {
-    if (!img) return "";
-    if (typeof img === "string") return img;
-    if (typeof img === "object" && img.image) return img.image;
-    if (img instanceof Blob) {
-      const m = urlMapRef.current;
-      if (!m.has(img)) m.set(img, URL.createObjectURL(img));
-      return m.get(img);
-    }
-    return "";
-  };
-
-  const getItemKey = (img) => {
-    if (!img) return "empty";
-    if (typeof img === "object" && img.id) return `id-${img.id}`;
-    if (typeof img === "string") return img;
-    if (typeof img === "object" && img.image) return img.image;
-    if (img instanceof File) return `${img.name}-${img.size}-${img.lastModified}`;
-    if (img instanceof Blob) return `blob-${img.size}`;
-    return "img";
-  };
-
- 
-  // Cleanup URLs on unmount
+  // video preview (radi za {id,url})
   useEffect(() => {
-    return () => {
-      // revoke video preview
-      if (videoPreviewUrl) {
-        URL.revokeObjectURL(videoPreviewUrl);
-      }
-      // revoke image previews
-      const m = urlMapRef.current;
-      for (const url of m.values()) {
-        try { URL.revokeObjectURL(url); } catch {}
-      }
-      m.clear();
-    };
-  }, [videoPreviewUrl]);
- 
-  // Kreiraj preview URL ako uploadedVideo već postoji
-  useEffect(() => {
-    if (uploadedVideo && !videoPreviewUrl) {
-      const previewUrl = URL.createObjectURL(uploadedVideo);
-      setVideoPreviewUrl(previewUrl);
-    }
+    const u = getMediaUrl(uploadedVideo);
+    setVideoPreviewUrl(u || null);
+    setIsPlaying(false);
   }, [uploadedVideo]);
- 
-  // Handle video drop (bez kompresije)
-  const handleVideoDrop = async (e) => {
-    e.preventDefault();
-    setIsDraggingVideo(false);
- 
-    const file = e.dataTransfer?.files[0] || e.target?.files[0];
-    if (!file) return;
- 
-    if (!file.type.startsWith('video/')) {
-      toast.error('Pogrešan tip fajla. Molimo uploadujte video.');
-      return;
+
+  // ============================
+  // TEMP UPLOAD HELPERS
+  // ============================
+  const uploadTempImage = async (file) => {
+    const fd = new FormData();
+    fd.append("image", file);
+
+    const res = await Api.post("/upload-temp/image", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    if (res?.data?.error !== false) {
+      throw new Error(res?.data?.message || "Upload slike nije uspio");
     }
- 
-    if (file.size > 100 * 1024 * 1024) {
-      toast.error('Video je prevelik (maksimum 100MB)');
-      return;
-    }
- 
-    // Provjeri trajanje videa
-    const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src);
-      if (video.duration > 30) {
-        toast.error('Video je predug. Maksimalno trajanje je 30 sekundi.');
-        return;
-      }
-      // Ako je sve OK, postavi video
-      const previewUrl = URL.createObjectURL(file);
-      setVideoPreviewUrl(previewUrl);
-      setUploadedVideo(file);
-      toast.success('Video uspješno dodan!');
-    };
-    video.src = URL.createObjectURL(file);
+    return res.data.data; // {id,url}
   };
- 
-  // Handle main image drop
-  const handleMainImageDrop = (e) => {
+
+  const uploadTempVideo = async (file) => {
+    const fd = new FormData();
+    fd.append("video", file);
+
+    const res = await Api.post("/upload-temp/video", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    if (res?.data?.error !== false) {
+      throw new Error(res?.data?.message || "Upload videa nije uspio");
+    }
+    return res.data.data; // {id,url}
+  };
+
+  const deleteTemp = async (id) => {
+    if (!id) return;
+    await Api.delete(`/upload-temp/${id}`);
+  };
+
+  // ============================
+  // MAIN IMAGE
+  // ============================
+  const onPickMainImage = async (file) => {
+    if (!file) return;
+    if (!file.type?.startsWith("image/")) return toast.error("Odaberi sliku");
+
+    try {
+      const data = await uploadTempImage(file);
+      setUploadedImages([data]);
+      toast.success("Glavna slika uploadovana");
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.message || "Upload slike nije uspio");
+    }
+  };
+
+  const removeMainImage = async () => {
+    try {
+      const id = mainImage?.id;
+      if (id) await deleteTemp(id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUploadedImages([]);
+    }
+  };
+
+  // ============================
+  // GALLERY IMAGES
+  // ============================
+  const onPickOtherImages = async (files) => {
+    const arr = Array.from(files || []).filter((f) => f?.type?.startsWith("image/"));
+    if (!arr.length) return toast.error("Odaberi validne slike");
+
+    try {
+      const uploaded = [];
+      for (const f of arr) {
+        // eslint-disable-next-line no-await-in-loop
+        const data = await uploadTempImage(f);
+        uploaded.push(data);
+      }
+      setOtherImages((prev) => [...(prev || []), ...uploaded]);
+      toast.success(`Uploadovano ${uploaded.length} slika`);
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.message || "Upload slika nije uspio");
+    }
+  };
+
+  const removeOtherImage = async (img) => {
+    try {
+      if (img?.id) await deleteTemp(img.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setOtherImages((prev) => (prev || []).filter((x) => x !== img));
+    }
+  };
+
+  // ============================
+  // VIDEO
+  // ============================
+  const onPickVideo = async (file) => {
+    if (!file) return;
+    if (!file.type?.startsWith("video/")) return toast.error("Odaberi video");
+
+    try {
+      const data = await uploadTempVideo(file);
+      setUploadedVideo(data);
+      toast.success("Video uploadovan");
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.message || "Upload videa nije uspio");
+    }
+  };
+
+  const removeVideo = async () => {
+    try {
+      if (uploadedVideo?.id) await deleteTemp(uploadedVideo.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUploadedVideo(null);
+      setVideoPreviewUrl(null);
+      setIsPlaying(false);
+    }
+  };
+
+  const togglePlay = () => {
+    const el = document.getElementById("tmp-video-preview");
+    if (!el) return;
+    if (el.paused) {
+      el.play();
+      setIsPlaying(true);
+    } else {
+      el.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  // ============================
+  // DROP HANDLERS
+  // ============================
+  const onDropMain = async (e) => {
     e.preventDefault();
     setIsDraggingMain(false);
- 
-    const file = e.dataTransfer?.files[0] || e.target?.files[0];
-    if (!file) return;
- 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Pogrešan tip fajla. Molimo uploadujte sliku.');
-      return;
-    }
- 
-    setUploadedImages([file]);
+    await onPickMainImage(e.dataTransfer.files?.[0]);
   };
- 
-  // Handle other images drop
-  const handleOtherImagesDrop = (e) => {
+
+  const onDropOther = async (e) => {
     e.preventDefault();
     setIsDraggingOther(false);
- 
-    const files = Array.from(e.dataTransfer?.files || e.target?.files || []);
-    const imageFiles = files.filter(f => f.type.startsWith('image/'));
- 
-    if (imageFiles.length === 0) {
-      toast.error('Pogrešan tip fajla. Molimo uploadujte slike.');
-      return;
-    }
- 
-    const remainingSlots = 5 - otherImages.length;
-    
-    if (remainingSlots === 0) {
-      toast.error("Dostigli ste maksimalan broj slika");
-      return;
-    }
- 
-    if (imageFiles.length > remainingSlots) {
-      toast.error(`Možete dodati još samo ${remainingSlots} ${remainingSlots === 1 ? 'sliku' : 'slika'}`);
-      return;
-    }
- 
-    setOtherImages(prev => [...prev, ...imageFiles]);
+    await onPickOtherImages(e.dataTransfer.files);
   };
- 
-  const toggleVideoPlay = () => {
-    if (videoRef.current) {
-      if (playingVideo) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setPlayingVideo(!playingVideo);
-    }
+
+  const onDropVideo = async (e) => {
+    e.preventDefault();
+    setIsDraggingVideo(false);
+    await onPickVideo(e.dataTransfer.files?.[0]);
   };
- 
-  const handleRemoveVideo = () => {
-    if (videoPreviewUrl) {
-      URL.revokeObjectURL(videoPreviewUrl);
-    }
-    setVideoPreviewUrl(null);
-    setUploadedVideo(null);
-    setPlayingVideo(false);
-  };
- 
-  // Format file size helper
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
- 
+
+  const canContinue = !!mainImage; // glavna slika obavezna
+
   return (
-    <div className="flex flex-col gap-8 pb-24">
-      {/* Main Image Upload */}
-      <div className="flex flex-col gap-3">
-        <label className="text-sm font-semibold flex items-center gap-2">
-          Glavna slika <span className="text-red-500">*</span>
-        </label>
-        
-        <div
-          onDragOver={(e) => { e.preventDefault(); setIsDraggingMain(true); }}
-          onDragLeave={() => setIsDraggingMain(false)}
-          onDrop={handleMainImageDrop}
-          className="relative"
-        >
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/jpg"
-            onChange={(e) => { handleMainImageDrop(e); e.target.value = ""; }}
-            className="hidden"
-            id="main-image-input"
-          />
-          
-          {uploadedImages.length === 0 ? (
-            <label
-              htmlFor="main-image-input"
-              className={`block border-2 border-dashed rounded-xl p-8 min-h-[280px] cursor-pointer transition-all duration-300 ${
-                isDraggingMain
-                  ? 'border-blue-500 bg-blue-50 scale-105'
-                  : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-              }`}
+    <div className="space-y-6">
+      {/* MAIN IMAGE */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-black text-slate-900">Glavna slika</h3>
+          {mainImage && (
+            <button
+              type="button"
+              onClick={removeMainImage}
+              className="text-red-600 font-bold text-sm flex items-center gap-1"
             >
-              <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-                <div className={`transition-transform duration-300 ${isDraggingMain ? 'scale-110' : ''}`}>
-                  <HiOutlineUpload size={56} className="text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-gray-700 mb-2 font-semibold text-lg">
-                    {isDraggingMain ? "Spustite fajl ovdje" : "Prevucite sliku ovdje"}
-                  </p>
-                  <p className="text-sm text-gray-500 mb-2">ili</p>
-                  <span className="text-blue-600 font-semibold text-base">Kliknite za upload</span>
-                </div>
-                <p className="text-xs text-gray-400">JPG, PNG do 10MB</p>
-              </div>
-            </label>
-          ) : (
-            <div className="relative rounded-xl overflow-hidden shadow-lg group">
-              <CustomImage
-                width={591}
-                height={280}
-                className="rounded-xl object-cover aspect-[591/280] w-full"
-                src={getPreviewUrl(uploadedImages[0])}
-                alt={uploadedImages[0].name}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="absolute bottom-3 left-3 text-white text-sm">
-                  <p className="font-semibold">{uploadedImages[0].name}</p>
-                  <p className="text-xs mt-1">{Math.round(uploadedImages[0].size / 1024)} KB</p>
-                </div>
-                <button
-                  onClick={() => setUploadedImages([])}
-                  className="absolute top-3 right-3 bg-red-500 text-white p-2.5 rounded-full shadow-lg hover:bg-red-600 hover:scale-110 transition-all"
-                >
-                  <MdClose size={20} />
-                </button>
-              </div>
-            </div>
+              <X className="w-4 h-4" /> Ukloni
+            </button>
           )}
         </div>
+
+        {!mainImage ? (
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingMain(true);
+            }}
+            onDragLeave={() => setIsDraggingMain(false)}
+            onDrop={onDropMain}
+            className={`flex items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 cursor-pointer transition ${
+              isDraggingMain ? "border-primary bg-primary/5" : "border-slate-300 bg-slate-50"
+            }`}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center">
+              <Upload className="w-6 h-6 text-slate-400" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">Odaberi ili prevuci sliku</p>
+              <p className="text-sm text-slate-500">JPG/PNG/WEBP do 10MB</p>
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => onPickMainImage(e.target.files?.[0])}
+            />
+          </label>
+        ) : (
+          <div className="relative overflow-hidden rounded-2xl bg-slate-100 border border-slate-200">
+            <div className="aspect-[16/10] w-full relative">
+              <img
+                src={getMediaUrl(mainImage)}
+                alt={getMediaName(mainImage)}
+                className="absolute inset-0 w-full h-full object-cover"
+                width={800}
+                height={450}
+               />
+            </div>
+            <div className="p-3 flex items-center justify-between">
+              <p className="font-bold text-slate-800 truncate">{getMediaName(mainImage)}</p>
+              {mainImage?.size ? (
+                <p className="text-sm text-slate-500">{formatFileSize(mainImage.size)}</p>
+              ) : null}
+            </div>
+          </div>
+        )}
       </div>
- 
-      {/* 🎬 VIDEO UPLOAD SECTION */}
-<div className="flex flex-col gap-3">
-  <label className="flex items-center gap-2 font-semibold text-sm">
-    <svg className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="m22 8-6 4 6 4V8Z" />
-      <rect width="14" height="12" x="2" y="6" rx="2" />
-    </svg>
-    Video
-    <span className="text-gray-400 font-normal text-xs">(opciono, max 30s)</span>
-  </label>
 
-  <div
-    onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
-    onDragLeave={() => setIsDraggingVideo(false)}
-    onDrop={handleVideoDrop}
-  >
-    <input
-      type="file"
-      accept="video/mp4,video/quicktime,video/webm"
-      onChange={(e) => { handleVideoDrop(e); e.target.value = ""; }}
-      className="hidden"
-      id="video-input"
-    />
-
-    {!videoPreviewUrl ? (
-      <label
-        htmlFor="video-input"
-        className={`block border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all duration-300 ${
-          isDraggingVideo
-            ? "border-red-500 bg-red-50 scale-105"
-            : "border-gray-300 hover:border-red-400 hover:bg-gray-50"
-        }`}
-      >
-        <div className="flex flex-col items-center justify-center text-center gap-3">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-            isDraggingVideo ? "bg-red-100" : "bg-gray-100"
-          }`}>
-            <Upload className={`w-7 h-7 ${isDraggingVideo ? "text-red-500" : "text-gray-400"}`} />
-          </div>
-          <div>
-            <p className="text-gray-700 font-semibold">
-              {isDraggingVideo ? "Spustite video ovdje" : "Dodajte video"}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Prevucite ili kliknite za odabir</p>
-          </div>
-          <p className="text-xs text-gray-400">Max 30 sekundi</p>
+      {/* OTHER IMAGES */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-black text-slate-900">Galerija (opcionalno)</h3>
+          <span className="text-sm text-slate-500">{(otherImages || []).length} slika</span>
         </div>
-      </label>
-    ) : (
-      <div className="relative rounded-xl overflow-hidden bg-black aspect-video group shadow-lg">
-        <video
-          ref={videoRef}
-          src={videoPreviewUrl}
-          className="w-full h-full object-contain"
-          onEnded={() => setPlayingVideo(false)}
-          playsInline
-          muted
-        />
-        <div
-          onClick={toggleVideoPlay}
-          className={`absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer transition-opacity ${
-            playingVideo ? "opacity-0 hover:opacity-100" : "opacity-100"
+
+        <label
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDraggingOther(true);
+          }}
+          onDragLeave={() => setIsDraggingOther(false)}
+          onDrop={onDropOther}
+          className={`flex items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-6 cursor-pointer transition ${
+            isDraggingOther ? "border-primary bg-primary/5" : "border-slate-300 bg-slate-50"
           }`}
         >
-          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-            {playingVideo ? <FaPause className="text-black" /> : <FaPlay className="text-black ml-1" />}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleRemoveVideo}
-          className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 hover:scale-110 transition-all"
-        >
-          <MdClose size={18} />
-        </button>
-      </div>
-    )}
-  </div>
-</div>
-
- 
-      {/* Other Images Section */}
-      <div className="flex flex-col gap-3">
-        <label className="flex items-center gap-2 font-semibold text-sm">
-          Dodatne slike
-          <div className="relative group">
-            <IoInformationCircleOutline size={20} className="text-gray-400 cursor-help" />
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-xl">
-              Maksimum 5 dodatnih slika
-            </div>
-          </div>
-        </label>
- 
-        <div
-          onDragOver={(e) => { e.preventDefault(); setIsDraggingOther(true); }}
-          onDragLeave={() => setIsDraggingOther(false)}
-          onDrop={handleOtherImagesDrop}
-        >
+          <Upload className="w-5 h-5 text-slate-400" />
+          <p className="font-bold text-slate-800">Dodaj slike</p>
           <input
             type="file"
-            accept="image/jpeg,image/png,image/jpg"
+            accept="image/*"
             multiple
-            onChange={(e) => { handleOtherImagesDrop(e); e.target.value = ""; }}
             className="hidden"
-            id="other-images-input"
+            onChange={(e) => onPickOtherImages(e.target.files)}
           />
- 
-          {otherImages.length < 5 && (
-            <label
-              htmlFor="other-images-input"
-              className={`block border-2 border-dashed rounded-xl p-6 cursor-pointer mb-6 transition-all duration-300 ${
-                isDraggingOther
-                  ? 'border-blue-500 bg-blue-50 scale-105'
-                  : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-3 text-center">
-                <HiOutlineUpload size={28} className="text-blue-500" />
-                <span className="text-gray-700 font-semibold text-base">
-                  {isDraggingOther ? "Spustite slike ovdje" : "Dodajte još slika"} ({otherImages.length}/5)
-                </span>
-              </div>
-            </label>
-          )}
- 
-          {/* Image Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {otherImages.map((file, index) => (
+        </label>
+
+        {(otherImages || []).length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+            {otherImages.map((img, idx) => (
               <div
-                key={`${getItemKey(file)}-${index}`}
-                className="relative rounded-xl overflow-hidden shadow-lg group aspect-square hover:scale-105 transition-transform duration-200"
+                key={img?.id ?? idx}
+                className="relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200"
               >
-                <CustomImage
-                  width={200}
-                  height={200}
-                  className="w-full h-full object-cover"
-                  src={getPreviewUrl(file)}
-                  alt={file.name}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-2 left-2 text-white text-xs">
-                    <p className="font-semibold truncate max-w-[140px]">{file.name}</p>
-                    <p className="mt-0.5">{Math.round(file.size / 1024)} KB</p>
-                  </div>
-                  <button
-                    onClick={() => setOtherImages(prev => prev.filter((_, i) => i !== index))}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 hover:scale-110 hover:rotate-90 transition-all duration-200"
-                  >
-                    <MdClose size={18} />
-                  </button>
+                <div className="aspect-square relative">
+                  <img
+                    src={getMediaUrl(img)}
+                    alt={getMediaName(img)}
+                    className="absolute inset-0 w-full h-full object-cover"
+                width={400}
+                height={400}
+                   />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => removeOtherImage(img)}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center"
+                  aria-label="Ukloni sliku"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>
-        </div>
+        )}
       </div>
- 
-      {/* Sticky Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
-          <button
-            className="bg-black text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={handleGoBack}
-          >
-            Nazad
-          </button>
-          <button
-            className="bg-primary text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-primary/90 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={() => setStep(5)}
-          >
-            Naprijed
-          </button>
+
+      {/* VIDEO */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-black text-slate-900">Video (opcionalno)</h3>
+          {uploadedVideo && (
+            <button
+              type="button"
+              onClick={removeVideo}
+              className="text-red-600 font-bold text-sm flex items-center gap-1"
+            >
+              <X className="w-4 h-4" /> Ukloni
+            </button>
+          )}
         </div>
+
+        {!uploadedVideo ? (
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingVideo(true);
+            }}
+            onDragLeave={() => setIsDraggingVideo(false)}
+            onDrop={onDropVideo}
+            className={`flex items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-6 cursor-pointer transition ${
+              isDraggingVideo ? "border-red-400 bg-red-50" : "border-slate-300 bg-slate-50"
+            }`}
+          >
+            <Upload className="w-5 h-5 text-slate-400" />
+            <p className="font-bold text-slate-800">Dodaj video</p>
+            <input
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => onPickVideo(e.target.files?.[0])}
+            />
+          </label>
+        ) : (
+          <div className="relative rounded-2xl overflow-hidden bg-black">
+            <div className="aspect-[16/10] w-full relative">
+              <video
+                id="tmp-video-preview"
+                className="absolute inset-0 w-full h-full object-cover"
+                src={videoPreviewUrl || undefined}
+                playsInline
+                muted
+                loop
+                controls
+              />
+            </div>
+            <div className="p-3 flex items-center justify-between bg-slate-900/70">
+              <p className="text-white font-bold truncate">{getMediaName(uploadedVideo)}</p>
+              <button
+                type="button"
+                onClick={togglePlay}
+                className="w-10 h-10 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center"
+              >
+                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ACTIONS */}
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={handleGoBack}
+          className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black"
+        >
+          Nazad
+        </button>
+
+        <button
+          type="button"
+          disabled={!canContinue}
+          onClick={() => setStep(5)}
+          className={`px-5 py-3 rounded-2xl font-black ${
+            canContinue
+              ? "bg-primary text-white hover:bg-primary/90"
+              : "bg-slate-200 text-slate-500 cursor-not-allowed"
+          }`}
+        >
+          Nastavi
+        </button>
       </div>
     </div>
   );
 };
- 
+
 export default ComponentFour;

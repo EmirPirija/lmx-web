@@ -6,8 +6,15 @@ import { FaPlay, FaPause } from "react-icons/fa";
 import { toast } from "sonner";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
+
+// helpers
+const getMediaUrl = (v) => {
+  if (!v) return "";
+  return typeof v === "string" ? v : v?.url || "";
+};
+
  
-const EditComponentThree = ({
+  const EditComponentThree = ({
   uploadedImages,
   setUploadedImages,
   OtherImages,
@@ -31,6 +38,7 @@ const EditComponentThree = ({
   const getPreviewUrl = (img) => {
     if (!img) return "";
     if (typeof img === "string") return img;
+    if (typeof img === "object" && img.url) return img.url;
     if (typeof img === "object" && img.image) return img.image;
     if (img instanceof Blob) {
       const m = urlMapRef.current;
@@ -44,6 +52,7 @@ const EditComponentThree = ({
     if (!img) return "empty";
     if (typeof img === "object" && img.id) return `id-${img.id}`;
     if (typeof img === "string") return img;
+    if (typeof img === "object" && img.url) return img.url;
     if (typeof img === "object" && img.image) return img.image;
     if (img instanceof File) return `${img.name}-${img.size}-${img.lastModified}`;
     if (img instanceof Blob) return `blob-${img.size}`;
