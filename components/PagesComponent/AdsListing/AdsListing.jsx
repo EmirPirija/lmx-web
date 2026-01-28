@@ -46,6 +46,142 @@ import {
 } from "lucide-react";
 import { IconRosetteDiscount } from "@tabler/icons-react";
 
+// =======================================================
+// MEDIA HELPERS (client-side)
+// - Images: compress + watermark IMMEDIATELY on select
+// - Video: we only validate size here (compression should be server-side)
+// =======================================================
+const WATERMARK_TEXT_DEFAULT = "LMX.ba";
+
+const isFileLike = (v) =>
+  typeof File !== "undefined" &&
+  (v instanceof File || v instanceof Blob);
+
+const safeObjectUrl = (v) => {
+  try {
+    if (typeof v === "string") return v;
+    if (isFileLike(v)) return URL.createObjectURL(v);
+  } catch {}
+  return "";
+};
+
+const loadImageElement = (src) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.crossOrigin = "anonymous";
+    img.src = src;
+  });
+
+const toCanvasBlob = (canvas, type = "image/jpeg", quality = 0.92) =>
+  new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
+
+const compressAndWatermarkImage = async (
+  file,
+  {
+    maxSize = 2000,
+    quality = 0.92,
+    watermarkText = WATERMARK_TEXT_DEFAULT,
+    watermarkOpacity = 0.55,
+    watermarkPadding = 18,
+    watermarkFontSize = 22,
+    minBytesToProcess = 250 * 1024, // ne diraj mini fajlove
+  } = {}
+) => {
+  if (!isFileLike(file)) return file;
+
+  // Ako je već mali, preskoči (čuva 100% kvalitet)
+  if (file.size && file.size < minBytesToProcess) return file;
+
+  const src = safeObjectUrl(file);
+  if (!src) return file;
+
+  let img;
+  try {
+    img = await loadImageElement(src);
+  } finally {
+    try {
+      URL.revokeObjectURL(src);
+    } catch {}
+  }
+
+  const srcW = img.naturalWidth || img.width;
+  const srcH = img.naturalHeight || img.height;
+
+  const scale = Math.min(1, maxSize / Math.max(srcW, srcH));
+  const outW = Math.max(1, Math.round(srcW * scale));
+  const outH = Math.max(1, Math.round(srcH * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+
+  ctx.drawImage(img, 0, 0, outW, outH);
+
+  // Watermark (bottom-right)
+  if (watermarkText) {
+    ctx.save();
+    ctx.globalAlpha = watermarkOpacity;
+
+    const fontSize = Math.max(14, Math.round((outW / 1000) * watermarkFontSize));
+    ctx.font = `700 ${fontSize}px sans-serif`;
+    ctx.textBaseline = "bottom";
+
+    const text = watermarkText;
+    const metrics = ctx.measureText(text);
+    const textW = metrics.width;
+
+    const pad = Math.max(10, Math.round((outW / 1000) * watermarkPadding));
+    const x = outW - pad;
+    const y = outH - pad;
+
+    // shadow + stroke + fill (čita se na svemu)
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.strokeStyle = "rgba(0,0,0,0.55)";
+    ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.08));
+
+    ctx.strokeText(text, x - textW, y);
+    ctx.fillText(text, x - textW, y);
+
+    ctx.restore();
+  }
+
+  const outBlob = await toCanvasBlob(canvas, "image/jpeg", quality);
+  if (!outBlob) return file;
+
+  const newName = (file.name || "image")
+    .replace(/\.(png|jpe?g|webp|heic|heif)$/i, "")
+    .concat(".jpg");
+
+  return new File([outBlob], newName, { type: "image/jpeg" });
+};
+
+const normalizeFilesArray = (maybe) => {
+  if (!maybe) return [];
+  if (Array.isArray(maybe)) return maybe;
+  // FileList
+  if (typeof FileList !== "undefined" && maybe instanceof FileList)
+    return Array.from(maybe);
+  return [maybe];
+};
+
+const processImagesArray = async (files, opts) => {
+  const arr = normalizeFilesArray(files);
+  const out = [];
+  for (const f of arr) {
+    if (isFileLike(f)) out.push(await compressAndWatermarkImage(f, opts));
+    else out.push(f);
+  }
+  return out;
+};
+
+const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
+
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const userData = useSelector(userSignUpData);
@@ -76,6 +212,7 @@ const AdsListing = () => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [otherImages, setOtherImages] = useState([]);
   const [uploadedVideo, setUploadedVideo] = useState(null);
+  const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [location, setLocation] = useState({});
   const [isAdPlaced, setIsAdPlaced] = useState(false);
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
@@ -620,6 +757,70 @@ const AdsListing = () => {
   const showDiscount = isOnSale && oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice;
   const previewAttributes = getPreviewAttributes(); // Dohvati atribute za prikaz
 
+  // =======================================================
+  // MEDIA: kompresija + watermark odmah na selekciju
+  // (ComponentFour će i dalje samo zvati setUploadedImages / setOtherImages / setUploadedVideo)
+  // =======================================================
+  const setUploadedImagesProcessed = useCallback(
+    async (files) => {
+      const arr = normalizeFilesArray(files);
+      if (!arr.length) return setUploadedImages([]);
+      try {
+        setIsMediaProcessing(true);
+        const [main] = await processImagesArray([arr[0]]);
+        setUploadedImages(main ? [main] : []);
+      } catch (e) {
+        console.error(e);
+        toast.error("Ne mogu obraditi sliku. Pokušaj ponovo.");
+        setUploadedImages(arr.slice(0, 1));
+      } finally {
+        setIsMediaProcessing(false);
+      }
+    },
+    [setUploadedImages]
+  );
+
+  const setOtherImagesProcessed = useCallback(
+    async (files) => {
+      const arr = normalizeFilesArray(files);
+      if (!arr.length) return setOtherImages([]);
+      try {
+        setIsMediaProcessing(true);
+        const processed = await processImagesArray(arr);
+        setOtherImages(processed);
+      } catch (e) {
+        console.error(e);
+        toast.error("Ne mogu obraditi slike. Pokušaj ponovo.");
+        setOtherImages(arr);
+      } finally {
+        setIsMediaProcessing(false);
+      }
+    },
+    [setOtherImages]
+  );
+
+  const setUploadedVideoValidated = useCallback(
+    async (fileOrList) => {
+      const [file] = normalizeFilesArray(fileOrList);
+      if (!file) return setUploadedVideo(null);
+
+      // Video kompresija se radi najbolje na serveru (ffmpeg). Ovdje samo validacija.
+      if (isFileLike(file)) {
+        const maxMb = 40; // promijeni po želji
+        if (bytesToMB(file.size) > maxMb) {
+          toast.error(`Video je prevelik (${bytesToMB(file.size)}MB). Maks: ${maxMb}MB.`);
+        }
+      }
+      setUploadedVideo(file);
+    },
+    [setUploadedVideo]
+  );
+
+  const getPreviewImage = useCallback(() => {
+    const first = uploadedImages?.[0];
+    return safeObjectUrl(first);
+  }, [uploadedImages]);
+
   return (
     <Layout>
       <BreadCrumb title2={t("adListing")} />
@@ -790,11 +991,11 @@ const AdsListing = () => {
                 {step == 4 && (
                   <ComponentFour
                     uploadedImages={uploadedImages}
-                    setUploadedImages={setUploadedImages}
+                    setUploadedImages={setUploadedImagesProcessed}
                     otherImages={otherImages}
-                    setOtherImages={setOtherImages}
+                    setOtherImages={setOtherImagesProcessed}
                     uploadedVideo={uploadedVideo}
-                    setUploadedVideo={setUploadedVideo}
+                    setUploadedVideo={setUploadedVideoValidated}
                     setStep={setStep}
                     handleGoBack={handleGoBack}
                   />
@@ -826,7 +1027,7 @@ const AdsListing = () => {
                   <div className="relative aspect-square bg-gray-100">
                     {uploadedImages.length > 0 ? (
                       <img
-                        src={URL.createObjectURL(uploadedImages[0])}
+                        src={getPreviewImage()}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
