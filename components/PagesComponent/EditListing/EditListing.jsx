@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import {
   editItemApi,
@@ -49,6 +49,7 @@ import {
   ChevronRight 
 } from "lucide-react";
 import { IconRosetteDiscount, IconRocket } from "@tabler/icons-react";
+
 
 // =======================================================
 // MEDIA HELPERS (client-side)
@@ -195,6 +196,10 @@ const EditListing = ({ id }) => {
   const [customFields, setCustomFields] = useState([]);
   const [uploadedImages, setUploadedImages] = useState([]);
   const [OtherImages, setOtherImages] = useState([]);
+  const otherImagesRef = useRef([]);
+  useEffect(() => {
+    otherImagesRef.current = OtherImages;
+  }, [OtherImages]);
   const [Location, setLocation] = useState({});
   const [filePreviews, setFilePreviews] = useState({});
   const [deleteImagesId, setDeleteImagesId] = useState("");
@@ -205,6 +210,7 @@ const EditListing = ({ id }) => {
   const [scheduledAt, setScheduledAt] = useState(null);
   
   const [isFeatured, setIsFeatured] = useState(false);
+
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
@@ -513,7 +519,7 @@ const EditListing = ({ id }) => {
       region_code: defaultDetails?.region_code?.toUpperCase() || "",
       video_link: defaultDetails?.video_link,
       image: (uploadedImages[0] instanceof File || uploadedImages[0] instanceof Blob) ? uploadedImages[0] : null,
-      gallery_images: OtherImages,
+      gallery_images: OtherImages?.filter((x) => x instanceof File || x instanceof Blob) || [],
       address: Location?.address,
       latitude: Location?.lat,
       longitude: Location?.long,
@@ -670,23 +676,63 @@ const EditListing = ({ id }) => {
   );
 
   const setOtherImagesProcessed = useCallback(
-    async (files) => {
-      const arr = normalizeFilesArray(files);
-      if (!arr.length) return setOtherImages([]);
+  async (next) => {
+    // EditComponentThree nekad poziva setOtherImages sa functional updaterom
+    // (prev => [...prev, ...files]). Moramo to podržati.
+    const prev = otherImagesRef.current || [];
+
+    // 1) functional updater
+    if (typeof next === "function") {
+      const computed = next(prev);
+
+      // Ako se radi o brisanju / re-order i sl. (manji ili isti broj)
+      if (!Array.isArray(computed) || computed.length <= prev.length) {
+        setOtherImages(computed);
+        return;
+      }
+
+      // Pretpostavka: dodavanje na kraj (append)
+      const added = computed.slice(prev.length);
+
       try {
         setIsMediaProcessing(true);
-        const processed = await processImagesArray(arr);
-        setOtherImages(processed);
+
+        // Obradi samo dodane fajlove (watermark + kompresija)
+        const processedAdded = await processImagesArray(added);
+
+        setOtherImages([...prev, ...processedAdded]);
       } catch (e) {
         console.error(e);
         toast.error("Ne mogu obraditi slike. Pokušaj ponovo.");
-        setOtherImages(arr);
+        setOtherImages(computed);
       } finally {
         setIsMediaProcessing(false);
       }
-    },
-    [setOtherImages]
-  );
+      return;
+    }
+
+    // 2) array / filelist / single
+    const arr = normalizeFilesArray(next);
+    if (!arr.length) {
+      setOtherImages([]);
+      return;
+    }
+
+    try {
+      setIsMediaProcessing(true);
+      const processed = await processImagesArray(arr);
+      // default: zamijeni kompletan set
+      setOtherImages(processed);
+    } catch (e) {
+      console.error(e);
+      toast.error("Ne mogu obraditi slike. Pokušaj ponovo.");
+      setOtherImages(arr);
+    } finally {
+      setIsMediaProcessing(false);
+    }
+  },
+  [setOtherImages]
+);
 
   const setVideoValidated = useCallback(
     async (fileOrList) => {

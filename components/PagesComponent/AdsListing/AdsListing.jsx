@@ -212,6 +212,23 @@ const AdsListing = () => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [otherImages, setOtherImages] = useState([]);
   const [uploadedVideo, setUploadedVideo] = useState(null);
+
+  const uploadedImagesRef = useRef(uploadedImages);
+  const otherImagesRef = useRef(otherImages);
+  const uploadedVideoRef = useRef(uploadedVideo);
+
+  useEffect(() => {
+    uploadedImagesRef.current = uploadedImages;
+  }, [uploadedImages]);
+
+  useEffect(() => {
+    otherImagesRef.current = otherImages;
+  }, [otherImages]);
+
+  useEffect(() => {
+    uploadedVideoRef.current = uploadedVideo;
+  }, [uploadedVideo]);
+
   const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [location, setLocation] = useState({});
   const [isAdPlaced, setIsAdPlaced] = useState(false);
@@ -762,8 +779,12 @@ const AdsListing = () => {
   // (ComponentFour će i dalje samo zvati setUploadedImages / setOtherImages / setUploadedVideo)
   // =======================================================
   const setUploadedImagesProcessed = useCallback(
-    async (files) => {
-      const arr = normalizeFilesArray(files);
+    async (filesOrUpdater) => {
+      const resolved =
+        typeof filesOrUpdater === "function"
+          ? filesOrUpdater(uploadedImagesRef.current)
+          : filesOrUpdater;
+      const arr = normalizeFilesArray(resolved);
       if (!arr.length) return setUploadedImages([]);
       try {
         setIsMediaProcessing(true);
@@ -781,8 +802,12 @@ const AdsListing = () => {
   );
 
   const setOtherImagesProcessed = useCallback(
-    async (files) => {
-      const arr = normalizeFilesArray(files);
+    async (filesOrUpdater) => {
+      const resolved =
+        typeof filesOrUpdater === "function"
+          ? filesOrUpdater(otherImagesRef.current)
+          : filesOrUpdater;
+      const arr = normalizeFilesArray(resolved);
       if (!arr.length) return setOtherImages([]);
       try {
         setIsMediaProcessing(true);
@@ -800,8 +825,12 @@ const AdsListing = () => {
   );
 
   const setUploadedVideoValidated = useCallback(
-    async (fileOrList) => {
-      const [file] = normalizeFilesArray(fileOrList);
+    async (fileOrUpdater) => {
+      const resolved =
+        typeof fileOrUpdater === "function"
+          ? fileOrUpdater(uploadedVideoRef.current)
+          : fileOrUpdater;
+      const [file] = normalizeFilesArray(resolved);
       if (!file) return setUploadedVideo(null);
 
       // Video kompresija se radi najbolje na serveru (ffmpeg). Ovdje samo validacija.

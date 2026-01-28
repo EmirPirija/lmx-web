@@ -6,6 +6,8 @@ import { FaPlay, FaPause } from "react-icons/fa";
 import { toast } from "sonner";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
+import { Upload } from "lucide-react";
+
  
 const ComponentFour = ({
   uploadedImages,
@@ -23,13 +25,46 @@ const ComponentFour = ({
   const [playingVideo, setPlayingVideo] = useState(false);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const videoRef = useRef(null);
+
+  // Preview URL cache (prevents generating new object URLs on every render)
+  const urlMapRef = useRef(new Map());
+
+  const getPreviewUrl = (img) => {
+    if (!img) return "";
+    if (typeof img === "string") return img;
+    if (typeof img === "object" && img.image) return img.image;
+    if (img instanceof Blob) {
+      const m = urlMapRef.current;
+      if (!m.has(img)) m.set(img, URL.createObjectURL(img));
+      return m.get(img);
+    }
+    return "";
+  };
+
+  const getItemKey = (img) => {
+    if (!img) return "empty";
+    if (typeof img === "object" && img.id) return `id-${img.id}`;
+    if (typeof img === "string") return img;
+    if (typeof img === "object" && img.image) return img.image;
+    if (img instanceof File) return `${img.name}-${img.size}-${img.lastModified}`;
+    if (img instanceof Blob) return `blob-${img.size}`;
+    return "img";
+  };
+
  
   // Cleanup URLs on unmount
   useEffect(() => {
     return () => {
+      // revoke video preview
       if (videoPreviewUrl) {
         URL.revokeObjectURL(videoPreviewUrl);
       }
+      // revoke image previews
+      const m = urlMapRef.current;
+      for (const url of m.values()) {
+        try { URL.revokeObjectURL(url); } catch {}
+      }
+      m.clear();
     };
   }, [videoPreviewUrl]);
  
@@ -167,7 +202,7 @@ const ComponentFour = ({
           <input
             type="file"
             accept="image/jpeg,image/png,image/jpg"
-            onChange={handleMainImageDrop}
+            onChange={(e) => { handleMainImageDrop(e); e.target.value = ""; }}
             className="hidden"
             id="main-image-input"
           />
@@ -201,7 +236,7 @@ const ComponentFour = ({
                 width={591}
                 height={280}
                 className="rounded-xl object-cover aspect-[591/280] w-full"
-                src={URL.createObjectURL(uploadedImages[0])}
+                src={getPreviewUrl(uploadedImages[0])}
                 alt={uploadedImages[0].name}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -240,7 +275,7 @@ const ComponentFour = ({
     <input
       type="file"
       accept="video/mp4,video/quicktime,video/webm"
-      onChange={handleVideoDrop}
+      onChange={(e) => { handleVideoDrop(e); e.target.value = ""; }}
       className="hidden"
       id="video-input"
     />
@@ -324,7 +359,7 @@ const ComponentFour = ({
             type="file"
             accept="image/jpeg,image/png,image/jpg"
             multiple
-            onChange={handleOtherImagesDrop}
+            onChange={(e) => { handleOtherImagesDrop(e); e.target.value = ""; }}
             className="hidden"
             id="other-images-input"
           />
@@ -351,14 +386,14 @@ const ComponentFour = ({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {otherImages.map((file, index) => (
               <div
-                key={index}
+                key={`${getItemKey(file)}-${index}`}
                 className="relative rounded-xl overflow-hidden shadow-lg group aspect-square hover:scale-105 transition-transform duration-200"
               >
                 <CustomImage
                   width={200}
                   height={200}
                   className="w-full h-full object-cover"
-                  src={URL.createObjectURL(file)}
+                  src={getPreviewUrl(file)}
                   alt={file.name}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">

@@ -24,7 +24,44 @@ const EditComponentThree = ({
   const [playingVideo, setPlayingVideo] = useState(false);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const videoRef = useRef(null);
+
+  // Preview URL cache (prevents generating new object URLs on every render)
+  const urlMapRef = useRef(new Map());
+
+  const getPreviewUrl = (img) => {
+    if (!img) return "";
+    if (typeof img === "string") return img;
+    if (typeof img === "object" && img.image) return img.image;
+    if (img instanceof Blob) {
+      const m = urlMapRef.current;
+      if (!m.has(img)) m.set(img, URL.createObjectURL(img));
+      return m.get(img);
+    }
+    return "";
+  };
+
+  const getItemKey = (img) => {
+    if (!img) return "empty";
+    if (typeof img === "object" && img.id) return `id-${img.id}`;
+    if (typeof img === "string") return img;
+    if (typeof img === "object" && img.image) return img.image;
+    if (img instanceof File) return `${img.name}-${img.size}-${img.lastModified}`;
+    if (img instanceof Blob) return `blob-${img.size}`;
+    return "img";
+  };
+
  
+  // Cleanup image preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      const m = urlMapRef.current;
+      for (const url of m.values()) {
+        try { URL.revokeObjectURL(url); } catch {}
+      }
+      m.clear();
+    };
+  }, []);
+
   // Cleanup video URL on unmount
   useEffect(() => {
     return () => {
@@ -47,20 +84,9 @@ const EditComponentThree = ({
     }
   }, [video]);
  
-  // ✅ HELPER: Sigurno dobijanje URL-a slike
-  const getImageUrl = (image) => {
-    if (!image) return "";
-    if (image instanceof File || image instanceof Blob) {
-      return URL.createObjectURL(image);
-    }
-    if (typeof image === "string") {
-      return image;
-    }
-    if (typeof image === "object" && image.image) {
-      return image.image;
-    }
-    return "";
-  };
+  // ✅ HELPER: Sigurno dobijanje URL-a slike (sa cache-om)
+  const getImageUrl = (image) => getPreviewUrl(image);
+
  
   // Format file size helper
   const formatFileSize = (bytes) => {
@@ -193,7 +219,7 @@ const EditComponentThree = ({
           <input
             type="file"
             accept="image/jpeg,image/png,image/jpg"
-            onChange={handleMainImageDrop}
+            onChange={(e) => { handleMainImageDrop(e); e.target.value = ""; }}
             className="hidden"
             id="main-image-input"
           />
@@ -258,7 +284,7 @@ const EditComponentThree = ({
           <input
             type="file"
             accept="video/mp4,video/quicktime,video/webm"
-            onChange={handleVideoDrop}
+            onChange={(e) => { handleVideoDrop(e); e.target.value = ""; }}
             className="hidden"
             id="video-input-edit"
           />
@@ -385,7 +411,7 @@ const EditComponentThree = ({
             type="file"
             accept="image/jpeg,image/png,image/jpg"
             multiple
-            onChange={handleOtherImagesDrop}
+            onChange={(e) => { handleOtherImagesDrop(e); e.target.value = ""; }}
             className="hidden"
             id="other-images-input"
           />
@@ -412,7 +438,7 @@ const EditComponentThree = ({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {OtherImages.map((file, index) => (
               <div
-                key={index}
+                key={`${getItemKey(file)}-${index}`}
                 className="relative rounded-xl overflow-hidden shadow-lg group aspect-square hover:scale-105 transition-transform duration-200"
               >
                 <CustomImage
