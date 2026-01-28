@@ -180,6 +180,7 @@ export const allItemApi = {
     popular_items,
     limit,
     current_page,
+    has_video,
   } = {}) => {
     return Api.get(GET_ITEM, {
       params: {
@@ -208,6 +209,7 @@ export const allItemApi = {
         popular_items,
         limit,
         current_page,
+        has_video,
       },
     });
   },

@@ -11,6 +11,8 @@ import FeaturedSectionsSkeleton from "./FeaturedSectionsSkeleton";
 import PopularCategories from "./PopularCategories";
 import dynamic from "next/dynamic";
 
+import HomeReels from "./HomeReels";
+
 const OfferSlider = dynamic(() => import("./OfferSlider"), {
   ssr: false,
   loading: OfferSliderSkeleton,
@@ -83,7 +85,9 @@ const Home = () => {
           <OfferSlider Slider={Slider} IsLoading={IsSliderLoading} />
         )
       )}
+
       <PopularCategories />
+      <HomeReels />
       {IsFeaturedLoading ? (
         <FeaturedSectionsSkeleton />
       ) : (

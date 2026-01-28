@@ -442,7 +442,7 @@ const ProductDetailsSkeleton = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
-        <div className="col-span-1 lg:col-span-8 bg-[var(--background)] p-5">
+        <div className="col-span-1 lg:col-span-8 bg-[var(--background)]">
           <div className="flex flex-col gap-5 lg:gap-7">
             <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
               <div className="w-full aspect-[4/3] lg:aspect-[870/500] bg-gradient-to-br from-slate-100 to-slate-200" />
@@ -846,8 +846,13 @@ const ProductDetails = ({ slug }) => {
         : "";
       setVideoData((prev) => ({ ...prev, url: videoLink, thumbnail }));
     }
+    
+    console.log("API product.video =", product?.video);
+    console.log("API product.video_link =", product?.video_link);
+    
     if (product?.video) setDirectVideo(product.video);
     else setDirectVideo(null);
+    
 
     const galleryImgs =
       product?.gallery_images?.map((image) => image?.image) || [];
@@ -1023,7 +1028,7 @@ const ProductDetails = ({ slug }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
               {/* LIJEVA KOLONA */}
-              <div className="col-span-1 lg:col-span-8 bg-[var(--background)] p-5">
+              <div className="col-span-1 lg:col-span-8 bg-[var(--background)]">
                 <div className="flex flex-col gap-5 lg:gap-7">
                   <div className={getAnimationClass()} style={getStaggerDelay(2)}>
                     <ProductGallery
@@ -1084,7 +1089,7 @@ const ProductDetails = ({ slug }) => {
 
               {/* DESNA KOLONA */}
               <div className="flex flex-col col-span-1 lg:col-span-4 gap-5 lg:gap-7">
-                <div className="lg:sticky lg:top-24 lg:self-start flex flex-col gap-5 lg:gap-7 bg-[var(--background)] p-5">
+                <div className="lg:sticky lg:top-24 lg:self-start flex flex-col gap-5 lg:gap-7 bg-[var(--background)]">
                   <div
                     className={`hidden lg:block ${getAnimationClass()}`}
                     style={getStaggerDelay(6)}

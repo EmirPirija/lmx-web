@@ -247,7 +247,7 @@ const ProductGallery = ({
         </div>
       )}
     >
-      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl overflow-hidden group/main">
+      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden group/main">
         {isVideoSelected ? (
           // Video Player
           <div className="aspect-[870/500] rounded-2xl overflow-hidden bg-black relative">
@@ -333,7 +333,7 @@ const ProductGallery = ({
                     alt={`Product ${index + 1}`}
                     width={870}
                     height={500}
-                    className={`h-full w-full object-cover object-center rounded-2xl transition-all duration-500 ${
+                    className={`h-full w-full object-cover object-center transition-all duration-500 ${
                       selectedIndex === index && imageLoaded
                         ? "opacity-100 scale-100"
                         : "opacity-0 scale-105"
