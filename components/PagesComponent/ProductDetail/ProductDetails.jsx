@@ -105,6 +105,17 @@ const formatDate = (dateString) => {
   return `${day}. ${month} ${year}`;
 };
 
+// Normalizacija slike (API zna vratiti string ili objekt)
+const normalizeImageUrl = (img) => {
+  if (!img) return "";
+  if (typeof img === "string") return img;
+  if (typeof img === "object") {
+    return img.image || img.url || img.original_url || img.path || "";
+  }
+  return "";
+};
+
+
 const StatisticsModal = ({ isOpen, onClose, itemId, itemName }) => {
   if (!isOpen) return null;
 
@@ -856,7 +867,14 @@ const ProductDetails = ({ slug }) => {
 
     const galleryImgs =
       product?.gallery_images?.map((image) => image?.image) || [];
-    setGalleryImages([product?.image, ...galleryImgs]);
+
+    // ✅ Robustno: prvo glavna slika (ako postoji), pa ostale; filtriraj prazne/null/"null"
+    const mergedGallery = [
+      normalizeImageUrl(product?.image),
+      ...galleryImgs.map((img) => normalizeImageUrl(img)),
+    ].filter((u) => !!u && u !== "null" && u.trim() !== "");
+
+    setGalleryImages(mergedGallery);
 
     setStatus(product?.status);
 
@@ -898,7 +916,14 @@ const ProductDetails = ({ slug }) => {
 
     const galleryImgs =
       product?.gallery_images?.map((image) => image?.image) || [];
-    setGalleryImages([product?.image, ...galleryImgs]);
+
+    // ✅ Robustno: prvo glavna slika (ako postoji), pa ostale; filtriraj prazne/null/"null"
+    const mergedGallery = [
+      normalizeImageUrl(product?.image),
+      ...galleryImgs.map((img) => normalizeImageUrl(img)),
+    ].filter((u) => !!u && u !== "null" && u.trim() !== "");
+
+    setGalleryImages(mergedGallery);
 
     await incrementViews(product?.id);
   };
@@ -1031,15 +1056,23 @@ const ProductDetails = ({ slug }) => {
               <div className="col-span-1 lg:col-span-8 bg-[var(--background)]">
                 <div className="flex flex-col gap-5 lg:gap-7">
                   <div className={getAnimationClass()} style={getStaggerDelay(2)}>
-                    <ProductGallery
-                      galleryImages={galleryImages}
-                      videoData={videoData}
-                      directVideo={directVideo}
-                      onGalleryOpen={trackGalleryOpen}
-                      onImageView={trackImageView}
-                      onImageZoom={trackImageZoom}
-                      onVideoPlay={trackVideoPlay}
-                    />
+{/* ... unutar return dijela ProductDetails.jsx ... */}
+
+<div className={getAnimationClass()} style={getStaggerDelay(2)}>
+  <ProductGallery
+    // ✅ ISPRAVNO: Koristimo state varijable koje smo pripremili, NE 'product'
+    galleryImages={galleryImages} 
+    videoData={videoData}
+    directVideo={directVideo}
+    productDetails={productDetails} // ✅ Ovdje prosljeđujemo state 'productDetails'
+    
+    // Tracking funkcije ostaju iste
+    onGalleryOpen={trackGalleryOpen}
+    onImageView={trackImageView}
+    onImageZoom={trackImageZoom}
+    onVideoPlay={trackVideoPlay}
+  />
+</div>
                   </div>
 
                   <ProductDetailCard

@@ -826,7 +826,21 @@ const pickAvailableNow = (explicit, custom_fields) => {
 
 
 
-// add item api
+// helpers (stavi iznad addItemApi / editItemApi u istom fajlu)
+const isFileLike = (v) =>
+  typeof File !== "undefined" &&
+  (v instanceof File || v instanceof Blob);
+
+const toCsv = (v) => {
+  if (!v) return "";
+  if (Array.isArray(v)) return v.filter(Boolean).join(",");
+  // ako već dođe "1,2,3"
+  return String(v).trim();
+};
+
+// =========================
+// add item api (FULL FIXED)
+// =========================
 export const addItemApi = {
   addItem: ({
     name,
@@ -838,8 +852,11 @@ export const addItemApi = {
     contact,
     video_link,
     custom_fields,
+
     image,
     gallery_images = [],
+    video,
+
     address,
     latitude,
     longitude,
@@ -854,6 +871,12 @@ export const addItemApi = {
     custom_field_translations,
     region_code,
     scheduled_at,
+
+    // ✅ TEMP IDS (native upload)
+    temp_main_image_id,
+    temp_gallery_image_ids,
+    temp_video_id,
+
     // podrži sve varijante imena koje se mogu desiti u kodu
     available_now,
     isAvailable,
@@ -861,7 +884,6 @@ export const addItemApi = {
     is_avaible,
     inventory_count,
     show_only_to_premium,
-    video
   } = {}) => {
     const formData = new FormData();
 
@@ -874,26 +896,17 @@ export const addItemApi = {
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
 
-       // ✅ schedule
-       if (scheduled_at) {
-        formData.append("scheduled_at", scheduled_at);
-        console.log("FORMDATA: scheduled_at", scheduled_at);
-      }
-
-      if (video && (video instanceof File || video instanceof Blob)) {
-        formData.append("video", video);
-      }
+    // ✅ schedule
+    if (scheduled_at) {
+      formData.append("scheduled_at", scheduled_at);
+      console.log("FORMDATA: scheduled_at", scheduled_at);
+    }
 
     // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
       custom_fields
     );
-
-    for (const [k, v] of formData.entries()) {
-      console.log("FORMDATA:", k, v);
-    }
-    
 
     // ✅ šalji custom_fields bez available_now unutra
     if (cleanedCustomFields !== undefined && cleanedCustomFields !== null) {
@@ -904,13 +917,35 @@ export const addItemApi = {
       formData.append("custom_fields", cfToSend);
     }
 
-    if (image) formData.append("image", image);
-    if (gallery_images.length > 0) {
-      gallery_images.forEach((gallery_image, index) => {
-        formData.append(`gallery_images[${index}]`, gallery_image);
+    // ✅ REAL FILES ONLY (da ne šalješ object/string/empty)
+    if (isFileLike(image)) formData.append("image", image);
+
+    const fileGallery = (gallery_images || []).filter(isFileLike);
+    if (fileGallery.length > 0) {
+      fileGallery.forEach((g, index) => {
+        formData.append(`gallery_images[${index}]`, g);
       });
     }
 
+    if (isFileLike(video)) {
+      formData.append("video", video);
+    }
+
+    // ✅ TEMP IDS (OVO JE BIO GLAVNI BUG)
+    if (temp_main_image_id) {
+      formData.append("temp_main_image_id", String(temp_main_image_id));
+    }
+
+    const galleryCsv = toCsv(temp_gallery_image_ids);
+    if (galleryCsv) {
+      formData.append("temp_gallery_image_ids", galleryCsv);
+    }
+
+    if (temp_video_id) {
+      formData.append("temp_video_id", String(temp_video_id));
+    }
+
+    // ostala polja
     if (address) formData.append("address", address);
     if (latitude) formData.append("latitude", latitude);
     if (longitude) formData.append("longitude", longitude);
@@ -932,29 +967,31 @@ export const addItemApi = {
     if (min_salary) formData.append("min_salary", min_salary);
     if (max_salary) formData.append("max_salary", max_salary);
     if (region_code) formData.append("region_code", region_code);
+    if (inventory_count !== undefined && inventory_count !== null) {
+      formData.append("inventory_count", inventory_count);
+    }
 
     if (custom_field_translations)
       formData.append("custom_field_translations", custom_field_translations);
 
     if (translations) formData.append("translations", translations);
 
-    // ✅ ovo si već imao
+    // ✅ always send 0/1
     formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
-
-    // ✅ KLJUČNO: always send 0/1
     formData.append("available_now", availableNow01 ?? 0);
+
+    // debug (ako želiš)
+    // for (const [k, v] of formData.entries()) console.log("FORMDATA:", k, v);
 
     return Api.post(ADD_ITEM, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    
   },
 };
 
-
-
-
-// Edit item API
+// =========================
+// edit item api (FULL FIXED)
+// =========================
 export const editItemApi = {
   editItem: ({
     id,
@@ -967,8 +1004,11 @@ export const editItemApi = {
     contact,
     video_link,
     custom_fields,
+
     image,
     gallery_images = [],
+    video,
+
     address,
     latitude,
     longitude,
@@ -985,14 +1025,18 @@ export const editItemApi = {
     region_code,
     is_on_sale,
     old_price,
-    video,
+
     inventory_count,
     available_now,
     isAvailable,
     is_available,
     is_avaible,
-
     show_only_to_premium,
+
+    // ✅ TEMP IDS (dodaj i u edit!)
+    temp_main_image_id,
+    temp_gallery_image_ids,
+    temp_video_id,
   } = {}) => {
     const formData = new FormData();
 
@@ -1003,12 +1047,14 @@ export const editItemApi = {
     if (category_id) formData.append("category_id", category_id);
     if (all_category_ids) formData.append("all_category_ids", all_category_ids);
     if (price) formData.append("price", price);
-    if (delete_item_image_id)
-      formData.append("delete_item_image_id", delete_item_image_id);
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
     if (latitude) formData.append("latitude", latitude);
     if (longitude) formData.append("longitude", longitude);
+
+    if (delete_item_image_id) {
+      formData.append("delete_item_image_id", delete_item_image_id);
+    }
 
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
@@ -1028,11 +1074,18 @@ export const editItemApi = {
     if (state) formData.append("state", state);
     if (area_id) formData.append("area_id", area_id);
     if (city) formData.append("city", city);
-    if (image != null) formData.append("image", image);
 
-    if (gallery_images.length > 0) {
-      gallery_images.forEach((gallery_image, index) => {
-        formData.append(`gallery_images[${index}]`, gallery_image);
+    // ✅ BITNO: ne šalji image ako je "" / string / object
+    // (tvoj stari `if (image != null)` je znao poslati "" i obrisati main image)
+    if (isFileLike(image)) {
+      formData.append("image", image);
+    }
+
+    // ✅ append gallery samo za real files
+    const fileGallery = (gallery_images || []).filter(isFileLike);
+    if (fileGallery.length > 0) {
+      fileGallery.forEach((g, index) => {
+        formData.append(`gallery_images[${index}]`, g);
       });
     }
 
@@ -1052,8 +1105,26 @@ export const editItemApi = {
       formData.append("max_salary", max_salary);
     }
 
-    if (video instanceof File || video instanceof Blob) {
+    if (inventory_count !== undefined && inventory_count !== null) {
+      formData.append("inventory_count", inventory_count);
+    }
+
+    if (isFileLike(video)) {
       formData.append("video", video);
+    }
+
+    // ✅ TEMP IDS (OVO je potrebno da edit “native upload” upadne u item)
+    if (temp_main_image_id) {
+      formData.append("temp_main_image_id", String(temp_main_image_id));
+    }
+
+    const galleryCsv = toCsv(temp_gallery_image_ids);
+    if (galleryCsv) {
+      formData.append("temp_gallery_image_ids", galleryCsv);
+    }
+
+    if (temp_video_id) {
+      formData.append("temp_video_id", String(temp_video_id));
     }
 
     // ✅ samo ako imamo vrijednost

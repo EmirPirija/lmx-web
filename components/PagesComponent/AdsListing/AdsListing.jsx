@@ -57,9 +57,12 @@ const isFileLike = (v) =>
   typeof File !== "undefined" &&
   (v instanceof File || v instanceof Blob);
 
+// ✅ FIX 1: Ažurirana funkcija da podržava {url: ...} objekte
 const safeObjectUrl = (v) => {
   try {
+    if (!v) return "";
     if (typeof v === "string") return v;
+    if (typeof v === "object" && v.url) return v.url; // Dodano za objekte sa backend-a
     if (isFileLike(v)) return URL.createObjectURL(v);
   } catch {}
   return "";
@@ -77,21 +80,22 @@ const loadImageElement = (src) =>
 const toCanvasBlob = (canvas, type = "image/jpeg", quality = 0.92) =>
   new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
 
+// =======================================================
+// Nova funkcija za LOGO watermark (Gornji Desni Ugao)
+// =======================================================
 const compressAndWatermarkImage = async (
   file,
   {
     maxSize = 2000,
     quality = 0.92,
-    watermarkText = WATERMARK_TEXT_DEFAULT,
-    watermarkOpacity = 0.55,
-    watermarkPadding = 18,
-    watermarkFontSize = 22,
-    minBytesToProcess = 0, // ne diraj mini fajlove
+    watermarkUrl = "/assets/ad_icon.svg", // Tvoj logo
+    watermarkOpacity = 0.9,               // Providnost (0.0 - 1.0)
+    watermarkScale = 0.15,                // Veličina: 15% širine slike
+    watermarkPaddingPct = 0.03,           // Odmak: 3% od ivice
+    minBytesToProcess = 0,
   } = {}
 ) => {
   if (!isFileLike(file)) return file;
-
-  // Ako je već mali, preskoči (čuva 100% kvalitet)
   if (file.size && file.size < minBytesToProcess) return file;
 
   const src = safeObjectUrl(file);
@@ -101,14 +105,12 @@ const compressAndWatermarkImage = async (
   try {
     img = await loadImageElement(src);
   } finally {
-    try {
-      URL.revokeObjectURL(src);
-    } catch {}
+    try { URL.revokeObjectURL(src); } catch {}
   }
 
+  // 1. Izračunaj dimenzije za resize glavne slike
   const srcW = img.naturalWidth || img.width;
   const srcH = img.naturalHeight || img.height;
-
   const scale = Math.min(1, maxSize / Math.max(srcW, srcH));
   const outW = Math.max(1, Math.round(srcW * scale));
   const outH = Math.max(1, Math.round(srcH * scale));
@@ -119,38 +121,37 @@ const compressAndWatermarkImage = async (
   const ctx = canvas.getContext("2d");
   if (!ctx) return file;
 
+  // 2. Nacrtaj glavnu sliku
   ctx.drawImage(img, 0, 0, outW, outH);
 
-  // Watermark (bottom-right)
-  if (watermarkText) {
-    ctx.save();
-    ctx.globalAlpha = watermarkOpacity;
+  // 3. Nacrtaj Watermark (Logo)
+  if (watermarkUrl) {
+    try {
+      const wmImg = await loadImageElement(watermarkUrl);
+      
+      ctx.save();
+      ctx.globalAlpha = watermarkOpacity;
 
-    const fontSize = Math.max(14, Math.round((outW / 1000) * watermarkFontSize));
-    ctx.font = `700 ${fontSize}px sans-serif`;
-    ctx.textBaseline = "bottom";
+      // Računanje veličine watermarka (npr. 15% širine slike)
+      const wmWidth = outW * watermarkScale;
+      // Očuvaj aspect ratio loga
+      const wmAspect = (wmImg.naturalWidth || wmImg.width) / (wmImg.naturalHeight || wmImg.height);
+      const wmHeight = wmWidth / wmAspect;
 
-    const text = watermarkText;
-    const metrics = ctx.measureText(text);
-    const textW = metrics.width;
+      // Računanje pozicije: GORNJI DESNI ĆOŠAK
+      const padding = outW * watermarkPaddingPct;
+      const x = outW - wmWidth - padding; // Skroz desno minus širina i padding
+      const y = padding;                  // Skroz gore plus padding
 
-    const pad = Math.max(10, Math.round((outW / 1000) * watermarkPadding));
-    const x = outW - pad;
-    const y = outH - pad;
-
-    // shadow + stroke + fill (čita se na svemu)
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.strokeStyle = "rgba(0,0,0,0.55)";
-    ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.08));
-
-    ctx.strokeText(text, x - textW, y);
-    ctx.fillText(text, x - textW, y);
-
-    ctx.restore();
+      // Crtanje
+      ctx.drawImage(wmImg, x, y, wmWidth, wmHeight);
+      ctx.restore();
+    } catch (e) {
+      console.warn("Greška pri učitavanju watermarka:", e);
+    }
   }
 
+  // 4. Kompresija u JPEG
   const outBlob = await toCanvasBlob(canvas, "image/jpeg", quality);
   if (!outBlob) return file;
 
@@ -160,6 +161,7 @@ const compressAndWatermarkImage = async (
 
   return new File([outBlob], newName, { type: "image/jpeg" });
 };
+
 
 const normalizeFilesArray = (maybe) => {
   if (!maybe) return [];
@@ -1055,7 +1057,8 @@ const AdsListing = () => {
                 <div className="bg-white border border-gray-100 rounded-2xl flex flex-col h-full group overflow-hidden shadow-sm">
                   {/* Image Area */}
                   <div className="relative aspect-square bg-gray-100">
-                    {uploadedImages.length > 0 ? (
+                    {/* ✅ FIX 2: Provjeravamo da li imamo URL prije renderovanja img taga */}
+                    {uploadedImages.length > 0 && getPreviewImage() ? (
                       <img
                         src={getPreviewImage()}
                         alt="Preview"
