@@ -31,7 +31,10 @@ import { toast } from "sonner";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-// Helper za parsiranje radnog vremena
+import { formatResponseTimeBs } from "@/utils/index";
+
+/* ===================== helpers ===================== */
+
 const parseBusinessHours = (hours) => {
   if (!hours) return null;
   try {
@@ -41,7 +44,6 @@ const parseBusinessHours = (hours) => {
   }
 };
 
-// Helper za provjeru da li je trenutno otvoreno
 const isCurrentlyOpen = (businessHours) => {
   if (!businessHours) return null;
 
@@ -62,24 +64,20 @@ const isCurrentlyOpen = (businessHours) => {
   return currentTime >= openTime && currentTime <= closeTime;
 };
 
-// Helper za formatiranje radnog vremena danas
 const getTodayHours = (businessHours) => {
   if (!businessHours) return null;
-
   const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   const today = days[new Date().getDay()];
   const todayHours = businessHours[today];
-
   if (!todayHours || todayHours.closed || !todayHours.enabled) return "Zatvoreno";
   return `${todayHours.open} - ${todayHours.close}`;
 };
 
-// Helper za formatiranje vremena
 const formatLastSeen = (timestamp) => {
   if (!timestamp) return "";
   const now = new Date();
   const lastSeen = new Date(timestamp);
-  if (isNaN(lastSeen.getTime())) return "";
+  if (Number.isNaN(lastSeen.getTime())) return "";
 
   const diffInSeconds = Math.floor((now - lastSeen) / 1000);
 
@@ -91,7 +89,6 @@ const formatLastSeen = (timestamp) => {
   return lastSeen.toLocaleDateString("bs-BA", { day: "numeric", month: "numeric", year: "numeric" });
 };
 
-// Response time labele (ručni izbor)
 const responseTimeLabels = {
   instant: "par minuta",
   few_hours: "par sati",
@@ -99,18 +96,7 @@ const responseTimeLabels = {
   few_days: "par dana",
 };
 
-// ✅ AUTO: pretvori prosječne minute u isti “bucket”
-const responseTimeFromAvg = (avgMin) => {
-  if (avgMin == null) return null;
-
-  const min = Number(avgMin);
-  if (Number.isNaN(min)) return null;
-
-  if (min <= 15) return "par minuta";
-  if (min <= 180) return "par sati";
-  if (min <= 1440) return "24 sata";
-  return "par dana";
-};
+/* ===================== component ===================== */
 
 const SellerDetailCard = ({
   seller,
@@ -140,39 +126,42 @@ const SellerDetailCard = ({
   const ratingValue = useMemo(() => Number(seller?.average_rating || 0).toFixed(1), [seller?.average_rating]);
   const ratingCount = useMemo(() => ratings?.total || ratings?.data?.length || 0, [ratings]);
 
-  // Seller settings
   const settings = sellerSettings || {};
   const vacationMode = Boolean(settings.vacation_mode);
   const vacationMessage = settings.vacation_message || "Prodavač je trenutno na godišnjem odmoru.";
-  const responseTime = settings.response_time || null;
+  const responseTime = settings.response_time || "auto";
+
   const businessHours = parseBusinessHours(settings.business_hours);
   const currentlyOpen = isShop && businessHours ? isCurrentlyOpen(businessHours) : null;
   const todayHoursText = isShop && businessHours ? getTodayHours(businessHours) : null;
 
-  // ✅ RESPONSE TIME DISPLAY (uključuje auto)
-  const responseTimeAutoLabel = responseTime === "auto" ? responseTimeFromAvg(seller?.response_time_avg) : null;
+  // ✅ NEW: real auto text from avg
+  const autoText = formatResponseTimeBs(seller?.response_time_avg);
+
+  // ✅ as you requested
+  const responseTimeText =
+    responseTime === "auto"
+      ? autoText ?? "Vrijeme odgovora se računa automatski"
+      : responseTimeLabels[responseTime];
 
   const responseTimeDisplayText =
     responseTime === "auto"
-      ? responseTimeAutoLabel
-        ? `Obično odgovara za ${responseTimeAutoLabel}`
-        : "Vrijeme odgovora se računa automatski"
-      : responseTime && responseTimeLabels[responseTime]
-        ? `Obično odgovara za ${responseTimeLabels[responseTime]}`
+      ? autoText
+        ? `Obično odgovara za ${autoText}`
+        : responseTimeText
+      : responseTimeText
+        ? `Obično odgovara za ${responseTimeText}`
         : null;
 
-  // Contact options
   const showWhatsapp = Boolean(settings.show_whatsapp);
   const showViber = Boolean(settings.show_viber);
   const whatsappNumber = settings.whatsapp_number || seller?.mobile;
   const viberNumber = settings.viber_number || seller?.mobile;
 
-  // Business info
   const businessDescription = settings.business_description || null;
   const returnPolicy = settings.return_policy || null;
   const shippingInfo = settings.shipping_info || null;
 
-  // Social media
   const socialFacebook = settings.social_facebook || null;
   const socialInstagram = settings.social_instagram || null;
   const socialTiktok = settings.social_tiktok || null;
@@ -194,6 +183,8 @@ const SellerDetailCard = ({
     setIsPhoneModalOpen(true);
     if (onPhoneReveal) onPhoneReveal();
   };
+
+  if (!seller) return null;
 
   return (
     <>
@@ -241,209 +232,215 @@ const SellerDetailCard = ({
             />
           </div>
 
-          {/* GAMIFICATION BADGES */}
-          {badges?.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-              {badges.slice(0, 3).map((badge) => (
-                <div key={badge.id} className="relative group">
-                  <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-1.5 py-1">
-                    <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
-                  </div>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                    <div className="bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap">
-                      {badge.name}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                        <div className="border-4 border-transparent border-t-slate-900" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {badges.length > 3 && (
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 px-2 py-1 rounded-full">
-                  +{badges.length - 3}
-                </span>
-              )}
-            </div>
-          )}
+          {/* NAME */}
+          <div className="mt-3 flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">{seller?.name}</h1>
+            {Boolean(seller?.is_verified) && <MdVerified className="text-primary text-2xl" title="Verificiran" />}
+          </div>
 
-          {/* NAME + BADGES */}
-          <div className="mt-4 text-center">
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                {seller?.name}
-              </h3>
+          {/* STATUS */}
+          <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {isOnline ? "Online" : lastSeenText ? `Posljednji put viđen: ${lastSeenText}` : ""}
+          </div>
 
-              {seller?.is_verified === 1 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-200 px-2.5 py-1 text-xs font-semibold">
-                  <MdVerified className="text-base" />
-                  Verifikovan
-                </span>
-              )}
-
-              {/* MEMBERSHIP BADGE - Shop ima prioritet */}
+          {/* TIER */}
+          {(isPro || isShop) && (
+            <div className="mt-3 flex items-center gap-2">
               {isShop ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2.5 py-1 text-xs font-bold shadow-sm">
-                  <MdStorefront className="text-base" />
-                  Shop
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary dark:bg-primary/20">
+                  <MdStorefront className="text-base" /> Shop
                 </span>
-              ) : isPro ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-1 text-xs font-bold shadow-sm">
-                  <MdWorkspacePremium className="text-base" />
-                  Pro
+              ) : null}
+              {isPro ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200">
+                  <MdWorkspacePremium className="text-base" /> Pro
                 </span>
               ) : null}
             </div>
+          )}
 
-            {/* ONLINE STATUS */}
-            <div className="mt-1 h-6">
-              {isOnline ? (
-                <span className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900 px-3 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                  Na mreži
-                </span>
-              ) : (
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  {lastSeenText ? `Na mreži: ${lastSeenText}` : "Van mreže"}
-                </span>
-              )}
+          {/* BADGES */}
+          {badges?.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {badges.slice(0, 6).map((badge) => (
+                <div
+                  key={badge.id}
+                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-1.5 py-1"
+                >
+                  <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* STATS */}
+          <div className="mt-5 w-full grid grid-cols-3 gap-2">
+            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
+              <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-200">
+                <MdStar />
+                <span className="text-xs font-semibold">Ocjena</span>
+              </div>
+              <div className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{ratingValue}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">{ratingCount} recenzija</div>
             </div>
 
-            {/* BUSINESS HOURS za Shop */}
-            {isShop && businessHours && currentlyOpen !== null && (
-              <div className="mt-2 flex flex-col items-center gap-1">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border",
-                    currentlyOpen
-                      ? "bg-green-50 text-green-700 border-green-100 dark:bg-green-950/30 dark:text-green-200 dark:border-green-900"
-                      : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-200 dark:border-slate-700"
-                  )}
-                >
-                  <MdSchedule className="text-sm" />
-                  {currentlyOpen ? "Otvoreno" : "Zatvoreno"}
-                </span>
-                {todayHoursText && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    Danas: {todayHoursText}
-                  </span>
-                )}
+            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
+              <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-200">
+                <MdCalendarMonth />
+                <span className="text-xs font-semibold">Član od</span>
               </div>
-            )}
+              <div className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{memberSinceYear || "—"}</div>
+            </div>
 
-            {/* ✅ RESPONSE TIME (uključuje auto) */}
-            {responseTimeDisplayText && (
-              <div className="mt-2">
-                <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                  <MdAccessTime className="text-sm" />
-                  {responseTimeDisplayText}
-                </span>
+            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
+              <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-200">
+                <MdAccessTime />
+                <span className="text-xs font-semibold">Odgovor</span>
               </div>
-            )}
+              <div className="mt-1 text-[12px] leading-snug font-extrabold text-slate-900 dark:text-white">
+                {responseTimeDisplayText || "—"}
+              </div>
+            </div>
           </div>
 
-          {/* VACATION MODE ALERT */}
-          {(isPro || isShop) && vacationMode && (
-            <div className="mt-4 w-full">
-              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-2xl p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-xl">
-                    <MdBeachAccess className="text-amber-600 dark:text-amber-200 text-xl" />
+          {/* BUSINESS HOURS */}
+          {isShop && businessHours && (
+            <div className="mt-4 w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                    <MdSchedule />
+                    <span className="text-sm font-bold">Radno vrijeme</span>
                   </div>
-                  <div>
-                    <p className="font-semibold text-amber-800 dark:text-amber-100 text-sm">
-                      Na godišnjem odmoru
-                    </p>
-                    <p className="text-amber-700 dark:text-amber-200/80 text-xs mt-1">
-                      {vacationMessage}
-                    </p>
-                  </div>
+                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{todayHoursText}</div>
                 </div>
+                {currentlyOpen !== null && (
+                  <span
+                    className={cn(
+                      "px-2.5 py-1 rounded-full text-xs font-semibold",
+                      currentlyOpen
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-200"
+                        : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                    )}
+                  >
+                    {currentlyOpen ? "Otvoreno" : "Zatvoreno"}
+                  </span>
+                )}
               </div>
             </div>
           )}
 
-          {/* STATS ROW */}
-          <div className="mt-5 w-full flex items-center justify-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-              <MdStar className="text-yellow-500 text-lg" />
-              <span className="font-extrabold text-slate-900 dark:text-slate-100">{ratingValue}</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">({ratingCount})</span>
-            </div>
-
-            {memberSinceYear && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                <MdCalendarMonth className="text-slate-400 text-lg" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  {memberSinceYear}
-                </span>
+          {/* VACATION */}
+          {vacationMode && (
+            <div className="mt-4 w-full rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <MdBeachAccess />
+                <span className="text-sm font-bold">Na odmoru</span>
               </div>
+              <div className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/80">{vacationMessage}</div>
+            </div>
+          )}
+
+          {/* CONTACTS */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            {seller?.mobile && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleOpenPhoneModal}
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
+                >
+                  <MdPhone className="text-xl" />
+                  Telefon
+                </button>
+
+                <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>
+                  <DialogContent className="max-w-sm bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                    <div className="text-lg font-extrabold text-slate-900 dark:text-white">Kontakt telefon</div>
+                    <div className="mt-1 text-slate-600 dark:text-slate-300">{seller.mobile}</div>
+
+                    <div className="mt-4 flex gap-2">
+                      <a
+                        href={`tel:${seller.mobile}`}
+                        onClick={onPhoneClick}
+                        className="flex-1 text-center rounded-xl px-4 py-3 font-bold bg-primary text-white hover:opacity-95"
+                      >
+                        Pozovi
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleCopyPhone}
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-bold bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+                      >
+                        {isCopied ? <MdCheck className="text-xl" /> : <MdContentCopy className="text-xl" />}
+                        Kopiraj
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+
+            {showWhatsapp && whatsappNumber && (
+              <a
+                href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
+              >
+                <FaWhatsapp className="text-xl" />
+                WhatsApp
+              </a>
+            )}
+
+            {showViber && viberNumber && (
+              <a
+                href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
+              >
+                <FaViber className="text-xl" />
+                Viber
+              </a>
+            )}
+
+            {seller?.email && (
+              <button
+                type="button"
+                onClick={onEmailClick}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
+              >
+                <MdOutlineMail className="text-xl" />
+                Email
+              </button>
             )}
           </div>
 
-          {/* CONTACT BUTTONS */}
-          {seller?.show_personal_details === 1 && (seller?.email || seller?.mobile) && (
-            <div className="mt-6 flex flex-col gap-3 w-full">
-              <div className="grid grid-cols-2 gap-3">
-                {seller?.mobile ? (
-                  <button
-                    onClick={handleOpenPhoneModal}
-                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-primary text-white hover:bg-primary/90 active:scale-[0.98] transition-all"
-                  >
-                    <MdPhone className="text-xl" />
-                    <span>Pozovi</span>
-                  </button>
-                ) : (
-                  <button
-                    disabled
-                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
-                  >
-                    <MdPhone className="text-xl" />
-                    <span>Nema broj</span>
-                  </button>
-                )}
-
-                {seller?.email ? (
-                  <a
-                    href={`mailto:${seller?.email}`}
-                    onClick={onEmailClick}
-                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-[0.98] transition-all"
-                  >
-                    <MdOutlineMail className="text-xl" />
-                    <span>Email</span>
-                  </a>
-                ) : (
-                  <button
-                    disabled
-                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
-                  >
-                    <MdOutlineMail className="text-xl" />
-                    <span>Nema email</span>
-                  </button>
-                )}
-              </div>
-
-              {/* WhatsApp */}
-              {showWhatsapp && whatsappNumber && (
-                <a
-                  href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-[#25D366] text-white hover:bg-[#1da851] active:scale-[0.98] transition-all"
-                >
-                  <FaWhatsapp className="text-xl" />
-                  <span>WhatsApp</span>
+          {/* SOCIAL LINKS */}
+          {hasSocialLinks && (
+            <div className="mt-5 flex items-center justify-center gap-3 text-slate-600 dark:text-slate-300">
+              {socialFacebook && (
+                <a href={socialFacebook} target="_blank" rel="noreferrer" className="hover:text-primary">
+                  <FaFacebook className="text-xl" />
                 </a>
               )}
-
-              {/* Viber */}
-              {showViber && viberNumber && (
-                <a
-                  href={`viber://chat?number=${viberNumber.replace(/[^0-9]/g, "")}`}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-[#7360f2] text-white hover:bg-[#5a4abf] active:scale-[0.98] transition-all"
-                >
-                  <FaViber className="text-xl" />
-                  <span>Viber</span>
+              {socialInstagram && (
+                <a href={socialInstagram} target="_blank" rel="noreferrer" className="hover:text-primary">
+                  <FaInstagram className="text-xl" />
+                </a>
+              )}
+              {socialTiktok && (
+                <a href={socialTiktok} target="_blank" rel="noreferrer" className="hover:text-primary">
+                  <FaTiktok className="text-xl" />
+                </a>
+              )}
+              {socialYoutube && (
+                <a href={socialYoutube} target="_blank" rel="noreferrer" className="hover:text-primary">
+                  <FaYoutube className="text-xl" />
+                </a>
+              )}
+              {socialWebsite && (
+                <a href={socialWebsite} target="_blank" rel="noreferrer" className="hover:text-primary">
+                  <FaGlobe className="text-xl" />
                 </a>
               )}
             </div>
@@ -451,176 +448,47 @@ const SellerDetailCard = ({
 
           {/* BUSINESS INFO */}
           {hasBusinessInfo && (
-            <div className="mt-6 w-full space-y-3">
-              <div className="h-px w-full bg-slate-100 dark:bg-slate-800" />
+            <div className="mt-6 w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+              <div className="text-sm font-extrabold text-slate-900 dark:text-white">Informacije</div>
+
+              {shippingInfo && (
+                <div className="mt-3 flex items-start gap-2 text-slate-700 dark:text-slate-200">
+                  <MdLocalShipping className="text-xl mt-0.5" />
+                  <div>
+                    <div className="text-sm font-bold">Dostava</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-300">{shippingInfo}</div>
+                  </div>
+                </div>
+              )}
+
+              {returnPolicy && (
+                <div className="mt-3 flex items-start gap-2 text-slate-700 dark:text-slate-200">
+                  <MdAssignmentReturn className="text-xl mt-0.5" />
+                  <div>
+                    <div className="text-sm font-bold">Povrat</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-300">{returnPolicy}</div>
+                  </div>
+                </div>
+              )}
 
               {businessDescription && (
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-transparent dark:border-slate-800">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                    O prodavaču
-                  </p>
-                  <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
-                    {businessDescription}
-                  </p>
-                </div>
-              )}
-
-              {(returnPolicy || shippingInfo) && (
-                <div className="grid grid-cols-1 gap-3">
-                  {shippingInfo && (
-                    <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900">
-                      <MdLocalShipping className="text-blue-500 dark:text-blue-200 text-lg flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-semibold text-blue-700 dark:text-blue-200">Dostava</p>
-                        <p className="text-xs text-blue-600 dark:text-blue-200/80 mt-0.5">{shippingInfo}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {returnPolicy && (
-                    <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-xl border border-green-100 dark:border-green-900">
-                      <MdAssignmentReturn className="text-green-500 dark:text-green-200 text-lg flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-semibold text-green-700 dark:text-green-200">Povrat</p>
-                        <p className="text-xs text-green-600 dark:text-green-200/80 mt-0.5">{returnPolicy}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">{businessDescription}</div>
               )}
             </div>
           )}
 
-          {/* SOCIAL MEDIA LINKS */}
-          {hasSocialLinks && (
-            <div className="mt-6 w-full">
-              <div className="h-px w-full bg-slate-100 dark:bg-slate-800 mb-4" />
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 text-center">
-                Pratite na mrežama
-              </p>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                {socialFacebook && (
-                  <a
-                    href={socialFacebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1877F2] text-white hover:opacity-90 transition-opacity"
-                    title="Facebook"
-                  >
-                    <FaFacebook className="text-lg" />
-                  </a>
-                )}
-                {socialInstagram && (
-                  <a
-                    href={socialInstagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] text-white hover:opacity-90 transition-opacity"
-                    title="Instagram"
-                  >
-                    <FaInstagram className="text-lg" />
-                  </a>
-                )}
-                {socialTiktok && (
-                  <a
-                    href={socialTiktok}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-black text-white hover:opacity-90 transition-opacity"
-                    title="TikTok"
-                  >
-                    <FaTiktok className="text-lg" />
-                  </a>
-                )}
-                {socialYoutube && (
-                  <a
-                    href={socialYoutube}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#FF0000] text-white hover:opacity-90 transition-opacity"
-                    title="YouTube"
-                  >
-                    <FaYoutube className="text-lg" />
-                  </a>
-                )}
-                {socialWebsite && (
-                  <a
-                    href={socialWebsite}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-700 dark:bg-slate-700 text-white hover:opacity-90 transition-opacity"
-                    title="Web stranica"
-                  >
-                    <FaGlobe className="text-lg" />
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* FOOTER */}
-        <div className="px-4 pb-4">
-          <CustomLink
-            href={`/seller/${seller?.id}`}
-            onClick={onProfileClick}
-            className="block w-full text-center text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-2xl py-3 hover:bg-white dark:hover:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700 transition-colors"
-          >
-            Pogledaj sve oglase ovog korisnika →
-          </CustomLink>
+          {/* PROFILE LINK */}
+          <div className="mt-6">
+            <CustomLink
+              href={`/seller/${seller?.id}`}
+              onClick={onProfileClick}
+              className="inline-flex items-center gap-2 text-primary font-semibold hover:underline"
+            >
+              Pogledaj profil <MdOpenInNew />
+            </CustomLink>
+          </div>
         </div>
       </div>
-
-      {/* PHONE MODAL */}
-      <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>
-        <DialogContent className="sm:max-w-sm w-[92%] rounded-3xl p-0 overflow-hidden bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-          <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-primary/12 to-transparent dark:from-primary/20 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center">
-            <div className="p-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-              <CustomImage src={seller?.profile} alt="Prodavač" width={72} height={72} className="w-16 h-16 rounded-full object-cover" />
-            </div>
-            <h3 className="mt-3 font-extrabold text-lg text-slate-900 dark:text-slate-100">{seller?.name}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Kontakt telefon</p>
-          </div>
-
-          <div className="p-6 space-y-4">
-            <button
-              type="button"
-              onClick={handleCopyPhone}
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-center hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[0.99] transition-all"
-            >
-              <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-wide">{seller?.mobile}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Klikni da kopiraš broj</p>
-            </button>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleCopyPhone}
-                className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] transition-all"
-              >
-                {isCopied ? <MdCheck className="text-emerald-600 text-xl" /> : <MdContentCopy className="text-xl" />}
-                <span>{isCopied ? "Kopirano" : "Kopiraj"}</span>
-              </button>
-
-              <a
-                href={`tel:${seller?.mobile}`}
-                onClick={onPhoneClick}
-                className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold bg-primary text-white hover:bg-primary/90 active:scale-[0.98] transition-all"
-              >
-                <MdPhone className="text-xl" />
-                <span>Pozovi</span>
-              </a>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsPhoneModalOpen(false)}
-              className="w-full text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 py-2"
-            >
-              Zatvori
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

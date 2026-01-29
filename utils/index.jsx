@@ -746,6 +746,35 @@ export const isValidURL = (url) => {
   return pattern.test(url);
 };
 
+export const formatResponseTimeBs = (avgMinutes) => {
+  if (avgMinutes == null) return null;
+
+  const minutesRaw = Number(avgMinutes);
+  if (!Number.isFinite(minutesRaw) || minutesRaw <= 0) return null;
+
+  const plural = (n, one, few, many) => {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return few;
+    return many;
+  };
+
+  if (minutesRaw < 60) {
+    const m = Math.max(1, Math.round(minutesRaw));
+    return `${m} ${plural(m, "minutu", "minute", "minuta")}`;
+  }
+
+  if (minutesRaw < 60 * 24) {
+    const h = Math.max(1, Math.round(minutesRaw / 60));
+    return `${h} ${plural(h, "sat", "sata", "sati")}`;
+  }
+
+  const d = Math.max(1, Math.round(minutesRaw / (60 * 24)));
+  return `${d} ${plural(d, "dan", "dana", "dana")}`;
+};
+
+
 export const formatTime = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
