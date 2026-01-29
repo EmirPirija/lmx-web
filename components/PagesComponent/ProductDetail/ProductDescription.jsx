@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import parse from "html-react-parser";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { MdDescription } from "react-icons/md";
+import { cn } from "@/lib/utils";
  
 const ProductDescription = ({ productDetails }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -9,7 +10,6 @@ const ProductDescription = ({ productDetails }) => {
   const descriptionRef = useRef(null);
  
   const translated_item = productDetails?.translated_item;
- 
   const fullDescription =
     translated_item?.description?.replace(/\n/g, "<br />") ||
     productDetails?.description?.replace(/\n/g, "<br />");
@@ -17,104 +17,64 @@ const ProductDescription = ({ productDetails }) => {
   useEffect(() => {
     const descriptionBody = descriptionRef.current;
     if (descriptionBody) {
-      setIsOverflowing(
-        descriptionBody.scrollHeight > descriptionBody.clientHeight
-      );
+      // Provjeri da li je sadržaj veći od max visine (250px)
+      setIsOverflowing(descriptionBody.scrollHeight > 250);
     }
   }, [fullDescription]);
  
-  const toggleDescription = () => {
-    setShowFullDescription((prev) => !prev);
-  };
- 
   return (
-    <>
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
- 
-        @keyframes expandHeight {
-          from {
-            max-height: 72px;
-          }
-          to {
-            max-height: 2000px;
-          }
-        }
- 
-        .description-expand {
-          animation: expandHeight 0.4s ease-out;
-        }
- 
-        .fade-overlay {
-          background: linear-gradient(to bottom, transparent 0%, white 100%);
-          pointer-events: none;
-        }
-      `}</style>
- 
-      <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-50 via-gray-50 to-zinc-50 px-5 lg:px-6 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-xl shadow-sm">
-              <MdDescription className="text-slate-600 text-xl" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">
-                Opis oglasa
-              </h3>
-              <p className="text-xs text-slate-500">Detaljne informacije o artiklu</p>
-            </div>
+    <div className="flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* Header */}
+      <div className="bg-slate-50/50 dark:bg-slate-800/50 px-5 lg:px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+            <MdDescription className="text-slate-600 dark:text-slate-300 text-xl" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              Opis oglasa
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Detaljne informacije o artiklu</p>
           </div>
         </div>
+      </div>
  
-        {/* Sadržaj opisa */}
-        <div className="p-5 lg:p-6 relative">
-          <div
-            className={`${
-              showFullDescription ? "max-h-none description-expand" : "max-h-[250px]"
-            } prose prose-sm lg:prose-base max-w-none overflow-hidden transition-all duration-300`}
-            ref={descriptionRef}
-          >
-            <div className="text-slate-700 leading-relaxed">
-              {parse(fullDescription || "<p class='text-slate-400 italic'>Opis nije dostupan za ovaj oglas.</p>")}
-            </div>
-          </div>
- 
-          {/* Fade Overlay kada je skupljeno */}
-          {!showFullDescription && isOverflowing && (
-            <div className="fade-overlay absolute bottom-0 left-0 right-0 h-20"></div>
+      {/* Sadržaj */}
+      <div className="p-5 lg:p-6 relative">
+        <div
+          className={cn(
+            "prose prose-sm lg:prose-base max-w-none text-slate-700 dark:text-slate-300 leading-relaxed overflow-hidden transition-[max-height] duration-500 ease-in-out",
+            showFullDescription ? "max-h-[5000px]" : "max-h-[250px]"
           )}
+          ref={descriptionRef}
+        >
+          {parse(fullDescription || "<p class='text-slate-400 italic'>Opis nije dostupan za ovaj oglas.</p>")}
         </div>
  
-        {/* Dugme Prikaži više/manje */}
-        {isOverflowing && (
-          <div className="px-5 lg:px-6 pb-5">
-            <button
-              onClick={toggleDescription}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/15 border border-primary/20 rounded-xl transition-all duration-300 group"
-            >
-              <span className="text-sm font-bold text-primary">
-                {showFullDescription ? "Prikaži manje" : "Prikaži više"}
-              </span>
-              {showFullDescription ? (
-                <FaChevronUp className="text-primary text-sm group-hover:-translate-y-0.5 transition-transform duration-300" />
-              ) : (
-                <FaChevronDown className="text-primary text-sm group-hover:translate-y-0.5 transition-transform duration-300" />
-              )}
-            </button>
-          </div>
+        {/* Fade Overlay kada je skupljeno */}
+        {!showFullDescription && isOverflowing && (
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
         )}
       </div>
-    </>
+ 
+      {/* Dugme Prikaži više/manje */}
+      {isOverflowing && (
+        <div className="px-5 lg:px-6 pb-5 pt-0">
+          <button
+            onClick={() => setShowFullDescription(!showFullDescription)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-primary dark:text-primary-400 font-bold text-sm rounded-xl border border-slate-100 dark:border-slate-700 transition-all duration-300 group"
+          >
+            <span>{showFullDescription ? "Prikaži manje" : "Pročitaj detaljan opis"}</span>
+            {showFullDescription ? (
+              <FaChevronUp className="group-hover:-translate-y-0.5 transition-transform" />
+            ) : (
+              <FaChevronDown className="group-hover:translate-y-0.5 transition-transform" />
+            )}
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
  

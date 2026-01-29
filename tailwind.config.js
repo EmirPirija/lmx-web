@@ -7,10 +7,32 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    // Ažurirana sekcija za ekrane
+    screens: {
+      sm: "676px",
+      md: "768px",
+      lg: "992px",
+      xl: "1200px",
+      "2xl": "1400px",
+      "3xl": "1600px", // Dodano: širi prikaz
+      "4xl": "1920px", // Dodano: Full HD puna širina
+    },
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+        "2xl": "3rem", // Povećan padding za velike ekrane da sadržaj ne "ljubi" rub
+      },
+      // Ovo omogućava da container nema max-width na jako velikim ekranima ako to želiš
+      // screens: {
+      //   "2xl": "100%",
+      // },
+    },
     extend: {
-      // LMX Boje
+      // LMX Boje (zadržane iste)
       colors: {
-        // Primarna (Narandžasta)
         primary: {
           DEFAULT: "var(--primary)",
           hover: "var(--primary-hover)",
@@ -26,7 +48,6 @@ module.exports = {
           800: "#9A3412",
           900: "#7C2D12",
         },
-        // Sekundarna (Tirkizna)
         secondary: {
           DEFAULT: "var(--secondary)",
           hover: "var(--secondary-hover)",
@@ -42,7 +63,6 @@ module.exports = {
           800: "#115E59",
           900: "#134E4A",
         },
-        // Akcent (Tamno plava)
         accent: {
           DEFAULT: "var(--accent)",
           hover: "var(--accent-hover)",
@@ -58,7 +78,6 @@ module.exports = {
           800: "#1E40AF",
           900: "#1E3A8A",
         },
-        // Ostale boje
         background: "var(--background)",
         foreground: "hsl(var(--foreground))",
         border: "var(--border)",
@@ -211,22 +230,6 @@ module.exports = {
       transitionTimingFunction: {
         "bounce-in": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
         "smooth": "cubic-bezier(0.4, 0, 0.2, 1)",
-      },
-    },
-    screens: {
-      // xs: "375px",
-      sm: "676px",
-      md: "768px",
-      lg: "992px",
-      xl: "1200px",
-      "2xl": "1400px",
-    },
-    container: {
-      center: true,
-      padding: {
-        DEFAULT: "1rem",
-        sm: "1.5rem",
-        lg: "2rem",
       },
     },
   },
