@@ -1,9 +1,10 @@
 "use client";
- 
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { itemStatisticsApi, membershipApi } from "@/utils/api";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   IoChevronDown,
   IoChevronUp,
@@ -25,11 +26,12 @@ import {
   IoRefreshOutline,
   IoAlertCircleOutline,
   IoStatsChartOutline,
+  IoSparkles,
+  IoLockClosed,
 } from "react-icons/io5";
-import { FaGoogle, FaFacebookF, FaViber, FaWhatsapp } from "react-icons/fa";
-import { HiOutlineExternalLink } from "react-icons/hi";
+import { FaWhatsapp, FaViber } from "react-icons/fa";
 import { MdOutlineEmail, MdTouchApp } from "react-icons/md";
-import { Crown, Store, Lock, Sparkles } from "lucide-react";
+import { Crown, Store, Sparkles } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -38,35 +40,17 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
- 
+
 // ============================================
-// HELPER FUNKCIJE
-// ============================================
-const formatNumber = (num) => {
-  if (!num && num !== 0) return "0";
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toString();
-};
- 
-const formatDuration = (seconds) => {
-  if (!seconds) return "0s";
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs}s`;
-};
- 
-// ============================================
-// BOJE
+// CONSTANTS
 // ============================================
 const COLORS = {
   primary: "#3b82f6",
@@ -76,192 +60,258 @@ const COLORS = {
   danger: "#ef4444",
   cyan: "#06b6d4",
 };
- 
+
 const PIE_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#06b6d4", "#ec4899"];
- 
+
 // ============================================
-// CUSTOM TOOLTIP ZA GRAFOVE
+// HELPERS
+// ============================================
+const formatNumber = (num) => {
+  if (!num && num !== 0) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toString();
+};
+
+const formatDuration = (seconds) => {
+  if (!seconds) return "0s";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+};
+
+// ============================================
+// CUSTOM TOOLTIP
 // ============================================
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white px-3 py-2 rounded-lg shadow-lg border border-slate-100 text-sm">
+    <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg border border-slate-100 text-sm">
       <p className="font-medium text-slate-700 mb-1">{label}</p>
       {payload.map((entry, index) => (
         <div key={index} className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-slate-600">{entry.name}:</span>
+          <span className="text-slate-500">{entry.name}:</span>
           <span className="font-semibold text-slate-800">{formatNumber(entry.value)}</span>
         </div>
       ))}
     </div>
   );
 };
- 
+
 // ============================================
-// LOCK OVERLAY - Za zaključane feature
+// LOCK OVERLAY
 // ============================================
 const LockOverlay = ({ tier = "pro", feature = "" }) => {
-  const tierConfig = {
-    pro: {
-      icon: Crown,
-      gradient: "from-amber-400 to-yellow-600",
-      name: "LMX Pro",
-    },
-    shop: {
-      icon: Store,
-      gradient: "from-blue-500 to-indigo-600",
-      name: "LMX Shop",
-    },
-  };
- 
-  const config = tierConfig[tier];
+  const config = {
+    pro: { icon: Crown, gradient: "from-amber-400 to-yellow-500", name: "LMX Pro", bg: "from-amber-50 to-yellow-50" },
+    shop: { icon: Store, gradient: "from-blue-500 to-indigo-600", name: "LMX Shop", bg: "from-blue-50 to-indigo-50" },
+  }[tier];
+
   const Icon = config.icon;
- 
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-white/95 via-white/80 to-white/60 rounded-xl z-10">
-      <div className="text-center p-6">
-        <div className={`w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-lg`}>
-          <Icon className="text-white" size={24} />
-        </div>
-        <h4 className="font-bold text-slate-800 mb-1">{feature || "Napredna statistika"}</h4>
-        <p className="text-sm text-slate-500 mb-4 max-w-[200px]">
-          Ova funkcija je dostupna samo za {config.name} korisnike
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-white via-white/90 to-white/70 backdrop-blur-[2px] rounded-2xl z-10"
+    >
+      <div className="text-center p-4">
+        <motion.div
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 200 }}
+          className={`w-12 h-12 mx-auto mb-3 rounded-2xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-lg`}
+        >
+          <Icon className="text-white" size={22} />
+        </motion.div>
+        <h4 className="font-bold text-slate-800 text-sm mb-1">{feature || "Napredna statistika"}</h4>
+        <p className="text-xs text-slate-500 mb-3 max-w-[180px] mx-auto leading-relaxed">
+          Dostupno za {config.name} korisnike
         </p>
         <Link href="/membership/upgrade">
-          <Button size="sm" className={`bg-gradient-to-r ${config.gradient} text-white border-0 shadow-md hover:shadow-lg transition-shadow`}>
-            <Sparkles size={14} className="mr-1" />
-            Nadogradi na {config.name}
+          <Button
+            size="sm"
+            className={`bg-gradient-to-r ${config.gradient} text-white border-0 shadow-md hover:shadow-lg transition-all text-xs h-8 px-3`}
+          >
+            <Sparkles size={12} className="mr-1.5" />
+            Nadogradi
           </Button>
         </Link>
       </div>
-    </div>
+    </motion.div>
   );
 };
- 
+
 // ============================================
-// LOADING SKELETON
+// SHIMMER SKELETON
 // ============================================
+const ShimmerSkeleton = ({ className }) => (
+  <div className={`relative overflow-hidden bg-slate-100 rounded-xl ${className}`}>
+    <div
+      className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
+      style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
+    />
+  </div>
+);
+
 const StatisticsSkeleton = () => (
-  <div className="p-4 space-y-4 animate-pulse">
+  <div className="p-4 space-y-4">
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="h-24 bg-slate-100 rounded-xl" />
+        <ShimmerSkeleton key={i} className="h-24" />
       ))}
     </div>
-    <div className="h-48 bg-slate-100 rounded-xl" />
+    <ShimmerSkeleton className="h-48" />
     <div className="grid grid-cols-2 gap-3">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="h-16 bg-slate-100 rounded-xl" />
+        <ShimmerSkeleton key={i} className="h-16" />
       ))}
     </div>
   </div>
 );
- 
+
 // ============================================
 // ERROR STATE
 // ============================================
 const StatisticsError = ({ onRetry }) => (
-  <div className="p-8 text-center">
-    <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
-      <IoAlertCircleOutline className="text-red-500" size={32} />
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="p-8 text-center"
+  >
+    <div className="w-14 h-14 mx-auto mb-4 bg-red-50 rounded-2xl flex items-center justify-center">
+      <IoAlertCircleOutline className="text-red-500" size={28} />
     </div>
-    <h4 className="font-semibold text-slate-800 mb-2">Greška pri učitavanju statistike</h4>
-    <p className="text-sm text-slate-500 mb-4">Nije moguće dohvatiti podatke. Pokušajte ponovo.</p>
+    <h4 className="font-semibold text-slate-800 mb-1">Greška pri učitavanju</h4>
+    <p className="text-sm text-slate-500 mb-4">Nije moguće dohvatiti statistiku</p>
     <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
       <IoRefreshOutline size={16} />
       Pokušaj ponovo
     </Button>
-  </div>
+  </motion.div>
 );
- 
+
 // ============================================
 // EMPTY STATE
 // ============================================
 const StatisticsEmpty = () => (
-  <div className="p-8 text-center">
-    <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
-      <IoStatsChartOutline className="text-slate-400" size={32} />
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="p-8 text-center"
+  >
+    <div className="w-14 h-14 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
+      <IoStatsChartOutline className="text-slate-400" size={28} />
     </div>
-    <h4 className="font-semibold text-slate-800 mb-2">Nema dostupne statistike</h4>
-    <p className="text-sm text-slate-500">Statistika će biti dostupna nakon što oglas dobije preglede.</p>
-  </div>
+    <h4 className="font-semibold text-slate-800 mb-1">Nema statistike</h4>
+    <p className="text-sm text-slate-500">Podaci će biti dostupni nakon prvih pregleda</p>
+  </motion.div>
 );
- 
+
 // ============================================
-// SEKCIJA: PREGLEDI PO VREMENSKOM PERIODU
+// STAT CARD - Mini version
 // ============================================
-const ViewsOverviewSection = ({ summary }) => {
-  const today = summary?.today?.views || 0;
-  const yesterday = summary?.yesterday?.views || 0;
-  const last7Days = summary?.period?.views || 0;
-  const avgPerDay = summary?.period?.avg_views_per_day || 0;
-  const trend = summary?.trends?.views_vs_yesterday || 0;
- 
+const StatCard = ({ icon: Icon, label, value, subValue, trend, color = "blue", highlight = false }) => {
+  const colorMap = {
+    blue: { bg: "bg-blue-500", light: "bg-blue-50", text: "text-blue-600" },
+    green: { bg: "bg-emerald-500", light: "bg-emerald-50", text: "text-emerald-600" },
+    purple: { bg: "bg-purple-500", light: "bg-purple-50", text: "text-purple-600" },
+    orange: { bg: "bg-orange-500", light: "bg-orange-50", text: "text-orange-600" },
+    red: { bg: "bg-red-500", light: "bg-red-50", text: "text-red-600" },
+  };
+
+  const c = colorMap[color];
+
+  if (highlight) {
+    return (
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        className={`${c.bg} rounded-2xl p-4 text-white relative overflow-hidden`}
+      >
+        <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-2 text-white/80">
+            <Icon size={16} />
+            <span className="text-xs font-medium">{label}</span>
+          </div>
+          <p className="text-3xl font-bold">{formatNumber(value)}</p>
+          {subValue && <p className="text-xs text-white/70 mt-1">{subValue}</p>}
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-        <p className="text-blue-100 text-sm font-medium">Danas</p>
-        <p className="text-3xl font-bold mt-1">{today}</p>
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm"
+    >
+      <div className="flex items-center gap-2 mb-2 text-slate-500">
+        <div className={`w-7 h-7 rounded-lg ${c.light} flex items-center justify-center`}>
+          <Icon size={14} className={c.text} />
+        </div>
+        <span className="text-xs font-medium">{label}</span>
       </div>
-      <div className="bg-white rounded-xl p-4 border border-slate-100">
-        <p className="text-slate-500 text-sm font-medium">Jučer</p>
-        <p className="text-3xl font-bold text-slate-800 mt-1">{yesterday}</p>
-      </div>
-      <div className="bg-white rounded-xl p-4 border border-slate-100">
-        <p className="text-slate-500 text-sm font-medium">Period</p>
-        <p className="text-3xl font-bold text-slate-800 mt-1">{formatNumber(last7Days)}</p>
-        {trend !== 0 && (
-          <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${trend > 0 ? "text-green-600" : "text-red-600"}`}>
-            {trend > 0 ? <IoTrendingUp size={12} /> : <IoTrendingDown size={12} />}
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-2xl font-bold text-slate-800">{formatNumber(value)}</p>
+          {subValue && <p className="text-xs text-slate-400 mt-0.5">{subValue}</p>}
+        </div>
+        {trend !== undefined && trend !== 0 && (
+          <div className={`flex items-center gap-0.5 text-xs font-medium ${trend > 0 ? "text-emerald-600" : "text-red-500"}`}>
+            {trend > 0 ? <IoTrendingUp size={14} /> : <IoTrendingDown size={14} />}
             {trend > 0 ? "+" : ""}{trend}%
           </div>
         )}
       </div>
-      <div className="bg-white rounded-xl p-4 border border-slate-100">
-        <p className="text-slate-500 text-sm font-medium">Prosječno/dan</p>
-        <p className="text-3xl font-bold text-slate-800 mt-1">{avgPerDay}</p>
-      </div>
-    </div>
+    </motion.div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: GRAF PREGLEDA
+// VIEWS CHART
 // ============================================
 const ViewsChartSection = ({ daily }) => {
   if (!daily || daily.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
           <IoEyeOutline className="text-blue-500" />
           Pregledi po danima
         </h4>
-        <div className="h-[200px] flex items-center justify-center text-slate-400">
-          Nema podataka za prikaz grafa
+        <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka za graf
         </div>
       </div>
     );
   }
- 
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
         <IoEyeOutline className="text-blue-500" />
         Pregledi po danima
       </h4>
-      <div className="h-[200px]">
+      <div className="h-[180px] sm:h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={daily} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+          <AreaChart data={daily} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
             <defs>
-              <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.2} />
-                <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0} />
+              <linearGradient id="viewsGradFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.2} />
+                <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-            <XAxis dataKey="formatted_date" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis
+              dataKey="formatted_date"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#94a3b8", fontSize: 10 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
             <Tooltip content={<CustomTooltip />} />
             <Area
               type="monotone"
@@ -269,9 +319,9 @@ const ViewsChartSection = ({ daily }) => {
               name="Pregledi"
               stroke={COLORS.primary}
               strokeWidth={2}
-              fill="url(#viewsGrad)"
+              fill="url(#viewsGradFill)"
               dot={false}
-              activeDot={{ r: 5, fill: COLORS.primary }}
+              activeDot={{ r: 4, fill: COLORS.primary, strokeWidth: 2, stroke: "#fff" }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -279,138 +329,157 @@ const ViewsChartSection = ({ daily }) => {
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: INTERAKCIJE (BASIC)
+// INTERACTIONS GRID
 // ============================================
 const InteractionsSection = ({ summary }) => {
   const period = summary?.period || {};
- 
+
   const items = [
-    { icon: IoChatbubbleOutline, label: "Poruke", value: period.messages || 0, color: "text-blue-500" },
-    { icon: IoHelpCircleOutline, label: "Javna pitanja", value: period.public_questions || 0, color: "text-purple-500" },
-    { icon: IoHeartOutline, label: "Sačuvano", value: period.favorites || 0, color: "text-red-500" },
-    { icon: MdTouchApp, label: "Kontakti", value: (period.phone_clicks || 0) + (period.whatsapp_clicks || 0) + (period.viber_clicks || 0) + (period.email_clicks || 0), color: "text-green-500" },
+    { icon: IoChatbubbleOutline, label: "Poruke", value: period.messages || 0, color: "blue" },
+    { icon: IoHelpCircleOutline, label: "Pitanja", value: period.public_questions || 0, color: "purple" },
+    { icon: IoHeartOutline, label: "Favoriti", value: period.favorites || 0, color: "red" },
+    {
+      icon: MdTouchApp,
+      label: "Kontakti",
+      value: (period.phone_clicks || 0) + (period.whatsapp_clicks || 0) + (period.viber_clicks || 0) + (period.email_clicks || 0),
+      color: "green",
+    },
   ];
- 
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {items.map((item) => {
         const Icon = item.icon;
+        const colorMap = {
+          blue: "text-blue-500 bg-blue-50",
+          purple: "text-purple-500 bg-purple-50",
+          red: "text-red-500 bg-red-50",
+          green: "text-emerald-500 bg-emerald-50",
+        };
         return (
-          <div key={item.label} className="bg-white rounded-xl p-3 border border-slate-100">
-            <div className="flex items-center gap-2 text-slate-500 mb-1">
-              <Icon className={item.color} size={14} />
-              <span className="text-xs font-medium">{item.label}</span>
+          <motion.div
+            key={item.label}
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-xl p-3 border border-slate-100"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${colorMap[item.color]}`}>
+                <Icon size={12} />
+              </div>
+              <span className="text-xs text-slate-500 font-medium">{item.label}</span>
             </div>
             <p className="text-lg font-bold text-slate-800">{formatNumber(item.value)}</p>
-          </div>
+          </motion.div>
         );
       })}
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: PROMOCIJA/ISTICANJE (BASIC)
+// PROMOTION SECTION
 // ============================================
 const PromotionSection = ({ summary }) => {
   const featured = summary?.featured;
-  const nonFeatured = summary?.non_featured;
   const improvement = summary?.featured_improvement_percent || 0;
- 
-  if (!featured?.days && !nonFeatured?.days) {
+
+  if (!featured?.days) {
     return (
-      <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 p-4">
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        className="bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 rounded-2xl border border-amber-100/50 p-4"
+      >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-            <IoRocketOutline className="text-amber-600" size={20} />
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-200/50">
+            <IoRocketOutline className="text-white" size={20} />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-amber-800">Istaknite svoj oglas</h4>
-            <p className="text-sm text-amber-600">Povećajte vidljivost i dobijte do 5x više pregleda</p>
+            <h4 className="font-semibold text-amber-900 text-sm">Istaknite oglas</h4>
+            <p className="text-xs text-amber-700/80">Do 5x više pregleda</p>
           </div>
+          <Link href="/featured">
+            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8">
+              Istakni
+            </Button>
+          </Link>
         </div>
-      </div>
+      </motion.div>
     );
   }
- 
+
   return (
-    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 p-4">
-      <h4 className="font-semibold text-amber-800 mb-4 flex items-center gap-2">
+    <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 rounded-2xl border border-amber-100/50 p-4">
+      <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2 text-sm">
         <IoRocketOutline className="text-amber-600" />
         Statistika isticanja
       </h4>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white/80 rounded-lg p-3">
-          <p className="text-xs text-amber-700">Pregledi (istaknuto)</p>
-          <p className="text-xl font-bold text-amber-900">{featured?.total_views || 0}</p>
-        </div>
-        <div className="bg-white/80 rounded-lg p-3">
-          <p className="text-xs text-amber-700">Prosječno/dan</p>
-          <p className="text-xl font-bold text-amber-900">{featured?.avg_views_per_day || 0}</p>
-        </div>
-        <div className="bg-white/80 rounded-lg p-3">
-          <p className="text-xs text-amber-700">Poboljšanje</p>
-          <p className="text-xl font-bold text-green-600">{improvement > 0 ? `+${improvement}%` : "N/A"}</p>
-        </div>
-        <div className="bg-white/80 rounded-lg p-3">
-          <p className="text-xs text-amber-700">Dana istaknuto</p>
-          <p className="text-xl font-bold text-amber-900">{featured?.days || 0}</p>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[
+          { label: "Pregledi", value: featured?.total_views || 0 },
+          { label: "Prosječno/dan", value: featured?.avg_views_per_day || 0 },
+          { label: "Poboljšanje", value: improvement > 0 ? `+${improvement}%` : "N/A", highlight: true },
+          { label: "Dana", value: featured?.days || 0 },
+        ].map((item, i) => (
+          <div key={i} className="bg-white/70 backdrop-blur-sm rounded-xl p-3">
+            <p className="text-[10px] text-amber-700 uppercase tracking-wide font-medium">{item.label}</p>
+            <p className={`text-lg font-bold ${item.highlight ? "text-emerald-600" : "text-amber-900"}`}>
+              {item.value}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: IZVORI PROMETA (BASIC)
+// TRAFFIC SOURCES
 // ============================================
 const TrafficSourcesSection = ({ sources }) => {
-  const allSources = [
-    ...(sources?.internal || []),
-    ...(sources?.external || []),
-  ].filter((s) => s.value > 0).slice(0, 6);
- 
+  const allSources = [...(sources?.internal || []), ...(sources?.external || [])]
+    .filter((s) => s.value > 0)
+    .slice(0, 6);
+
   if (allSources.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
           <IoLocationOutline className="text-purple-500" />
-          Posjete po izvorima
+          Izvori prometa
         </h4>
-        <div className="h-[180px] flex items-center justify-center text-slate-400">
-          Nema podataka o izvorima
+        <div className="h-[140px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
         </div>
       </div>
     );
   }
- 
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
         <IoLocationOutline className="text-purple-500" />
-        Posjete po izvorima
+        Izvori prometa
       </h4>
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="w-full lg:w-[160px] h-[160px] flex-shrink-0">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="w-full sm:w-[120px] h-[120px] flex-shrink-0 mx-auto sm:mx-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={allSources} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} dataKey="value">
+              <Pie data={allSources} cx="50%" cy="50%" innerRadius={30} outerRadius={55} paddingAngle={2} dataKey="value">
                 {allSources.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => formatNumber(value)} />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex-1 grid grid-cols-2 gap-2">
+        <div className="flex-1 space-y-1.5">
           {allSources.map((source, index) => (
-            <div key={source.name} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
-              <span className="text-sm text-slate-600 truncate flex-1">{source.name}</span>
-              <span className="text-sm font-semibold text-slate-800">{source.percent}%</span>
+            <div key={source.name} className="flex items-center gap-2 text-sm">
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
+              <span className="text-slate-600 truncate flex-1 text-xs">{source.name}</span>
+              <span className="font-semibold text-slate-800 text-xs">{source.percent}%</span>
             </div>
           ))}
         </div>
@@ -418,40 +487,40 @@ const TrafficSourcesSection = ({ sources }) => {
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: PLATFORME/UREĐAJI (BASIC)
+// PLATFORMS/DEVICES
 // ============================================
 const PlatformsSection = ({ devices }) => {
   if (!devices) return null;
- 
+
   const platforms = [
     { name: "Mobitel", data: devices.mobile, icon: IoPhonePortraitOutline, color: COLORS.primary },
     { name: "Desktop", data: devices.desktop, icon: IoDesktopOutline, color: COLORS.secondary },
     { name: "Tablet", data: devices.tablet, icon: IoTabletPortraitOutline, color: COLORS.success },
   ];
- 
+
   const total = platforms.reduce((sum, p) => sum + (p.data?.value || 0), 0);
- 
+
   if (total === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
           <IoPhonePortraitOutline className="text-cyan-500" />
-          Posjete po platformama
+          Uređaji
         </h4>
-        <div className="h-[120px] flex items-center justify-center text-slate-400">
-          Nema podataka o platformama
+        <div className="h-[140px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
         </div>
       </div>
     );
   }
- 
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
         <IoPhonePortraitOutline className="text-cyan-500" />
-        Posjete po platformama
+        Uređaji
       </h4>
       <div className="space-y-3">
         {platforms.map((platform) => {
@@ -459,19 +528,25 @@ const PlatformsSection = ({ devices }) => {
           const value = platform.data?.value || 0;
           const percent = platform.data?.percent || 0;
           return (
-            <div key={platform.name} className="space-y-1">
-              <div className="flex items-center justify-between">
+            <div key={platform.name} className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <Icon size={16} className="text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600">{platform.name}</span>
+                  <Icon size={14} className="text-slate-400" />
+                  <span className="text-slate-600 font-medium">{platform.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-800">{formatNumber(value)}</span>
-                  <span className="text-xs text-slate-400">({percent}%)</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-800">{formatNumber(value)}</span>
+                  <span className="text-slate-400">({percent}%)</span>
                 </div>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: platform.color }} />
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${percent}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: platform.color }}
+                />
               </div>
             </div>
           );
@@ -480,120 +555,118 @@ const PlatformsSection = ({ devices }) => {
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: KONTAKTI PO TIPU (PRO)
+// CONTACT BREAKDOWN (PRO)
 // ============================================
 const ContactBreakdownSection = ({ summary }) => {
   const period = summary?.period || {};
- 
+
   const contacts = [
-    { icon: IoCallOutline, label: "Pozivi", value: period.phone_clicks || 0, color: "text-blue-500" },
-    { icon: FaWhatsapp, label: "WhatsApp", value: period.whatsapp_clicks || 0, color: "text-green-500" },
-    { icon: FaViber, label: "Viber", value: period.viber_clicks || 0, color: "text-purple-500" },
-    { icon: MdOutlineEmail, label: "Email", value: period.email_clicks || 0, color: "text-orange-500" },
+    { icon: IoCallOutline, label: "Pozivi", value: period.phone_clicks || 0, color: "text-blue-500 bg-blue-50" },
+    { icon: FaWhatsapp, label: "WhatsApp", value: period.whatsapp_clicks || 0, color: "text-green-500 bg-green-50" },
+    { icon: FaViber, label: "Viber", value: period.viber_clicks || 0, color: "text-purple-500 bg-purple-50" },
+    { icon: MdOutlineEmail, label: "Email", value: period.email_clicks || 0, color: "text-orange-500 bg-orange-50" },
   ];
- 
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-        <MdTouchApp className="text-green-500" />
-        Kontakti po tipu
-      </h4>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {contacts.map((contact) => {
-          const Icon = contact.icon;
-          return (
-            <div key={contact.label} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-              <Icon className={contact.color} size={18} />
-              <div>
-                <p className="text-xs text-slate-500">{contact.label}</p>
-                <p className="text-lg font-bold text-slate-800">{contact.value}</p>
-              </div>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {contacts.map((c) => {
+        const Icon = c.icon;
+        return (
+          <div key={c.label} className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${c.color}`}>
+              <Icon size={14} />
             </div>
-          );
-        })}
-      </div>
+            <div>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide">{c.label}</p>
+              <p className="text-sm font-bold text-slate-800">{c.value}</p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: POJMOVI PRETRAGE (PRO)
+// SEARCH TERMS (PRO)
 // ============================================
 const SearchTermsSection = ({ searchTerms }) => {
   if (!searchTerms || searchTerms.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
           <IoSearchOutline className="text-indigo-500" />
-          Pojmovi u pretrazi
+          Pojmovi pretrage
         </h4>
-        <div className="h-[200px] flex items-center justify-center text-slate-400">
-          Nema podataka o pretrazi
+        <div className="h-[160px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
         </div>
       </div>
     );
   }
- 
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
         <IoSearchOutline className="text-indigo-500" />
-        Pojmovi u pretrazi
+        Pojmovi pretrage
       </h4>
-      <div className="space-y-2 max-h-[240px] overflow-y-auto pr-2">
-        {searchTerms.slice(0, 10).map((item, index) => (
+      <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
+        {searchTerms.slice(0, 8).map((item, index) => (
           <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-            <span className="text-sm text-slate-700 font-medium">"{item.term}"</span>
-            <span className="text-sm text-slate-500">{item.count} pretraga</span>
+            <span className="text-xs text-slate-700 font-medium truncate flex-1">"{item.term}"</span>
+            <span className="text-xs text-slate-500 ml-2">{item.count}x</span>
           </div>
         ))}
       </div>
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: POZICIJA NA PRETRAZI (PRO)
+// SEARCH POSITION (PRO)
 // ============================================
 const SearchPositionSection = ({ searchPositions }) => {
   if (!searchPositions || searchPositions.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
           <IoLayersOutline className="text-orange-500" />
-          Stranica na pretrazi
+          Pozicija u pretrazi
         </h4>
-        <div className="h-[200px] flex items-center justify-center text-slate-400">
-          Nema podataka o poziciji
+        <div className="h-[160px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
         </div>
       </div>
     );
   }
- 
+
   const maxViews = Math.max(...searchPositions.map((d) => d.views || d.count || 0));
- 
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
         <IoLayersOutline className="text-orange-500" />
-        Stranica na pretrazi
+        Pozicija u pretrazi
       </h4>
       <div className="space-y-2">
-        {searchPositions.slice(0, 8).map((item, index) => {
+        {searchPositions.slice(0, 6).map((item, index) => {
           const views = item.views || item.count || 0;
           const widthPercent = maxViews > 0 ? (views / maxViews) * 100 : 0;
           return (
-            <div key={index} className="flex items-center gap-3">
-              <span className="text-sm text-slate-600 w-24 flex-shrink-0">{item.page}. stranica</span>
-              <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full flex items-center justify-end pr-2 transition-all duration-500"
-                  style={{ width: `${Math.max(widthPercent, 15)}%` }}
+            <div key={index} className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 w-16 flex-shrink-0">{item.page}. str</span>
+              <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(widthPercent, 15)}%` }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full flex items-center justify-end pr-2"
                 >
-                  <span className="text-xs text-white font-medium">{views}</span>
-                </div>
+                  <span className="text-[10px] text-white font-medium">{views}</span>
+                </motion.div>
               </div>
             </div>
           );
@@ -602,132 +675,150 @@ const SearchPositionSection = ({ searchPositions }) => {
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: VRIJEME PREGLEDA (SHOP)
+// VIEWS BY TIME (SHOP)
 // ============================================
 const ViewsByTimeSection = ({ hourlyData }) => {
   if (!hourlyData || hourlyData.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
           <IoTimeOutline className="text-teal-500" />
-          Pregledi po vremenu dana
+          Pregledi po satima
         </h4>
-        <div className="h-[180px] flex items-center justify-center text-slate-400">
+        <div className="h-[160px] flex items-center justify-center text-slate-400 text-sm">
           Nema podataka
         </div>
       </div>
     );
   }
- 
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
         <IoTimeOutline className="text-teal-500" />
-        Pregledi po vremenu dana
+        Pregledi po satima
       </h4>
-      <div className="h-[180px]">
+      <div className="h-[160px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={hourlyData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-            <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+          <BarChart data={hourlyData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 9 }} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="views" name="Pregledi" fill={COLORS.cyan} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="views" name="Pregledi" fill={COLORS.cyan} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 };
- 
+
 // ============================================
-// SEKCIJA: KONVERZIJA FUNNEL (SHOP)
+// CONVERSION FUNNEL (SHOP)
 // ============================================
 const ConversionSection = ({ funnel }) => {
   const funnelArray = Array.isArray(funnel) ? funnel : funnel?.funnel || [];
- 
+
   if (funnelArray.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-4">
-        <h4 className="font-semibold text-green-800 mb-4 flex items-center gap-2">
-          <IoTrendingUp className="text-green-600" />
+      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 p-4">
+        <h4 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2 text-sm">
+          <IoTrendingUp className="text-emerald-600" />
           Konverzija
         </h4>
-        <div className="h-[120px] flex items-center justify-center text-green-600/60">
-          Nema podataka o konverziji
+        <div className="h-[100px] flex items-center justify-center text-emerald-600/60 text-sm">
+          Nema podataka
         </div>
       </div>
     );
   }
- 
+
   const conversionRate = funnel?.conversion_rate || 0;
- 
+  const colors = ["bg-blue-500", "bg-purple-500", "bg-emerald-500"];
+
   return (
-    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-4">
-      <h4 className="font-semibold text-green-800 mb-4 flex items-center gap-2">
-        <IoTrendingUp className="text-green-600" />
+    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 p-4">
+      <h4 className="font-semibold text-emerald-800 mb-4 flex items-center gap-2 text-sm">
+        <IoTrendingUp className="text-emerald-600" />
         Konverzija
       </h4>
       <div className="space-y-2 mb-4">
-        {funnelArray.map((stage, index) => {
-          const widthPercent = Math.max(stage.percent || 0, 20);
-          const colors = ["bg-blue-500", "bg-purple-500", "bg-green-500"];
-          return (
-            <div key={stage.stage} className={`relative ${index > 0 ? "ml-" + index * 4 : ""}`}>
-              <div
-                className={`h-12 ${colors[index % colors.length]} rounded-lg flex items-center justify-between px-4 text-white transition-all duration-500`}
-                style={{ width: `${100 - index * 15}%` }}
-              >
-                <span className="font-medium text-sm">{stage.stage}</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold">{formatNumber(stage.value)}</span>
-                  <span className="text-xs opacity-75">({stage.percent}%)</span>
-                </div>
-              </div>
+        {funnelArray.map((stage, index) => (
+          <motion.div
+            key={stage.stage}
+            initial={{ width: 0 }}
+            animate={{ width: `${100 - index * 15}%` }}
+            transition={{ duration: 0.6, delay: index * 0.15 }}
+            className={`h-10 ${colors[index % colors.length]} rounded-lg flex items-center justify-between px-3 text-white`}
+          >
+            <span className="text-xs font-medium truncate">{stage.stage}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold">{formatNumber(stage.value)}</span>
+              <span className="text-[10px] opacity-75">({stage.percent}%)</span>
             </div>
-          );
-        })}
+          </motion.div>
+        ))}
       </div>
-      <div className="bg-white/70 rounded-lg p-3 text-center">
-        <p className="text-xs text-green-700">Ukupna stopa konverzije</p>
-        <p className="text-2xl font-bold text-green-800">{conversionRate}%</p>
+      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 text-center">
+        <p className="text-[10px] text-emerald-700 uppercase tracking-wide">Stopa konverzije</p>
+        <p className="text-2xl font-bold text-emerald-800">{conversionRate}%</p>
       </div>
     </div>
   );
 };
- 
+
 // ============================================
 // PERIOD SELECTOR
 // ============================================
 const PeriodSelector = ({ value, onChange }) => {
   const periods = [
-    { value: 7, label: "7 dana" },
-    { value: 14, label: "14 dana" },
-    { value: 30, label: "30 dana" },
-    { value: 90, label: "90 dana" },
+    { value: 7, label: "7d" },
+    { value: 14, label: "14d" },
+    { value: 30, label: "30d" },
+    { value: 90, label: "90d" },
   ];
- 
+
   return (
-    <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
-      {periods.map((period) => (
+    <div className="flex items-center gap-0.5 p-1 bg-slate-100 rounded-xl">
+      {periods.map((p) => (
         <button
-          key={period.value}
-          onClick={() => onChange(period.value)}
-          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-            value === period.value ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          key={p.value}
+          onClick={() => onChange(p.value)}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+            value === p.value ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
           }`}
         >
-          {period.label}
+          {p.label}
         </button>
       ))}
     </div>
   );
 };
- 
+
 // ============================================
-// GLAVNA KOMPONENTA: AdStatisticsSection
+// SECTION HEADER
+// ============================================
+const SectionHeader = ({ icon: Icon, title, iconColor, badge, locked }) => (
+  <div className="flex items-center gap-2 mb-4">
+    <Icon className={iconColor} size={18} />
+    <h4 className="font-semibold text-slate-800 text-sm">{title}</h4>
+    {badge && (
+      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${badge.color}`}>
+        {badge.text}
+      </span>
+    )}
+    {locked && (
+      <span className="flex items-center gap-1 text-[10px] text-slate-400">
+        <IoLockClosed size={10} /> Zaključano
+      </span>
+    )}
+  </div>
+);
+
+// ============================================
+// MAIN COMPONENT
 // ============================================
 const AdStatisticsSection = ({ itemId, itemName }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -736,71 +827,67 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
   const [error, setError] = useState(null);
   const [period, setPeriod] = useState(30);
   const [membershipTier, setMembershipTier] = useState("free");
- 
+
   const userData = useSelector(userSignUpData);
- 
-  // Dohvati membership tier
+
+  // Fetch membership
   useEffect(() => {
     const fetchMembership = async () => {
       try {
         const response = await membershipApi.getUserMembership({});
         const tier = response?.data?.data?.tier?.slug || response?.data?.data?.membership_tier || "free";
         setMembershipTier(tier.toLowerCase());
-      } catch (err) {
-        // Ako API ne radi, provjeri userData
+      } catch {
         const tier = userData?.membership_tier || userData?.membership?.tier?.slug || "free";
         setMembershipTier(tier.toLowerCase());
       }
     };
     fetchMembership();
   }, [userData]);
- 
-  // Dohvati statistiku
-  const fetchStatistics = async () => {
+
+  // Fetch statistics
+  const fetchStatistics = useCallback(async () => {
     if (!itemId) return;
- 
+
     setLoading(true);
     setError(null);
- 
+
     try {
       const response = await itemStatisticsApi.getStatistics({ itemId, period });
       const payload = response?.data;
- 
+
       const isOk =
         payload?.error === false ||
         payload?.error === 0 ||
         payload?.success === true ||
         payload?.status === true ||
         payload?.ok === true;
- 
-      if (isOk && payload?.data) {
-        setStats(payload.data);
-      } else if (payload?.data) {
+
+      if ((isOk || payload?.data) && payload?.data) {
         setStats(payload.data);
       } else {
         setStats(null);
       }
     } catch (err) {
       console.error("Error fetching statistics:", err);
-      setError("Greška pri učitavanju statistike");
+      setError("Greška pri učitavanju");
     } finally {
       setLoading(false);
     }
-  };
- 
-  // Fetch kada se expand-a ili promijeni period
+  }, [itemId, period]);
+
   useEffect(() => {
     if (isExpanded) {
       fetchStatistics();
     }
-  }, [isExpanded, period, itemId]);
- 
+  }, [isExpanded, fetchStatistics]);
+
   const isPro = membershipTier === "pro" || membershipTier === "shop";
   const isShop = membershipTier === "shop";
- 
-  // Brzi pregled za header (uvijek dohvati quick stats)
+
+  // Quick stats
   const [quickStats, setQuickStats] = useState(null);
- 
+
   useEffect(() => {
     const fetchQuickStats = async () => {
       if (!itemId) return;
@@ -809,137 +896,182 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
         if (response?.data?.data) {
           setQuickStats(response.data.data);
         }
-      } catch (err) {
-        // Ignore
-      }
+      } catch {}
     };
     fetchQuickStats();
   }, [itemId]);
- 
+
   const todayViews = quickStats?.today_views ?? stats?.summary?.today?.views ?? 0;
   const totalViews = quickStats?.total_views ?? stats?.summary?.period?.views ?? 0;
- 
+  const trend = quickStats?.views_trend ?? stats?.summary?.trends?.views_vs_yesterday ?? 0;
+
   return (
-    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-gradient-to-b from-slate-50 to-white">
-      {/* HEADER - Uvijek vidljiv */}
+    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+      {/* HEADER */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-            <IoStatsChartOutline className="text-white" size={20} />
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <IoStatsChartOutline className="text-white" size={22} />
           </div>
           <div className="text-left">
-            <h3 className="font-semibold text-slate-800">Statistika oglasa</h3>
-            <p className="text-sm text-slate-500">
-              {todayViews} pregleda danas • {formatNumber(totalViews)} ukupno
-            </p>
+            <h3 className="font-semibold text-slate-800 text-sm">Statistika oglasa</h3>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-slate-500">{todayViews} danas</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-xs text-slate-500">{formatNumber(totalViews)} ukupno</span>
+              {trend !== 0 && (
+                <span className={`flex items-center gap-0.5 text-xs font-medium ${trend > 0 ? "text-emerald-600" : "text-red-500"}`}>
+                  {trend > 0 ? <IoTrendingUp size={12} /> : <IoTrendingDown size={12} />}
+                  {trend > 0 ? "+" : ""}{trend}%
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {isPro && (
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${isShop ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${isShop ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
               {isShop ? "Shop" : "Pro"}
             </span>
           )}
-          {isExpanded ? <IoChevronUp className="text-slate-400" size={20} /> : <IoChevronDown className="text-slate-400" size={20} />}
+          <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <IoChevronDown className="text-slate-400" size={20} />
+          </motion.div>
         </div>
       </button>
- 
-      {/* CONTENT - Expandable */}
-      {isExpanded && (
-        <div className="p-4 pt-0 space-y-6">
-          {/* Period Selector */}
-          <div className="flex justify-end">
-            <PeriodSelector value={period} onChange={setPeriod} />
-          </div>
- 
-          {/* Loading */}
-          {loading && <StatisticsSkeleton />}
- 
-          {/* Error */}
-          {!loading && error && <StatisticsError onRetry={fetchStatistics} />}
- 
-          {/* Empty */}
-          {!loading && !error && !stats && <StatisticsEmpty />}
- 
-          {/* Data */}
-          {!loading && !error && stats && (
-            <>
-              {/* ========== BASIC TIER - Svi korisnici ========== */}
-              <div className="space-y-4">
-                <ViewsOverviewSection summary={stats.summary} />
-                <ViewsChartSection daily={stats.daily} />
-                <InteractionsSection summary={stats.summary} />
-                <PromotionSection summary={stats.summary} />
-                <div className="grid lg:grid-cols-2 gap-4">
-                  <TrafficSourcesSection sources={stats.sources} />
-                  <PlatformsSection devices={stats.devices} />
-                </div>
+
+      {/* CONTENT */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 pt-0 space-y-5 border-t border-slate-100">
+              {/* Period Selector */}
+              <div className="flex justify-end pt-3">
+                <PeriodSelector value={period} onChange={setPeriod} />
               </div>
- 
-              {/* ========== PRO TIER ========== */}
-              <div className="pt-4 border-t border-slate-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Crown className="text-amber-500" size={18} />
-                  <h4 className="font-semibold text-slate-800">Pro statistika</h4>
-                  {!isPro && (
-                    <span className="text-xs text-slate-400 flex items-center gap-1">
-                      <Lock size={12} /> Zaključano
-                    </span>
-                  )}
-                </div>
- 
-                <div className="relative">
-                  {!isPro && <LockOverlay tier="pro" feature="Pro statistika" />}
-                  <div className={`space-y-4 ${!isPro ? "blur-sm pointer-events-none" : ""}`}>
-                    <ContactBreakdownSection summary={stats.summary} />
+
+              {/* Loading */}
+              {loading && <StatisticsSkeleton />}
+
+              {/* Error */}
+              {!loading && error && <StatisticsError onRetry={fetchStatistics} />}
+
+              {/* Empty */}
+              {!loading && !error && !stats && <StatisticsEmpty />}
+
+              {/* Data */}
+              {!loading && !error && stats && (
+                <>
+                  {/* BASIC TIER */}
+                  <div className="space-y-4">
+                    {/* Main stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <StatCard
+                        icon={IoEyeOutline}
+                        label="Danas"
+                        value={stats.summary?.today?.views || 0}
+                        color="blue"
+                        highlight
+                      />
+                      <StatCard
+                        icon={IoEyeOutline}
+                        label="Jučer"
+                        value={stats.summary?.yesterday?.views || 0}
+                        color="blue"
+                      />
+                      <StatCard
+                        icon={IoEyeOutline}
+                        label="Period"
+                        value={stats.summary?.period?.views || 0}
+                        trend={stats.summary?.trends?.views_vs_yesterday}
+                        color="blue"
+                      />
+                      <StatCard
+                        icon={IoEyeOutline}
+                        label="Prosječno/dan"
+                        value={stats.summary?.period?.avg_views_per_day || 0}
+                        color="blue"
+                      />
+                    </div>
+
+                    <ViewsChartSection daily={stats.daily} />
+                    <InteractionsSection summary={stats.summary} />
+                    <PromotionSection summary={stats.summary} />
+
                     <div className="grid lg:grid-cols-2 gap-4">
-                      <SearchTermsSection searchTerms={stats.search_terms} />
-                      <SearchPositionSection searchPositions={stats.search_positions} />
+                      <TrafficSourcesSection sources={stats.sources} />
+                      <PlatformsSection devices={stats.devices} />
                     </div>
                   </div>
-                </div>
-              </div>
- 
-              {/* ========== SHOP TIER ========== */}
-              <div className="pt-4 border-t border-slate-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Store className="text-blue-500" size={18} />
-                  <h4 className="font-semibold text-slate-800">Shop statistika</h4>
-                  {!isShop && (
-                    <span className="text-xs text-slate-400 flex items-center gap-1">
-                      <Lock size={12} /> Ekskluzivno za Shop
-                    </span>
-                  )}
-                </div>
- 
-                <div className="relative">
-                  {!isShop && <LockOverlay tier="shop" feature="Shop statistika" />}
-                  <div className={`space-y-4 ${!isShop ? "blur-sm pointer-events-none" : ""}`}>
-                    <ViewsByTimeSection hourlyData={stats.hourly} />
-                    <ConversionSection funnel={stats.funnel} />
+
+                  {/* PRO TIER */}
+                  <div className="pt-4 border-t border-slate-100">
+                    <SectionHeader
+                      icon={Crown}
+                      title="Pro statistika"
+                      iconColor="text-amber-500"
+                      badge={isPro ? { text: "Aktivno", color: "bg-amber-100 text-amber-700" } : null}
+                      locked={!isPro}
+                    />
+
+                    <div className="relative">
+                      {!isPro && <LockOverlay tier="pro" feature="Pro statistika" />}
+                      <div className={`space-y-4 ${!isPro ? "blur-sm pointer-events-none select-none" : ""}`}>
+                        <ContactBreakdownSection summary={stats.summary} />
+                        <div className="grid lg:grid-cols-2 gap-4">
+                          <SearchTermsSection searchTerms={stats.search_terms} />
+                          <SearchPositionSection searchPositions={stats.search_positions} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
- 
-              {/* Footer */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
-                <span className="text-slate-400">Zadnje ažurirano: upravo sada</span>
-                {!isShop && (
-                  <Link href="/membership/upgrade" className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                    <Sparkles size={14} />
-                    Nadogradi za više statistika
-                  </Link>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+
+                  {/* SHOP TIER */}
+                  <div className="pt-4 border-t border-slate-100">
+                    <SectionHeader
+                      icon={Store}
+                      title="Shop statistika"
+                      iconColor="text-blue-500"
+                      badge={isShop ? { text: "Aktivno", color: "bg-blue-100 text-blue-700" } : null}
+                      locked={!isShop}
+                    />
+
+                    <div className="relative">
+                      {!isShop && <LockOverlay tier="shop" feature="Shop statistika" />}
+                      <div className={`space-y-4 ${!isShop ? "blur-sm pointer-events-none select-none" : ""}`}>
+                        <ViewsByTimeSection hourlyData={stats.hourly} />
+                        <ConversionSection funnel={stats.funnel} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400">Ažurirano: upravo sada</span>
+                    {!isShop && (
+                      <Link href="/membership/upgrade" className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                        <IoSparkles size={12} />
+                        Više statistika
+                      </Link>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
- 
+
 export default AdStatisticsSection;
