@@ -1,25 +1,30 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiCalendar,
-  FiCheck,
-  FiCheckCircle,
-  FiChevronDown,
-  FiChevronRight,
-  FiClock,
-  FiCopy,
-  FiExternalLink,
-  FiGlobe,
-  FiMail,
-  FiMessageCircle,
-  FiPhone,
-  FiShare2,
-  FiStar,
-  FiX,
-} from "react-icons/fi";
-import { HiOutlineBuildingStorefront } from "react-icons/hi2";
-import { FaFacebook, FaInstagram, FaTiktok, FaViber, FaWhatsapp, FaYoutube } from "react-icons/fa";
+  Calendar,
+  Camera,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Copy,
+  ExternalLink,
+  Globe,
+  Mail,
+  MessageCircle,
+  Music2,
+  Phone,
+  PhoneCall,
+  Play,
+  Share2,
+  Star,
+  Store,
+  Users,
+  X,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -32,15 +37,14 @@ import CustomImage from "@/components/Common/CustomImage";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
-
 import SavedToListButton from "@/components/Profile/SavedToListButton";
-
 
 /* =====================
   Helpers
 ===================== */
 
 const MONTHS_BS = ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"];
+
 const formatMemberSince = (dateStr) => {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -74,7 +78,6 @@ const parseBusinessHours = (hours) => {
 };
 
 const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
 const getDayKeyByIndex = (idx) => dayOrder[idx % 7];
 
 const getHoursText = (d) => {
@@ -119,6 +122,10 @@ const compactnessMap = {
   cozy: { pad: "p-6 sm:p-7", avatar: "w-16 h-16", name: "text-lg sm:text-xl", meta: "text-sm", btn: "h-12" },
 };
 
+const SoftDivider = () => (
+  <div className="h-px bg-gradient-to-r from-transparent via-slate-200/70 dark:via-slate-700/70 to-transparent" />
+);
+
 const IconPill = ({ icon: Icon, children, className }) => (
   <span
     className={cn(
@@ -127,7 +134,7 @@ const IconPill = ({ icon: Icon, children, className }) => (
       className
     )}
   >
-    {Icon ? <Icon className="text-sm" /> : null}
+    {Icon ? <Icon className="h-4 w-4" /> : null}
     {children}
   </span>
 );
@@ -140,67 +147,23 @@ const Tag = ({ children, tone = "neutral" }) => {
       ? "border-primary/25 bg-primary/10 text-primary dark:bg-primary/15"
       : "border-slate-200/70 bg-white/70 text-slate-700 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200";
 
-  return (
-    <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold", cls)}>
-      {children}
-    </span>
-  );
+  return <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold", cls)}>{children}</span>;
 };
 
-const SoftDivider = () => (
-  <div className="h-px bg-gradient-to-r from-transparent via-slate-200/70 dark:via-slate-700/70 to-transparent" />
-);
+const shimmerCss = `
+@keyframes shimmer { 0% { transform: translateX(-70%); } 100% { transform: translateX(70%); } }
+.shimmer { position: relative; overflow: hidden; }
+.shimmer::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-70%);
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0) 90%);
+  animation: shimmer 1.4s infinite;
+}
+.dark .shimmer::after {
+  background: linear-gradient(90deg, rgba(2,6,23,0) 0%, rgba(148,163,184,0.18) 45%, rgba(2,6,23,0) 90%);
+}
+`;
 
-const ShimmerStyles = () => (
-  <style jsx global>{`
-    @keyframes shimmer {
-      0% {
-        transform: translateX(-70%);
-      }
-      100% {
-        transform: translateX(70%);
-      }
-    }
-    .shimmer {
-      position: relative;
-      overflow: hidden;
-    }
-    .shimmer::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      transform: translateX(-70%);
-      background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.55) 45%,
-        rgba(255, 255, 255, 0) 90%
-      );
-      animation: shimmer 1.4s infinite;
-    }
-    .dark .shimmer::after {
-      background: linear-gradient(
-        90deg,
-        rgba(2, 6, 23, 0) 0%,
-        rgba(148, 163, 184, 0.18) 45%,
-        rgba(2, 6, 23, 0) 90%
-      );
-    }
-    @keyframes pop-in {
-      0% {
-        transform: translateY(2px) scale(0.98);
-        opacity: 0;
-      }
-      100% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
-    }
-    .pop-in {
-      animation: pop-in 160ms ease-out;
-    }
-  `}</style>
-);
+const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
 
 export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
   const c = compactnessMap[compactness] || compactnessMap.normal;
@@ -211,12 +174,7 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
       <div className={cn("relative", c.pad)}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
-            <div
-              className={cn(
-                "rounded-full p-[3px] bg-gradient-to-br from-primary/50 via-slate-200 to-amber-300/60 dark:via-slate-700",
-                "shrink-0"
-              )}
-            >
+            <div className="rounded-full p-[3px] bg-gradient-to-br from-primary/50 via-slate-200 to-amber-300/60 dark:via-slate-700 shrink-0">
               <div className={cn(c.avatar, "rounded-full bg-slate-200 dark:bg-slate-800 shimmer")} />
             </div>
 
@@ -251,17 +209,10 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
 };
 
 /* =====================
-  Contact sheet (inline vs sheet)
+  Contact sheet
 ===================== */
 
-const ContactSheet = ({
-  open,
-  setOpen,
-  seller,
-  settings,
-  actionsDisabled,
-  onPhoneReveal,
-}) => {
+const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhoneReveal }) => {
   const showWhatsapp = Boolean(settings?.show_whatsapp);
   const showViber = Boolean(settings?.show_viber);
   const showEmail = Boolean(settings?.show_email);
@@ -296,46 +247,48 @@ const ContactSheet = ({
       <DialogContent
         className={cn(
           "max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
-          "rounded-3xl sm:rounded-3xl p-0 overflow-hidden",
-          "sm:mx-auto"
+          "rounded-3xl p-0 overflow-hidden"
         )}
       >
         <div className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-lg font-semibold text-slate-900 dark:text-white">Kontakt</div>
-              <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Odaberi kanal koji želiš koristiti.
-              </div>
+              <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">Odaberi kanal koji želiš koristiti.</div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <FiX className="text-xl text-slate-600 dark:text-slate-200" />
+
+            <button type="button" onClick={() => setOpen(false)} className="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800">
+              <X className="h-5 w-5 text-slate-600 dark:text-slate-200" />
             </button>
           </div>
 
           <div className="mt-4 space-y-2">
             {showPhone && phone ? (
               <div className="grid grid-cols-[1fr_auto] gap-2">
-                <a className={itemCls} href={`tel:${phone}`}>
+                <a
+                  className={itemCls}
+                  href={`tel:${phone}`}
+                  onClick={() => {
+                    try {
+                      onPhoneReveal?.();
+                    } catch {}
+                  }}
+                >
                   <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
-                    <FiPhone className="text-lg" /> Pozovi
+                    <Phone className="h-5 w-5" /> Pozovi
                   </span>
                   <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{phone}</div>
                 </a>
+
                 <button
                   type="button"
                   onClick={() => copy("phone", phone)}
                   className={cn(
                     "inline-flex items-center justify-center w-12 rounded-2xl border border-slate-200 dark:border-slate-700",
-                    "hover:bg-slate-50 dark:hover:bg-slate-800 transition",
-                    copiedKey === "phone" && "pop-in"
+                    "hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                   )}
                 >
-                  {copiedKey === "phone" ? <FiCheck className="text-lg text-emerald-600" /> : <FiCopy className="text-lg" />}
+                  {copiedKey === "phone" ? <Check className="h-5 w-5 text-emerald-600" /> : <Copy className="h-5 w-5" />}
                 </button>
               </div>
             ) : null}
@@ -348,7 +301,7 @@ const ContactSheet = ({
                 rel="noreferrer"
               >
                 <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
-                  <FaWhatsapp className="text-lg text-emerald-600" /> WhatsApp
+                  <MessageCircle className="h-5 w-5" /> WhatsApp
                 </span>
                 <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{whatsappNumber}</div>
               </a>
@@ -357,7 +310,7 @@ const ContactSheet = ({
             {showViber && viberNumber ? (
               <a className={itemCls} href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}>
                 <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
-                  <FaViber className="text-lg text-purple-600" /> Viber
+                  <PhoneCall className="h-5 w-5" /> Viber
                 </span>
                 <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{viberNumber}</div>
               </a>
@@ -367,20 +320,20 @@ const ContactSheet = ({
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <a className={itemCls} href={`mailto:${email}`}>
                   <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
-                    <FiMail className="text-lg" /> Email
+                    <Mail className="h-5 w-5" /> Email
                   </span>
                   <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{email}</div>
                 </a>
+
                 <button
                   type="button"
                   onClick={() => copy("email", email)}
                   className={cn(
                     "inline-flex items-center justify-center w-12 rounded-2xl border border-slate-200 dark:border-slate-700",
-                    "hover:bg-slate-50 dark:hover:bg-slate-800 transition",
-                    copiedKey === "email" && "pop-in"
+                    "hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                   )}
                 >
-                  {copiedKey === "email" ? <FiCheck className="text-lg text-emerald-600" /> : <FiCopy className="text-lg" />}
+                  {copiedKey === "email" ? <Check className="h-5 w-5 text-emerald-600" /> : <Copy className="h-5 w-5" />}
                 </button>
               </div>
             ) : null}
@@ -393,11 +346,6 @@ const ContactSheet = ({
 
 /* =====================
   Shared premium card
-  - Used by:
-    - Product detail seller card
-    - Seller settings preview
-    - Seller page header
-  - NO vacation messages on card
 ===================== */
 
 export const SellerPreviewCard = ({
@@ -412,13 +360,16 @@ export const SellerPreviewCard = ({
   actionsDisabled = false,
   showProfileLink = true,
 
-  // UI-only preferences (from SellerSettings customizer)
   uiPrefs,
   onChatClick,
   onPhoneClick,
+
+  // backwards/optional
+  shareUrl,
 }) => {
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
+
   const settings = sellerSettings || {};
   const prefs = uiPrefs || {};
 
@@ -435,9 +386,9 @@ export const SellerPreviewCard = ({
 
   if (!seller) return <SellerPreviewSkeleton compactness={compactness} />;
 
-  const shareUrl = seller?.id
-    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
-    : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
+  const computedShareUrl =
+    shareUrl ||
+    (seller?.id ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}` : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
   const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
 
@@ -482,17 +433,21 @@ export const SellerPreviewCard = ({
   );
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900">
+    <motion.div
+      initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900"
+    >
       <ShimmerStyles />
 
-      {/* lively, but subtle */}
+      {/* subtle premium background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-28 -right-28 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -bottom-28 -left-28 h-56 w-56 rounded-full bg-amber-500/10 blur-3xl" />
       </div>
 
       <div className={cn("relative", c.pad)}>
-        {/* top row */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             {/* avatar */}
@@ -509,7 +464,7 @@ export const SellerPreviewCard = ({
 
               {Boolean(seller?.is_verified) ? (
                 <span className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shadow">
-                  <FiCheckCircle className="text-lg" />
+                  <CheckCircle2 className="h-4 w-4" />
                 </span>
               ) : null}
             </div>
@@ -521,25 +476,23 @@ export const SellerPreviewCard = ({
                 {isPro ? <Tag tone="pro">✨ Pro</Tag> : null}
                 {isShop ? (
                   <Tag tone="shop">
-                    <HiOutlineBuildingStorefront className="text-sm" /> Shop
+                    <Store className="h-4 w-4" /> Prodavnica
                   </Tag>
                 ) : null}
               </div>
 
-              {/* meta chips */}
               {(responseLabel || memberSince) ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {responseLabel ? <IconPill icon={FiClock}>Odgovara: {responseLabel}</IconPill> : null}
-                  {memberSince ? <IconPill icon={FiCalendar}>Član od: {memberSince}</IconPill> : null}
+                  {responseLabel ? <IconPill icon={Clock}>Odgovara za: {responseLabel}</IconPill> : null}
+                  {memberSince ? <IconPill icon={Calendar}>Član od: {memberSince}</IconPill> : null}
                 </div>
               ) : null}
             </div>
           </div>
 
-          {/* share */}
           {showShare ? (
             <ShareDropdown
-              url={shareUrl}
+              url={computedShareUrl}
               title={title}
               headline={title}
               companyName={CompanyName}
@@ -548,17 +501,16 @@ export const SellerPreviewCard = ({
                 "text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition shadow-sm"
               )}
             >
-              <FiShare2 className="text-xl" />
+              <Share2 className="h-5 w-5" />
             </ShareDropdown>
           ) : null}
         </div>
 
-        {/* rating + badges */}
         {(showRatings || showBadges) ? (
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {showRatings && ratingValue ? (
               <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 px-3 py-2 text-sm font-semibold shadow-sm">
-                <FiStar className="text-lg text-amber-500" />
+                <Star className="h-5 w-5 text-amber-500" />
                 <span className="text-slate-900 dark:text-white">{ratingValue}</span>
                 <span className="text-slate-500 dark:text-slate-400">({ratingCount})</span>
               </span>
@@ -580,27 +532,43 @@ export const SellerPreviewCard = ({
 
         {/* actions */}
         <div className={cn("mt-5 flex items-center gap-3", mode === "header" && "flex-col items-stretch")}>
-          <button type="button" className={primaryBtnCls} onClick={onChatClick}>
-            <FiMessageCircle className="text-lg" />
-            Otvori chat
-          </button>
+          <motion.button
+            type="button"
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.98 }}
+            className={primaryBtnCls}
+            onClick={onChatClick}
+          >
+            <MessageCircle className="h-5 w-5" />
+            Pošalji poruku
+          </motion.button>
 
-          <SavedToListButton
-    sellerId={seller?.id}
-    sellerName={seller?.name}
-    variant="pill"
-  />
+          <SavedToListButton sellerId={seller?.id} sellerName={seller?.name} variant="pill" />
 
           {mode === "compact" ? (
             contactStyle === "sheet" ? (
-              <button type="button" className={iconBtnCls} onClick={onPhoneClick} title="Kontakt">
-                <FiPhone className="text-xl" />
-              </button>
+              <motion.button
+                type="button"
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                className={iconBtnCls}
+                onClick={onPhoneClick}
+                title="Kontakt"
+              >
+                <Phone className="h-5 w-5" />
+              </motion.button>
             ) : (
               <div className="flex items-center gap-2">
-                <button type="button" className={iconBtnCls} onClick={onPhoneClick} title="Telefon">
-                  <FiPhone className="text-xl" />
-                </button>
+                <motion.button
+                  type="button"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={iconBtnCls}
+                  onClick={onPhoneClick}
+                  title="Telefon"
+                >
+                  <Phone className="h-5 w-5" />
+                </motion.button>
 
                 {Boolean(settings.show_whatsapp) && (settings.whatsapp_number || seller?.mobile) ? (
                   <a
@@ -611,7 +579,7 @@ export const SellerPreviewCard = ({
                     onClick={(e) => actionsDisabled && e.preventDefault()}
                     title="WhatsApp"
                   >
-                    <FaWhatsapp className="text-xl text-emerald-600" />
+                    <MessageCircle className="h-5 w-5" />
                   </a>
                 ) : null}
 
@@ -622,7 +590,7 @@ export const SellerPreviewCard = ({
                     onClick={(e) => actionsDisabled && e.preventDefault()}
                     title="Viber"
                   >
-                    <FaViber className="text-xl text-purple-600" />
+                    <PhoneCall className="h-5 w-5" />
                   </a>
                 ) : null}
               </div>
@@ -630,15 +598,14 @@ export const SellerPreviewCard = ({
           ) : null}
         </div>
 
-        {/* profile link */}
         {mode === "compact" && showProfileLink ? (
           <div className="mt-4">
             <CustomLink
               href={`/seller/${seller?.id}`}
               className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
             >
-              Pogledaj profil prodavača
-              <FiChevronRight className="text-base transition-transform group-hover:translate-x-0.5" />
+              Detalji prodavača
+              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </CustomLink>
           </div>
         ) : null}
@@ -649,32 +616,24 @@ export const SellerPreviewCard = ({
           <SoftDivider />
           <div className="px-5 sm:px-6 py-3 text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between">
             <span className="inline-flex items-center gap-2">
-              <FiClock className="text-sm" />
+              <Calendar className="h-4 w-4" />
               Danas: {todayHoursText}
             </span>
             {openNow !== null ? (
               <span className="inline-flex items-center gap-2 font-semibold">
-                <span
-                  className={cn(
-                    "h-2 w-2 rounded-full",
-                    openNow ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
-                  )}
-                />
+                <span className={cn("h-2 w-2 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600")} />
                 {openNow ? "Otvoreno" : "Zatvoreno"}
               </span>
             ) : null}
           </div>
         </>
       ) : null}
-    </div>
+    </motion.div>
   );
 };
 
 /* =====================
-  Seller page (detailed)
-  - Animated accordion
-  - Remembers last open section in localStorage
-  - Social links as pills + copy
+  Accordion (animated)
 ===================== */
 
 const useLocalStorageState = (key, initialValue) => {
@@ -715,19 +674,25 @@ const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }
       >
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
-            <Icon className="text-lg" />
+            <Icon className="h-5 w-5" />
           </span>
           <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
         </span>
-        <FiChevronDown className={cn("text-lg text-slate-500 transition-transform", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("h-5 w-5 text-slate-500 transition-transform", isOpen && "rotate-180")} />
       </button>
 
-      {/* IMPORTANT: min-h-0 fixes the “content peeking” bug on collapse */}
-      <div className={cn("grid transition-[grid-template-rows] duration-300", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-        <div className="min-h-0 overflow-hidden">
-          <div className="px-5 pb-5">{children}</div>
-        </div>
-      </div>
+      <AnimatePresence initial={false}>
+        {isOpen ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+          >
+            <div className="px-5 pb-5">{children}</div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 };
@@ -760,7 +725,7 @@ const SocialPill = ({ icon: Icon, label, href }) => {
       )}
       title={href}
     >
-      <Icon className="text-lg" />
+      <Icon className="h-5 w-5" />
       <span className="truncate max-w-[10rem]">{label}</span>
 
       <button
@@ -769,15 +734,13 @@ const SocialPill = ({ icon: Icon, label, href }) => {
         className={cn(
           "ml-1 inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700",
           "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition",
-          "opacity-0 group-hover:opacity-100",
-          copied && "pop-in"
+          "opacity-0 group-hover:opacity-100"
         )}
-        aria-label="Copy link"
+        aria-label="Kopiraj link"
       >
-        {copied ? <FiCheck className="text-lg text-emerald-600" /> : <FiCopy className="text-lg" />}
+        {copied ? <Check className="h-5 w-5 text-emerald-600" /> : <Copy className="h-5 w-5" />}
       </button>
 
-      {/* glow */}
       <span className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition">
         <span className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/10 to-amber-400/10 blur-xl" />
       </span>
@@ -795,8 +758,6 @@ const SellerDetailCard = ({
 
   onChatClick,
   onProfileClick,
-  onEmailClick,
-  onPhoneClick,
   onPhoneReveal,
 }) => {
   const settings = sellerSettings || {};
@@ -841,14 +802,14 @@ const SellerDetailCard = ({
         uiPrefs={{ contactStyle: "sheet" }}
       />
 
-      <AccordionSection id="contact" title="Kontakt" icon={FiPhone} openId={openId} setOpenId={setOpenId}>
+      <AccordionSection id="contact" title="Kontakt" icon={Phone} openId={openId} setOpenId={setOpenId}>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setIsContactSheetOpen(true)}
             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-sm hover:shadow-md"
           >
-            <FiPhone className="text-lg" /> Otvori kontakt opcije
+            <Phone className="h-5 w-5" /> Kontakt opcije
           </button>
 
           <button
@@ -856,7 +817,7 @@ const SellerDetailCard = ({
             onClick={onChatClick}
             className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 text-white px-4 py-2.5 text-sm font-semibold hover:opacity-95 dark:bg-white dark:text-slate-900 transition shadow-sm hover:shadow-md"
           >
-            <FiMessageCircle className="text-lg" /> Otvori chat
+            <MessageCircle className="h-5 w-5" /> Pošalji poruku
           </button>
         </div>
 
@@ -864,22 +825,20 @@ const SellerDetailCard = ({
           <div className="mt-4">
             <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Društvene mreže</div>
             <div className="flex flex-wrap gap-2">
-              {socialFacebook ? <SocialPill icon={FaFacebook} label="Facebook" href={socialFacebook} /> : null}
-              {socialInstagram ? <SocialPill icon={FaInstagram} label="Instagram" href={socialInstagram} /> : null}
-              {socialTiktok ? <SocialPill icon={FaTiktok} label="TikTok" href={socialTiktok} /> : null}
-              {socialYoutube ? <SocialPill icon={FaYoutube} label="YouTube" href={socialYoutube} /> : null}
-              {socialWebsite ? <SocialPill icon={FiGlobe} label="Website" href={socialWebsite} /> : null}
+              {socialFacebook ? <SocialPill icon={Users} label="Facebook" href={socialFacebook} /> : null}
+              {socialInstagram ? <SocialPill icon={Camera} label="Instagram" href={socialInstagram} /> : null}
+              {socialTiktok ? <SocialPill icon={Music2} label="TikTok" href={socialTiktok} /> : null}
+              {socialYoutube ? <SocialPill icon={Play} label="YouTube" href={socialYoutube} /> : null}
+              {socialWebsite ? <SocialPill icon={Globe} label="Web stranica" href={socialWebsite} /> : null}
             </div>
           </div>
         ) : null}
       </AccordionSection>
 
       {showHours ? (
-        <AccordionSection id="hours" title="Radno vrijeme" icon={FiClock} openId={openId} setOpenId={setOpenId}>
+        <AccordionSection id="hours" title="Radno vrijeme" icon={Calendar} openId={openId} setOpenId={setOpenId}>
           <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">
-              Danas: {todayHoursText}
-            </div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">Danas: {todayHoursText}</div>
             {openNow !== null ? (
               <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
                 <span className={cn("h-2 w-2 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600")} />
@@ -897,7 +856,7 @@ const SellerDetailCard = ({
       ) : null}
 
       {(shippingInfo || returnPolicy || businessDescription) ? (
-        <AccordionSection id="info" title="Informacije" icon={FiStar} openId={openId} setOpenId={setOpenId}>
+        <AccordionSection id="info" title="Informacije" icon={Star} openId={openId} setOpenId={setOpenId}>
           <div className="space-y-4">
             {shippingInfo ? (
               <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 p-4">
@@ -929,7 +888,7 @@ const SellerDetailCard = ({
         className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
       >
         Pogledaj profil
-        <FiExternalLink className="text-base transition-transform group-hover:translate-y-[-1px]" />
+        <ExternalLink className="h-4 w-4 transition-transform group-hover:translate-y-[-1px]" />
       </CustomLink>
 
       <ContactSheet
@@ -937,8 +896,8 @@ const SellerDetailCard = ({
         setOpen={setIsContactSheetOpen}
         seller={seller}
         settings={settings}
-        onPhoneReveal={onPhoneReveal}
         actionsDisabled={false}
+        onPhoneReveal={onPhoneReveal}
       />
     </div>
   );

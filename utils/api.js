@@ -1752,6 +1752,13 @@ export const itemConversationApi = {
       params: { item_id },
     });
   },
+
+  // novo (item → chat bez ponude)
+  startItemConversation: ({ item_id } = {}) => Api.post("start-item-conversation", { item_id }),
+
+  // novo (direct user ↔ user)
+  checkDirectConversation: ({ user_id } = {}) => Api.get("check-direct-conversation", { params: { user_id } }),
+  startDirectConversation: ({ user_id } = {}) => Api.post("start-direct-conversation", { user_id }),
 };
 
 // ============================================

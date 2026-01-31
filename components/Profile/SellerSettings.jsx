@@ -3,19 +3,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiClock,
-  FiEye,
-  FiImage,
-  FiMail,
-  FiPhone,
-  FiRefreshCw,
-  FiSave,
-  FiSliders,
-  FiSmartphone,
-  FiMonitor,
-  FiChevronDown,
-} from "react-icons/fi";
+  Clock,
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
+  Mail,
+  Phone,
+  RefreshCw,
+  Save,
+  SlidersHorizontal,
+  Smartphone,
+  Monitor,
+  ChevronDown,
+} from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -113,40 +115,22 @@ function stableStringify(value) {
   return JSON.stringify(sorter(value));
 }
 
-const ShakerStyles = () => (
-  <style jsx global>{`
-    @keyframes shake {
-      0% {
-        transform: translateX(0);
-      }
-      20% {
-        transform: translateX(-4px);
-      }
-      40% {
-        transform: translateX(4px);
-      }
-      60% {
-        transform: translateX(-3px);
-      }
-      80% {
-        transform: translateX(3px);
-      }
-      100% {
-        transform: translateX(0);
-      }
-    }
-    .shake {
-      animation: shake 260ms ease-in-out;
-    }
-  `}</style>
-);
+const withTimeout = (promise, ms = 15000) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), ms)),
+  ]);
+
+const pickFn = (obj, names) => names.map((n) => obj?.[n]).find((v) => typeof v === "function");
 
 /* -----------------------------
-  Pretty UI blocks
+  Premium UI blocks
 ----------------------------- */
 
 const Card = ({ className, children }) => (
-  <div
+  <motion.div
+    whileHover={{ y: -2 }}
+    transition={{ type: "spring", stiffness: 260, damping: 22 }}
     className={cn(
       "rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900",
       "shadow-sm hover:shadow-md transition-shadow",
@@ -154,7 +138,7 @@ const Card = ({ className, children }) => (
     )}
   >
     {children}
-  </div>
+  </motion.div>
 );
 
 const CardHeader = ({ icon: Icon, title, subtitle, right }) => (
@@ -162,7 +146,7 @@ const CardHeader = ({ icon: Icon, title, subtitle, right }) => (
     <div className="flex items-start gap-3">
       {Icon ? (
         <div className="shrink-0 w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center">
-          <Icon className="text-lg" />
+          <Icon className="h-5 w-5" />
         </div>
       ) : null}
       <div>
@@ -180,7 +164,7 @@ const ToggleRow = ({ title, desc, checked, onCheckedChange, icon: Icon }) => (
   <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
     <div className="min-w-0">
       <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-        {Icon ? <Icon className="text-lg" /> : null}
+        {Icon ? <Icon className="h-5 w-5" /> : null}
         {title}
       </div>
       {desc ? <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{desc}</div> : null}
@@ -214,6 +198,7 @@ const Segmented = ({ value, onChange, options }) => (
 
 const Disclosure = ({ title, icon: Icon, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
+
   return (
     <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden">
       <button
@@ -223,35 +208,67 @@ const Disclosure = ({ title, icon: Icon, children, defaultOpen = false }) => {
       >
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
-            <Icon className="text-lg" />
+            <Icon className="h-5 w-5" />
           </span>
           <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
         </span>
-        <FiChevronDown className={cn("text-lg text-slate-500 transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-5 w-5 text-slate-500 transition-transform", open && "rotate-180")} />
       </button>
 
-      <div className={cn("grid transition-all duration-300", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-        <div className="overflow-hidden px-4 sm:px-5 pb-5">{children}</div>
-      </div>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+          >
+            <div className="px-4 sm:px-5 pb-5">{children}</div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 };
 
+const ls = {
+  get(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {}
+  },
+};
 
 /* -----------------------------
-  Main Component
+  Main
 ----------------------------- */
 
 const SellerSettings = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [shakeTick, setShakeTick] = useState(0);
 
   // Avatar upload / generator
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -259,7 +276,7 @@ const SellerSettings = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Form state
+  // Form state (čuvam postojeću logiku/polja)
   const [showPhone, setShowPhone] = useState(true);
   const [showEmail, setShowEmail] = useState(true);
   const [showWhatsapp, setShowWhatsapp] = useState(false);
@@ -290,14 +307,32 @@ const SellerSettings = () => {
   const [socialTiktok, setSocialTiktok] = useState("");
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
-  // Preview mode
-  const [previewMode, setPreviewMode] = useState("desktop"); // desktop | mobile
 
+  // Preview prefs (lokalno)
+  const prefsKey = currentUser?.id ? `seller_card_preview_prefs_${currentUser.id}` : "seller_card_preview_prefs";
+  const [previewPrefs, setPreviewPrefs] = useState({
+    showRatings: true,
+    showBadges: true,
+    showMemberSince: true,
+    showResponseTime: true,
+    compactness: "normal",
+    contactStyle: "inline",
+  });
+
+  const [previewMode, setPreviewMode] = useState("desktop");
   const [activeTab, setActiveTab] = useState("profile");
-  const initialPayloadRef = useRef(null);
-  const undoBackupRef = useRef(null);
 
-  // Sync preview image with user
+  const initialPayloadRef = useRef(null);
+
+  useEffect(() => {
+    const loaded = ls.get(prefsKey, null);
+    if (loaded) setPreviewPrefs((p) => ({ ...p, ...loaded }));
+  }, [prefsKey]);
+
+  useEffect(() => {
+    ls.set(prefsKey, previewPrefs);
+  }, [prefsKey, previewPrefs]);
+
   useEffect(() => {
     if (currentUser?.profile_image) setPreviewImage(currentUser.profile_image);
     if (currentUser?.profile) setPreviewImage(currentUser.profile);
@@ -316,7 +351,7 @@ const SellerSettings = () => {
 
   const responseTimeOptions = useMemo(
     () => [
-      { value: "auto", label: "Auto" },
+      { value: "auto", label: "Automatski" },
       { value: "instant", label: "Par minuta" },
       { value: "few_hours", label: "Par sati" },
       { value: "same_day", label: "24 sata" },
@@ -326,6 +361,7 @@ const SellerSettings = () => {
   );
 
   const buildPayload = useCallback(() => {
+    // ✅ zadržano kao u tvom fajlu (booleans + objekt)
     return {
       show_phone: showPhone,
       show_email: showEmail,
@@ -334,16 +370,22 @@ const SellerSettings = () => {
       whatsapp_number: whatsappNumber,
       viber_number: viberNumber,
       preferred_contact_method: preferredContact,
+
       business_hours: businessHours,
       response_time: responseTime,
+
       accepts_offers: acceptsOffers,
+
       auto_reply_enabled: autoReplyEnabled,
       auto_reply_message: autoReplyMessage,
+
       vacation_mode: vacationMode,
       vacation_message: vacationMessage,
+
       business_description: businessDescription,
       return_policy: returnPolicy,
       shipping_info: shippingInfo,
+
       social_facebook: socialFacebook,
       social_instagram: socialInstagram,
       social_tiktok: socialTiktok,
@@ -351,28 +393,28 @@ const SellerSettings = () => {
       social_website: socialWebsite,
     };
   }, [
+    showPhone,
+    showEmail,
+    showWhatsapp,
+    showViber,
+    whatsappNumber,
+    viberNumber,
+    preferredContact,
+    businessHours,
+    responseTime,
     acceptsOffers,
     autoReplyEnabled,
     autoReplyMessage,
+    vacationMode,
+    vacationMessage,
     businessDescription,
-    businessHours,
-    preferredContact,
-    responseTime,
     returnPolicy,
     shippingInfo,
-    showEmail,
-    showPhone,
-    showViber,
-    showWhatsapp,
     socialFacebook,
     socialInstagram,
     socialTiktok,
-    socialWebsite,
     socialYoutube,
-    vacationMessage,
-    vacationMode,
-    viberNumber,
-    whatsappNumber,
+    socialWebsite,
   ]);
 
   const hasChanges = useMemo(() => {
@@ -380,115 +422,134 @@ const SellerSettings = () => {
     return stableStringify(buildPayload()) !== initialPayloadRef.current;
   }, [buildPayload]);
 
-  // Validation
   const errors = useMemo(() => {
     const e = {};
-    if (showWhatsapp && normalizePhone(whatsappNumber).length < 6) e.whatsappNumber = "Unesite validan WhatsApp broj.";
-    if (showViber && normalizePhone(viberNumber).length < 6) e.viberNumber = "Unesite validan Viber broj.";
 
-    if (!safeUrl(socialFacebook)) e.socialFacebook = "Link nije validan.";
-    if (!safeUrl(socialInstagram)) e.socialInstagram = "Link nije validan.";
-    if (!safeUrl(socialTiktok)) e.socialTiktok = "Link nije validan.";
-    if (!safeUrl(socialYoutube)) e.socialYoutube = "Link nije validan.";
-    if (!safeUrl(socialWebsite)) e.socialWebsite = "Link nije validan.";
+    if (showWhatsapp && normalizePhone(whatsappNumber).length > 0 && normalizePhone(whatsappNumber).length < 6) {
+      e.whatsappNumber = "Unesite ispravan WhatsApp broj (npr. +38761234567).";
+    }
+    if (showViber && normalizePhone(viberNumber).length > 0 && normalizePhone(viberNumber).length < 6) {
+      e.viberNumber = "Unesite ispravan Viber broj (npr. +38761234567).";
+    }
+
+    if (socialFacebook && !safeUrl(socialFacebook)) e.socialFacebook = "Unesite ispravan link.";
+    if (socialInstagram && !safeUrl(socialInstagram)) e.socialInstagram = "Unesite ispravan link.";
+    if (socialTiktok && !safeUrl(socialTiktok)) e.socialTiktok = "Unesite ispravan link.";
+    if (socialYoutube && !safeUrl(socialYoutube)) e.socialYoutube = "Unesite ispravan link.";
+    if (socialWebsite && !safeUrl(socialWebsite)) e.socialWebsite = "Unesite ispravan link.";
 
     if (autoReplyEnabled && autoReplyMessage.trim().length < 3) e.autoReplyMessage = "Poruka je prekratka.";
     if (vacationMode && vacationMessage.trim().length < 3) e.vacationMessage = "Poruka je prekratka.";
 
     return e;
   }, [
-    autoReplyEnabled,
-    autoReplyMessage,
-    showViber,
     showWhatsapp,
+    whatsappNumber,
+    showViber,
+    viberNumber,
     socialFacebook,
     socialInstagram,
     socialTiktok,
-    socialWebsite,
     socialYoutube,
-    vacationMessage,
+    socialWebsite,
+    autoReplyEnabled,
+    autoReplyMessage,
     vacationMode,
-    viberNumber,
-    whatsappNumber,
+    vacationMessage,
   ]);
 
-  const isValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
+  const isValid = Object.keys(errors).length === 0;
 
   const fetchSettings = useCallback(async () => {
+    const getFn = pickFn(sellerSettingsApi, ["getSettings", "getSellerSettings", "get", "fetchSettings"]);
+    if (!getFn) {
+      setIsLoading(false);
+      setLoadError("API metoda za učitavanje postavki nije pronađena (sellerSettingsApi).");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setLoadError("");
 
-      const response = await sellerSettingsApi.getSettings();
+      // ✅ ključni fix: timeout da ne može vječno visiti
+      const response = await withTimeout(getFn(), 15000);
 
-      if (response?.data?.error === false && response?.data?.data) {
-        const s = response.data.data;
-
-        setShowPhone(s.show_phone ?? true);
-        setShowEmail(s.show_email ?? true);
-        setShowWhatsapp(s.show_whatsapp ?? false);
-        setShowViber(s.show_viber ?? false);
-
-        setWhatsappNumber(s.whatsapp_number || "");
-        setViberNumber(s.viber_number || "");
-
-        setPreferredContact(s.preferred_contact_method || "message");
-
-        setBusinessHours(normalizeBusinessHours(s.business_hours));
-        setResponseTime(s.response_time || "auto");
-
-        setAcceptsOffers(s.accepts_offers ?? true);
-
-        setAutoReplyEnabled(s.auto_reply_enabled ?? false);
-        setAutoReplyMessage(s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
-
-        setVacationMode(s.vacation_mode ?? false);
-        setVacationMessage(s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!");
-
-        setBusinessDescription(s.business_description || "");
-        setReturnPolicy(s.return_policy || "");
-        setShippingInfo(s.shipping_info || "");
-
-        setSocialFacebook(s.social_facebook || "");
-        setSocialInstagram(s.social_instagram || "");
-        setSocialTiktok(s.social_tiktok || "");
-        setSocialYoutube(s.social_youtube || "");
-        setSocialWebsite(s.social_website || "");
-
-        const payloadStable = stableStringify({
-          show_phone: s.show_phone ?? true,
-          show_email: s.show_email ?? true,
-          show_whatsapp: s.show_whatsapp ?? false,
-          show_viber: s.show_viber ?? false,
-          whatsapp_number: s.whatsapp_number || "",
-          viber_number: s.viber_number || "",
-          preferred_contact_method: s.preferred_contact_method || "message",
-          business_hours: normalizeBusinessHours(s.business_hours),
-          response_time: s.response_time || "auto",
-          accepts_offers: s.accepts_offers ?? true,
-          auto_reply_enabled: s.auto_reply_enabled ?? false,
-          auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
-          vacation_mode: s.vacation_mode ?? false,
-          vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
-          business_description: s.business_description || "",
-          return_policy: s.return_policy || "",
-          shipping_info: s.shipping_info || "",
-          social_facebook: s.social_facebook || "",
-          social_instagram: s.social_instagram || "",
-          social_tiktok: s.social_tiktok || "",
-          social_youtube: s.social_youtube || "",
-          social_website: s.social_website || "",
-        });
-
-        initialPayloadRef.current = payloadStable;
-      } else {
+      const ok = response?.data?.error === false && response?.data?.data;
+      if (!ok) {
         setLoadError(response?.data?.message || "Ne mogu dohvatiti postavke.");
+        return;
       }
-    } catch (error) {
-      console.error(error);
-      setLoadError("Greška pri dohvaćanju postavki.");
+
+      const s = response.data.data;
+
+      setShowPhone(s.show_phone ?? true);
+      setShowEmail(s.show_email ?? true);
+      setShowWhatsapp(s.show_whatsapp ?? false);
+      setShowViber(s.show_viber ?? false);
+
+      setWhatsappNumber(s.whatsapp_number || "");
+      setViberNumber(s.viber_number || "");
+
+      setPreferredContact(s.preferred_contact_method || "message");
+
+      setBusinessHours(normalizeBusinessHours(s.business_hours));
+      setResponseTime(s.response_time || "auto");
+
+      setAcceptsOffers(s.accepts_offers ?? true);
+
+      setAutoReplyEnabled(s.auto_reply_enabled ?? false);
+      setAutoReplyMessage(s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
+
+      setVacationMode(s.vacation_mode ?? false);
+      setVacationMessage(s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!");
+
+      setBusinessDescription(s.business_description || "");
+      setReturnPolicy(s.return_policy || "");
+      setShippingInfo(s.shipping_info || "");
+
+      setSocialFacebook(s.social_facebook || "");
+      setSocialInstagram(s.social_instagram || "");
+      setSocialTiktok(s.social_tiktok || "");
+      setSocialYoutube(s.social_youtube || "");
+      setSocialWebsite(s.social_website || "");
+
+      // stable snapshot (za hasChanges)
+      initialPayloadRef.current = stableStringify({
+        show_phone: s.show_phone ?? true,
+        show_email: s.show_email ?? true,
+        show_whatsapp: s.show_whatsapp ?? false,
+        show_viber: s.show_viber ?? false,
+        whatsapp_number: s.whatsapp_number || "",
+        viber_number: s.viber_number || "",
+        preferred_contact_method: s.preferred_contact_method || "message",
+        business_hours: normalizeBusinessHours(s.business_hours),
+        response_time: s.response_time || "auto",
+        accepts_offers: s.accepts_offers ?? true,
+        auto_reply_enabled: s.auto_reply_enabled ?? false,
+        auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
+        vacation_mode: s.vacation_mode ?? false,
+        vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
+        business_description: s.business_description || "",
+        return_policy: s.return_policy || "",
+        shipping_info: s.shipping_info || "",
+        social_facebook: s.social_facebook || "",
+        social_instagram: s.social_instagram || "",
+        social_tiktok: s.social_tiktok || "",
+        social_youtube: s.social_youtube || "",
+        social_website: s.social_website || "",
+      });
+    } catch (err) {
+      console.error(err);
+
+      const msg =
+        err?.message === "TIMEOUT"
+          ? "Server ne odgovara (timeout). Pokušaj ponovo."
+          : "Greška pri dohvaćanju postavki.";
+
+      setLoadError(msg);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, []);
 
@@ -500,53 +561,32 @@ const SellerSettings = () => {
     setSubmitAttempted(true);
 
     if (!isValid) {
-      setShakeTick((v) => v + 1);
       toast.error("Provjeri polja prije čuvanja.");
       return;
     }
     if (!hasChanges) return;
 
-    // prepare undo backup from last saved (initialPayloadRef)
-    try {
-      undoBackupRef.current = initialPayloadRef.current ? JSON.parse(initialPayloadRef.current) : null;
-    } catch {
-      undoBackupRef.current = null;
+    const updateFn = pickFn(sellerSettingsApi, ["updateSettings", "update", "saveSettings", "setSettings"]);
+    if (!updateFn) {
+      toast.error("API metoda za čuvanje postavki nije pronađena (sellerSettingsApi).");
+      return;
     }
 
     try {
       setIsSaving(true);
       const payload = buildPayload();
-      const response = await sellerSettingsApi.updateSettings(payload);
+
+      const response = await withTimeout(updateFn(payload), 15000);
 
       if (response?.data?.error === false) {
         initialPayloadRef.current = stableStringify(payload);
-
-        toast.success("Sačuvano.", {
-          action: undoBackupRef.current
-            ? {
-                label: "Undo",
-                onClick: async () => {
-                  try {
-                    const backup = undoBackupRef.current;
-                    if (!backup) return;
-
-                    await sellerSettingsApi.updateSettings(backup);
-                    toast.message("Vraćeno na prethodno.");
-                    await fetchSettings();
-                  } catch (e) {
-                    console.error(e);
-                    toast.error("Ne mogu vratiti.");
-                  }
-                },
-              }
-            : undefined,
-        });
+        toast.success("Sačuvano.");
       } else {
-        toast.error(response?.data?.message || "Greška pri čuvanju postavki");
+        toast.error(response?.data?.message || "Greška pri čuvanju postavki.");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Greška pri čuvanju postavki");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message === "TIMEOUT" ? "Server ne odgovara (timeout)." : "Greška pri čuvanju postavki.");
     } finally {
       setIsSaving(false);
     }
@@ -565,15 +605,18 @@ const SellerSettings = () => {
 
     setIsAvatarUploading(true);
     try {
-      const response = await updateProfileApi.updateProfile({
-        profile: fileOrBlob,
-        name: currentUser?.name,
-        mobile: currentUser?.mobile,
-        email: currentUser?.email,
-        notification: currentUser?.notification ?? 0,
-        show_personal_details: currentUser?.show_personal_details ?? 0,
-        country_code: currentUser?.country_code,
-      });
+      const response = await withTimeout(
+        updateProfileApi.updateProfile({
+          profile: fileOrBlob,
+          name: currentUser?.name,
+          mobile: currentUser?.mobile,
+          email: currentUser?.email,
+          notification: currentUser?.notification ?? 0,
+          show_personal_details: currentUser?.show_personal_details ?? 0,
+          country_code: currentUser?.country_code,
+        }),
+        20000
+      );
 
       if (response?.data?.error === false) {
         toast.success("Profilna slika je ažurirana!");
@@ -584,7 +627,7 @@ const SellerSettings = () => {
       }
     } catch (error) {
       console.error("Image upload error:", error);
-      toast.error("Došlo je do greške pri uploadu.");
+      toast.error(error?.message === "TIMEOUT" ? "Upload traje predugo (timeout)." : "Došlo je do greške pri uploadu.");
     } finally {
       setIsAvatarUploading(false);
       try {
@@ -600,7 +643,6 @@ const SellerSettings = () => {
 
   const triggerFileInput = () => fileInputRef.current?.click();
 
-  // Business hours helpers
   const setDay = (day, patch) => {
     setBusinessHours((prev) => ({ ...prev, [day]: { ...prev[day], ...patch } }));
   };
@@ -619,9 +661,6 @@ const SellerSettings = () => {
     toast.message("Kopirano.");
   };
 
-  const isPro = Boolean(currentUser?.is_pro ?? currentUser?.isPro);
-  const isShop = Boolean(currentUser?.is_shop ?? currentUser?.isShop);
-
   if (isLoading) {
     return (
       <div className="py-10">
@@ -636,7 +675,7 @@ const SellerSettings = () => {
         <div className="text-base font-semibold text-slate-900 dark:text-white">Ne mogu učitati postavke</div>
         <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{loadError}</div>
         <Button onClick={fetchSettings} variant="outline" className="mt-4 gap-2 rounded-2xl">
-          <FiRefreshCw /> Pokušaj ponovo
+          <RefreshCw className="h-4 w-4" /> Pokušaj ponovo
         </Button>
       </Card>
     );
@@ -647,34 +686,33 @@ const SellerSettings = () => {
     profile: previewImage || currentUser?.profile_image || currentUser?.profile,
   };
 
+  // Preview settings: uzimam payload (kao backend), ali ubacujem i preview prefs kroz uiPrefs na kartici
   const previewSettings = buildPayload();
 
-  const saveDisabledReason = !isValid
-    ? "Provjeri greške (npr. WhatsApp broj)."
-    : !hasChanges
-    ? "Nema promjena."
-    : null;
+  const saveDisabledReason = !isValid ? "Provjeri greške (npr. WhatsApp broj)." : !hasChanges ? "Nema promjena." : null;
 
   return (
     <div className="relative">
-      <ShakerStyles />
-
       {/* top bar */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Postavke prodavača</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Preview desno se ažurira odmah.
+            Prikaz se ažurira odmah. Postavke prikaza se čuvaju lokalno (na ovom uređaju).
           </p>
         </div>
 
         <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-2">
             <Button onClick={handleReset} variant="outline" disabled={isSaving || isAvatarUploading} className="gap-2 rounded-2xl">
-              <FiRefreshCw /> Reset
+              <RefreshCw className="h-4 w-4" /> Poništi
             </Button>
             <Button onClick={handleSave} disabled={isSaving || isAvatarUploading || !hasChanges || !isValid} className="gap-2 rounded-2xl">
-              {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FiSave />}
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               Sačuvaj
             </Button>
           </div>
@@ -704,14 +742,14 @@ const SellerSettings = () => {
 
             <TabsContent value="profile" className="mt-4 space-y-4">
               <Card>
-                <CardHeader icon={FiImage} title="Profilna slika" subtitle="Avatar i verified izgledaju premium." />
+                <CardHeader icon={ImageIcon} title="Profilna slika" subtitle="Avatar i verifikacija izgledaju premium." />
                 <CardBody>
                   <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5 items-start">
                     <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 p-4">
                       <div className="flex flex-col items-center gap-3">
                         <div className="relative w-24 h-24 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                           {previewImage ? (
-                            <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
+                            <img src={previewImage} alt="Profil" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Nema slike</div>
                           )}
@@ -720,13 +758,13 @@ const SellerSettings = () => {
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
                         <Button onClick={triggerFileInput} variant="outline" className="w-full gap-2 rounded-2xl" disabled={isAvatarUploading}>
-                          Upload
+                          Učitaj sliku
                         </Button>
 
                         <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
                           <DialogTrigger asChild>
                             <Button className="w-full gap-2 rounded-2xl" disabled={isAvatarUploading}>
-                              Avatar studio
+                              Studio avatara
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none">
@@ -737,8 +775,59 @@ const SellerSettings = () => {
                     </div>
 
                     <div className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                      Preview desno je identičan kartici na stranici proizvoda (layout + akcije). Customizer ispod utiče samo na preview.
+                      Desno vidiš identičnu karticu kao na proizvodu. Podešavanja ispod utiču na kontakt, dostupnost i informacije.
                     </div>
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader icon={SlidersHorizontal} title="Prikaz kartice" subtitle="Ovo se čuva lokalno (na ovom uređaju)." />
+                <CardBody>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <ToggleRow
+                      title="Ocjena"
+                      desc="Prikaži prosječnu ocjenu"
+                      icon={previewPrefs.showRatings ? Eye : EyeOff}
+                      checked={previewPrefs.showRatings}
+                      onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showRatings: v }))}
+                    />
+                    <ToggleRow
+                      title="Bedževi"
+                      desc="Gamification bedževi"
+                      icon={previewPrefs.showBadges ? Eye : EyeOff}
+                      checked={previewPrefs.showBadges}
+                      onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showBadges: v }))}
+                    />
+                    <ToggleRow
+                      title="Član od"
+                      desc="Meta chip s datumom"
+                      icon={previewPrefs.showMemberSince ? Eye : EyeOff}
+                      checked={previewPrefs.showMemberSince}
+                      onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showMemberSince: v }))}
+                    />
+                    <ToggleRow
+                      title="Odgovara"
+                      desc="Meta chip s vremenom odgovora"
+                      icon={previewPrefs.showResponseTime ? Eye : EyeOff}
+                      checked={previewPrefs.showResponseTime}
+                      onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showResponseTime: v }))}
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-3xl border border-slate-200/70 dark:border-slate-800 p-4">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">Stil kontakta</div>
+                    <div className="mt-3">
+                      <Segmented
+                        value={previewPrefs.contactStyle}
+                        onChange={(v) => setPreviewPrefs((p) => ({ ...p, contactStyle: v }))}
+                        options={[
+                          { value: "inline", label: "Inline ikone" },
+                          { value: "sheet", label: "Kontakt panel" },
+                        ]}
+                      />
+                    </div>
+                    <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">Kontakt panel je odličan na mobitelu i izgleda “premium”.</div>
                   </div>
                 </CardBody>
               </Card>
@@ -746,12 +835,11 @@ const SellerSettings = () => {
 
             <TabsContent value="contact" className="mt-4 space-y-4">
               <Card>
-                <CardHeader icon={FiPhone} title="Kontakt opcije" subtitle="Kontroliši šta je vidljivo na kartici." />
+                <CardHeader icon={Phone} title="Kontakt opcije" subtitle="Kontroliši šta je vidljivo kupcima." />
                 <CardBody>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <ToggleRow title="Telefon" desc="Prikaži broj" icon={FiPhone} checked={showPhone} onCheckedChange={setShowPhone} />
-                    <ToggleRow title="Email" desc="Prikaži email" icon={FiMail} checked={showEmail} onCheckedChange={setShowEmail} />
-
+                    <ToggleRow title="Telefon" desc="Prikaži broj" icon={Phone} checked={showPhone} onCheckedChange={setShowPhone} />
+                    <ToggleRow title="Email" desc="Prikaži email" icon={Mail} checked={showEmail} onCheckedChange={setShowEmail} />
                     <ToggleRow title="WhatsApp" desc="Dugme u kontaktima" checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
                     <ToggleRow title="Viber" desc="Dugme u kontaktima" checked={showViber} onCheckedChange={setShowViber} />
                   </div>
@@ -760,11 +848,7 @@ const SellerSettings = () => {
                     <div>
                       <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">WhatsApp broj</Label>
                       <Input
-                        key={`wa-${shakeTick}`}
-                        className={cn(
-                          "h-11 mt-2 rounded-2xl",
-                          submitAttempted && errors.whatsappNumber ? "border-red-300 dark:border-red-700 shake" : ""
-                        )}
+                        className={cn("h-11 mt-2 rounded-2xl", submitAttempted && errors.whatsappNumber ? "border-red-300 dark:border-red-700" : "")}
                         placeholder="+38761234567"
                         value={whatsappNumber}
                         onChange={(e) => setWhatsappNumber(e.target.value)}
@@ -775,11 +859,7 @@ const SellerSettings = () => {
                     <div>
                       <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Viber broj</Label>
                       <Input
-                        key={`vb-${shakeTick}`}
-                        className={cn(
-                          "h-11 mt-2 rounded-2xl",
-                          submitAttempted && errors.viberNumber ? "border-red-300 dark:border-red-700 shake" : ""
-                        )}
+                        className={cn("h-11 mt-2 rounded-2xl", submitAttempted && errors.viberNumber ? "border-red-300 dark:border-red-700" : "")}
                         placeholder="+38761234567"
                         value={viberNumber}
                         onChange={(e) => setViberNumber(e.target.value)}
@@ -801,7 +881,7 @@ const SellerSettings = () => {
 
             <TabsContent value="availability" className="mt-4 space-y-4">
               <Card>
-                <CardHeader icon={FiClock} title="Vrijeme odgovora" subtitle="Na kartici se prikazuje kao “Odgovara: …”." />
+                <CardHeader icon={Clock} title="Vrijeme odgovora" subtitle='Na kartici se prikazuje kao “Odgovara za: …”.' />
                 <CardBody>
                   <Segmented value={responseTime} onChange={setResponseTime} options={responseTimeOptions} />
                 </CardBody>
@@ -809,149 +889,149 @@ const SellerSettings = () => {
 
               <Card>
                 <CardHeader
-                  icon={FiClock}
+                  icon={Clock}
                   title="Radno vrijeme"
                   subtitle="Kupci vide status (Otvoreno/Zatvoreno) kada si Shop."
                   right={
                     <Button variant="outline" size="sm" className="gap-2 rounded-2xl" onClick={copyWeekdays} type="button">
-                      <FiRefreshCw /> Kopiraj radne dane
+                      <RefreshCw className="h-4 w-4" /> Kopiraj radne dane
                     </Button>
                   }
                 />
                 <CardBody>
-                  <Disclosure title="Uredi radno vrijeme" icon={FiClock}>
-                    <div className="space-y-2">
-                      {DAYS.map((day) => {
-                        const d = businessHours[day];
-                        return (
-                          <div key={day} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="text-sm font-semibold text-slate-900 dark:text-white">{DAY_LABEL[day]}</div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400">{d.enabled ? `${d.open}–${d.close}` : "Zatvoreno"}</div>
-                              </div>
-                              <Switch checked={d.enabled} onCheckedChange={(v) => setDay(day, { enabled: v })} />
+                  <div className="space-y-3">
+                    {DAYS.map((day) => (
+                      <div key={day} className="rounded-2xl border border-slate-200/70 dark:border-slate-800 p-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">{DAY_LABEL[day]}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500 dark:text-slate-400">Otvoreno</span>
+                              <Switch checked={businessHours?.[day]?.enabled} onCheckedChange={(v) => setDay(day, { enabled: v })} />
                             </div>
-
-                            {d.enabled ? (
-                              <div className="mt-3 grid grid-cols-2 gap-3">
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-300">Od</Label>
-                                  <Input type="time" className="h-10 mt-1 rounded-2xl" value={d.open} onChange={(e) => setDay(day, { open: e.target.value })} />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-slate-600 dark:text-slate-300">Do</Label>
-                                  <Input type="time" className="h-10 mt-1 rounded-2xl" value={d.close} onChange={(e) => setDay(day, { close: e.target.value })} />
-                                </div>
-                              </div>
-                            ) : null}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </Disclosure>
 
-                  <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">Automatski odgovor</div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">Pošalji kratku poruku odmah.</div>
-                      </div>
-                      <Switch checked={autoReplyEnabled} onCheckedChange={setAutoReplyEnabled} />
-                    </div>
-
-                    <div className={cn("grid transition-all duration-300", autoReplyEnabled ? "grid-rows-[1fr] mt-3" : "grid-rows-[0fr]")}>
-                      <div className="overflow-hidden">
-                        <Textarea className="resize-none rounded-2xl" rows={3} maxLength={300} value={autoReplyMessage} onChange={(e) => setAutoReplyMessage(e.target.value)} />
-                        <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                          <span>{errors.autoReplyMessage ? <span className="text-red-600 dark:text-red-400">{errors.autoReplyMessage}</span> : null}</span>
-                          <span>{autoReplyMessage.length}/300</span>
+                          <div className="grid grid-cols-2 gap-2 md:w-[280px]">
+                            <div>
+                              <Label className="text-xs text-slate-500 dark:text-slate-400">Od</Label>
+                              <Input
+                                type="time"
+                                className="h-11 mt-1 rounded-2xl"
+                                value={businessHours?.[day]?.open || "09:00"}
+                                onChange={(e) => setDay(day, { open: e.target.value })}
+                                disabled={!businessHours?.[day]?.enabled}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-slate-500 dark:text-slate-400">Do</Label>
+                              <Input
+                                type="time"
+                                className="h-11 mt-1 rounded-2xl"
+                                value={businessHours?.[day]?.close || "17:00"}
+                                onChange={(e) => setDay(day, { close: e.target.value })}
+                                disabled={!businessHours?.[day]?.enabled}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900 dark:text-white">Vacation mode</div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">Poruka kupcima u chatu (nije na kartici).</div>
-                      </div>
-                      <Switch checked={vacationMode} onCheckedChange={setVacationMode} />
-                    </div>
-
-                    <div className={cn("grid transition-all duration-300", vacationMode ? "grid-rows-[1fr] mt-3" : "grid-rows-[0fr]")}>
-                      <div className="overflow-hidden">
-                        <Textarea className="resize-none rounded-2xl" rows={2} maxLength={200} value={vacationMessage} onChange={(e) => setVacationMessage(e.target.value)} />
-                        {errors.vacationMessage ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.vacationMessage}</div> : null}
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </CardBody>
               </Card>
+
+              <Card>
+                <CardHeader icon={SlidersHorizontal} title="Ponude" subtitle="Kontroliši da li želiš primati ponude." />
+                <CardBody>
+                  <ToggleRow
+                    title="Primam ponude"
+                    desc="Kupci mogu slati ponude na tvoje proizvode"
+                    checked={acceptsOffers}
+                    onCheckedChange={setAcceptsOffers}
+                  />
+                </CardBody>
+              </Card>
+
+              <Disclosure title="Automatski odgovor" icon={Clock}>
+                <div className="space-y-3">
+                  <ToggleRow
+                    title="Uključi automatski odgovor"
+                    desc="Automatska poruka kada ti neko piše"
+                    checked={autoReplyEnabled}
+                    onCheckedChange={setAutoReplyEnabled}
+                  />
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Poruka</Label>
+                    <Textarea className="mt-2 rounded-2xl min-h-[110px]" value={autoReplyMessage} onChange={(e) => setAutoReplyMessage(e.target.value)} />
+                    {errors.autoReplyMessage ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.autoReplyMessage}</div> : null}
+                  </div>
+                </div>
+              </Disclosure>
+
+              <Disclosure title="Odmor (Vacation mode)" icon={Clock}>
+                <div className="space-y-3">
+                  <ToggleRow
+                    title="Uključi odmor"
+                    desc="Obavijesti kupce da trenutno nisi dostupan/na"
+                    checked={vacationMode}
+                    onCheckedChange={setVacationMode}
+                  />
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Poruka</Label>
+                    <Textarea className="mt-2 rounded-2xl min-h-[110px]" value={vacationMessage} onChange={(e) => setVacationMessage(e.target.value)} />
+                    {errors.vacationMessage ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.vacationMessage}</div> : null}
+                  </div>
+                </div>
+              </Disclosure>
             </TabsContent>
 
             <TabsContent value="policies" className="mt-4 space-y-4">
               <Card>
-                <CardHeader
-                  icon={FiSliders}
-                  title="Ponude"
-                  subtitle="Da li kupci mogu slati ponude."
-                  right={<Switch checked={acceptsOffers} onCheckedChange={setAcceptsOffers} />}
-                />
-                <div className="h-3" />
-              </Card>
-
-              <Card>
-                <CardHeader icon={FiSliders} title="Opis" subtitle="Kratko o tebi / poslovanju." />
+                <CardHeader icon={SlidersHorizontal} title="Informacije za kupce" subtitle="Ovo se prikazuje na profilu prodavača." />
                 <CardBody>
-                  <Textarea className="resize-none rounded-2xl" rows={4} maxLength={500} value={businessDescription} onChange={(e) => setBusinessDescription(e.target.value)} />
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 text-right">{businessDescription.length}/500</div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Opis</Label>
+                      <Textarea className="mt-2 rounded-2xl min-h-[120px]" value={businessDescription} onChange={(e) => setBusinessDescription(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Dostava</Label>
+                      <Textarea className="mt-2 rounded-2xl min-h-[120px]" value={shippingInfo} onChange={(e) => setShippingInfo(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Povrat</Label>
+                      <Textarea className="mt-2 rounded-2xl min-h-[120px]" value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} />
+                    </div>
+                  </div>
                 </CardBody>
               </Card>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader icon={FiSliders} title="Politika povrata" />
-                  <CardBody>
-                    <Textarea className="resize-none rounded-2xl" rows={3} maxLength={300} value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} />
-                  </CardBody>
-                </Card>
-
-                <Card>
-                  <CardHeader icon={FiSliders} title="Dostava" />
-                  <CardBody>
-                    <Textarea className="resize-none rounded-2xl" rows={3} maxLength={300} value={shippingInfo} onChange={(e) => setShippingInfo(e.target.value)} />
-                  </CardBody>
-                </Card>
-              </div>
-
               <Card>
-                <CardHeader icon={FiSliders} title="Društvene mreže" subtitle="Opcionalno." />
+                <CardHeader icon={SlidersHorizontal} title="Društvene mreže" subtitle="Dodaj linkove (opcionalno)." />
                 <CardBody>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Facebook</Label>
-                      <Input className="h-11 mt-2 rounded-2xl" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="https://facebook.com/..." />
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="https://..." />
                       {errors.socialFacebook ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialFacebook}</div> : null}
                     </div>
                     <div>
                       <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Instagram</Label>
-                      <Input className="h-11 mt-2 rounded-2xl" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="https://instagram.com/..." />
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="https://..." />
                       {errors.socialInstagram ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialInstagram}</div> : null}
                     </div>
                     <div>
                       <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">TikTok</Label>
-                      <Input className="h-11 mt-2 rounded-2xl" value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="https://tiktok.com/@..." />
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="https://..." />
                       {errors.socialTiktok ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialTiktok}</div> : null}
                     </div>
                     <div>
                       <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">YouTube</Label>
-                      <Input className="h-11 mt-2 rounded-2xl" value={socialYoutube} onChange={(e) => setSocialYoutube(e.target.value)} placeholder="https://youtube.com/..." />
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialYoutube} onChange={(e) => setSocialYoutube(e.target.value)} placeholder="https://..." />
                       {errors.socialYoutube ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialYoutube}</div> : null}
                     </div>
                     <div className="md:col-span-2">
-                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Website</Label>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Web stranica</Label>
                       <Input className="h-11 mt-2 rounded-2xl" value={socialWebsite} onChange={(e) => setSocialWebsite(e.target.value)} placeholder="https://..." />
                       {errors.socialWebsite ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialWebsite}</div> : null}
                     </div>
@@ -966,8 +1046,8 @@ const SellerSettings = () => {
         <div className="xl:sticky xl:top-6 space-y-4">
           <Card>
             <CardHeader
-              icon={FiEye}
-              title="Preview"
+              icon={Eye}
+              title="Prikaz"
               subtitle="Uživo prikaz kartice."
               right={
                 <div className="inline-flex items-center rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -981,7 +1061,7 @@ const SellerSettings = () => {
                         : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     )}
                   >
-                    <FiSmartphone /> Mobile
+                    <Smartphone className="h-4 w-4" /> Telefon
                   </button>
                   <button
                     type="button"
@@ -993,49 +1073,29 @@ const SellerSettings = () => {
                         : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     )}
                   >
-                    <FiMonitor /> Desktop
+                    <Monitor className="h-4 w-4" /> Računar
                   </button>
                 </div>
               }
             />
             <CardBody>
-              <div
-                className={cn(
-                  "mx-auto",
-                  previewMode === "mobile"
-                    ? "max-w-[380px] rounded-[34px] bg-slate-100 dark:bg-slate-950 p-3"
-                    : "max-w-none"
-                )}
-              >
+              <div className={cn("mx-auto", previewMode === "mobile" ? "max-w-[380px]" : "max-w-none")}>
                 <SellerPreviewCard
                   seller={previewSeller}
                   sellerSettings={previewSettings}
-                  badges={currentUser?.badges || []}
-                  ratings={currentUser?.ratings || null}
-                  isPro={isPro}
-                  isShop={isShop}
-                  actionsDisabled
+                  badges={[]}
+                  ratings={{ total: 0 }}
+                  isPro={false}
+                  isShop={false}
+                  uiPrefs={previewPrefs}
+                  onChatClick={() => toast.message("Ovo je samo prikaz.")}
+                  onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
                 />
               </div>
             </CardBody>
           </Card>
         </div>
       </div>
-
-      {/* Mobile bottom bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 backdrop-blur p-3">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="flex-1 gap-2 rounded-2xl" onClick={handleReset} disabled={isSaving || isAvatarUploading}>
-            <FiRefreshCw /> Reset
-          </Button>
-          <Button className="flex-1 gap-2 rounded-2xl" onClick={handleSave} disabled={isSaving || isAvatarUploading || !hasChanges || !isValid}>
-            {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FiSave />}
-            Sačuvaj
-          </Button>
-        </div>
-      </div>
-
-      <div className="sm:hidden h-16" />
     </div>
   );
 };

@@ -31,7 +31,7 @@ import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import ProductGallery from "./ProductGallery";
 import ProductDetailCard from "./ProductDetailCard";
-import SellerDetailCard from "./ProductSellerDetailCard";
+import SellerDetailCard from "./SellerDetailCard";
 import ProductFeature from "./ProductFeature";
 import ProductDescription from "./ProductDescription";
 import ProductQuestions from "./ProductQuestions";
