@@ -75,7 +75,6 @@ const ProfileNavigation = () => {
     return [];
   };
 
-  // ✅ Dohvati broj nepročitanih poruka (buyer + seller), isto kao u HomeMobileMenu logici :contentReference[oaicite:0]{index=0}
   useEffect(() => {
     let mounted = true;
 
@@ -115,7 +114,7 @@ const ProfileNavigation = () => {
     };
 
     fetchUnreadChats();
-    const interval = setInterval(fetchUnreadChats, 30000); // refresh svakih 30s :contentReference[oaicite:1]{index=1}
+    const interval = setInterval(fetchUnreadChats, 30000);
 
     return () => {
       mounted = false;
@@ -123,7 +122,6 @@ const ProfileNavigation = () => {
     };
   }, [isLoggedIn, pathname]);
 
-  // ✅ Dohvati broj nepročitanih obavijesti (logika kao u ProfileDropdown: !read_at && !is_read) :contentReference[oaicite:2]{index=2}
   useEffect(() => {
     let mounted = true;
 
@@ -214,7 +212,7 @@ const ProfileNavigation = () => {
     const text = badgeText(value);
     if (!text) return null;
     return (
-      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">
+      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-sm">
         {text}
       </span>
     );
@@ -225,8 +223,9 @@ const ProfileNavigation = () => {
       href={href}
       className={[
         "group flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200",
+        "hover:shadow-md active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary/20",
         isActive(href)
-          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+          ? "bg-primary text-primary-foreground border-primary shadow-lg"
           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300",
       ].join(" ")}
     >
@@ -268,7 +267,7 @@ const ProfileNavigation = () => {
     </CustomLink>
   );
 
-  // Desktop “osnovno”
+  // Desktop "osnovno"
   const desktopPrimary = useMemo(
     () => [
       { href: "/profile", icon: FiUser, label: "Profil" },
@@ -284,71 +283,13 @@ const ProfileNavigation = () => {
     [unreadMessages, unreadNotifications]
   );
 
-  // Desktop “više”
+  // Desktop "više"
   const desktopMore = [
     { href: "/transactions", icon: BiReceipt, label: "Transakcije", subtle: true },
     { href: "/reviews", icon: MdOutlineRateReview, label: "Recenzije", subtle: true },
     { href: "/profile/badges", icon: HiOutlineBadgeCheck, label: "Bedževi", subtle: true },
     { href: "/job-applications", icon: MdWorkOutline, label: "Prijave za posao", subtle: true },
   ];
-
-  // Mobile bottom nav (4 + Više)
-  const mobileMain = useMemo(
-    () => [
-      { href: "/profile", icon: FiUser, label: "Profil" },
-      { href: "/chat", icon: BiChat, label: "Poruke", badge: unreadMessages },
-      { href: "/my-ads", icon: LiaAdSolid, label: "Oglasi" },
-      { href: "/favorites", icon: LuHeart, label: "Omiljeni" },
-    ],
-    [unreadMessages]
-  );
-  const MobileNavItem = ({ href, icon: Icon, label, badge }) => (
-    <CustomLink
-      href={href}
-      className={[
-        "relative flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg transition-all duration-200",
-        isActive(href) ? "text-primary" : "text-gray-500",
-      ].join(" ")}
-    >
-      <div className="relative">
-        <Icon size={22} className="shrink-0" />
-        <Badge value={badge} />
-      </div>
-      <span className="text-[10px] font-medium leading-none">{label}</span>
-    </CustomLink>
-  );
-
-  const MobileMoreRow = ({ href, icon: Icon, label, badge }) => (
-    <button
-      type="button"
-      onClick={() => {
-        setMoreSheetOpen(false);
-        navigate(href);
-      }}
-      className={[
-        "w-full flex items-center justify-between gap-3 px-3 py-3 rounded-xl border transition-colors text-left",
-        isActive(href)
-          ? "bg-primary/10 border-primary/30 text-primary"
-          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50",
-      ].join(" ")}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="relative w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
-          <Icon size={18} className={isActive(href) ? "text-primary" : "text-slate-500"} />
-          <Badge value={badge} />
-        </div>
-        <span className="text-sm font-semibold truncate">{label}</span>
-      </div>
-
-      {badgeText(badge) ? (
-        <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-full">
-          {badgeText(badge)}
-        </span>
-      ) : null}
-    </button>
-  );
-
-  const moreHasBadge = unreadNotifications > 0;
 
   return (
     <>
@@ -362,7 +303,12 @@ const ProfileNavigation = () => {
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shadow-sm shrink-0 border border-primary/10">
                 {userData?.profile_image ? (
-                  <img src={userData.profile_image} alt="Korisnik" className="h-full w-full object-cover" />
+                  <img 
+                    src={userData.profile_image} 
+                    alt="Korisnik" 
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 ) : (
                   <FiUser size={20} />
                 )}
@@ -380,7 +326,7 @@ const ProfileNavigation = () => {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setIsLogoutOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                 title="Odjavi se"
                 type="button"
               >
@@ -390,7 +336,7 @@ const ProfileNavigation = () => {
 
               <button
                 onClick={() => setIsDeleteOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-100"
                 title="Izbriši račun"
                 type="button"
               >
@@ -413,7 +359,7 @@ const ProfileNavigation = () => {
               <button
                 type="button"
                 onClick={() => setShowMoreDesktop((v) => !v)}
-                className="text-sm font-semibold text-primary hover:opacity-80 transition-opacity"
+                className="text-sm font-semibold text-primary hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/20 px-2 py-1 rounded-lg"
               >
                 {showMoreDesktop ? "Sakrij dodatno" : "Prikaži dodatno"}
               </button>
@@ -456,7 +402,7 @@ const ProfileNavigation = () => {
       </div>
 
       {/* =========================
-          MOBILE: Header + Bottom Nav + More Sheet
+          MOBILE: Header
          ========================= */}
       <div className="sm:hidden">
         {/* Mobile user header */}
@@ -464,7 +410,12 @@ const ProfileNavigation = () => {
           <div className="px-4 py-3 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden shadow-sm shrink-0 border border-primary/10">
               {userData?.profile_image ? (
-                <img src={userData.profile_image} alt="Korisnik" className="h-full w-full object-cover" />
+                <img 
+                  src={userData.profile_image} 
+                  alt="Korisnik" 
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
               ) : (
                 <FiUser size={18} />
               )}
@@ -520,6 +471,11 @@ const ProfileNavigation = () => {
       <style jsx global>{`
         .pb-safe {
           padding-bottom: env(safe-area-inset-bottom);
+        }
+        @supports (padding: max(0px)) {
+          .pb-safe {
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+          }
         }
       `}</style>
     </>

@@ -82,10 +82,10 @@ const ProfileSidebar = () => {
 
   const getLinkClass = (path) => {
     const isActive = pathname === path;
-    return `group flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 text-sm font-medium ${
+    return `group flex items-center gap-3 py-2.5 px-3 rounded-lg transition-all duration-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
       isActive
         ? "bg-[#00B8D4] text-white shadow-sm"
-        : "text-gray-700 hover:bg-gray-50"
+        : "text-gray-700 hover:bg-gray-50 hover:shadow-sm"
     }`;
   };
 
@@ -108,7 +108,12 @@ const ProfileSidebar = () => {
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-full bg-gradient-to-br from-[#00B8D4] to-[#0097A7] flex items-center justify-center text-white overflow-hidden shrink-0 shadow-sm">
             {userData?.profile_image ? (
-              <img src={userData.profile_image} alt="User" className="h-full w-full object-cover" />
+              <img 
+                src={userData.profile_image} 
+                alt="User" 
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
             ) : (
               <FiUser size={20} />
             )}
@@ -130,7 +135,11 @@ const ProfileSidebar = () => {
           {navigationLinks.map((link) => {
             const Icon = link.icon;
             return (
-              <CustomLink key={link.href} href={link.href} className={getLinkClass(link.href)}>
+              <CustomLink 
+                key={link.href} 
+                href={link.href} 
+                className={getLinkClass(link.href)}
+              >
                 <Icon size={18} className="shrink-0" />
                 <span className="truncate">{link.label}</span>
               </CustomLink>
@@ -143,7 +152,7 @@ const ProfileSidebar = () => {
       <div className="p-2 border-t border-gray-200 space-y-0.5">
         <button
           onClick={() => setIsLogout(true)}
-          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
         >
           <RiLogoutCircleLine size={18} className="shrink-0" />
           <span className="truncate">{t("signOut")}</span>
@@ -151,7 +160,7 @@ const ProfileSidebar = () => {
         
         <button
           onClick={() => setIsDeleteAccount(true)}
-          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-200"
+          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-100"
         >
           <BiTrashAlt size={18} className="shrink-0" />
           <span className="truncate">{t("deleteAccount")}</span>

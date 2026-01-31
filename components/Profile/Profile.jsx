@@ -3,28 +3,39 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
+import { FiUser, FiLayers, FiMessageSquare, FiHeart, FiStar } from "react-icons/fi";
+
 
 import {
   MdInfoOutline,
   MdCheckCircle,
   MdWarningAmber,
   MdVerifiedUser,
+  MdEmail,
+  MdPhone,
+  MdLocationOn,
+  MdNotifications,
+  MdVisibility,
+  MdVisibilityOff,
+  MdEdit,
+  MdSave,
+  MdCancel,
 } from "react-icons/md";
 
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
-import ProfileSettingsMenu from "./ProfileSettingsMenu";
 
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
-import { Button, buttonVariants } from "../ui/button";
+import { Button } from "../ui/button";
 
 import { loadUpdateUserData, userSignUpData } from "@/redux/reducer/authSlice";
 import { Fcmtoken, settingsData } from "@/redux/reducer/settingSlice";
@@ -38,72 +49,124 @@ import {
 
 import { useUserLocation } from "@/hooks/useUserLocation";
 
-/** Avatar renderer:
- *  - ako ima upload sliku → pokaži
- *  - ako nema → LMX SVG avatar po avatarId
- */
-function SellerAvatar({ customAvatarUrl, avatarId, className = "" }) {
+// Avatar Component
+function SellerAvatar({ customAvatarUrl, avatarId, size = "lg" }) {
   const [imgErr, setImgErr] = useState(false);
   const showImg = Boolean(customAvatarUrl) && !imgErr;
+
+  const sizeClasses = {
+    sm: "w-16 h-16",
+    md: "w-24 h-24",
+    lg: "w-32 h-32",
+    xl: "w-40 h-40",
+  };
 
   if (showImg) {
     return (
       <img
         src={customAvatarUrl}
         alt="Avatar"
-        className={`w-full h-full rounded-full object-cover ${className}`}
+        className={`${sizeClasses[size]} rounded-full object-cover border-4 border-white shadow-lg`}
         onError={() => setImgErr(true)}
+        loading="lazy"
       />
     );
   }
 
   return (
-    <div
-      className={`w-full h-full rounded-full bg-white flex items-center justify-center text-primary ${className}`}
-    >
-      <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-16 h-16" />
+    <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center border-4 border-white shadow-lg`}>
+      <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-3/4 h-3/4 text-white" />
     </div>
   );
 }
 
-const INFO_TEXT = {
-  user: {
-    title: "Za sigurnu i uspješnu kupoprodaju",
-    body:
-      "Važno je da su vaši podaci ažurirani. Provjerite e-mail i broj telefona koji koristite. " +
-      "Preporučujemo jaču šifru i verifikaciju profila.",
-  },
-  location: {
-    title: "Lokacija pomaže kupcima",
-    body:
-      "Tačna lokacija povećava povjerenje i olakšava dogovor oko preuzimanja. " +
-      "Odaberite entitet, regiju i grad/općinu.",
-  },
-  privacy: {
-    title: "Kontrola privatnosti",
-    body:
-      "Vi birate šta je javno. Ako isključite prikaz kontakta, kupci vas i dalje mogu kontaktirati porukom.",
-  },
-  notifications: {
-    title: "Budite u toku",
-    body:
-      "Uključite obavijesti da ne propustite poruke, ponude i bitne promjene na računu.",
-  },
-  verification: {
-    title: "Verifikacija povećava povjerenje",
-    body:
-      "Verifikovani profili imaju veću stopu uspješnih dogovora. Proces je brz i jasan.",
-  },
-  photo: {
-    title: "Profilna slika",
-    body:
-      "Jasna slika (ili avatar) pomaže da profil izgleda ozbiljnije i pouzdanije.",
-  },
-  seller: {
-    title: "Postavke prodavača",
-    body:
-      "Uredite opcije prodaje, prikaz profila i dodatne seller postavke na jednom mjestu.",
-  },
+// Profile Section Component
+const ProfileSection = ({ 
+  title, 
+  description, 
+  icon: Icon,
+  children,
+  action,
+  isEditing = false,
+  onEdit,
+  onSave,
+  onCancel,
+  hasChanges = false
+}) => {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-6 hover:border-primary/30 transition-colors duration-200">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+            <p className="text-sm text-slate-600 mt-1">{description}</p>
+          </div>
+        </div>
+        
+        {action && (
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onCancel}
+                  className="border-slate-300 hover:border-slate-400"
+                >
+                  <MdCancel className="w-4 h-4 mr-1" />
+                  Otkaži
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={onSave}
+                  disabled={!hasChanges}
+                >
+                  <MdSave className="w-4 h-4 mr-1" />
+                  Sačuvaj
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onEdit}
+                className="border-primary/30 text-primary hover:bg-primary/5"
+              >
+                <MdEdit className="w-4 h-4 mr-1" />
+                Uredi
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="space-y-4">
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// Stats Card Component
+const StatsCard = ({ icon: Icon, label, value, color }) => {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary/30 transition-colors duration-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-sm text-slate-500 mt-1">{label}</p>
+        </div>
+        <div className={`p-2 rounded-lg ${color}`}>
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default function Profile() {
@@ -113,29 +176,26 @@ export default function Profile() {
   const fetchFCM = useSelector(Fcmtoken);
   const placeholder_image = settings?.placeholder_image;
 
-  const [activeTab, setActiveTab] = useState("user");
-
+  // State
+  const [activeSection, setActiveSection] = useState("osnovno");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Profile states
   const [profileImage, setProfileImage] = useState("");
   const [profileFile, setProfileFile] = useState(null);
   const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [isPending, setIsPending] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
-
-  const [VerificationStatus, setVerificationStatus] = useState("");
-  const [RejectionReason, setRejectionReason] = useState("");
-
-  // BiH lokacija (localStorage hook)
-  const { userLocation, saveLocation } = useUserLocation();
-  const [bihLocation, setBihLocation] = useState({
-    entityId: null,
-    regionId: null,
-    municipalityId: null,
-    address: "",
-    formattedAddress: "",
+  
+  // Form states
+  const [isEditing, setIsEditing] = useState({
+    osnovno: false,
+    kontakt: false,
+    lokacija: false,
+    privatnost: false,
+    notifikacije: false,
   });
-
+  
+  // Form data
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -146,117 +206,108 @@ export default function Profile() {
     region_code: "",
     country_code: "",
   });
+  
+  // BiH location
+  const { userLocation, saveLocation } = useUserLocation();
+  const [bihLocation, setBihLocation] = useState({
+    entityId: null,
+    regionId: null,
+    municipalityId: null,
+    address: "",
+    formattedAddress: "",
+  });
+  
+  // Verification
+  const [verificationStatus, setVerificationStatus] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  
+  // Refs
+  const initialDataRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // keep a snapshot da možemo pametno gasiti/upaliti "Sačuvaj"
-  const initialSnapshotRef = useRef(null);
-
+  // Effects
   useEffect(() => {
-    if (userLocation?.municipalityId) setBihLocation(userLocation);
+    if (userLocation?.municipalityId) {
+      setBihLocation(userLocation);
+    }
   }, [userLocation]);
 
-  const infoBox = INFO_TEXT[activeTab] || INFO_TEXT.user;
-
-  const getVerificationProgress = async () => {
-    try {
-      const res = await getVerificationStatusApi.getVerificationStatus();
-      if (res?.data?.error === true) {
-        setVerificationStatus("not applied");
-      } else {
-        setVerificationStatus(res?.data?.data?.status);
-        setRejectionReason(res?.data?.data?.rejection_reason);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const getUserDetails = async () => {
-    try {
-      const res = await getUserInfoApi.getUserInfo();
-      if (res?.data?.error === false) {
-        const d = res?.data?.data;
-
-        const region = (
-          d?.region_code ||
-          process.env.NEXT_PUBLIC_DEFAULT_COUNTRY ||
-          "in"
-        ).toLowerCase();
-
-        const countryCode = d?.country_code?.replace("+", "") || "91";
-
-        const nextForm = {
-          name: d?.name || "",
-          email: d?.email || "",
-          phone: d?.mobile || "",
-          address: d?.address || "",
-          notification: d?.notification,
-          show_personal_details: Number(d?.show_personal_details),
-          region_code: region,
-          country_code: countryCode,
-        };
-
-        setFormData(nextForm);
-        setProfileImage(d?.profile || placeholder_image);
-
-        // snapshot za isDirty
-        initialSnapshotRef.current = {
-          formData: nextForm,
-          bihLocation: userLocation || null,
-          hasFile: false,
-        };
-        setIsDirty(false);
-
-        const currentFcmId = UserData?.fcm_id;
-        if (!d?.fcm_id && currentFcmId) {
-          loadUpdateUserData({ ...d, fcm_id: currentFcmId });
-        } else {
-          loadUpdateUserData(d);
-        }
-      } else {
-        toast.error("Greška pri učitavanju podataka: " + res?.data?.message);
-      }
-    } catch (error) {
-      console.log("Greška pri dohvatanju informacija:", error);
-      toast.error("Nije moguće učitati podatke o korisniku.");
-    }
-  };
-
-  const getSellerSettings = async () => {
-    try {
-      const res = await sellerSettingsApi.getSettings();
-      if (res?.data?.error === false && res?.data?.data) {
-        setSellerAvatarId(res.data.data.avatar_id || "lmx-01");
-      }
-    } catch (e) {
-      // silent fallback
-    }
-  };
-
+  // Fetch user data
   useEffect(() => {
     if (!IsLoggedIn) return;
+
     const fetchData = async () => {
-      setIsPending(true);
-      await Promise.all([getVerificationProgress(), getUserDetails(), getSellerSettings()]);
-      setIsPending(false);
+      setIsLoading(true);
+      try {
+        const [verificationRes, userRes, sellerRes] = await Promise.all([
+          getVerificationStatusApi.getVerificationStatus(),
+          getUserInfoApi.getUserInfo(),
+          sellerSettingsApi.getSettings(),
+        ]);
+
+        // Handle verification
+        if (verificationRes?.data?.error === true) {
+          setVerificationStatus("not applied");
+        } else {
+          setVerificationStatus(verificationRes?.data?.data?.status || "");
+          setRejectionReason(verificationRes?.data?.data?.rejection_reason || "");
+        }
+
+        // Handle user info
+        if (userRes?.data?.error === false) {
+          const d = userRes.data.data;
+          const region = (d?.region_code || "ba").toLowerCase();
+          const countryCode = d?.country_code?.replace("+", "") || "387";
+
+          const nextForm = {
+            name: d?.name || "",
+            email: d?.email || "",
+            phone: d?.mobile || "",
+            address: d?.address || "",
+            notification: d?.notification ?? 1,
+            show_personal_details: Number(d?.show_personal_details) || 0,
+            region_code: region,
+            country_code: countryCode,
+          };
+
+          setFormData(nextForm);
+          setProfileImage(d?.profile || placeholder_image);
+          initialDataRef.current = { ...nextForm, bihLocation: userLocation };
+          
+          const currentFcmId = UserData?.fcm_id;
+          if (!d?.fcm_id && currentFcmId) {
+            loadUpdateUserData({ ...d, fcm_id: currentFcmId });
+          } else {
+            loadUpdateUserData(d);
+          }
+        }
+
+        // Handle seller settings
+        if (sellerRes?.data?.error === false && sellerRes.data.data) {
+          setSellerAvatarId(sellerRes.data.data.avatar_id || "lmx-01");
+        }
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        toast.error("Došlo je do greške pri učitavanju podataka");
+      } finally {
+        setIsLoading(false);
+      }
     };
+
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [IsLoggedIn]);
 
-  // --- helpers ---
-  const markDirty = () => setIsDirty(true);
-
-  const handleChange = (e) => {
-    markDirty();
-    setFormData({ ...formData, [e.target.id]: e.target.value });
+  // Handlers
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePhoneChange = (value, data) => {
-    markDirty();
     const dial = data?.dialCode || "";
     const iso2 = data?.countryCode || "";
     const pureMobile = value.startsWith(dial) ? value.slice(dial.length) : value;
-    setFormData((prev) => ({
+    
+    setFormData(prev => ({
       ...prev,
       phone: pureMobile,
       country_code: dial,
@@ -264,492 +315,559 @@ export default function Profile() {
     }));
   };
 
-  const handleSwitchChange = (id) => {
-    markDirty();
-    const newVal = formData[id] === 1 ? 0 : 1;
-    setFormData((prev) => ({ ...prev, [id]: newVal }));
-
-    if (id === "notification") {
-      toast.info(newVal === 1 ? "Obavijesti su uključene." : "Obavijesti su isključene.");
-    } else {
-      toast.info(newVal === 1 ? "Kontakt podaci su sada vidljivi." : "Kontakt podaci su sada skriveni.");
-    }
-  };
-
-  const fileInputId = useMemo(() => "profile_image_input", []);
-
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Slika je prevelika. Molimo odaberite sliku manju od 5MB.");
+      toast.error("Slika je prevelika. Maksimalna veličina je 5MB.");
       return;
     }
 
-    markDirty();
     setProfileFile(file);
-
     const reader = new FileReader();
     reader.onload = () => {
       setProfileImage(reader.result);
-      toast.success("Slika profila je odabrana. Kliknite 'Sačuvaj' da primijenite izmjene.");
+      toast.success("Slika profila je odabrana");
     };
     reader.readAsDataURL(file);
   };
 
-  const renderVerificationBadge = () => {
-    const badgeBase =
-      "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border";
-    switch (VerificationStatus) {
-      case "approved":
-        return (
-          <div className={`${badgeBase} bg-green-50 text-green-700 border-green-200`}>
-            <MdVerifiedUser size={14} /> <span>Verifikovan</span>
-          </div>
-        );
-      case "not applied":
-        return (
-          <CustomLink
-            href="/user-verification"
-            className={`${buttonVariants({ variant: "outline", size: "sm" })} text-xs h-7`}
-          >
-            Verifikuj se
-          </CustomLink>
-        );
-      case "rejected":
-        return (
-          <div className="flex flex-col items-start gap-2">
-            <div className={`${badgeBase} bg-red-50 text-red-700 border-red-200`}>
-              <MdWarningAmber size={14} /> <span>Odbijen</span>
-            </div>
-            {RejectionReason && (
-              <span className="text-xs text-red-600">{RejectionReason}</span>
-            )}
-            <CustomLink href="/user-verification" className="text-sm text-primary hover:underline">
-              Pokušaj ponovo
-            </CustomLink>
-          </div>
-        );
-      case "pending":
-      case "resubmitted":
-        return (
-          <div className={`${badgeBase} bg-amber-50 text-amber-700 border-amber-200`}>
-            <MdWarningAmber size={14} /> <span>Na čekanju</span>
-          </div>
-        );
-      default:
-        return (
-          <div className={`${badgeBase} bg-gray-50 text-gray-700 border-gray-200`}>
-            <span>Nepoznato</span>
-          </div>
-        );
-    }
-  };
-
-  const buildFormattedAddress = () => {
-    const base = (bihLocation?.formattedAddress || "").trim();
-    const street = (bihLocation?.address || "").trim();
-    if (street && base) return `${street}, ${base}`;
-    if (base) return base;
-    if (street) return street;
-    return (formData.address || "").trim();
-  };
-
-  const handleSubmit = async (e) => {
-    e?.preventDefault?.();
-
-    if (!formData?.name.trim()) {
-      toast.error("Ime je obavezno polje!");
+  const handleSave = async (section) => {
+    // Validation
+    if (section === "osnovno" && !formData.name.trim()) {
+      toast.error("Ime je obavezno polje");
       return;
     }
 
-    if (!bihLocation?.municipalityId) {
-      toast.error("Molimo odaberite vašu lokaciju!");
+    if (section === "lokacija" && !bihLocation.municipalityId) {
+      toast.error("Molimo odaberite lokaciju");
       return;
     }
 
-    const mobileNumber = formData.phone || "";
-    if (
-      Boolean(mobileNumber) &&
-      !isValidPhoneNumber(`+${formData.country_code}${mobileNumber}`)
-    ) {
-      toast.error("Uneseni broj telefona nije ispravan.");
+    if (section === "kontakt" && formData.phone && !isValidPhoneNumber(`+${formData.country_code}${formData.phone}`)) {
+      toast.error("Uneseni broj telefona nije ispravan");
       return;
     }
 
     setIsSaving(true);
     try {
-      // snimi lokaciju lokalno (hook)
-      saveLocation(bihLocation);
+      if (section === "lokacija") {
+        saveLocation(bihLocation);
+      }
 
-      const formattedAddress = buildFormattedAddress();
+      const formattedAddress = bihLocation?.formattedAddress 
+        ? `${bihLocation.address || ""}, ${bihLocation.formattedAddress}`.trim()
+        : formData.address;
 
       const response = await updateProfileApi.updateProfile({
         name: formData.name,
         email: formData.email,
-        mobile: mobileNumber,
+        mobile: formData.phone || "",
         address: formattedAddress,
         profile: profileFile,
         fcm_id: fetchFCM || "",
         notification: formData.notification,
         country_code: formData.country_code,
         show_personal_details: formData.show_personal_details,
-        region_code: (formData.region_code || "").toUpperCase(),
+        region_code: formData.region_code.toUpperCase(),
       });
 
-      const data = response.data;
-      if (data.error !== true) {
+      if (response.data.error !== true) {
+        const newData = response.data.data;
         const currentFcmId = UserData?.fcm_id;
-        const newData = data?.data;
-
+        
         if (!newData?.fcm_id && currentFcmId) {
           loadUpdateUserData({ ...newData, fcm_id: currentFcmId });
         } else {
           loadUpdateUserData(newData);
         }
 
-        // reset dirty
-        initialSnapshotRef.current = {
-          formData,
-          bihLocation,
-          hasFile: false,
-        };
         setProfileFile(null);
-        setIsDirty(false);
-
-        toast.success("Profil je uspješno ažuriran!");
+        setIsEditing(prev => ({ ...prev, [section]: false }));
+        toast.success("Promjene su uspješno sačuvane");
       } else {
-        toast.error(data.message || "Došlo je do greške prilikom ažuriranja.");
+        toast.error(response.data.message || "Greška pri čuvanju");
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Greška na serveru. Pokušajte kasnije.");
+      console.error("Save error:", error);
+      toast.error("Greška na serveru");
     } finally {
       setIsSaving(false);
     }
   };
 
+  // Verification badge
+  const getVerificationBadge = () => {
+    const baseClass = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium";
+    
+    switch (verificationStatus) {
+      case "approved":
+        return (
+          <span className={`${baseClass} bg-green-100 text-green-800`}>
+            <MdVerifiedUser className="w-4 h-4" />
+            Verifikovan
+          </span>
+        );
+      case "pending":
+      case "resubmitted":
+        return (
+          <span className={`${baseClass} bg-amber-100 text-amber-800`}>
+            <MdWarningAmber className="w-4 h-4" />
+            Na čekanju
+          </span>
+        );
+      case "rejected":
+        return (
+          <div className="space-y-2">
+            <span className={`${baseClass} bg-red-100 text-red-800`}>
+              <MdWarningAmber className="w-4 h-4" />
+              Odbijen
+            </span>
+            {rejectionReason && (
+              <p className="text-sm text-red-600">{rejectionReason}</p>
+            )}
+          </div>
+        );
+      default:
+        return (
+          <CustomLink
+            href="/user-verification"
+            className={`${baseClass} bg-primary text-white hover:bg-primary/90`}
+          >
+            Verifikuj profil
+          </CustomLink>
+        );
+    }
+  };
+
+  // Navigation items
+  const navItems = [
+    { id: "osnovno", label: "Osnovno", icon: MdEdit },
+    { id: "kontakt", label: "Kontakt", icon: MdEmail },
+    { id: "lokacija", label: "Lokacija", icon: MdLocationOn },
+    { id: "privatnost", label: "Privatnost", icon: MdVisibility },
+    { id: "notifikacije", label: "Notifikacije", icon: MdNotifications },
+    { id: "verifikacija", label: "Verifikacija", icon: MdVerifiedUser },
+  ];
+
   if (!IsLoggedIn) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-white border rounded-xl p-6">
-          <h1 className="text-xl font-semibold">Postavke</h1>
-          <p className="text-gray-600 mt-2">
-            Morate biti prijavljeni da biste uređivali profil.
-          </p>
-          <div className="mt-4">
-            <CustomLink href="/login" className={buttonVariants({ variant: "default" })}>
-              Prijavi se
-            </CustomLink>
-          </div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">Niste prijavljeni</h2>
+          <p className="text-slate-600 mb-6">Prijavite se da biste pristupili profilu</p>
+          <CustomLink href="/login" className="btn-primary">
+            Prijavi se
+          </CustomLink>
         </div>
       </div>
     );
   }
 
-  // --- UI: section renderer ---
-  const SectionShell = ({ title, subtitle, children, rightSlot }) => (
-    <div className="grid lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-8">
-        <div className="bg-white border rounded-xl p-6">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-            {subtitle && <p className="text-sm text-gray-600 mt-1">{subtitle}</p>}
-          </div>
-          {children}
-        </div>
-      </div>
-
-      <div className="lg:col-span-4">
-        {rightSlot || (
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">
-                <MdInfoOutline size={22} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-blue-900">{infoBox.title}</p>
-                <p className="text-sm text-blue-900/80 mt-2 leading-relaxed">
-                  {infoBox.body}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+      {/* Loading */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Postavke</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Sve bitno o vašem profilu na jednom mjestu — jasno i pregledno.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isPending || isSaving || !isDirty}
-          >
-            {isSaving ? "Spremam..." : "Sačuvaj izmjene"}
-          </Button>
-        </div>
-      </div>
-
-      {/* Layout */}
-      <div className="grid lg:grid-cols-12 gap-6">
-        <aside className="lg:col-span-3">
-          <ProfileSettingsMenu
-            activeTab={activeTab}
-            onChange={(tab) => setActiveTab(tab)}
-          />
-
-          {/* Mini profil kartica */}
-          <div className="hidden lg:block mt-6 bg-white border rounded-xl p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14">
-                <SellerAvatar
-                  customAvatarUrl={profileImage}
-                  avatarId={sellerAvatarId}
-                  className="ring-2 ring-primary/15"
+      <div className="mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <SellerAvatar 
+              customAvatarUrl={profileImage} 
+              avatarId={sellerAvatarId} 
+              size="lg"
+            />
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+                {formData.name || "Vaš profil"}
+              </h1>
+              <p className="text-slate-600 mt-1">{formData.email}</p>
+              <div className="flex items-center gap-3 mt-3">
+                {getVerificationBadge()}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-sm text-primary hover:text-primary/80 font-medium"
+                >
+                  Promijeni sliku
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
                 />
               </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-gray-900 truncate">
-                  {formData.name || "Korisnik"}
-                </p>
-                <p className="text-sm text-gray-600 truncate">{formData.email}</p>
-              </div>
             </div>
+          </div>
 
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-sm text-gray-700">Status</span>
-              {renderVerificationBadge()}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              className="border-slate-300 hover:border-slate-400"
+              onClick={() => window.print()}
+            >
+              Štampaj profil
+            </Button>
+            <Button onClick={() => handleSave(activeSection)} disabled={isSaving}>
+              {isSaving ? "Čuvanje..." : "Sačuvaj sve promjene"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <StatsCard
+          icon={FiLayers}
+          label="Aktivni oglasi"
+          value={UserData?.active_ads || 0}
+          color="bg-blue-500"
+        />
+        <StatsCard
+          icon={FiMessageSquare}
+          label="Nepročitane poruke"
+          value={UserData?.unread_messages || 0}
+          color="bg-green-500"
+        />
+        <StatsCard
+          icon={FiHeart}
+          label="Favoriti"
+          value={UserData?.favorites_count || 0}
+          color="bg-pink-500"
+        />
+        <StatsCard
+          icon={FiStar}
+          label="Prosječna ocjena"
+          value={UserData?.avg_rating ? UserData.avg_rating.toFixed(1) : "0.0"}
+          color="bg-amber-500"
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Navigation */}
+        <aside className="lg:w-64 flex-shrink-0">
+          <nav className="sticky top-24 bg-white rounded-xl border border-slate-200 p-4">
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+              Postavke profila
+            </h3>
+            <div className="space-y-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200",
+                    "text-left",
+                    activeSection === item.id
+                      ? "bg-primary/10 text-primary"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-primary"
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Quick Links */}
+          <div className="mt-4 bg-gradient-to-br from-primary to-primary/90 rounded-xl p-5 text-white">
+            <h4 className="font-semibold mb-3">Brzi linkovi</h4>
+            <div className="space-y-2">
+              <CustomLink 
+                href="/my-ads/new" 
+                className="block text-sm text-white/90 hover:text-white"
+              >
+                + Dodaj novi oglas
+              </CustomLink>
+              <CustomLink 
+                href="/user-verification" 
+                className="block text-sm text-white/90 hover:text-white"
+              >
+                Verifikuj profil
+              </CustomLink>
+              <CustomLink 
+                href="/help" 
+                className="block text-sm text-white/90 hover:text-white"
+              >
+                Pomoć i podrška
+              </CustomLink>
             </div>
           </div>
         </aside>
 
-        <main className="lg:col-span-9">
-          {/* Pending */}
-          {isPending ? (
-            <div className="bg-white border rounded-xl p-6">
-              <p className="text-gray-600">Učitavam podatke...</p>
-            </div>
-          ) : (
-            <>
-              {activeTab === "user" && (
-                <SectionShell
-                  title="Korisničke informacije"
-                  subtitle="Ažurirajte osnovne podatke računa."
-                >
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Ime i prezime</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Unesite ime i prezime"
-                      />
-                    </div>
+        {/* Content */}
+        <main className="flex-1 min-w-0">
+          {/* Osnovno */}
+          {activeSection === "osnovno" && (
+            <ProfileSection
+              title="Osnovne informacije"
+              description="Vaši lični podaci i informacije o nalogu"
+              icon={MdEdit}
+              action
+              isEditing={isEditing.osnovno}
+              onEdit={() => setIsEditing(prev => ({ ...prev, osnovno: true }))}
+              onSave={() => handleSave("osnovno")}
+              onCancel={() => setIsEditing(prev => ({ ...prev, osnovno: false }))}
+              hasChanges={true}
+            >
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name" className="text-slate-700">Ime i prezime *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    placeholder="Unesite vaše puno ime"
+                    className="mt-2"
+                    disabled={!isEditing.osnovno}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email" className="text-slate-700">Email adresa</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    placeholder="primer@email.com"
+                    className="mt-2"
+                    disabled={!isEditing.osnovno}
+                  />
+                </div>
+              </div>
+            </ProfileSection>
+          )}
 
-                    <div>
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input
-                        id="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Unesite e-mail"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <Label>Broj telefona</Label>
-                      <div className="mt-2">
-                        <PhoneInput
-                          country={formData.region_code || "ba"}
-                          value={`${formData.country_code || ""}${formData.phone || ""}`}
-                          onChange={handlePhoneChange}
-                          inputStyle={{
-                            width: "100%",
-                            height: "42px",
-                            borderRadius: "8px",
-                            border: "1px solid #e5e7eb",
-                          }}
-                          buttonStyle={{
-                            borderRadius: "8px 0 0 8px",
-                            border: "1px solid #e5e7eb",
-                          }}
-                        />
-                        <p className="text-xs text-gray-500 mt-2">
-                          Ako ne želite prikaz broja javno, isključite ga u sekciji <b>Privatnost</b>.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </SectionShell>
-              )}
-
-              {activeTab === "photo" && (
-                <SectionShell title="Profilna slika" subtitle="Dodajte sliku ili koristite avatar.">
-                  <div className="flex items-start gap-5">
-                    <div className="w-24 h-24 shrink-0">
-                      <SellerAvatar
-                        customAvatarUrl={profileImage}
-                        avatarId={sellerAvatarId}
-                        className="ring-2 ring-primary/15"
-                      />
-                    </div>
-
-                    <div className="flex-1">
-                      <input
-                        id={fileInputId}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleImageChange}
-                      />
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById(fileInputId)?.click()}
-                      >
-                        Odaberi sliku
-                      </Button>
-
-                      <p className="text-sm text-gray-600 mt-3">
-                        Preporuka: jasna slika lica ili logotip. Maksimalno 5MB.
-                      </p>
-                    </div>
-                  </div>
-                </SectionShell>
-              )}
-
-              {activeTab === "location" && (
-                <SectionShell title="Lokacija" subtitle="Odaberite gdje se nalazite.">
-                  <div>
-                    <BiHLocationSelector
-                      value={bihLocation}
-                      onChange={(newLoc) => {
-                        markDirty();
-                        setBihLocation(newLoc);
+          {/* Kontakt */}
+          {activeSection === "kontakt" && (
+            <ProfileSection
+              title="Kontakt informacije"
+              description="Načini na koji vas drugi korisnici mogu kontaktirati"
+              icon={MdPhone}
+              action
+              isEditing={isEditing.kontakt}
+              onEdit={() => setIsEditing(prev => ({ ...prev, kontakt: true }))}
+              onSave={() => handleSave("kontakt")}
+              onCancel={() => setIsEditing(prev => ({ ...prev, kontakt: false }))}
+              hasChanges={true}
+            >
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="phone" className="text-slate-700">Broj telefona</Label>
+                  <div className="mt-2">
+                    <PhoneInput
+                      country={formData.region_code || "ba"}
+                      value={`${formData.country_code || ""}${formData.phone || ""}`}
+                      onChange={handlePhoneChange}
+                      inputStyle={{
+                        width: "100%",
+                        height: "42px",
+                        borderRadius: "8px",
+                        border: "1px solid #e5e7eb",
                       }}
-                      showAddress={true}
-                      label=""
-                    />
-
-                    <div className="mt-4 bg-gray-50 border rounded-lg p-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-700">
-                        <MdCheckCircle className="text-green-600" size={18} />
-                        <span className="font-medium">Pregled adrese</span>
-                      </div>
-                      <p className="text-sm text-gray-700 mt-2">
-                        {buildFormattedAddress() || "Nije odabrana adresa."}
-                      </p>
-                    </div>
-                  </div>
-                </SectionShell>
-              )}
-
-              {activeTab === "privacy" && (
-                <SectionShell title="Privatnost" subtitle="Odaberite šta je javno vidljivo na profilu.">
-                  <div className="flex items-center justify-between border rounded-lg p-4">
-                    <div>
-                      <p className="font-medium text-gray-900">Prikaži kontakt podatke</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Ako je uključeno, kupci mogu vidjeti vaš telefon/e-mail gdje je primjenjivo.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formData.show_personal_details === 1}
-                      onCheckedChange={() => handleSwitchChange("show_personal_details")}
+                      buttonStyle={{
+                        borderRadius: "8px 0 0 8px",
+                        border: "1px solid #e5e7eb",
+                      }}
+                      disabled={!isEditing.kontakt}
                     />
                   </div>
-                </SectionShell>
-              )}
+                  <p className="text-xs text-slate-500 mt-2">
+                    Broj telefona je vidljiv samo ukoliko ste to dozvolili u postavkama privatnosti
+                  </p>
+                </div>
+              </div>
+            </ProfileSection>
+          )}
 
-              {activeTab === "notifications" && (
-                <SectionShell title="Notifikacije" subtitle="Upravljajte obavijestima.">
-                  <div className="flex items-center justify-between border rounded-lg p-4">
-                    <div>
-                      <p className="font-medium text-gray-900">Uključi obavijesti</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Poruke, ponude, statusi i važne informacije.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formData.notification === 1}
-                      onCheckedChange={() => handleSwitchChange("notification")}
-                    />
+          {/* Lokacija */}
+          {activeSection === "lokacija" && (
+            <ProfileSection
+              title="Lokacija"
+              description="Odaberite vašu lokaciju za bolje pronalaženje oglasa"
+              icon={MdLocationOn}
+              action
+              isEditing={isEditing.lokacija}
+              onEdit={() => setIsEditing(prev => ({ ...prev, lokacija: true }))}
+              onSave={() => handleSave("lokacija")}
+              onCancel={() => setIsEditing(prev => ({ ...prev, lokacija: false }))}
+              hasChanges={true}
+            >
+              <div className="space-y-4">
+                <BiHLocationSelector
+                  value={bihLocation}
+                  onChange={setBihLocation}
+                  showAddress={true}
+                  disabled={!isEditing.lokacija}
+                />
+                
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <MdCheckCircle className="text-green-500" />
+                    <span className="font-medium">Trenutna lokacija:</span>
                   </div>
-                </SectionShell>
-              )}
+                  <p className="text-slate-600 mt-1">
+                    {bihLocation.formattedAddress || "Nije odabrana lokacija"}
+                  </p>
+                </div>
+              </div>
+            </ProfileSection>
+          )}
 
-              {activeTab === "verification" && (
-                <SectionShell title="Verifikacija" subtitle="Provjerite i povećajte povjerenje profila.">
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between gap-3">
+          {/* Privatnost */}
+          {activeSection === "privatnost" && (
+            <ProfileSection
+              title="Privatnost i sigurnost"
+              description="Kontrolišite ko može vidjeti vaše podatke"
+              icon={MdVisibility}
+              action
+              isEditing={isEditing.privatnost}
+              onEdit={() => setIsEditing(prev => ({ ...prev, privatnost: true }))}
+              onSave={() => handleSave("privatnost")}
+              onCancel={() => setIsEditing(prev => ({ ...prev, privatnost: false }))}
+              hasChanges={true}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-slate-900">Prikaži kontakt podatke</p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Omogućite drugim korisnicima da vide vaš broj telefona i email
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.show_personal_details === 1}
+                    onCheckedChange={() => handleChange(
+                      "show_personal_details", 
+                      formData.show_personal_details === 1 ? 0 : 1
+                    )}
+                    disabled={!isEditing.privatnost}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-slate-900">Online status</p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Prikazujte kada ste online na platformi
+                    </p>
+                  </div>
+                  <Switch disabled={!isEditing.privatnost} />
+                </div>
+              </div>
+            </ProfileSection>
+          )}
+
+          {/* Notifikacije */}
+          {activeSection === "notifikacije" && (
+            <ProfileSection
+              title="Notifikacije"
+              description="Upravljajte kako i kada primate obavijesti"
+              icon={MdNotifications}
+              action
+              isEditing={isEditing.notifikacije}
+              onEdit={() => setIsEditing(prev => ({ ...prev, notifikacije: true }))}
+              onSave={() => handleSave("notifikacije")}
+              onCancel={() => setIsEditing(prev => ({ ...prev, notifikacije: false }))}
+              hasChanges={true}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-slate-900">Email notifikacije</p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Primajte obavijesti na vašu email adresu
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.notification === 1}
+                    onCheckedChange={() => handleChange(
+                      "notification", 
+                      formData.notification === 1 ? 0 : 1
+                    )}
+                    disabled={!isEditing.notifikacije}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-slate-900">Push notifikacije</p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Obavijesti na vašem uređaju
+                    </p>
+                  </div>
+                  <Switch disabled={!isEditing.notifikacije} />
+                </div>
+              </div>
+            </ProfileSection>
+          )}
+
+          {/* Verifikacija */}
+          {activeSection === "verifikacija" && (
+            <div className="space-y-6">
+              <ProfileSection
+                title="Verifikacija profila"
+                description="Povećajte povjerenje i vjerodostojnost vašeg profila"
+                icon={MdVerifiedUser}
+              >
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-gray-900">Status verifikacije</p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Verifikacija pomaže da kupci više vjeruju profilu.
+                        <p className="font-semibold text-slate-900">Status verifikacije</p>
+                        <p className="text-sm text-slate-600 mt-1">
+                          Verifikovani profili imaju veću stopu uspješnih transakcija
                         </p>
                       </div>
-                      {renderVerificationBadge()}
-                    </div>
-
-                    <div className="mt-4">
-                      <CustomLink
-                        href="/user-verification"
-                        className={buttonVariants({ variant: "default" })}
-                      >
-                        Otvori verifikaciju
-                      </CustomLink>
+                      {getVerificationBadge()}
                     </div>
                   </div>
-                </SectionShell>
-              )}
-
-              {activeTab === "seller" && (
-                <SectionShell title="Postavke prodavača" subtitle="Uredite seller postavke.">
-                  <div className="border rounded-lg p-4">
-                    <p className="text-sm text-gray-700">
-                      Ovdje možete urediti dodatne prodajne postavke (npr. avatar, prikaz profila, opcije).
-                    </p>
-                    <div className="mt-4">
-                      <CustomLink
-                        href="/profile/seller-settings"
-                        className={buttonVariants({ variant: "outline" })}
-                      >
-                        Otvori postavke prodavača
-                      </CustomLink>
+                  
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 border border-slate-200 rounded-lg">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <MdVerifiedUser className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <p className="font-medium text-slate-900 mb-1">Povećano povjerenje</p>
+                      <p className="text-sm text-slate-600">Korisnici više vjeruju verifikovanim profilima</p>
+                    </div>
+                    
+                    <div className="text-center p-4 border border-slate-200 rounded-lg">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <FiMessageSquare className="w-6 h-6 text-green-600" />
+                      </div>
+                      <p className="font-medium text-slate-900 mb-1">Više poruka</p>
+                      <p className="text-sm text-slate-600">Verifikovani profili dobijaju više upita</p>
+                    </div>
+                    
+                    <div className="text-center p-4 border border-slate-200 rounded-lg">
+                      <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <FiStar className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <p className="font-medium text-slate-900 mb-1">Bolje pozicije</p>
+                      <p className="text-sm text-slate-600">Oglasi se prikazuju na boljim pozicijama</p>
                     </div>
                   </div>
-                </SectionShell>
-              )}
-            </>
+                  
+                  <div className="text-center pt-4">
+                    <CustomLink href="/user-verification" className="btn-primary px-8">
+                      Započni verifikaciju
+                    </CustomLink>
+                  </div>
+                </div>
+              </ProfileSection>
+            </div>
           )}
         </main>
-      </div>
-
-      {/* Sticky save on mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-3">
-        <Button
-          className="w-full"
-          type="button"
-          onClick={handleSubmit}
-          disabled={isPending || isSaving || !isDirty}
-        >
-          {isSaving ? "Spremam..." : "Sačuvaj izmjene"}
-        </Button>
       </div>
     </div>
   );

@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "usehooks-ts";
+import { useSelector } from "react-redux";
 
 import Layout from "@/components/Layout/Layout";
 import Checkauth from "@/HOC/Checkauth";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import ProfileNavigation from "@/components/Profile/ProfileNavigation";
 import CustomLink from "@/components/Common/CustomLink";
 import { cn } from "@/lib/utils";
 
+// Import komponenti za dashboard
 import Profile from "@/components/Profile/Profile";
 import Notifications from "../Notifications/Notifications";
 import MyAds from "../MyAds/MyAds";
@@ -20,7 +21,6 @@ import Reviews from "../Reviews/Reviews";
 import Chat from "../Chat/Chat";
 import ProfileSubscription from "../Subscription/ProfileSubscription";
 import JobApplications from "../JobApplications/JobApplications";
-import BlockedUsersMenu from "../Chat/BlockedUsersMenu";
 
 // Icons
 import {
@@ -34,542 +34,615 @@ import {
   FiSearch,
   FiChevronLeft,
   FiChevronRight,
+  FiMenu,
+  FiX,
+  FiSettings,
+  FiHelpCircle,
+  FiHome,
+  FiCreditCard,
+  FiPackage,
+  FiUsers,
 } from "react-icons/fi";
-import { BiBadgeCheck, BiReceipt, BiShoppingBag, BiBookmark } from "react-icons/bi";
+import { 
+  BiBadgeCheck, 
+  BiReceipt, 
+  BiShoppingBag, 
+  BiBookmark,
+  BiChart,
+  BiCog
+} from "react-icons/bi";
+import { TbHistory } from "react-icons/tb";
+import { userSignUpData } from "@/redux/reducer/authSlice";
 
-const LS_HOVER_MODE = "profile_sidebar_hover_mode";
-const LS_COLLAPSED = "profile_sidebar_collapsed";
+const LS_SIDEBAR_STATE = "profile_sidebar_state";
 
-const SidebarLink = ({ href, label, icon: Icon, expanded }) => {
-  const pathname = usePathname();
-  const active = pathname === href;
+// ===== UTILITY FUNCTIONS =====
+const formatNumber = (num) => {
+  if (!num && num !== 0) return "0";
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+};
 
+const getTimeGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Dobro jutro";
+  if (hour < 18) return "Dobar dan";
+  return "Dobro veče";
+};
+
+// ===== SIDEBAR COMPONENT =====
+const SidebarItem = ({ 
+  href, 
+  label, 
+  icon: Icon, 
+  isActive, 
+  isExpanded, 
+  badge,
+  isComingSoon = false 
+}) => {
   return (
     <CustomLink
-      href={href}
-      title={!expanded ? label : undefined}
+      href={isComingSoon ? "#" : href}
       className={cn(
-        "group flex items-center rounded-xl border transition-all duration-300",
-        "ease-[cubic-bezier(0.2,0.8,0.2,1)]",
-        expanded ? "gap-3 px-4 py-3" : "gap-0 px-3 py-3 justify-center",
-        active
-          ? "bg-primary text-white border-primary shadow-sm"
-          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm"
+        "group relative flex items-center transition-all duration-200",
+        "rounded-lg overflow-hidden",
+        isExpanded ? "px-3 py-3 gap-3" : "p-3 justify-center",
+        isActive
+          ? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary"
+          : "text-slate-700 hover:bg-slate-50 hover:text-primary"
       )}
+      onClick={isComingSoon ? (e) => e.preventDefault() : undefined}
     >
-      <span
-        className={cn(
-          "rounded-lg flex items-center justify-center border transition-all duration-300",
-          "ease-[cubic-bezier(0.2,0.8,0.2,1)]",
-          expanded ? "w-9 h-9" : "w-10 h-10",
-          active
-            ? "bg-white/15 border-white/20"
-            : "bg-slate-100 border-slate-200 group-hover:bg-slate-200/60"
+      <div className={cn(
+        "relative flex items-center justify-center transition-all duration-200",
+        isExpanded ? "w-10 h-10" : "w-12 h-12"
+      )}>
+        <div className={cn(
+          "absolute inset-0 rounded-lg transition-all duration-200",
+          isActive 
+            ? "bg-primary/10" 
+            : "bg-slate-100 group-hover:bg-primary/5"
+        )} />
+        <Icon
+          size={20}
+          className={cn(
+            "relative z-10 transition-colors duration-200",
+            isActive ? "text-primary" : "text-slate-600 group-hover:text-primary"
+          )}
+        />
+        
+        {/* Badge */}
+        {badge && badge > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 flex items-center justify-center text-xs font-bold bg-red-500 text-white rounded-full border-2 border-white">
+            {badge > 99 ? "99+" : badge}
+          </span>
         )}
-      >
-        <Icon size={18} className={cn(active ? "text-white" : "text-slate-500")} />
-      </span>
+      </div>
 
-      {/* Label (animirano) */}
-      <span
-        className={cn(
-          "min-w-0 truncate text-sm font-semibold transition-all duration-300",
-          "ease-[cubic-bezier(0.2,0.8,0.2,1)]",
-          expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1 w-0"
-        )}
-      >
-        {label}
-      </span>
+      {/* Label */}
+      {isExpanded && (
+        <div className="flex-1 min-w-0 flex items-center justify-between">
+          <span className="text-sm font-medium truncate">{label}</span>
+          {isComingSoon && (
+            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded-md">
+              Uskoro
+            </span>
+          )}
+        </div>
+      )}
     </CustomLink>
   );
 };
 
+// ===== MOBILE NAVIGATION =====
+const MobileNavigation = ({ 
+  activePath, 
+  navigationItems,
+  userData 
+}) => {
+  const [activeTab, setActiveTab] = useState(activePath);
+
+  const mainTabs = navigationItems.filter(item => 
+    ["/profile", "/chat", "/my-ads", "/favorites", "/notifications"].includes(item.href)
+  );
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-2 py-2">
+      <div className="flex items-center justify-around">
+        {mainTabs.map((tab) => (
+          <CustomLink
+            key={tab.href}
+            href={tab.href}
+            className={cn(
+              "flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200",
+              "min-w-[60px]",
+              activeTab === tab.href
+                ? "text-primary"
+                : "text-slate-500 hover:text-primary"
+            )}
+            onClick={() => setActiveTab(tab.href)}
+          >
+            <div className="relative">
+              <tab.icon size={22} />
+              {tab.badge && tab.badge > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full">
+                  {tab.badge}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-medium mt-1 truncate max-w-[60px]">
+              {tab.label.split(" ")[0]}
+            </span>
+          </CustomLink>
+        ))}
+        
+        {/* More Menu */}
+        <button className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-500 hover:text-primary transition-colors duration-200">
+          <FiMenu size={22} />
+          <span className="text-xs font-medium mt-1">Više</span>
+        </button>
+      </div>
+    </nav>
+  );
+};
+
+// ===== DASHBOARD HEADER =====
+const DashboardHeader = ({ userData, currentConfig }) => {
+  const greeting = getTimeGreeting();
+  const userStats = [
+    { label: "Oglasi", value: userData?.ads_count || 0 },
+    { label: "Poruke", value: userData?.unread_messages || 0 },
+    { label: "Favoriti", value: userData?.favorites_count || 0 },
+  ];
+
+  return (
+    <div className="mb-6 lg:mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-sm text-slate-600 font-medium">
+              {greeting}, {userData?.name || "Korisnik"}
+            </span>
+          </div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
+            {currentConfig?.title || "Kontrolna tabla"}
+          </h1>
+          <p className="text-slate-600 text-sm lg:text-base max-w-3xl">
+            {currentConfig?.description || "Pregledajte i upravljajte svojim nalogom"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors duration-200">
+            <FiSettings size={18} />
+            <span className="text-sm font-medium">Postavke</span>
+          </button>
+          <button className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors duration-200">
+            <FiHelpCircle size={20} className="text-slate-600" />
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {userStats.map((stat, index) => (
+          <div 
+            key={index} 
+            className="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary transition-colors duration-200"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{formatNumber(stat.value)}</p>
+                <p className="text-sm text-slate-500 mt-1">{stat.label}</p>
+              </div>
+              <div className="p-2 bg-slate-50 rounded-lg">
+                {index === 0 && <FiLayers size={20} className="text-primary" />}
+                {index === 1 && <FiMessageSquare size={20} className="text-green-500" />}
+                {index === 2 && <FiHeart size={20} className="text-pink-500" />}
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {/* Upgrade Card */}
+        <div className="bg-gradient-to-r from-primary to-primary/90 rounded-xl p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-bold">Profi nalog</p>
+              <p className="text-sm text-white/80 mt-1">Nadogradite</p>
+            </div>
+            <BiBadgeCheck size={24} className="text-white/80" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ===== MAIN COMPONENT =====
 const ProfileDashboard = () => {
   const pathname = usePathname();
-  const isSmallerThanLaptop = useMediaQuery("(max-width: 1200px)");
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isTablet = useMediaQuery("(max-width: 1024px)");
+  
+  // Redux state
+  const userData = useSelector(userSignUpData);
+  
+  // Local state
+  const [sidebarExpanded, setSidebarExpanded] = useState(!isTablet);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("sve");
+  const [unreadCounts, setUnreadCounts] = useState({
+    messages: 0,
+    notifications: 0,
+    reviews: 0,
+  });
 
-  // Ne prikazuj “hero” na /profile (jer Profile komponenta već ima svoj header)
-  const hideHero = pathname === "/profile";
-  const isChat = pathname === "/chat";
-
-  // Sidebar state
-  const [hoverMode, setHoverMode] = useState(true);
-  const [collapsed, setCollapsed] = useState(true);
-  const [isHovering, setIsHovering] = useState(false);
-  const [navQuery, setNavQuery] = useState("");
-
-  // Debounce hover (da ne trza)
-  const openTimer = useRef(null);
-  const closeTimer = useRef(null);
-
-  const clearTimers = useCallback(() => {
-    if (openTimer.current) window.clearTimeout(openTimer.current);
-    if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    openTimer.current = null;
-    closeTimer.current = null;
-  }, []);
-
+  // Fetch unread counts
   useEffect(() => {
-    try {
-      const hm = localStorage.getItem(LS_HOVER_MODE);
-      const col = localStorage.getItem(LS_COLLAPSED);
-      if (hm !== null) setHoverMode(hm === "1");
-      if (col !== null) setCollapsed(col === "1");
-    } catch {
-      // ignore
+    if (userData) {
+      setUnreadCounts({
+        messages: userData.unread_messages || 0,
+        notifications: userData.unread_notifications || 0,
+        reviews: userData.pending_reviews || 0,
+      });
     }
-  }, []);
+  }, [userData]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(LS_HOVER_MODE, hoverMode ? "1" : "0");
-    } catch {}
-  }, [hoverMode]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LS_COLLAPSED, collapsed ? "1" : "0");
-    } catch {}
-  }, [collapsed]);
-
-  useEffect(() => {
-    return () => clearTimers();
-  }, [clearTimers]);
-
-  const expanded = useMemo(() => {
-    // ✅ ovo je “stari layout” (širi se u gridu), samo je sad animirano i stabilno
-    if (hoverMode) return !collapsed || isHovering;
-    return !collapsed;
-  }, [hoverMode, collapsed, isHovering]);
-
-  const onSidebarEnter = useCallback(() => {
-    if (!hoverMode) return;
-    if (!collapsed) return; // već je “pinano” otvoreno
-    clearTimers();
-    openTimer.current = window.setTimeout(() => setIsHovering(true), 90);
-  }, [hoverMode, collapsed, clearTimers]);
-
-  const onSidebarLeave = useCallback(() => {
-    if (!hoverMode) return;
-    if (!collapsed) return;
-    clearTimers();
-    closeTimer.current = window.setTimeout(() => setIsHovering(false), 140);
-  }, [hoverMode, collapsed, clearTimers]);
-
-  const toggleHoverMode = useCallback(() => {
-    setHoverMode((v) => {
-      const next = !v;
-      // kad uključi hover mode, najbolje da default bude collapsed pa hover otvara
-      if (next) setCollapsed(true);
-      return next;
-    });
-  }, []);
-
-  const toggleCollapsed = useCallback(() => {
-    // ručno otvori/zatvori (pin)
-    setCollapsed((v) => !v);
-    setIsHovering(false);
-  }, []);
-
-  const dashboardConfig = useMemo(
-    () => ({
+  // Dashboard configuration - DINAMIČKA
+  const dashboardConfig = useMemo(() => {
+    const baseConfig = {
       "/profile": {
         title: "Moj profil",
-        description: "Uredi lične podatke i postavke naloga.",
+        description: "Upravljajte ličnim podacima i postavkama naloga.",
         icon: FiUser,
         component: <Profile />,
+        category: "nalog",
       },
       "/notifications": {
         title: "Obavijesti",
-        description: "Pregled svih obavijesti i aktivnosti na tvom nalogu.",
+        description: "Pregledajte sve obavijesti i aktivnosti.",
         icon: FiBell,
         component: <Notifications />,
-      },
-      "/profile/saved-searches": {
-        title: "Spašene pretrage",
-        description: "Upravljaj sačuvanim filterima i brzo ih otvaraj.",
-        icon: BiBookmark,
-        component: null,
-      },
-      "/user-subscription": {
-        title: "Pretplata",
-        description: "Status pretplate i dostupni paketi.",
-        icon: BiBadgeCheck,
-        component: <ProfileSubscription />,
+        badge: unreadCounts.notifications,
+        category: "nalog",
       },
       "/my-ads": {
         title: "Moji oglasi",
-        description: "Upravljaj aktivnim, isteklim i arhiviranim oglasima.",
+        description: "Upravljajte aktivnim, isteklim i arhiviranim oglasima.",
         icon: FiLayers,
         component: <MyAds />,
+        category: "oglasi",
       },
       "/favorites": {
         title: "Favoriti",
-        description: "Oglasi koje si sačuvao/la za kasnije.",
+        description: "Oglasi koje ste sačuvali za kasnije.",
         icon: FiHeart,
         component: <Favorites />,
-      },
-      "/purchases": {
-        title: "Moje kupovine",
-        description: "Historija kupovina i detalji narudžbi.",
-        icon: BiShoppingBag,
-        component: null,
+        category: "oglasi",
       },
       "/transactions": {
         title: "Transakcije",
-        description: "Historija tvojih plaćanja i transakcija.",
+        description: "Historija plaćanja i transakcija.",
         icon: BiReceipt,
         component: <Transactions />,
+        category: "finansije",
       },
       "/reviews": {
         title: "Recenzije",
-        description: "Ocjene i dojmovi koje si dobio/la od drugih korisnika.",
+        description: "Ocjene i dojmovi od drugih korisnika.",
         icon: FiStar,
         component: <Reviews />,
+        badge: unreadCounts.reviews,
+        category: "nalog",
       },
       "/chat": {
         title: "Poruke",
         description: "Direktna komunikacija sa drugim korisnicima.",
         icon: FiMessageSquare,
         component: <Chat />,
+        badge: unreadCounts.messages,
+        category: "komunikacija",
+      },
+      "/user-subscription": {
+        title: "Pretplata",
+        description: "Status pretplate i dostupni paketi.",
+        icon: FiCreditCard,
+        component: <ProfileSubscription />,
+        category: "finansije",
       },
       "/job-applications": {
         title: "Prijave za posao",
-        description: "Pregled tvojih prijava i statusa prijava.",
+        description: "Pregled prijava i statusa.",
         icon: FiBriefcase,
         component: <JobApplications />,
+        category: "posao",
       },
-    }),
-    []
-  );
+    };
+
+    // Dodajte samo ako postoje rute
+    if (userData?.has_saved_searches) {
+      baseConfig["/profile/saved-searches"] = {
+        title: "Spašene pretrage",
+        description: "Sačuvani filteri za brzu pretragu.",
+        icon: BiBookmark,
+        component: null,
+        category: "alati",
+      };
+    }
+
+    if (userData?.has_purchases) {
+      baseConfig["/purchases"] = {
+        title: "Moje kupovine",
+        description: "Historija kupovina i narudžbi.",
+        icon: BiShoppingBag,
+        component: null,
+        category: "finansije",
+      };
+    }
+
+    return baseConfig;
+  }, [userData, unreadCounts]);
 
   const currentConfig = dashboardConfig[pathname] || dashboardConfig["/profile"];
 
-  const sidebarPrimary = useMemo(
-    () => [
-      { href: "/profile", label: "Profil", icon: FiUser },
-      { href: "/chat", label: "Poruke", icon: FiMessageSquare },
-      { href: "/notifications", label: "Obavijesti", icon: FiBell },
-      { href: "/my-ads", label: "Moji oglasi", icon: FiLayers },
-      { href: "/favorites", label: "Favoriti", icon: FiHeart },
-      { href: "/profile/saved-searches", label: "Spašene pretrage", icon: BiBookmark },
-    ],
-    []
-  );
+  // Navigation items grouped by category - DINAMIČKI
+  const navigationItems = useMemo(() => {
+    const items = Object.entries(dashboardConfig).map(([href, config]) => ({
+      href,
+      label: config.title,
+      icon: config.icon,
+      badge: config.badge,
+      category: config.category,
+    }));
 
-  const sidebarSecondary = useMemo(
-    () => [
-      { href: "/user-subscription", label: "Pretplata", icon: BiBadgeCheck },
-      { href: "/purchases", label: "Moje kupovine", icon: BiShoppingBag },
-      { href: "/transactions", label: "Transakcije", icon: BiReceipt },
-      { href: "/reviews", label: "Recenzije", icon: FiStar },
-      { href: "/job-applications", label: "Prijave za posao", icon: FiBriefcase },
-    ],
-    []
-  );
+    // Filtriraj samo validne stavke sa komponentama ili posebnim uslovima
+    return items.filter(item => {
+      if (item.href === "/profile/saved-searches" && !userData?.has_saved_searches) return false;
+      if (item.href === "/purchases" && !userData?.has_purchases) return false;
+      return true;
+    });
+  }, [dashboardConfig, userData]);
 
-  const filteredPrimary = useMemo(() => {
-    const q = navQuery.trim().toLowerCase();
-    if (!q) return sidebarPrimary;
-    return sidebarPrimary.filter((x) => x.label.toLowerCase().includes(q));
-  }, [navQuery, sidebarPrimary]);
+  // Get categories from items
+  const categories = useMemo(() => {
+    const cats = [...new Set(navigationItems.map(item => item.category))];
+    return ["sve", ...cats];
+  }, [navigationItems]);
 
-  const filteredSecondary = useMemo(() => {
-    const q = navQuery.trim().toLowerCase();
-    if (!q) return sidebarSecondary;
-    return sidebarSecondary.filter((x) => x.label.toLowerCase().includes(q));
-  }, [navQuery, sidebarSecondary]);
+  // Filter items based on search and category
+  const filteredItems = useMemo(() => {
+    let filtered = navigationItems;
+    
+    // Apply category filter
+    if (activeCategory !== "sve") {
+      filtered = filtered.filter(item => item.category === activeCategory);
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.label.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [navigationItems, activeCategory, searchQuery]);
 
-  const sidebarWidth = expanded ? 320 : 88;
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    setSidebarExpanded(!sidebarExpanded);
+  };
 
-  const contentFrameClass = cn(
-    "bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden",
-    isChat ? "sm:h-[660px] lg:h-[820px]" : "min-h-[520px]"
-  );
+  // Sidebar width
+  const sidebarWidth = sidebarExpanded ? "280px" : "88px";
 
   return (
     <Layout currentPageId="profile" parentPage="profile">
-      <div className="min-h-[calc(100vh-60px)] bg-gradient-to-b from-slate-50 via-white to-white">
-        <div className="pt-4">
-          <BreadCrumb title2={currentConfig?.title || "Moj profil"} />
+      <div className="min-h-screen bg-slate-50">
+        {/* Breadcrumb */}
+        <div className="border-b border-slate-200 bg-white">
+          <div className="container mx-auto px-4 lg:px-6 py-3">
+            <BreadCrumb title2={currentConfig.title} />
+          </div>
         </div>
 
-        <div className="container mt-6 sm:mt-8 pb-10">
-          <div className="grid grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)] gap-6">
-            {/* SIDEBAR (desktop) */}
-            <aside className="hidden lg:block">
-              {/* ✅ da ne bude “previše iznad”: top-6 i bez čudnih margina */}
-              <div className="sticky top-6">
-                <div
-                  className={cn(
-                    "rounded-2xl border border-gray-200 bg-white overflow-hidden",
-                    "transition-[width,box-shadow,transform] duration-300",
-                    "ease-[cubic-bezier(0.2,0.8,0.2,1)]",
-                    expanded ? "shadow-lg" : "shadow-sm"
-                  )}
-                  style={{ width: sidebarWidth }}
-                  onMouseEnter={onSidebarEnter}
-                  onMouseLeave={onSidebarLeave}
-                >
-                  {/* Header */}
-                  <div className="px-5 py-4 border-b border-gray-100">
-                    <div className="flex items-start justify-between">
-                      {/* Naslov (animiran) */}
-                      <div
-                        className={cn(
-                          "min-w-0 transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
-                          expanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1 w-0 overflow-hidden"
-                        )}
-                      >
-                        <h3 className="text-sm font-bold text-gray-900">Navigacija profila</h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Brzo pronađi sekciju koja ti treba
-                        </p>
-                      </div>
+        {/* Main Container */}
+        <div className="container mx-auto px-4 lg:px-6 py-6 lg:py-8">
+          {/* Dashboard Header */}
+          <DashboardHeader userData={userData} currentConfig={currentConfig} />
 
-                      {/* Pin / unpin (uvijek vidljiv) */}
+          {/* Main Grid */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Desktop Sidebar */}
+            {!isMobile && (
+              <aside
+                className={cn(
+                  "lg:sticky lg:top-24 self-start transition-all duration-300 ease-out",
+                  sidebarExpanded ? "lg:w-[280px]" : "lg:w-[88px]"
+                )}
+                style={{ height: "calc(100vh - 180px)" }}
+              >
+                <div className={cn(
+                  "bg-white rounded-xl border border-slate-200 h-full",
+                  "flex flex-col transition-all duration-300"
+                )}>
+                  {/* Sidebar Header */}
+                  <div className="p-4 border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                      {sidebarExpanded && (
+                        <h3 className="text-sm font-bold text-slate-900">Navigacija</h3>
+                      )}
                       <button
-                        type="button"
-                        onClick={toggleCollapsed}
+                        onClick={toggleSidebar}
                         className={cn(
-                          "shrink-0 w-10 h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50",
-                          "flex items-center justify-center transition-all duration-200",
-                          "hover:shadow-sm active:scale-[0.98]"
+                          "p-2 rounded-lg hover:bg-slate-100 transition-colors duration-200",
+                          "text-slate-600 hover:text-primary"
                         )}
-                        title={collapsed ? "Otvori meni" : "Zatvori meni"}
-                        aria-label={collapsed ? "Otvori meni" : "Zatvori meni"}
+                        title={sidebarExpanded ? "Sakrij meni" : "Prikaži meni"}
                       >
-                        {collapsed ? (
-                          <FiChevronRight size={18} className="text-slate-600" />
+                        {sidebarExpanded ? (
+                          <FiChevronLeft size={20} />
                         ) : (
-                          <FiChevronLeft size={18} className="text-slate-600" />
+                          <FiChevronRight size={20} />
                         )}
                       </button>
                     </div>
 
-                    {/* Hover switch (animiran) */}
-                    <div
-                      className={cn(
-                        "mt-3 flex items-center justify-between gap-3 transition-all duration-300",
-                        "ease-[cubic-bezier(0.2,0.8,0.2,1)]",
-                        expanded ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 h-0 overflow-hidden mt-0"
-                      )}
-                    >
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-700">Hover otvaranje</div>
-                        <div className="text-[11px] text-slate-500">Meni se otvara na prelazak miša</div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={toggleHoverMode}
-                        className={cn(
-                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors border",
-                          hoverMode ? "bg-primary border-primary" : "bg-slate-200 border-slate-300"
-                        )}
-                        aria-label="Uključi/isključi hover otvaranje"
-                      >
-                        <span
-                          className={cn(
-                            "inline-block h-5 w-5 transform rounded-full bg-white transition-transform",
-                            hoverMode ? "translate-x-5" : "translate-x-1"
-                          )}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Search (animiran) */}
-                    <div
-                      className={cn(
-                        "mt-3 transition-all duration-300",
-                        "ease-[cubic-bezier(0.2,0.8,0.2,1)]",
-                        expanded ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1 h-0 overflow-hidden mt-0"
-                      )}
-                    >
-                      <div className="relative">
-                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    {/* Search */}
+                    {sidebarExpanded && (
+                      <div className="mt-4 relative">
+                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
-                          value={navQuery}
-                          onChange={(e) => setNavQuery(e.target.value)}
-                          placeholder="Pretraži u profilu..."
-                          className="w-full h-10 pl-10 pr-10 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:bg-white focus:border-primary transition-colors"
+                          type="text"
+                          placeholder="Pretraži..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         />
-                        {navQuery.trim() && (
+                        {searchQuery && (
                           <button
-                            type="button"
-                            onClick={() => setNavQuery("")}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                            aria-label="Očisti pretragu"
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                           >
-                            Očisti
+                            <FiX size={18} />
                           </button>
                         )}
-                      </div>
-                    </div>
-
-                    {/* Kad je zatvoren: mali search button (čisto da ne izgleda prazno) */}
-                    {!expanded && (
-                      <div className="mt-3 flex items-center justify-center">
-                        <button
-                          type="button"
-                          className="w-10 h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center transition-all duration-200 hover:shadow-sm active:scale-[0.98]"
-                          title="Pretraga (otvori meni)"
-                          onClick={() => setCollapsed(false)}
-                        >
-                          <FiSearch size={18} className="text-slate-600" />
-                        </button>
                       </div>
                     )}
                   </div>
 
-                  {/* ✅ SCROLLABLE BODY */}
-                  <div
-                    className="p-3 space-y-3 overflow-y-auto overscroll-contain"
-                    style={{
-                      // 100vh minus headeri; dovoljno da radi na svim stranicama
-                      maxHeight: "calc(100vh - 190px)",
-                    }}
-                  >
-                    <div className="space-y-1">
-                      <div
-                        className={cn(
-                          "px-2 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider transition-all duration-300",
-                          expanded ? "opacity-100" : "opacity-0 h-0 overflow-hidden pb-0"
-                        )}
-                      >
-                        Najčešće
+                  {/* Categories */}
+                  {sidebarExpanded && (
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <div className="flex flex-wrap gap-2">
+                        {categories.map((category) => (
+                          <button
+                            key={category}
+                            onClick={() => setActiveCategory(category)}
+                            className={cn(
+                              "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-200 capitalize",
+                              activeCategory === category
+                                ? "bg-primary text-white"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            )}
+                          >
+                            {category}
+                          </button>
+                        ))}
                       </div>
+                    </div>
+                  )}
 
-                      {filteredPrimary.length ? (
-                        filteredPrimary.map((x) => (
-                          <SidebarLink
-                            key={x.href}
-                            href={x.href}
-                            label={x.label}
-                            icon={x.icon}
-                            expanded={expanded}
-                          />
-                        ))
-                      ) : (
-                        <div className={cn("px-4 py-3 text-sm text-slate-500", expanded ? "block" : "hidden")}>
-                          Nema rezultata za “{navQuery}”.
-                        </div>
-                      )}
+                  {/* Navigation Items */}
+                  <div className="flex-1 overflow-y-auto p-3">
+                    <div className={cn(
+                      "space-y-1",
+                      sidebarExpanded ? "space-y-1" : "space-y-2"
+                    )}>
+                      {filteredItems.map((item) => (
+                        <SidebarItem
+                          key={item.href}
+                          href={item.href}
+                          label={item.label}
+                          icon={item.icon}
+                          isActive={pathname === item.href}
+                          isExpanded={sidebarExpanded}
+                          badge={item.badge}
+                        />
+                      ))}
                     </div>
 
-                    <div className={cn("h-px bg-gray-100 transition-all", expanded ? "block" : "hidden")} />
-
-                    <div className="space-y-1">
-                      <div
-                        className={cn(
-                          "px-2 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider transition-all duration-300",
-                          expanded ? "opacity-100" : "opacity-0 h-0 overflow-hidden pb-0"
-                        )}
-                      >
-                        Ostalo
+                    {/* No Results */}
+                    {filteredItems.length === 0 && (
+                      <div className="text-center py-8">
+                        <FiSearch className="mx-auto text-slate-300 mb-3" size={32} />
+                        <p className="text-sm text-slate-500">Nema rezultata</p>
                       </div>
-
-                      {filteredSecondary.length ? (
-                        filteredSecondary.map((x) => (
-                          <SidebarLink
-                            key={x.href}
-                            href={x.href}
-                            label={x.label}
-                            icon={x.icon}
-                            expanded={expanded}
-                          />
-                        ))
-                      ) : (
-                        <div className={cn("px-4 py-3 text-sm text-slate-500", expanded ? "block" : "hidden")}>
-                          Nema dodatnih rezultata.
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
+
+                  {/* Sidebar Footer */}
+                  {sidebarExpanded && (
+                    <div className="p-4 border-t border-slate-100">
+                      <div className="space-y-2">
+                        <CustomLink
+                          href="/help"
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-colors duration-200"
+                        >
+                          <FiHelpCircle size={18} />
+                          <span>Pomoć & Podrška</span>
+                        </CustomLink>
+                        <CustomLink
+                          href="/settings"
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-colors duration-200"
+                        >
+                          <BiCog size={18} />
+                          <span>Napredne postavke</span>
+                        </CustomLink>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </aside>
+            )}
+
+            {/* Main Content */}
+            <main className={cn(
+              "flex-1 min-w-0",
+              !isMobile && sidebarExpanded ? "lg:ml-0" : "lg:ml-0"
+            )}>
+              {/* Content Area */}
+              <div className={cn(
+                "bg-white rounded-xl border border-slate-200 overflow-hidden",
+                pathname === "/chat" ? "h-[calc(100vh-250px)]" : "min-h-[600px]"
+              )}>
+                <div className={cn(
+                  pathname === "/chat" ? "h-full" : "p-4 sm:p-6 lg:p-8"
+                )}>
+                  {currentConfig.component}
                 </div>
               </div>
-            </aside>
 
-            {/* CONTENT */}
-            <section className="min-w-0">
-              {/* Mobile nav ostaje */}
-              <div className="lg:hidden">
-                <ProfileNavigation />
-              </div>
-
-              {/* HERO (ne prikazujemo na /profile da ne duplira header) */}
-              {!hideHero && (
-                <div className="mt-4 lg:mt-0">
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
-                      <div className="relative px-4 sm:px-6 py-5 sm:py-6 flex items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
-                          <div className="shrink-0 rounded-2xl p-3 bg-primary/10 text-primary border border-primary/10">
-                            {currentConfig?.icon ? (
-                              <currentConfig.icon className="w-5 h-5" />
-                            ) : (
-                              <FiUser className="w-5 h-5" />
-                            )}
-                          </div>
-
-                          <div className="min-w-0">
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight truncate">
-                              {currentConfig?.title || "Moj profil"}
-                            </h1>
-                            <p className="text-sm sm:text-base text-gray-600 mt-1 line-clamp-2">
-                              {currentConfig?.description || ""}
-                            </p>
-                          </div>
-                        </div>
-
-                        {isChat && isSmallerThanLaptop && (
-                          <div className="shrink-0">
-                            <BlockedUsersMenu />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              {/* Quick Actions (Mobile) */}
+              {isMobile && (
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <CustomLink
+                    href="/help"
+                    className="flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary transition-colors duration-200"
+                  >
+                    <FiHelpCircle size={20} className="text-slate-600" />
+                    <span className="text-sm font-medium text-slate-700">Pomoć</span>
+                  </CustomLink>
+                  <CustomLink
+                    href="/settings"
+                    className="flex items-center justify-center gap-2 p-4 bg-primary text-white border border-primary rounded-xl hover:bg-primary/90 transition-colors duration-200"
+                  >
+                    <FiSettings size={20} />
+                    <span className="text-sm font-medium">Postavke</span>
+                  </CustomLink>
                 </div>
               )}
-
-              {/* CONTENT FRAME */}
-              <div className={hideHero ? "mt-4" : "mt-4 sm:mt-6"}>
-                <div className={contentFrameClass}>
-                  <div className={cn(isChat ? "h-full" : "p-4 sm:p-6 lg:p-8")}>
-                    {currentConfig?.component}
-                  </div>
-                </div>
-              </div>
-            </section>
+            </main>
           </div>
-
-          <div className="h-10" />
         </div>
-      </div>
 
-      {/* Malo “polish” za scrollbar (opcionalno) */}
-      <style jsx global>{`
-        /* samo za ovaj sidebar scrollbar izgled */
-        .profile-sidebar-scroll::-webkit-scrollbar {
-          width: 10px;
-        }
-        .profile-sidebar-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .profile-sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(148, 163, 184, 0.35);
-          border-radius: 999px;
-          border: 2px solid transparent;
-          background-clip: padding-box;
-        }
-        .profile-sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(148, 163, 184, 0.55);
-          border: 2px solid transparent;
-          background-clip: padding-box;
-        }
-      `}</style>
+        {/* Mobile Navigation */}
+        {isMobile && (
+          <MobileNavigation 
+            activePath={pathname}
+            navigationItems={navigationItems}
+            userData={userData}
+          />
+        )}
+
+        {/* Bottom Spacer for Mobile */}
+        {isMobile && <div className="h-20" />}
+      </div>
     </Layout>
   );
 };

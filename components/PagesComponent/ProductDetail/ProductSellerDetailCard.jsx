@@ -179,7 +179,7 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
       <div className={cn("relative", c.pad)}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="rounded-full p-[3px] bg-gradient-to-br from-primary/50 via-slate-200 to-amber-300/60 dark:via-slate-700 shrink-0">
+            <div className="rounded-full p-[3px] bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 shrink-0">
               <div className={cn(c.avatar, "rounded-full bg-slate-200 dark:bg-slate-800 shimmer")} />
             </div>
 
@@ -437,218 +437,263 @@ export const SellerPreviewCard = ({
 
   const primaryBtnCls = cn(
     "inline-flex items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold",
-    "bg-slate-900 text-white hover:opacity-95 dark:bg-white dark:text-slate-900 transition",
-    "shadow-sm hover:shadow-md",
+    "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-95 transition-all duration-300",
+    "shadow-lg hover:shadow-xl transform hover:-translate-y-0.5",
+    c.btn,
+    actionsDisabled && "opacity-60 cursor-not-allowed pointer-events-none"
+  );
+
+  const secondaryBtnCls = cn(
+    "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium",
+    "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors",
     c.btn,
     actionsDisabled && "opacity-60 cursor-not-allowed pointer-events-none"
   );
 
   const iconBtnCls = cn(
     "inline-flex items-center justify-center w-11 rounded-2xl",
-    "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900",
-    "text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition",
+    "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200",
     "shadow-sm hover:shadow-md",
-    c.btn,
     actionsDisabled && "opacity-60 cursor-not-allowed pointer-events-none"
   );
 
+  const [contactSheetOpen, setContactSheetOpen] = useState(false);
+
+  const handlePhoneClick = () => {
+    onPhoneClick?.();
+  };
+
+  const handleChatClick = () => {
+    onChatClick?.();
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900"
-    >
-      <ShimmerStyles />
+    <>
+      <ContactSheet
+        open={contactSheetOpen}
+        setOpen={setContactSheetOpen}
+        seller={seller}
+        settings={settings}
+        actionsDisabled={actionsDisabled}
+        onPhoneReveal={handlePhoneClick}
+        onChatClick={handleChatClick}
+      />
 
-      {/* subtle premium background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-28 -right-28 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-28 -left-28 h-56 w-56 rounded-full bg-amber-500/10 blur-3xl" />
-      </div>
-
-      <div className={cn("relative", c.pad)}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            {/* avatar */}
-            <div className="relative shrink-0">
-              <div className="rounded-full p-[3px] bg-gradient-to-br from-primary/60 via-slate-200 to-amber-300/70 dark:from-primary/50 dark:via-slate-700 dark:to-amber-400/60">
-                <CustomImage
-                  src={seller?.profile}
-                  alt="Prodavač"
-                  width={64}
-                  height={64}
-                  className={cn(c.avatar, "rounded-full object-cover bg-white dark:bg-slate-900")}
-                />
-              </div>
-
-              {Boolean(seller?.is_verified) ? (
-                <span className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shadow">
-                  <CheckCircle2 className="h-4 w-4" />
-                </span>
-              ) : null}
-            </div>
-
-            {/* name + tags */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                <div className={cn("truncate font-semibold text-slate-900 dark:text-white", c.name)}>{seller?.name}</div>
-                {isPro ? <Tag tone="pro">✨ Pro</Tag> : null}
-                {isShop ? (
-                  <Tag tone="shop">
-                    <Store className="h-4 w-4" /> Prodavnica
-                  </Tag>
-                ) : null}
-              </div>
-
-              {(responseLabel || memberSince) ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {responseLabel ? <IconPill icon={Clock}>Odgovara za: {responseLabel}</IconPill> : null}
-                  {memberSince ? <IconPill icon={Calendar}>Član od: {memberSince}</IconPill> : null}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
+        className={cn(
+          "relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900",
+          "shadow-xl hover:shadow-2xl transition-all duration-300"
+        )}
+      >
+        <div className={cn("relative", c.pad)}>
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full blur-md opacity-30"></div>
+                <div className="relative rounded-full p-[3px] bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600">
+                  <CustomImage
+                    src={seller?.profile || seller?.profile_image}
+                    fallback={<User className="h-8 w-8 text-slate-400" />}
+                    className={cn(c.avatar, "rounded-full object-cover")}
+                    width={64}
+                    height={64}
+                    alt={`${seller?.name || "Prodavač"} avatar`}
+                  />
                 </div>
-              ) : null}
+                {seller?.is_verified && (
+                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-full p-1 border border-slate-200 dark:border-slate-700">
+                    <Verified className="h-3.5 w-3.5 text-blue-500" />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className={cn("font-bold text-slate-900 dark:text-white truncate", c.name)}>
+                    {seller?.name || "Prodavač"}
+                  </h3>
+                  {seller?.is_verified && (
+                    <Verified className="h-4 w-4 text-blue-500 shrink-0" aria-label="Verifikovan" />
+                  )}
+                </div>
+
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {showRatings && ratingValue && (
+                    <div className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                      {ratingValue}
+                      {ratingCount > 0 && <span className="text-slate-500 dark:text-slate-400">({ratingCount})</span>}
+                    </div>
+                  )}
+
+                  {showMemberSince && memberSince && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Član od {memberSince}</div>
+                  )}
+
+                  {showResponseTime && responseLabel && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Odgovara za {responseLabel}</div>
+                  )}
+
+                  {showHours && todayHoursText && (
+                    <div className={cn("text-xs font-medium", openNow ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                      {todayHoursText}
+                      {openNow && <span className="ml-1">• Otvoreno</span>}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {isPro && <Tag tone="pro">PRO</Tag>}
+                  {isShop && <Tag tone="shop">SHOP</Tag>}
+                  {badgeList.map((b, i) => b && <GamificationBadge key={i} badge={b} size="xs" tone="subtle" />)}
+                </div>
+              </div>
             </div>
-          </div>
 
-          {showShare ? (
-            <ShareDropdown
-              url={computedShareUrl}
-              title={title}
-              headline={title}
-              companyName={CompanyName}
-              className={cn(
-                "shrink-0 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 p-2",
-                "text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition shadow-sm"
-              )}
-            >
-              <Share2 className="h-5 w-5" />
-            </ShareDropdown>
-          ) : null}
-        </div>
-
-        {(showRatings || showBadges) ? (
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            {showRatings && ratingValue ? (
-              <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 px-3 py-2 text-sm font-semibold shadow-sm">
-                <Star className="h-5 w-5 text-amber-500" />
-                <span className="text-slate-900 dark:text-white">{ratingValue}</span>
-                <span className="text-slate-500 dark:text-slate-400">({ratingCount})</span>
-              </span>
-            ) : null}
-
-            {showBadges
-              ? badgeList.map((b) => (
-                  <span
-                    key={b.id}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-sm"
-                  >
-                    <GamificationBadge badge={b} size="sm" showName={false} showDescription={false} />
-                    <span className="hidden sm:inline">{b?.name}</span>
-                  </span>
-                ))
-              : null}
-          </div>
-        ) : null}
-
-        {/* actions */}
-        <div className={cn("mt-5 flex items-center gap-3", mode === "header" && "flex-col items-stretch")}>
-          <motion.button
-            type="button"
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.98 }}
-            className={primaryBtnCls}
-            onClick={onChatClick}
-          >
-            <MessageCircle className="h-5 w-5" />
-            Pošalji poruku
-          </motion.button>
-
-          <SavedToListButton sellerId={seller?.id} sellerName={seller?.name} variant="pill" />
-
-          {mode === "compact" ? (
-            contactStyle === "sheet" ? (
-              <motion.button
-                type="button"
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                className={iconBtnCls}
-                onClick={onPhoneClick}
-                title="Kontakt"
-              >
-                <Phone className="h-5 w-5" />
-              </motion.button>
-            ) : (
+            <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
-                <motion.button
-                  type="button"
-                  whileHover={{ y: -1 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={iconBtnCls}
-                  onClick={onPhoneClick}
-                  title="Telefon"
-                >
-                  <Phone className="h-5 w-5" />
-                </motion.button>
+                {showShare ? (
+                  <ShareDropdown
+                    url={computedShareUrl}
+                    title={title}
+                    description={seller?.bio || `Profil prodavača ${seller?.name || "nepoznat"}`}
+                    trigger={
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        type="button"
+                        className={iconBtnCls}
+                      >
+                        <Share2 className="h-5 w-5 text-slate-600 dark:text-slate-200" />
+                      </motion.button>
+                    }
+                  />
+                ) : null}
 
-                {Boolean(settings.show_whatsapp) && (settings.whatsapp_number || seller?.mobile) ? (
-                  <a
+                {showProfileLink && (
+                  <motion.a
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    href={`/seller/${seller?.id}`}
                     className={iconBtnCls}
-                    href={`https://wa.me/${String(settings.whatsapp_number || seller?.mobile).replace(/\D/g, "")}`}
+                  >
+                    <ExternalLink className="h-5 w-5 text-slate-600 dark:text-slate-200" />
+                  </motion.a>
+                )}
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  className={iconBtnCls}
+                >
+                  <Heart className="h-5 w-5 text-slate-600 dark:text-slate-200" />
+                </motion.button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {settings?.show_phone && seller?.mobile && contactStyle === "inline" && (
+                  <motion.a
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    href={`tel:${seller.mobile}`}
+                    className={cn(iconBtnCls, "h-11 w-11")}
+                  >
+                    <Phone className="h-5 w-5 text-green-600" />
+                  </motion.a>
+                )}
+
+                {settings?.show_whatsapp && seller?.mobile && contactStyle === "inline" && (
+                  <motion.a
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    href={`https://wa.me/${String(seller?.mobile).replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noreferrer"
-                    onClick={(e) => actionsDisabled && e.preventDefault()}
-                    title="WhatsApp"
+                    className={cn(iconBtnCls, "h-11 w-11")}
                   >
-                    <MessageCircle className="h-5 w-5" />
-                  </a>
-                ) : null}
-
-                {Boolean(settings.show_viber) && (settings.viber_number || seller?.mobile) ? (
-                  <a
-                    className={iconBtnCls}
-                    href={`viber://chat?number=${String(settings.viber_number || seller?.mobile).replace(/\D/g, "")}`}
-                    onClick={(e) => actionsDisabled && e.preventDefault()}
-                    title="Viber"
-                  >
-                    <PhoneCall className="h-5 w-5" />
-                  </a>
-                ) : null}
+                    <MessageCircle className="h-5 w-5 text-green-500" />
+                  </motion.a>
+                )}
               </div>
-            )
-          ) : null}
+            </div>
+          </div>
+
+          {/* Meta */}
+          {Boolean(seller?.location || seller?.city) && (
+            <div className="mt-4 flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+              <MapPin className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
+              <span className="truncate">{seller?.location || seller?.city || "Lokacija nije navedena"}</span>
+            </div>
+          )}
+
+          {Boolean(seller?.about || seller?.bio) && (
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{seller?.about || seller?.bio}</p>
+          )}
+
+          {/* Actions */}
+          {contactStyle !== "inline" ? (
+            <div className="mt-5 flex flex-wrap gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => setContactSheetOpen(true)}
+                className={primaryBtnCls}
+                disabled={actionsDisabled}
+              >
+                <MessageCircle className="h-5 w-5" />
+                Kontaktiraj prodavača
+              </motion.button>
+            </div>
+          ) : (
+            <div className="mt-5 flex flex-wrap gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={handleChatClick}
+                className={primaryBtnCls}
+                disabled={actionsDisabled}
+              >
+                <MessageCircle className="h-5 w-5" />
+                Pošalji poruku
+              </motion.button>
+
+              {settings?.show_phone && seller?.mobile && (
+                <motion.a
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  href={`tel:${seller.mobile}`}
+                  className={secondaryBtnCls}
+                >
+                  <Phone className="h-5 w-5" />
+                  Pozovi
+                </motion.a>
+              )}
+
+              {settings?.show_whatsapp && seller?.mobile && (
+                <motion.a
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  href={`https://wa.me/${String(seller?.mobile).replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={secondaryBtnCls}
+                >
+                  <MessageCircle className="h-5 w-5 text-green-500" />
+                  WhatsApp
+                </motion.a>
+              )}
+            </div>
+          )}
         </div>
-
-        {mode === "compact" && showProfileLink ? (
-          <div className="mt-4">
-            <CustomLink
-              href={`/seller/${seller?.id}`}
-              className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
-            >
-              Detalji prodavača
-              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </CustomLink>
-          </div>
-        ) : null}
-      </div>
-
-      {showHours ? (
-        <>
-          <SoftDivider />
-          <div className="px-5 sm:px-6 py-3 text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between">
-            <span className="inline-flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Danas: {todayHoursText}
-            </span>
-            {openNow !== null ? (
-              <span className="inline-flex items-center gap-2 font-semibold">
-                <span className={cn("h-2 w-2 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600")} />
-                {openNow ? "Otvoreno" : "Zatvoreno"}
-              </span>
-            ) : null}
-          </div>
-        </>
-      ) : null}
-    </motion.div>
+      </motion.div>
+    </>
   );
 };
 
@@ -768,7 +813,7 @@ const SocialPill = ({ icon: Icon, label, href }) => {
   );
 };
 
-const SellerDetailCard = ({
+const ProductSellerDetailCard = ({
   seller,
   ratings,
   badges,
@@ -816,14 +861,13 @@ const SellerDetailCard = ({
         isPro={isPro}
         isShop={isShop}
         mode="header"
-        showProfileLink={false}
+        uiPrefs={{ contactStyle: "sheet" }}
         onChatClick={onChatClick}
         onPhoneClick={() => setIsContactSheetOpen(true)}
-        uiPrefs={{ contactStyle: "sheet" }}
       />
 
       <AccordionSection id="contact" title="Kontakt" icon={Phone} openId={openId} setOpenId={setOpenId}>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => setIsContactSheetOpen(true)}
@@ -835,7 +879,7 @@ const SellerDetailCard = ({
           <button
             type="button"
             onClick={onChatClick}
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 text-white px-4 py-2.5 text-sm font-semibold hover:opacity-95 dark:bg-white dark:text-slate-900 transition shadow-sm hover:shadow-md"
+            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 text-sm font-semibold hover:opacity-95 transition shadow-sm hover:shadow-md"
           >
             <MessageCircle className="h-5 w-5" /> Pošalji poruku
           </button>
@@ -918,9 +962,10 @@ const SellerDetailCard = ({
         settings={settings}
         actionsDisabled={false}
         onPhoneReveal={onPhoneReveal}
+        onChatClick={onChatClick}
       />
     </div>
   );
 };
 
-export default SellerDetailCard;
+export default ProductSellerDetailCard;
