@@ -33,6 +33,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 
+import SavedToListButton from "@/components/Profile/SavedToListButton";
+
+
 /* =====================
   Helpers
 ===================== */
@@ -581,6 +584,12 @@ export const SellerPreviewCard = ({
             <FiMessageCircle className="text-lg" />
             Otvori chat
           </button>
+
+          <SavedToListButton
+    sellerId={seller?.id}
+    sellerName={seller?.name}
+    variant="pill"
+  />
 
           {mode === "compact" ? (
             contactStyle === "sheet" ? (

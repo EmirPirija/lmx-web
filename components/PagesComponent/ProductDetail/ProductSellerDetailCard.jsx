@@ -14,8 +14,10 @@ import ApplyJobModal from "./ApplyJobModal";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 import { SellerPreviewCard, SellerPreviewSkeleton } from "@/components/PagesComponent/Seller/SellerDetailCard";
-
+import SavedToListButton from "@/components/Profile/SavedToListButton";
 import SavedSellerButton from "@/components/Profile/SavedSellerButton";
+
+
 
 const SellerDetailCard = ({
   productDetails,
@@ -137,8 +139,6 @@ const SellerDetailCard = ({
         uiPrefs={uiPrefs}
       />
 
-<SavedSellerButton sellerId={seller?.id} />
-
       {/* Phone modal (used when inline icon is visible) */}
       <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>
         <DialogContent className="max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl">
@@ -211,6 +211,16 @@ const SellerDetailCard = ({
       />
 
       <ApplyJobModal open={showApplyModal} setOpen={setShowApplyModal} item_id={productDetails?.id} />
+
+      <SavedToListButton
+    sellerId={seller?.id}
+    sellerName={seller?.name}
+    variant="icon" // kompaktno za product page
+  />
+
+<div className="absolute top-3 right-3">
+  <SavedSellerButton sellerId={seller?.id} />
+</div>
       
     </>
   );
