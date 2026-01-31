@@ -6,22 +6,38 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { savedCollectionsApi } from "@/utils/api";
 
-function Dot({ open }) {
-  return <span className={cn("inline-block w-2 h-2 rounded-full", open ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600")} />;
-}
+/**
+ * Anti-hydration:
+ * - Ne koristimo toLocaleDateString (server vs client locale mismatch).
+ * - Format datuma radimo deterministički (UTC + hardcoded mjeseci).
+ */
 
-function formatMonthYear(date) {
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"];
+
+function formatMonthYearStable(dateLike) {
   try {
-    const d = new Date(date);
+    const d = new Date(dateLike);
     if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString("bs-BA", { month: "short", year: "numeric" });
+    const m = MONTHS[d.getUTCMonth()] || "";
+    const y = d.getUTCFullYear();
+    return m && y ? `${m} ${y}` : "";
   } catch {
     return "";
   }
 }
 
+function Dot({ active }) {
+  return <span className={cn("inline-block w-2 h-2 rounded-full", active ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600")} />;
+}
+
 export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
-  const seller = item?.saved_user || item?.savedUser || item?.saved_user_data || item?.savedUserData || item?.savedUser;
+  const seller =
+    item?.saved_user ||
+    item?.savedUser ||
+    item?.saved_user_data ||
+    item?.savedUserData ||
+    item?.savedUser;
+
   const sellerId = item?.saved_user_id || seller?.id;
 
   const [editing, setEditing] = useState(false);
@@ -30,11 +46,15 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
   const [savedPulse, setSavedPulse] = useState(false);
 
   const debounceRef = useRef(null);
-  const lastSentRef = useRef(note);
+  const lastSentRef = useRef(item?.note || "");
 
   useEffect(() => {
-    setNote(item?.note || "");
+    const n = item?.note || "";
+    setNote(n);
+    lastSentRef.current = n;
   }, [item?.note]);
+
+  const memberSince = useMemo(() => formatMonthYearStable(seller?.created_at), [seller?.created_at]);
 
   const saveNow = async (next) => {
     if (!sellerId) return;
@@ -45,6 +65,8 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
       setSavedPulse(true);
       setTimeout(() => setSavedPulse(false), 550);
       onUpdated?.(res?.data?.data);
+    } catch {
+      // silent (UX: ne rušimo UI); možeš dodati toast ako hoćeš
     } finally {
       setSaving(false);
     }
@@ -64,8 +86,6 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
     onRemoved?.(sellerId);
   };
 
-  const memberSince = useMemo(() => formatMonthYear(seller?.created_at), [seller?.created_at]);
-
   return (
     <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-start justify-between gap-4">
@@ -81,18 +101,20 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <div className="font-extrabold text-slate-900 dark:text-white truncate">{seller?.name || "Korisnik"}</div>
+
               {memberSince ? (
                 <span className="inline-flex items-center gap-1 h-7 px-3 rounded-full text-xs font-semibold border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200">
                   Član od: {memberSince}
                 </span>
               ) : null}
 
-              {Boolean(seller?.is_pro) ? (
+              {Boolean(seller?.is_pro ?? seller?.isPro) ? (
                 <span className="inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200">
                   Pro
                 </span>
               ) : null}
-              {Boolean(seller?.is_shop) ? (
+
+              {Boolean(seller?.is_shop ?? seller?.isShop) ? (
                 <span className="inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200">
                   Shop
                 </span>
@@ -100,7 +122,7 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
             </div>
 
             <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <Dot open={true} />
+              <Dot active />
               <span>Sačuvano u kolekciji</span>
               {saving ? <span className="ml-2">• čuvam…</span> : savedPulse ? <span className="ml-2 text-slate-700 dark:text-slate-200">• sačuvano ✓</span> : null}
             </div>
