@@ -28,6 +28,7 @@ import {
   IoPersonOutline,
   IoLayersOutline,
   IoHeartOutline,
+  IoBookmarkOutline,
   IoCardOutline,
   IoReceiptOutline,
   IoNotificationsOutline,
@@ -533,6 +534,12 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
               label={"Spašeni oglasi"}
               description="Sačuvani oglasi"
               onClick={() => handleNavigate("/favorites")}
+            />
+            <MenuItem
+              icon={IoBookmarkOutline}
+              label={"Sačuvani prodavači"}
+              description="Kolekcije, bilješke i obavijesti"
+              onClick={() => handleNavigate("/profile/saved")}
             />
             <MenuItem
               icon={IoSearchOutline}

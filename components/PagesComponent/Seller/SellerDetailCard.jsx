@@ -1,39 +1,65 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  MdOutlineMail,
-  MdPhone,
-  MdCalendarMonth,
-  MdStar,
-  MdContentCopy,
-  MdCheck,
-  MdVerified,
-  MdBeachAccess,
-  MdAccessTime,
-  MdStorefront,
-  MdWorkspacePremium,
-  MdSchedule,
-  MdLocalShipping,
-  MdAssignmentReturn,
-  MdOpenInNew,
-} from "react-icons/md";
-import { FaWhatsapp, FaViber, FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaGlobe } from "react-icons/fa";
-import { extractYear } from "@/utils";
+  FiCalendar,
+  FiCheck,
+  FiCheckCircle,
+  FiChevronDown,
+  FiChevronRight,
+  FiClock,
+  FiCopy,
+  FiExternalLink,
+  FiGlobe,
+  FiMail,
+  FiMessageCircle,
+  FiPhone,
+  FiShare2,
+  FiStar,
+  FiX,
+} from "react-icons/fi";
+import { HiOutlineBuildingStorefront } from "react-icons/hi2";
+import { FaFacebook, FaInstagram, FaTiktok, FaViber, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
+import { toast } from "sonner";
+
+import { cn } from "@/lib/utils";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-
+import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 
-/* ===================== helpers ===================== */
+/* =====================
+  Helpers
+===================== */
+
+const MONTHS_BS = ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"];
+const formatMemberSince = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${MONTHS_BS[d.getMonth()]} ${d.getFullYear()}`;
+};
+
+const responseTimeLabels = {
+  instant: "par minuta",
+  few_hours: "par sati",
+  same_day: "24 sata",
+  few_days: "par dana",
+};
+
+export const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
+  const direct = settings?.response_time_label || settings?.response_time_text || null;
+  if (direct) return direct;
+
+  if (!responseTime) return null;
+  if (responseTime === "auto") return formatResponseTimeBs(responseTimeAvg);
+  return responseTimeLabels[responseTime] || null;
+};
 
 const parseBusinessHours = (hours) => {
   if (!hours) return null;
@@ -44,13 +70,33 @@ const parseBusinessHours = (hours) => {
   }
 };
 
+const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+const getDayKeyByIndex = (idx) => dayOrder[idx % 7];
+
+const getHoursText = (d) => {
+  if (!d || d.closed || !d.enabled) return "Zatvoreno";
+  return `${d.open} – ${d.close}`;
+};
+
+const getTodayHours = (businessHours) => {
+  if (!businessHours) return null;
+  const todayKey = getDayKeyByIndex(new Date().getDay());
+  return getHoursText(businessHours[todayKey]);
+};
+
+const getTomorrowHours = (businessHours) => {
+  if (!businessHours) return null;
+  const tomorrowKey = getDayKeyByIndex(new Date().getDay() + 1);
+  return getHoursText(businessHours[tomorrowKey]);
+};
+
 const isCurrentlyOpen = (businessHours) => {
   if (!businessHours) return null;
 
   const now = new Date();
-  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const today = days[now.getDay()];
-  const todayHours = businessHours[today];
+  const todayKey = getDayKeyByIndex(now.getDay());
+  const todayHours = businessHours[todayKey];
 
   if (!todayHours || todayHours.closed || !todayHours.enabled) return false;
 
@@ -64,432 +110,828 @@ const isCurrentlyOpen = (businessHours) => {
   return currentTime >= openTime && currentTime <= closeTime;
 };
 
-const getTodayHours = (businessHours) => {
-  if (!businessHours) return null;
-  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const today = days[new Date().getDay()];
-  const todayHours = businessHours[today];
-  if (!todayHours || todayHours.closed || !todayHours.enabled) return "Zatvoreno";
-  return `${todayHours.open} - ${todayHours.close}`;
+const compactnessMap = {
+  dense: { pad: "p-4 sm:p-5", avatar: "w-14 h-14", name: "text-base", meta: "text-xs", btn: "h-10" },
+  normal: { pad: "p-5 sm:p-6", avatar: "w-16 h-16", name: "text-base sm:text-lg", meta: "text-xs", btn: "h-11" },
+  cozy: { pad: "p-6 sm:p-7", avatar: "w-16 h-16", name: "text-lg sm:text-xl", meta: "text-sm", btn: "h-12" },
 };
 
-const formatLastSeen = (timestamp) => {
-  if (!timestamp) return "";
-  const now = new Date();
-  const lastSeen = new Date(timestamp);
-  if (Number.isNaN(lastSeen.getTime())) return "";
+const IconPill = ({ icon: Icon, children, className }) => (
+  <span
+    className={cn(
+      "inline-flex items-center gap-2 rounded-full border border-slate-200/70 dark:border-slate-700/70",
+      "bg-white/70 dark:bg-slate-900/60 backdrop-blur px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200",
+      className
+    )}
+  >
+    {Icon ? <Icon className="text-sm" /> : null}
+    {children}
+  </span>
+);
 
-  const diffInSeconds = Math.floor((now - lastSeen) / 1000);
+const Tag = ({ children, tone = "neutral" }) => {
+  const cls =
+    tone === "pro"
+      ? "border-amber-200/70 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200"
+      : tone === "shop"
+      ? "border-primary/25 bg-primary/10 text-primary dark:bg-primary/15"
+      : "border-slate-200/70 bg-white/70 text-slate-700 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200";
 
-  if (diffInSeconds < 60) return "Upravo sada";
-  if (diffInSeconds < 3600) return `Prije ${Math.floor(diffInSeconds / 60)} min`;
-  if (diffInSeconds < 86400) return `Prije ${Math.floor(diffInSeconds / 3600)} h`;
-  if (diffInSeconds < 172800) return "Jučer";
-
-  return lastSeen.toLocaleDateString("bs-BA", { day: "numeric", month: "numeric", year: "numeric" });
+  return (
+    <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold", cls)}>
+      {children}
+    </span>
+  );
 };
 
-const responseTimeLabels = {
-  instant: "par minuta",
-  few_hours: "par sati",
-  same_day: "24 sata",
-  few_days: "par dana",
+const SoftDivider = () => (
+  <div className="h-px bg-gradient-to-r from-transparent via-slate-200/70 dark:via-slate-700/70 to-transparent" />
+);
+
+const ShimmerStyles = () => (
+  <style jsx global>{`
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-70%);
+      }
+      100% {
+        transform: translateX(70%);
+      }
+    }
+    .shimmer {
+      position: relative;
+      overflow: hidden;
+    }
+    .shimmer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-70%);
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.55) 45%,
+        rgba(255, 255, 255, 0) 90%
+      );
+      animation: shimmer 1.4s infinite;
+    }
+    .dark .shimmer::after {
+      background: linear-gradient(
+        90deg,
+        rgba(2, 6, 23, 0) 0%,
+        rgba(148, 163, 184, 0.18) 45%,
+        rgba(2, 6, 23, 0) 90%
+      );
+    }
+    @keyframes pop-in {
+      0% {
+        transform: translateY(2px) scale(0.98);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+    .pop-in {
+      animation: pop-in 160ms ease-out;
+    }
+  `}</style>
+);
+
+export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
+  const c = compactnessMap[compactness] || compactnessMap.normal;
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <ShimmerStyles />
+      <div className={cn("relative", c.pad)}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div
+              className={cn(
+                "rounded-full p-[3px] bg-gradient-to-br from-primary/50 via-slate-200 to-amber-300/60 dark:via-slate-700",
+                "shrink-0"
+              )}
+            >
+              <div className={cn(c.avatar, "rounded-full bg-slate-200 dark:bg-slate-800 shimmer")} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="h-4 w-44 rounded-full bg-slate-200 dark:bg-slate-800 shimmer" />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <div className="h-7 w-36 rounded-full bg-slate-200 dark:bg-slate-800 shimmer" />
+                <div className="h-7 w-28 rounded-full bg-slate-200 dark:bg-slate-800 shimmer" />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-10 w-10 rounded-2xl bg-slate-200 dark:bg-slate-800 shimmer" />
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <div className="h-10 w-28 rounded-2xl bg-slate-200 dark:bg-slate-800 shimmer" />
+          <div className="h-10 w-32 rounded-2xl bg-slate-200 dark:bg-slate-800 shimmer" />
+          <div className="h-10 w-28 rounded-2xl bg-slate-200 dark:bg-slate-800 shimmer" />
+        </div>
+
+        <div className="mt-5 flex items-center gap-3">
+          <div className={cn("flex-1 rounded-2xl bg-slate-200 dark:bg-slate-800 shimmer", c.btn)} />
+          <div className={cn("w-11 rounded-2xl bg-slate-200 dark:bg-slate-800 shimmer", c.btn)} />
+          <div className={cn("w-11 rounded-2xl bg-slate-200 dark:bg-slate-800 shimmer", c.btn)} />
+        </div>
+
+        <div className="mt-4 h-4 w-52 rounded-full bg-slate-200 dark:bg-slate-800 shimmer" />
+      </div>
+    </div>
+  );
 };
 
-/* ===================== component ===================== */
+/* =====================
+  Contact sheet (inline vs sheet)
+===================== */
+
+const ContactSheet = ({
+  open,
+  setOpen,
+  seller,
+  settings,
+  actionsDisabled,
+  onPhoneReveal,
+}) => {
+  const showWhatsapp = Boolean(settings?.show_whatsapp);
+  const showViber = Boolean(settings?.show_viber);
+  const showEmail = Boolean(settings?.show_email);
+  const showPhone = Boolean(settings?.show_phone);
+
+  const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
+  const viberNumber = settings?.viber_number || seller?.mobile;
+
+  const phone = seller?.mobile;
+  const email = seller?.email;
+
+  const [copiedKey, setCopiedKey] = useState("");
+
+  const copy = async (key, value) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(""), 1100);
+    } catch {
+      toast.error("Ne mogu kopirati.");
+    }
+  };
+
+  const itemCls = cn(
+    "w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900",
+    "px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition",
+    actionsDisabled && "opacity-60 pointer-events-none"
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        className={cn(
+          "max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+          "rounded-3xl sm:rounded-3xl p-0 overflow-hidden",
+          "sm:mx-auto"
+        )}
+      >
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-white">Kontakt</div>
+              <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Odaberi kanal koji želiš koristiti.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <FiX className="text-xl text-slate-600 dark:text-slate-200" />
+            </button>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {showPhone && phone ? (
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <a className={itemCls} href={`tel:${phone}`}>
+                  <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+                    <FiPhone className="text-lg" /> Pozovi
+                  </span>
+                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{phone}</div>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => copy("phone", phone)}
+                  className={cn(
+                    "inline-flex items-center justify-center w-12 rounded-2xl border border-slate-200 dark:border-slate-700",
+                    "hover:bg-slate-50 dark:hover:bg-slate-800 transition",
+                    copiedKey === "phone" && "pop-in"
+                  )}
+                >
+                  {copiedKey === "phone" ? <FiCheck className="text-lg text-emerald-600" /> : <FiCopy className="text-lg" />}
+                </button>
+              </div>
+            ) : null}
+
+            {showWhatsapp && whatsappNumber ? (
+              <a
+                className={itemCls}
+                href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+                  <FaWhatsapp className="text-lg text-emerald-600" /> WhatsApp
+                </span>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{whatsappNumber}</div>
+              </a>
+            ) : null}
+
+            {showViber && viberNumber ? (
+              <a className={itemCls} href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}>
+                <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+                  <FaViber className="text-lg text-purple-600" /> Viber
+                </span>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{viberNumber}</div>
+              </a>
+            ) : null}
+
+            {showEmail && email ? (
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <a className={itemCls} href={`mailto:${email}`}>
+                  <span className="inline-flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+                    <FiMail className="text-lg" /> Email
+                  </span>
+                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{email}</div>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => copy("email", email)}
+                  className={cn(
+                    "inline-flex items-center justify-center w-12 rounded-2xl border border-slate-200 dark:border-slate-700",
+                    "hover:bg-slate-50 dark:hover:bg-slate-800 transition",
+                    copiedKey === "email" && "pop-in"
+                  )}
+                >
+                  {copiedKey === "email" ? <FiCheck className="text-lg text-emerald-600" /> : <FiCopy className="text-lg" />}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/* =====================
+  Shared premium card
+  - Used by:
+    - Product detail seller card
+    - Seller settings preview
+    - Seller page header
+  - NO vacation messages on card
+===================== */
+
+export const SellerPreviewCard = ({
+  seller,
+  sellerSettings,
+  badges,
+  ratings,
+  isPro = false,
+  isShop = false,
+
+  mode = "compact", // "compact" | "header"
+  actionsDisabled = false,
+  showProfileLink = true,
+
+  // UI-only preferences (from SellerSettings customizer)
+  uiPrefs,
+  onChatClick,
+  onPhoneClick,
+}) => {
+  const pathname = usePathname();
+  const CompanyName = useSelector(getCompanyName);
+  const settings = sellerSettings || {};
+  const prefs = uiPrefs || {};
+
+  const compactness = prefs.compactness || settings?.card_preferences?.compactness || settings?.compactness || "normal";
+  const contactStyle = prefs.contactStyle || settings?.card_preferences?.contactStyle || settings?.contact_style || "inline";
+
+  const showRatings = prefs.showRatings ?? true;
+  const showBadges = prefs.showBadges ?? true;
+  const showMemberSince = prefs.showMemberSince ?? true;
+  const showResponseTime = prefs.showResponseTime ?? true;
+  const showShare = prefs.showShare ?? true;
+
+  const c = compactnessMap[compactness] || compactnessMap.normal;
+
+  if (!seller) return <SellerPreviewSkeleton compactness={compactness} />;
+
+  const shareUrl = seller?.id
+    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
+    : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
+
+  const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
+
+  const responseLabel = showResponseTime
+    ? getResponseTimeLabel({
+        responseTime: settings?.response_time || "auto",
+        responseTimeAvg: seller?.response_time_avg,
+        settings,
+      })
+    : null;
+
+  const memberSince = showMemberSince ? formatMemberSince(seller?.created_at) : "";
+
+  const ratingValue = useMemo(
+    () => (seller?.average_rating != null ? Number(seller.average_rating).toFixed(1) : null),
+    [seller?.average_rating]
+  );
+  const ratingCount = useMemo(() => ratings?.total || ratings?.count || 0, [ratings]);
+
+  const badgeList = (badges || []).slice(0, 3);
+
+  const businessHours = parseBusinessHours(settings.business_hours);
+  const showHours = Boolean(isShop && businessHours);
+  const todayHoursText = showHours ? getTodayHours(businessHours) : null;
+  const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
+
+  const primaryBtnCls = cn(
+    "inline-flex items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold",
+    "bg-slate-900 text-white hover:opacity-95 dark:bg-white dark:text-slate-900 transition",
+    "shadow-sm hover:shadow-md",
+    c.btn,
+    actionsDisabled && "opacity-60 cursor-not-allowed pointer-events-none"
+  );
+
+  const iconBtnCls = cn(
+    "inline-flex items-center justify-center w-11 rounded-2xl",
+    "border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900",
+    "text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition",
+    "shadow-sm hover:shadow-md",
+    c.btn,
+    actionsDisabled && "opacity-60 cursor-not-allowed pointer-events-none"
+  );
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <ShimmerStyles />
+
+      {/* lively, but subtle */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-28 -right-28 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-28 -left-28 h-56 w-56 rounded-full bg-amber-500/10 blur-3xl" />
+      </div>
+
+      <div className={cn("relative", c.pad)}>
+        {/* top row */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            {/* avatar */}
+            <div className="relative shrink-0">
+              <div className="rounded-full p-[3px] bg-gradient-to-br from-primary/60 via-slate-200 to-amber-300/70 dark:from-primary/50 dark:via-slate-700 dark:to-amber-400/60">
+                <CustomImage
+                  src={seller?.profile}
+                  alt="Prodavač"
+                  width={64}
+                  height={64}
+                  className={cn(c.avatar, "rounded-full object-cover bg-white dark:bg-slate-900")}
+                />
+              </div>
+
+              {Boolean(seller?.is_verified) ? (
+                <span className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shadow">
+                  <FiCheckCircle className="text-lg" />
+                </span>
+              ) : null}
+            </div>
+
+            {/* name + tags */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                <div className={cn("truncate font-semibold text-slate-900 dark:text-white", c.name)}>{seller?.name}</div>
+                {isPro ? <Tag tone="pro">✨ Pro</Tag> : null}
+                {isShop ? (
+                  <Tag tone="shop">
+                    <HiOutlineBuildingStorefront className="text-sm" /> Shop
+                  </Tag>
+                ) : null}
+              </div>
+
+              {/* meta chips */}
+              {(responseLabel || memberSince) ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {responseLabel ? <IconPill icon={FiClock}>Odgovara: {responseLabel}</IconPill> : null}
+                  {memberSince ? <IconPill icon={FiCalendar}>Član od: {memberSince}</IconPill> : null}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* share */}
+          {showShare ? (
+            <ShareDropdown
+              url={shareUrl}
+              title={title}
+              headline={title}
+              companyName={CompanyName}
+              className={cn(
+                "shrink-0 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 p-2",
+                "text-slate-700 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60 transition shadow-sm"
+              )}
+            >
+              <FiShare2 className="text-xl" />
+            </ShareDropdown>
+          ) : null}
+        </div>
+
+        {/* rating + badges */}
+        {(showRatings || showBadges) ? (
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {showRatings && ratingValue ? (
+              <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 px-3 py-2 text-sm font-semibold shadow-sm">
+                <FiStar className="text-lg text-amber-500" />
+                <span className="text-slate-900 dark:text-white">{ratingValue}</span>
+                <span className="text-slate-500 dark:text-slate-400">({ratingCount})</span>
+              </span>
+            ) : null}
+
+            {showBadges
+              ? badgeList.map((b) => (
+                  <span
+                    key={b.id}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-sm"
+                  >
+                    <GamificationBadge badge={b} size="sm" showName={false} showDescription={false} />
+                    <span className="hidden sm:inline">{b?.name}</span>
+                  </span>
+                ))
+              : null}
+          </div>
+        ) : null}
+
+        {/* actions */}
+        <div className={cn("mt-5 flex items-center gap-3", mode === "header" && "flex-col items-stretch")}>
+          <button type="button" className={primaryBtnCls} onClick={onChatClick}>
+            <FiMessageCircle className="text-lg" />
+            Otvori chat
+          </button>
+
+          {mode === "compact" ? (
+            contactStyle === "sheet" ? (
+              <button type="button" className={iconBtnCls} onClick={onPhoneClick} title="Kontakt">
+                <FiPhone className="text-xl" />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button type="button" className={iconBtnCls} onClick={onPhoneClick} title="Telefon">
+                  <FiPhone className="text-xl" />
+                </button>
+
+                {Boolean(settings.show_whatsapp) && (settings.whatsapp_number || seller?.mobile) ? (
+                  <a
+                    className={iconBtnCls}
+                    href={`https://wa.me/${String(settings.whatsapp_number || seller?.mobile).replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => actionsDisabled && e.preventDefault()}
+                    title="WhatsApp"
+                  >
+                    <FaWhatsapp className="text-xl text-emerald-600" />
+                  </a>
+                ) : null}
+
+                {Boolean(settings.show_viber) && (settings.viber_number || seller?.mobile) ? (
+                  <a
+                    className={iconBtnCls}
+                    href={`viber://chat?number=${String(settings.viber_number || seller?.mobile).replace(/\D/g, "")}`}
+                    onClick={(e) => actionsDisabled && e.preventDefault()}
+                    title="Viber"
+                  >
+                    <FaViber className="text-xl text-purple-600" />
+                  </a>
+                ) : null}
+              </div>
+            )
+          ) : null}
+        </div>
+
+        {/* profile link */}
+        {mode === "compact" && showProfileLink ? (
+          <div className="mt-4">
+            <CustomLink
+              href={`/seller/${seller?.id}`}
+              className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
+            >
+              Pogledaj profil prodavača
+              <FiChevronRight className="text-base transition-transform group-hover:translate-x-0.5" />
+            </CustomLink>
+          </div>
+        ) : null}
+      </div>
+
+      {showHours ? (
+        <>
+          <SoftDivider />
+          <div className="px-5 sm:px-6 py-3 text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between">
+            <span className="inline-flex items-center gap-2">
+              <FiClock className="text-sm" />
+              Danas: {todayHoursText}
+            </span>
+            {openNow !== null ? (
+              <span className="inline-flex items-center gap-2 font-semibold">
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    openNow ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+                  )}
+                />
+                {openNow ? "Otvoreno" : "Zatvoreno"}
+              </span>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+};
+
+/* =====================
+  Seller page (detailed)
+  - Animated accordion
+  - Remembers last open section in localStorage
+  - Social links as pills + copy
+===================== */
+
+const useLocalStorageState = (key, initialValue) => {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw != null) setValue(raw);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  const set = (v) => {
+    setValue(v);
+    try {
+      if (v == null) localStorage.removeItem(key);
+      else localStorage.setItem(key, String(v));
+    } catch {}
+  };
+
+  return [value, set];
+};
+
+const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }) => {
+  const isOpen = openId === id;
+
+  return (
+    <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpenId(isOpen ? "" : id)}
+        className={cn(
+          "w-full flex items-center justify-between gap-3 px-5 py-4 text-left transition",
+          "hover:bg-slate-50 dark:hover:bg-slate-800/60",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        )}
+      >
+        <span className="inline-flex items-center gap-3">
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+            <Icon className="text-lg" />
+          </span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
+        </span>
+        <FiChevronDown className={cn("text-lg text-slate-500 transition-transform", isOpen && "rotate-180")} />
+      </button>
+
+      {/* IMPORTANT: min-h-0 fixes the “content peeking” bug on collapse */}
+      <div className={cn("grid transition-[grid-template-rows] duration-300", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="px-5 pb-5">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SocialPill = ({ icon: Icon, label, href }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1100);
+    } catch {
+      toast.error("Ne mogu kopirati link.");
+    }
+  };
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(
+        "group relative inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700",
+        "bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200",
+        "hover:shadow-md hover:border-primary/30 dark:hover:border-primary/30 transition",
+        "hover:bg-slate-50 dark:hover:bg-slate-800"
+      )}
+      title={href}
+    >
+      <Icon className="text-lg" />
+      <span className="truncate max-w-[10rem]">{label}</span>
+
+      <button
+        type="button"
+        onClick={copy}
+        className={cn(
+          "ml-1 inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700",
+          "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition",
+          "opacity-0 group-hover:opacity-100",
+          copied && "pop-in"
+        )}
+        aria-label="Copy link"
+      >
+        {copied ? <FiCheck className="text-lg text-emerald-600" /> : <FiCopy className="text-lg" />}
+      </button>
+
+      {/* glow */}
+      <span className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition">
+        <span className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/10 to-amber-400/10 blur-xl" />
+      </span>
+    </a>
+  );
+};
 
 const SellerDetailCard = ({
   seller,
   ratings,
-  onPhoneReveal,
-  onPhoneClick,
   badges,
-  onEmailClick,
-  onProfileClick,
   sellerSettings,
   isPro = false,
   isShop = false,
+
+  onChatClick,
+  onProfileClick,
+  onEmailClick,
+  onPhoneClick,
+  onPhoneReveal,
 }) => {
-  const pathname = usePathname();
-  const CompanyName = useSelector(getCompanyName);
-
-  const memberSinceYear = seller?.created_at ? extractYear(seller.created_at) : "";
-  const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
-  const FbTitle = `${seller?.name || "Prodavač"} | ${CompanyName}`;
-
-  const [isCopied, setIsCopied] = useState(false);
-  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
-
-  const isOnline = Boolean(seller?.is_online);
-  const lastSeenText = !isOnline && seller?.last_seen ? formatLastSeen(seller.last_seen) : null;
-
-  const ratingValue = useMemo(() => Number(seller?.average_rating || 0).toFixed(1), [seller?.average_rating]);
-  const ratingCount = useMemo(() => ratings?.total || ratings?.data?.length || 0, [ratings]);
-
   const settings = sellerSettings || {};
-  const vacationMode = Boolean(settings.vacation_mode);
-  const vacationMessage = settings.vacation_message || "Prodavač je trenutno na godišnjem odmoru.";
-  const responseTime = settings.response_time || "auto";
+  const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
+
+  const businessDescription = settings.business_description || "";
+  const returnPolicy = settings.return_policy || "";
+  const shippingInfo = settings.shipping_info || "";
+
+  const socialFacebook = settings.social_facebook || "";
+  const socialInstagram = settings.social_instagram || "";
+  const socialTiktok = settings.social_tiktok || "";
+  const socialYoutube = settings.social_youtube || "";
+  const socialWebsite = settings.social_website || "";
 
   const businessHours = parseBusinessHours(settings.business_hours);
-  const currentlyOpen = isShop && businessHours ? isCurrentlyOpen(businessHours) : null;
-  const todayHoursText = isShop && businessHours ? getTodayHours(businessHours) : null;
+  const showHours = Boolean(isShop && businessHours);
+  const todayHoursText = showHours ? getTodayHours(businessHours) : null;
+  const tomorrowHoursText = showHours ? getTomorrowHours(businessHours) : null;
+  const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
 
-  // ✅ NEW: real auto text from avg
-  const autoText = formatResponseTimeBs(seller?.response_time_avg);
+  const hasSocialLinks = Boolean(socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite);
 
-  // ✅ as you requested
-  const responseTimeText =
-    responseTime === "auto"
-      ? autoText ?? "Vrijeme odgovora se računa automatski"
-      : responseTimeLabels[responseTime];
+  const storageKey = seller?.id ? `seller_accordion_open_${seller.id}` : "seller_accordion_open";
+  const [openId, setOpenId] = useLocalStorageState(storageKey, "contact");
 
-  const responseTimeDisplayText =
-    responseTime === "auto"
-      ? autoText
-        ? `Obično odgovara za ${autoText}`
-        : responseTimeText
-      : responseTimeText
-        ? `Obično odgovara za ${responseTimeText}`
-        : null;
-
-  const showWhatsapp = Boolean(settings.show_whatsapp);
-  const showViber = Boolean(settings.show_viber);
-  const whatsappNumber = settings.whatsapp_number || seller?.mobile;
-  const viberNumber = settings.viber_number || seller?.mobile;
-
-  const businessDescription = settings.business_description || null;
-  const returnPolicy = settings.return_policy || null;
-  const shippingInfo = settings.shipping_info || null;
-
-  const socialFacebook = settings.social_facebook || null;
-  const socialInstagram = settings.social_instagram || null;
-  const socialTiktok = settings.social_tiktok || null;
-  const socialYoutube = settings.social_youtube || null;
-  const socialWebsite = settings.social_website || null;
-
-  const hasSocialLinks = socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite;
-  const hasBusinessInfo = businessDescription || returnPolicy || shippingInfo;
-
-  const handleCopyPhone = () => {
-    if (!seller?.mobile) return;
-    navigator.clipboard.writeText(seller.mobile);
-    setIsCopied(true);
-    toast.success("Broj telefona je kopiran!");
-    setTimeout(() => setIsCopied(false), 1800);
-  };
-
-  const handleOpenPhoneModal = () => {
-    setIsPhoneModalOpen(true);
-    if (onPhoneReveal) onPhoneReveal();
-  };
-
-  if (!seller) return null;
+  if (!seller) return <SellerPreviewSkeleton />;
 
   return (
-    <>
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden relative">
-        {/* HERO HEADER */}
-        <div className="relative h-28 bg-gradient-to-r from-primary/14 via-primary/8 to-transparent dark:from-primary/20 dark:via-primary/10">
-          <svg className="absolute inset-0 w-full h-full opacity-[0.10]" viewBox="0 0 400 120" fill="none">
-            <path
-              d="M0 80 C60 30 120 120 200 70 C270 30 320 110 400 60"
-              stroke="currentColor"
-              strokeWidth="10"
-              strokeLinecap="round"
-            />
-          </svg>
+    <div className="space-y-4">
+      <SellerPreviewCard
+        seller={seller}
+        sellerSettings={settings}
+        badges={badges}
+        ratings={ratings}
+        isPro={isPro}
+        isShop={isShop}
+        mode="header"
+        showProfileLink={false}
+        onChatClick={onChatClick}
+        onPhoneClick={() => setIsContactSheetOpen(true)}
+        uiPrefs={{ contactStyle: "sheet" }}
+      />
 
-          <div className="absolute top-3 right-3">
-            <ShareDropdown
-              url={currentUrl}
-              title={FbTitle}
-              headline={FbTitle}
-              companyName={CompanyName}
-              className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-full p-2 text-slate-700 dark:text-slate-200 transition-all"
-            />
-          </div>
+      <AccordionSection id="contact" title="Kontakt" icon={FiPhone} openId={openId} setOpenId={setOpenId}>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setIsContactSheetOpen(true)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-sm hover:shadow-md"
+          >
+            <FiPhone className="text-lg" /> Otvori kontakt opcije
+          </button>
+
+          <button
+            type="button"
+            onClick={onChatClick}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 text-white px-4 py-2.5 text-sm font-semibold hover:opacity-95 dark:bg-white dark:text-slate-900 transition shadow-sm hover:shadow-md"
+          >
+            <FiMessageCircle className="text-lg" /> Otvori chat
+          </button>
         </div>
 
-        <div className="px-6 pb-6 -mt-10 flex flex-col items-center">
-          {/* AVATAR */}
-          <div className="relative">
-            <div className="p-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-              <CustomImage
-                src={seller?.profile}
-                alt="Prodavač"
-                width={108}
-                height={108}
-                className="w-[108px] h-[108px] rounded-full object-cover"
-              />
-            </div>
-            <span
-              className={cn(
-                "absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900",
-                isOnline ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
-              )}
-              title={isOnline ? "Na mreži" : "Van mreže"}
-            />
-          </div>
-
-          {/* NAME */}
-          <div className="mt-3 flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">{seller?.name}</h1>
-            {Boolean(seller?.is_verified) && <MdVerified className="text-primary text-2xl" title="Verificiran" />}
-          </div>
-
-          {/* STATUS */}
-          <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {isOnline ? "Online" : lastSeenText ? `Posljednji put viđen: ${lastSeenText}` : ""}
-          </div>
-
-          {/* TIER */}
-          {(isPro || isShop) && (
-            <div className="mt-3 flex items-center gap-2">
-              {isShop ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary dark:bg-primary/20">
-                  <MdStorefront className="text-base" /> Shop
-                </span>
-              ) : null}
-              {isPro ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200">
-                  <MdWorkspacePremium className="text-base" /> Pro
-                </span>
-              ) : null}
-            </div>
-          )}
-
-          {/* BADGES */}
-          {badges?.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {badges.slice(0, 6).map((badge) => (
-                <div
-                  key={badge.id}
-                  className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-1.5 py-1"
-                >
-                  <GamificationBadge badge={badge} size="sm" showName={false} showDescription={false} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* STATS */}
-          <div className="mt-5 w-full grid grid-cols-3 gap-2">
-            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
-              <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-200">
-                <MdStar />
-                <span className="text-xs font-semibold">Ocjena</span>
-              </div>
-              <div className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{ratingValue}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">{ratingCount} recenzija</div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
-              <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-200">
-                <MdCalendarMonth />
-                <span className="text-xs font-semibold">Član od</span>
-              </div>
-              <div className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{memberSinceYear || "—"}</div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
-              <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-200">
-                <MdAccessTime />
-                <span className="text-xs font-semibold">Odgovor</span>
-              </div>
-              <div className="mt-1 text-[12px] leading-snug font-extrabold text-slate-900 dark:text-white">
-                {responseTimeDisplayText || "—"}
-              </div>
+        {hasSocialLinks ? (
+          <div className="mt-4">
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Društvene mreže</div>
+            <div className="flex flex-wrap gap-2">
+              {socialFacebook ? <SocialPill icon={FaFacebook} label="Facebook" href={socialFacebook} /> : null}
+              {socialInstagram ? <SocialPill icon={FaInstagram} label="Instagram" href={socialInstagram} /> : null}
+              {socialTiktok ? <SocialPill icon={FaTiktok} label="TikTok" href={socialTiktok} /> : null}
+              {socialYoutube ? <SocialPill icon={FaYoutube} label="YouTube" href={socialYoutube} /> : null}
+              {socialWebsite ? <SocialPill icon={FiGlobe} label="Website" href={socialWebsite} /> : null}
             </div>
           </div>
+        ) : null}
+      </AccordionSection>
 
-          {/* BUSINESS HOURS */}
-          {isShop && businessHours && (
-            <div className="mt-4 w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                    <MdSchedule />
-                    <span className="text-sm font-bold">Radno vrijeme</span>
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{todayHoursText}</div>
-                </div>
-                {currentlyOpen !== null && (
-                  <span
-                    className={cn(
-                      "px-2.5 py-1 rounded-full text-xs font-semibold",
-                      currentlyOpen
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-200"
-                        : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                    )}
-                  >
-                    {currentlyOpen ? "Otvoreno" : "Zatvoreno"}
-                  </span>
-                )}
-              </div>
+      {showHours ? (
+        <AccordionSection id="hours" title="Radno vrijeme" icon={FiClock} openId={openId} setOpenId={setOpenId}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              Danas: {todayHoursText}
             </div>
-          )}
-
-          {/* VACATION */}
-          {vacationMode && (
-            <div className="mt-4 w-full rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4">
-              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
-                <MdBeachAccess />
-                <span className="text-sm font-bold">Na odmoru</span>
-              </div>
-              <div className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/80">{vacationMessage}</div>
-            </div>
-          )}
-
-          {/* CONTACTS */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            {seller?.mobile && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleOpenPhoneModal}
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
-                >
-                  <MdPhone className="text-xl" />
-                  Telefon
-                </button>
-
-                <Dialog open={isPhoneModalOpen} onOpenChange={setIsPhoneModalOpen}>
-                  <DialogContent className="max-w-sm bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                    <div className="text-lg font-extrabold text-slate-900 dark:text-white">Kontakt telefon</div>
-                    <div className="mt-1 text-slate-600 dark:text-slate-300">{seller.mobile}</div>
-
-                    <div className="mt-4 flex gap-2">
-                      <a
-                        href={`tel:${seller.mobile}`}
-                        onClick={onPhoneClick}
-                        className="flex-1 text-center rounded-xl px-4 py-3 font-bold bg-primary text-white hover:opacity-95"
-                      >
-                        Pozovi
-                      </a>
-                      <button
-                        type="button"
-                        onClick={handleCopyPhone}
-                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-bold bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
-                      >
-                        {isCopied ? <MdCheck className="text-xl" /> : <MdContentCopy className="text-xl" />}
-                        Kopiraj
-                      </button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </>
-            )}
-
-            {showWhatsapp && whatsappNumber && (
-              <a
-                href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
-              >
-                <FaWhatsapp className="text-xl" />
-                WhatsApp
-              </a>
-            )}
-
-            {showViber && viberNumber && (
-              <a
-                href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
-              >
-                <FaViber className="text-xl" />
-                Viber
-              </a>
-            )}
-
-            {seller?.email && (
-              <button
-                type="button"
-                onClick={onEmailClick}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold"
-              >
-                <MdOutlineMail className="text-xl" />
-                Email
-              </button>
-            )}
+            {openNow !== null ? (
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span className={cn("h-2 w-2 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600")} />
+                {openNow ? "Otvoreno" : "Zatvoreno"}
+              </span>
+            ) : null}
           </div>
 
-          {/* SOCIAL LINKS */}
-          {hasSocialLinks && (
-            <div className="mt-5 flex items-center justify-center gap-3 text-slate-600 dark:text-slate-300">
-              {socialFacebook && (
-                <a href={socialFacebook} target="_blank" rel="noreferrer" className="hover:text-primary">
-                  <FaFacebook className="text-xl" />
-                </a>
-              )}
-              {socialInstagram && (
-                <a href={socialInstagram} target="_blank" rel="noreferrer" className="hover:text-primary">
-                  <FaInstagram className="text-xl" />
-                </a>
-              )}
-              {socialTiktok && (
-                <a href={socialTiktok} target="_blank" rel="noreferrer" className="hover:text-primary">
-                  <FaTiktok className="text-xl" />
-                </a>
-              )}
-              {socialYoutube && (
-                <a href={socialYoutube} target="_blank" rel="noreferrer" className="hover:text-primary">
-                  <FaYoutube className="text-xl" />
-                </a>
-              )}
-              {socialWebsite && (
-                <a href={socialWebsite} target="_blank" rel="noreferrer" className="hover:text-primary">
-                  <FaGlobe className="text-xl" />
-                </a>
-              )}
+          {tomorrowHoursText ? (
+            <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Sutra: <span className="font-semibold text-slate-900 dark:text-white">{tomorrowHoursText}</span>
             </div>
-          )}
+          ) : null}
+        </AccordionSection>
+      ) : null}
 
-          {/* BUSINESS INFO */}
-          {hasBusinessInfo && (
-            <div className="mt-6 w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-              <div className="text-sm font-extrabold text-slate-900 dark:text-white">Informacije</div>
+      {(shippingInfo || returnPolicy || businessDescription) ? (
+        <AccordionSection id="info" title="Informacije" icon={FiStar} openId={openId} setOpenId={setOpenId}>
+          <div className="space-y-4">
+            {shippingInfo ? (
+              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 p-4">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">Dostava</div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line">{shippingInfo}</div>
+              </div>
+            ) : null}
 
-              {shippingInfo && (
-                <div className="mt-3 flex items-start gap-2 text-slate-700 dark:text-slate-200">
-                  <MdLocalShipping className="text-xl mt-0.5" />
-                  <div>
-                    <div className="text-sm font-bold">Dostava</div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300">{shippingInfo}</div>
-                  </div>
-                </div>
-              )}
+            {returnPolicy ? (
+              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 p-4">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">Povrat</div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line">{returnPolicy}</div>
+              </div>
+            ) : null}
 
-              {returnPolicy && (
-                <div className="mt-3 flex items-start gap-2 text-slate-700 dark:text-slate-200">
-                  <MdAssignmentReturn className="text-xl mt-0.5" />
-                  <div>
-                    <div className="text-sm font-bold">Povrat</div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300">{returnPolicy}</div>
-                  </div>
-                </div>
-              )}
-
-              {businessDescription && (
-                <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">{businessDescription}</div>
-              )}
-            </div>
-          )}
-
-          {/* PROFILE LINK */}
-          <div className="mt-6">
-            <CustomLink
-              href={`/seller/${seller?.id}`}
-              onClick={onProfileClick}
-              className="inline-flex items-center gap-2 text-primary font-semibold hover:underline"
-            >
-              Pogledaj profil <MdOpenInNew />
-            </CustomLink>
+            {businessDescription ? (
+              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 p-4">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">Opis</div>
+                <div className="mt-1 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line">{businessDescription}</div>
+              </div>
+            ) : null}
           </div>
-        </div>
-      </div>
-    </>
+        </AccordionSection>
+      ) : null}
+
+      <CustomLink
+        href={`/seller/${seller?.id}`}
+        onClick={onProfileClick}
+        className="group inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
+      >
+        Pogledaj profil
+        <FiExternalLink className="text-base transition-transform group-hover:translate-y-[-1px]" />
+      </CustomLink>
+
+      <ContactSheet
+        open={isContactSheetOpen}
+        setOpen={setIsContactSheetOpen}
+        seller={seller}
+        settings={settings}
+        onPhoneReveal={onPhoneReveal}
+        actionsDisabled={false}
+      />
+    </div>
   );
 };
 

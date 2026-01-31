@@ -21,6 +21,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiUser } from "react-icons/fi";
 import {
   BiChat,
+  BiBookmark,
   BiDollarCircle,
   BiReceipt,
   BiSearch,
@@ -275,6 +276,7 @@ const ProfileNavigation = () => {
       { href: "/notifications", icon: IoMdNotificationsOutline, label: "Obavijesti", badge: unreadNotifications },
       { href: "/my-ads", icon: LiaAdSolid, label: "Moji oglasi" },
       { href: "/favorites", icon: LuHeart, label: "Omiljeni" },
+      { href: "/profile/saved", icon: BiBookmark, label: "Sačuvani prodavači" },
       { href: "/profile/saved-searches", icon: BiSearch, label: "Spašene pretrage" },
       { href: "/user-subscription", icon: BiDollarCircle, label: "Pretplata" },
       { href: "/purchases", icon: BiShoppingBag, label: "Moje kupovine" },
@@ -300,7 +302,6 @@ const ProfileNavigation = () => {
     ],
     [unreadMessages]
   );
-
   const MobileNavItem = ({ href, icon: Icon, label, badge }) => (
     <CustomLink
       href={href}

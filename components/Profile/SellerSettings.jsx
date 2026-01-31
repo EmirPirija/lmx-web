@@ -1,115 +1,51 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
+import {
+  FiClock,
+  FiEye,
+  FiImage,
+  FiMail,
+  FiPhone,
+  FiRefreshCw,
+  FiSave,
+  FiSliders,
+  FiSmartphone,
+  FiMonitor,
+  FiChevronDown,
+} from "react-icons/fi";
+
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { cn } from "@/lib/utils";
 import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
-import { cn } from "@/lib/utils";
+
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
-// 1. IMPORTUJEMO TVOJU NOVU KOMPONENTU (Marketplace Stil)
-import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
-// 2. IMPORTUJEMO HELPER ZA KONVERZIJU REACT KOMPONENTE U STRING
-import { renderToStaticMarkup } from "react-dom/server";
+import { SellerPreviewCard, SellerPreviewSkeleton } from "@/components/PagesComponent/Seller/SellerDetailCard";
 
-import {
-  MdPhone,
-  MdEmail,
-  MdWhatsapp,
-  MdAutorenew,
-  MdBeachAccess,
-  MdStorefront,
-  MdLocalShipping,
-  MdAssignmentReturn,
-  MdSave,
-  MdExpandMore,
-  MdExpandLess,
-  MdInfo,
-  MdContactPhone,
-  MdMessage,
-  MdShare,
-  MdSchedule,
-  MdLocalOffer,
-  MdAutoAwesome,
-  MdPerson,
-  MdEdit,
-  MdCloudUpload,
-} from "react-icons/md";
-import { FaViber, FaFacebook, FaInstagram, FaTiktok, FaYoutube, FaGlobe } from "react-icons/fa";
-
-/* =========================================================
-   Helpers
-========================================================= */
-
-// Helper za konverziju SVG Stringa u Blob (Sliku)
-const svgStringToBlob = (svgString) => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    
-    // Dodajemo xmlns i dimenzije ako fale
-    let stringToLoad = svgString;
-    if (!stringToLoad.includes("xmlns")) {
-        stringToLoad = stringToLoad.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
-    }
-    // Ako nema width/height, dodajemo ih da canvas zna dimenzije
-    if (!stringToLoad.includes("width=")) {
-         stringToLoad = stringToLoad.replace("<svg", '<svg width="500" height="500"');
-    }
-
-    const svgBlob = new Blob([stringToLoad], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 500;
-      canvas.height = 500;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, 500, 500);
-
-      canvas.toBlob((blob) => {
-        resolve(blob);
-        URL.revokeObjectURL(url);
-      }, "image/png");
-    };
-    img.src = url;
-  });
-};
-
-function payloadFromServer(s) {
-  return {
-    avatar_id: s.avatar_id || "lmx-01",
-    show_phone: s.show_phone ?? true,
-    show_email: s.show_email ?? true,
-    show_whatsapp: s.show_whatsapp ?? false,
-    show_viber: s.show_viber ?? false,
-    whatsapp_number: s.whatsapp_number || "",
-    viber_number: s.viber_number || "",
-    preferred_contact_method: s.preferred_contact_method || "message",
-    business_hours: normalizeBusinessHours(s.business_hours),
-    response_time: s.response_time || "auto",
-    accepts_offers: s.accepts_offers ?? true,
-    auto_reply_enabled: s.auto_reply_enabled ?? false,
-    auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
-    vacation_mode: s.vacation_mode ?? false,
-    vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
-    business_description: s.business_description || "",
-    return_policy: s.return_policy || "",
-    shipping_info: s.shipping_info || "",
-    social_facebook: s.social_facebook || "",
-    social_instagram: s.social_instagram || "",
-    social_tiktok: s.social_tiktok || "",
-    social_youtube: s.social_youtube || "",
-    social_website: s.social_website || "",
-  };
-}
+/* -----------------------------
+  Helpers
+----------------------------- */
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_LABEL = {
+  monday: "Ponedjeljak",
+  tuesday: "Utorak",
+  wednesday: "Srijeda",
+  thursday: "Četvrtak",
+  friday: "Petak",
+  saturday: "Subota",
+  sunday: "Nedjelja",
+};
 
 const defaultBusinessHours = {
   monday: { open: "09:00", close: "17:00", enabled: true },
@@ -130,9 +66,8 @@ function normalizeBusinessHours(raw) {
       obj = null;
     }
   }
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
-    obj = {};
-  }
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) obj = {};
+
   const out = {};
   for (const day of DAYS) {
     const base = defaultBusinessHours[day];
@@ -146,106 +81,166 @@ function normalizeBusinessHours(raw) {
   return out;
 }
 
-// Lista dostupnih avatara (Marketplace tema - imena odgovaraju switch-u u LmxAvatarSvg)
-const AVATARS = [
-  { id: "lmx-01", name: "Shop" },
-  { id: "lmx-02", name: "Rocket" },
-  { id: "lmx-03", name: "Tag" },
-  { id: "lmx-04", name: "Gem" },
-  { id: "lmx-05", name: "Bolt" },
-  { id: "lmx-06", name: "Heart" },
-  { id: "lmx-07", name: "Star" },
-  { id: "lmx-08", name: "Box" },
-];
+function safeUrl(u) {
+  if (!u) return true;
+  try {
+    const value = u.startsWith("http") ? u : `https://${u}`;
+    // eslint-disable-next-line no-new
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-/* =========================================================
-   UI components
-========================================================= */
+function normalizePhone(p) {
+  return (p || "").replace(/\s+/g, "").trim();
+}
 
-const SettingsSection = ({ icon: Icon, title, description, children, defaultOpen = true, badge = null }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+function stableStringify(value) {
+  const seen = new WeakSet();
+  const sorter = (v) => {
+    if (v && typeof v === "object") {
+      if (seen.has(v)) return v;
+      seen.add(v);
+      if (Array.isArray(v)) return v.map(sorter);
+      const out = {};
+      for (const k of Object.keys(v).sort()) out[k] = sorter(v[k]);
+      return out;
+    }
+    return v;
+  };
+  return JSON.stringify(sorter(value));
+}
+
+const ShakerStyles = () => (
+  <style jsx global>{`
+    @keyframes shake {
+      0% {
+        transform: translateX(0);
+      }
+      20% {
+        transform: translateX(-4px);
+      }
+      40% {
+        transform: translateX(4px);
+      }
+      60% {
+        transform: translateX(-3px);
+      }
+      80% {
+        transform: translateX(3px);
+      }
+      100% {
+        transform: translateX(0);
+      }
+    }
+    .shake {
+      animation: shake 260ms ease-in-out;
+    }
+  `}</style>
+);
+
+/* -----------------------------
+  Pretty UI blocks
+----------------------------- */
+
+const Card = ({ className, children }) => (
+  <div
+    className={cn(
+      "rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900",
+      "shadow-sm hover:shadow-md transition-shadow",
+      className
+    )}
+  >
+    {children}
+  </div>
+);
+
+const CardHeader = ({ icon: Icon, title, subtitle, right }) => (
+  <div className="px-5 sm:px-6 pt-5 sm:pt-6 flex items-start justify-between gap-4">
+    <div className="flex items-start gap-3">
+      {Icon ? (
+        <div className="shrink-0 w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center">
+          <Icon className="text-lg" />
+        </div>
+      ) : null}
+      <div>
+        <div className="text-base font-semibold text-slate-900 dark:text-white">{title}</div>
+        {subtitle ? <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</div> : null}
+      </div>
+    </div>
+    {right ? <div className="shrink-0">{right}</div> : null}
+  </div>
+);
+
+const CardBody = ({ children }) => <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-4">{children}</div>;
+
+const ToggleRow = ({ title, desc, checked, onCheckedChange, icon: Icon }) => (
+  <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+    <div className="min-w-0">
+      <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+        {Icon ? <Icon className="text-lg" /> : null}
+        {title}
+      </div>
+      {desc ? <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{desc}</div> : null}
+    </div>
+    <Switch checked={checked} onCheckedChange={onCheckedChange} />
+  </div>
+);
+
+const Segmented = ({ value, onChange, options }) => (
+  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    {options.map((o) => {
+      const active = value === o.value;
+      return (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "h-11 rounded-2xl border px-4 text-sm font-semibold transition",
+            active
+              ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 shadow-sm"
+              : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+          )}
+        >
+          {o.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const Disclosure = ({ title, icon: Icon, children, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+    <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-4 sm:px-5 py-4 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
-            <Icon className="text-primary text-xl" />
-          </div>
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-800">{title}</h3>
-              {badge && (
-                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
-                  {badge}
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-slate-500">{description}</p>
-          </div>
-        </div>
-        {isOpen ? <MdExpandLess className="text-2xl text-slate-400" /> : <MdExpandMore className="text-2xl text-slate-400" />}
+        <span className="inline-flex items-center gap-3">
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+            <Icon className="text-lg" />
+          </span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
+        </span>
+        <FiChevronDown className={cn("text-lg text-slate-500 transition-transform", open && "rotate-180")} />
       </button>
 
-      {isOpen && (
-        <div className="px-5 pb-5 border-t border-slate-100">
-          <div className="pt-5 space-y-5">{children}</div>
-        </div>
-      )}
+      <div className={cn("grid transition-all duration-300", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+        <div className="overflow-hidden px-4 sm:px-5 pb-5">{children}</div>
+      </div>
     </div>
   );
 };
 
-const SettingSwitch = ({ label, description, checked, onChange, icon: Icon, disabled = false }) => (
-  <div
-    className={cn(
-      "flex items-start justify-between gap-4 p-4 rounded-xl transition-colors",
-      checked ? "bg-green-50/50 border border-green-100" : "bg-slate-50/50 border border-slate-100",
-      disabled && "opacity-50"
-    )}
-  >
-    <div className="flex items-start gap-3">
-      {Icon && (
-        <div className={cn("p-2 rounded-lg mt-0.5", checked ? "bg-green-100 text-green-600" : "bg-slate-200 text-slate-500")}>
-          <Icon className="text-lg" />
-        </div>
-      )}
-      <div>
-        <p className="font-medium text-slate-800">{label}</p>
-        {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
-      </div>
-    </div>
-    <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} className="flex-shrink-0" />
-  </div>
-);
 
-const SettingInput = ({ label, placeholder, value, onChange, icon: Icon, type = "text", disabled = false }) => (
-  <div className="space-y-2">
-    <Label className="text-sm font-medium text-slate-700">{label}</Label>
-    <div className="relative">
-      {Icon && (
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-          <Icon className="text-lg" />
-        </div>
-      )}
-      <Input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className={cn("h-11", Icon && "pl-10")}
-      />
-    </div>
-  </div>
-);
-
-/* =========================================================
-   Main Component
-========================================================= */
+/* -----------------------------
+  Main Component
+----------------------------- */
 
 const SellerSettings = () => {
   const dispatch = useDispatch();
@@ -255,72 +250,83 @@ const SellerSettings = () => {
   const [loadError, setLoadError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Avatar states
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [shakeTick, setShakeTick] = useState(0);
+
+  // Avatar upload / generator
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
 
-  const initialPayloadRef = useRef(null);
-  const [hasChanges, setHasChanges] = useState(false);
-
-  // Settings states
-  const [avatarId, setAvatarId] = useState("lmx-01");
+  // Form state
   const [showPhone, setShowPhone] = useState(true);
   const [showEmail, setShowEmail] = useState(true);
   const [showWhatsapp, setShowWhatsapp] = useState(false);
   const [showViber, setShowViber] = useState(false);
+
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [viberNumber, setViberNumber] = useState("");
+
   const [preferredContact, setPreferredContact] = useState("message");
+
   const [businessHours, setBusinessHours] = useState(defaultBusinessHours);
   const [responseTime, setResponseTime] = useState("auto");
+
   const [acceptsOffers, setAcceptsOffers] = useState(true);
+
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [autoReplyMessage, setAutoReplyMessage] = useState("Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
+
   const [vacationMode, setVacationMode] = useState(false);
   const [vacationMessage, setVacationMessage] = useState("Trenutno sam na odmoru. Vratit ću se uskoro!");
+
   const [businessDescription, setBusinessDescription] = useState("");
   const [returnPolicy, setReturnPolicy] = useState("");
   const [shippingInfo, setShippingInfo] = useState("");
+
   const [socialFacebook, setSocialFacebook] = useState("");
   const [socialInstagram, setSocialInstagram] = useState("");
   const [socialTiktok, setSocialTiktok] = useState("");
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
+  // Preview mode
+  const [previewMode, setPreviewMode] = useState("desktop"); // desktop | mobile
 
-  // Sync previewImage kad se currentUser učita
+  const [activeTab, setActiveTab] = useState("profile");
+  const initialPayloadRef = useRef(null);
+  const undoBackupRef = useRef(null);
+
+  // Sync preview image with user
   useEffect(() => {
-    if (currentUser?.profile_image) {
-      setPreviewImage(currentUser.profile_image);
-    }
+    if (currentUser?.profile_image) setPreviewImage(currentUser.profile_image);
+    if (currentUser?.profile) setPreviewImage(currentUser.profile);
   }, [currentUser]);
 
-  const responseTimeOptions = useMemo(
+  const contactMethodOptions = useMemo(
     () => [
-      { value: "auto", label: "Automatski", desc: "Sistem će pratiti i prikazati vaše prosječno vrijeme", icon: MdAutoAwesome, highlight: true },
-      { value: "instant", label: "Odmah", desc: "Obično odgovaram za par minuta" },
-      { value: "few_hours", label: "Par sati", desc: "Odgovaram u roku od nekoliko sati" },
-      { value: "same_day", label: "Isti dan", desc: "Odgovaram u roku od 24 sata" },
-      { value: "few_days", label: "Par dana", desc: "Može potrajati nekoliko dana" },
+      { value: "message", label: "Poruka" },
+      { value: "phone", label: "Poziv" },
+      { value: "whatsapp", label: "WhatsApp" },
+      { value: "viber", label: "Viber" },
+      { value: "email", label: "Email" },
     ],
     []
   );
 
-  const contactMethodOptions = useMemo(
+  const responseTimeOptions = useMemo(
     () => [
-      { value: "message", label: "Poruka u aplikaciji", icon: MdMessage },
-      { value: "phone", label: "Telefonski poziv", icon: MdPhone },
-      { value: "whatsapp", label: "WhatsApp", icon: MdWhatsapp },
-      { value: "viber", label: "Viber", icon: FaViber },
-      { value: "email", label: "Email", icon: MdEmail },
+      { value: "auto", label: "Auto" },
+      { value: "instant", label: "Par minuta" },
+      { value: "few_hours", label: "Par sati" },
+      { value: "same_day", label: "24 sata" },
+      { value: "few_days", label: "Par dana" },
     ],
     []
   );
 
   const buildPayload = useCallback(() => {
     return {
-      avatar_id: avatarId,
       show_phone: showPhone,
       show_email: showEmail,
       show_whatsapp: showWhatsapp,
@@ -345,15 +351,68 @@ const SellerSettings = () => {
       social_website: socialWebsite,
     };
   }, [
-    avatarId,
-    showPhone, showEmail, showWhatsapp, showViber,
-    whatsappNumber, viberNumber, preferredContact,
-    businessHours, responseTime, acceptsOffers,
-    autoReplyEnabled, autoReplyMessage,
-    vacationMode, vacationMessage,
-    businessDescription, returnPolicy, shippingInfo,
-    socialFacebook, socialInstagram, socialTiktok, socialYoutube, socialWebsite
+    acceptsOffers,
+    autoReplyEnabled,
+    autoReplyMessage,
+    businessDescription,
+    businessHours,
+    preferredContact,
+    responseTime,
+    returnPolicy,
+    shippingInfo,
+    showEmail,
+    showPhone,
+    showViber,
+    showWhatsapp,
+    socialFacebook,
+    socialInstagram,
+    socialTiktok,
+    socialWebsite,
+    socialYoutube,
+    vacationMessage,
+    vacationMode,
+    viberNumber,
+    whatsappNumber,
   ]);
+
+  const hasChanges = useMemo(() => {
+    if (!initialPayloadRef.current) return false;
+    return stableStringify(buildPayload()) !== initialPayloadRef.current;
+  }, [buildPayload]);
+
+  // Validation
+  const errors = useMemo(() => {
+    const e = {};
+    if (showWhatsapp && normalizePhone(whatsappNumber).length < 6) e.whatsappNumber = "Unesite validan WhatsApp broj.";
+    if (showViber && normalizePhone(viberNumber).length < 6) e.viberNumber = "Unesite validan Viber broj.";
+
+    if (!safeUrl(socialFacebook)) e.socialFacebook = "Link nije validan.";
+    if (!safeUrl(socialInstagram)) e.socialInstagram = "Link nije validan.";
+    if (!safeUrl(socialTiktok)) e.socialTiktok = "Link nije validan.";
+    if (!safeUrl(socialYoutube)) e.socialYoutube = "Link nije validan.";
+    if (!safeUrl(socialWebsite)) e.socialWebsite = "Link nije validan.";
+
+    if (autoReplyEnabled && autoReplyMessage.trim().length < 3) e.autoReplyMessage = "Poruka je prekratka.";
+    if (vacationMode && vacationMessage.trim().length < 3) e.vacationMessage = "Poruka je prekratka.";
+
+    return e;
+  }, [
+    autoReplyEnabled,
+    autoReplyMessage,
+    showViber,
+    showWhatsapp,
+    socialFacebook,
+    socialInstagram,
+    socialTiktok,
+    socialWebsite,
+    socialYoutube,
+    vacationMessage,
+    vacationMode,
+    viberNumber,
+    whatsappNumber,
+  ]);
+
+  const isValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -365,38 +424,69 @@ const SellerSettings = () => {
       if (response?.data?.error === false && response?.data?.data) {
         const s = response.data.data;
 
-        setAvatarId(s.avatar_id || "lmx-01");
         setShowPhone(s.show_phone ?? true);
         setShowEmail(s.show_email ?? true);
         setShowWhatsapp(s.show_whatsapp ?? false);
         setShowViber(s.show_viber ?? false);
+
         setWhatsappNumber(s.whatsapp_number || "");
         setViberNumber(s.viber_number || "");
+
         setPreferredContact(s.preferred_contact_method || "message");
+
         setBusinessHours(normalizeBusinessHours(s.business_hours));
         setResponseTime(s.response_time || "auto");
+
         setAcceptsOffers(s.accepts_offers ?? true);
+
         setAutoReplyEnabled(s.auto_reply_enabled ?? false);
         setAutoReplyMessage(s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
+
         setVacationMode(s.vacation_mode ?? false);
         setVacationMessage(s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!");
+
         setBusinessDescription(s.business_description || "");
         setReturnPolicy(s.return_policy || "");
         setShippingInfo(s.shipping_info || "");
+
         setSocialFacebook(s.social_facebook || "");
         setSocialInstagram(s.social_instagram || "");
         setSocialTiktok(s.social_tiktok || "");
         setSocialYoutube(s.social_youtube || "");
         setSocialWebsite(s.social_website || "");
 
-        initialPayloadRef.current = JSON.stringify(payloadFromServer(s));
-        setHasChanges(false);
+        const payloadStable = stableStringify({
+          show_phone: s.show_phone ?? true,
+          show_email: s.show_email ?? true,
+          show_whatsapp: s.show_whatsapp ?? false,
+          show_viber: s.show_viber ?? false,
+          whatsapp_number: s.whatsapp_number || "",
+          viber_number: s.viber_number || "",
+          preferred_contact_method: s.preferred_contact_method || "message",
+          business_hours: normalizeBusinessHours(s.business_hours),
+          response_time: s.response_time || "auto",
+          accepts_offers: s.accepts_offers ?? true,
+          auto_reply_enabled: s.auto_reply_enabled ?? false,
+          auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
+          vacation_mode: s.vacation_mode ?? false,
+          vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
+          business_description: s.business_description || "",
+          return_policy: s.return_policy || "",
+          shipping_info: s.shipping_info || "",
+          social_facebook: s.social_facebook || "",
+          social_instagram: s.social_instagram || "",
+          social_tiktok: s.social_tiktok || "",
+          social_youtube: s.social_youtube || "",
+          social_website: s.social_website || "",
+        });
+
+        initialPayloadRef.current = payloadStable;
       } else {
         setLoadError(response?.data?.message || "Ne mogu dohvatiti postavke.");
       }
     } catch (error) {
-      setLoadError("Greška pri dohvaćanju postavki.");
       console.error(error);
+      setLoadError("Greška pri dohvaćanju postavki.");
     } finally {
       setIsLoading(false);
     }
@@ -406,38 +496,70 @@ const SellerSettings = () => {
     fetchSettings();
   }, [fetchSettings]);
 
-  useEffect(() => {
-    if (!initialPayloadRef.current) return;
-    const now = JSON.stringify(buildPayload());
-    setHasChanges(now !== initialPayloadRef.current);
-  }, [buildPayload]);
-
   const handleSave = async () => {
+    setSubmitAttempted(true);
+
+    if (!isValid) {
+      setShakeTick((v) => v + 1);
+      toast.error("Provjeri polja prije čuvanja.");
+      return;
+    }
+    if (!hasChanges) return;
+
+    // prepare undo backup from last saved (initialPayloadRef)
+    try {
+      undoBackupRef.current = initialPayloadRef.current ? JSON.parse(initialPayloadRef.current) : null;
+    } catch {
+      undoBackupRef.current = null;
+    }
+
     try {
       setIsSaving(true);
       const payload = buildPayload();
       const response = await sellerSettingsApi.updateSettings(payload);
 
       if (response?.data?.error === false) {
-        toast.success("Postavke su uspješno sačuvane!");
-        initialPayloadRef.current = JSON.stringify(payload);
-        setHasChanges(false);
+        initialPayloadRef.current = stableStringify(payload);
+
+        toast.success("Sačuvano.", {
+          action: undoBackupRef.current
+            ? {
+                label: "Undo",
+                onClick: async () => {
+                  try {
+                    const backup = undoBackupRef.current;
+                    if (!backup) return;
+
+                    await sellerSettingsApi.updateSettings(backup);
+                    toast.message("Vraćeno na prethodno.");
+                    await fetchSettings();
+                  } catch (e) {
+                    console.error(e);
+                    toast.error("Ne mogu vratiti.");
+                  }
+                },
+              }
+            : undefined,
+        });
       } else {
         toast.error(response?.data?.message || "Greška pri čuvanju postavki");
       }
     } catch (error) {
-      toast.error("Greška pri čuvanju postavki");
       console.error(error);
+      toast.error("Greška pri čuvanju postavki");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // --- FUNKCIJA ZA AŽURIRANJE SLIKE (Generator + Upload + Ikone) ---
+  const handleReset = async () => {
+    await fetchSettings();
+    toast.message("Vraćeno na zadnje sačuvano.");
+  };
+
   const updateProfileImage = async (fileOrBlob) => {
     if (!fileOrBlob) return;
 
-    // Instant Preview
     const objectUrl = URL.createObjectURL(fileOrBlob);
     setPreviewImage(objectUrl);
 
@@ -465,548 +587,455 @@ const SellerSettings = () => {
       toast.error("Došlo je do greške pri uploadu.");
     } finally {
       setIsAvatarUploading(false);
+      try {
+        URL.revokeObjectURL(objectUrl);
+      } catch {}
     }
   };
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      updateProfileImage(file);
-    }
+    if (file) updateProfileImage(file);
   };
 
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+  const triggerFileInput = () => fileInputRef.current?.click();
+
+  // Business hours helpers
+  const setDay = (day, patch) => {
+    setBusinessHours((prev) => ({ ...prev, [day]: { ...prev[day], ...patch } }));
   };
 
-  // --- GLAVNA LOGIKA: PRETVARANJE UVEZENE KOMPONENTE U SLIKU ---
-  const handleDefaultIconSelect = async (id) => {
-    setAvatarId(id);
-
-    // 1. Renderujemo UVEZENU React komponentu u statički HTML string
-    // Ovo osigurava da je slika identična onome što se vidi na ekranu
-    const svgString = renderToStaticMarkup(<LmxAvatarSvg avatarId={id} />);
-
-    // 2. Konvertujemo u sliku i šaljemo
-    const blob = await svgStringToBlob(svgString);
-    updateProfileImage(blob);
+  const copyWeekdays = () => {
+    setBusinessHours((prev) => {
+      const base = prev.monday;
+      return {
+        ...prev,
+        tuesday: { ...prev.tuesday, open: base.open, close: base.close, enabled: base.enabled },
+        wednesday: { ...prev.wednesday, open: base.open, close: base.close, enabled: base.enabled },
+        thursday: { ...prev.thursday, open: base.open, close: base.close, enabled: base.enabled },
+        friday: { ...prev.friday, open: base.open, close: base.close, enabled: base.enabled },
+      };
+    });
+    toast.message("Kopirano.");
   };
+
+  const isPro = Boolean(currentUser?.is_pro ?? currentUser?.isPro);
+  const isShop = Boolean(currentUser?.is_shop ?? currentUser?.isShop);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-10 h-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="py-10">
+        <SellerPreviewSkeleton />
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="space-y-4">
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-          <p className="font-semibold">Ne mogu učitati Seller Settings</p>
-          <p className="text-sm mt-1">{loadError}</p>
-        </div>
-        <Button onClick={fetchSettings} variant="outline">
-          Pokušaj ponovo
+      <Card className="p-6">
+        <div className="text-base font-semibold text-slate-900 dark:text-white">Ne mogu učitati postavke</div>
+        <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{loadError}</div>
+        <Button onClick={fetchSettings} variant="outline" className="mt-4 gap-2 rounded-2xl">
+          <FiRefreshCw /> Pokušaj ponovo
         </Button>
-      </div>
+      </Card>
     );
   }
 
+  const previewSeller = {
+    ...currentUser,
+    profile: previewImage || currentUser?.profile_image || currentUser?.profile,
+  };
+
+  const previewSettings = buildPayload();
+
+  const saveDisabledReason = !isValid
+    ? "Provjeri greške (npr. WhatsApp broj)."
+    : !hasChanges
+    ? "Nema promjena."
+    : null;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="relative">
+      <ShakerStyles />
+
+      {/* top bar */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Postavke prodavača</h2>
-          <p className="text-slate-500 mt-1">Prilagodite kako kupci kontaktiraju i vide vaš profil</p>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Postavke prodavača</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Preview desno se ažurira odmah.
+          </p>
         </div>
 
-        {hasChanges && (
-          <Button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2">
-            {isSaving ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <MdSave className="text-lg" />
-            )}
-            <span>Sačuvaj</span>
-          </Button>
-        )}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <Button onClick={handleReset} variant="outline" disabled={isSaving || isAvatarUploading} className="gap-2 rounded-2xl">
+              <FiRefreshCw /> Reset
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving || isAvatarUploading || !hasChanges || !isValid} className="gap-2 rounded-2xl">
+              {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FiSave />}
+              Sačuvaj
+            </Button>
+          </div>
+
+          {saveDisabledReason ? <div className="text-xs text-slate-500 dark:text-slate-400">{saveDisabledReason}</div> : null}
+        </div>
       </div>
 
-      {/* Vacation Mode Alert */}
-      {vacationMode && (
-        <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <MdBeachAccess className="text-2xl text-amber-600 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="font-medium text-amber-800">Vacation mode je aktivan</p>
-            <p className="text-sm text-amber-600">Kupci će vidjeti poruku da ste na odmoru</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setVacationMode(false)} className="border-amber-300 text-amber-700 hover:bg-amber-100">
-            Isključi
-          </Button>
-        </div>
-      )}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_460px] gap-6 items-start">
+        {/* LEFT */}
+        <div className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 h-auto bg-transparent p-0">
+              <TabsTrigger value="profile" className="py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                Profil
+              </TabsTrigger>
+              <TabsTrigger value="contact" className="py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                Kontakt
+              </TabsTrigger>
+              <TabsTrigger value="availability" className="py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                Dostupnost
+              </TabsTrigger>
+              <TabsTrigger value="policies" className="py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                Info
+              </TabsTrigger>
+            </TabsList>
 
-      {/* SEKCIJA: Avatar & Izgled */}
-      <SettingsSection
-        icon={MdPerson}
-        title="Avatar & Izgled"
-        description="Izaberite sliku s uređaja ili kreirajte jedinstveni avatar"
-      >
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Lijeva strana: Trenutni prikaz i Dugmad */}
-          <div className="flex flex-col gap-4 items-center p-6 bg-slate-50 rounded-xl border border-slate-100 min-w-[200px]">
-            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
-              {/* Prioritet: Preview Image (Nova) -> Current User Image (Stara) -> Fallback SVG */}
-              {previewImage ? (
-                <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-primary/20">
-                  {/* Prikazujemo UVEZENU komponentu kao fallback */}
-                  <LmxAvatarSvg avatarId={avatarId} className="w-24 h-24" />
-                </div>
-              )}
-            </div>
+            <TabsContent value="profile" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader icon={FiImage} title="Profilna slika" subtitle="Avatar i verified izgledaju premium." />
+                <CardBody>
+                  <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5 items-start">
+                    <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 p-4">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="relative w-24 h-24 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                          {previewImage ? (
+                            <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">Nema slike</div>
+                          )}
+                        </div>
 
-            <div className="w-full space-y-2">
-              {/* INPUT TYPE FILE (Skriven) */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileUpload}
-              />
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
-              {/* DUGME 1: Upload Slike */}
-              <Button
-                onClick={triggerFileInput}
-                variant="outline"
-                className="w-full gap-2 border-primary/20 text-primary hover:bg-primary/5"
-                disabled={isAvatarUploading}
-              >
-                <MdCloudUpload size={18} /> Odaberi sliku
-              </Button>
+                        <Button onClick={triggerFileInput} variant="outline" className="w-full gap-2 rounded-2xl" disabled={isAvatarUploading}>
+                          Upload
+                        </Button>
 
-              {/* DUGME 2: Avatar Generator */}
-              <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full gap-2 bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all">
-                    <MdEdit size={16} /> Kreiraj Svoj Avatar
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none">
-                  <LmxAvatarGenerator
-                    onSave={updateProfileImage}
-                    onCancel={() => setIsAvatarModalOpen(false)}
-                    isSaving={isAvatarUploading}
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-
-          {/* Desna strana: Fallback opcije (Ikone) */}
-          <div className="flex-1 space-y-4">
-            <div>
-              <Label className="text-sm font-medium text-slate-700 mb-2 block">Brzi izbor (Ikone)</Label>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                {AVATARS.map((a) => {
-                  const selected = a.id === avatarId;
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => handleDefaultIconSelect(a.id)}
-                      className={cn(
-                        "aspect-square rounded-xl border bg-white flex items-center justify-center transition-all p-1",
-                        selected
-                          ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                          : "border-slate-200 hover:border-slate-300"
-                      )}
-                      title={a.name}
-                    >
-                      <div className="w-full h-full">
-                        {/* Prikazujemo UVEZENU komponentu u gridu */}
-                        <LmxAvatarSvg avatarId={a.id} className="w-full h-full" />
+                        <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                          <DialogTrigger asChild>
+                            <Button className="w-full gap-2 rounded-2xl" disabled={isAvatarUploading}>
+                              Avatar studio
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none">
+                            <LmxAvatarGenerator onSave={updateProfileImage} onCancel={() => setIsAvatarModalOpen(false)} isSaving={isAvatarUploading} />
+                          </DialogContent>
+                        </Dialog>
                       </div>
-                    </button>
-                  );
-                })}
+                    </div>
+
+                    <div className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                      Preview desno je identičan kartici na stranici proizvoda (layout + akcije). Customizer ispod utiče samo na preview.
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="contact" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader icon={FiPhone} title="Kontakt opcije" subtitle="Kontroliši šta je vidljivo na kartici." />
+                <CardBody>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <ToggleRow title="Telefon" desc="Prikaži broj" icon={FiPhone} checked={showPhone} onCheckedChange={setShowPhone} />
+                    <ToggleRow title="Email" desc="Prikaži email" icon={FiMail} checked={showEmail} onCheckedChange={setShowEmail} />
+
+                    <ToggleRow title="WhatsApp" desc="Dugme u kontaktima" checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
+                    <ToggleRow title="Viber" desc="Dugme u kontaktima" checked={showViber} onCheckedChange={setShowViber} />
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">WhatsApp broj</Label>
+                      <Input
+                        key={`wa-${shakeTick}`}
+                        className={cn(
+                          "h-11 mt-2 rounded-2xl",
+                          submitAttempted && errors.whatsappNumber ? "border-red-300 dark:border-red-700 shake" : ""
+                        )}
+                        placeholder="+38761234567"
+                        value={whatsappNumber}
+                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                        disabled={!showWhatsapp}
+                      />
+                      {errors.whatsappNumber ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.whatsappNumber}</div> : null}
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Viber broj</Label>
+                      <Input
+                        key={`vb-${shakeTick}`}
+                        className={cn(
+                          "h-11 mt-2 rounded-2xl",
+                          submitAttempted && errors.viberNumber ? "border-red-300 dark:border-red-700 shake" : ""
+                        )}
+                        placeholder="+38761234567"
+                        value={viberNumber}
+                        onChange={(e) => setViberNumber(e.target.value)}
+                        disabled={!showViber}
+                      />
+                      {errors.viberNumber ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.viberNumber}</div> : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Preferirani kontakt</Label>
+                    <div className="mt-3">
+                      <Segmented value={preferredContact} onChange={setPreferredContact} options={contactMethodOptions} />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="availability" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader icon={FiClock} title="Vrijeme odgovora" subtitle="Na kartici se prikazuje kao “Odgovara: …”." />
+                <CardBody>
+                  <Segmented value={responseTime} onChange={setResponseTime} options={responseTimeOptions} />
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader
+                  icon={FiClock}
+                  title="Radno vrijeme"
+                  subtitle="Kupci vide status (Otvoreno/Zatvoreno) kada si Shop."
+                  right={
+                    <Button variant="outline" size="sm" className="gap-2 rounded-2xl" onClick={copyWeekdays} type="button">
+                      <FiRefreshCw /> Kopiraj radne dane
+                    </Button>
+                  }
+                />
+                <CardBody>
+                  <Disclosure title="Uredi radno vrijeme" icon={FiClock}>
+                    <div className="space-y-2">
+                      {DAYS.map((day) => {
+                        const d = businessHours[day];
+                        return (
+                          <div key={day} className="rounded-2xl border border-slate-200 dark:border-slate-800 p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-slate-900 dark:text-white">{DAY_LABEL[day]}</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">{d.enabled ? `${d.open}–${d.close}` : "Zatvoreno"}</div>
+                              </div>
+                              <Switch checked={d.enabled} onCheckedChange={(v) => setDay(day, { enabled: v })} />
+                            </div>
+
+                            {d.enabled ? (
+                              <div className="mt-3 grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-300">Od</Label>
+                                  <Input type="time" className="h-10 mt-1 rounded-2xl" value={d.open} onChange={(e) => setDay(day, { open: e.target.value })} />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-slate-600 dark:text-slate-300">Do</Label>
+                                  <Input type="time" className="h-10 mt-1 rounded-2xl" value={d.close} onChange={(e) => setDay(day, { close: e.target.value })} />
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Disclosure>
+
+                  <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">Automatski odgovor</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">Pošalji kratku poruku odmah.</div>
+                      </div>
+                      <Switch checked={autoReplyEnabled} onCheckedChange={setAutoReplyEnabled} />
+                    </div>
+
+                    <div className={cn("grid transition-all duration-300", autoReplyEnabled ? "grid-rows-[1fr] mt-3" : "grid-rows-[0fr]")}>
+                      <div className="overflow-hidden">
+                        <Textarea className="resize-none rounded-2xl" rows={3} maxLength={300} value={autoReplyMessage} onChange={(e) => setAutoReplyMessage(e.target.value)} />
+                        <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                          <span>{errors.autoReplyMessage ? <span className="text-red-600 dark:text-red-400">{errors.autoReplyMessage}</span> : null}</span>
+                          <span>{autoReplyMessage.length}/300</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">Vacation mode</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">Poruka kupcima u chatu (nije na kartici).</div>
+                      </div>
+                      <Switch checked={vacationMode} onCheckedChange={setVacationMode} />
+                    </div>
+
+                    <div className={cn("grid transition-all duration-300", vacationMode ? "grid-rows-[1fr] mt-3" : "grid-rows-[0fr]")}>
+                      <div className="overflow-hidden">
+                        <Textarea className="resize-none rounded-2xl" rows={2} maxLength={200} value={vacationMessage} onChange={(e) => setVacationMessage(e.target.value)} />
+                        {errors.vacationMessage ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.vacationMessage}</div> : null}
+                      </div>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="policies" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader
+                  icon={FiSliders}
+                  title="Ponude"
+                  subtitle="Da li kupci mogu slati ponude."
+                  right={<Switch checked={acceptsOffers} onCheckedChange={setAcceptsOffers} />}
+                />
+                <div className="h-3" />
+              </Card>
+
+              <Card>
+                <CardHeader icon={FiSliders} title="Opis" subtitle="Kratko o tebi / poslovanju." />
+                <CardBody>
+                  <Textarea className="resize-none rounded-2xl" rows={4} maxLength={500} value={businessDescription} onChange={(e) => setBusinessDescription(e.target.value)} />
+                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 text-right">{businessDescription.length}/500</div>
+                </CardBody>
+              </Card>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader icon={FiSliders} title="Politika povrata" />
+                  <CardBody>
+                    <Textarea className="resize-none rounded-2xl" rows={3} maxLength={300} value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} />
+                  </CardBody>
+                </Card>
+
+                <Card>
+                  <CardHeader icon={FiSliders} title="Dostava" />
+                  <CardBody>
+                    <Textarea className="resize-none rounded-2xl" rows={3} maxLength={300} value={shippingInfo} onChange={(e) => setShippingInfo(e.target.value)} />
+                  </CardBody>
+                </Card>
               </div>
-            </div>
-            <div className="p-3 bg-blue-50 text-blue-700 text-sm rounded-lg border border-blue-100 flex gap-2">
-              <MdInfo className="text-lg flex-shrink-0 mt-0.5" />
-              <p>
-                Bilo da izaberete sliku, kreirate avatar ili kliknete na jedan od gotovih avatara – vaša profilna slika
-                će se ažurirati na cijelom sajtu.
-              </p>
-            </div>
-          </div>
+
+              <Card>
+                <CardHeader icon={FiSliders} title="Društvene mreže" subtitle="Opcionalno." />
+                <CardBody>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Facebook</Label>
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="https://facebook.com/..." />
+                      {errors.socialFacebook ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialFacebook}</div> : null}
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Instagram</Label>
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="https://instagram.com/..." />
+                      {errors.socialInstagram ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialInstagram}</div> : null}
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">TikTok</Label>
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="https://tiktok.com/@..." />
+                      {errors.socialTiktok ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialTiktok}</div> : null}
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">YouTube</Label>
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialYoutube} onChange={(e) => setSocialYoutube(e.target.value)} placeholder="https://youtube.com/..." />
+                      {errors.socialYoutube ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialYoutube}</div> : null}
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Website</Label>
+                      <Input className="h-11 mt-2 rounded-2xl" value={socialWebsite} onChange={(e) => setSocialWebsite(e.target.value)} placeholder="https://..." />
+                      {errors.socialWebsite ? <div className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.socialWebsite}</div> : null}
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
-      </SettingsSection>
 
-      {/* SEKCIJA 1: Kontakt opcije */}
-      <SettingsSection
-        icon={MdContactPhone}
-        title="Kontakt opcije"
-        description="Kontrolirajte kako vas kupci mogu kontaktirati"
-      >
-        <SettingSwitch
-          icon={MdPhone}
-          label="Prikaži broj telefona"
-          description="Kupci mogu vidjeti vaš broj telefona na oglasima"
-          checked={showPhone}
-          onChange={setShowPhone}
-        />
-
-        <SettingSwitch
-          icon={MdEmail}
-          label="Prikaži email"
-          description="Kupci mogu vidjeti vašu email adresu"
-          checked={showEmail}
-          onChange={setShowEmail}
-        />
-
-        <SettingSwitch
-          icon={MdWhatsapp}
-          label="WhatsApp kontakt"
-          description="Omogući kontakt putem WhatsApp-a"
-          checked={showWhatsapp}
-          onChange={setShowWhatsapp}
-        />
-
-        {showWhatsapp && (
-          <div className="ml-11">
-            <SettingInput
-              label="WhatsApp broj"
-              placeholder="+387 61 234 567"
-              value={whatsappNumber}
-              onChange={setWhatsappNumber}
-              icon={MdWhatsapp}
-            />
-          </div>
-        )}
-
-        <SettingSwitch
-          icon={FaViber}
-          label="Viber kontakt"
-          description="Omogući kontakt putem Viber-a"
-          checked={showViber}
-          onChange={setShowViber}
-        />
-
-        {showViber && (
-          <div className="ml-11">
-            <SettingInput
-              label="Viber broj"
-              placeholder="+387 61 234 567"
-              value={viberNumber}
-              onChange={setViberNumber}
-              icon={FaViber}
-            />
-          </div>
-        )}
-
-        {/* Preferirani način kontakta */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium text-slate-700">Preferirani način kontakta</Label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {contactMethodOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setPreferredContact(option.value)}
-                className={cn(
-                  "flex items-center gap-2 p-3 rounded-xl border transition-all text-sm font-medium",
-                  preferredContact === option.value
-                    ? "bg-primary/10 border-primary text-primary"
-                    : "bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300"
-                )}
-              >
-                <option.icon className="text-lg" />
-                <span>{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </SettingsSection>
-
-      {/* SEKCIJA 2: Vrijeme odgovora */}
-      <SettingsSection
-        icon={MdSchedule}
-        title="Vrijeme odgovora"
-        description="Postavite očekivano vrijeme odgovora na poruke"
-      >
-        <div className="space-y-3">
-          <Label className="text-sm font-medium text-slate-700">Koliko brzo obično odgovarate?</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {responseTimeOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setResponseTime(option.value)}
-                className={cn(
-                  "flex flex-col items-start p-4 rounded-xl border transition-all text-left",
-                  responseTime === option.value
-                    ? option.highlight
-                      ? "bg-purple-50 border-purple-300"
-                      : "bg-green-50 border-green-300"
-                    : "bg-slate-50 border-slate-200 hover:border-slate-300",
-                  option.highlight && responseTime !== option.value && "border-dashed"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  {option.icon && (
-                    <option.icon
-                      className={cn(
-                        "text-lg",
-                        responseTime === option.value
-                          ? option.highlight
-                            ? "text-purple-600"
-                            : "text-green-600"
-                          : "text-slate-400"
-                      )}
-                    />
-                  )}
-                  <span
+        {/* RIGHT: preview */}
+        <div className="xl:sticky xl:top-6 space-y-4">
+          <Card>
+            <CardHeader
+              icon={FiEye}
+              title="Preview"
+              subtitle="Uživo prikaz kartice."
+              right={
+                <div className="inline-flex items-center rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("mobile")}
                     className={cn(
-                      "font-semibold",
-                      responseTime === option.value
-                        ? option.highlight
-                          ? "text-purple-700"
-                          : "text-green-700"
-                        : "text-slate-700"
+                      "px-3 py-2 text-sm font-semibold inline-flex items-center gap-2 transition",
+                      previewMode === "mobile"
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     )}
                   >
-                    {option.label}
-                  </span>
-                  {option.highlight && (
-                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[10px] font-bold rounded uppercase">
-                      Preporučeno
-                    </span>
-                  )}
+                    <FiSmartphone /> Mobile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode("desktop")}
+                    className={cn(
+                      "px-3 py-2 text-sm font-semibold inline-flex items-center gap-2 transition",
+                      previewMode === "desktop"
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    )}
+                  >
+                    <FiMonitor /> Desktop
+                  </button>
                 </div>
-                <span
-                  className={cn(
-                    "text-xs mt-1",
-                    responseTime === option.value
-                      ? option.highlight
-                        ? "text-purple-600"
-                        : "text-green-600"
-                      : "text-slate-500"
-                  )}
-                >
-                  {option.desc}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {responseTime === "auto" && (
-            <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-100 rounded-xl">
-              <MdInfo className="text-purple-500 text-lg flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-purple-700">
-                Sistem će automatski pratiti koliko brzo odgovarate na poruke i prikazati to kupcima.
-              </p>
-            </div>
-          )}
-        </div>
-      </SettingsSection>
-
-      {/* SEKCIJA 3: Ponude */}
-      <SettingsSection
-        icon={MdLocalOffer}
-        title="Ponude i pregovaranje"
-        description="Postavke za primanje ponuda od kupaca"
-      >
-        <SettingSwitch
-          icon={MdLocalOffer}
-          label="Prihvatam ponude"
-          description="Kupci mogu slati ponude za vaše oglase"
-          checked={acceptsOffers}
-          onChange={setAcceptsOffers}
-        />
-      </SettingsSection>
-
-      {/* SEKCIJA 4: Auto-reply */}
-      <SettingsSection
-        icon={MdAutorenew}
-        title="Automatski odgovori"
-        description="Automatski odgovarajte na nove poruke"
-        badge="Pro"
-      >
-        <SettingSwitch
-          icon={MdAutorenew}
-          label="Automatski odgovor"
-          description="Šalje automatsku poruku kada primite novu poruku"
-          checked={autoReplyEnabled}
-          onChange={setAutoReplyEnabled}
-        />
-
-        {autoReplyEnabled && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Poruka automatskog odgovora</Label>
-            <Textarea
-              value={autoReplyMessage}
-              onChange={(e) => setAutoReplyMessage(e.target.value)}
-              placeholder="Napišite poruku koja će se automatski slati..."
-              rows={3}
-              maxLength={300}
-              className="resize-none"
+              }
             />
-            <p className="text-xs text-slate-400 text-right">{autoReplyMessage.length}/300</p>
-          </div>
-        )}
-      </SettingsSection>
-
-      {/* SEKCIJA 5: Vacation mode */}
-      <SettingsSection
-        icon={MdBeachAccess}
-        title="Vacation mode"
-        description="Obavijestite kupce da ste privremeno nedostupni"
-      >
-        <SettingSwitch
-          icon={MdBeachAccess}
-          label="Vacation mode"
-          description="Aktivirajte kada ste na odmoru ili privremeno nedostupni"
-          checked={vacationMode}
-          onChange={setVacationMode}
-        />
-
-        {vacationMode && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Poruka za kupce</Label>
-            <Textarea
-              value={vacationMessage}
-              onChange={(e) => setVacationMessage(e.target.value)}
-              placeholder="Napišite poruku koju će kupci vidjeti..."
-              rows={2}
-              maxLength={200}
-              className="resize-none"
-            />
-          </div>
-        )}
-      </SettingsSection>
-
-      {/* SEKCIJA 6: Poslovne informacije */}
-      <SettingsSection
-        icon={MdStorefront}
-        title="Poslovne informacije"
-        description="Dodatne informacije o vašem poslovanju"
-        defaultOpen={false}
-      >
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-700">O meni / O mom poslovanju</Label>
-          <Textarea
-            value={businessDescription}
-            onChange={(e) => setBusinessDescription(e.target.value)}
-            placeholder="Opišite sebe ili svoje poslovanje..."
-            rows={4}
-            maxLength={500}
-            className="resize-none"
-          />
-          <p className="text-xs text-slate-400 text-right">{businessDescription.length}/500</p>
+            <CardBody>
+              <div
+                className={cn(
+                  "mx-auto",
+                  previewMode === "mobile"
+                    ? "max-w-[380px] rounded-[34px] bg-slate-100 dark:bg-slate-950 p-3"
+                    : "max-w-none"
+                )}
+              >
+                <SellerPreviewCard
+                  seller={previewSeller}
+                  sellerSettings={previewSettings}
+                  badges={currentUser?.badges || []}
+                  ratings={currentUser?.ratings || null}
+                  isPro={isPro}
+                  isShop={isShop}
+                  actionsDisabled
+                />
+              </div>
+            </CardBody>
+          </Card>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-700">
-            <div className="flex items-center gap-2">
-              <MdAssignmentReturn className="text-lg text-slate-500" />
-              <span>Politika povrata</span>
-            </div>
-          </Label>
-          <Textarea
-            value={returnPolicy}
-            onChange={(e) => setReturnPolicy(e.target.value)}
-            placeholder="Opišite vašu politiku povrata proizvoda..."
-            rows={3}
-            maxLength={300}
-            className="resize-none"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-700">
-            <div className="flex items-center gap-2">
-              <MdLocalShipping className="text-lg text-slate-500" />
-              <span>Informacije o dostavi</span>
-            </div>
-          </Label>
-          <Textarea
-            value={shippingInfo}
-            onChange={(e) => setShippingInfo(e.target.value)}
-            placeholder="Opišite opcije dostave koje nudite..."
-            rows={3}
-            maxLength={300}
-            className="resize-none"
-          />
-        </div>
-      </SettingsSection>
-
-      {/* SEKCIJA 7: Društvene mreže */}
-      <SettingsSection
-        icon={MdShare}
-        title="Društvene mreže"
-        description="Povežite vaše profile na društvenim mrežama"
-        defaultOpen={false}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SettingInput
-            label="Facebook"
-            placeholder="https://facebook.com/..."
-            value={socialFacebook}
-            onChange={setSocialFacebook}
-            icon={FaFacebook}
-          />
-          <SettingInput
-            label="Instagram"
-            placeholder="https://instagram.com/..."
-            value={socialInstagram}
-            onChange={setSocialInstagram}
-            icon={FaInstagram}
-          />
-          <SettingInput
-            label="TikTok"
-            placeholder="https://tiktok.com/@..."
-            value={socialTiktok}
-            onChange={setSocialTiktok}
-            icon={FaTiktok}
-          />
-          <SettingInput
-            label="YouTube"
-            placeholder="https://youtube.com/..."
-            value={socialYoutube}
-            onChange={setSocialYoutube}
-            icon={FaYoutube}
-          />
-          <SettingInput
-            label="Web stranica"
-            placeholder="https://..."
-            value={socialWebsite}
-            onChange={setSocialWebsite}
-            icon={FaGlobe}
-          />
-        </div>
-      </SettingsSection>
-
-      {/* Sticky Save Button (mobile) */}
-      {hasChanges && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-lg z-50 lg:hidden">
-          <Button onClick={handleSave} disabled={isSaving} className="w-full flex items-center justify-center gap-2">
-            {isSaving ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <MdSave className="text-lg" />
-            )}
-            <span>Sačuvaj promjene</span>
+      {/* Mobile bottom bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 backdrop-blur p-3">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="flex-1 gap-2 rounded-2xl" onClick={handleReset} disabled={isSaving || isAvatarUploading}>
+            <FiRefreshCw /> Reset
+          </Button>
+          <Button className="flex-1 gap-2 rounded-2xl" onClick={handleSave} disabled={isSaving || isAvatarUploading || !hasChanges || !isValid}>
+            {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FiSave />}
+            Sačuvaj
           </Button>
         </div>
-      )}
+      </div>
+
+      <div className="sm:hidden h-16" />
     </div>
   );
 };

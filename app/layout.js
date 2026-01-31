@@ -3,6 +3,8 @@ import "./globals.css";
 import { Providers } from "@/redux/store/providers";
 import { Toaster } from "@/components/ui/sonner";
 
+import CompareFloatingBar from "@/components/Compare/CompareFloatingBar";
+
 // --- DARK MODE IMPORTI ---
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -55,6 +57,7 @@ export default function RootLayout({ children }) {
           {/* 2. Redux Providers */}
           <Providers>
             {children}
+            <CompareFloatingBar />
             <Toaster position="top-center" />
           </Providers>
 

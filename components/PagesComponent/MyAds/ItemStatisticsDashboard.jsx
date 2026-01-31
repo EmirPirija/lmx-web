@@ -17,7 +17,6 @@ import {
   IoStatsChartOutline,
   IoTimeOutline,
   IoLocationOutline,
-  IoChevronDown,
   IoInformationCircleOutline,
   IoRefreshOutline,
   IoCalendarOutline,
@@ -51,7 +50,16 @@ const COLORS = {
   cyan: "#06b6d4",
 };
 
-const PIE_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16"];
+const PIE_COLORS = [
+  "#3b82f6",
+  "#8b5cf6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#06b6d4",
+  "#ec4899",
+  "#84cc16",
+];
 
 // ============================================
 // HELPERS
@@ -71,13 +79,35 @@ const formatDuration = (seconds) => {
 };
 
 // ============================================
+// BENTO BOX COMPONENT (NOVI DIZAJN OKVIRA)
+// ============================================
+const BentoBox = ({ title, icon: Icon, children, className }) => (
+  <div
+    className={`bg-white rounded-3xl border border-slate-100 shadow-sm p-6 ${className}`}
+  >
+    <div className="flex items-center gap-3 mb-6">
+      <div className="p-2.5 bg-blue-50 rounded-2xl text-blue-600">
+        <Icon size={20} />
+      </div>
+      <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+    </div>
+    {children}
+  </div>
+);
+
+// ============================================
 // SHIMMER SKELETON
 // ============================================
 const ShimmerSkeleton = ({ className }) => (
-  <div className={`relative overflow-hidden bg-slate-100 rounded-xl ${className}`}>
+  <div
+    className={`relative overflow-hidden bg-slate-100 rounded-xl ${className}`}
+  >
     <div
       className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
-      style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
+      style={{
+        background:
+          "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)",
+      }}
     />
   </div>
 );
@@ -93,9 +123,14 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p className="text-sm font-medium text-slate-700 mb-2">{label}</p>
       {payload.map((entry, index) => (
         <div key={index} className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+          <div
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
           <span className="text-sm text-slate-500">{entry.name}:</span>
-          <span className="text-sm font-semibold text-slate-800">{formatNumber(entry.value)}</span>
+          <span className="text-sm font-semibold text-slate-800">
+            {formatNumber(entry.value)}
+          </span>
         </div>
       ))}
     </div>
@@ -103,70 +138,96 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 // ============================================
-// STAT CARD
+// STAT CARD (NOVI HERO DIZAJN)
 // ============================================
-const StatCard = ({ icon: Icon, label, value, subValue, trend, trendLabel, color = "blue", tooltip, large = false }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-
-  const colorConfig = {
-    blue: { bg: "bg-blue-50", icon: "text-blue-600" },
-    green: { bg: "bg-emerald-50", icon: "text-emerald-600" },
-    purple: { bg: "bg-purple-50", icon: "text-purple-600" },
-    orange: { bg: "bg-orange-50", icon: "text-orange-600" },
-    red: { bg: "bg-red-50", icon: "text-red-600" },
-    cyan: { bg: "bg-cyan-50", icon: "text-cyan-600" },
+const StatCard = ({
+  icon: Icon,
+  label,
+  value,
+  subValue,
+  trend,
+  color = "blue",
+  large = false,
+}) => {
+  // Dizajni za kartice
+  const designs = {
+    blue: "from-blue-500 to-indigo-600 text-white shadow-blue-200",
+    green: "from-emerald-400 to-teal-500 text-white shadow-emerald-200",
+    purple: "from-violet-500 to-fuchsia-600 text-white shadow-violet-200",
+    orange: "from-orange-400 to-amber-500 text-white shadow-orange-200",
+    red: "from-rose-500 to-pink-600 text-white shadow-rose-200",
+    white: "bg-white text-slate-800 border border-slate-100 shadow-slate-100",
   };
 
-  const c = colorConfig[color];
+  const styleClass = large ? designs[color] : designs["white"];
+  const iconClass = large
+    ? "text-white/90 bg-white/20"
+    : `text-${color}-500 bg-${color}-50`;
 
   return (
     <motion.div
-      whileHover={{ y: -2, boxShadow: "0 8px 30px -10px rgba(0,0,0,0.1)" }}
-      className={`relative bg-white rounded-2xl border border-slate-100 ${large ? "p-6" : "p-5"} transition-shadow`}
+      whileHover={{ y: -5 }}
+      transition={{ type: "spring", stiffness: 300 }}
+      className={`relative rounded-3xl p-6 ${
+        large
+          ? `bg-gradient-to-br ${styleClass} shadow-xl`
+          : `${styleClass} shadow-lg`
+      } overflow-hidden`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className={`${large ? "w-12 h-12" : "w-10 h-10"} rounded-xl ${c.bg} flex items-center justify-center`}>
-          <Icon size={large ? 24 : 20} className={c.icon} />
+      {/* Dekoracije za velike kartice */}
+      {large && (
+        <>
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 rounded-full bg-black/5 blur-xl"></div>
+        </>
+      )}
+
+      <div className="relative z-10 flex justify-between items-start">
+        <div className={`p-3 rounded-2xl ${iconClass} backdrop-blur-sm`}>
+          <Icon size={24} />
         </div>
-        {tooltip && (
-          <button
-            className="text-slate-300 hover:text-slate-500 transition-colors relative"
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
+        {trend !== undefined && trend !== null && trend !== 0 && (
+          <div
+            className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+              large
+                ? "bg-white/20 text-white backdrop-blur-md border border-white/20"
+                : trend > 0
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }`}
           >
-            <IoInformationCircleOutline size={18} />
-            <AnimatePresence>
-              {showTooltip && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className="absolute top-6 right-0 z-10 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg max-w-[180px] text-left whitespace-normal"
-                >
-                  {tooltip}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </button>
+            {trend > 0 ? (
+              <IoTrendingUp size={12} />
+            ) : (
+              <IoTrendingDown size={12} />
+            )}
+            {Math.abs(trend)}%
+          </div>
         )}
       </div>
 
-      <div>
-        <p className={`${large ? "text-sm" : "text-xs"} font-medium text-slate-500 mb-1`}>{label}</p>
-        <div className="flex items-baseline gap-2">
-          <span className={`${large ? "text-3xl" : "text-2xl"} font-bold text-slate-800`}>{formatNumber(value)}</span>
-          {subValue && <span className="text-sm text-slate-400">{subValue}</span>}
-        </div>
-
-        {trend !== undefined && trend !== null && trend !== 0 && (
-          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1.5 mt-2">
-            {trend > 0 ? <IoTrendingUp className="text-emerald-500" size={16} /> : <IoTrendingDown className="text-red-500" size={16} />}
-            <span className={`text-sm font-semibold ${trend > 0 ? "text-emerald-600" : "text-red-600"}`}>
-              {trend > 0 ? "+" : ""}{trend}%
+      <div className="relative z-10 mt-4">
+        <p
+          className={`text-sm font-medium ${
+            large ? "text-white/80" : "text-slate-500"
+          }`}
+        >
+          {label}
+        </p>
+        <div className="flex items-end gap-2 mt-1">
+          <h3 className="text-4xl font-bold tracking-tight">
+            {formatNumber(value)}
+          </h3>
+          {subValue && (
+            <span
+              className={`text-sm mb-1 ${
+                large ? "text-white/60" : "text-slate-400"
+              }`}
+            >
+              {subValue}
             </span>
-            {trendLabel && <span className="text-xs text-slate-400">{trendLabel}</span>}
-          </motion.div>
-        )}
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -185,13 +246,19 @@ const MiniStat = ({ icon: Icon, label, value, color = "slate" }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${iconColors[color]}`}>
-        <Icon size={16} />
+    <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+      <div
+        className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconColors[color]}`}
+      >
+        <Icon size={20} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className="text-sm font-bold text-slate-800">{formatNumber(value)}</p>
+        <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
+          {label}
+        </p>
+        <p className="text-xl font-bold text-slate-800">
+          {formatNumber(value)}
+        </p>
       </div>
     </div>
   );
@@ -215,7 +282,9 @@ const PeriodSelector = ({ value, onChange }) => {
           key={p.value}
           onClick={() => onChange(p.value)}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
-            value === p.value ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            value === p.value
+              ? "bg-white text-slate-800 shadow-sm"
+              : "text-slate-500 hover:text-slate-700"
           }`}
         >
           {p.label}
@@ -226,75 +295,76 @@ const PeriodSelector = ({ value, onChange }) => {
 };
 
 // ============================================
-// COLLAPSIBLE SECTION
-// ============================================
-const CollapsibleSection = ({ title, icon: Icon, iconColor, children, defaultOpen = true }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors"
-      >
-        <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
-          <Icon className={iconColor} size={20} />
-          {title}
-        </h3>
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <IoChevronDown className="text-slate-400" size={20} />
-        </motion.div>
-      </button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-5 pb-5">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// ============================================
-// VIEWS CHART
+// VIEWS CHART (S GLOW EFEKTOM)
 // ============================================
 const ViewsChart = ({ data }) => {
   if (!data || data.length === 0) {
-    return <div className="h-[280px] flex items-center justify-center text-slate-400">Nema podataka za prikaz</div>;
+    return (
+      <div className="h-[300px] flex items-center justify-center text-slate-400">
+        Nema podataka za prikaz
+      </div>
+    );
   }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-        <defs>
-          <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.15} />
-            <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-        <XAxis dataKey="formatted_date" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} dy={10} />
-        <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} dx={-10} />
-        <Tooltip content={<CustomTooltip />} />
-        <Area
-          type="monotone"
-          dataKey="views"
-          name="Pregledi"
-          stroke={COLORS.primary}
-          strokeWidth={2.5}
-          fill="url(#viewsGrad)"
-          dot={false}
-          activeDot={{ r: 6, fill: COLORS.primary, strokeWidth: 2, stroke: "#fff" }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="h-[350px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={data}
+          margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+        >
+          <defs>
+            <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+            </linearGradient>
+            <filter id="shadow" height="200%">
+              <feDropShadow
+                dx="0"
+                dy="5"
+                stdDeviation="5"
+                floodColor="#6366f1"
+                floodOpacity="0.3"
+              />
+            </filter>
+          </defs>
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#f1f5f9"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="formatted_date"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+            dy={10}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 500 }}
+            dx={-10}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="views"
+            name="Pregledi"
+            stroke="#6366f1"
+            strokeWidth={3}
+            fill="url(#colorViews)"
+            filter="url(#shadow)"
+            activeDot={{
+              r: 6,
+              fill: "#6366f1",
+              strokeWidth: 4,
+              stroke: "#fff",
+            }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 
@@ -304,32 +374,71 @@ const ViewsChart = ({ data }) => {
 const SourcesChart = ({ data }) => {
   if (!data) return null;
 
-  const chartData = [...(data.internal || []), ...(data.external || [])].filter((s) => s.value > 0).slice(0, 8);
+  const chartData = [
+    ...(data.internal || []),
+    ...(data.external || []),
+  ]
+    .filter((s) => s.value > 0)
+    .slice(0, 8);
 
   if (chartData.length === 0) {
-    return <div className="h-[200px] flex items-center justify-center text-slate-400">Nema podataka o izvorima</div>;
+    return (
+      <div className="h-[200px] flex items-center justify-center text-slate-400">
+        Nema podataka o izvorima
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-6">
-      <div className="w-[160px] h-[160px]">
+    <div className="flex flex-col items-center">
+      <div className="w-[200px] h-[200px] mb-4 relative">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2} dataKey="value">
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={90}
+              paddingAngle={4}
+              cornerRadius={6}
+              dataKey="value"
+            >
               {chartData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={PIE_COLORS[index % PIE_COLORS.length]}
+                  strokeWidth={0}
+                />
               ))}
             </Pie>
             <Tooltip formatter={(value) => formatNumber(value)} />
           </PieChart>
         </ResponsiveContainer>
+        {/* Centrirani tekst */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-sm text-slate-400 font-medium">Ukupno</span>
+          <span className="text-2xl font-bold text-slate-800">
+            {chartData.reduce((a, b) => a + b.value, 0)}
+          </span>
+        </div>
       </div>
-      <div className="flex-1 space-y-2 w-full">
-        {chartData.map((source, index) => (
+
+      <div className="w-full space-y-2">
+        {chartData.slice(0, 4).map((source, index) => (
           <div key={source.name} className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />
-            <span className="text-sm text-slate-600 flex-1 truncate">{source.name}</span>
-            <span className="text-sm font-semibold text-slate-800">{source.percent}%</span>
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{
+                backgroundColor: PIE_COLORS[index % PIE_COLORS.length],
+              }}
+            />
+            <span className="text-sm text-slate-600 flex-1 truncate">
+              {source.name}
+            </span>
+            <span className="text-sm font-semibold text-slate-800">
+              {source.percent}%
+            </span>
           </div>
         ))}
       </div>
@@ -344,41 +453,73 @@ const DevicesChart = ({ data }) => {
   if (!data) return null;
 
   const devices = [
-    { name: "Mobitel", value: data.mobile?.value || 0, percent: data.mobile?.percent || 0, icon: IoPhonePortraitOutline, color: COLORS.primary },
-    { name: "Desktop", value: data.desktop?.value || 0, percent: data.desktop?.percent || 0, icon: IoDesktopOutline, color: COLORS.secondary },
-    { name: "Tablet", value: data.tablet?.value || 0, percent: data.tablet?.percent || 0, icon: IoTabletPortraitOutline, color: COLORS.success },
+    {
+      name: "Mobitel",
+      value: data.mobile?.value || 0,
+      percent: data.mobile?.percent || 0,
+      icon: IoPhonePortraitOutline,
+      color: COLORS.primary,
+    },
+    {
+      name: "Desktop",
+      value: data.desktop?.value || 0,
+      percent: data.desktop?.percent || 0,
+      icon: IoDesktopOutline,
+      color: COLORS.secondary,
+    },
+    {
+      name: "Tablet",
+      value: data.tablet?.value || 0,
+      percent: data.tablet?.percent || 0,
+      icon: IoTabletPortraitOutline,
+      color: COLORS.success,
+    },
   ];
 
   const total = devices.reduce((sum, d) => sum + d.value, 0);
 
   if (total === 0) {
-    return <div className="h-[120px] flex items-center justify-center text-slate-400">Nema podataka o uređajima</div>;
+    return (
+      <div className="h-[120px] flex items-center justify-center text-slate-400">
+        Nema podataka o uređajima
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {devices.map((device) => {
         const Icon = device.icon;
         return (
-          <div key={device.name} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Icon size={18} className="text-slate-400" />
-                <span className="text-sm font-medium text-slate-600">{device.name}</span>
+          <div key={device.name} className="group">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-slate-50 rounded-lg text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-50 transition-colors">
+                  <Icon size={20} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">
+                  {device.name}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-800">{formatNumber(device.value)}</span>
-                <span className="text-xs text-slate-400">({device.percent}%)</span>
+                <span className="text-lg font-bold text-slate-800">
+                  {formatNumber(device.value)}
+                </span>
+                <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
+                  {device.percent}%
+                </span>
               </div>
             </div>
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${device.percent}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="h-full rounded-full"
+                transition={{ duration: 1, ease: "circOut" }}
+                className="h-full rounded-full relative overflow-hidden"
                 style={{ backgroundColor: device.color }}
-              />
+              >
+                <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]"></div>
+              </motion.div>
             </div>
           </div>
         );
@@ -394,17 +535,48 @@ const ContactStats = ({ data }) => {
   if (!data) return null;
 
   const contacts = [
-    { icon: IoCallOutline, label: "Pozivi", value: data.phone_clicks || 0, color: "blue" },
-    { icon: FaWhatsapp, label: "WhatsApp", value: data.whatsapp_clicks || 0, color: "green" },
-    { icon: FaViber, label: "Viber", value: data.viber_clicks || 0, color: "purple" },
-    { icon: IoChatbubbleOutline, label: "Poruke", value: data.messages || 0, color: "blue" },
-    { icon: MdOutlineEmail, label: "Email", value: data.email_clicks || 0, color: "orange" },
+    {
+      icon: IoCallOutline,
+      label: "Pozivi",
+      value: data.phone_clicks || 0,
+      color: "blue",
+    },
+    {
+      icon: FaWhatsapp,
+      label: "WhatsApp",
+      value: data.whatsapp_clicks || 0,
+      color: "green",
+    },
+    {
+      icon: FaViber,
+      label: "Viber",
+      value: data.viber_clicks || 0,
+      color: "purple",
+    },
+    {
+      icon: IoChatbubbleOutline,
+      label: "Poruke",
+      value: data.messages || 0,
+      color: "blue",
+    },
+    {
+      icon: MdOutlineEmail,
+      label: "Email",
+      value: data.email_clicks || 0,
+      color: "orange",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 gap-3">
       {contacts.map((contact) => (
-        <MiniStat key={contact.label} icon={contact.icon} label={contact.label} value={contact.value} color={contact.color} />
+        <MiniStat
+          key={contact.label}
+          icon={contact.icon}
+          label={contact.label}
+          value={contact.value}
+          color={contact.color}
+        />
       ))}
     </div>
   );
@@ -416,11 +588,19 @@ const ContactStats = ({ data }) => {
 const EngagementFunnel = ({ data }) => {
   const funnelArr = Array.isArray(data) ? data : data?.funnel;
   if (!funnelArr?.length) {
-    return <div className="h-[160px] flex items-center justify-center text-slate-400">Nema podataka o konverziji</div>;
+    return (
+      <div className="h-[160px] flex items-center justify-center text-slate-400">
+        Nema podataka o konverziji
+      </div>
+    );
   }
 
-  const colors = ["bg-blue-500", "bg-purple-500", "bg-emerald-500"];
-  const conversionRate = data?.conversion_rate || 0;
+  const colors = [
+    "bg-gradient-to-r from-blue-500 to-blue-400",
+    "bg-gradient-to-r from-indigo-500 to-indigo-400",
+    "bg-gradient-to-r from-purple-500 to-purple-400",
+    "bg-gradient-to-r from-emerald-500 to-emerald-400",
+  ];
 
   return (
     <div className="space-y-4">
@@ -429,24 +609,25 @@ const EngagementFunnel = ({ data }) => {
           <motion.div
             key={stage.stage}
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: `${100 - index * 15}%`, opacity: 1 }}
+            animate={{ width: `${100 - index * 10}%`, opacity: 1 }}
             transition={{ duration: 0.6, delay: index * 0.15 }}
-            className={`h-14 ${colors[index % colors.length]} rounded-xl flex items-center justify-between px-4 text-white`}
+            className={`h-14 ${
+              colors[index % colors.length]
+            } rounded-2xl flex items-center justify-between px-5 text-white shadow-md relative overflow-hidden group`}
           >
-            <span className="text-sm font-medium">{stage.stage}</span>
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <span className="text-sm font-semibold">{stage.stage}</span>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold">{formatNumber(stage.value)}</span>
-              <span className="text-xs opacity-75">({stage.percent}%)</span>
+              <span className="text-lg font-bold">
+                {formatNumber(stage.value)}
+              </span>
+              <span className="text-xs bg-white/20 px-2 py-1 rounded-lg">
+                {stage.percent}%
+              </span>
             </div>
           </motion.div>
         ))}
       </div>
-      {conversionRate > 0 && (
-        <div className="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-100">
-          <p className="text-xs text-emerald-700 uppercase tracking-wide">Stopa konverzije</p>
-          <p className="text-2xl font-bold text-emerald-800">{conversionRate}%</p>
-        </div>
-      )}
     </div>
   );
 };
@@ -458,29 +639,41 @@ const FeaturedComparison = ({ featured, nonFeatured, improvement }) => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">⭐</span>
-            <span className="text-sm font-medium text-amber-800">Istaknuto</span>
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-16 h-16 bg-amber-200/20 rounded-full blur-xl -mr-4 -mt-4"></div>
+          <div className="flex items-center gap-2 mb-2 relative z-10">
+            <span className="text-xl">⭐</span>
+            <span className="text-sm font-bold text-amber-800">Istaknuto</span>
           </div>
-          <p className="text-2xl font-bold text-amber-900">{formatNumber(featured?.avg_views_per_day || 0)}</p>
-          <p className="text-xs text-amber-600 mt-1">pregleda/dan ({featured?.days || 0} dana)</p>
+          <p className="text-3xl font-bold text-amber-900 relative z-10">
+            {formatNumber(featured?.avg_views_per_day || 0)}
+          </p>
+          <p className="text-xs text-amber-700 mt-1 font-medium relative z-10">
+            pregleda/dan ({featured?.days || 0} dana)
+          </p>
         </div>
 
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">📋</span>
-            <span className="text-sm font-medium text-slate-600">Normalno</span>
+            <span className="text-xl">📋</span>
+            <span className="text-sm font-bold text-slate-600">Normalno</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{formatNumber(nonFeatured?.avg_views_per_day || 0)}</p>
-          <p className="text-xs text-slate-500 mt-1">pregleda/dan ({nonFeatured?.days || 0} dana)</p>
+          <p className="text-3xl font-bold text-slate-800">
+            {formatNumber(nonFeatured?.avg_views_per_day || 0)}
+          </p>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            pregleda/dan ({nonFeatured?.days || 0} dana)
+          </p>
         </div>
       </div>
 
       {improvement > 0 && (
-        <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 text-center">
-          <p className="text-sm text-emerald-700">
-            Isticanje povećava preglede za <span className="font-bold text-emerald-800">+{improvement}%</span>
+        <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 text-center">
+          <p className="text-sm text-emerald-700 font-medium">
+            Isticanje povećava preglede za{" "}
+            <span className="font-bold text-2xl ml-1 text-emerald-600">
+              +{improvement}%
+            </span>
           </p>
         </div>
       )}
@@ -496,45 +689,79 @@ const TodayYesterdayComparison = ({ summary }) => {
   const yesterday = summary?.yesterday || {};
 
   return (
-    <div className="grid sm:grid-cols-2 gap-4">
-      <motion.div whileHover={{ scale: 1.01 }} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
-        <div className="flex items-center gap-2 mb-3">
-          <IoFlashOutline className="text-blue-600" size={18} />
-          <h4 className="text-sm font-semibold text-blue-800">Danas</h4>
+    <div className="grid sm:grid-cols-2 gap-6">
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl p-6 border border-blue-100 shadow-sm"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
+            <IoFlashOutline size={18} />
+          </div>
+          <h4 className="text-base font-bold text-blue-900">Današnja aktivnost</h4>
         </div>
         <div className="grid grid-cols-3 gap-4">
-          <div>
-            <p className="text-2xl font-bold text-blue-900">{today.views || 0}</p>
-            <p className="text-[10px] text-blue-600 uppercase tracking-wide">Pregleda</p>
+          <div className="bg-white/60 p-3 rounded-xl">
+            <p className="text-2xl font-bold text-blue-900">
+              {today.views || 0}
+            </p>
+            <p className="text-[10px] text-blue-600 uppercase tracking-wide font-bold">
+              Pregleda
+            </p>
           </div>
-          <div>
-            <p className="text-2xl font-bold text-blue-900">{today.messages || 0}</p>
-            <p className="text-[10px] text-blue-600 uppercase tracking-wide">Poruka</p>
+          <div className="bg-white/60 p-3 rounded-xl">
+            <p className="text-2xl font-bold text-blue-900">
+              {today.messages || 0}
+            </p>
+            <p className="text-[10px] text-blue-600 uppercase tracking-wide font-bold">
+              Poruka
+            </p>
           </div>
-          <div>
-            <p className="text-2xl font-bold text-blue-900">{today.favorites || 0}</p>
-            <p className="text-[10px] text-blue-600 uppercase tracking-wide">Favorita</p>
+          <div className="bg-white/60 p-3 rounded-xl">
+            <p className="text-2xl font-bold text-blue-900">
+              {today.favorites || 0}
+            </p>
+            <p className="text-[10px] text-blue-600 uppercase tracking-wide font-bold">
+              Favorita
+            </p>
           </div>
         </div>
       </motion.div>
 
-      <motion.div whileHover={{ scale: 1.01 }} className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-        <div className="flex items-center gap-2 mb-3">
-          <IoCalendarOutline className="text-slate-500" size={18} />
-          <h4 className="text-sm font-semibold text-slate-600">Jučer</h4>
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        className="bg-slate-50 rounded-3xl p-6 border border-slate-100 shadow-sm"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 bg-white rounded-xl text-slate-500 shadow-sm">
+            <IoCalendarOutline size={18} />
+          </div>
+          <h4 className="text-base font-bold text-slate-700">Jučer</h4>
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-2xl font-bold text-slate-800">{yesterday.views || 0}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide">Pregleda</p>
+            <p className="text-2xl font-bold text-slate-800">
+              {yesterday.views || 0}
+            </p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold">
+              Pregleda
+            </p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-slate-800">{yesterday.messages || 0}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide">Poruka</p>
+            <p className="text-2xl font-bold text-slate-800">
+              {yesterday.messages || 0}
+            </p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold">
+              Poruka
+            </p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-slate-800">{yesterday.favorites || 0}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide">Favorita</p>
+            <p className="text-2xl font-bold text-slate-800">
+              {yesterday.favorites || 0}
+            </p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide font-bold">
+              Favorita
+            </p>
           </div>
         </div>
       </motion.div>
@@ -546,22 +773,25 @@ const TodayYesterdayComparison = ({ summary }) => {
 // LOADING STATE
 // ============================================
 const LoadingState = () => (
-  <div className="space-y-6">
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
+  <div className="space-y-8">
+    <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-2">
-          <ShimmerSkeleton className="h-6 w-48" />
-          <ShimmerSkeleton className="h-4 w-32" />
+        <div className="space-y-3">
+          <ShimmerSkeleton className="h-8 w-64 rounded-lg" />
+          <ShimmerSkeleton className="h-4 w-40 rounded-lg" />
         </div>
-        <ShimmerSkeleton className="h-10 w-48" />
+        <ShimmerSkeleton className="h-10 w-48 rounded-lg" />
       </div>
     </div>
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {[...Array(4)].map((_, i) => (
-        <ShimmerSkeleton key={i} className="h-32" />
+        <ShimmerSkeleton key={i} className="h-48 rounded-3xl" />
       ))}
     </div>
-    <ShimmerSkeleton className="h-80" />
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ShimmerSkeleton className="lg:col-span-2 h-96 rounded-3xl" />
+      <ShimmerSkeleton className="h-96 rounded-3xl" />
+    </div>
   </div>
 );
 
@@ -569,23 +799,24 @@ const LoadingState = () => (
 // ERROR STATE
 // ============================================
 const ErrorState = ({ onRetry }) => (
-  <div className="bg-white rounded-2xl border border-slate-200 p-8">
-    <div className="flex flex-col items-center justify-center h-64 gap-4">
-      <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center">
-        <IoRefreshOutline size={32} className="text-red-500" />
-      </div>
-      <div className="text-center">
-        <p className="text-slate-600 font-medium mb-1">Greška pri učitavanju</p>
-        <p className="text-sm text-slate-400">Nije moguće dohvatiti statistiku</p>
-      </div>
-      <button
-        onClick={onRetry}
-        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors font-medium text-sm"
-      >
-        <IoRefreshOutline size={18} />
-        Pokušaj ponovo
-      </button>
+  <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
+    <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+      <IoRefreshOutline size={36} className="text-red-500" />
     </div>
+    <h3 className="text-xl font-bold text-slate-800 mb-2">
+      Ups, došlo je do greške
+    </h3>
+    <p className="text-slate-500 mb-8 max-w-md mx-auto">
+      Nismo uspjeli učitati statistiku za tvoj oglas. Molimo provjeri internet
+      konekciju ili pokušaj ponovo.
+    </p>
+    <button
+      onClick={onRetry}
+      className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium shadow-lg shadow-slate-200"
+    >
+      <IoRefreshOutline size={20} />
+      Pokušaj ponovo
+    </button>
   </div>
 );
 
@@ -593,16 +824,17 @@ const ErrorState = ({ onRetry }) => (
 // EMPTY STATE
 // ============================================
 const EmptyState = () => (
-  <div className="bg-white rounded-2xl border border-slate-200 p-8">
-    <div className="flex flex-col items-center justify-center h-64 gap-4">
-      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center">
-        <IoStatsChartOutline size={32} className="text-slate-400" />
-      </div>
-      <div className="text-center">
-        <p className="text-slate-600 font-medium mb-1">Nema statistike</p>
-        <p className="text-sm text-slate-400">Podaci će biti dostupni nakon prvih pregleda</p>
-      </div>
+  <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
+    <div className="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+      <IoStatsChartOutline size={40} className="text-slate-400" />
     </div>
+    <h3 className="text-xl font-bold text-slate-800 mb-2">
+      Nema dostupne statistike
+    </h3>
+    <p className="text-slate-500 max-w-md mx-auto">
+      Tvoj oglas još uvijek nema zabilježenih aktivnosti. Podijeli ga na
+      društvenim mrežama da povećaš vidljivost!
+    </p>
   </div>
 );
 
@@ -656,112 +888,182 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
   const { summary, daily, sources, devices, funnel } = stats;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <IoStatsChartOutline className="text-white" size={24} />
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* HEADER SECTION */}
+      <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center shadow-lg shadow-slate-200">
+              <IoStatsChartOutline className="text-white" size={28} />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-800">Statistika oglasa</h2>
-              {itemName && <p className="text-sm text-slate-500 truncate max-w-xs">{itemName}</p>}
+              <h2 className="text-xl font-bold text-slate-900">
+                Analitika oglasa
+              </h2>
+              {itemName && (
+                <p className="text-sm text-slate-500 truncate max-w-md font-medium">
+                  {itemName}
+                </p>
+              )}
             </div>
           </div>
           <PeriodSelector value={period} onChange={setPeriod} />
         </div>
       </div>
 
-      {/* Main Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* HERO METRICS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           icon={IoEyeOutline}
           label="Ukupno pregleda"
           value={summary?.period?.views || 0}
-          subValue={summary?.period?.unique_views ? `(${summary.period.unique_views} jedin.)` : null}
           trend={summary?.trends?.views_vs_yesterday}
-          trendLabel="vs jučer"
           color="blue"
-          tooltip="Ukupan broj pregleda u odabranom periodu"
-          large
+          large={true}
         />
-        <StatCard icon={MdTouchApp} label="Kontakti" value={(summary?.period?.phone_clicks || 0) + (summary?.period?.messages || 0)} color="green" tooltip="Pozivi, poruke, WhatsApp, Viber" large />
-        <StatCard icon={IoHeartOutline} label="Favoriti" value={summary?.period?.favorites || 0} color="red" tooltip="Broj korisnika koji su dodali oglas u favorite" large />
-        <StatCard icon={IoShareSocialOutline} label="Dijeljenja" value={summary?.period?.shares || 0} color="purple" tooltip="Broj dijeljenja na društvenim mrežama" large />
+        <StatCard
+          icon={MdTouchApp}
+          label="Interakcije"
+          value={
+            (summary?.period?.phone_clicks || 0) +
+            (summary?.period?.messages || 0)
+          }
+          color="green"
+          large={true}
+        />
+        <StatCard
+          icon={IoHeartOutline}
+          label="Favoriti"
+          value={summary?.period?.favorites || 0}
+          color="red"
+          large={true}
+        />
+        <StatCard
+          icon={IoShareSocialOutline}
+          label="Dijeljenja"
+          value={summary?.period?.shares || 0}
+          color="purple"
+          large={true}
+        />
       </div>
 
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-2 text-slate-500 mb-1">
-            <IoTimeOutline size={14} />
-            <span className="text-xs font-medium">Prosj. vrijeme</span>
-          </div>
-          <p className="text-lg font-bold text-slate-800">{formatDuration(summary?.period?.avg_time_on_page || 0)}</p>
+      {/* SECONDARY METRICS ROW */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
+            Vrijeme na stranici
+          </span>
+          <span className="text-lg font-bold text-slate-800">
+            {formatDuration(summary?.period?.avg_time_on_page || 0)}
+          </span>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-2 text-slate-500 mb-1">
-            <IoEyeOutline size={14} />
-            <span className="text-xs font-medium">Pregleda/dan</span>
-          </div>
-          <p className="text-lg font-bold text-slate-800">{summary?.period?.avg_views_per_day || 0}</p>
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
+            Pregleda/dan
+          </span>
+          <span className="text-lg font-bold text-slate-800">
+            {summary?.period?.avg_views_per_day || 0}
+          </span>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-2 text-slate-500 mb-1">
-            <HiOutlineExternalLink size={14} />
-            <span className="text-xs font-medium">Search CTR</span>
-          </div>
-          <p className="text-lg font-bold text-slate-800">{summary?.period?.search_ctr || 0}%</p>
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
+            Search CTR
+          </span>
+          <span className="text-lg font-bold text-slate-800">
+            {summary?.period?.search_ctr || 0}%
+          </span>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-2 text-slate-500 mb-1">
-            <IoStatsChartOutline size={14} />
-            <span className="text-xs font-medium">Konverzija</span>
-          </div>
-          <p className="text-lg font-bold text-slate-800">{funnel?.conversion_rate || 0}%</p>
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
+            Konverzija
+          </span>
+          <span className="text-lg font-bold text-slate-800">
+            {funnel?.conversion_rate || 0}%
+          </span>
         </div>
       </div>
 
-      {/* Views Chart */}
-      <CollapsibleSection title="Pregledi po danima" icon={IoEyeOutline} iconColor="text-blue-500" defaultOpen={true}>
-        <ViewsChart data={daily} />
-      </CollapsibleSection>
+      {/* BENTO GRID LAYOUT */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* MAIN CHART - 2/3 Width */}
+        <BentoBox
+          title="Analiza pregleda"
+          icon={IoStatsChartOutline}
+          className="lg:col-span-2"
+        >
+          <ViewsChart data={daily} />
+        </BentoBox>
 
-      {/* Contacts */}
-      <CollapsibleSection title="Kontakti po tipu" icon={IoCallOutline} iconColor="text-emerald-500" defaultOpen={true}>
-        <ContactStats data={summary?.period} />
-      </CollapsibleSection>
+        {/* CONTACT STATS - 1/3 Width */}
+        <BentoBox title="Kontakti i Angažman" icon={IoCallOutline}>
+          <div className="h-full flex flex-col justify-between gap-4">
+            <ContactStats data={summary?.period} />
+            <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-xs text-slate-500 mb-1">Najčešći kanal</p>
+              <p className="text-sm font-bold text-slate-800">
+                Poziv putem mobitela
+              </p>
+            </div>
+          </div>
+        </BentoBox>
 
-      {/* Two Column */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <CollapsibleSection title="Izvori prometa" icon={IoLocationOutline} iconColor="text-purple-500" defaultOpen={true}>
+        {/* TRAFFIC SOURCES */}
+        <BentoBox title="Izvori prometa" icon={IoLocationOutline}>
           <SourcesChart data={sources} />
-        </CollapsibleSection>
+        </BentoBox>
 
-        <div className="bg-white rounded-2xl border border-slate-100 p-5">
-          <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2 mb-5">
-            <IoPhonePortraitOutline className="text-cyan-500" size={20} />
-            Uređaji
-          </h3>
-          <DevicesChart data={devices} />
-        </div>
+        {/* DEVICES & TECH */}
+        <BentoBox
+          title="Uređaji i Tehnologija"
+          icon={IoPhonePortraitOutline}
+          className="lg:col-span-2"
+        >
+          <div className="grid sm:grid-cols-2 gap-10">
+            <div>
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wide mb-4">
+                Distribucija
+              </h4>
+              <DevicesChart data={devices} />
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex flex-col justify-center">
+               <h4 className="text-sm font-bold text-slate-800 mb-2">Jeste li znali?</h4>
+               <p className="text-sm text-slate-500 leading-relaxed">
+                 Većina vaših korisnika ({devices?.mobile?.percent || 0}%) dolazi putem mobilnih uređaja. Osigurajte da su vaše slike jasne na manjim ekranima.
+               </p>
+            </div>
+          </div>
+        </BentoBox>
       </div>
 
-      {/* Engagement Funnel */}
-      <CollapsibleSection title="Funnel konverzije" icon={IoTrendingUp} iconColor="text-emerald-500" defaultOpen={false}>
-        <EngagementFunnel data={funnel} />
-      </CollapsibleSection>
+      {/* FUNNEL & PROMOTION SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <BentoBox title="Konverzijski lijevak" icon={IoTrendingUp}>
+          <EngagementFunnel data={funnel} />
+        </BentoBox>
 
-      {/* Featured */}
+        {(summary?.featured?.days > 0 || summary?.non_featured?.days > 0) ? (
+          <BentoBox title="Efekt isticanja" icon={IoFlashOutline}>
+            <FeaturedComparison
+              featured={summary?.featured}
+              nonFeatured={summary?.non_featured}
+              improvement={summary?.featured_improvement_percent}
+            />
+          </BentoBox>
+        ) : (
+             <TodayYesterdayComparison summary={summary} />
+        )}
+      </div>
+      
+      {/* FALLBACK FOR COMPARISON IF NOT FEATURED */}
       {(summary?.featured?.days > 0 || summary?.non_featured?.days > 0) && (
-        <CollapsibleSection title="Efekt isticanja" icon={IoStatsChartOutline} iconColor="text-amber-500" defaultOpen={false}>
-          <FeaturedComparison featured={summary?.featured} nonFeatured={summary?.non_featured} improvement={summary?.featured_improvement_percent} />
-        </CollapsibleSection>
+         <TodayYesterdayComparison summary={summary} />
       )}
-
-      {/* Today vs Yesterday */}
-      <TodayYesterdayComparison summary={summary} />
+      
+      <div className="text-center pb-6">
+        <p className="text-xs text-slate-400 font-medium">
+          Podaci se ažuriraju u stvarnom vremenu. Posljednje ažuriranje: Upravo sada.
+        </p>
+      </div>
     </div>
   );
 };

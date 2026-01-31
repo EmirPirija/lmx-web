@@ -83,6 +83,10 @@ export const CANCEL_MEMBERSHIP = "membership/cancel";
 export const GET_SELLER_SETTINGS = "get-seller-settings";
 export const UPDATE_SELLER_SETTINGS = "update-seller-settings";
 
+export const MANAGE_SAVED_USER = "manage-saved-user";
+export const CHECK_SAVED_USER = "check-saved-user";
+export const GET_SAVED_USERS = "get-saved-users";
+
 // 1. SETTINGS API
 export const settingsApi = {
   getSettings: ({ type } = {}) => {
@@ -1725,6 +1729,8 @@ export const itemQuestionsApi = {
     });
   },
 
+  
+
   reportQuestion: ({ question_id, reason } = {}) => {
     const formData = new FormData();
     if (question_id) formData.append("question_id", question_id);
@@ -1889,4 +1895,57 @@ export const myPurchasesApi = {
   getPurchaseDetail: ({ sale_id } = {}) => {
     return Api.get(`${MY_PURCHASES}/${sale_id}`);
   },
+};
+
+export const compareApi = {
+  getBulkItems: (ids) => {
+    // ids je string "12,45,67"
+    return Api.get(`${GET_ITEM}/bulk`, { 
+      params: { ids }
+    });
+  }
+};
+
+export const savedUsersApi = {
+  toggle: ({ saved_user_id } = {}) => {
+    const formData = new FormData();
+    if (saved_user_id) formData.append("saved_user_id", saved_user_id);
+
+    return Api.post(MANAGE_SAVED_USER, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  check: ({ saved_user_id } = {}) => {
+    return Api.get(CHECK_SAVED_USER, { params: { saved_user_id } });
+  },
+
+  list: ({ page = 1, per_page = 20 } = {}) => {
+    return Api.get(GET_SAVED_USERS, { params: { page, per_page } });
+  },
+};
+
+
+export const savedCollectionsApi = {
+  // Lists
+  lists: () => Api.get("saved-lists"),
+  createList: ({ name }) => Api.post("saved-lists", { name }),
+  renameList: ({ id, name }) => Api.patch(`saved-lists/${id}`, { name }),
+  deleteList: ({ id }) => Api.delete(`saved-lists/${id}`),
+
+  // Membership for a seller
+  membership: ({ saved_user_id }) => Api.get("saved-users/membership", { params: { saved_user_id } }),
+
+  // List items
+  listItems: ({ listId, q = "", page = 1, per_page = 24 }) =>
+    Api.get(`saved-lists/${listId}/items`, { params: { q, page, per_page } }),
+
+  addToList: ({ listId, saved_user_id, note }) => Api.post(`saved-lists/${listId}/items`, { saved_user_id, note }),
+  removeFromList: ({ listId, saved_user_id }) => Api.delete(`saved-lists/${listId}/items/${saved_user_id}`),
+  updateNote: ({ listId, saved_user_id, note }) => Api.patch(`saved-lists/${listId}/items/${saved_user_id}/note`, { note }),
+
+  // Follow prefs
+  setFollowPref: ({ followedUserId, enabled, frequency }) =>
+    Api.put(`follow-preferences/${followedUserId}`, { enabled, frequency }),
+  followPrefs: () => Api.get("follow-preferences"),
 };

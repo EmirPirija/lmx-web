@@ -1,41 +1,52 @@
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+
+import Layout from "@/components/Layout/Layout";
+import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
+import ProfileNavigation from "@/components/Profile/ProfileNavigation";
+
+import BadgeList from "@/components/PagesComponent/Gamification/BadgeList";
+import UserLevel from "@/components/PagesComponent/Gamification/UserLevel";
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+
+import Checkauth from "@/HOC/Checkauth";
 import { gamificationApi } from "@/utils/api";
 import {
   setUserBadges,
   setUserBadgesLoading,
-  setUserBadgesError,
   setAllBadges,
   setAllBadgesLoading,
   setUserPoints,
   setUserPointsLoading,
 } from "@/redux/reducer/gamificationSlice";
-import Layout from "@/components/Layout/Layout";
-import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import ProfileNavigation from "@/components/Profile/ProfileNavigation";
-import BadgeList from "@/components/PagesComponent/Gamification/BadgeList";
-import UserLevel from "@/components/PagesComponent/Gamification/UserLevel";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Lock, Award } from "lucide-react";
-import { t } from "@/utils";
-import { toast } from "sonner";
-import Checkauth from "@/HOC/Checkauth";
+import { cn } from "@/lib/utils";
+
+const StatCard = ({ label, value, sub }) => (
+  <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 shadow-sm">
+    <div className="text-xs font-semibold text-slate-500 dark:text-slate-300">{label}</div>
+    <div className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">{value}</div>
+    {sub ? <div className="mt-1 text-xs text-slate-500 dark:text-slate-300">{sub}</div> : null}
+  </div>
+);
 
 const BadgesPage = () => {
   const dispatch = useDispatch();
-  const { data: userBadges, loading: badgesLoading } = useSelector(
-    (state) => state.Gamification.userBadges
-  );
-  const { data: allBadges, loading: allBadgesLoading } = useSelector(
-    (state) => state.Gamification.allBadges
-  );
-  const { data: userPoints } = useSelector((state) => state.Gamification.userPoints);
+
+  const { data: userBadges, loading: badgesLoading } = useSelector((state) => state.Gamification.userBadges);
+  const { data: allBadges, loading: allBadgesLoading } = useSelector((state) => state.Gamification.allBadges);
+  const { data: userPoints, loading: userPointsLoading } = useSelector((state) => state.Gamification.userPoints);
 
   const [activeTab, setActiveTab] = useState("earned");
+  const [query, setQuery] = useState("");
+  const [showDescriptions, setShowDescriptions] = useState(false);
 
   useEffect(() => {
     fetchAllData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAllData = async () => {
@@ -50,26 +61,17 @@ const BadgesPage = () => {
         gamificationApi.getUserPoints(),
       ]);
 
-      // User badges - koristi mock ako API ne vrati podatke
-      const userBadgesData = badgesRes.data?.data?.badges?.length > 0
-        ? badgesRes.data.data
-        : MOCK_USER_BADGES;
-      dispatch(setUserBadges(userBadgesData));
+      const earned = badgesRes?.data?.data ?? { badges: [] };
+      const all = allBadgesRes?.data?.data ?? [];
+      const points = pointsRes?.data?.data ?? undefined;
 
-      // All badges - koristi mock ako API ne vrati podatke
-      const allBadgesData = allBadgesRes.data?.data?.length > 0
-        ? allBadgesRes.data.data
-        : null;
-      dispatch(setAllBadges(allBadgesData));
-
-      // User points - koristi mock ako API ne vrati podatke
-      const pointsData = pointsRes.data?.data?.total_points !== undefined
-        ? pointsRes.data.data
-        : undefined;
-      dispatch(setUserPoints(pointsData));
-
-    } catch (error) {
-      console.error("Error fetching badges, using mock data:", error);
+      dispatch(setUserBadges(earned));
+      dispatch(setAllBadges(all));
+      dispatch(setUserPoints(points));
+    } catch (e) {
+      // keep UI usable even if API fails
+      dispatch(setUserBadges({ badges: [] }));
+      dispatch(setAllBadges([]));
     } finally {
       dispatch(setUserBadgesLoading(false));
       dispatch(setAllBadgesLoading(false));
@@ -78,118 +80,135 @@ const BadgesPage = () => {
   };
 
   const earnedBadges = userBadges?.badges || [];
-  const earnedBadgeIds = earnedBadges.map((b) => b.id);
-  const lockedBadges =
-    (allBadges)?.filter((badge) => !earnedBadgeIds.includes(badge.id)) || [];
+  const earnedBadgeIds = useMemo(() => earnedBadges.map((b) => b.id), [earnedBadges]);
 
-  // Koristi mock points ako nema podataka
-  const displayPoints = userPoints;
+  const lockedBadges = useMemo(() => {
+    const all = Array.isArray(allBadges) ? allBadges : [];
+    if (!all.length) return [];
+    return all.filter((b) => !earnedBadgeIds.includes(b.id));
+  }, [allBadges, earnedBadgeIds]);
+
+  const filteredEarned = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return earnedBadges;
+    return earnedBadges.filter((b) => String(b?.name || b?.title || b?.slug || "").toLowerCase().includes(q));
+  }, [earnedBadges, query]);
+
+  const filteredLocked = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return lockedBadges;
+    return lockedBadges.filter((b) => String(b?.name || b?.title || b?.slug || "").toLowerCase().includes(q));
+  }, [lockedBadges, query]);
 
   return (
     <Layout>
-      <BreadCrumb title2={t("myBadges")} />
-      
+      <BreadCrumb title2="Moji bedževi" />
+
       <div className="container mt-8">
         <ProfileNavigation />
 
         <div className="mt-8 space-y-6">
-          {/* User Level Card - sada uvijek prikazuje */}
-          <UserLevel userPoints={displayPoints} showProgress={true} />
+          {/* Level */}
+          <UserLevel userPoints={userPoints} showProgress={true} />
 
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                  <Trophy className="text-yellow-600 dark:text-yellow-400" size={24} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {earnedBadges.length}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t("earnedBadges")}</p>
-                </div>
+          {/* Header controls */}
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+            <div>
+              <div className="text-2xl font-extrabold text-slate-900 dark:text-white">Postignuća</div>
+              <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                Pregled zarađenih i zaključanih bedževa. Pretraga radi po nazivu.
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                  <Lock className="text-gray-600 dark:text-gray-400" size={24} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {lockedBadges.length}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t("lockedBadges")}</p>
-                </div>
-              </div>
-            </div>
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Pretraži bedževe…"
+                className="h-11 w-full sm:w-[260px] rounded-2xl"
+              />
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                  <Award className="text-purple-600 dark:text-purple-400" size={24} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {(allBadges)?.length || 0}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t("totalBadges")}</p>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowDescriptions((v) => !v)}
+                className={cn(
+                  "h-11 px-4 rounded-2xl border font-semibold text-sm transition shadow-sm",
+                  "border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900/60",
+                  "text-slate-800 dark:text-slate-100 hover:shadow-md"
+                )}
+              >
+                {showDescriptions ? "Sakrij opise" : "Prikaži opise"}
+              </button>
             </div>
           </div>
 
-          {/* Badges Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="earned">
-                {t("earned")} ({earnedBadges.length})
-              </TabsTrigger>
-              <TabsTrigger value="locked">
-                {t("locked")} ({lockedBadges.length})
-              </TabsTrigger>
-            </TabsList>
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard label="Zarađeni bedževi" value={earnedBadges.length} sub="Tvoja dostignuća do sada" />
+            <StatCard label="Zaključani bedževi" value={lockedBadges.length} sub="Otključaj nastavkom aktivnosti" />
+            <StatCard
+              label="Ukupno bedževa"
+              value={(Array.isArray(allBadges) ? allBadges.length : 0)}
+              sub={userPointsLoading ? "Učitavam bodove…" : "Prati napredak kroz bodove i nivoe"}
+            />
+          </div>
 
-            <TabsContent value="earned" className="mt-6">
-              {badgesLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto" />
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mt-2" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <BadgeList
-                  badges={earnedBadges}
-                  emptyMessage={t("youHaventEarnedAnyBadgesYet")}
-                  size="lg"
-                />
-              )}
-            </TabsContent>
+          {/* Tabs */}
+          <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 shadow-sm">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100/70 dark:bg-slate-800/60 rounded-2xl p-1">
+                <TabsTrigger value="earned" className="rounded-xl">
+                  Zarađeni ({earnedBadges.length})
+                </TabsTrigger>
+                <TabsTrigger value="locked" className="rounded-xl">
+                  Zaključani ({lockedBadges.length})
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="locked" className="mt-6">
-              {allBadgesLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto" />
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mt-2" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <BadgeList
-                  badges={lockedBadges}
-                  emptyMessage={t("allBadgesUnlocked")}
-                  size="lg"
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="earned" className="mt-6">
+                {badgesLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className="animate-pulse rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto" />
+                        <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mt-3" />
+                        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded mt-2 w-3/4 mx-auto" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <BadgeList
+                    badges={filteredEarned}
+                    emptyMessage="Još nemaš zarađenih bedževa."
+                    size="lg"
+                    showDescription={showDescriptions}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="locked" className="mt-6">
+                {allBadgesLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className="animate-pulse rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto" />
+                        <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mt-3" />
+                        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded mt-2 w-3/4 mx-auto" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <BadgeList
+                    badges={filteredLocked}
+                    locked
+                    emptyMessage="Sve si otključao. Svaka čast!"
+                    size="lg"
+                    showDescription={showDescriptions}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
     </Layout>

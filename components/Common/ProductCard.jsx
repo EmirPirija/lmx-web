@@ -11,13 +11,17 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { HiOutlineArrowRight } from "react-icons/hi";
 import { MdLocalOffer } from "react-icons/md";
 import { manageFavouriteApi } from "@/utils/api";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import CustomLink from "@/components/Common/CustomLink";
 import { toast } from "sonner";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import CustomImage from "./CustomImage";
 import { IconRocket, IconRosetteDiscount } from "@tabler/icons-react";
+
+
+import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/reducer/compareSlice";
+import { IoGitCompareOutline } from "react-icons/io5";
 
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
@@ -77,6 +81,7 @@ const formatRelativeTime = (dateString) => {
   if (diffInYears === 1) return "Prije 1 god";
   return `Prije ${diffInYears} god`;
 };
+
 
 // Izvlači Godište, Gorivo, Mjenjač, Pogon i Stanje
 const getKeyAttributes = (item) => {
@@ -139,6 +144,7 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
   const userData = useSelector(userSignUpData);
+  
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
   const translated_item = item?.translated_item;
 
@@ -146,6 +152,21 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+
+  const dispatch = useDispatch();
+  const compareList = useSelector(selectCompareList);
+  const isInCompare = compareList?.some((i) => i.id === item?.id);
+
+  const handleCompare = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isInCompare) {
+      dispatch(removeFromCompare(item.id));
+    } else {
+      dispatch(addToCompare(item));
+    }
+  };
 
   // Touch/Swipe state
   const touchStartX = useRef(0);
@@ -426,6 +447,25 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
             )}
           </button>
         )}
+
+        {!isViewMoreSlide && (
+          <button
+            onClick={handleCompare}
+            className={`absolute h-8 w-8 ltr:right-2 rtl:left-2 top-11 bg-white/95 rounded-full flex items-center justify-center shadow-md z-20 transition-all duration-300 ease-out hover:scale-110 active:scale-90
+            ${
+              isHovered || isInCompare
+                ? "opacity-100 translate-x-0"
+                : "opacity-0 ltr:translate-x-4 rtl:-translate-x-4 pointer-events-none" 
+            }
+            ${isInCompare ? "text-blue-600 ring-2 ring-blue-100" : "text-gray-500 hover:text-blue-600"}
+            `}
+            title="Usporedi"
+          >
+            <IoGitCompareOutline size={16} />
+          </button>
+        )}
+
+
 
         {/* STATUS BADGES (Sale + Featured) */}
         {!isViewMoreSlide && (
