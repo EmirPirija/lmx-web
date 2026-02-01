@@ -311,27 +311,54 @@ const SecondaryButton = ({ children, className, ...props }) => (
   </motion.button>
 );
 
-const IconButton = ({ children, className, active, ...props }) => (
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    className={cn(
-      "inline-flex items-center justify-center w-11 h-11 rounded-2xl",
-      "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "text-slate-600 dark:text-slate-300",
-      "hover:bg-slate-100 dark:hover:bg-slate-700",
-      "hover:text-slate-900 dark:hover:text-white",
-      "shadow-sm hover:shadow-md",
-      "transition-all duration-200",
-      active && "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </motion.button>
-);
+const IconButton = React.forwardRef(
+    (
+      { children, className, active, as, href, disabled, onClick, ...props },
+      ref
+    ) => {
+      const isLink = as === "a" || typeof href === "string";
+      const Comp = isLink ? motion.a : motion.button;
+  
+      const handleClick = (e) => {
+        if (disabled) {
+          e.preventDefault();
+          e.stopPropagation();
+           return;
+         }
+         onClick?.(e);
+       };
+   
+       return (
+         <Comp
+           ref={ref}
+           whileHover={disabled ? undefined : { scale: 1.05 }}
+           whileTap={disabled ? undefined : { scale: 0.95 }}
+           href={isLink ? href : undefined}
+           onClick={handleClick}
+          aria-disabled={disabled ? true : undefined}
+          tabIndex={disabled && isLink ? -1 : undefined}
+          className={cn(
+            "inline-flex items-center justify-center w-11 h-11 rounded-2xl",
+            "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm",
+            "border border-slate-200/70 dark:border-slate-700/70",
+            "text-slate-600 dark:text-slate-300",
+            "hover:bg-slate-100 dark:hover:bg-slate-700",
+            "hover:text-slate-900 dark:hover:text-white",
+            "shadow-sm hover:shadow-md",
+            "transition-all duration-200",
+            active && "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent",
+            disabled && "opacity-50 cursor-not-allowed pointer-events-none",
+          className
+          )}
+          {...(!isLink ? { disabled } : {})}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
+  );
+  IconButton.displayName = "IconButton";
 
 /* =====================
   Skeleton
@@ -398,6 +425,8 @@ const SendMessageModal = ({
   const [error, setError] = useState("");
 
   const handleSend = async () => {
+    const sellerUserId = seller?.user_id ?? seller?.id;
+
     if (!message.trim()) {
       setError("Unesite poruku prije slanja.");
       return;
@@ -409,17 +438,23 @@ const SendMessageModal = ({
       return;
     }
 
-    if (!seller?.id) {
+    if (!sellerUserId) {
       setError("Greška: Prodavač nije pronađen.");
       return;
     }
+
+    if (currentUser?.id && String(currentUser.id) === String(sellerUserId)) {
+            setError("Ne možete poslati poruku sami sebi.");
+            return;
+          }
 
     setIsSending(true);
     setError("");
 
     try {
       // Prvo provjeri/kreiraj konverzaciju s prodavačem
-      const checkRes = await itemConversationApi.checkDirectConversation({ user_id: seller.id });
+      const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
+
 
       let conversationId = null;
 
@@ -427,7 +462,8 @@ const SendMessageModal = ({
         conversationId = checkRes.data.data.conversation_id;
       } else {
         // Kreiraj novu konverzaciju
-        const startRes = await itemConversationApi.startDirectConversation({ user_id: seller.id });
+        const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+
 
         if (startRes?.data?.error === false) {
           conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;

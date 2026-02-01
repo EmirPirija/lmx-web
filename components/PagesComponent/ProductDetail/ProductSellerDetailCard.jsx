@@ -390,12 +390,13 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
 
       // Ako imamo item_id, provjeri/kreiraj konverzaciju za taj proizvod
       if (itemId) {
-        const checkRes = await itemConversationApi.checkConversation({ item_id: itemId });
+        const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
 
         if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
           conversationId = checkRes.data.data.conversation_id;
         } else {
-          const startRes = await itemConversationApi.startItemConversation({ item_id: itemId });
+          const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+
 
           if (startRes?.data?.error === false) {
             conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
@@ -403,23 +404,15 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
             throw new Error(startRes?.data?.message || "Ne mogu pokrenuti razgovor o proizvodu.");
           }
         }
-      } else if (seller?.id) {
-        // Direktna konverzacija s prodavačem
-        const checkRes = await itemConversationApi.checkDirectConversation({ user_id: seller.id });
-
-        if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
-          conversationId = checkRes.data.data.conversation_id;
-        } else {
-          const startRes = await itemConversationApi.startDirectConversation({ user_id: seller.id });
-
-          if (startRes?.data?.error === false) {
-            conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
-          } else {
-            throw new Error(startRes?.data?.message || "Ne mogu pokrenuti razgovor.");
-          }
-        }
-      }
-
+      } else {
+                const sellerUserId = seller?.user_id ?? seller?.id;
+                if (!sellerUserId) {
+                  throw new Error("Greška: Prodavač nije pronađen.");
+               }
+                if (currentUser?.id && String(currentUser.id) === String(sellerUserId)) {
+                  throw new Error("Ne možete poslati poruku sami sebi.");
+                }
+              }
       if (!conversationId) {
         throw new Error("Nije moguće kreirati razgovor.");
       }
