@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "usehooks-ts";
 import { useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 
 import Layout from "@/components/Layout/Layout";
 import Checkauth from "@/HOC/Checkauth";
@@ -21,42 +22,44 @@ import Reviews from "../Reviews/Reviews";
 import Chat from "../Chat/Chat";
 import ProfileSubscription from "../Subscription/ProfileSubscription";
 import JobApplications from "../JobApplications/JobApplications";
+import UserBadges from "@/components/Profile/UserBadges";
 
-// Icons
+// Lucide ikone
 import {
-  FiUser,
-  FiBell,
-  FiLayers,
-  FiHeart,
-  FiStar,
-  FiMessageSquare,
-  FiBriefcase,
-  FiSearch,
-  FiChevronLeft,
-  FiChevronRight,
-  FiMenu,
-  FiX,
-  FiSettings,
-  FiHelpCircle,
-  FiHome,
-  FiCreditCard,
-  FiPackage,
-  FiUsers,
-} from "react-icons/fi";
-import { 
-  BiBadgeCheck, 
-  BiReceipt, 
-  BiShoppingBag, 
-  BiBookmark,
-  BiChart,
-  BiCog
-} from "react-icons/bi";
-import { TbHistory } from "react-icons/tb";
+  User,
+  Bell,
+  Layers,
+  Heart,
+  Star,
+  MessageSquare,
+  Briefcase,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  Settings,
+  HelpCircle,
+  Home,
+  CreditCard,
+  Package,
+  Users,
+  BadgeCheck,
+  Receipt,
+  ShoppingBag,
+  Bookmark,
+  BarChart3,
+  Cog,
+  Clock,
+  Plus,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
+
 import { userSignUpData } from "@/redux/reducer/authSlice";
 
-const LS_SIDEBAR_STATE = "profile_sidebar_state";
+// ===== UTILITY FUNKCIJE =====
 
-// ===== UTILITY FUNCTIONS =====
 const formatNumber = (num) => {
   if (!num && num !== 0) return "0";
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -71,7 +74,9 @@ const getTimeGreeting = () => {
   return "Dobro veče";
 };
 
-// ===== SIDEBAR COMPONENT =====
+// ===== KOMPONENTE =====
+
+// Stavka sidebar navigacije
 const SidebarItem = ({ 
   href, 
   label, 
@@ -79,42 +84,42 @@ const SidebarItem = ({
   isActive, 
   isExpanded, 
   badge,
-  isComingSoon = false 
+  isComingSoon = false,
+  onClick
 }) => {
-  return (
-    <CustomLink
-      href={isComingSoon ? "#" : href}
+  const content = (
+    <motion.div
+      whileHover={{ x: 2 }}
+      whileTap={{ scale: 0.98 }}
       className={cn(
-        "group relative flex items-center transition-all duration-200",
-        "rounded-lg overflow-hidden",
+        "group relative flex items-center transition-all duration-200 rounded-xl overflow-hidden",
         isExpanded ? "px-3 py-3 gap-3" : "p-3 justify-center",
         isActive
-          ? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary"
-          : "text-slate-700 hover:bg-slate-50 hover:text-primary"
+          ? "bg-primary/10 text-primary"
+          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
       )}
-      onClick={isComingSoon ? (e) => e.preventDefault() : undefined}
     >
       <div className={cn(
         "relative flex items-center justify-center transition-all duration-200",
-        isExpanded ? "w-10 h-10" : "w-12 h-12"
+        isExpanded ? "w-9 h-9" : "w-10 h-10"
       )}>
         <div className={cn(
           "absolute inset-0 rounded-lg transition-all duration-200",
           isActive 
             ? "bg-primary/10" 
-            : "bg-slate-100 group-hover:bg-primary/5"
+            : "bg-slate-100 group-hover:bg-slate-200/80"
         )} />
         <Icon
-          size={20}
+          size={18}
           className={cn(
             "relative z-10 transition-colors duration-200",
-            isActive ? "text-primary" : "text-slate-600 group-hover:text-primary"
+            isActive ? "text-primary" : "text-slate-500 group-hover:text-slate-700"
           )}
         />
         
         {/* Badge */}
         {badge && badge > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 flex items-center justify-center text-xs font-bold bg-red-500 text-white rounded-full border-2 border-white">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full border-2 border-white">
             {badge > 99 ? "99+" : badge}
           </span>
         )}
@@ -125,162 +130,291 @@ const SidebarItem = ({
         <div className="flex-1 min-w-0 flex items-center justify-between">
           <span className="text-sm font-medium truncate">{label}</span>
           {isComingSoon && (
-            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded-md">
+            <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-500 rounded">
               Uskoro
             </span>
           )}
         </div>
       )}
+    </motion.div>
+  );
+
+  if (isComingSoon) {
+    return (
+      <div className="cursor-not-allowed opacity-60">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <CustomLink href={href} onClick={onClick}>
+      {content}
     </CustomLink>
   );
 };
 
-// ===== MOBILE NAVIGATION =====
-const MobileNavigation = ({ 
-  activePath, 
-  navigationItems,
-  userData 
-}) => {
-  const [activeTab, setActiveTab] = useState(activePath);
-
+// Mobilna navigacija (donja)
+const MobileBottomNav = ({ activePath, navigationItems }) => {
   const mainTabs = navigationItems.filter(item => 
     ["/profile", "/chat", "/my-ads", "/favorites", "/notifications"].includes(item.href)
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-2 py-2">
-      <div className="flex items-center justify-around">
-        {mainTabs.map((tab) => (
-          <CustomLink
-            key={tab.href}
-            href={tab.href}
-            className={cn(
-              "flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200",
-              "min-w-[60px]",
-              activeTab === tab.href
-                ? "text-primary"
-                : "text-slate-500 hover:text-primary"
-            )}
-            onClick={() => setActiveTab(tab.href)}
-          >
-            <div className="relative">
-              <tab.icon size={22} />
-              {tab.badge && tab.badge > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full">
-                  {tab.badge}
-                </span>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-slate-200 px-2 py-2 safe-area-pb">
+      <div className="flex items-center justify-around max-w-lg mx-auto">
+        {mainTabs.map((tab) => {
+          const isActive = activePath === tab.href;
+          return (
+            <CustomLink
+              key={tab.href}
+              href={tab.href}
+              className={cn(
+                "flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200",
+                "min-w-[56px] relative",
+                isActive ? "text-primary" : "text-slate-400"
               )}
-            </div>
-            <span className="text-xs font-medium mt-1 truncate max-w-[60px]">
-              {tab.label.split(" ")[0]}
-            </span>
-          </CustomLink>
-        ))}
-        
-        {/* More Menu */}
-        <button className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-500 hover:text-primary transition-colors duration-200">
-          <FiMenu size={22} />
-          <span className="text-xs font-medium mt-1">Više</span>
-        </button>
+            >
+              <div className="relative">
+                <tab.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                {tab.badge && tab.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full">
+                    {tab.badge > 9 ? "9+" : tab.badge}
+                  </span>
+                )}
+              </div>
+              <span className={cn(
+                "text-[10px] font-medium mt-1",
+                isActive ? "text-primary" : "text-slate-500"
+              )}>
+                {tab.label.split(" ")[0]}
+              </span>
+              {isActive && (
+                <motion.div 
+                  layoutId="bottomNavIndicator"
+                  className="absolute -bottom-0.5 w-1 h-1 bg-primary rounded-full"
+                />
+              )}
+            </CustomLink>
+          );
+        })}
       </div>
     </nav>
   );
 };
 
-// ===== DASHBOARD HEADER =====
-const DashboardHeader = ({ userData, currentConfig }) => {
+// Mobilni meni (sheet)
+const MobileMenuSheet = ({ 
+  isOpen, 
+  onClose, 
+  navigationItems, 
+  activePath, 
+  userData 
+}) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-50"
+          />
+          
+          {/* Sheet */}
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed left-0 top-0 bottom-0 w-[85%] max-w-[320px] bg-white z-50 shadow-2xl"
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-lg text-slate-900">Meni</h2>
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-slate-600" />
+                </button>
+              </div>
+              
+              {/* Korisnički info */}
+              {userData && (
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <User size={18} className="text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-900 truncate">{userData.name || "Korisnik"}</p>
+                    <p className="text-xs text-slate-500 truncate">{userData.email}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Navigacija */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-1">
+                {navigationItems.map((item) => (
+                  <CustomLink
+                    key={item.href}
+                    href={item.href}
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl transition-colors",
+                      activePath === item.href
+                        ? "bg-primary/10 text-primary"
+                        : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <item.icon size={20} />
+                    <span className="font-medium">{item.label}</span>
+                    {item.badge && item.badge > 0 && (
+                      <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-red-100 text-red-600 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </CustomLink>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100">
+              <div className="space-y-2">
+                <CustomLink
+                  href="/help"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <HelpCircle size={18} />
+                  <span>Pomoć i podrška</span>
+                </CustomLink>
+                <CustomLink
+                  href="/settings"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors"
+                >
+                  <Settings size={18} />
+                  <span>Postavke</span>
+                </CustomLink>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// Dashboard zaglavlje
+const DashboardHeader = ({ userData, currentConfig, onMenuClick, isMobile }) => {
   const greeting = getTimeGreeting();
-  const userStats = [
-    { label: "Oglasi", value: userData?.ads_count || 0 },
-    { label: "Poruke", value: userData?.unread_messages || 0 },
-    { label: "Favoriti", value: userData?.favorites_count || 0 },
-  ];
+  
+  const quickStats = useMemo(() => [
+    { label: "Oglasi", value: userData?.ads_count || 0, icon: Layers, color: "text-blue-500" },
+    { label: "Poruke", value: userData?.unread_messages || 0, icon: MessageSquare, color: "text-green-500" },
+    { label: "Favoriti", value: userData?.favorites_count || 0, icon: Heart, color: "text-pink-500" },
+  ], [userData]);
 
   return (
     <div className="mb-6 lg:mb-8">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-        <div className="flex-1">
+      {/* Gornji dio */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex-1 min-w-0">
+          {/* Pozdrav */}
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-sm text-slate-600 font-medium">
-              {greeting}, {userData?.name || "Korisnik"}
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="w-2 h-2 rounded-full bg-green-500"
+            />
+            <span className="text-sm text-slate-500 font-medium">
+              {greeting}, <span className="text-slate-700">{userData?.name || "Korisnik"}</span>
             </span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-2">
+          
+          {/* Naslov */}
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">
             {currentConfig?.title || "Kontrolna tabla"}
           </h1>
-          <p className="text-slate-600 text-sm lg:text-base max-w-3xl">
+          <p className="text-slate-500 text-sm sm:text-base line-clamp-2">
             {currentConfig?.description || "Pregledajte i upravljajte svojim nalogom"}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors duration-200">
-            <FiSettings size={18} />
-            <span className="text-sm font-medium">Postavke</span>
-          </button>
-          <button className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors duration-200">
-            <FiHelpCircle size={20} className="text-slate-600" />
-          </button>
+        {/* Akcije */}
+        <div className="flex items-center gap-2">
+          {isMobile && (
+            <button
+              onClick={onMenuClick}
+              className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+            >
+              <Menu size={20} className="text-slate-600" />
+            </button>
+          )}
+          <CustomLink
+            href="/ad-listing"
+            className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={18} />
+            <span className="text-sm font-medium">Novi oglas</span>
+          </CustomLink>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {userStats.map((stat, index) => (
-          <div 
-            key={index} 
-            className="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary transition-colors duration-200"
+      {/* Brze statistike */}
+      <div className="grid grid-cols-3 gap-3">
+        {quickStats.map((stat, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="bg-white rounded-2xl border border-slate-100 p-4 hover:border-slate-200 transition-colors"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{formatNumber(stat.value)}</p>
-                <p className="text-sm text-slate-500 mt-1">{stat.label}</p>
-              </div>
-              <div className="p-2 bg-slate-50 rounded-lg">
-                {index === 0 && <FiLayers size={20} className="text-primary" />}
-                {index === 1 && <FiMessageSquare size={20} className="text-green-500" />}
-                {index === 2 && <FiHeart size={20} className="text-pink-500" />}
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <stat.icon size={18} className={stat.color} />
+              {stat.value > 0 && (
+                <span className="text-xs font-medium text-slate-400">Aktivno</span>
+              )}
             </div>
-          </div>
+            <p className="text-2xl font-bold text-slate-900">{formatNumber(stat.value)}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{stat.label}</p>
+          </motion.div>
         ))}
-        
-        {/* Upgrade Card */}
-        <div className="bg-gradient-to-r from-primary to-primary/90 rounded-xl p-4 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-bold">Profi nalog</p>
-              <p className="text-sm text-white/80 mt-1">Nadogradite</p>
-            </div>
-            <BiBadgeCheck size={24} className="text-white/80" />
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
-// ===== MAIN COMPONENT =====
+// ===== GLAVNA KOMPONENTA =====
 const ProfileDashboard = () => {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const isTablet = useMediaQuery("(max-width: 1024px)");
   
-  // Redux state
+  // Redux stanje
   const userData = useSelector(userSignUpData);
   
-  // Local state
+  // Lokalno stanje
   const [sidebarExpanded, setSidebarExpanded] = useState(!isTablet);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("sve");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({
     messages: 0,
     notifications: 0,
     reviews: 0,
   });
 
-  // Fetch unread counts
+  // Dohvati brojeve
   useEffect(() => {
     if (userData) {
       setUnreadCounts({
@@ -291,142 +425,123 @@ const ProfileDashboard = () => {
     }
   }, [userData]);
 
-  // Dashboard configuration - DINAMIČKA
+  // Reaguj na promjenu veličine ekrana
+  useEffect(() => {
+    setSidebarExpanded(!isTablet);
+  }, [isTablet]);
+
+  // Konfiguracija dashboarda
   const dashboardConfig = useMemo(() => {
     const baseConfig = {
       "/profile": {
         title: "Moj profil",
-        description: "Upravljajte ličnim podacima i postavkama naloga.",
-        icon: FiUser,
+        description: "Upravljajte ličnim podacima i postavkama naloga",
+        icon: User,
         component: <Profile />,
         category: "nalog",
       },
       "/notifications": {
         title: "Obavijesti",
-        description: "Pregledajte sve obavijesti i aktivnosti.",
-        icon: FiBell,
+        description: "Pregledajte sve obavijesti i aktivnosti",
+        icon: Bell,
         component: <Notifications />,
         badge: unreadCounts.notifications,
         category: "nalog",
       },
       "/my-ads": {
         title: "Moji oglasi",
-        description: "Upravljajte aktivnim, isteklim i arhiviranim oglasima.",
-        icon: FiLayers,
+        description: "Upravljajte aktivnim, isteklim i arhiviranim oglasima",
+        icon: Layers,
         component: <MyAds />,
         category: "oglasi",
       },
       "/favorites": {
         title: "Favoriti",
-        description: "Oglasi koje ste sačuvali za kasnije.",
-        icon: FiHeart,
+        description: "Oglasi koje ste sačuvali za kasnije",
+        icon: Heart,
         component: <Favorites />,
         category: "oglasi",
       },
       "/transactions": {
         title: "Transakcije",
-        description: "Historija plaćanja i transakcija.",
-        icon: BiReceipt,
+        description: "Historija plaćanja i transakcija",
+        icon: Receipt,
         component: <Transactions />,
         category: "finansije",
       },
       "/reviews": {
         title: "Recenzije",
-        description: "Ocjene i dojmovi od drugih korisnika.",
-        icon: FiStar,
+        description: "Ocjene i komentari od drugih korisnika",
+        icon: Star,
         component: <Reviews />,
         badge: unreadCounts.reviews,
         category: "nalog",
       },
+      "/badges": {
+        title: "Dostignuća",
+        description: "Tvoji bedževi, bodovi i napredak",
+        icon: Trophy,
+        component: <UserBadges />,
+        category: "nalog",
+      },
       "/chat": {
         title: "Poruke",
-        description: "Direktna komunikacija sa drugim korisnicima.",
-        icon: FiMessageSquare,
+        description: "Direktna komunikacija sa drugim korisnicima",
+        icon: MessageSquare,
         component: <Chat />,
         badge: unreadCounts.messages,
         category: "komunikacija",
       },
       "/user-subscription": {
         title: "Pretplata",
-        description: "Status pretplate i dostupni paketi.",
-        icon: FiCreditCard,
+        description: "Status pretplate i dostupni paketi",
+        icon: CreditCard,
         component: <ProfileSubscription />,
         category: "finansije",
       },
       "/job-applications": {
         title: "Prijave za posao",
-        description: "Pregled prijava i statusa.",
-        icon: FiBriefcase,
+        description: "Pregled prijava i statusa",
+        icon: Briefcase,
         component: <JobApplications />,
         category: "posao",
       },
     };
 
-    // Dodajte samo ako postoje rute
-    if (userData?.has_saved_searches) {
-      baseConfig["/profile/saved-searches"] = {
-        title: "Spašene pretrage",
-        description: "Sačuvani filteri za brzu pretragu.",
-        icon: BiBookmark,
-        component: null,
-        category: "alati",
-      };
-    }
-
-    if (userData?.has_purchases) {
-      baseConfig["/purchases"] = {
-        title: "Moje kupovine",
-        description: "Historija kupovina i narudžbi.",
-        icon: BiShoppingBag,
-        component: null,
-        category: "finansije",
-      };
-    }
-
     return baseConfig;
-  }, [userData, unreadCounts]);
+  }, [unreadCounts]);
 
   const currentConfig = dashboardConfig[pathname] || dashboardConfig["/profile"];
 
-  // Navigation items grouped by category - DINAMIČKI
+  // Stavke navigacije
   const navigationItems = useMemo(() => {
-    const items = Object.entries(dashboardConfig).map(([href, config]) => ({
+    return Object.entries(dashboardConfig).map(([href, config]) => ({
       href,
       label: config.title,
       icon: config.icon,
       badge: config.badge,
       category: config.category,
     }));
+  }, [dashboardConfig]);
 
-    // Filtriraj samo validne stavke sa komponentama ili posebnim uslovima
-    return items.filter(item => {
-      if (item.href === "/profile/saved-searches" && !userData?.has_saved_searches) return false;
-      if (item.href === "/purchases" && !userData?.has_purchases) return false;
-      return true;
-    });
-  }, [dashboardConfig, userData]);
-
-  // Get categories from items
+  // Kategorije
   const categories = useMemo(() => {
     const cats = [...new Set(navigationItems.map(item => item.category))];
     return ["sve", ...cats];
   }, [navigationItems]);
 
-  // Filter items based on search and category
+  // Filtrirane stavke
   const filteredItems = useMemo(() => {
     let filtered = navigationItems;
     
-    // Apply category filter
     if (activeCategory !== "sve") {
       filtered = filtered.filter(item => item.category === activeCategory);
     }
     
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
-        item.label.toLowerCase().includes(query) ||
-        item.category.toLowerCase().includes(query)
+        item.label.toLowerCase().includes(query)
       );
     }
     
@@ -434,44 +549,42 @@ const ProfileDashboard = () => {
   }, [navigationItems, activeCategory, searchQuery]);
 
   // Toggle sidebar
-  const toggleSidebar = () => {
-    setSidebarExpanded(!sidebarExpanded);
-  };
-
-  // Sidebar width
-  const sidebarWidth = sidebarExpanded ? "280px" : "88px";
+  const toggleSidebar = useCallback(() => {
+    setSidebarExpanded(prev => !prev);
+  }, []);
 
   return (
     <Layout currentPageId="profile" parentPage="profile">
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50/50">
         {/* Breadcrumb */}
-        <div className="border-b border-slate-200 bg-white">
+        <div className="border-b border-slate-200 bg-white sticky top-0 z-40">
           <div className="container mx-auto px-4 lg:px-6 py-3">
             <BreadCrumb title2={currentConfig.title} />
           </div>
         </div>
 
-        {/* Main Container */}
+        {/* Glavni kontejner */}
         <div className="container mx-auto px-4 lg:px-6 py-6 lg:py-8">
-          {/* Dashboard Header */}
-          <DashboardHeader userData={userData} currentConfig={currentConfig} />
+          {/* Zaglavlje */}
+          <DashboardHeader 
+            userData={userData} 
+            currentConfig={currentConfig}
+            onMenuClick={() => setMobileMenuOpen(true)}
+            isMobile={isMobile}
+          />
 
-          {/* Main Grid */}
+          {/* Glavni grid */}
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Desktop Sidebar */}
             {!isMobile && (
-              <aside
-                className={cn(
-                  "lg:sticky lg:top-24 self-start transition-all duration-300 ease-out",
-                  sidebarExpanded ? "lg:w-[280px]" : "lg:w-[88px]"
-                )}
-                style={{ height: "calc(100vh - 180px)" }}
+              <motion.aside
+                animate={{ width: sidebarExpanded ? 280 : 80 }}
+                transition={{ duration: 0.2 }}
+                className="lg:sticky lg:top-24 self-start flex-shrink-0"
+                style={{ maxHeight: "calc(100vh - 180px)" }}
               >
-                <div className={cn(
-                  "bg-white rounded-xl border border-slate-200 h-full",
-                  "flex flex-col transition-all duration-300"
-                )}>
-                  {/* Sidebar Header */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm h-full flex flex-col">
+                  {/* Sidebar zaglavlje */}
                   <div className="p-4 border-b border-slate-100">
                     <div className="flex items-center justify-between">
                       {sidebarExpanded && (
@@ -480,52 +593,52 @@ const ProfileDashboard = () => {
                       <button
                         onClick={toggleSidebar}
                         className={cn(
-                          "p-2 rounded-lg hover:bg-slate-100 transition-colors duration-200",
-                          "text-slate-600 hover:text-primary"
+                          "p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-700",
+                          !sidebarExpanded && "mx-auto"
                         )}
                         title={sidebarExpanded ? "Sakrij meni" : "Prikaži meni"}
                       >
-                        {sidebarExpanded ? (
-                          <FiChevronLeft size={20} />
-                        ) : (
-                          <FiChevronRight size={20} />
-                        )}
+                        {sidebarExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
                       </button>
                     </div>
 
-                    {/* Search */}
+                    {/* Pretraga */}
                     {sidebarExpanded && (
-                      <div className="mt-4 relative">
-                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="mt-4 relative"
+                      >
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
                           type="text"
                           placeholder="Pretraži..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                          className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         />
                         {searchQuery && (
                           <button
                             onClick={() => setSearchQuery("")}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                           >
-                            <FiX size={18} />
+                            <X size={16} />
                           </button>
                         )}
-                      </div>
+                      </motion.div>
                     )}
                   </div>
 
-                  {/* Categories */}
+                  {/* Kategorije */}
                   {sidebarExpanded && (
                     <div className="px-4 py-3 border-b border-slate-100">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         {categories.map((category) => (
                           <button
                             key={category}
                             onClick={() => setActiveCategory(category)}
                             className={cn(
-                              "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-200 capitalize",
+                              "px-2.5 py-1 text-xs font-medium rounded-lg transition-colors capitalize",
                               activeCategory === category
                                 ? "bg-primary text-white"
                                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -538,12 +651,9 @@ const ProfileDashboard = () => {
                     </div>
                   )}
 
-                  {/* Navigation Items */}
+                  {/* Stavke navigacije */}
                   <div className="flex-1 overflow-y-auto p-3">
-                    <div className={cn(
-                      "space-y-1",
-                      sidebarExpanded ? "space-y-1" : "space-y-2"
-                    )}>
+                    <div className="space-y-1">
                       {filteredItems.map((item) => (
                         <SidebarItem
                           key={item.href}
@@ -557,73 +667,73 @@ const ProfileDashboard = () => {
                       ))}
                     </div>
 
-                    {/* No Results */}
+                    {/* Nema rezultata */}
                     {filteredItems.length === 0 && (
                       <div className="text-center py-8">
-                        <FiSearch className="mx-auto text-slate-300 mb-3" size={32} />
+                        <Search className="mx-auto text-slate-300 mb-3" size={28} />
                         <p className="text-sm text-slate-500">Nema rezultata</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Sidebar Footer */}
+                  {/* Sidebar footer */}
                   {sidebarExpanded && (
                     <div className="p-4 border-t border-slate-100">
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <CustomLink
                           href="/help"
-                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-colors duration-200"
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-primary hover:bg-slate-50 rounded-xl transition-colors"
                         >
-                          <FiHelpCircle size={18} />
-                          <span>Pomoć & Podrška</span>
+                          <HelpCircle size={18} />
+                          <span>Pomoć i podrška</span>
                         </CustomLink>
                         <CustomLink
                           href="/settings"
-                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-colors duration-200"
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-primary hover:bg-slate-50 rounded-xl transition-colors"
                         >
-                          <BiCog size={18} />
+                          <Settings size={18} />
                           <span>Napredne postavke</span>
                         </CustomLink>
                       </div>
                     </div>
                   )}
                 </div>
-              </aside>
+              </motion.aside>
             )}
 
-            {/* Main Content */}
-            <main className={cn(
-              "flex-1 min-w-0",
-              !isMobile && sidebarExpanded ? "lg:ml-0" : "lg:ml-0"
-            )}>
-              {/* Content Area */}
-              <div className={cn(
-                "bg-white rounded-xl border border-slate-200 overflow-hidden",
-                pathname === "/chat" ? "h-[calc(100vh-250px)]" : "min-h-[600px]"
-              )}>
+            {/* Glavni sadržaj */}
+            <main className="flex-1 min-w-0">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden",
+                  pathname === "/chat" ? "h-[calc(100vh-280px)]" : "min-h-[500px]"
+                )}
+              >
                 <div className={cn(
-                  pathname === "/chat" ? "h-full" : "p-4 sm:p-6 lg:p-8"
+                  pathname === "/chat" ? "h-full" : "p-4 sm:p-6"
                 )}>
                   {currentConfig.component}
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Quick Actions (Mobile) */}
+              {/* Mobilne brze akcije */}
               {isMobile && (
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   <CustomLink
                     href="/help"
-                    className="flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 rounded-xl hover:border-primary transition-colors duration-200"
+                    className="flex items-center justify-center gap-2 p-4 bg-white border border-slate-200 rounded-2xl hover:border-slate-300 transition-colors"
                   >
-                    <FiHelpCircle size={20} className="text-slate-600" />
+                    <HelpCircle size={20} className="text-slate-600" />
                     <span className="text-sm font-medium text-slate-700">Pomoć</span>
                   </CustomLink>
                   <CustomLink
-                    href="/settings"
-                    className="flex items-center justify-center gap-2 p-4 bg-primary text-white border border-primary rounded-xl hover:bg-primary/90 transition-colors duration-200"
+                    href="/ad-listing"
+                    className="flex items-center justify-center gap-2 p-4 bg-primary text-white border border-primary rounded-2xl hover:bg-primary/90 transition-colors"
                   >
-                    <FiSettings size={20} />
-                    <span className="text-sm font-medium">Postavke</span>
+                    <Plus size={20} />
+                    <span className="text-sm font-medium">Novi oglas</span>
                   </CustomLink>
                 </div>
               )}
@@ -631,20 +741,28 @@ const ProfileDashboard = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobilna donja navigacija */}
         {isMobile && (
-          <MobileNavigation 
+          <MobileBottomNav 
             activePath={pathname}
             navigationItems={navigationItems}
-            userData={userData}
           />
         )}
 
-        {/* Bottom Spacer for Mobile */}
-        {isMobile && <div className="h-20" />}
+        {/* Mobilni meni */}
+        <MobileMenuSheet
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          navigationItems={navigationItems}
+          activePath={pathname}
+          userData={userData}
+        />
+
+        {/* Donji spacer za mobilnu navigaciju */}
+        {isMobile && <div className="h-24" />}
       </div>
     </Layout>
   );
 };
 
-export default Checkauth(ProfileDashboard);
+export default ProfileDashboard;

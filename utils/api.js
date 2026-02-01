@@ -2123,46 +2123,86 @@ export const transformItemsForMap = (items) => {
   
   return items
     .filter(item => item.latitude && item.longitude) // Samo items sa koordinatama
-    .map(item => ({
-      // Required fields
-      id: item.id,
-      title: item.name || item.title,
-      price: parseFloat(item.price) || 0,
-      latitude: parseFloat(item.latitude),
-      longitude: parseFloat(item.longitude),
+    .map(item => {
+      // Extract room type from extra_details if available
+      let roomType = null;
+      let extractedArea = item.area || item.total_area;
+      let extractedRooms = item.bedrooms || item.rooms;
       
-      // Location info
-      location: item.city || item.address,
-      address: item.address,
-      city: item.city,
-      state: item.state,
-      country: item.country,
-      area: item.area,
+      // Try to get extra details
+      if (item.extra_details) {
+        const extraDetails = typeof item.extra_details === 'string'
+          ? JSON.parse(item.extra_details)
+          : item.extra_details;
+        
+        // Common field names for room type
+        roomType = extraDetails?.tip_stana ||
+                   extraDetails?.room_type ||
+                   extraDetails?.tip_nekretnine ||
+                   extraDetails?.property_type;
+        
+        // Try to get area from extra_details
+        if (!extractedArea) {
+          extractedArea = extraDetails?.povrsina ||
+                          extraDetails?.quadrature ||
+                          extraDetails?.m2 ||
+                          extraDetails?.area;
+        }
+        
+        // Try to get rooms from extra_details
+        if (!extractedRooms) {
+          extractedRooms = extraDetails?.broj_soba ||
+                          extraDetails?.sobe ||
+                          extraDetails?.rooms ||
+                          extraDetails?.bedrooms;
+        }
+      }
       
-      // Images
-      image: item.image || item.gallery?.[0],
-      images: item.gallery || (item.image ? [item.image] : []),
-      
-      // Additional info
-      category: item.category?.name || item.category_name,
-      category_id: item.category_id,
-      status: item.status,
-      featured: item.is_featured || false,
-      
-      // Optional property details
-      total_area: item.total_area,
-      rooms: item.bedrooms || item.rooms,
-      bathrooms: item.bathrooms,
-      
-      // Meta
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      views: item.total_clicks,
-      
-      // User info
-      user_id: item.user_id,
-      seller: item.seller,
-    }));
+      return {
+        // Required fields
+        id: item.id,
+        title: item.name || item.title || item.translated_item?.name,
+        price: parseFloat(item.price) || 0,
+        latitude: parseFloat(item.latitude),
+        longitude: parseFloat(item.longitude),
+        
+        // Location info
+        location: item.city || item.address,
+        address: item.address || item.translated_item?.address,
+        city: item.city,
+        state: item.state,
+        country: item.country,
+        area: extractedArea,
+        
+        // Images
+        image: item.image || item.gallery_images?.[0]?.image || item.gallery?.[0],
+        images: item.gallery_images?.map(g => g.image) || item.gallery || (item.image ? [item.image] : []),
+        
+        // Additional info
+        category: item.category?.translated_name || item.category?.name || item.category_name,
+        category_id: item.category_id,
+        status: item.status,
+        featured: item.is_featured || item.is_feature || false,
+        
+        // Property details
+        total_area: extractedArea,
+        rooms: extractedRooms,
+        room_type: roomType, // e.g., "Trosoban", "Dvosoban"
+        bathrooms: item.bathrooms,
+        
+        // Meta
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        views: item.total_clicks,
+        
+        // User info
+        user_id: item.user_id,
+        seller: item.seller || item.user,
+        
+        // Extra details for custom fields
+        extra_details: item.extra_details,
+      };
+    });
 };
 
 // Export za lakse koriscenje
