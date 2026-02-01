@@ -1,11 +1,22 @@
+import { useMemo } from "react";
 import { IoLocationOutline } from "react-icons/io5";
 import { MdOpenInNew, MdMap } from "react-icons/md";
 import dynamic from "next/dynamic";
- 
+
 const Map = dynamic(() => import("@/components/Location/Map"), {
   ssr: false,
 });
- 
+
+// Helper za dobijanje vrijednosti iz extra_details
+const getExtraDetailValue = (extraDetails, keys) => {
+  if (!extraDetails) return null;
+  const details = typeof extraDetails === "string" ? JSON.parse(extraDetails) : extraDetails;
+  for (const key of keys) {
+    if (details?.[key]) return details[key];
+  }
+  return null;
+};
+
 const ProductLocation = ({ productDetails, onMapOpen }) => {
   const handleShowMapClick = () => {
     const locationQuery = `${productDetails?.translated_item?.address || productDetails?.address}`;
@@ -13,7 +24,40 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     window.open(googleMapsUrl, "_blank");
     if (onMapOpen) onMapOpen();
   };
- 
+
+  // Prepare product data for the map marker popup
+  const mapProductData = useMemo(() => {
+    if (!productDetails) return null;
+
+    // Get area from various sources
+    const area = productDetails?.area ||
+                 productDetails?.total_area ||
+                 getExtraDetailValue(productDetails?.extra_details, ["povrsina", "quadrature", "m2", "area"]);
+
+    // Get rooms from various sources
+    const rooms = productDetails?.bedrooms ||
+                  productDetails?.rooms ||
+                  getExtraDetailValue(productDetails?.extra_details, ["broj_soba", "sobe", "rooms", "bedrooms"]);
+
+    // Get room type from extra_details
+    const roomType = getExtraDetailValue(productDetails?.extra_details, ["tip_stana", "room_type", "tip_nekretnine", "property_type"]);
+
+    // Get image
+    const image = productDetails?.image ||
+                  productDetails?.gallery_images?.[0]?.image ||
+                  productDetails?.gallery?.[0];
+
+    return {
+      title: productDetails?.translated_item?.name || productDetails?.name || productDetails?.title,
+      price: parseFloat(productDetails?.price) || 0,
+      image: image,
+      area: area,
+      rooms: rooms,
+      roomType: roomType,
+      createdAt: productDetails?.created_at,
+    };
+  }, [productDetails]);
+
   return (
     <div className="flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
       {/* Header */}
@@ -28,7 +72,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
           </div>
         </div>
       </div>
- 
+
       {/* Sadržaj */}
       <div className="flex flex-col p-4 lg:p-5 gap-4">
         {/* Adresa */}
@@ -43,12 +87,16 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
             </p>
           </div>
         </div>
- 
+
         {/* Mapa */}
         <div className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-slate-100 dark:bg-slate-800 h-64 relative">
-          <Map latitude={productDetails?.latitude} longitude={productDetails?.longitude} />
+          <Map
+            latitude={productDetails?.latitude}
+            longitude={productDetails?.longitude}
+            productData={mapProductData}
+          />
         </div>
- 
+
         {/* Dugme */}
         <button
           className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-bold rounded-xl transition-all active:scale-[0.98] shadow-sm"
@@ -61,5 +109,5 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     </div>
   );
 };
- 
+
 export default ProductLocation;
