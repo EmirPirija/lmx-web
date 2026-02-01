@@ -17,10 +17,10 @@ import {
   IoStatsChartOutline,
   IoTimeOutline,
   IoLocationOutline,
-  IoInformationCircleOutline,
   IoRefreshOutline,
   IoCalendarOutline,
   IoFlashOutline,
+  IoSparkles,
 } from "react-icons/io5";
 import { FaWhatsapp, FaViber } from "react-icons/fa";
 import { MdOutlineEmail, MdTouchApp } from "react-icons/md";
@@ -76,6 +76,41 @@ const formatDuration = (seconds) => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+};
+
+const formatPercent = (value) => {
+  if (!Number.isFinite(value)) return "0%";
+  return `${value.toFixed(1)}%`;
+};
+
+const calculateRate = (value, total) => {
+  if (!total) return 0;
+  return (value / total) * 100;
+};
+
+const getTopSource = (sources) => {
+  const data = [...(sources?.internal || []), ...(sources?.external || [])];
+  if (!data.length) return null;
+  return data.reduce((max, current) => (current.value > max.value ? current : max), data[0]);
+};
+
+const getTopDevice = (devices) => {
+  const list = [
+    { label: "Mobitel", value: devices?.mobile?.value || 0, percent: devices?.mobile?.percent || 0 },
+    { label: "Desktop", value: devices?.desktop?.value || 0, percent: devices?.desktop?.percent || 0 },
+    { label: "Tablet", value: devices?.tablet?.value || 0, percent: devices?.tablet?.percent || 0 },
+  ];
+  return list.reduce((max, current) => (current.value > max.value ? current : max), list[0]);
+};
+
+const getPeakDay = (daily) => {
+  if (!daily?.length) return null;
+  return daily.reduce((max, current) => (current.views > max.views ? current : max), daily[0]);
+};
+
+const getPeakHour = (hourly) => {
+  if (!hourly?.length) return null;
+  return hourly.reduce((max, current) => (current.views > max.views ? current : max), hourly[0]);
 };
 
 // ============================================
@@ -263,6 +298,52 @@ const MiniStat = ({ icon: Icon, label, value, color = "slate" }) => {
     </div>
   );
 };
+
+// ============================================
+// INSIGHT CARD
+// ============================================
+const InsightCard = ({ icon: Icon, label, value, hint, tone = "slate" }) => {
+  const tones = {
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    green: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    purple: "bg-violet-50 text-violet-600 border-violet-100",
+    orange: "bg-amber-50 text-amber-600 border-amber-100",
+    slate: "bg-slate-50 text-slate-600 border-slate-100",
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tones[tone]}`}>
+        <Icon size={18} />
+      </div>
+      <p className="text-xs text-slate-500 mt-3 uppercase tracking-wide font-semibold">
+        {label}
+      </p>
+      <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
+      {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
+    </div>
+  );
+};
+
+// ============================================
+// RATE ROW
+// ============================================
+const RateRow = ({ label, value, color = "bg-blue-500" }) => (
+  <div className="space-y-1">
+    <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+      <span>{label}</span>
+      <span>{formatPercent(value)}</span>
+    </div>
+    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+      <motion.div
+        initial={{ width: 0 }}
+        animate={{ width: `${Math.min(value, 100)}%` }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className={`h-full rounded-full ${color}`}
+      />
+    </div>
+  </div>
+);
 
 // ============================================
 // PERIOD SELECTOR
@@ -885,7 +966,29 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
   if (error) return <ErrorState onRetry={fetchStats} />;
   if (!stats) return <EmptyState />;
 
-  const { summary, daily, sources, devices, funnel } = stats;
+  const { summary, daily, sources, devices, funnel, hourly } = stats;
+
+  const periodViews = summary?.period?.views || 0;
+  const periodFavorites = summary?.period?.favorites || 0;
+  const periodShares = summary?.period?.shares || 0;
+  const periodMessages = summary?.period?.messages || 0;
+  const periodPhone = summary?.period?.phone_clicks || 0;
+  const periodWhatsapp = summary?.period?.whatsapp_clicks || 0;
+  const periodViber = summary?.period?.viber_clicks || 0;
+  const periodEmail = summary?.period?.email_clicks || 0;
+  const periodContacts = periodPhone + periodWhatsapp + periodViber + periodEmail;
+  const periodInteractions = periodContacts + periodMessages;
+
+  const engagementRate = calculateRate(periodInteractions, periodViews);
+  const contactRate = calculateRate(periodContacts, periodViews);
+  const messageRate = calculateRate(periodMessages, periodViews);
+  const favoriteRate = calculateRate(periodFavorites, periodViews);
+  const shareRate = calculateRate(periodShares, periodViews);
+
+  const topSource = getTopSource(sources);
+  const topDevice = getTopDevice(devices);
+  const peakDay = getPeakDay(daily);
+  const peakHour = getPeakHour(hourly);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -981,6 +1084,95 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
             {funnel?.conversion_rate || 0}%
           </span>
         </div>
+      </div>
+
+      {/* INSIGHTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <BentoBox title="Kvalitet angažmana" icon={IoSparkles} className="lg:col-span-2">
+          <div className="grid sm:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <RateRow label="Stopa angažmana" value={engagementRate} color="bg-emerald-500" />
+              <RateRow label="Stopa kontakta" value={contactRate} color="bg-blue-500" />
+              <RateRow label="Stopa poruka" value={messageRate} color="bg-indigo-500" />
+              <RateRow label="Stopa favorita" value={favoriteRate} color="bg-rose-500" />
+              <RateRow label="Stopa dijeljenja" value={shareRate} color="bg-violet-500" />
+            </div>
+            <div className="grid gap-4">
+              <InsightCard
+                icon={IoTimeOutline}
+                label="Prosječno vrijeme"
+                value={formatDuration(summary?.period?.avg_time_on_page || 0)}
+                hint="Vrijeme na stranici"
+                tone="blue"
+              />
+              <InsightCard
+                icon={IoTrendingUp}
+                label="Search CTR"
+                value={`${summary?.period?.search_ctr || 0}%`}
+                hint="Pretrage → klik"
+                tone="purple"
+              />
+              <InsightCard
+                icon={IoStatsChartOutline}
+                label="Konverzija"
+                value={`${funnel?.conversion_rate || 0}%`}
+                hint="Interakcije → kontakt"
+                tone="green"
+              />
+            </div>
+          </div>
+        </BentoBox>
+
+        <BentoBox title="Publika i timing" icon={IoLocationOutline}>
+          <div className="space-y-4">
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
+                Najjači izvor
+              </p>
+              <p className="text-base font-bold text-slate-800">
+                {topSource?.name || "Nema podataka"}
+              </p>
+              {topSource && (
+                <p className="text-xs text-slate-400">
+                  {formatNumber(topSource.value)} posjeta · {topSource.percent}%
+                </p>
+              )}
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
+                Najjači uređaj
+              </p>
+              <p className="text-base font-bold text-slate-800">
+                {topDevice?.label || "Nema podataka"}
+              </p>
+              {topDevice && (
+                <p className="text-xs text-slate-400">
+                  {formatNumber(topDevice.value)} posjeta · {topDevice.percent}%
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">
+                  Najjači dan
+                </p>
+                <p className="text-sm font-bold text-slate-800">
+                  {peakDay?.formatted_date || "—"}
+                </p>
+                <p className="text-xs text-slate-400">{formatNumber(peakDay?.views || 0)} pregleda</p>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">
+                  Peak sat
+                </p>
+                <p className="text-sm font-bold text-slate-800">
+                  {peakHour?.hour ? `${peakHour.hour}:00` : "—"}
+                </p>
+                <p className="text-xs text-slate-400">{formatNumber(peakHour?.views || 0)} pregleda</p>
+              </div>
+            </div>
+          </div>
+        </BentoBox>
       </div>
 
       {/* BENTO GRID LAYOUT */}

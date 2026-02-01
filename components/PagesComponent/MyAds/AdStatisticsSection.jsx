@@ -73,12 +73,34 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
-const formatDuration = (seconds) => {
-  if (!seconds) return "0s";
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+const calculateRate = (value, total) => {
+  if (!total) return 0;
+  return (value / total) * 100;
+};
+
+const formatPercent = (value) => {
+  if (!Number.isFinite(value)) return "0%";
+  return `${value.toFixed(1)}%`;
+};
+
+const getTopSource = (sources) => {
+  const data = [...(sources?.internal || []), ...(sources?.external || [])];
+  if (!data.length) return null;
+  return data.reduce((max, current) => (current.value > max.value ? current : max), data[0]);
+};
+
+const getTopDevice = (devices) => {
+  const list = [
+    { label: "Mobitel", value: devices?.mobile?.value || 0, percent: devices?.mobile?.percent || 0 },
+    { label: "Desktop", value: devices?.desktop?.value || 0, percent: devices?.desktop?.percent || 0 },
+    { label: "Tablet", value: devices?.tablet?.value || 0, percent: devices?.tablet?.percent || 0 },
+  ];
+  return list.reduce((max, current) => (current.value > max.value ? current : max), list[0]);
+};
+
+const getPeakDay = (daily) => {
+  if (!daily?.length) return null;
+  return daily.reduce((max, current) => (current.views > max.views ? current : max), daily[0]);
 };
 
 // ============================================
@@ -374,6 +396,96 @@ const InteractionsSection = ({ summary }) => {
           </motion.div>
         );
       })}
+    </div>
+  );
+};
+
+// ============================================
+// ENGAGEMENT RATES
+// ============================================
+const EngagementRatesSection = ({ summary }) => {
+  const period = summary?.period || {};
+  const views = period.views || 0;
+  const contacts =
+    (period.phone_clicks || 0) +
+    (period.whatsapp_clicks || 0) +
+    (period.viber_clicks || 0) +
+    (period.email_clicks || 0);
+
+  const rates = [
+    { label: "Stopa kontakta", value: calculateRate(contacts, views), color: "bg-emerald-500" },
+    { label: "Stopa poruka", value: calculateRate(period.messages || 0, views), color: "bg-blue-500" },
+    { label: "Stopa favorita", value: calculateRate(period.favorites || 0, views), color: "bg-rose-500" },
+    { label: "Stopa dijeljenja", value: calculateRate(period.shares || 0, views), color: "bg-violet-500" },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+        <IoSparkles className="text-indigo-500" />
+        Kvalitet angažmana
+      </h4>
+      <div className="space-y-3">
+        {rates.map((rate) => (
+          <div key={rate.label} className="space-y-1">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-600">
+              <span>{rate.label}</span>
+              <span>{formatPercent(rate.value)}</span>
+            </div>
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(rate.value, 100)}%` }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className={`h-full rounded-full ${rate.color}`}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// HIGHLIGHTS
+// ============================================
+const HighlightsSection = ({ sources, devices, daily }) => {
+  const topSource = getTopSource(sources);
+  const topDevice = getTopDevice(devices);
+  const peakDay = getPeakDay(daily);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+        <IoSparkles className="text-amber-500" />
+        Highlighti publike
+      </h4>
+      <div className="grid gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Najjači izvor</p>
+          <p className="text-sm font-bold text-slate-800">{topSource?.name || "Nema podataka"}</p>
+          {topSource && (
+            <p className="text-xs text-slate-400">
+              {formatNumber(topSource.value)} posjeta · {topSource.percent}%
+            </p>
+          )}
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Najjači uređaj</p>
+          <p className="text-sm font-bold text-slate-800">{topDevice?.label || "Nema podataka"}</p>
+          {topDevice && (
+            <p className="text-xs text-slate-400">
+              {formatNumber(topDevice.value)} posjeta · {topDevice.percent}%
+            </p>
+          )}
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Najbolji dan</p>
+          <p className="text-sm font-bold text-slate-800">{peakDay?.formatted_date || "—"}</p>
+          <p className="text-xs text-slate-400">{formatNumber(peakDay?.views || 0)} pregleda</p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -1006,6 +1118,11 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                     <ViewsChartSection daily={stats.daily} />
                     <InteractionsSection summary={stats.summary} />
                     <PromotionSection summary={stats.summary} />
+
+                    <div className="grid lg:grid-cols-2 gap-4">
+                      <EngagementRatesSection summary={stats.summary} />
+                      <HighlightsSection sources={stats.sources} devices={stats.devices} daily={stats.daily} />
+                    </div>
 
                     <div className="grid lg:grid-cols-2 gap-4">
                       <TrafficSourcesSection sources={stats.sources} />
