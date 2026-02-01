@@ -66,6 +66,8 @@ export const GET_USER_INFO = "get-user-info";
 export const LOGOUT = "logout";
 export const SET_ITEM_TOTAL_CLICK = "set-item-total-click";
 
+export const GET_MAP_ITEMS = "get-items";
+
 // ============================================
 // GAMIFICATION API
 // ============================================
@@ -1956,3 +1958,212 @@ export const savedCollectionsApi = {
     Api.put(`follow-preferences/${followedUserId}`, { enabled, frequency }),
   followPrefs: () => Api.get("follow-preferences"),
 };
+
+export const mapSearchApi = {
+  /**
+   * Dohvati oglase za prikaz na mapi
+   * Koristi postojeći GET_ITEM endpoint sa location parametrima
+   */
+  getMapItems: ({
+    // Location params
+    latitude,
+    longitude,
+    radius,
+    area_id,
+    city,
+    state,
+    country,
+    
+    // Bounds params (alternative to radius)
+    north,
+    south,
+    east,
+    west,
+    
+    // Filter params
+    category_id,
+    category_slug,
+    search,
+    min_price,
+    max_price,
+    sort_by,
+    posted_since,
+    featured_section_slug,
+    user_id,
+    popular_items,
+    has_video,
+    
+    // Pagination
+    page = 1,
+    limit = 500, // Više oglasa za mapu
+  } = {}) => {
+    return Api.get(GET_ITEM, {
+      params: {
+        // Location
+        latitude,
+        longitude,
+        radius,
+        area_id,
+        city,
+        state,
+        country,
+        
+        // Bounds (if provided instead of radius)
+        north,
+        south,
+        east,
+        west,
+        
+        // Filters
+        category_id,
+        category_slug,
+        search,
+        min_price,
+        max_price,
+        sort_by,
+        posted_since,
+        featured_section_slug,
+        user_id,
+        popular_items,
+        has_video,
+        
+        // Pagination
+        page,
+        limit,
+        current_page: page,
+      },
+    });
+  },
+
+  /**
+   * Dohvati oglase unutar map bounds (viewport)
+   */
+  getMapItemsByBounds: ({
+    north,
+    south,
+    east,
+    west,
+    category_id,
+    min_price,
+    max_price,
+    limit = 500,
+  } = {}) => {
+    return Api.get(GET_ITEM, {
+      params: {
+        north,
+        south,
+        east,
+        west,
+        category_id,
+        min_price,
+        max_price,
+        limit,
+      },
+    });
+  },
+
+  /**
+   * Dohvati oglase po radius-u od određene tačke
+   */
+  getMapItemsByRadius: ({
+    latitude,
+    longitude,
+    radius = 10, // km
+    category_id,
+    min_price,
+    max_price,
+    limit = 500,
+  } = {}) => {
+    return Api.get(GET_ITEM, {
+      params: {
+        latitude,
+        longitude,
+        radius,
+        category_id,
+        min_price,
+        max_price,
+        limit,
+      },
+    });
+  },
+
+  /**
+   * Dohvati featured oglase za mapu
+   */
+  getFeaturedMapItems: ({
+    latitude,
+    longitude,
+    radius,
+    city,
+    state,
+    country,
+    area_id,
+    featured_section_slug,
+    limit = 100,
+  } = {}) => {
+    return Api.get(GET_FEATURED_SECTION, {
+      params: {
+        latitude,
+        longitude,
+        radius,
+        city,
+        state,
+        country,
+        area_id,
+        slug: featured_section_slug,
+        limit,
+      },
+    });
+  },
+};
+
+// Helper funkcija za transformaciju API response-a u format za mapu
+export const transformItemsForMap = (items) => {
+  if (!items || !Array.isArray(items)) return [];
+  
+  return items
+    .filter(item => item.latitude && item.longitude) // Samo items sa koordinatama
+    .map(item => ({
+      // Required fields
+      id: item.id,
+      title: item.name || item.title,
+      price: parseFloat(item.price) || 0,
+      latitude: parseFloat(item.latitude),
+      longitude: parseFloat(item.longitude),
+      
+      // Location info
+      location: item.city || item.address,
+      address: item.address,
+      city: item.city,
+      state: item.state,
+      country: item.country,
+      area: item.area,
+      
+      // Images
+      image: item.image || item.gallery?.[0],
+      images: item.gallery || (item.image ? [item.image] : []),
+      
+      // Additional info
+      category: item.category?.name || item.category_name,
+      category_id: item.category_id,
+      status: item.status,
+      featured: item.is_featured || false,
+      
+      // Optional property details
+      total_area: item.total_area,
+      rooms: item.bedrooms || item.rooms,
+      bathrooms: item.bathrooms,
+      
+      // Meta
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      views: item.total_clicks,
+      
+      // User info
+      user_id: item.user_id,
+      seller: item.seller,
+    }));
+};
+
+// Export za lakse koriscenje
+export { transformItemsForMap as formatMapItems };

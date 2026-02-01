@@ -13,8 +13,7 @@ import { t } from "@/utils";
 import { useSearchParams } from "next/navigation";
 import CustomLink from "@/components/Common/CustomLink";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
-
-// ako koristiš clsx/cn negdje, možeš importati i to, ali nije obavezno
+import { ChevronRight, Home } from "lucide-react";
 
 const BreadCrumb = ({ title2 }) => {
   const langCode = useSelector(getCurrentLangCode);
@@ -26,7 +25,6 @@ const BreadCrumb = ({ title2 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // mala odgoda da animacija bude “smooth”
     const timer = setTimeout(() => setIsVisible(true), 30);
     return () => clearTimeout(timer);
   }, []);
@@ -37,6 +35,7 @@ const BreadCrumb = ({ title2 }) => {
       key: "home",
       href: "/",
       isLink: true,
+      isHome: true,
     },
     ...(title2
       ? [
@@ -49,116 +48,172 @@ const BreadCrumb = ({ title2 }) => {
       : BreadcrumbPath && BreadcrumbPath.length > 0
       ? BreadcrumbPath.map((crumb, index) => {
           const isLast = index === BreadcrumbPath.length - 1;
+          // Stavka je link ako NIJE zadnja ili ako eksplicitno nije current
+          const shouldBeLink = !isLast || !crumb.isCurrent;
+          
           return {
             title: crumb.name,
-            key: index + 1,
+            key: `crumb-${index}`,
             href: crumb?.slug,
-            isLink: !isLast && !crumb.isCurrent,
+            isLink: shouldBeLink,
             isAllCategories: crumb.isAllCategories,
-            onClick: (e) => {
+            onClick: shouldBeLink ? (e) => {
               e.preventDefault();
 
-              // bazirano na tvom originalnom kodu
               const newSearchParams = new URLSearchParams(searchParams);
 
               if (crumb.isAllCategories) {
-                // “Sve kategorije” → ukloni samo category, ostalo zadrži
                 newSearchParams.delete("category");
               }
 
-              // uvijek osiguraj lang param
               newSearchParams.set("lang", langCode);
 
               let targetUrl = crumb.slug || "/";
 
-              // ako slug već ima query parametre, nemoj duplirati ?
               if (targetUrl.includes("?")) {
-                // samo dodaj/override lang u postojeći query dio
-                // najjednostavnije: dodaj &lang=...
                 if (!targetUrl.includes("lang=")) {
                   targetUrl += `&lang=${langCode}`;
                 }
               } else if (crumb.isAllCategories) {
-                // ako je “Sve kategorije” i ideš na /ads, koristi konstruisane parametre
                 targetUrl = `/ads?${newSearchParams.toString()}`;
               } else {
-                // običan slučaj: samo dodaj lang
                 targetUrl = `${targetUrl}?lang=${langCode}`;
               }
 
               window.history.pushState(null, "", targetUrl);
-            },
+            } : undefined,
           };
         })
       : []),
   ];
 
   return (
-    <div
-      className={[
-        "bg-muted/80 border-b border-slate-100/60",
-        "backdrop-blur-sm",
-        "transition-all duration-300",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2",
-      ].join(" ")}
-    >
-      <div className="container py-4">
-        <Breadcrumb>
-          <BreadcrumbList className="flex flex-wrap gap-1 text-sm">
-            {items?.map((item, index) => {
-              const delay = `${index * 60}ms`;
-              const isLast = index === items.length - 1;
+    <>
+      {/* Custom scrollbar hiding styles */}
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
 
-              return (
-                <Fragment key={item.key ?? index}>
-                  <BreadcrumbItem
-                    style={{ transitionDelay: delay }}
-                    className={[
-                      "transition-all duration-300",
-                      isVisible
-                        ? "opacity-100 translate-y-0"
-                        : "opacity-0 translate-y-1",
-                    ].join(" ")}
-                  >
-                    {item.isLink && item.onClick ? (
-                      <BreadcrumbLink
-                        href="#"
-                        className="text-slate-600 hover:text-black font-medium"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          item.onClick(e);
-                        }}
+      <div
+        className={`
+          relative overflow-hidden
+          bg-gradient-to-r from-slate-50 via-white to-slate-50
+          border-b border-slate-200/70
+          shadow-sm
+          transition-all duration-500 ease-out
+          ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3"}
+        `}
+      >
+        {/* Decorative gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+        
+        <div className="container relative py-3 sm:py-4">
+          {/* Wrapper za horizontal scroll na mobilnom */}
+          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            <Breadcrumb>
+              <BreadcrumbList className="flex flex-nowrap sm:flex-wrap items-center gap-1.5 sm:gap-2 min-w-max sm:min-w-0">
+                {items?.map((item, index) => {
+                  const delay = `${index * 50}ms`;
+                  const isLast = index === items.length - 1;
+
+                  return (
+                    <Fragment key={item.key ?? index}>
+                      <BreadcrumbItem
+                        style={{ transitionDelay: delay }}
+                        className={`
+                          transition-all duration-400 ease-out
+                          ${isVisible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"}
+                        `}
                       >
-                        {item.title}
-                      </BreadcrumbLink>
-                    ) : item.isLink ? (
-                      <CustomLink href={item?.href || "/"} passHref>
-                        <BreadcrumbLink
-                          asChild
-                          className="text-slate-600 hover:text-black font-medium"
-                        >
-                          <span>{item.title}</span>
-                        </BreadcrumbLink>
-                      </CustomLink>
-                    ) : (
-                      <p className="text-slate-900 font-semibold truncate max-w-[180px]">
-                        {item.title}
-                      </p>
-                    )}
-                  </BreadcrumbItem>
+                        {item.isLink && item.onClick ? (
+                          <BreadcrumbLink
+                            href="#"
+                            className={`
+                              group inline-flex items-center gap-1.5
+                              px-2 py-1 rounded-md
+                              text-xs sm:text-sm font-medium
+                              transition-all duration-200
+                              whitespace-nowrap
+                              ${item.isHome 
+                                ? "text-slate-700 hover:text-primary hover:bg-primary/5" 
+                                : "text-slate-600 hover:text-primary hover:bg-primary/5"
+                              }
+                            `}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              item.onClick(e);
+                            }}
+                          >
+                            {item.isHome && <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />}
+                            <span className={item.isHome ? "hidden sm:inline" : ""}>
+                              {item.title}
+                            </span>
+                          </BreadcrumbLink>
+                        ) : item.isLink ? (
+                          <CustomLink href={item?.href || "/"} passHref>
+                            <BreadcrumbLink
+                              asChild
+                              className={`
+                                group inline-flex items-center gap-1.5
+                                px-2 py-1 rounded-md
+                                text-xs sm:text-sm font-medium
+                                transition-all duration-200
+                                whitespace-nowrap
+                                ${item.isHome 
+                                  ? "text-slate-700 hover:text-primary hover:bg-primary/5" 
+                                  : "text-slate-600 hover:text-primary hover:bg-primary/5"
+                                }
+                              `}
+                            >
+                              <span>
+                                {item.isHome && <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />}
+                                <span className={item.isHome ? "hidden sm:inline" : ""}>
+                                  {item.title}
+                                </span>
+                              </span>
+                            </BreadcrumbLink>
+                          </CustomLink>
+                        ) : (
+                          <div className="px-2 py-1">
+                            <p className="text-slate-900 font-semibold text-xs sm:text-sm truncate max-w-[140px] sm:max-w-[200px] md:max-w-[300px]">
+                              {item.title}
+                            </p>
+                          </div>
+                        )}
+                      </BreadcrumbItem>
 
-                  {!isLast && (
-                    <BreadcrumbSeparator className="text-slate-300">
-                      /
-                    </BreadcrumbSeparator>
-                  )}
-                </Fragment>
-              );
-            })}
-          </BreadcrumbList>
-        </Breadcrumb>
+                      {!isLast && (
+                        <BreadcrumbSeparator 
+                          className={`
+                            flex-shrink-0
+                            transition-all duration-400
+                            ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-0"}
+                          `}
+                          style={{ transitionDelay: delay }}
+                        >
+                          <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
+                        </BreadcrumbSeparator>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+
+          {/* Mobile scroll hint - gradient fade effect */}
+          {items.length > 2 && (
+            <div className="sm:hidden absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none" />
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

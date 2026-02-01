@@ -34,6 +34,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@react-google-maps/api": "^2.20.7",
     "@reduxjs/toolkit": "^2.8.2",
+    "@solar-icons/react": "^1.0.1",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^6.1.0",
     "@tabler/icons-react": "^3.36.1",
