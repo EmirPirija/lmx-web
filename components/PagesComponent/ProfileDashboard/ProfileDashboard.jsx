@@ -22,6 +22,7 @@ import Reviews from "../Reviews/Reviews";
 import Chat from "../Chat/Chat";
 import ProfileSubscription from "../Subscription/ProfileSubscription";
 import JobApplications from "../JobApplications/JobApplications";
+import UserBadges from "@/components/Profile/UserBadges";
 
 // Lucide ikone
 import {
@@ -52,6 +53,7 @@ import {
   Clock,
   Plus,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 
 import { userSignUpData } from "@/redux/reducer/authSlice";
@@ -473,6 +475,13 @@ const ProfileDashboard = () => {
         icon: Star,
         component: <Reviews />,
         badge: unreadCounts.reviews,
+        category: "nalog",
+      },
+      "/badges": {
+        title: "Dostignuća",
+        description: "Tvoji bedževi, bodovi i napredak",
+        icon: Trophy,
+        component: <UserBadges />,
         category: "nalog",
       },
       "/chat": {
