@@ -21,41 +21,47 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Custom marker sa cijenom
+// Helper za formatiranje vremena "prije X sata/dana"
+const formatTimeAgo = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
+
+  if (diffMins < 60) return `prije ${diffMins} min`;
+  if (diffHours < 24) return `prije ${diffHours} ${diffHours === 1 ? "sat" : diffHours < 5 ? "sata" : "sati"}`;
+  if (diffDays < 7) return `prije ${diffDays} ${diffDays === 1 ? "dan" : "dana"}`;
+  if (diffWeeks < 4) return `prije ${diffWeeks} ${diffWeeks === 1 ? "sedmica" : "sedmica"}`;
+  return `prije ${diffMonths} ${diffMonths === 1 ? "mjesec" : "mjeseci"}`;
+};
+
+// Custom marker sa cijenom - novi dizajn
 const createPriceMarker = (price, isSelected, isHovered) => {
-  const formattedPrice = new Intl.NumberFormat("bs-BA", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
+  const hasPrice = price && price > 0;
+  const formattedPrice = hasPrice
+    ? new Intl.NumberFormat("bs-BA", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(price) + " KM"
+    : "Na upit";
 
   return L.divIcon({
     className: "custom-price-marker",
     html: `
-      <div class="
-        ${isSelected ? "marker-selected" : isHovered ? "marker-hovered" : "marker-default"}
-        relative flex items-center justify-center transition-all duration-200 cursor-pointer
-      ">
-        <div class="
-          px-3 py-1.5 rounded-full font-bold text-sm whitespace-nowrap
-          ${isSelected 
-            ? "bg-primary text-white shadow-lg scale-110 ring-4 ring-primary/30" 
-            : isHovered
-            ? "bg-primary/90 text-white shadow-md scale-105"
-            : "bg-white text-slate-800 border-2 border-slate-300 shadow-md hover:shadow-lg hover:scale-105"
-          }
-        ">
-          ${formattedPrice} KM
+      <div class="price-marker-wrapper ${isSelected ? "marker-selected" : isHovered ? "marker-hovered" : "marker-default"}">
+        <div class="price-marker-bubble ${isSelected ? "selected" : isHovered ? "hovered" : ""}">
+          <span class="price-text">${formattedPrice}</span>
         </div>
-        ${isSelected || isHovered ? `
-          <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 
-            border-l-4 border-r-4 border-t-4 border-transparent 
-            ${isSelected ? "border-t-primary" : "border-t-primary/90"}
-          "></div>
-        ` : ""}
+        <div class="price-marker-arrow ${isSelected || isHovered ? "active" : ""}"></div>
       </div>
     `,
-    iconSize: [120, 50],
-    iconAnchor: [60, 50],
+    iconSize: [120, 44],
+    iconAnchor: [60, 44],
   });
 };
 
@@ -152,30 +158,81 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
         zIndexOffset: isSelected ? 1000 : isHovered ? 500 : 0,
       });
 
-      // Popup content
+      // Helper za formatiranje cijene
+      const formatPopupPrice = (price) => {
+        if (!price || price <= 0) return "Na upit";
+        return new Intl.NumberFormat("bs-BA", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(price) + " KM";
+      };
+
+      // Helper za dobivanje tipa nekretnine
+      const getRoomType = (rooms, roomTypeFromApi) => {
+        // Prefer API-provided room type if available
+        if (roomTypeFromApi) return roomTypeFromApi;
+        
+        if (!rooms) return null;
+        const roomNum = parseInt(rooms);
+        if (isNaN(roomNum)) return null;
+        if (roomNum === 1) return "Jednosoban (1)";
+        if (roomNum === 2) return "Dvosoban (2)";
+        if (roomNum === 3) return "Trosoban (3)";
+        if (roomNum === 4) return "Četverosoban (4)";
+        if (roomNum >= 5) return `${roomNum}-soban`;
+        return null;
+      };
+
+      const roomType = getRoomType(ad.rooms, ad.room_type);
+      const timeAgo = formatTimeAgo(ad.created_at);
+      const imageUrl = ad.image || ad.images?.[0];
+
+      // Popup content - horizontalni card dizajn kao na slici
       const popupContent = `
-        <div class="p-2 min-w-[200px]">
-          ${ad.image || ad.images?.[0] ? `
-            <img 
-              src="${ad.image || ad.images[0]}" 
-              alt="${ad.title || ad.name}"
-              class="w-full h-32 object-cover rounded-lg mb-2"
-              onerror="this.style.display='none'"
-            />
-          ` : ""}
-          <h3 class="font-bold text-sm mb-1 line-clamp-2">${ad.title || ad.name}</h3>
-          <p class="text-xs text-slate-600 mb-2 truncate">${ad.location || ad.address || ad.city || ""}</p>
-          <p class="text-lg font-bold text-primary">
-            ${new Intl.NumberFormat("bs-BA").format(ad.price)} KM
-          </p>
-          ${ad.area ? `<p class="text-xs text-slate-500 mt-1">${ad.area} m²</p>` : ""}
-          ${ad.rooms ? `<p class="text-xs text-slate-500">${ad.rooms} sobe</p>` : ""}
+        <div class="map-popup-card">
+          <button class="popup-close-btn" onclick="this.closest('.leaflet-popup').querySelector('.leaflet-popup-close-button').click()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+          <div class="popup-content">
+            ${imageUrl ? `
+              <div class="popup-image">
+                <img
+                  src="${imageUrl}"
+                  alt="${ad.title || ad.name}"
+                  onerror="this.parentElement.innerHTML='<div class=\\'popup-no-image\\'><svg width=\\'24\\' height=\\'24\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'m21 15-5-5L5 21\\'/></svg></div>'"
+                />
+              </div>
+            ` : `
+              <div class="popup-image">
+                <div class="popup-no-image">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="m21 15-5-5L5 21"/>
+                  </svg>
+                </div>
+              </div>
+            `}
+            <div class="popup-info">
+              <h3 class="popup-title">${ad.title || ad.name}</h3>
+              <div class="popup-tags">
+                ${ad.area ? `<span class="popup-tag">${ad.area}m²</span>` : ""}
+                ${roomType ? `<span class="popup-tag">${roomType}</span>` : ""}
+              </div>
+              <p class="popup-price">${formatPopupPrice(ad.price)}</p>
+              ${timeAgo ? `<p class="popup-time">${timeAgo}</p>` : ""}
+            </div>
+          </div>
         </div>
       `;
 
       marker.bindPopup(popupContent, {
-        maxWidth: 250,
-        className: "custom-popup",
+        maxWidth: 320,
+        minWidth: 280,
+        className: "custom-map-popup",
+        closeButton: false,
       });
 
       marker.on("click", () => {
@@ -273,31 +330,214 @@ const MapWithListingsMarkers = ({
   return (
     <>
       <style jsx global>{`
+        /* Price Marker Styles */
         .custom-price-marker {
           background: transparent !important;
           border: none !important;
         }
         
+        .price-marker-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        }
+        
+        .price-marker-wrapper:hover {
+          transform: scale(1.05);
+        }
+        
+        .price-marker-wrapper.marker-selected {
+          transform: scale(1.1);
+          z-index: 1000 !important;
+        }
+        
+        .price-marker-bubble {
+          padding: 6px 12px;
+          border-radius: 6px;
+          background: #374151;
+          color: white;
+          font-weight: 600;
+          font-size: 12px;
+          white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+          border: 2px solid #1f2937;
+          transition: all 0.2s ease;
+        }
+        
+        .price-marker-bubble.selected {
+          background: var(--primary, #3b82f6);
+          border-color: var(--primary, #3b82f6);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .price-marker-bubble.hovered {
+          background: #4b5563;
+          border-color: #374151;
+        }
+        
+        .price-marker-arrow {
+          width: 0;
+          height: 0;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 6px solid #1f2937;
+          margin-top: -1px;
+        }
+        
+        .price-marker-arrow.active {
+          border-top-color: var(--primary, #3b82f6);
+        }
+        
+        .price-text {
+          font-family: system-ui, -apple-system, sans-serif;
+        }
+        
+        /* Cluster Styles */
         .custom-cluster {
           background: transparent !important;
           border: none !important;
         }
 
-        .leaflet-popup-content-wrapper {
+        /* Popup Styles */
+        .custom-map-popup .leaflet-popup-content-wrapper {
+          padding: 0;
           border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.08);
         }
 
-        .leaflet-popup-tip {
+        .custom-map-popup .leaflet-popup-content {
+          margin: 0 !important;
+          width: auto !important;
+        }
+
+        .custom-map-popup .leaflet-popup-tip-container {
+          display: none;
+        }
+        
+        .custom-map-popup .leaflet-popup-close-button {
+          display: none;
+        }
+
+        .map-popup-card {
+          position: relative;
+          background: white;
+          min-width: 280px;
+          max-width: 320px;
+        }
+        
+        .popup-close-btn {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 10;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.95);
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          color: #64748b;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          transition: all 0.2s ease;
+        }
+        
+        .popup-close-btn:hover {
+          background: white;
+          color: #1e293b;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .popup-content {
+          display: flex;
+          gap: 12px;
+          padding: 0;
+        }
+        
+        .popup-image {
+          width: 100px;
+          min-width: 100px;
+          height: 100px;
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+        
+        .popup-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .popup-no-image {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f1f5f9;
+          color: #94a3b8;
+        }
+        
+        .popup-info {
+          flex: 1;
+          padding: 10px 12px 10px 0;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        
+        .popup-title {
+          font-weight: 700;
+          font-size: 13px;
+          line-height: 1.3;
+          color: #1e293b;
+          margin: 0 0 6px 0;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        .popup-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-bottom: 6px;
+        }
+        
+        .popup-tag {
+          display: inline-flex;
+          padding: 2px 8px;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          border-radius: 4px;
+          font-size: 11px;
+          color: #475569;
+          white-space: nowrap;
+        }
+        
+        .popup-price {
+          font-weight: 700;
+          font-size: 15px;
+          color: #1e293b;
+          margin: 0;
+        }
+        
+        .popup-time {
+          font-size: 11px;
+          color: #94a3b8;
+          margin: 4px 0 0 0;
         }
 
         .marker-default:hover {
           z-index: 1000 !important;
-        }
-
-        .custom-popup .leaflet-popup-content {
-          margin: 0 !important;
         }
       `}</style>
 
