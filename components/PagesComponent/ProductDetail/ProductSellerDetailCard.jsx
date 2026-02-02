@@ -6,38 +6,40 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
 
-// Solar Bold ikone
+// Lucide ikone
 import {
-  UserCircle,
-  Verified,
+  User as UserCircle,
+  BadgeCheck as Verified,
   Star,
   Calendar,
   Clock,
   Phone,
-  ChatRound,
-  Letter,
-  Share,
+  MessageCircle as ChatRound,
+  Mail as Letter,
+  Share2 as Share,
   Copy,
-  CheckCircle,
-  CloseCircle,
-  Buildings2,
+  CheckCircle2 as CheckCircle,
+  XCircle as CloseCircle,
+  Building2 as Buildings2,
   Crown,
-  Lightning,
+  Zap as Lightning,
   Shield,
-  MapPoint,
-  Global,
+  MapPin as MapPoint,
+  Globe as Global,
   Camera,
   Play,
-  MusicNote2,
+  Music2 as MusicNote2,
   Users,
   ArrowRight,
   Link as LinkIcon,
-  Send2,
-  HandMoney,
-  InfoCircle,
-  Refresh,
+  Send as Send2,
+  Banknote as HandMoney,
+  Info as InfoCircle,
+  RefreshCw as Refresh,
   Tag,
-} from "@solar-icons/react/bold";
+  Loader2,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
