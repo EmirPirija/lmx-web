@@ -6,38 +6,40 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
 
-// Solar Bold ikone
+// Lucide ikone
 import {
-  UserCircle,
-  Verified,
+  User as UserCircle,
+  BadgeCheck as Verified,
   Star,
   Calendar,
   Clock,
   Phone,
-  ChatRound,
-  Letter,
-  Share,
+  MessageCircle as ChatRound,
+  Mail as Letter,
+  Share2 as Share,
   Copy,
-  CheckCircle,
-  CloseCircle,
-  Buildings2,
+  CheckCircle2 as CheckCircle,
+  XCircle as CloseCircle,
+  Building2 as Buildings2,
   Crown,
-  Lightning,
+  Zap as Lightning,
   Shield,
-  MapPoint,
-  Global,
+  MapPin as MapPoint,
+  Globe as Global,
   Camera,
   Play,
-  MusicNote2,
+  Music2 as MusicNote2,
   Users,
   ArrowRight,
   Link as LinkIcon,
-  Send2,
-  HandMoney,
-  InfoCircle,
-  Refresh,
+  Send as Send2,
+  Banknote as HandMoney,
+  Info as InfoCircle,
+  RefreshCw as Refresh,
   Tag,
-} from "@solar-icons/react/bold";
+  Loader2,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
@@ -809,6 +811,8 @@ const ContactSheet = ({
   actionsDisabled,
   onPhoneReveal,
   onChatClick,
+  onWhatsAppClick,
+  onViberClick,
 }) => {
   const showWhatsapp = Boolean(settings?.show_whatsapp);
   const showViber = Boolean(settings?.show_viber);
@@ -858,6 +862,7 @@ const ContactSheet = ({
       value: whatsappNumber,
       href: `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`,
       external: true,
+      onClick: onWhatsAppClick,
     },
     {
       key: "viber",
@@ -869,6 +874,7 @@ const ContactSheet = ({
       label: "Viber",
       value: viberNumber,
       href: `viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`,
+      onClick: onViberClick,
     },
     {
       key: "email",
@@ -1472,19 +1478,34 @@ const SocialPill = ({ icon: Icon, label, href }) => {
 ===================================================== */
 
 const ProductSellerDetailCard = ({
-  seller,
-  ratings,
+  productDetails,
+  setProductDetails,
+  seller: sellerProp,
+  ratings: ratingsProp,
   badges,
   sellerSettings,
-  isPro = false,
-  isShop = false,
+  isPro: isProProp = false,
+  isShop: isShopProp = false,
   onChatClick,
   onProfileClick,
   onPhoneReveal,
-  itemId,
-  itemPrice,
-  acceptsOffers = false,
+  onPhoneClick,
+  onWhatsAppClick,
+  onViberClick,
+  onMessageClick,
+  itemId: itemIdProp,
+  itemPrice: itemPriceProp,
+  acceptsOffers: acceptsOffersProp = false,
 }) => {
+  // Izvuci seller iz productDetails ili koristi direktni prop
+  const seller = sellerProp || productDetails?.user;
+  const ratings = ratingsProp || productDetails?.ratings;
+  const isPro = isProProp || productDetails?.user?.is_pro;
+  const isShop = isShopProp || productDetails?.user?.is_shop;
+  const itemId = itemIdProp || productDetails?.id;
+  const itemPrice = itemPriceProp || productDetails?.price;
+  const acceptsOffers = acceptsOffersProp || productDetails?.accepts_offers || sellerSettings?.accepts_offers;
+
   const settings = sellerSettings || {};
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
@@ -1514,11 +1535,18 @@ const ProductSellerDetailCard = ({
   const canMakeOffer = acceptsOffers || settings?.accepts_offers;
 
   const handleChatClick = () => {
+    onMessageClick?.();
     if (onChatClick) {
       onChatClick();
     } else {
       setIsMessageModalOpen(true);
     }
+  };
+
+  const handlePhoneReveal = () => {
+    onPhoneReveal?.();
+    onPhoneClick?.();
+    setIsContactSheetOpen(true);
   };
 
   if (!seller) return <SellerPreviewSkeleton />;
@@ -1555,7 +1583,7 @@ const ProductSellerDetailCard = ({
         mode="header"
         showProfileLink={false}
         onChatClick={handleChatClick}
-        onPhoneClick={() => setIsContactSheetOpen(true)}
+        onPhoneClick={handlePhoneReveal}
         uiPrefs={{ contactStyle: "sheet" }}
         itemId={itemId}
         itemPrice={itemPrice}
@@ -1571,7 +1599,7 @@ const ProductSellerDetailCard = ({
         setOpenId={setOpenId}
       >
         <div className="flex flex-wrap gap-3">
-          <SecondaryButton onClick={() => setIsContactSheetOpen(true)}>
+          <SecondaryButton onClick={handlePhoneReveal}>
             <Phone size={18} />
             Kontakt opcije
           </SecondaryButton>
@@ -1736,6 +1764,8 @@ const ProductSellerDetailCard = ({
         actionsDisabled={false}
         onPhoneReveal={onPhoneReveal}
         onChatClick={handleChatClick}
+        onWhatsAppClick={onWhatsAppClick}
+        onViberClick={onViberClick}
       />
     </motion.div>
   );

@@ -5,32 +5,32 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Solar Bold Icons
+// Lucide Icons
 import {
-  DangerCircle as DangerCircleBold,
-  CalendarMinimalistic as CalendarBold,
+  AlertCircle as DangerCircleBold,
+  Calendar as CalendarBold,
   Camera as CameraBold,
-  AltArrowDown as AltArrowDownBold,
-  ClockCircle as ClockCircleBold,
+  ChevronDown as AltArrowDownBold,
+  Clock as ClockCircleBold,
   Copy as CopyBold,
   Eye as EyeBold,
-  Global as GlobalBold,
-  Letter as LetterBold,
-  ChatRoundDots as ChatRoundDotsBold,
+  Globe as GlobalBold,
+  Mail as LetterBold,
+  MessageCircle as ChatRoundDotsBold,
   Phone as PhoneBold,
-  Restart as RestartBold,
-  Diskette as DisketteBold,
+  RefreshCw as RestartBold,
+  Save as DisketteBold,
   Shield as ShieldBold,
-  StarFallMinimalistic2 as SparklesBold,
-  Shop2 as ShopBold,
-  UsersGroupTwoRounded as UsersBold,
-  Bolt as BoltBold,
-  CheckCircle as CheckCircleBold,
-  MapPoint as MapPointBold,
+  Sparkles as SparklesBold,
+  Store as ShopBold,
+  Users as UsersBold,
+  Zap as BoltBold,
+  CheckCircle2 as CheckCircleBold,
+  MapPin as MapPointBold,
   Link as LinkBold,
-  VideoFrame as VideoBold,
-  MusicNote as MusicBold,
-} from "@solar-icons/react/bold";
+  Video as VideoBold,
+  Music as MusicBold,
+} from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
