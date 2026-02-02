@@ -413,6 +413,13 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
     // Izvuci seller ID PRIJE svega
     const sellerUserId = seller?.user_id ?? seller?.id;
 
+    console.log("📤 SendMessageModal - Starting send:", {
+      itemId,
+      sellerUserId,
+      message: message.trim(),
+      currentUserId: currentUser?.id
+    });
+
     // Validacija
     if (!message.trim()) {
       setError("Molimo unesite poruku prije slanja.");
@@ -443,36 +450,50 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
 
       // Helper za izvlačenje conversation ID iz responsa
       const extractConversationId = (data) => {
-        return data?.conversation_id || data?.item_offer_id || data?.id || null;
+        const id = data?.conversation_id || data?.item_offer_id || data?.id || null;
+        console.log("📋 extractConversationId:", { data, extractedId: id });
+        return id;
       };
 
       // Ako imamo item_id, provjeri konverzaciju za taj proizvod
       if (itemId) {
+        console.log("🔍 Checking item conversation for item_id:", itemId);
         const checkRes = await itemConversationApi.checkConversation({ item_id: itemId });
+        console.log("📥 checkConversation response:", checkRes?.data);
 
         if (checkRes?.data?.error === false && extractConversationId(checkRes?.data?.data)) {
           conversationId = extractConversationId(checkRes.data.data);
+          console.log("✅ Found existing conversation:", conversationId);
         } else {
           // Kreiraj novu konverzaciju za proizvod
+          console.log("🆕 Starting new item conversation for item_id:", itemId);
           const startRes = await itemConversationApi.startItemConversation({ item_id: itemId });
+          console.log("📥 startItemConversation response:", startRes?.data);
 
           if (startRes?.data?.error === false) {
             conversationId = extractConversationId(startRes.data.data);
+            console.log("✅ Created new conversation:", conversationId);
           } else {
             throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor o proizvodu.");
           }
         }
       } else {
         // Direktna konverzacija sa prodavačem
+        console.log("🔍 Checking direct conversation for user_id:", sellerUserId);
         const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
+        console.log("📥 checkDirectConversation response:", checkRes?.data);
 
         if (checkRes?.data?.error === false && extractConversationId(checkRes?.data?.data)) {
           conversationId = extractConversationId(checkRes.data.data);
+          console.log("✅ Found existing direct conversation:", conversationId);
         } else {
+          console.log("🆕 Starting new direct conversation for user_id:", sellerUserId);
           const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+          console.log("📥 startDirectConversation response:", startRes?.data);
 
           if (startRes?.data?.error === false) {
             conversationId = extractConversationId(startRes.data.data);
+            console.log("✅ Created new direct conversation:", conversationId);
           } else {
             throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor.");
           }
@@ -484,22 +505,26 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
       }
 
       // Pošalji poruku
+      console.log("📤 Sending message to conversation:", conversationId);
       const sendRes = await sendMessageApi.sendMessage({
         item_offer_id: conversationId,
         message: message.trim(),
       });
+      console.log("📥 sendMessage response:", sendRes?.data);
 
       if (sendRes?.data?.error === false) {
         toast.success("Poruka je uspješno poslana!");
         setMessage("");
         setOpen(false);
         onSuccess?.();
-        router.push(`/chat?id=${conversationId}`);
+        // ISPRAVKA: Koristi chatid umjesto id
+        router.push(`/chat?chatid=${conversationId}`);
       } else {
         throw new Error(sendRes?.data?.message || "Greška pri slanju poruke.");
       }
     } catch (err) {
-      console.error("Greška pri slanju poruke:", err);
+      console.error("❌ Greška pri slanju poruke:", err);
+      console.error("❌ Error response:", err?.response?.data);
       const errorMessage = err?.response?.data?.message || err?.message || "Došlo je do greške pri slanju poruke.";
       setError(errorMessage);
       toast.error(errorMessage);
@@ -650,11 +675,15 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
     setIsSending(true);
     setError("");
 
+    console.log("📤 SendOfferModal - Sending offer:", { itemId, amount: numAmount });
+
     try {
       const res = await itemOfferApi.offer({
         item_id: itemId,
         amount: numAmount,
       });
+
+      console.log("📥 itemOffer response:", res?.data);
 
       if (res?.data?.error === false) {
         toast.success("Ponuda je uspješno poslana!");
@@ -665,8 +694,10 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
         // Izvuci conversation ID iz bilo kojeg mogućeg polja
         const data = res?.data?.data;
         const conversationId = data?.conversation_id || data?.item_offer_id || data?.id;
+        console.log("✅ Offer created, conversation ID:", conversationId);
         if (conversationId) {
-          router.push(`/chat?id=${conversationId}`);
+          // ISPRAVKA: Koristi chatid umjesto id
+          router.push(`/chat?chatid=${conversationId}`);
         }
       } else {
         throw new Error(res?.data?.message || "Greška pri slanju ponude.");
