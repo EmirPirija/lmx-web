@@ -43,7 +43,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
@@ -397,6 +397,7 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
 const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -426,7 +427,7 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
       return;
     }
 
-    if (!currentUser?.token) {
+    if (!isLoggedIn || !currentUser?.id) {
       toast.error("Morate biti prijavljeni da biste poslali poruku.");
       router.push("/login");
       return;
@@ -641,6 +642,7 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
 const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const [amount, setAmount] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -661,7 +663,7 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
       return;
     }
 
-    if (!currentUser?.token) {
+    if (!isLoggedIn || !currentUser?.id) {
       toast.error("Morate biti prijavljeni da biste poslali ponudu.");
       router.push("/login");
       return;
