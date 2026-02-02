@@ -43,7 +43,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
@@ -397,6 +397,7 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
 const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -413,13 +414,20 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
     // Izvuci seller ID PRIJE svega
     const sellerUserId = seller?.user_id ?? seller?.id;
 
+    console.log("📤 SendMessageModal - Starting send:", {
+      itemId,
+      sellerUserId,
+      message: message.trim(),
+      currentUserId: currentUser?.id
+    });
+
     // Validacija
     if (!message.trim()) {
       setError("Molimo unesite poruku prije slanja.");
       return;
     }
 
-    if (!currentUser?.token) {
+    if (!isLoggedIn || !currentUser?.id) {
       toast.error("Morate biti prijavljeni da biste poslali poruku.");
       router.push("/login");
       return;
@@ -441,33 +449,52 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
     try {
       let conversationId = null;
 
+      // Helper za izvlačenje conversation ID iz responsa
+      const extractConversationId = (data) => {
+        const id = data?.conversation_id || data?.item_offer_id || data?.id || null;
+        console.log("📋 extractConversationId:", { data, extractedId: id });
+        return id;
+      };
+
       // Ako imamo item_id, provjeri konverzaciju za taj proizvod
       if (itemId) {
+        console.log("🔍 Checking item conversation for item_id:", itemId);
         const checkRes = await itemConversationApi.checkConversation({ item_id: itemId });
+        console.log("📥 checkConversation response:", checkRes?.data);
 
-        if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
-          conversationId = checkRes.data.data.conversation_id;
+        if (checkRes?.data?.error === false && extractConversationId(checkRes?.data?.data)) {
+          conversationId = extractConversationId(checkRes.data.data);
+          console.log("✅ Found existing conversation:", conversationId);
         } else {
           // Kreiraj novu konverzaciju za proizvod
+          console.log("🆕 Starting new item conversation for item_id:", itemId);
           const startRes = await itemConversationApi.startItemConversation({ item_id: itemId });
+          console.log("📥 startItemConversation response:", startRes?.data);
 
           if (startRes?.data?.error === false) {
-            conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
+            conversationId = extractConversationId(startRes.data.data);
+            console.log("✅ Created new conversation:", conversationId);
           } else {
             throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor o proizvodu.");
           }
         }
       } else {
         // Direktna konverzacija sa prodavačem
+        console.log("🔍 Checking direct conversation for user_id:", sellerUserId);
         const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
+        console.log("📥 checkDirectConversation response:", checkRes?.data);
 
-        if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
-          conversationId = checkRes.data.data.conversation_id;
+        if (checkRes?.data?.error === false && extractConversationId(checkRes?.data?.data)) {
+          conversationId = extractConversationId(checkRes.data.data);
+          console.log("✅ Found existing direct conversation:", conversationId);
         } else {
+          console.log("🆕 Starting new direct conversation for user_id:", sellerUserId);
           const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+          console.log("📥 startDirectConversation response:", startRes?.data);
 
           if (startRes?.data?.error === false) {
-            conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
+            conversationId = extractConversationId(startRes.data.data);
+            console.log("✅ Created new direct conversation:", conversationId);
           } else {
             throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor.");
           }
@@ -479,22 +506,26 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
       }
 
       // Pošalji poruku
+      console.log("📤 Sending message to conversation:", conversationId);
       const sendRes = await sendMessageApi.sendMessage({
         item_offer_id: conversationId,
         message: message.trim(),
       });
+      console.log("📥 sendMessage response:", sendRes?.data);
 
       if (sendRes?.data?.error === false) {
         toast.success("Poruka je uspješno poslana!");
         setMessage("");
         setOpen(false);
         onSuccess?.();
-        router.push(`/chat?id=${conversationId}`);
+        // ISPRAVKA: Koristi chatid umjesto id
+        // router.push(`/chat?chatid=${conversationId}`);
       } else {
         throw new Error(sendRes?.data?.message || "Greška pri slanju poruke.");
       }
     } catch (err) {
-      console.error("Greška pri slanju poruke:", err);
+      console.error("❌ Greška pri slanju poruke:", err);
+      console.error("❌ Error response:", err?.response?.data);
       const errorMessage = err?.response?.data?.message || err?.message || "Došlo je do greške pri slanju poruke.";
       setError(errorMessage);
       toast.error(errorMessage);
@@ -611,6 +642,7 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
 const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const [amount, setAmount] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -631,7 +663,7 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
       return;
     }
 
-    if (!currentUser?.token) {
+    if (!isLoggedIn || !currentUser?.id) {
       toast.error("Morate biti prijavljeni da biste poslali ponudu.");
       router.push("/login");
       return;
@@ -645,11 +677,15 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
     setIsSending(true);
     setError("");
 
+    console.log("📤 SendOfferModal - Sending offer:", { itemId, amount: numAmount });
+
     try {
       const res = await itemOfferApi.offer({
         item_id: itemId,
         amount: numAmount,
       });
+
+      console.log("📥 itemOffer response:", res?.data);
 
       if (res?.data?.error === false) {
         toast.success("Ponuda je uspješno poslana!");
@@ -657,9 +693,13 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
         setOpen(false);
         onSuccess?.();
 
-        const conversationId = res?.data?.data?.conversation_id || res?.data?.data?.item_offer_id;
+        // Izvuci conversation ID iz bilo kojeg mogućeg polja
+        const data = res?.data?.data;
+        const conversationId = data?.conversation_id || data?.item_offer_id || data?.id;
+        console.log("✅ Offer created, conversation ID:", conversationId);
         if (conversationId) {
-          router.push(`/chat?id=${conversationId}`);
+          // ISPRAVKA: Koristi chatid umjesto id
+          // router.push(`/chat?chatid=${conversationId}`);
         }
       } else {
         throw new Error(res?.data?.message || "Greška pri slanju ponude.");
@@ -1589,156 +1629,6 @@ const ProductSellerDetailCard = ({
         itemPrice={itemPrice}
         acceptsOffers={canMakeOffer}
       />
-
-      {/* Contact accordion */}
-      <AccordionSection
-        id="contact"
-        title="Kontakt"
-        icon={Phone}
-        openId={openId}
-        setOpenId={setOpenId}
-      >
-        <div className="flex flex-wrap gap-3">
-          <SecondaryButton onClick={handlePhoneReveal}>
-            <Phone size={18} />
-            Kontakt opcije
-          </SecondaryButton>
-
-          <PrimaryButton onClick={handleChatClick}>
-            <ChatRound size={18} />
-            Pošalji poruku
-          </PrimaryButton>
-
-          {canMakeOffer && itemId && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsOfferModalOpen(true)}
-              className={cn(
-                "inline-flex items-center gap-2.5 rounded-2xl px-5 py-3",
-                "bg-gradient-to-r from-emerald-600 to-teal-600",
-                "text-white text-sm font-semibold",
-                "shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30",
-                "transition-all duration-300"
-              )}
-            >
-              <HandMoney size={18} />
-              Pošalji ponudu
-            </motion.button>
-          )}
-        </div>
-
-        {hasSocialLinks && (
-          <div className="mt-5">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">
-              Društvene mreže
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              {socialFacebook && <SocialPill icon={Users} label="Facebook" href={socialFacebook} />}
-              {socialInstagram && <SocialPill icon={Camera} label="Instagram" href={socialInstagram} />}
-              {socialTiktok && <SocialPill icon={MusicNote2} label="TikTok" href={socialTiktok} />}
-              {socialYoutube && <SocialPill icon={Play} label="YouTube" href={socialYoutube} />}
-              {socialWebsite && <SocialPill icon={Global} label="Web stranica" href={socialWebsite} />}
-            </div>
-          </div>
-        )}
-      </AccordionSection>
-
-      {/* Business hours accordion */}
-      {showHours && (
-        <AccordionSection
-          id="hours"
-          title="Radno vrijeme"
-          icon={Clock}
-          openId={openId}
-          setOpenId={setOpenId}
-        >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40">
-              <div className="flex items-center gap-2.5">
-                <Calendar size={16} className="text-slate-500" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Danas</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  {todayHoursText}
-                </span>
-                {openNow !== null && (
-                  <span className={cn(
-                    "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
-                    openNow
-                      ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-                      : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-                  )}>
-                    <span className={cn("h-1.5 w-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
-                    {openNow ? "Otvoreno" : "Zatvoreno"}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {tomorrowHoursText && (
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/30 dark:border-slate-700/30">
-                <div className="flex items-center gap-2.5">
-                  <Calendar size={16} className="text-slate-400" />
-                  <span className="text-sm text-slate-600 dark:text-slate-300">Sutra</span>
-                </div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {tomorrowHoursText}
-                </span>
-              </div>
-            )}
-          </div>
-        </AccordionSection>
-      )}
-
-      {/* Info accordion */}
-      {(shippingInfo || returnPolicy || businessDescription) && (
-        <AccordionSection
-          id="info"
-          title="Informacije"
-          icon={Shield}
-          openId={openId}
-          setOpenId={setOpenId}
-        >
-          <div className="space-y-4">
-            {shippingInfo && (
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-50/90 to-indigo-50/90 dark:from-sky-900/25 dark:to-indigo-900/25 border border-sky-100/60 dark:border-sky-800/40">
-                <div className="flex items-center gap-2.5 text-sm font-semibold text-sky-800 dark:text-sky-200 mb-2.5">
-                  <Lightning size={16} />
-                  Dostava
-                </div>
-                <p className="text-sm text-sky-700/85 dark:text-sky-300/85 whitespace-pre-line leading-relaxed">
-                  {shippingInfo}
-                </p>
-              </div>
-            )}
-
-            {returnPolicy && (
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/90 to-orange-50/90 dark:from-amber-900/25 dark:to-orange-900/25 border border-amber-100/60 dark:border-amber-800/40">
-                <div className="flex items-center gap-2.5 text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2.5">
-                  <Shield size={16} />
-                  Povrat
-                </div>
-                <p className="text-sm text-amber-700/85 dark:text-amber-300/85 whitespace-pre-line leading-relaxed">
-                  {returnPolicy}
-                </p>
-              </div>
-            )}
-
-            {businessDescription && (
-              <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40">
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2.5">
-                  O prodavaču
-                </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed">
-                  {businessDescription}
-                </p>
-              </div>
-            )}
-          </div>
-        </AccordionSection>
-      )}
 
       {/* Profile link */}
       <motion.div
