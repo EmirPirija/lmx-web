@@ -2,40 +2,42 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Calendar,
-  Camera,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Copy,
-  ExternalLink,
-  Globe,
-  Mail,
-  MessageCircle,
-  Music2,
-  Phone,
-  PhoneCall,
-  Play,
-  Share2,
-  Star,
-  Store,
-  Users,
-  X,
-  BadgeCheck,
-  Send,
-  Loader2,
-  AlertCircle,
-  Sparkles,
-  Shield,
-  Zap,
-  Tag,
-  HandCoins,
-} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
+
+// Solar Bold ikone
+import {
+  UserCircle,
+  Verified,
+  Star,
+  Calendar,
+  Clock,
+  Phone,
+  ChatRound,
+  Letter,
+  Share,
+  Copy,
+  CheckCircle,
+  CloseCircle,
+  Buildings2,
+  Crown,
+  Lightning,
+  Shield,
+  MapPoint,
+  Global,
+  Camera,
+  Play,
+  MusicNote2,
+  Users,
+  ArrowRight,
+  Link as LinkIcon,
+  Send2,
+  HandMoney,
+  InfoCircle,
+  Refresh,
+  Tag,
+} from "@solar-icons/react/bold";
 
 import { cn } from "@/lib/utils";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
@@ -48,21 +50,19 @@ import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 
-/* =====================
-  Animacije
-===================== */
+/* =====================================================
+   ANIMACIJE I STILOVI
+===================================================== */
 
 const fadeInUp = {
-  initial: { opacity: 0, y: 12, filter: "blur(4px)" },
+  initial: { opacity: 0, y: 16, filter: "blur(6px)" },
   animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-  exit: { opacity: 0, y: -8, filter: "blur(4px)" },
+  exit: { opacity: 0, y: -12, filter: "blur(6px)" },
 };
 
 const staggerContainer = {
   animate: {
-    transition: {
-      staggerChildren: 0.08,
-    },
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
   },
 };
 
@@ -72,28 +72,26 @@ const shimmerCss = `
   100% { transform: translateX(100%); }
 }
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.02); }
 }
 .shimmer { position: relative; overflow: hidden; }
 .shimmer::after {
   content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
-  animation: shimmer 1.5s infinite ease-in-out;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
+  animation: shimmer 1.8s infinite ease-in-out;
 }
 .dark .shimmer::after {
-  background: linear-gradient(90deg, transparent 0%, rgba(148,163,184,0.15) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(148,163,184,0.12) 50%, transparent 100%);
 }
-.glow-pulse {
-  animation: pulse-glow 2s infinite ease-in-out;
-}
+.glow-pulse { animation: pulse-glow 3s infinite ease-in-out; }
 `;
 
 const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
 
-/* =====================
-  Helperi
-===================== */
+/* =====================================================
+   HELPER FUNKCIJE
+===================================================== */
 
 const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
 
@@ -130,6 +128,7 @@ const parseBusinessHours = (hours) => {
 };
 
 const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
 const getDayKeyByIndex = (idx) => dayOrder[idx % 7];
 
 const getHoursText = (d) => {
@@ -174,28 +173,29 @@ const compactnessMap = {
   cozy: { pad: "p-6 sm:p-8", avatar: "w-20 h-20", name: "text-xl", meta: "text-sm", btn: "h-12" },
 };
 
-/* =====================
-  UI komponente
-===================== */
+/* =====================================================
+   UI KOMPONENTE
+===================================================== */
 
 const GlassCard = ({ children, className, ...props }) => (
   <motion.div
     {...fadeInUp}
-    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+    transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
     className={cn(
-      "relative overflow-hidden rounded-3xl",
-      "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl",
-      "border border-slate-200/60 dark:border-slate-700/60",
-      "shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40",
-      "hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50",
-      "transition-all duration-500 ease-out",
+      "relative overflow-hidden rounded-[28px]",
+      "bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl",
+      "border border-slate-200/50 dark:border-slate-700/50",
+      "shadow-2xl shadow-slate-300/30 dark:shadow-slate-950/50",
+      "hover:shadow-3xl hover:shadow-slate-300/40 dark:hover:shadow-slate-950/60",
+      "transition-all duration-700 ease-out",
       className
     )}
     {...props}
   >
-    <div className="pointer-events-none absolute inset-0">
-      <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 blur-3xl glow-pulse" />
-      <div className="absolute -bottom-32 -left-32 h-64 w-64 rounded-full bg-gradient-to-tr from-amber-500/15 to-rose-500/15 blur-3xl glow-pulse" />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-pink-500/15 blur-3xl glow-pulse" />
+      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-tr from-amber-500/10 via-orange-500/8 to-rose-500/10 blur-3xl glow-pulse" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent dark:from-white/[0.02]" />
     </div>
     {children}
   </motion.div>
@@ -203,23 +203,24 @@ const GlassCard = ({ children, className, ...props }) => (
 
 const IconPill = ({ icon: Icon, children, className, tone = "default" }) => {
   const toneStyles = {
-    default: "border-slate-200/70 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300",
-    success: "border-emerald-200/70 dark:border-emerald-800/60 bg-emerald-50/80 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
-    warning: "border-amber-200/70 dark:border-amber-800/60 bg-amber-50/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
-    info: "border-blue-200/70 dark:border-blue-800/60 bg-blue-50/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    default: "border-slate-200/60 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300",
+    success: "border-emerald-200/60 dark:border-emerald-800/50 bg-emerald-50/90 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    warning: "border-amber-200/60 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+    info: "border-sky-200/60 dark:border-sky-800/50 bg-sky-50/90 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300",
   };
 
   return (
     <motion.span
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.85, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm",
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-md",
         toneStyles[tone],
         className
       )}
     >
-      {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />}
+      {Icon && <Icon size={14} />}
       {children}
     </motion.span>
   );
@@ -228,45 +229,49 @@ const IconPill = ({ icon: Icon, children, className, tone = "default" }) => {
 const StatusBadge = ({ children, variant = "default", icon: Icon }) => {
   const variants = {
     default: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
-    pro: "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 text-amber-800 dark:text-amber-200 border-amber-200/70 dark:border-amber-700/50",
-    shop: "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-800 dark:text-blue-200 border-blue-200/70 dark:border-blue-700/50",
+    pro: "bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-900/30 dark:via-orange-900/25 dark:to-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-200/60 dark:border-amber-700/40",
+    shop: "bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-50 dark:from-indigo-900/30 dark:via-blue-900/25 dark:to-indigo-900/30 text-indigo-800 dark:text-indigo-200 border-indigo-200/60 dark:border-indigo-700/40",
   };
 
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
-      variants[variant]
-    )}>
-      {Icon && <Icon className="h-3 w-3" strokeWidth={2.5} />}
+    <motion.span
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm",
+        variants[variant]
+      )}
+    >
+      {Icon && <Icon size={12} />}
       {children}
-    </span>
+    </motion.span>
   );
 };
 
 const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) => (
   <motion.button
-    whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -1 }}
-    whileTap={{ scale: disabled ? 1 : 0.98 }}
+    whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -2 }}
+    whileTap={{ scale: disabled ? 1 : 0.97 }}
     disabled={disabled || isLoading}
     className={cn(
-      "relative inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
-      "bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white",
-      "text-white dark:text-slate-900 text-sm font-semibold",
-      "shadow-lg shadow-slate-900/25 dark:shadow-white/20",
-      "hover:shadow-xl hover:shadow-slate-900/30 dark:hover:shadow-white/25",
+      "group relative inline-flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5",
+      "bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-50 dark:to-white",
+      "text-white dark:text-slate-900 text-sm font-semibold tracking-wide",
+      "shadow-xl shadow-slate-900/20 dark:shadow-white/15",
+      "hover:shadow-2xl hover:shadow-slate-900/25 dark:hover:shadow-white/20",
       "transition-all duration-300 ease-out",
-      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-xl",
       "overflow-hidden",
       className
     )}
     {...props}
   >
     <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-      <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[100%] transition-transform duration-700" />
+      <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
     </span>
 
     {isLoading ? (
-      <Loader2 className="h-5 w-5 animate-spin" />
+      <Refresh size={20} className="animate-spin" />
     ) : (
       children
     )}
@@ -276,15 +281,15 @@ const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) =
 const SecondaryButton = ({ children, className, ...props }) => (
   <motion.button
     whileHover={{ scale: 1.02, y: -1 }}
-    whileTap={{ scale: 0.98 }}
+    whileTap={{ scale: 0.97 }}
     className={cn(
       "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5",
-      "bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm",
+      "bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-md",
       "text-slate-700 dark:text-slate-200 text-sm font-medium",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "hover:bg-slate-200/80 dark:hover:bg-slate-700/80",
-      "shadow-sm hover:shadow-md",
-      "transition-all duration-200",
+      "border border-slate-200/60 dark:border-slate-700/60",
+      "hover:bg-slate-200/90 dark:hover:bg-slate-700/90",
+      "shadow-md hover:shadow-lg",
+      "transition-all duration-250",
       className
     )}
     {...props}
@@ -293,36 +298,61 @@ const SecondaryButton = ({ children, className, ...props }) => (
   </motion.button>
 );
 
-const IconButton = ({ children, className, ...props }) => (
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    className={cn(
-      "inline-flex items-center justify-center w-11 h-11 rounded-2xl",
-      "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "text-slate-600 dark:text-slate-300",
-      "hover:bg-slate-100 dark:hover:bg-slate-700",
-      "hover:text-slate-900 dark:hover:text-white",
-      "shadow-sm hover:shadow-md",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </motion.button>
-);
+const IconButton = React.forwardRef(
+  ({ children, className, active, as, href, disabled, onClick, ...props }, ref) => {
+    const isLink = as === "a" || typeof href === "string";
+    const Comp = isLink ? motion.a : motion.button;
 
-/* =====================
-  Skeleton
-===================== */
+    const handleClick = (e) => {
+      if (disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      onClick?.(e);
+    };
+
+    return (
+      <Comp
+        ref={ref}
+        whileHover={disabled ? undefined : { scale: 1.08, y: -2 }}
+        whileTap={disabled ? undefined : { scale: 0.93 }}
+        href={isLink ? href : undefined}
+        onClick={handleClick}
+        aria-disabled={disabled ? true : undefined}
+        tabIndex={disabled && isLink ? -1 : undefined}
+        className={cn(
+          "inline-flex items-center justify-center w-12 h-12 rounded-2xl",
+          "bg-white/95 dark:bg-slate-800/95 backdrop-blur-md",
+          "border border-slate-200/60 dark:border-slate-700/60",
+          "text-slate-600 dark:text-slate-300",
+          "hover:bg-slate-100 dark:hover:bg-slate-700",
+          "hover:text-slate-900 dark:hover:text-white",
+          "shadow-lg hover:shadow-xl",
+          "transition-all duration-250",
+          active && "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xl",
+          disabled && "opacity-50 cursor-not-allowed pointer-events-none",
+          className
+        )}
+        {...(!isLink ? { disabled } : {})}
+        {...props}
+      >
+        {children}
+      </Comp>
+    );
+  }
+);
+IconButton.displayName = "IconButton";
+
+/* =====================================================
+   SKELETON KOMPONENTA
+===================================================== */
 
 export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
   const c = compactnessMap[compactness] || compactnessMap.normal;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-xl">
+    <div className="relative overflow-hidden rounded-[28px] border border-slate-200/50 dark:border-slate-800/50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl shadow-2xl">
       <ShimmerStyles />
       <div className={cn("relative", c.pad)}>
         <div className="flex items-start justify-between gap-4">
@@ -332,36 +362,36 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
             </div>
 
             <div className="min-w-0 flex-1 space-y-3">
-              <div className="h-5 w-40 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
+              <div className="h-6 w-44 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
               <div className="flex gap-2">
-                <div className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
                 <div className="h-6 w-20 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
+                <div className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
               </div>
             </div>
           </div>
 
-          <div className="h-11 w-11 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="h-12 w-12 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <div className="h-8 w-32 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
           <div className="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="h-8 w-32 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
         </div>
 
         <div className="mt-6 flex items-center gap-3">
-          <div className="flex-1 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
-          <div className="w-11 h-11 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="flex-1 h-14 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
         </div>
       </div>
     </div>
   );
 };
 
-/* =====================
-  Modali
-===================== */
+/* =====================================================
+   MODAL ZA SLANJE PORUKE
+===================================================== */
 
-// Modal za slanje poruke
 const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
@@ -370,9 +400,20 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (open) {
+      setMessage("");
+      setError("");
+    }
+  }, [open]);
+
   const handleSend = async () => {
+    // Izvuci seller ID PRIJE svega
+    const sellerUserId = seller?.user_id ?? seller?.id;
+
+    // Validacija
     if (!message.trim()) {
-      setError("Unesite poruku prije slanja.");
+      setError("Molimo unesite poruku prije slanja.");
       return;
     }
 
@@ -382,14 +423,40 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
       return;
     }
 
+    if (!sellerUserId) {
+      setError("Greška: Prodavač nije pronađen.");
+      return;
+    }
+
+    if (currentUser?.id && String(currentUser.id) === String(sellerUserId)) {
+      setError("Ne možete slati poruku sami sebi.");
+      return;
+    }
+
     setIsSending(true);
     setError("");
 
     try {
       let conversationId = null;
 
-      // Ako imamo item_id, provjeri/kreiraj konverzaciju za taj proizvod
+      // Ako imamo item_id, provjeri konverzaciju za taj proizvod
       if (itemId) {
+        const checkRes = await itemConversationApi.checkConversation({ item_id: itemId });
+
+        if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
+          conversationId = checkRes.data.data.conversation_id;
+        } else {
+          // Kreiraj novu konverzaciju za proizvod
+          const startRes = await itemConversationApi.startItemConversation({ item_id: itemId });
+
+          if (startRes?.data?.error === false) {
+            conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
+          } else {
+            throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor o proizvodu.");
+          }
+        }
+      } else {
+        // Direktna konverzacija sa prodavačem
         const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
 
         if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
@@ -397,22 +464,14 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
         } else {
           const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
 
-
           if (startRes?.data?.error === false) {
             conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
           } else {
-            throw new Error(startRes?.data?.message || "Ne mogu pokrenuti razgovor o proizvodu.");
+            throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor.");
           }
         }
-      } else {
-                const sellerUserId = seller?.user_id ?? seller?.id;
-                if (!sellerUserId) {
-                  throw new Error("Greška: Prodavač nije pronađen.");
-               }
-                if (currentUser?.id && String(currentUser.id) === String(sellerUserId)) {
-                  throw new Error("Ne možete poslati poruku sami sebi.");
-                }
-              }
+      }
+
       if (!conversationId) {
         throw new Error("Nije moguće kreirati razgovor.");
       }
@@ -433,9 +492,10 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
         throw new Error(sendRes?.data?.message || "Greška pri slanju poruke.");
       }
     } catch (err) {
-      console.error("Send message error:", err);
-      setError(err?.message || "Došlo je do greške pri slanju poruke.");
-      toast.error(err?.message || "Greška pri slanju poruke.");
+      console.error("Greška pri slanju poruke:", err);
+      const errorMessage = err?.response?.data?.message || err?.message || "Došlo je do greške pri slanju poruke.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSending(false);
     }
@@ -443,48 +503,50 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-3xl p-0 overflow-hidden shadow-2xl">
-        <motion.div {...fadeInUp} className="p-6">
+      <DialogContent className="max-w-lg bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-700/50 rounded-[28px] p-0 overflow-hidden shadow-2xl">
+        <motion.div {...fadeInUp} transition={{ duration: 0.4 }} className="p-6">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700">
+                <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-slate-200/60 dark:border-slate-700/60 shadow-lg">
                   <CustomImage
                     src={seller?.profile || seller?.profile_image}
                     alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
+                    width={56}
+                    height={56}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 {seller?.is_verified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-slate-900 rounded-full p-0.5">
-                    <BadgeCheck className="h-4 w-4 text-blue-500" />
+                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-lg p-0.5 shadow-md">
+                    <Verified size={18} className="text-sky-500" />
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                   Pošalji poruku
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                   {seller?.name || "Prodavač"}
                 </p>
               </div>
             </div>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
-              <X className="h-5 w-5 text-slate-500" />
-            </button>
+              <CloseCircle size={20} className="text-slate-500" />
+            </motion.button>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2.5">
                 Vaša poruka
               </label>
               <textarea
@@ -496,27 +558,30 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
                 placeholder="Napišite poruku prodavaču..."
                 rows={4}
                 className={cn(
-                  "w-full rounded-2xl border bg-white dark:bg-slate-800",
-                  "px-4 py-3 text-sm text-slate-900 dark:text-white",
+                  "w-full rounded-2xl border bg-white/90 dark:bg-slate-800/90",
+                  "px-4 py-3.5 text-sm text-slate-900 dark:text-white",
                   "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500",
-                  "transition-all duration-200 resize-none",
-                  error ? "border-red-300 dark:border-red-700" : "border-slate-200 dark:border-slate-700"
+                  "focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500",
+                  "transition-all duration-250 resize-none",
+                  error ? "border-red-300 dark:border-red-700" : "border-slate-200/70 dark:border-slate-700/70"
                 )}
               />
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
-                </motion.p>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -8, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -8, height: 0 }}
+                    className="mt-2.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-2"
+                  >
+                    <InfoCircle size={16} />
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-3">
               <SecondaryButton type="button" onClick={() => setOpen(false)}>
                 Odustani
               </SecondaryButton>
@@ -526,8 +591,8 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
                 isLoading={isSending}
                 disabled={!message.trim()}
               >
-                <Send className="h-4 w-4" />
-                Pošalji
+                <Send2 size={18} />
+                Pošalji poruku
               </PrimaryButton>
             </div>
           </div>
@@ -537,7 +602,10 @@ const SendMessageModal = ({ open, setOpen, seller, itemId, onSuccess }) => {
   );
 };
 
-// Modal za slanje ponude
+/* =====================================================
+   MODAL ZA SLANJE PONUDE
+===================================================== */
+
 const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
@@ -546,11 +614,18 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (open) {
+      setAmount("");
+      setError("");
+    }
+  }, [open]);
+
   const handleSend = async () => {
     const numAmount = parseFloat(amount);
 
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError("Unesite validan iznos ponude.");
+      setError("Molimo unesite validan iznos ponude.");
       return;
     }
 
@@ -580,7 +655,6 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
         setOpen(false);
         onSuccess?.();
 
-        // Preusmjeri na chat ako postoji conversation_id
         const conversationId = res?.data?.data?.conversation_id || res?.data?.data?.item_offer_id;
         if (conversationId) {
           router.push(`/chat?id=${conversationId}`);
@@ -589,9 +663,10 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
         throw new Error(res?.data?.message || "Greška pri slanju ponude.");
       }
     } catch (err) {
-      console.error("Send offer error:", err);
-      setError(err?.message || "Došlo je do greške pri slanju ponude.");
-      toast.error(err?.message || "Greška pri slanju ponude.");
+      console.error("Greška pri slanju ponude:", err);
+      const errorMessage = err?.response?.data?.message || err?.message || "Došlo je do greške pri slanju ponude.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSending(false);
     }
@@ -599,36 +674,41 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-3xl p-0 overflow-hidden shadow-2xl">
-        <motion.div {...fadeInUp} className="p-6">
+      <DialogContent className="max-w-lg bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-700/50 rounded-[28px] p-0 overflow-hidden shadow-2xl">
+        <motion.div {...fadeInUp} transition={{ duration: 0.4 }} className="p-6">
           <div className="flex items-start justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30">
-                <HandCoins className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/40 dark:to-teal-900/40 border border-emerald-200/50 dark:border-emerald-700/40 shadow-lg">
+                <HandMoney size={24} className="text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                   Pošalji ponudu
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                   {seller?.name || "Prodavač"}
                 </p>
               </div>
             </div>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
-              <X className="h-5 w-5 text-slate-500" />
-            </button>
+              <CloseCircle size={20} className="text-slate-500" />
+            </motion.button>
           </div>
 
           {itemPrice && (
-            <div className="mb-4 p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+            <div className="mb-5 p-4 rounded-2xl bg-gradient-to-br from-slate-50/90 to-slate-100/90 dark:from-slate-800/70 dark:to-slate-800/50 border border-slate-200/50 dark:border-slate-700/40">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 dark:text-slate-300">Trenutna cijena</span>
+                <div className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                  <Tag size={16} />
+                  Trenutna cijena
+                </div>
                 <span className="text-lg font-bold text-slate-900 dark:text-white">
                   {typeof itemPrice === 'number' ? `${itemPrice.toFixed(2)} KM` : itemPrice}
                 </span>
@@ -638,7 +718,7 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2.5">
                 Vaša ponuda (KM)
               </label>
               <div className="relative">
@@ -653,55 +733,58 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
                   step="0.01"
                   min="0"
                   className={cn(
-                    "w-full rounded-2xl border bg-white dark:bg-slate-800",
-                    "px-4 py-3 pr-12 text-lg font-semibold text-slate-900 dark:text-white",
+                    "w-full rounded-2xl border bg-white/90 dark:bg-slate-800/90",
+                    "px-4 py-3.5 pr-14 text-lg font-bold text-slate-900 dark:text-white",
                     "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                    "focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500",
-                    "transition-all duration-200",
-                    error ? "border-red-300 dark:border-red-700" : "border-slate-200 dark:border-slate-700"
+                    "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500",
+                    "transition-all duration-250",
+                    error ? "border-red-300 dark:border-red-700" : "border-slate-200/70 dark:border-slate-700/70"
                   )}
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500 dark:text-slate-400">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 dark:text-slate-400">
                   KM
                 </span>
               </div>
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
-                </motion.p>
-              )}
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -8, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -8, height: 0 }}
+                    className="mt-2.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-2"
+                  >
+                    <InfoCircle size={16} />
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-3">
               <SecondaryButton type="button" onClick={() => setOpen(false)}>
                 Odustani
               </SecondaryButton>
               <motion.button
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.97 }}
                 type="button"
                 onClick={handleSend}
                 disabled={isSending || !amount}
                 className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
+                  "inline-flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5",
                   "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600",
-                  "text-white text-sm font-semibold",
-                  "shadow-lg shadow-emerald-500/25",
-                  "hover:shadow-xl hover:shadow-emerald-500/30",
+                  "text-white text-sm font-semibold tracking-wide",
+                  "shadow-xl shadow-emerald-500/25",
+                  "hover:shadow-2xl hover:shadow-emerald-500/35",
                   "transition-all duration-300",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
                 {isSending ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Refresh size={20} className="animate-spin" />
                 ) : (
                   <>
-                    <HandCoins className="h-4 w-4" />
+                    <HandMoney size={18} />
                     Pošalji ponudu
                   </>
                 )}
@@ -714,8 +797,19 @@ const SendOfferModal = ({ open, setOpen, seller, itemId, itemPrice, onSuccess })
   );
 };
 
-// Contact Sheet Modal
-const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhoneReveal, onChatClick }) => {
+/* =====================================================
+   CONTACT SHEET MODAL
+===================================================== */
+
+const ContactSheet = ({
+  open,
+  setOpen,
+  seller,
+  settings,
+  actionsDisabled,
+  onPhoneReveal,
+  onChatClick,
+}) => {
   const showWhatsapp = Boolean(settings?.show_whatsapp);
   const showViber = Boolean(settings?.show_viber);
   const showEmail = Boolean(settings?.show_email);
@@ -732,7 +826,7 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
     try {
       await navigator.clipboard.writeText(value);
       setCopiedKey(key);
-      setTimeout(() => setCopiedKey(""), 1500);
+      setTimeout(() => setCopiedKey(""), 2000);
       toast.success("Kopirano u međuspremnik");
     } catch {
       toast.error("Kopiranje nije uspjelo");
@@ -745,7 +839,8 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
       show: showPhone && phone,
       icon: Phone,
       iconColor: "text-emerald-500",
-      bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
+      bgColor: "bg-emerald-50 dark:bg-emerald-900/25",
+      borderColor: "border-emerald-100 dark:border-emerald-800/40",
       label: "Pozovi",
       value: phone,
       href: `tel:${phone}`,
@@ -755,9 +850,10 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
     {
       key: "whatsapp",
       show: showWhatsapp && whatsappNumber,
-      icon: MessageCircle,
+      icon: ChatRound,
       iconColor: "text-green-500",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
+      bgColor: "bg-green-50 dark:bg-green-900/25",
+      borderColor: "border-green-100 dark:border-green-800/40",
       label: "WhatsApp",
       value: whatsappNumber,
       href: `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`,
@@ -766,9 +862,10 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
     {
       key: "viber",
       show: showViber && viberNumber,
-      icon: PhoneCall,
+      icon: Phone,
       iconColor: "text-violet-500",
-      bgColor: "bg-violet-50 dark:bg-violet-900/20",
+      bgColor: "bg-violet-50 dark:bg-violet-900/25",
+      borderColor: "border-violet-100 dark:border-violet-800/40",
       label: "Viber",
       value: viberNumber,
       href: `viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`,
@@ -776,9 +873,10 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
     {
       key: "email",
       show: showEmail && email,
-      icon: Mail,
-      iconColor: "text-blue-500",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      icon: Letter,
+      iconColor: "text-sky-500",
+      bgColor: "bg-sky-50 dark:bg-sky-900/25",
+      borderColor: "border-sky-100 dark:border-sky-800/40",
       label: "Email",
       value: email,
       href: `mailto:${email}`,
@@ -788,28 +886,30 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-3xl p-0 overflow-hidden shadow-2xl">
-        <motion.div {...fadeInUp} className="p-6">
+      <DialogContent className="max-w-md bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-700/50 rounded-[28px] p-0 overflow-hidden shadow-2xl">
+        <motion.div {...fadeInUp} transition={{ duration: 0.4 }} className="p-6">
           <div className="flex items-start justify-between gap-4 mb-6">
             <div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Kontaktiraj prodavača
               </h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
                 Odaberi način kontaktiranja
               </p>
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
-              <X className="h-5 w-5 text-slate-500" />
-            </button>
+              <CloseCircle size={20} className="text-slate-500" />
+            </motion.button>
           </div>
 
-          <div className="space-y-3">
-            {contactMethods.map((method) => {
+          <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
+            {contactMethods.map((method, idx) => {
               if (!method.show) return null;
 
               const Icon = method.icon;
@@ -817,9 +917,9 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
               return (
                 <motion.div
                   key={method.key}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-2"
+                  variants={fadeInUp}
+                  transition={{ delay: idx * 0.05 }}
+                  className="flex items-center gap-2.5"
                 >
                   <a
                     href={method.href}
@@ -827,16 +927,19 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
                     rel={method.external ? "noreferrer" : undefined}
                     onClick={() => method.onClick?.()}
                     className={cn(
-                      "flex-1 flex items-center gap-3 p-4 rounded-2xl",
-                      "border border-slate-200/70 dark:border-slate-700/70",
-                      "bg-white dark:bg-slate-800/80",
+                      "flex-1 flex items-center gap-3.5 p-4 rounded-2xl",
+                      "border",
+                      method.borderColor,
+                      "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm",
                       "hover:bg-slate-50 dark:hover:bg-slate-700/80",
-                      "transition-all duration-200",
+                      "hover:border-slate-300 dark:hover:border-slate-600",
+                      "transition-all duration-250",
+                      "shadow-sm hover:shadow-md",
                       actionsDisabled && "opacity-50 pointer-events-none"
                     )}
                   >
-                    <div className={cn("p-2.5 rounded-xl", method.bgColor)}>
-                      <Icon className={cn("h-5 w-5", method.iconColor)} strokeWidth={2} />
+                    <div className={cn("p-3 rounded-xl border", method.bgColor, method.borderColor)}>
+                      <Icon size={20} className={method.iconColor} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-slate-900 dark:text-white">
@@ -846,60 +949,62 @@ const ContactSheet = ({ open, setOpen, seller, settings, actionsDisabled, onPhon
                         {method.value}
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                    <ArrowRight size={18} className="text-slate-400 flex-shrink-0" />
                   </a>
 
                   {method.copyable && (
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       type="button"
                       onClick={() => copy(method.key, method.value)}
                       className={cn(
-                        "p-3 rounded-xl border border-slate-200 dark:border-slate-700",
-                        "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700",
-                        "transition-all duration-200"
+                        "p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-700/70",
+                        "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm",
+                        "hover:bg-slate-50 dark:hover:bg-slate-700",
+                        "transition-all duration-200 shadow-sm hover:shadow-md"
                       )}
                     >
                       {copiedKey === method.key ? (
-                        <Check className="h-5 w-5 text-emerald-500" />
+                        <CheckCircle size={18} className="text-emerald-500" />
                       ) : (
-                        <Copy className="h-5 w-5 text-slate-400" />
+                        <Copy size={18} className="text-slate-400" />
                       )}
-                    </button>
+                    </motion.button>
                   )}
                 </motion.div>
               );
             })}
 
             <motion.button
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+              variants={fadeInUp}
               type="button"
               onClick={() => {
                 onChatClick?.();
                 setOpen(false);
               }}
               className={cn(
-                "w-full flex items-center justify-center gap-2 p-4 rounded-2xl mt-4",
-                "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600",
+                "w-full flex items-center justify-center gap-2.5 p-4 rounded-2xl mt-4",
+                "bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600",
                 "text-white font-semibold",
-                "shadow-lg shadow-blue-500/30",
-                "hover:shadow-xl hover:shadow-blue-500/40",
+                "shadow-xl shadow-indigo-500/25",
+                "hover:shadow-2xl hover:shadow-indigo-500/35",
                 "transition-all duration-300"
               )}
             >
-              <MessageCircle className="h-5 w-5" />
+              <ChatRound size={20} />
               Pošalji poruku
             </motion.button>
-          </div>
+          </motion.div>
         </motion.div>
       </DialogContent>
     </Dialog>
   );
 };
 
-/* =====================
-  SellerPreviewCard
-===================== */
+/* =====================================================
+   SELLER PREVIEW CARD
+===================================================== */
 
 export const SellerPreviewCard = ({
   seller,
@@ -928,7 +1033,7 @@ export const SellerPreviewCard = ({
   const prefs = uiPrefs || {};
 
   const compactness = prefs.compactness || settings?.card_preferences?.compactness || "normal";
-  const contactStyle = prefs.contactStyle || settings?.card_preferences?.contactStyle || "inline";
+  const contactStyle = prefs.contactStyle || settings?.card_preferences?.contactStyle || settings?.contact_style || "inline";
 
   const showRatings = prefs.showRatings ?? true;
   const showBadges = prefs.showBadges ?? true;
@@ -1032,51 +1137,56 @@ export const SellerPreviewCard = ({
               {/* Avatar */}
               <div className="relative shrink-0">
                 <motion.div
-                  whileHover={{ scale: 1.03 }}
-                  className="rounded-full p-0.5 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
+                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="rounded-2xl p-0.5 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/20"
                 >
-                  <div className="rounded-full p-0.5 bg-white dark:bg-slate-900">
+                  <div className="rounded-[14px] p-0.5 bg-white dark:bg-slate-900">
                     <CustomImage
                       src={seller?.profile || seller?.profile_image}
                       alt={seller?.name || "Prodavač"}
                       width={64}
                       height={64}
-                      className={cn(c.avatar, "rounded-full object-cover")}
+                      className={cn(c.avatar, "rounded-xl object-cover")}
                     />
                   </div>
                 </motion.div>
 
                 {seller?.is_verified && (
                   <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", delay: 0.2 }}
-                    className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-full p-1 shadow-md"
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", delay: 0.3, stiffness: 200 }}
+                    className="absolute -bottom-1.5 -right-1.5 bg-white dark:bg-slate-900 rounded-xl p-1 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
                   >
-                    <BadgeCheck className="h-5 w-5 text-blue-500" strokeWidth={2.5} />
+                    <Verified size={18} className="text-sky-500" />
                   </motion.div>
                 )}
               </div>
 
               {/* Name & badges */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <h3 className={cn("font-bold text-slate-900 dark:text-white truncate", c.name)}>
                     {seller?.name}
                   </h3>
-                  {isPro && <StatusBadge variant="pro" icon={Sparkles}>Pro</StatusBadge>}
-                  {isShop && <StatusBadge variant="shop" icon={Store}>Trgovina</StatusBadge>}
+                  {isPro && (
+                    <StatusBadge variant="pro" icon={Crown}>Pro</StatusBadge>
+                  )}
+                  {isShop && (
+                    <StatusBadge variant="shop" icon={Buildings2}>Trgovina</StatusBadge>
+                  )}
                 </div>
 
                 {/* Meta info */}
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   {showRatings && ratingValue && (
                     <IconPill icon={Star} tone="warning">
                       {ratingValue} ({ratingCount})
                     </IconPill>
                   )}
                   {responseLabel && (
-                    <IconPill icon={Zap} tone="info">
+                    <IconPill icon={Lightning} tone="info">
                       Odgovara za {responseLabel}
                     </IconPill>
                   )}
@@ -1107,7 +1217,7 @@ export const SellerPreviewCard = ({
                 companyName={CompanyName}
               >
                 <IconButton>
-                  <Share2 className="h-5 w-5" strokeWidth={2} />
+                  <Share size={18} />
                 </IconButton>
               </ShareDropdown>
             )}
@@ -1116,22 +1226,23 @@ export const SellerPreviewCard = ({
           {/* Business hours (for shops) */}
           {showHours && todayHoursText && (
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-4 flex items-center justify-between p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
+              transition={{ delay: 0.2 }}
+              className="mt-5 flex items-center justify-between p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40"
             >
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <Clock className="h-4 w-4" strokeWidth={2} />
-                <span>Danas: {todayHoursText}</span>
+              <div className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300">
+                <Clock size={16} />
+                <span>Danas: <strong className="text-slate-900 dark:text-white">{todayHoursText}</strong></span>
               </div>
               {openNow !== null && (
                 <span className={cn(
-                  "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
+                  "inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full",
                   openNow
-                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
-                    : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                    ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-700/40"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-300/50 dark:border-slate-600/50"
                 )}>
-                  <span className={cn("h-1.5 w-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
+                  <span className={cn("h-2 w-2 rounded-full", openNow ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
@@ -1148,34 +1259,34 @@ export const SellerPreviewCard = ({
               disabled={actionsDisabled}
               className="flex-1 min-w-[140px]"
             >
-              <MessageCircle className="h-5 w-5" strokeWidth={2} />
+              <ChatRound size={18} />
               Pošalji poruku
             </PrimaryButton>
 
             {canMakeOffer && itemId && (
               <motion.button
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={handleOfferClick}
                 disabled={actionsDisabled}
                 className={cn(
-                  "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
-                  "bg-gradient-to-r from-emerald-600 to-teal-600",
-                  "text-white text-sm font-semibold",
-                  "shadow-lg shadow-emerald-500/25",
-                  "hover:shadow-xl hover:shadow-emerald-500/30",
+                  "inline-flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5",
+                  "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600",
+                  "text-white text-sm font-semibold tracking-wide",
+                  "shadow-xl shadow-emerald-500/25",
+                  "hover:shadow-2xl hover:shadow-emerald-500/35",
                   "transition-all duration-300",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
-                <HandCoins className="h-5 w-5" strokeWidth={2} />
+                <HandMoney size={18} />
                 Pošalji ponudu
               </motion.button>
             )}
 
             {contactStyle === "sheet" ? (
               <IconButton onClick={handlePhoneClick} disabled={actionsDisabled}>
-                <Phone className="h-5 w-5" strokeWidth={2} />
+                <Phone size={18} />
               </IconButton>
             ) : (
               <>
@@ -1186,7 +1297,7 @@ export const SellerPreviewCard = ({
                     onClick={handlePhoneClick}
                     disabled={actionsDisabled}
                   >
-                    <Phone className="h-5 w-5 text-emerald-500" strokeWidth={2} />
+                    <Phone size={18} className="text-emerald-500" />
                   </IconButton>
                 )}
                 {settings?.show_whatsapp && (settings?.whatsapp_number || seller?.mobile) && (
@@ -1197,7 +1308,7 @@ export const SellerPreviewCard = ({
                     rel="noreferrer"
                     disabled={actionsDisabled}
                   >
-                    <MessageCircle className="h-5 w-5 text-green-500" strokeWidth={2} />
+                    <ChatRound size={18} className="text-green-500" />
                   </IconButton>
                 )}
               </>
@@ -1209,15 +1320,15 @@ export const SellerPreviewCard = ({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-4"
+              transition={{ delay: 0.4 }}
+              className="mt-5"
             >
               <CustomLink
                 href={`/seller/${seller?.id}`}
                 className="group inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 Pogledaj profil
-                <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </CustomLink>
             </motion.div>
           )}
@@ -1227,9 +1338,9 @@ export const SellerPreviewCard = ({
   );
 };
 
-/* =====================
-  Accordion
-===================== */
+/* =====================================================
+   ACCORDION KOMPONENTE
+===================================================== */
 
 const useLocalStorageState = (key, initialValue) => {
   const [value, setValue] = useState(initialValue);
@@ -1257,30 +1368,30 @@ const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border border-slate-200/70 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm overflow-hidden"
+      className="rounded-[24px] border border-slate-200/60 dark:border-slate-700/50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl overflow-hidden shadow-lg"
     >
       <button
         type="button"
         onClick={() => setOpenId(isOpen ? "" : id)}
         className={cn(
           "w-full flex items-center justify-between gap-3 px-5 py-4 text-left transition-colors",
-          "hover:bg-slate-50/80 dark:hover:bg-slate-800/60",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+          "hover:bg-slate-50/90 dark:hover:bg-slate-800/70",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30"
         )}
       >
         <span className="inline-flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 text-slate-600 dark:text-slate-300">
-            <Icon className="h-5 w-5" strokeWidth={2} />
+          <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+            <Icon size={20} />
           </span>
           <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
         </span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.25 }}
         >
-          <ChevronDown className="h-5 w-5 text-slate-400" />
+          <ArrowRight size={18} className="rotate-90 text-slate-400" />
         </motion.div>
       </button>
 
@@ -1290,7 +1401,7 @@ const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="px-5 pb-5">{children}</div>
           </motion.div>
@@ -1309,7 +1420,7 @@ const SocialPill = ({ icon: Icon, label, href }) => {
     try {
       await navigator.clipboard.writeText(href);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setTimeout(() => setCopied(false), 2000);
       toast.success("Link kopiran");
     } catch {
       toast.error("Kopiranje nije uspjelo");
@@ -1318,24 +1429,26 @@ const SocialPill = ({ icon: Icon, label, href }) => {
 
   return (
     <motion.a
-      whileHover={{ scale: 1.02, y: -1 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.03, y: -2 }}
+      whileTap={{ scale: 0.97 }}
       href={href}
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "group relative inline-flex items-center gap-2 rounded-2xl",
-        "border border-slate-200/70 dark:border-slate-700/60",
-        "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm",
+        "group relative inline-flex items-center gap-2.5 rounded-2xl",
+        "border border-slate-200/60 dark:border-slate-700/50",
+        "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm",
         "px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200",
-        "hover:border-blue-300 dark:hover:border-blue-700",
-        "hover:shadow-md transition-all duration-200"
+        "hover:border-indigo-300 dark:hover:border-indigo-700",
+        "hover:shadow-lg transition-all duration-250"
       )}
     >
-      <Icon className="h-5 w-5 text-slate-500 dark:text-slate-400" strokeWidth={2} />
+      <Icon size={18} className="text-slate-500 dark:text-slate-400" />
       <span className="truncate max-w-[8rem]">{label}</span>
 
-      <button
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
         type="button"
         onClick={copy}
         className={cn(
@@ -1345,18 +1458,18 @@ const SocialPill = ({ icon: Icon, label, href }) => {
         )}
       >
         {copied ? (
-          <Check className="h-4 w-4 text-emerald-500" />
+          <CheckCircle size={14} className="text-emerald-500" />
         ) : (
-          <Copy className="h-4 w-4 text-slate-400" />
+          <Copy size={14} className="text-slate-400" />
         )}
-      </button>
+      </motion.button>
     </motion.a>
   );
 };
 
-/* =====================
-  Main ProductSellerDetailCard
-===================== */
+/* =====================================================
+   GLAVNI PRODUCT SELLER DETAIL CARD
+===================================================== */
 
 const ProductSellerDetailCard = ({
   seller,
@@ -1411,7 +1524,12 @@ const ProductSellerDetailCard = ({
   if (!seller) return <SellerPreviewSkeleton />;
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-4"
+    >
       <SendMessageModal
         open={isMessageModalOpen}
         setOpen={setIsMessageModalOpen}
@@ -1454,12 +1572,12 @@ const ProductSellerDetailCard = ({
       >
         <div className="flex flex-wrap gap-3">
           <SecondaryButton onClick={() => setIsContactSheetOpen(true)}>
-            <Phone className="h-5 w-5" strokeWidth={2} />
+            <Phone size={18} />
             Kontakt opcije
           </SecondaryButton>
 
           <PrimaryButton onClick={handleChatClick}>
-            <MessageCircle className="h-5 w-5" strokeWidth={2} />
+            <ChatRound size={18} />
             Pošalji poruku
           </PrimaryButton>
 
@@ -1469,13 +1587,14 @@ const ProductSellerDetailCard = ({
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsOfferModalOpen(true)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5",
+                "inline-flex items-center gap-2.5 rounded-2xl px-5 py-3",
                 "bg-gradient-to-r from-emerald-600 to-teal-600",
                 "text-white text-sm font-semibold",
-                "shadow-md hover:shadow-lg transition-all"
+                "shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30",
+                "transition-all duration-300"
               )}
             >
-              <HandCoins className="h-5 w-5" strokeWidth={2} />
+              <HandMoney size={18} />
               Pošalji ponudu
             </motion.button>
           )}
@@ -1483,15 +1602,15 @@ const ProductSellerDetailCard = ({
 
         {hasSocialLinks && (
           <div className="mt-5">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">
               Društvene mreže
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {socialFacebook && <SocialPill icon={Users} label="Facebook" href={socialFacebook} />}
               {socialInstagram && <SocialPill icon={Camera} label="Instagram" href={socialInstagram} />}
-              {socialTiktok && <SocialPill icon={Music2} label="TikTok" href={socialTiktok} />}
+              {socialTiktok && <SocialPill icon={MusicNote2} label="TikTok" href={socialTiktok} />}
               {socialYoutube && <SocialPill icon={Play} label="YouTube" href={socialYoutube} />}
-              {socialWebsite && <SocialPill icon={Globe} label="Web stranica" href={socialWebsite} />}
+              {socialWebsite && <SocialPill icon={Global} label="Web stranica" href={socialWebsite} />}
             </div>
           </div>
         )}
@@ -1507,20 +1626,20 @@ const ProductSellerDetailCard = ({
           setOpenId={setOpenId}
         >
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-slate-500" />
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40">
+              <div className="flex items-center gap-2.5">
+                <Calendar size={16} className="text-slate-500" />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Danas</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                <span className="text-sm font-bold text-slate-900 dark:text-white">
                   {todayHoursText}
                 </span>
                 {openNow !== null && (
                   <span className={cn(
-                    "inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full",
+                    "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
                     openNow
-                      ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                      ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
                       : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
                   )}>
                     <span className={cn("h-1.5 w-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
@@ -1531,9 +1650,9 @@ const ProductSellerDetailCard = ({
             </div>
 
             {tomorrowHoursText && (
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/30 dark:border-slate-700/30">
+                <div className="flex items-center gap-2.5">
+                  <Calendar size={16} className="text-slate-400" />
                   <span className="text-sm text-slate-600 dark:text-slate-300">Sutra</span>
                 </div>
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -1556,35 +1675,35 @@ const ProductSellerDetailCard = ({
         >
           <div className="space-y-4">
             {shippingInfo && (
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100/50 dark:border-blue-800/30">
-                <div className="flex items-center gap-2 text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                  <Zap className="h-4 w-4" />
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-50/90 to-indigo-50/90 dark:from-sky-900/25 dark:to-indigo-900/25 border border-sky-100/60 dark:border-sky-800/40">
+                <div className="flex items-center gap-2.5 text-sm font-semibold text-sky-800 dark:text-sky-200 mb-2.5">
+                  <Lightning size={16} />
                   Dostava
                 </div>
-                <p className="text-sm text-blue-700/80 dark:text-blue-300/80 whitespace-pre-line">
+                <p className="text-sm text-sky-700/85 dark:text-sky-300/85 whitespace-pre-line leading-relaxed">
                   {shippingInfo}
                 </p>
               </div>
             )}
 
             {returnPolicy && (
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/80 to-orange-50/80 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-100/50 dark:border-amber-800/30">
-                <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
-                  <Shield className="h-4 w-4" />
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/90 to-orange-50/90 dark:from-amber-900/25 dark:to-orange-900/25 border border-amber-100/60 dark:border-amber-800/40">
+                <div className="flex items-center gap-2.5 text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2.5">
+                  <Shield size={16} />
                   Povrat
                 </div>
-                <p className="text-sm text-amber-700/80 dark:text-amber-300/80 whitespace-pre-line">
+                <p className="text-sm text-amber-700/85 dark:text-amber-300/85 whitespace-pre-line leading-relaxed">
                   {returnPolicy}
                 </p>
               </div>
             )}
 
             {businessDescription && (
-              <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/30">
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
+              <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40">
+                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2.5">
                   O prodavaču
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-line">
+                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed">
                   {businessDescription}
                 </p>
               </div>
@@ -1597,7 +1716,7 @@ const ProductSellerDetailCard = ({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.5 }}
       >
         <CustomLink
           href={`/seller/${seller?.id}`}
@@ -1605,7 +1724,7 @@ const ProductSellerDetailCard = ({
           className="group inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           Pogledaj kompletan profil
-          <ExternalLink className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          <LinkIcon size={16} className="group-hover:translate-x-1 group-hover:-translate-y-0.5 transition-transform" />
         </CustomLink>
       </motion.div>
 
@@ -1618,7 +1737,7 @@ const ProductSellerDetailCard = ({
         onPhoneReveal={onPhoneReveal}
         onChatClick={handleChatClick}
       />
-    </div>
+    </motion.div>
   );
 };
 

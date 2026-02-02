@@ -908,20 +908,21 @@ export const addItemApi = {
       console.log("FORMDATA: scheduled_at", scheduled_at);
     }
 
-    // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
       custom_fields
     );
-
-    // ✅ šalji custom_fields bez available_now unutra
-    if (cleanedCustomFields !== undefined && cleanedCustomFields !== null) {
-      const cfToSend =
-        typeof cleanedCustomFields === "string"
-          ? cleanedCustomFields
-          : JSON.stringify(cleanedCustomFields);
-      formData.append("custom_fields", cfToSend);
+    
+    const finalCF =
+      cleanedCustomFields !== undefined ? cleanedCustomFields : custom_fields;
+    
+    if (finalCF !== undefined && finalCF !== null) {
+      formData.append(
+        "custom_fields",
+        typeof finalCF === "string" ? finalCF : JSON.stringify(finalCF)
+      );
     }
+    
 
     // ✅ REAL FILES ONLY (da ne šalješ object/string/empty)
     if (isFileLike(image)) formData.append("image", image);
@@ -942,10 +943,18 @@ export const addItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-    const galleryCsv = toCsv(temp_gallery_image_ids);
-    if (galleryCsv) {
-      formData.append("temp_gallery_image_ids", galleryCsv);
-    }
+// ✅ TEMP GALLERY IDS as array
+const galleryIds = Array.isArray(temp_gallery_image_ids)
+  ? temp_gallery_image_ids
+  : (temp_gallery_image_ids ? String(temp_gallery_image_ids).split(",") : []);
+
+galleryIds
+  .map((id) => String(id).trim())
+  .filter(Boolean)
+  .forEach((id) => {
+    formData.append("temp_gallery_image_ids[]", id);
+  });
+
 
     if (temp_video_id) {
       formData.append("temp_video_id", String(temp_video_id));
@@ -1124,10 +1133,18 @@ export const editItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-    const galleryCsv = toCsv(temp_gallery_image_ids);
-    if (galleryCsv) {
-      formData.append("temp_gallery_image_ids", galleryCsv);
-    }
+// ✅ TEMP GALLERY IDS as array
+const galleryIds = Array.isArray(temp_gallery_image_ids)
+  ? temp_gallery_image_ids
+  : (temp_gallery_image_ids ? String(temp_gallery_image_ids).split(",") : []);
+
+galleryIds
+  .map((id) => String(id).trim())
+  .filter(Boolean)
+  .forEach((id) => {
+    formData.append("temp_gallery_image_ids[]", id);
+  });
+
 
     if (temp_video_id) {
       formData.append("temp_video_id", String(temp_video_id));

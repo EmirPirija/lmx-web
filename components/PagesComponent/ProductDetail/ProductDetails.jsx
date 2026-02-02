@@ -365,6 +365,11 @@ const ProductDetails = ({ slug }) => {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
               <ProductQuestions productDetails={productDetails} isSeller={isMyListing} />
             </div>
+
+                          {/* LOKACIJA */}
+                          <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
+                <ProductLocation productDetails={productDetails} onMapOpen={trackMapOpen} />
+              </div>
           </div>
 
           {/* --- DESNA KOLONA (Sidebar) --- */}
@@ -421,11 +426,6 @@ const ProductDetails = ({ slug }) => {
                   />
                 </div>
               )}
-
-              {/* LOKACIJA */}
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
-                <ProductLocation productDetails={productDetails} onMapOpen={trackMapOpen} />
-              </div>
 
               {/* PRIJAVA OGLASA */}
               {!isMyListing && !productDetails?.is_already_reported && (
