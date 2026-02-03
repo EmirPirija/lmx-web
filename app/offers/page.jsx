@@ -124,6 +124,12 @@ const OfferCard = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoadi
   const router = useRouter();
   const isSelling = type === "received";
   const isPending = offer.status === "pending";
+  const counteredAmount = offer.counter_amount || offer.counterAmount;
+  const personName = isSelling ? offer.buyer_name : offer.seller_name;
+  const personLabel = isSelling ? "Ponudu poslao" : "Ponudu primio";
+  const roleLabel = isSelling ? "Vi prodajete" : "Vi kupujete";
+  const adIdentifier = offer.item_id || offer.item_slug || offer.itemId;
+  const offerIdentifier = offer.id || offer.offer_id || offer.offerId;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -137,8 +143,12 @@ const OfferCard = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoadi
     });
   };
 
-  const priceDiff = offer.item_price - offer.amount;
-  const priceDiffPercent = ((priceDiff / offer.item_price) * 100).toFixed(0);
+  const safeItemPrice = Number(offer.item_price) || 0;
+  const safeOfferAmount = Number(offer.amount) || 0;
+  const priceDiff = safeItemPrice - safeOfferAmount;
+  const priceDiffPercent = safeItemPrice
+    ? ((priceDiff / safeItemPrice) * 100).toFixed(0)
+    : "0";
 
   return (
     <motion.div
@@ -170,21 +180,38 @@ const OfferCard = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoadi
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  <Package size={12} />
+                  Oglas
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+                  <User size={12} />
+                  {roleLabel}
+                </span>
+                {counteredAmount ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                    <RefreshCw size={12} />
+                    Kontra {counteredAmount?.toLocaleString("bs-BA")} KM
+                  </span>
+                ) : null}
+              </div>
               <h3
                 onClick={() => router.push(`/ad-details/${offer.item_slug}`)}
                 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1 cursor-pointer hover:text-primary transition-colors"
               >
                 {offer.item_name}
               </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5">
                   <User size={12} />
-                  <span>{isSelling ? offer.buyer_name : offer.seller_name}</span>
+                  <span className="font-medium">{personLabel}:</span>
+                  <span>{personName || "Nepoznato"}</span>
                 </div>
                 <span className="text-slate-300 dark:text-slate-700">•</span>
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5">
                   <Calendar size={12} />
                   <span>{formatDate(offer.created_at)}</span>
                 </div>
@@ -193,32 +220,53 @@ const OfferCard = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoadi
             <StatusBadge status={offer.status} />
           </div>
 
-          {/* Price comparison */}
-          <div className="mt-3 flex items-end gap-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
-                Ponuda
-              </p>
-              <p className="text-xl font-black text-primary">
-                {offer.amount?.toLocaleString("bs-BA")} KM
-              </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-[1.2fr_1fr_auto] sm:items-end">
+            {/* Price comparison */}
+            <div className="flex items-end gap-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
+                  Ponuda
+                </p>
+                <p className="text-xl font-black text-primary">
+                  {offer.amount?.toLocaleString("bs-BA")} KM
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
+                  Tražena cijena
+                </p>
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                  {offer.item_price?.toLocaleString("bs-BA")} KM
+                </p>
+              </div>
+              <div className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold",
+                priceDiff > 0
+                  ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                  : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+              )}>
+                {priceDiff > 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
+                {priceDiff > 0 ? "-" : "+"}{Math.abs(priceDiffPercent)}%
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
-                Tražena cijena
-              </p>
-              <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                {offer.item_price?.toLocaleString("bs-BA")} KM
-              </p>
-            </div>
-            <div className={cn(
-              "flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold",
-              priceDiff > 0
-                ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
-            )}>
-              {priceDiff > 0 ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
-              {priceDiff > 0 ? "-" : "+"}{Math.abs(priceDiffPercent)}%
+
+            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300 sm:justify-self-end">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Ponuda ID
+                </p>
+                <p className="font-semibold text-slate-700 dark:text-slate-200">
+                  {offerIdentifier || "—"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Oglas ID
+                </p>
+                <p className="font-semibold text-slate-700 dark:text-slate-200">
+                  {adIdentifier || "—"}
+                </p>
+              </div>
             </div>
           </div>
         </div>
