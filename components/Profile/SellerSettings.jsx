@@ -5,31 +5,30 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Lucide Icons
 import {
-  AlertCircle as DangerCircleBold,
-  Calendar as CalendarBold,
-  Camera as CameraBold,
-  ChevronDown as AltArrowDownBold,
-  Clock as ClockCircleBold,
-  Copy as CopyBold,
-  Eye as EyeBold,
-  Globe as GlobalBold,
-  Mail as LetterBold,
-  MessageCircle as ChatRoundDotsBold,
-  Phone as PhoneBold,
-  RefreshCw as RestartBold,
-  Save as DisketteBold,
-  Shield as ShieldBold,
-  Sparkles as SparklesBold,
-  Store as ShopBold,
-  Users as UsersBold,
-  Zap as BoltBold,
-  CheckCircle2 as CheckCircleBold,
-  MapPin as MapPointBold,
-  Link as LinkBold,
-  Video as VideoBold,
-  Music as MusicBold,
+  AlertCircle,
+  Calendar,
+  Camera,
+  ChevronDown,
+  Clock,
+  Copy,
+  Eye,
+  Globe,
+  Mail,
+  MessageCircle,
+  Phone,
+  RefreshCw,
+  Save,
+  Shield,
+  Sparkles,
+  Store,
+  Users,
+  Zap,
+  CheckCircle2,
+  MapPin,
+  Link,
+  Video,
+  Music,
 } from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
@@ -37,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
@@ -44,25 +44,6 @@ import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import { SellerPreviewCard } from "@/components/PagesComponent/Seller/SellerDetailCard";
-
-/* =====================
-  Animacije
-===================== */
-
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] },
-};
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.06,
-    },
-  },
-};
 
 /* =====================
   Helperi / Utils
@@ -144,10 +125,7 @@ function stableStringify(value) {
 }
 
 const withTimeout = (promise, ms = 15000) =>
-  Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), ms)),
-  ]);
+  Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), ms))]);
 
 const pickFn = (obj, names) => names.map((n) => obj?.[n]).find((v) => typeof v === "function");
 
@@ -172,144 +150,81 @@ const ls = {
   UI Komponente
 ===================== */
 
-const GlassCard = ({ children, className, ...props }) => (
-  <motion.div
-    variants={fadeInUp}
-    className={cn(
-      "relative overflow-hidden rounded-3xl",
-      "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl",
-      "border border-slate-200/60 dark:border-slate-700/60",
-      "shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40",
-      className
-    )}
-    {...props}
-  >
-    {/* Dekorativni gradijent */}
-    <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/10 via-purple-400/5 to-transparent blur-2xl" />
+const Card = ({ children, className }) => (
+  <div className={cn("bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden", className)}>
     {children}
-  </motion.div>
-);
-
-const CardHeader = ({ icon: Icon, title, subtitle, right }) => (
-  <div className="px-5 sm:px-6 pt-5 sm:pt-6 flex items-start justify-between gap-4">
-    <div className="flex items-start gap-3">
-      {Icon && (
-        <div className="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-          <Icon className="h-5 w-5" />
-        </div>
-      )}
-      <div>
-        <div className="text-base font-bold text-slate-900 dark:text-white">{title}</div>
-        {subtitle && <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</div>}
-      </div>
-    </div>
-    {right && <div className="shrink-0">{right}</div>}
   </div>
 );
 
-const CardBody = ({ children }) => <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-4">{children}</div>;
+const CardHeader = ({ icon: Icon, title, subtitle, action }) => (
+  <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+    <div className="flex items-center gap-3">
+      {Icon && (
+        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+          <Icon size={20} className="text-slate-600" />
+        </div>
+      )}
+      <div>
+        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+    {action && <div>{action}</div>}
+  </div>
+);
+
+const CardBody = ({ children, className }) => <div className={cn("p-5", className)}>{children}</div>;
 
 const Spinner = ({ className }) => (
-  <motion.div
-    animate={{ rotate: 360 }}
-    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-    className={cn("h-5 w-5 border-2 border-current border-t-transparent rounded-full", className)}
-  />
+  <RefreshCw className={cn("h-4 w-4 animate-spin", className)} />
 );
 
-const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) => (
-  <motion.button
-    whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -1 }}
-    whileTap={{ scale: disabled ? 1 : 0.98 }}
-    disabled={disabled || isLoading}
+const ToggleRow = ({ title, desc, checked, onCheckedChange, icon: Icon, disabled }) => (
+  <div
     className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
-      "bg-gradient-to-r from-slate-900 to-slate-800 text-white",
-      "dark:from-white dark:to-slate-100 dark:text-slate-900",
-      "text-sm font-semibold shadow-lg shadow-slate-900/20 dark:shadow-white/10",
-      "disabled:opacity-50 disabled:cursor-not-allowed",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {isLoading ? <Spinner /> : children}
-  </motion.button>
-);
-
-const SecondaryButton = ({ children, className, ...props }) => (
-  <motion.button
-    whileHover={{ scale: 1.02, y: -1 }}
-    whileTap={{ scale: 0.98 }}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5",
-      "bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm",
-      "text-slate-800 dark:text-slate-200 text-sm font-semibold",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "hover:bg-slate-200/80 dark:hover:bg-slate-700/80",
-      "shadow-sm hover:shadow-md",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </motion.button>
-);
-
-const ToggleRow = ({ title, desc, checked, onCheckedChange, icon: Icon }) => (
-  <motion.div
-    whileHover={{ scale: 1.01 }}
-    className={cn(
-      "flex items-start justify-between gap-4 rounded-2xl p-4",
-      "border border-slate-200/70 dark:border-slate-700/60",
-      "bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm",
-      "transition-all duration-200",
-      checked && "border-blue-200/70 dark:border-blue-800/40 bg-blue-50/30 dark:bg-blue-900/10"
+      "flex items-start justify-between gap-4 rounded-xl p-3 border transition-all",
+      checked ? "border-slate-300 bg-slate-50/50" : "border-slate-200 bg-white",
+      disabled && "opacity-50"
     )}
   >
-    <div className="min-w-0">
-      <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-        {Icon && (
-          <Icon
-            className={cn(
-              "h-5 w-5 transition-colors duration-200",
-              checked ? "text-blue-500" : "text-slate-400"
-            )}
-          />
-        )}
-        {title}
+    <div className="flex items-start gap-3 min-w-0">
+      {Icon && (
+        <div
+          className={cn(
+            "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+            checked ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500"
+          )}
+        >
+          <Icon size={18} />
+        </div>
+      )}
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-slate-900">{title}</div>
+        {desc && <div className="text-xs text-slate-500 mt-0.5">{desc}</div>}
       </div>
-      {desc && <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{desc}</div>}
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} />
-  </motion.div>
+    <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+  </div>
 );
 
-const Disclosure = ({ title, icon: Icon, children, defaultOpen = false }) => {
+const Accordion = ({ title, icon: Icon, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
+
   return (
-    <motion.div
-      variants={fadeInUp}
-      className="rounded-3xl border border-slate-200/70 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl overflow-hidden shadow-lg shadow-slate-200/30 dark:shadow-slate-900/30"
-    >
+    <Card>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "w-full px-4 sm:px-5 py-4 flex items-center justify-between gap-3",
-          "hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-        )}
+        className="w-full px-5 py-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors"
       >
-        <span className="inline-flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-            <Icon className="h-5 w-5" />
-          </span>
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
-        </span>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+            <Icon size={20} className="text-slate-600" />
+          </div>
+          <span className="text-sm font-semibold text-slate-900">{title}</span>
+        </div>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <AltArrowDownBold className="h-5 w-5 text-slate-400" />
+          <ChevronDown size={20} className="text-slate-400" />
         </motion.div>
       </button>
 
@@ -319,31 +234,28 @@ const Disclosure = ({ title, icon: Icon, children, defaultOpen = false }) => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
           >
-            <div className="px-4 sm:px-5 pb-5">{children}</div>
+            <div className="px-5 pb-5 border-t border-slate-100 pt-4">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </Card>
   );
 };
 
-const StatusBadge = ({ status, text }) => {
-  const colors = {
-    success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    warning: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    error: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    info: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+const StatusChip = ({ status, text }) => {
+  const styles = {
+    success: "bg-emerald-100 text-emerald-700",
+    warning: "bg-amber-100 text-amber-700",
+    error: "bg-red-100 text-red-700",
+    info: "bg-blue-100 text-blue-700",
   };
 
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold",
-      colors[status] || colors.info
-    )}>
-      {status === "success" && <CheckCircleBold className="h-3.5 w-3.5" />}
-      {status === "error" && <DangerCircleBold className="h-3.5 w-3.5" />}
+    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium", styles[status])}>
+      {status === "success" && <CheckCircle2 size={12} />}
+      {status === "error" && <AlertCircle size={12} />}
       {text}
     </span>
   );
@@ -574,9 +486,7 @@ const SellerSettings = () => {
       setAcceptsOffers(s.accepts_offers ?? true);
 
       setAutoReplyEnabled(s.auto_reply_enabled ?? false);
-      setAutoReplyMessage(
-        s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku."
-      );
+      setAutoReplyMessage(s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
 
       setVacationMode(s.vacation_mode ?? false);
       setVacationMessage(s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!");
@@ -603,8 +513,7 @@ const SellerSettings = () => {
         response_time: s.response_time || "auto",
         accepts_offers: s.accepts_offers ?? true,
         auto_reply_enabled: s.auto_reply_enabled ?? false,
-        auto_reply_message:
-          s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
+        auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
         vacation_mode: s.vacation_mode ?? false,
         vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
         business_description: s.business_description || "",
@@ -735,21 +644,17 @@ const SellerSettings = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col gap-2"
-        >
-          <div className="h-8 w-64 rounded-2xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
-          <div className="h-5 w-96 rounded-xl bg-slate-200/40 dark:bg-slate-800/40 animate-pulse" />
-        </motion.div>
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_460px] gap-6">
+        <div className="flex flex-col gap-2">
+          <div className="h-7 w-48 rounded-lg bg-slate-200 animate-pulse" />
+          <div className="h-4 w-72 rounded-lg bg-slate-100 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-48 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
+              <div key={i} className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
             ))}
           </div>
-          <div className="h-[520px] rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
+          <div className="h-[400px] rounded-2xl bg-slate-100 animate-pulse" />
         </div>
       </div>
     );
@@ -761,25 +666,20 @@ const SellerSettings = () => {
 
   if (loadError) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <GlassCard className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-900/30">
-              <DangerCircleBold className="h-6 w-6 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="flex-1">
-              <div className="text-lg font-bold text-slate-900 dark:text-white">Greška pri učitavanju</div>
-              <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{loadError}</div>
-              <SecondaryButton onClick={fetchSettings} className="mt-4">
-                <RestartBold className="h-4 w-4" /> Pokušaj ponovo
-              </SecondaryButton>
-            </div>
+      <Card className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-red-100">
+            <AlertCircle size={24} className="text-red-600" />
           </div>
-        </GlassCard>
-      </motion.div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-slate-900">Greška pri učitavanju</h3>
+            <p className="text-sm text-slate-600 mt-1">{loadError}</p>
+            <Button onClick={fetchSettings} variant="outline" size="sm" className="mt-4 gap-2">
+              <RefreshCw size={16} /> Pokušaj ponovo
+            </Button>
+          </div>
+        </div>
+      </Card>
     );
   }
 
@@ -791,296 +691,231 @@ const SellerSettings = () => {
   ===================== */
 
   return (
-    <motion.div
-      variants={staggerContainer}
-      initial="initial"
-      animate="animate"
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       {/* Header */}
-      <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Postavke prodavača</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Podešavanja kako kupci vide tvoj profil i kako te mogu kontaktirati.
-          </p>
+          <h2 className="text-xl font-bold text-slate-900">Postavke prodavača</h2>
+          <p className="text-sm text-slate-500 mt-1">Podešavanja kako kupci vide tvoj profil i kako te mogu kontaktirati.</p>
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-3">
-            <SecondaryButton onClick={handleReset} disabled={isSaving || isAvatarUploading}>
-              <RestartBold className="h-4 w-4" /> Poništi
-            </SecondaryButton>
-            <PrimaryButton
+          <div className="flex items-center gap-2">
+            <Button onClick={handleReset} variant="outline" size="sm" disabled={isSaving || isAvatarUploading} className="gap-2">
+              <RefreshCw size={16} /> Poništi
+            </Button>
+            <Button
               onClick={handleSave}
-              isLoading={isSaving}
+              size="sm"
               disabled={isSaving || isAvatarUploading || !hasChanges || !isValid}
+              className="gap-2 bg-slate-900 hover:bg-slate-800"
             >
-              <DisketteBold className="h-4 w-4" /> Sačuvaj
-            </PrimaryButton>
+              {isSaving ? <Spinner /> : <Save size={16} />}
+              Sačuvaj
+            </Button>
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            {!isValid && <StatusBadge status="error" text="Ima grešaka u formi" />}
-            {isValid && !hasChanges && <StatusBadge status="info" text="Nema promjena" />}
-            {isValid && hasChanges && <StatusBadge status="success" text="Spremno za čuvanje" />}
+          <div className="text-xs">
+            {!isValid && <StatusChip status="error" text="Ima grešaka u formi" />}
+            {isValid && !hasChanges && <StatusChip status="info" text="Nema promjena" />}
+            {isValid && hasChanges && <StatusChip status="success" text="Spremno za čuvanje" />}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_460px] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6 items-start">
         {/* Left: Settings */}
-        <motion.div variants={staggerContainer} className="space-y-4">
+        <div className="space-y-4">
           {/* Avatar */}
-          <GlassCard>
-            <CardHeader
-              icon={CameraBold}
-              title="Profilna slika"
-              subtitle="Ovo kupci vide na tvojoj kartici prodavača."
-            />
+          <Card>
+            <CardHeader icon={Camera} title="Profilna slika" subtitle="Ovo kupci vide na tvojoj kartici prodavača." />
             <CardBody>
-              <div className="flex flex-col sm:flex-row gap-5 sm:items-center">
+              <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
                 <div className="flex items-center gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg"
-                  >
+                  <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100">
                     {previewImage ? (
                       <img src={previewImage} alt="Profil" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full grid place-items-center text-xs text-slate-400">Nema slike</div>
+                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">Nema slike</div>
                     )}
-                  </motion.div>
+                  </div>
 
                   <div className="flex flex-col gap-2">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                    />
-                    <SecondaryButton onClick={() => fileInputRef.current?.click()} disabled={isAvatarUploading}>
-                      <CameraBold className="h-4 w-4" /> Učitaj sliku
-                    </SecondaryButton>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" disabled={isAvatarUploading} className="gap-2">
+                      <Camera size={16} /> Učitaj sliku
+                    </Button>
 
                     <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
                       <DialogTrigger asChild>
-                        <PrimaryButton disabled={isAvatarUploading}>
-                          <SparklesBold className="h-4 w-4" /> Studio avatara
-                        </PrimaryButton>
+                        <Button size="sm" disabled={isAvatarUploading} className="gap-2 bg-slate-900 hover:bg-slate-800">
+                          <Sparkles size={16} /> Studio avatara
+                        </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none">
-                        <LmxAvatarGenerator
-                          onSave={updateProfileImage}
-                          onCancel={() => setIsAvatarModalOpen(false)}
-                          isSaving={isAvatarUploading}
-                        />
+                        <LmxAvatarGenerator onSave={updateProfileImage} onCancel={() => setIsAvatarModalOpen(false)} isSaving={isAvatarUploading} />
                       </DialogContent>
                     </Dialog>
                   </div>
                 </div>
 
-                <div className="text-sm text-slate-600 dark:text-slate-300 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-200/50 dark:border-slate-700/50">
-                  <strong>Savjet:</strong> Koristi jasnu sliku lica ili logo. Kvalitetna slika direktno utiče na povjerenje kupaca.
+                <div className="text-xs text-slate-500 bg-slate-50 rounded-xl p-3 border border-slate-200 flex-1">
+                  <strong className="text-slate-700">Savjet:</strong> Koristi jasnu sliku lica ili logo. Kvalitetna slika direktno
+                  utiče na povjerenje kupaca.
                 </div>
               </div>
             </CardBody>
-          </GlassCard>
+          </Card>
 
           {/* Contact */}
-          <Disclosure title="Kontakt opcije" icon={PhoneBold} defaultOpen>
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ToggleRow
-                  title="Telefon"
-                  desc="Prikaži broj kupcima"
-                  icon={PhoneBold}
-                  checked={showPhone}
-                  onCheckedChange={setShowPhone}
-                />
-                <ToggleRow
-                  title="Email"
-                  desc="Prikaži email kupcima"
-                  icon={LetterBold}
-                  checked={showEmail}
-                  onCheckedChange={setShowEmail}
-                />
-                <ToggleRow
-                  title="WhatsApp"
-                  desc="Prikaži WhatsApp dugme"
-                  icon={ChatRoundDotsBold}
-                  checked={showWhatsapp}
-                  onCheckedChange={setShowWhatsapp}
-                />
-                <ToggleRow
-                  title="Viber"
-                  desc="Prikaži Viber dugme"
-                  icon={PhoneBold}
-                  checked={showViber}
-                  onCheckedChange={setShowViber}
-                />
+          <Accordion title="Kontakt opcije" icon={Phone} defaultOpen>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ToggleRow title="Telefon" desc="Prikaži broj kupcima" icon={Phone} checked={showPhone} onCheckedChange={setShowPhone} />
+                <ToggleRow title="Email" desc="Prikaži email kupcima" icon={Mail} checked={showEmail} onCheckedChange={setShowEmail} />
+                <ToggleRow title="WhatsApp" desc="Prikaži WhatsApp dugme" icon={MessageCircle} checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
+                <ToggleRow title="Viber" desc="Prikaži Viber dugme" icon={Phone} checked={showViber} onCheckedChange={setShowViber} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">WhatsApp broj</Label>
+                  <Label className="text-sm font-medium text-slate-700">WhatsApp broj</Label>
                   <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl transition-all duration-200",
-                      submitAttempted && errors.whatsappNumber && "border-red-300 focus:border-red-400"
-                    )}
+                    className={cn("h-10 mt-1.5 rounded-xl", submitAttempted && errors.whatsappNumber && "border-red-300")}
                     placeholder="+38761234567"
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
                     disabled={!showWhatsapp}
                   />
                   {errors.whatsappNumber && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-xs text-red-600 flex items-center gap-1"
-                    >
-                      <DangerCircleBold className="h-3 w-3" />
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle size={12} />
                       {errors.whatsappNumber}
-                    </motion.div>
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Viber broj</Label>
+                  <Label className="text-sm font-medium text-slate-700">Viber broj</Label>
                   <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl transition-all duration-200",
-                      submitAttempted && errors.viberNumber && "border-red-300 focus:border-red-400"
-                    )}
+                    className={cn("h-10 mt-1.5 rounded-xl", submitAttempted && errors.viberNumber && "border-red-300")}
                     placeholder="+38761234567"
                     value={viberNumber}
                     onChange={(e) => setViberNumber(e.target.value)}
                     disabled={!showViber}
                   />
                   {errors.viberNumber && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-xs text-red-600 flex items-center gap-1"
-                    >
-                      <DangerCircleBold className="h-3 w-3" />
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle size={12} />
                       {errors.viberNumber}
-                    </motion.div>
+                    </p>
                   )}
                 </div>
               </div>
 
-              <div className="pt-2">
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Preferirani način kontakta</Label>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Preferirani način kontakta</Label>
                 <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {["message", "phone", "whatsapp", "viber", "email"].map((v) => {
                     const active = preferredContact === v;
                     const label =
-                      v === "message" ? "Poruka" :
-                      v === "phone" ? "Poziv" :
-                      v === "whatsapp" ? "WhatsApp" :
-                      v === "viber" ? "Viber" : "Email";
+                      v === "message" ? "Poruka" : v === "phone" ? "Poziv" : v === "whatsapp" ? "WhatsApp" : v === "viber" ? "Viber" : "Email";
                     return (
-                      <motion.button
+                      <button
                         key={v}
                         type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                         onClick={() => setPreferredContact(v)}
                         className={cn(
-                          "h-11 rounded-2xl border px-4 text-sm font-semibold transition-all duration-200",
+                          "h-10 rounded-xl border px-4 text-sm font-medium transition-all",
                           active
-                            ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 shadow-lg"
-                            : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 hover:bg-slate-50 text-slate-700"
                         )}
                       >
                         {label}
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
               </div>
             </div>
-          </Disclosure>
+          </Accordion>
 
           {/* Availability */}
-          <Disclosure title="Dostupnost i ponude" icon={BoltBold} defaultOpen={false}>
+          <Accordion title="Dostupnost i ponude" icon={Zap} defaultOpen={false}>
             <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/50 p-4">
-                <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                  <ClockCircleBold className="h-4 w-4 text-blue-500" />
+              <div>
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Clock size={16} />
                   Vrijeme odgovora
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                </Label>
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {responseTimeOptions.map((o) => {
                     const active = responseTime === o.value;
                     return (
-                      <motion.button
+                      <button
                         key={o.value}
                         type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                         onClick={() => setResponseTime(o.value)}
                         className={cn(
-                          "h-11 rounded-2xl border px-4 text-sm font-semibold transition-all duration-200",
+                          "h-10 rounded-xl border px-4 text-sm font-medium transition-all",
                           active
-                            ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 shadow-lg"
-                            : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 hover:bg-slate-50 text-slate-700"
                         )}
                       >
                         {o.label}
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/50 p-4">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                    <CalendarBold className="h-4 w-4 text-emerald-500" />
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                    <Calendar size={16} />
                     Radno vrijeme
-                  </div>
-                  <SecondaryButton onClick={copyWeekdays}>
-                    <CopyBold className="h-4 w-4" /> Kopiraj ponedjeljak
-                  </SecondaryButton>
+                  </Label>
+                  <Button onClick={copyWeekdays} variant="outline" size="sm" className="gap-2">
+                    <Copy size={14} /> Kopiraj ponedjeljak
+                  </Button>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {DAYS.map((day) => (
-                    <motion.div
+                    <div
                       key={day}
-                      whileHover={{ scale: 1.005 }}
                       className={cn(
-                        "rounded-2xl border p-4 transition-all duration-200",
+                        "rounded-xl border p-3 transition-all",
                         businessHours?.[day]?.enabled
-                          ? "border-emerald-200/70 bg-emerald-50/30 dark:border-emerald-800/40 dark:bg-emerald-900/10"
-                          : "border-slate-200/70 bg-slate-50/50 dark:border-slate-700/60 dark:bg-slate-800/30"
+                          ? "border-emerald-200 bg-emerald-50/50"
+                          : "border-slate-200 bg-slate-50/50"
                       )}
                     >
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="text-sm font-semibold text-slate-900 dark:text-white">{DAY_LABEL[day]}</div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium text-slate-900 w-24">{DAY_LABEL[day]}</span>
                           <div className="flex items-center gap-2">
-                            <span className={cn(
-                              "text-xs font-medium px-2 py-1 rounded-lg",
-                              businessHours?.[day]?.enabled
-                                ? "text-emerald-600 bg-emerald-100/50 dark:bg-emerald-900/30"
-                                : "text-slate-500 bg-slate-100/50 dark:bg-slate-800/50"
-                            )}>
+                            <span
+                              className={cn(
+                                "text-xs font-medium px-2 py-1 rounded-lg",
+                                businessHours?.[day]?.enabled
+                                  ? "text-emerald-600 bg-emerald-100"
+                                  : "text-slate-500 bg-slate-100"
+                              )}
+                            >
                               {businessHours?.[day]?.enabled ? "Otvoreno" : "Zatvoreno"}
                             </span>
                             <Switch checked={businessHours?.[day]?.enabled} onCheckedChange={(v) => setDay(day, { enabled: v })} />
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 md:w-[280px]">
+                        <div className="grid grid-cols-2 gap-2 sm:w-[220px]">
                           <div>
                             <Label className="text-xs text-slate-500">Od</Label>
                             <Input
                               type="time"
-                              className="h-10 mt-1 rounded-xl text-sm"
+                              className="h-9 mt-1 rounded-lg text-sm"
                               value={businessHours?.[day]?.open || "09:00"}
                               onChange={(e) => setDay(day, { open: e.target.value })}
                               disabled={!businessHours?.[day]?.enabled}
@@ -1090,7 +925,7 @@ const SellerSettings = () => {
                             <Label className="text-xs text-slate-500">Do</Label>
                             <Input
                               type="time"
-                              className="h-10 mt-1 rounded-xl text-sm"
+                              className="h-9 mt-1 rounded-lg text-sm"
                               value={businessHours?.[day]?.close || "17:00"}
                               onChange={(e) => setDay(day, { close: e.target.value })}
                               disabled={!businessHours?.[day]?.enabled}
@@ -1098,7 +933,7 @@ const SellerSettings = () => {
                           </div>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1106,285 +941,228 @@ const SellerSettings = () => {
               <ToggleRow
                 title="Primam ponude"
                 desc="Kupci mogu slati cjenovne ponude na tvoje proizvode"
-                icon={ShieldBold}
+                icon={Shield}
                 checked={acceptsOffers}
                 onCheckedChange={setAcceptsOffers}
               />
             </div>
-          </Disclosure>
+          </Accordion>
 
           {/* Auto reply */}
-          <Disclosure title="Automatski odgovor" icon={ChatRoundDotsBold} defaultOpen={false}>
-            <div className="space-y-3">
+          <Accordion title="Automatski odgovor" icon={MessageCircle} defaultOpen={false}>
+            <div className="space-y-4">
               <ToggleRow
                 title="Uključi automatski odgovor"
                 desc="Automatska poruka se šalje kupcu čim ti napiše poruku"
-                icon={ChatRoundDotsBold}
+                icon={MessageCircle}
                 checked={autoReplyEnabled}
                 onCheckedChange={setAutoReplyEnabled}
               />
               <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Poruka automatskog odgovora</Label>
+                <Label className="text-sm font-medium text-slate-700">Poruka automatskog odgovora</Label>
                 <Textarea
-                  className={cn(
-                    "mt-2 rounded-2xl min-h-[110px] transition-all duration-200",
-                    submitAttempted && errors.autoReplyMessage && "border-red-300"
-                  )}
+                  className={cn("mt-1.5 rounded-xl min-h-[100px]", submitAttempted && errors.autoReplyMessage && "border-red-300")}
                   value={autoReplyMessage}
                   onChange={(e) => setAutoReplyMessage(e.target.value)}
                   disabled={!autoReplyEnabled}
                 />
-                {errors.autoReplyMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-xs text-red-600"
-                  >
-                    {errors.autoReplyMessage}
-                  </motion.div>
-                )}
+                {errors.autoReplyMessage && <p className="mt-1 text-xs text-red-600">{errors.autoReplyMessage}</p>}
               </div>
             </div>
-          </Disclosure>
+          </Accordion>
 
           {/* Vacation */}
-          <Disclosure title="Odmor / Pauza" icon={CalendarBold} defaultOpen={false}>
-            <div className="space-y-3">
+          <Accordion title="Odmor / Pauza" icon={Calendar} defaultOpen={false}>
+            <div className="space-y-4">
               <ToggleRow
                 title="Uključi mode odmora"
                 desc="Kupci vide da trenutno nisi dostupan za brze odgovore"
-                icon={CalendarBold}
+                icon={Calendar}
                 checked={vacationMode}
                 onCheckedChange={setVacationMode}
               />
               <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Poruka za kupce</Label>
+                <Label className="text-sm font-medium text-slate-700">Poruka za kupce</Label>
                 <Textarea
-                  className={cn(
-                    "mt-2 rounded-2xl min-h-[110px] transition-all duration-200",
-                    submitAttempted && errors.vacationMessage && "border-red-300"
-                  )}
+                  className={cn("mt-1.5 rounded-xl min-h-[100px]", submitAttempted && errors.vacationMessage && "border-red-300")}
                   value={vacationMessage}
                   onChange={(e) => setVacationMessage(e.target.value)}
                   disabled={!vacationMode}
                 />
-                {errors.vacationMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-xs text-red-600"
-                  >
-                    {errors.vacationMessage}
-                  </motion.div>
-                )}
+                {errors.vacationMessage && <p className="mt-1 text-xs text-red-600">{errors.vacationMessage}</p>}
               </div>
             </div>
-          </Disclosure>
+          </Accordion>
 
           {/* Info */}
-          <Disclosure title="Informacije za kupce" icon={ShopBold} defaultOpen={false}>
+          <Accordion title="Informacije za kupce" icon={Store} defaultOpen={false}>
             <div className="space-y-4">
               <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">O meni / Opis djelatnosti</Label>
+                <Label className="text-sm font-medium text-slate-700">O meni / Opis djelatnosti</Label>
                 <Textarea
-                  className="mt-2 rounded-2xl min-h-[110px]"
+                  className="mt-1.5 rounded-xl min-h-[100px]"
                   placeholder="Napiši kratko ko si, šta prodaješ i zašto bi kupci trebali kupovati od tebe..."
                   value={businessDescription}
                   onChange={(e) => setBusinessDescription(e.target.value)}
                 />
               </div>
               <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Informacije o dostavi</Label>
+                <Label className="text-sm font-medium text-slate-700">Informacije o dostavi</Label>
                 <Textarea
-                  className="mt-2 rounded-2xl min-h-[110px]"
+                  className="mt-1.5 rounded-xl min-h-[100px]"
                   placeholder="Kako šalješ, rokovi isporuke, cijene dostave..."
                   value={shippingInfo}
                   onChange={(e) => setShippingInfo(e.target.value)}
                 />
               </div>
               <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Povrat i reklamacije</Label>
+                <Label className="text-sm font-medium text-slate-700">Povrat i reklamacije</Label>
                 <Textarea
-                  className="mt-2 rounded-2xl min-h-[110px]"
+                  className="mt-1.5 rounded-xl min-h-[100px]"
                   placeholder="Uslovi povrata, garancija, reklamacije..."
                   value={returnPolicy}
                   onChange={(e) => setReturnPolicy(e.target.value)}
                 />
               </div>
             </div>
-          </Disclosure>
+          </Accordion>
 
           {/* Social */}
-          <Disclosure title="Društvene mreže" icon={GlobalBold} defaultOpen={false}>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <UsersBold className="h-4 w-4 text-blue-500" /> Facebook
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialFacebook && "border-red-300"
-                    )}
-                    value={socialFacebook}
-                    onChange={(e) => setSocialFacebook(e.target.value)}
-                    placeholder="https://facebook.com/..."
-                  />
-                  {errors.socialFacebook && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialFacebook}</div>
-                  )}
-                </div>
+          <Accordion title="Društvene mreže" icon={Globe} defaultOpen={false}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Users size={16} className="text-blue-500" /> Facebook
+                </Label>
+                <Input
+                  className={cn("h-10 mt-1.5 rounded-xl", submitAttempted && errors.socialFacebook && "border-red-300")}
+                  value={socialFacebook}
+                  onChange={(e) => setSocialFacebook(e.target.value)}
+                  placeholder="https://facebook.com/..."
+                />
+                {errors.socialFacebook && <p className="mt-1 text-xs text-red-600">{errors.socialFacebook}</p>}
+              </div>
 
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <CameraBold className="h-4 w-4 text-pink-500" /> Instagram
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialInstagram && "border-red-300"
-                    )}
-                    value={socialInstagram}
-                    onChange={(e) => setSocialInstagram(e.target.value)}
-                    placeholder="https://instagram.com/..."
-                  />
-                  {errors.socialInstagram && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialInstagram}</div>
-                  )}
-                </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Camera size={16} className="text-pink-500" /> Instagram
+                </Label>
+                <Input
+                  className={cn("h-10 mt-1.5 rounded-xl", submitAttempted && errors.socialInstagram && "border-red-300")}
+                  value={socialInstagram}
+                  onChange={(e) => setSocialInstagram(e.target.value)}
+                  placeholder="https://instagram.com/..."
+                />
+                {errors.socialInstagram && <p className="mt-1 text-xs text-red-600">{errors.socialInstagram}</p>}
+              </div>
 
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <MusicBold className="h-4 w-4 text-slate-900 dark:text-white" /> TikTok
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialTiktok && "border-red-300"
-                    )}
-                    value={socialTiktok}
-                    onChange={(e) => setSocialTiktok(e.target.value)}
-                    placeholder="https://tiktok.com/@..."
-                  />
-                  {errors.socialTiktok && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialTiktok}</div>
-                  )}
-                </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Music size={16} className="text-slate-900" /> TikTok
+                </Label>
+                <Input
+                  className={cn("h-10 mt-1.5 rounded-xl", submitAttempted && errors.socialTiktok && "border-red-300")}
+                  value={socialTiktok}
+                  onChange={(e) => setSocialTiktok(e.target.value)}
+                  placeholder="https://tiktok.com/@..."
+                />
+                {errors.socialTiktok && <p className="mt-1 text-xs text-red-600">{errors.socialTiktok}</p>}
+              </div>
 
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <VideoBold className="h-4 w-4 text-red-500" /> YouTube
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialYoutube && "border-red-300"
-                    )}
-                    value={socialYoutube}
-                    onChange={(e) => setSocialYoutube(e.target.value)}
-                    placeholder="https://youtube.com/..."
-                  />
-                  {errors.socialYoutube && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialYoutube}</div>
-                  )}
-                </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Video size={16} className="text-red-500" /> YouTube
+                </Label>
+                <Input
+                  className={cn("h-10 mt-1.5 rounded-xl", submitAttempted && errors.socialYoutube && "border-red-300")}
+                  value={socialYoutube}
+                  onChange={(e) => setSocialYoutube(e.target.value)}
+                  placeholder="https://youtube.com/..."
+                />
+                {errors.socialYoutube && <p className="mt-1 text-xs text-red-600">{errors.socialYoutube}</p>}
+              </div>
 
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <LinkBold className="h-4 w-4 text-emerald-500" /> Web stranica
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialWebsite && "border-red-300"
-                    )}
-                    value={socialWebsite}
-                    onChange={(e) => setSocialWebsite(e.target.value)}
-                    placeholder="https://..."
-                  />
-                  {errors.socialWebsite && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialWebsite}</div>
-                  )}
-                </div>
+              <div className="sm:col-span-2">
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Link size={16} className="text-emerald-500" /> Web stranica
+                </Label>
+                <Input
+                  className={cn("h-10 mt-1.5 rounded-xl", submitAttempted && errors.socialWebsite && "border-red-300")}
+                  value={socialWebsite}
+                  onChange={(e) => setSocialWebsite(e.target.value)}
+                  placeholder="https://..."
+                />
+                {errors.socialWebsite && <p className="mt-1 text-xs text-red-600">{errors.socialWebsite}</p>}
               </div>
             </div>
-          </Disclosure>
+          </Accordion>
 
           {/* Preview prefs (local only) */}
-          <Disclosure title="Prikaz kartice (lokalno)" icon={EyeBold} defaultOpen={false}>
-            <div className="space-y-3">
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                Ove postavke se čuvaju samo na tvom uređaju i ne utiču na prikaz kupcima.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Accordion title="Prikaz kartice (lokalno)" icon={Eye} defaultOpen={false}>
+            <div className="space-y-4">
+              <p className="text-xs text-slate-500">Ove postavke se čuvaju samo na tvom uređaju i ne utiču na prikaz kupcima.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <ToggleRow
                   title="Ocjena"
                   desc="Prikaži rating zvjezdice"
-                  icon={EyeBold}
+                  icon={Eye}
                   checked={previewPrefs.showRatings}
                   onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showRatings: v }))}
                 />
                 <ToggleRow
                   title="Bedževi"
                   desc="Prikaži gamifikacione bedževe"
-                  icon={EyeBold}
+                  icon={Eye}
                   checked={previewPrefs.showBadges}
                   onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showBadges: v }))}
                 />
                 <ToggleRow
                   title="Član od"
                   desc="Prikaži datum registracije"
-                  icon={EyeBold}
+                  icon={Eye}
                   checked={previewPrefs.showMemberSince}
                   onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showMemberSince: v }))}
                 />
                 <ToggleRow
                   title="Vrijeme odgovora"
                   desc="Prikaži chip za brzinu"
-                  icon={EyeBold}
+                  icon={Eye}
                   checked={previewPrefs.showResponseTime}
                   onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showResponseTime: v }))}
                 />
+              </div>
 
-                <div className="md:col-span-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/50 p-4">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Stil kontakt sekcije</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {["inline", "sheet"].map((v) => {
-                      const active = previewPrefs.contactStyle === v;
-                      return (
-                        <motion.button
-                          key={v}
-                          type="button"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setPreviewPrefs((p) => ({ ...p, contactStyle: v }))}
-                          className={cn(
-                            "h-11 rounded-2xl border px-4 text-sm font-semibold transition-all duration-200",
-                            active
-                              ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 shadow-lg"
-                              : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                          )}
-                        >
-                          {v === "inline" ? "Inline ikone" : "Kontakt panel"}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Stil kontakt sekcije</Label>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {["inline", "sheet"].map((v) => {
+                    const active = previewPrefs.contactStyle === v;
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setPreviewPrefs((p) => ({ ...p, contactStyle: v }))}
+                        className={cn(
+                          "h-10 rounded-xl border px-4 text-sm font-medium transition-all",
+                          active
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                        )}
+                      >
+                        {v === "inline" ? "Inline ikone" : "Kontakt panel"}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          </Disclosure>
-        </motion.div>
+          </Accordion>
+        </div>
 
         {/* Right: Live preview */}
         <div className="xl:sticky xl:top-6 space-y-4">
-          <GlassCard>
-            <CardHeader
-              icon={EyeBold}
-              title="Live preview"
-              subtitle="Ovako izgleda tvoja kartica prodavača kupcima."
-            />
+          <Card>
+            <CardHeader icon={Eye} title="Live preview" subtitle="Ovako izgleda tvoja kartica prodavača kupcima." />
             <CardBody>
               <SellerPreviewCard
                 seller={previewSeller}
@@ -1398,41 +1176,35 @@ const SellerSettings = () => {
                 onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
               />
             </CardBody>
-          </GlassCard>
+          </Card>
 
-          {/* Additional Tips Card */}
-          <GlassCard>
-            <CardHeader
-              icon={SparklesBold}
-              title="Savjeti"
-              subtitle="Kako povećati prodaju"
-            />
-            <CardBody>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30">
-                  <CheckCircleBold className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <strong>Brzi odgovori</strong> - Prodavači koji odgovaraju u roku od sat vremena imaju 3x veću šansu za prodaju.
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100/50 dark:border-emerald-800/30">
-                  <CheckCircleBold className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <strong>Kvalitetna slika</strong> - Profili sa slikom dobijaju 50% više upita od onih bez.
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-800/30">
-                  <CheckCircleBold className="h-5 w-5 text-purple-500 shrink-0 mt-0.5" />
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <strong>Više kontakata</strong> - Omogući WhatsApp i Viber da kupci lakše dođu do tebe.
-                  </div>
-                </div>
+          {/* Tips Card */}
+          <Card>
+            <CardHeader icon={Sparkles} title="Savjeti" subtitle="Kako povećati prodaju" />
+            <CardBody className="space-y-3">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                <CheckCircle2 size={18} className="text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-blue-800">
+                  <strong>Brzi odgovori</strong> - Prodavači koji odgovaraju u roku od sat vremena imaju 3x veću šansu za prodaju.
+                </p>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-emerald-800">
+                  <strong>Kvalitetna slika</strong> - Profili sa slikom dobijaju 50% više upita od onih bez.
+                </p>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-purple-50 border border-purple-100">
+                <CheckCircle2 size={18} className="text-purple-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-purple-800">
+                  <strong>Više kontakata</strong> - Omogući WhatsApp i Viber da kupci lakše dođu do tebe.
+                </p>
               </div>
             </CardBody>
-          </GlassCard>
+          </Card>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
