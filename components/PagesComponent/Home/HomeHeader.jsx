@@ -560,7 +560,7 @@ const HomeHeader = () => {
             <>
               {/* DESKTOP: GORE quick actions */}
               <div className="flex items-center justify-between gap-3 pt-3 pb-2 lg:pt-4">
-                <div className="flex">
+                <div className="flex items-center gap-2">
                 {/* left: lokacija */}
                 <button
                   className="group flex items-center gap-2 px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200"
@@ -579,6 +579,12 @@ const HomeHeader = () => {
                 </button>
                   {/* Theme Toggle (desno) */}
                   <ThemeToggle />
+                  <CustomLink
+                    href="/svi-korisnici"
+                    className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                  >
+                    Svi korisnici
+                  </CustomLink>
                 </div>
 
                 {/* right: (od desna) Theme, Poruke, Moji oglasi, Profil */}
@@ -685,8 +691,16 @@ const HomeHeader = () => {
             <>
               {/* MOBILE: GORE (brand + right actions) */}
               <div className="flex items-center justify-between gap-2 pt-3 pb-2">
-                                  {/* Theme Toggle (desno) */}
-                                  <ThemeToggle />
+                <div className="flex items-center gap-2">
+                  {/* Theme Toggle (desno) */}
+                  <ThemeToggle />
+                  <CustomLink
+                    href="/svi-korisnici"
+                    className="flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                  >
+                    Svi korisnici
+                  </CustomLink>
+                </div>
 
                 {/* Right side: (od desna) Theme, Poruke, Moji oglasi, Profil */}
                 <div className="flex items-center gap-1.5">
