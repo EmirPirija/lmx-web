@@ -583,6 +583,9 @@ const SviKorisniciPage = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  // Store all users for client-side filtering
+  const [allUsers, setAllUsers] = useState([]);
+
   // Fetch users from leaderboard
   const fetchUsers = useCallback(async () => {
     try {
@@ -595,37 +598,49 @@ const SviKorisniciPage = () => {
 
       if (response?.data?.error === false) {
         const data = response.data.data;
-        let usersList = data?.users || data?.data || [];
+        const usersList = data?.users || data?.data || [];
         
-        // Client-side filtering for search
-        if (filters.search) {
-          const searchLower = filters.search.toLowerCase();
-          usersList = usersList.filter(user => 
-            user?.name?.toLowerCase().includes(searchLower)
-          );
-        }
-        
-        // Client-side filtering for verified
-        if (filters.verified === "1") {
-          usersList = usersList.filter(user => 
-            user?.is_verified || user?.verified || user?.verification_status === "verified"
-          );
-        }
-        
-        setUsers(usersList);
+        setAllUsers(usersList);
         setTotalPages(Math.ceil((data?.total || usersList.length) / (data?.per_page || 20)));
-        setCurrentPage(data?.current_page || 1);
         setTotalUsers(data?.total || usersList.length);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
-      // Set empty state on error
-      setUsers([]);
+      setAllUsers([]);
       setTotalUsers(0);
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, filters, period]);
+  }, [currentPage, period]);
+
+  // Apply client-side filters
+  useEffect(() => {
+    let filteredUsers = [...allUsers];
+    
+    // Filter by search
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filteredUsers = filteredUsers.filter(user => 
+        user?.name?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Filter by verified
+    if (filters.verified === "1") {
+      filteredUsers = filteredUsers.filter(user => 
+        user?.is_verified || user?.verified || user?.verification_status === "verified"
+      );
+    }
+    
+    // Filter by online
+    if (filters.online === "1") {
+      filteredUsers = filteredUsers.filter(user => 
+        user?.is_online || user?.online
+      );
+    }
+    
+    setUsers(filteredUsers);
+  }, [allUsers, filters]);
 
   useEffect(() => {
     fetchUsers();

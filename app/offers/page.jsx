@@ -272,17 +272,25 @@ const OfferItemCard = ({ item, offer, onViewItem }) => {
   const offerAmount = offer?.amount || offer?.offer_amount;
   const itemCity = item?.translated_city || item?.city;
   
+  // Check if we can link to the item
+  const hasValidSlug = Boolean(item?.slug || item?.item_slug || offer?.item_slug);
+  
   // Calculate price difference
   const priceDiff = itemPrice && offerAmount 
     ? ((Number(offerAmount) - Number(itemPrice)) / Number(itemPrice) * 100).toFixed(0)
     : null;
 
+  const handleClick = hasValidSlug ? onViewItem : undefined;
+
   return (
     <div className="flex gap-4">
       {/* Item image */}
       <div 
-        onClick={onViewItem}
-        className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 cursor-pointer group flex-shrink-0"
+        onClick={handleClick}
+        className={cn(
+          "relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex-shrink-0",
+          hasValidSlug ? "cursor-pointer group" : "cursor-default"
+        )}
       >
         {itemImage ? (
           <CustomImage
@@ -290,23 +298,31 @@ const OfferItemCard = ({ item, offer, onViewItem }) => {
             alt={itemName}
             width={96}
             height={96}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            className={cn(
+              "w-full h-full object-cover",
+              hasValidSlug && "group-hover:scale-105 transition-transform"
+            )}
           />
         ) : (
           <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
             <Package className="w-8 h-8 text-slate-400" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-          <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
+        {hasValidSlug && (
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
       </div>
       
       {/* Item details */}
       <div className="flex-1 min-w-0">
         <h4 
-          onClick={onViewItem}
-          className="font-semibold text-slate-900 dark:text-white line-clamp-2 hover:text-primary cursor-pointer transition-colors"
+          onClick={handleClick}
+          className={cn(
+            "font-semibold text-slate-900 dark:text-white line-clamp-2 transition-colors",
+            hasValidSlug ? "hover:text-primary cursor-pointer" : "cursor-default"
+          )}
         >
           {itemName}
         </h4>
@@ -488,9 +504,14 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
   };
 
   const goToItem = () => {
-    const slug = item?.slug || item?.id;
+    // Try different possible slug locations in the item object
+    const slug = item?.slug || item?.item_slug || offer?.item_slug;
+    
     if (slug) {
       router.push(`/ad-details/${slug}`);
+    } else if (item?.id) {
+      // If no slug but we have item ID, try to navigate using ID (might not work in all cases)
+      toast.info("Pregled oglasa nije dostupan");
     }
   };
 
