@@ -65,6 +65,7 @@ export const GET_LOCATION = "get-location";
 export const GET_USER_INFO = "get-user-info";
 export const LOGOUT = "logout";
 export const SET_ITEM_TOTAL_CLICK = "set-item-total-click";
+export const GET_ALL_USERS = "get-users";
 
 export const GET_MAP_ITEMS = "get-items";
 
@@ -262,6 +263,14 @@ export const getMyReviewsApi = {
       params: {
         page,
       },
+    });
+  },
+};
+
+export const usersApi = {
+  getAllUsers: ({ page = 1, per_page = 24, search, membership, shop } = {}) => {
+    return Api.get(GET_ALL_USERS, {
+      params: { page, per_page, search, membership, shop },
     });
   },
 };
