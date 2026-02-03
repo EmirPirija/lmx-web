@@ -1,4 +1,9 @@
 "use client";
+
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { motion } from "framer-motion";
+
 import ProductCard from "@/components/Common/ProductCard";
 import NoData from "@/components/EmptyStates/NoData";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton";
@@ -6,8 +11,12 @@ import { Button } from "@/components/ui/button";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
 import { getFavouriteApi } from "@/utils/api";
-import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+
+import { Loader2, Heart, ChevronDown } from "lucide-react";
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 const Favorites = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -24,6 +33,7 @@ const Favorites = () => {
       }
       const response = await getFavouriteApi.getFavouriteApi({ page });
       const data = response?.data?.data?.data;
+      
       if (page === 1) {
         setFavoriteData(data);
       } else {
@@ -31,14 +41,9 @@ const Favorites = () => {
       }
 
       setCurrentPage(response?.data?.data.current_page);
-
-      if (response?.data?.data.current_page < response?.data?.data.last_page) {
-        setHasMore(true);
-      } else {
-        setHasMore(false);
-      }
+      setHasMore(response?.data?.data.current_page < response?.data?.data.last_page);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setIsLoading(false);
       setIsLoadMore(false);
@@ -58,37 +63,92 @@ const Favorites = () => {
     fetchFavoriteItems(1);
   };
 
-  return (
-    <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 lg:grid-cols-2 gap-3 sm:gap-6">
-        {isLoading ? (
-          [...Array(12)].map((_, index) => <ProductCardSkeleton key={index} />)
-        ) : favoritesData && favoritesData.length > 0 ? (
-          favoritesData?.map(
-            (fav) =>
-              fav?.is_liked && (
-                <ProductCard key={fav?.id} item={fav} handleLike={handleLike} />
-              )
-          )
-        ) : (
-          <div className="col-span-full">
-            <NoData name={t("favorites")} />
-          </div>
-        )}
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+        {[...Array(8)].map((_, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: index * 0.05 }}
+          >
+            <ProductCardSkeleton />
+          </motion.div>
+        ))}
       </div>
-      {favoritesData && favoritesData.length > 0 && hasMore && (
-        <div className="text-center mt-6">
+    );
+  }
+
+  // Empty state
+  if (!favoritesData || favoritesData.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="py-16"
+      >
+        <NoData name={t("favorites")} />
+      </motion.div>
+    );
+  }
+
+  // Filter only liked items
+  const likedItems = favoritesData.filter((fav) => fav?.is_liked);
+
+  if (likedItems.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="py-16"
+      >
+        <NoData name={t("favorites")} />
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Products Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+        {likedItems.map((fav, index) => (
+          <motion.div
+            key={fav?.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.03 }}
+          >
+            <ProductCard item={fav} handleLike={handleLike} />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Load More */}
+      {hasMore && (
+        <div className="flex justify-center pt-6">
           <Button
             variant="outline"
-            className="text-sm sm:text-base text-primary w-[256px]"
-            disabled={isLoading || IsLoadMore}
             onClick={handleLoadMore}
+            disabled={isLoading || IsLoadMore}
+            className="h-12 px-8 rounded-2xl border-2 gap-2 hover:border-primary/50 transition-all"
           >
-            {IsLoadMore ? t("loading") : t("loadMore")}
+            {IsLoadMore ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                {t("loading")}
+              </>
+            ) : (
+              <>
+                <ChevronDown size={18} />
+                {t("loadMore")}
+              </>
+            )}
           </Button>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

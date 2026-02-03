@@ -1,6 +1,8 @@
 'use client';
+
 import { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getMyReviewsApi } from '@/utils/api';
 import RatingsSummary from './RatingsSummary';
 import RatingsSummarySkeleton from './RatingsSummarySkeleton';
@@ -11,6 +13,8 @@ import NoData from '@/components/EmptyStates/NoData';
 import { Button } from '@/components/ui/button';
 import { CurrentLanguageData } from '@/redux/reducer/languageSlice';
 import { cn } from '@/lib/utils';
+
+import { Loader2, Star, Filter, X } from 'lucide-react';
  
 const Reviews = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -21,7 +25,7 @@ const Reviews = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   
-  // Stanje filtera
+  // Filter state
   const [filters, setFilters] = useState({
     sort: 'newest',
     withImages: false,
@@ -62,21 +66,18 @@ const Reviews = () => {
     getReviews(1);
   }, [CurrentLanguage?.id]);
  
-  // Filtriranje i sortiranje recenzija
+  // Filter and sort reviews
   const filteredReviews = useMemo(() => {
     let result = [...myReviews];
  
-    // Filter po zvjezdicama
     if (filters.stars) {
       result = result.filter(review => Math.round(Number(review.ratings)) === filters.stars);
     }
  
-    // Filter - samo sa slikama
     if (filters.withImages) {
       result = result.filter(review => review.images && review.images.length > 0);
     }
  
-    // Sortiranje
     switch (filters.sort) {
       case 'newest':
         result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -104,105 +105,141 @@ const Reviews = () => {
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
   };
+
+  const clearFilters = () => {
+    setFilters({ sort: 'newest', withImages: false, stars: null });
+  };
+
+  const hasActiveFilters = filters.stars || filters.withImages || filters.sort !== 'newest';
  
-  // Skeleton loading stanje
+  // Loading state
   if (isLoading) {
     return (
       <div className="space-y-6">
         <RatingsSummarySkeleton />
-        <MyReviewsCardSkeleton />
+        <div className="grid gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="animate-pulse p-6 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/4" />
+                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full" />
+                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
  
-  // Nema recenzija
+  // No reviews
   if (!myReviews || myReviews.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <NoData name="recenzije" />
-        <p className="mt-4 text-gray-500 text-center">
-          Još uvijek nemate nijednu recenziju.
-          <br />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="py-16 text-center"
+      >
+        <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-xl shadow-amber-500/20">
+          <Star size={40} className="text-white" />
+        </div>
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Još nema recenzija</h3>
+        <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
           Recenzije će se pojaviti nakon što kupci ocijene vaše proizvode.
         </p>
-      </div>
+      </motion.div>
     );
   }
  
   return (
     <div className="space-y-6">
-      {/* Sumarni prikaz */}
-      <RatingsSummary
-        averageRating={averageRating}
-        reviews={myReviews}
-        onFilterByRating={(star) => handleFilterChange({ ...filters, stars: star })}
-        activeFilter={filters.stars}
-      />
+      {/* Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <RatingsSummary
+          averageRating={averageRating}
+          reviews={myReviews}
+          onFilterByRating={(star) => handleFilterChange({ ...filters, stars: star })}
+          activeFilter={filters.stars}
+        />
+      </motion.div>
  
-      {/* Filteri */}
-      <ReviewFilters
-        activeFilters={filters}
-        onFilterChange={handleFilterChange}
-        totalReviews={myReviews.length}
-        filteredCount={filteredReviews.length}
-      />
+      {/* Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <ReviewFilters
+          activeFilters={filters}
+          onFilterChange={handleFilterChange}
+          totalReviews={myReviews.length}
+          filteredCount={filteredReviews.length}
+        />
+      </motion.div>
  
-      {/* Lista recenzija */}
+      {/* Reviews List */}
       {filteredReviews.length > 0 ? (
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               Recenzije
-              <span className="ml-2 text-sm font-normal text-gray-500">
-                ({filteredReviews.length})
+              <span className="px-2 py-0.5 bg-primary/10 text-primary text-sm font-semibold rounded-full">
+                {filteredReviews.length}
               </span>
             </h2>
+            
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-2 text-sm text-slate-500 hover:text-primary transition-colors"
+              >
+                <X size={16} />
+                Očisti filtere
+              </button>
+            )}
           </div>
  
-          {/* Grid kartica */}
+          {/* Reviews Grid */}
           <div className="grid gap-4">
-            {filteredReviews.map((rating) => (
-              <MyReviewsCard
-                key={rating?.id}
-                rating={rating}
-                setMyReviews={setMyReviews}
-              />
-            ))}
+            <AnimatePresence>
+              {filteredReviews.map((rating, index) => (
+                <motion.div
+                  key={rating?.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <MyReviewsCard
+                    rating={rating}
+                    setMyReviews={setMyReviews}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
  
-          {/* Load More dugme */}
+          {/* Load More */}
           {hasMore && !filters.stars && !filters.withImages && (
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center pt-6">
               <Button
                 variant="outline"
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className={cn(
-                  "min-w-[200px]",
-                  isLoadingMore && "opacity-70"
-                )}
+                className="h-12 px-8 rounded-2xl border-2 gap-2 hover:border-primary/50 transition-all"
               >
                 {isLoadingMore ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
                     Učitavam...
-                  </span>
+                  </>
                 ) : (
                   'Učitaj još'
                 )}
@@ -211,17 +248,22 @@ const Reviews = () => {
           )}
         </div>
       ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <p className="text-gray-500">
-            Nema recenzija koje odgovaraju odabranim filterima.
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl"
+        >
+          <Filter size={40} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+          <p className="text-slate-500 dark:text-slate-400">
+            Nema recenzija koje odgovaraju filterima.
           </p>
           <button
-            onClick={() => handleFilterChange({ sort: 'newest', withImages: false, stars: null })}
-            className="mt-2 text-primary hover:underline text-sm font-medium"
+            onClick={clearFilters}
+            className="mt-3 text-primary hover:underline text-sm font-semibold"
           >
             Očisti filtere
           </button>
-        </div>
+        </motion.div>
       )}
     </div>
   );
