@@ -34,109 +34,49 @@ import {
   Menu,
   X,
   ChevronRight,
-  Zap,
-  TrendingUp,
+  ChevronDown,
   Bookmark,
-  Camera,
-  BadgeCheck,
+  Crown,
 } from "lucide-react";
 
 // ============================================
-// NAVIGACIJA
+// NAVIGACIJA - Kompaktnija struktura
 // ============================================
 
-const mainNavItems = [
+const navSections = [
   {
-    label: "Dashboard",
-    href: "/profile/seller",
-    icon: LayoutDashboard,
-    color: "from-primary to-orange-600",
-    description: "Pregled statistike",
+    id: "main",
+    items: [
+      { label: "Dashboard", href: "/profile/seller", icon: LayoutDashboard },
+      { label: "Moj profil", href: "/profile", icon: User },
+      { label: "Postavke", href: "/profile/seller-settings", icon: Settings },
+    ],
   },
   {
-    label: "Moj profil",
-    href: "/profile",
-    icon: User,
-    color: "from-blue-500 to-indigo-600",
-    description: "Lični podaci",
+    id: "activity",
+    label: "Aktivnost",
+    items: [
+      { label: "Moji oglasi", href: "/my-ads", icon: Package, badgeKey: "ads" },
+      { label: "Poruke", href: "/chat", icon: MessageSquare, badgeKey: "messages" },
+      { label: "Obavijesti", href: "/notifications", icon: Bell, badgeKey: "notifications" },
+    ],
   },
   {
-    label: "Postavke prodavača",
-    href: "/profile/seller-settings",
-    icon: Settings,
-    color: "from-slate-600 to-slate-800",
-    description: "Kontakt i radno vrijeme",
-  },
-];
-
-const sellerNavItems = [
-  {
-    label: "Moji oglasi",
-    href: "/my-ads",
-    icon: Package,
-    badge: true,
-    badgeKey: "ads",
-  },
-  {
-    label: "Poruke",
-    href: "/chat",
-    icon: MessageSquare,
-    badge: true,
-    badgeKey: "messages",
-  },
-  {
-    label: "Sačuvani kontakti",
-    href: "/profile/saved",
-    icon: Bookmark,
-  },
-];
-
-const buyerNavItems = [
-  {
-    label: "Obavijesti",
-    href: "/notifications",
-    icon: Bell,
-    badge: true,
-    badgeKey: "notifications",
-  },
-  {
-    label: "Omiljeni oglasi",
-    href: "/favorites",
-    icon: Heart,
-  },
-  {
-    label: "Recenzije",
-    href: "/reviews",
-    icon: Star,
-  },
-  {
-    label: "Transakcije",
-    href: "/transactions",
-    icon: Receipt,
-  },
-  {
-    label: "Prijave za posao",
-    href: "/job-applications",
-    icon: Briefcase,
-  },
-];
-
-const otherNavItems = [
-  {
-    label: "Članstvo",
-    href: "/user-subscription",
-    icon: Award,
-    highlight: true,
-  },
-  {
-    label: "Verifikacija",
-    href: "/user-verification",
-    icon: Shield,
+    id: "other",
+    label: "Ostalo",
+    collapsible: true,
+    items: [
+      { label: "Omiljeno", href: "/favorites", icon: Heart },
+      { label: "Sačuvano", href: "/profile/saved", icon: Bookmark },
+      { label: "Recenzije", href: "/reviews", icon: Star },
+      { label: "Transakcije", href: "/transactions", icon: Receipt },
+      { label: "Prijave za posao", href: "/job-applications", icon: Briefcase },
+    ],
   },
 ];
 
 // ============================================
-// SIDEBAR KOMPONENTA
+// SIDEBAR KOMPONENTA - Kompaktni dizajn
 // ============================================
 
 function ProfileSidebar({ 
@@ -148,73 +88,41 @@ function ProfileSidebar({
 }) {
   const pathname = usePathname();
   const userData = useSelector(userSignUpData);
+  const [expandedSections, setExpandedSections] = useState({ other: false });
 
-  const NavItem = ({ item, isActive }) => {
+  const toggleSection = (id) => {
+    setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const NavLink = ({ item }) => {
     const Icon = item.icon;
-    const badgeCount = item.badge ? badges[item.badgeKey] || 0 : 0;
+    const isActive = pathname === item.href;
+    const badgeCount = item.badgeKey ? badges[item.badgeKey] || 0 : 0;
 
     return (
       <CustomLink href={item.href} onClick={onClose}>
-        <motion.div
-          whileHover={{ x: 4 }}
-          whileTap={{ scale: 0.98 }}
+        <div
           className={cn(
-            "group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden",
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
             isActive
-              ? "bg-gradient-to-r from-primary to-orange-500 text-white shadow-lg shadow-primary/30"
-              : item.highlight
-              ? "bg-gradient-to-r from-secondary/10 to-teal-500/10 text-secondary hover:from-secondary/20 hover:to-teal-500/20 border border-secondary/20"
-              : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              ? "bg-primary text-white font-medium"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
           )}
         >
-          <div
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-              isActive
-                ? "bg-white/20"
-                : item.highlight
-                ? "bg-secondary/20"
-                : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
-            )}
-          >
-            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-          </div>
-
-          <span className="flex-1 font-medium text-sm">{item.label}</span>
-
+          <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+          <span className="text-sm">{item.label}</span>
           {badgeCount > 0 && (
-            <span
-              className={cn(
-                "min-w-[24px] h-6 px-2 flex items-center justify-center text-xs font-bold rounded-full",
-                isActive ? "bg-white text-primary" : "bg-red-500 text-white"
-              )}
-            >
+            <span className={cn(
+              "ml-auto text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center",
+              isActive ? "bg-white/20 text-white" : "bg-red-500 text-white"
+            )}>
               {badgeCount > 99 ? "99+" : badgeCount}
             </span>
           )}
-
-          {isActive && (
-            <motion.div
-              layoutId="activeNavIndicator"
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-r-full"
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            />
-          )}
-        </motion.div>
+        </div>
       </CustomLink>
     );
   };
-
-  const NavGroup = ({ title, items }) => (
-    <div className="space-y-1">
-      <h3 className="px-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-        {title}
-      </h3>
-      {items.map((item) => (
-        <NavItem key={item.href} item={item} isActive={pathname === item.href} />
-      ))}
-    </div>
-  );
 
   return (
     <>
@@ -226,159 +134,147 @@ function ProfileSidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+            className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm"
           />
         )}
       </AnimatePresence>
 
       {/* Sidebar */}
-      <motion.aside
-        initial={{ x: -320 }}
-        animate={{ x: isOpen ? 0 : -320 }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      <aside
         className={cn(
-          "fixed lg:sticky top-0 left-0 z-50 lg:z-auto",
-          "w-80 h-screen lg:h-auto",
-          "bg-white dark:bg-slate-900 lg:bg-transparent",
-          "border-r border-slate-200 dark:border-slate-800 lg:border-0",
-          "overflow-y-auto",
-          "lg:translate-x-0"
+          "fixed lg:relative top-0 left-0 z-50 lg:z-auto",
+          "w-72 lg:w-64 h-full lg:h-auto",
+          "bg-white dark:bg-slate-900 lg:bg-white/80 lg:dark:bg-slate-900/80 lg:backdrop-blur-xl",
+          "border-r lg:border border-slate-200 dark:border-slate-800",
+          "lg:rounded-2xl lg:shadow-sm",
+          "overflow-hidden",
+          "transition-transform duration-300 ease-out",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="p-4 lg:p-0 space-y-6">
-          {/* Mobile Close Button */}
-          <div className="flex items-center justify-between lg:hidden">
-            <span className="text-lg font-bold text-slate-900 dark:text-white">Menu</span>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-            >
-              <X size={20} />
-            </button>
-          </div>
+        <div className="flex flex-col h-full lg:h-auto">
+          {/* Header */}
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between lg:hidden mb-4">
+              <span className="font-semibold text-slate-900 dark:text-white">Menu</span>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-          {/* User Card */}
-          <div className="bg-gradient-to-br from-accent via-blue-600 to-indigo-700 rounded-3xl p-5 text-white shadow-xl shadow-accent/20">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden border-2 border-white/30">
-                  {userData?.profile_image || userData?.profile ? (
-                    <img
-                      src={userData.profile_image || userData.profile}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User size={28} className="text-white/80" />
-                  )}
+            {/* User Info - Kompaktno */}
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-orange-500 p-0.5">
+                  <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden">
+                    {userData?.profile_image || userData?.profile ? (
+                      <img
+                        src={userData.profile_image || userData.profile}
+                        alt=""
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <User size={18} className="text-slate-400" />
+                    )}
+                  </div>
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
-                  <Zap size={10} className="text-white" />
-                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-900" />
               </div>
-
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-white truncate">{userData?.name || "Korisnik"}</h3>
-                <p className="text-white/70 text-sm truncate">{userData?.email}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <BadgeCheck size={14} className="text-green-300" />
-                  <span className="text-xs text-green-300">Aktivan</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-2 mt-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 text-center">
-                <div className="text-lg font-bold">{userData?.active_ads || 0}</div>
-                <div className="text-[10px] text-white/70 uppercase">Oglasi</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 text-center">
-                <div className="text-lg font-bold">
-                  {userData?.average_rating ? Number(userData.average_rating).toFixed(1) : "0.0"}
-                </div>
-                <div className="text-[10px] text-white/70 uppercase">Ocjena</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 text-center">
-                <div className="text-lg font-bold">{badges.messages || 0}</div>
-                <div className="text-[10px] text-white/70 uppercase">Poruke</div>
+                <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                  {userData?.name || "Korisnik"}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  {userData?.email}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Main Nav Cards */}
-          <div className="space-y-2">
-            {mainNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <CustomLink key={item.href} href={item.href} onClick={onClose}>
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={cn(
-                      "relative p-4 rounded-2xl border-2 transition-all duration-300 overflow-hidden",
-                      isActive
-                        ? "border-transparent bg-gradient-to-r " + item.color + " text-white shadow-lg"
-                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary/50"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "w-12 h-12 rounded-xl flex items-center justify-center",
-                          isActive ? "bg-white/20" : "bg-gradient-to-br " + item.color + " text-white"
-                        )}
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+            {navSections.map((section) => (
+              <div key={section.id}>
+                {section.label && (
+                  <div className="flex items-center justify-between mb-1">
+                    {section.collapsible ? (
+                      <button
+                        onClick={() => toggleSection(section.id)}
+                        className="flex items-center gap-1 w-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                       >
-                        <Icon size={24} />
-                      </div>
-                      <div>
-                        <div className={cn("font-bold", isActive ? "text-white" : "text-slate-900 dark:text-white")}>
-                          {item.label}
-                        </div>
-                        <div className={cn("text-xs", isActive ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>
-                          {item.description}
-                        </div>
-                      </div>
-                    </div>
-                    {isActive && (
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12" />
+                        <span>{section.label}</span>
+                        <ChevronDown
+                          size={14}
+                          className={cn(
+                            "transition-transform duration-200",
+                            expandedSections[section.id] ? "rotate-180" : ""
+                          )}
+                        />
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        {section.label}
+                      </span>
                     )}
-                  </motion.div>
-                </CustomLink>
-              );
-            })}
-          </div>
+                  </div>
+                )}
+                
+                <AnimatePresence initial={false}>
+                  {(!section.collapsible || expandedSections[section.id] || section.id !== "other") && (
+                    <motion.div
+                      initial={section.collapsible ? { height: 0, opacity: 0 } : false}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={section.collapsible ? { height: 0, opacity: 0 } : undefined}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-0.5 overflow-hidden"
+                    >
+                      {(section.collapsible && !expandedSections[section.id] ? [] : section.items).map((item) => (
+                        <NavLink key={item.href} item={item} />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
 
-          {/* Nav Groups */}
-          <NavGroup title="Prodaja" items={sellerNavItems} />
-          <NavGroup title="Kupovina" items={buyerNavItems} />
-          <NavGroup title="Nalog" items={otherNavItems} />
+            {/* Pro/Upgrade Card */}
+            <CustomLink href="/user-subscription" onClick={onClose}>
+              <div className="mx-0 p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border border-amber-200/50 dark:border-amber-700/30 hover:border-amber-300 dark:hover:border-amber-600 transition-colors">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                    <Crown size={16} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Članstvo</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Nadogradite profil</p>
+                  </div>
+                </div>
+              </div>
+            </CustomLink>
+          </nav>
 
-          {/* Actions */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+          {/* Footer Actions */}
+          <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
             <button
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <LogOut size={20} />
-              </div>
-              <span className="font-medium text-sm">Odjavi se</span>
+              <LogOut size={18} />
+              <span className="text-sm">Odjava</span>
             </button>
-
             <button
               onClick={onDeleteAccount}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <Trash2 size={20} />
-              </div>
-              <span className="font-medium text-sm">Obriši nalog</span>
+              <Trash2 size={18} />
+              <span className="text-sm">Obriši nalog</span>
             </button>
           </div>
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 }
@@ -403,18 +299,6 @@ export default function ProfileLayout({ children, title, subtitle, badges = {} }
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
-
-  // Close sidebar on desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(true);
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -466,62 +350,60 @@ export default function ProfileLayout({ children, title, subtitle, badges = {} }
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="container mx-auto px-4 py-6 lg:py-8">
           {/* Mobile Header */}
-          <div className="lg:hidden flex items-center justify-between mb-6">
+          <div className="lg:hidden flex items-center gap-4 mb-6">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm"
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"
             >
-              <Menu size={24} className="text-slate-700 dark:text-slate-200" />
+              <Menu size={20} className="text-slate-600 dark:text-slate-300" />
             </button>
-
             {title && (
-              <div className="text-center">
-                <h1 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h1>
-              </div>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h1>
             )}
-
-            <div className="w-12" /> {/* Spacer */}
           </div>
 
-          <div className="flex gap-8">
-            {/* Sidebar */}
-            <ProfileSidebar
-              isOpen={sidebarOpen}
-              onClose={() => setSidebarOpen(false)}
-              badges={badges}
-              onLogout={() => setIsLogoutOpen(true)}
-              onDeleteAccount={() => setIsDeleteOpen(true)}
-            />
+          <div className="flex gap-6 lg:gap-8 items-start">
+            {/* Sidebar - Sticky i kompaktna */}
+            <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
+              <ProfileSidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                badges={badges}
+                onLogout={() => setIsLogoutOpen(true)}
+                onDeleteAccount={() => setIsDeleteOpen(true)}
+              />
+            </div>
+
+            {/* Mobile Sidebar */}
+            <div className="lg:hidden">
+              <ProfileSidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                badges={badges}
+                onLogout={() => setIsLogoutOpen(true)}
+                onDeleteAccount={() => setIsDeleteOpen(true)}
+              />
+            </div>
 
             {/* Main Content */}
             <main className="flex-1 min-w-0">
               {/* Desktop Header */}
               {title && (
-                <div className="hidden lg:block mb-8">
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between"
-                  >
-                    <div>
-                      <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{title}</h1>
-                      {subtitle && <p className="text-slate-500 dark:text-slate-400 mt-1">{subtitle}</p>}
-                    </div>
-                  </motion.div>
+                <div className="hidden lg:flex items-center justify-between mb-6">
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h1>
+                    {subtitle && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Page Content */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                {children}
-              </motion.div>
+              {children}
             </main>
           </div>
         </div>
