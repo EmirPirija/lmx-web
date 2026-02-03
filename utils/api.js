@@ -692,6 +692,36 @@ export const itemOfferApi = {
       },
     });
   },
+
+  // Dohvati sve ponude (primljene i poslane)
+  getMyOffers: ({ type, page = 1 } = {}) => {
+    return Api.get("my-offers", {
+      params: { type, page },
+    });
+  },
+
+  // Prihvati ponudu
+  acceptOffer: (offerId) => {
+    return Api.post(`offer/accept/${offerId}`);
+  },
+
+  // Odbij ponudu
+  rejectOffer: (offerId) => {
+    return Api.post(`offer/reject/${offerId}`);
+  },
+
+  // Kontra-ponuda
+  counterOffer: ({ offer_id, amount } = {}) => {
+    const formData = new FormData();
+    if (offer_id) formData.append("offer_id", offer_id);
+    if (amount) formData.append("amount", amount);
+
+    return Api.post("offer/counter", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 };
 
 export const chatListApi = {
@@ -908,21 +938,20 @@ export const addItemApi = {
       console.log("FORMDATA: scheduled_at", scheduled_at);
     }
 
+    // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
       custom_fields
     );
-    
-    const finalCF =
-      cleanedCustomFields !== undefined ? cleanedCustomFields : custom_fields;
-    
-    if (finalCF !== undefined && finalCF !== null) {
-      formData.append(
-        "custom_fields",
-        typeof finalCF === "string" ? finalCF : JSON.stringify(finalCF)
-      );
+
+    // ✅ šalji custom_fields bez available_now unutra
+    if (cleanedCustomFields !== undefined && cleanedCustomFields !== null) {
+      const cfToSend =
+        typeof cleanedCustomFields === "string"
+          ? cleanedCustomFields
+          : JSON.stringify(cleanedCustomFields);
+      formData.append("custom_fields", cfToSend);
     }
-    
 
     // ✅ REAL FILES ONLY (da ne šalješ object/string/empty)
     if (isFileLike(image)) formData.append("image", image);
@@ -943,18 +972,10 @@ export const addItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-// ✅ TEMP GALLERY IDS as array
-const galleryIds = Array.isArray(temp_gallery_image_ids)
-  ? temp_gallery_image_ids
-  : (temp_gallery_image_ids ? String(temp_gallery_image_ids).split(",") : []);
-
-galleryIds
-  .map((id) => String(id).trim())
-  .filter(Boolean)
-  .forEach((id) => {
-    formData.append("temp_gallery_image_ids[]", id);
-  });
-
+    const galleryCsv = toCsv(temp_gallery_image_ids);
+    if (galleryCsv) {
+      formData.append("temp_gallery_image_ids", galleryCsv);
+    }
 
     if (temp_video_id) {
       formData.append("temp_video_id", String(temp_video_id));
@@ -1133,18 +1154,10 @@ export const editItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-// ✅ TEMP GALLERY IDS as array
-const galleryIds = Array.isArray(temp_gallery_image_ids)
-  ? temp_gallery_image_ids
-  : (temp_gallery_image_ids ? String(temp_gallery_image_ids).split(",") : []);
-
-galleryIds
-  .map((id) => String(id).trim())
-  .filter(Boolean)
-  .forEach((id) => {
-    formData.append("temp_gallery_image_ids[]", id);
-  });
-
+    const galleryCsv = toCsv(temp_gallery_image_ids);
+    if (galleryCsv) {
+      formData.append("temp_gallery_image_ids", galleryCsv);
+    }
 
     if (temp_video_id) {
       formData.append("temp_video_id", String(temp_video_id));

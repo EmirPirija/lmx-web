@@ -57,39 +57,18 @@ import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 ===================================================== */
 
 const fadeInUp = {
-  initial: { opacity: 0, y: 16, filter: "blur(6px)" },
-  animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-  exit: { opacity: 0, y: -12, filter: "blur(6px)" },
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
 };
 
 const staggerContainer = {
   animate: {
-    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.04, delayChildren: 0.06 },
   },
 };
 
-const shimmerCss = `
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.02); }
-}
-.shimmer { position: relative; overflow: hidden; }
-.shimmer::after {
-  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
-  animation: shimmer 1.8s infinite ease-in-out;
-}
-.dark .shimmer::after {
-  background: linear-gradient(90deg, transparent 0%, rgba(148,163,184,0.12) 50%, transparent 100%);
-}
-.glow-pulse { animation: pulse-glow 3s infinite ease-in-out; }
-`;
-
-const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
+/* Removed shimmer effects for cleaner design */
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -182,47 +161,41 @@ const compactnessMap = {
 const GlassCard = ({ children, className, ...props }) => (
   <motion.div
     {...fadeInUp}
-    transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+    transition={{ duration: 0.3, ease: "easeOut" }}
     className={cn(
-      "relative overflow-hidden rounded-[28px]",
-      "bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl",
-      "border border-slate-200/50 dark:border-slate-700/50",
-      "shadow-2xl shadow-slate-300/30 dark:shadow-slate-950/50",
-      "hover:shadow-3xl hover:shadow-slate-300/40 dark:hover:shadow-slate-950/60",
-      "transition-all duration-700 ease-out",
+      "relative overflow-hidden rounded-2xl",
+      "bg-white dark:bg-slate-900",
+      "border border-slate-200 dark:border-slate-800",
+      "shadow-sm hover:shadow-md",
+      "transition-shadow duration-250",
       className
     )}
     {...props}
   >
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-pink-500/15 blur-3xl glow-pulse" />
-      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-tr from-amber-500/10 via-orange-500/8 to-rose-500/10 blur-3xl glow-pulse" />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent dark:from-white/[0.02]" />
-    </div>
     {children}
   </motion.div>
 );
 
 const IconPill = ({ icon: Icon, children, className, tone = "default" }) => {
   const toneStyles = {
-    default: "border-slate-200/60 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300",
-    success: "border-emerald-200/60 dark:border-emerald-800/50 bg-emerald-50/90 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
-    warning: "border-amber-200/60 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
-    info: "border-sky-200/60 dark:border-sky-800/50 bg-sky-50/90 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300",
+    default: "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+    success: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    warning: "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+    info: "border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300",
   };
 
   return (
     <motion.span
-      initial={{ opacity: 0, scale: 0.85, y: 4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-md",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
         toneStyles[tone],
         className
       )}
     >
-      {Icon && <Icon size={14} />}
+      {Icon && <Icon size={13} />}
       {children}
     </motion.span>
   );
@@ -252,28 +225,22 @@ const StatusBadge = ({ children, variant = "default", icon: Icon }) => {
 
 const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) => (
   <motion.button
-    whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -2 }}
-    whileTap={{ scale: disabled ? 1 : 0.97 }}
+    whileHover={{ scale: disabled ? 1 : 1.02 }}
+    whileTap={{ scale: disabled ? 1 : 0.98 }}
     disabled={disabled || isLoading}
     className={cn(
-      "group relative inline-flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5",
-      "bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-50 dark:to-white",
-      "text-white dark:text-slate-900 text-sm font-semibold tracking-wide",
-      "shadow-xl shadow-slate-900/20 dark:shadow-white/15",
-      "hover:shadow-2xl hover:shadow-slate-900/25 dark:hover:shadow-white/20",
-      "transition-all duration-300 ease-out",
-      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-xl",
-      "overflow-hidden",
+      "group relative inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3",
+      "bg-slate-900 dark:bg-white",
+      "text-white dark:text-slate-900 text-sm font-semibold",
+      "shadow-sm hover:shadow-md",
+      "transition-all duration-200",
+      "disabled:opacity-50 disabled:cursor-not-allowed",
       className
     )}
     {...props}
   >
-    <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-      <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
-    </span>
-
     {isLoading ? (
-      <Refresh size={20} className="animate-spin" />
+      <Refresh size={18} className="animate-spin" />
     ) : (
       children
     )}
@@ -282,16 +249,16 @@ const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) =
 
 const SecondaryButton = ({ children, className, ...props }) => (
   <motion.button
-    whileHover={{ scale: 1.02, y: -1 }}
-    whileTap={{ scale: 0.97 }}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
     className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5",
-      "bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-md",
+      "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5",
+      "bg-slate-100 dark:bg-slate-800",
       "text-slate-700 dark:text-slate-200 text-sm font-medium",
-      "border border-slate-200/60 dark:border-slate-700/60",
-      "hover:bg-slate-200/90 dark:hover:bg-slate-700/90",
-      "shadow-md hover:shadow-lg",
-      "transition-all duration-250",
+      "border border-slate-200 dark:border-slate-700",
+      "hover:bg-slate-200 dark:hover:bg-slate-700",
+      "shadow-sm hover:shadow",
+      "transition-all duration-200",
       className
     )}
     {...props}
@@ -317,22 +284,22 @@ const IconButton = React.forwardRef(
     return (
       <Comp
         ref={ref}
-        whileHover={disabled ? undefined : { scale: 1.08, y: -2 }}
-        whileTap={disabled ? undefined : { scale: 0.93 }}
+        whileHover={disabled ? undefined : { scale: 1.05 }}
+        whileTap={disabled ? undefined : { scale: 0.95 }}
         href={isLink ? href : undefined}
         onClick={handleClick}
         aria-disabled={disabled ? true : undefined}
         tabIndex={disabled && isLink ? -1 : undefined}
         className={cn(
-          "inline-flex items-center justify-center w-12 h-12 rounded-2xl",
-          "bg-white/95 dark:bg-slate-800/95 backdrop-blur-md",
-          "border border-slate-200/60 dark:border-slate-700/60",
+          "inline-flex items-center justify-center w-10 h-10 rounded-xl",
+          "bg-white dark:bg-slate-900",
+          "border border-slate-200 dark:border-slate-700",
           "text-slate-600 dark:text-slate-300",
-          "hover:bg-slate-100 dark:hover:bg-slate-700",
+          "hover:bg-slate-50 dark:hover:bg-slate-800",
           "hover:text-slate-900 dark:hover:text-white",
-          "shadow-lg hover:shadow-xl",
-          "transition-all duration-250",
-          active && "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xl",
+          "shadow-sm hover:shadow",
+          "transition-all duration-200",
+          active && "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow",
           disabled && "opacity-50 cursor-not-allowed pointer-events-none",
           className
         )}
@@ -354,36 +321,35 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
   const c = compactnessMap[compactness] || compactnessMap.normal;
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-slate-200/50 dark:border-slate-800/50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl shadow-2xl">
-      <ShimmerStyles />
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
       <div className={cn("relative", c.pad)}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="rounded-full p-1 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 shrink-0">
-              <div className={cn(c.avatar, "rounded-full bg-slate-200 dark:bg-slate-700 shimmer")} />
+            <div className="rounded-full p-1 bg-slate-200 dark:bg-slate-700 shrink-0">
+              <div className={cn(c.avatar, "rounded-full bg-slate-300 dark:bg-slate-600 animate-pulse")} />
             </div>
 
             <div className="min-w-0 flex-1 space-y-3">
-              <div className="h-6 w-44 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
+              <div className="h-6 w-44 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
               <div className="flex gap-2">
-                <div className="h-6 w-20 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
-                <div className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
+                <div className="h-6 w-20 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                <div className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
               </div>
             </div>
           </div>
 
-          <div className="h-12 w-12 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="h-10 w-10 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <div className="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
-          <div className="h-8 w-32 rounded-full bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="h-8 w-28 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="h-8 w-32 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
         </div>
 
         <div className="mt-6 flex items-center gap-3">
-          <div className="flex-1 h-14 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
-          <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
-          <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 shimmer" />
+          <div className="flex-1 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
         </div>
       </div>
     </div>
@@ -1174,8 +1140,6 @@ export const SellerPreviewCard = ({
       />
 
       <GlassCard>
-        <ShimmerStyles />
-
         <div className={cn("relative z-10", c.pad)}>
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
@@ -1183,29 +1147,27 @@ export const SellerPreviewCard = ({
               {/* Avatar */}
               <div className="relative shrink-0">
                 <motion.div
-                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  whileHover={{ scale: 1.03 }}
                   transition={{ type: "spring", stiffness: 300 }}
-                  className="rounded-2xl p-0.5 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/20"
+                  className="rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-sm"
                 >
-                  <div className="rounded-[14px] p-0.5 bg-white dark:bg-slate-900">
-                    <CustomImage
-                      src={seller?.profile || seller?.profile_image}
-                      alt={seller?.name || "Prodavač"}
-                      width={64}
-                      height={64}
-                      className={cn(c.avatar, "rounded-xl object-cover")}
-                    />
-                  </div>
+                  <CustomImage
+                    src={seller?.profile || seller?.profile_image}
+                    alt={seller?.name || "Prodavač"}
+                    width={64}
+                    height={64}
+                    className={cn(c.avatar, "object-cover")}
+                  />
                 </motion.div>
 
                 {seller?.is_verified && (
                   <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", delay: 0.3, stiffness: 200 }}
-                    className="absolute -bottom-1.5 -right-1.5 bg-white dark:bg-slate-900 rounded-xl p-1 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", delay: 0.2, stiffness: 200 }}
+                    className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-lg p-1 shadow-sm border border-slate-200 dark:border-slate-700"
                   >
-                    <Verified size={18} className="text-sky-500" />
+                    <Verified size={16} className="text-sky-500" />
                   </motion.div>
                 )}
               </div>
@@ -1311,17 +1273,16 @@ export const SellerPreviewCard = ({
 
             {canMakeOffer && itemId && (
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleOfferClick}
                 disabled={actionsDisabled}
                 className={cn(
-                  "inline-flex items-center justify-center gap-2.5 rounded-2xl px-6 py-3.5",
-                  "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600",
-                  "text-white text-sm font-semibold tracking-wide",
-                  "shadow-xl shadow-emerald-500/25",
-                  "hover:shadow-2xl hover:shadow-emerald-500/35",
-                  "transition-all duration-300",
+                  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3",
+                  "bg-emerald-600 hover:bg-emerald-700",
+                  "text-white text-sm font-semibold",
+                  "shadow-sm hover:shadow-md",
+                  "transition-all duration-200",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               >
