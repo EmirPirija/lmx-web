@@ -18,7 +18,6 @@ import {
   Bell,
   Shield,
   Eye,
-  EyeOff,
   Edit3,
   Save,
   X,
@@ -32,7 +31,6 @@ import {
   Heart,
   Star,
   BadgeCheck,
-  Settings,
   HelpCircle,
   Plus,
 } from "lucide-react";
@@ -66,10 +64,10 @@ function ProfileAvatar({ customAvatarUrl, avatarId, size = "lg", onImageClick })
   const showImg = Boolean(customAvatarUrl) && !imgErr;
 
   const sizeClasses = {
-    sm: "w-16 h-16",
-    md: "w-20 h-20",
-    lg: "w-24 h-24 sm:w-28 sm:h-28",
-    xl: "w-32 h-32 sm:w-36 sm:h-36",
+    sm: "w-14 h-14",
+    md: "w-18 h-18",
+    lg: "w-20 h-20 sm:w-24 sm:h-24",
+    xl: "w-28 h-28 sm:w-32 sm:h-32",
   };
 
   return (
@@ -78,16 +76,18 @@ function ProfileAvatar({ customAvatarUrl, avatarId, size = "lg", onImageClick })
         <img
           src={customAvatarUrl}
           alt="Profilna slika"
-          className={`${sizeClasses[size]} rounded-2xl object-cover border-4 border-white shadow-xl ring-2 ring-slate-100`}
+          className={`${sizeClasses[size]} rounded-2xl object-cover border-2 border-white shadow-lg ring-2 ring-slate-100`}
           onError={() => setImgErr(true)}
           loading="lazy"
         />
       ) : (
-        <div className={`${sizeClasses[size]} rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex items-center justify-center border-4 border-white shadow-xl ring-2 ring-slate-100`}>
+        <div
+          className={`${sizeClasses[size]} rounded-2xl bg-slate-900 flex items-center justify-center border-2 border-white shadow-lg ring-2 ring-slate-100`}
+        >
           <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-2/3 h-2/3 text-white" />
         </div>
       )}
-      
+
       {onImageClick && (
         <button
           onClick={onImageClick}
@@ -101,115 +101,68 @@ function ProfileAvatar({ customAvatarUrl, avatarId, size = "lg", onImageClick })
 }
 
 // Statistika kartica
-function StatCard({ icon: Icon, label, value, color, trend }) {
+function StatCard({ icon: Icon, label, value, color }) {
   return (
-    <motion.div 
-      whileHover={{ y: -2 }}
-      className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200"
-    >
+    <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-2xl sm:text-3xl font-bold text-slate-900">{value}</p>
-          <p className="text-sm text-slate-500 mt-1">{label}</p>
+          <p className="text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{label}</p>
         </div>
-        <div className={cn("p-2.5 rounded-xl", color)}>
-          <Icon className="w-5 h-5 text-white" />
+        <div className={cn("p-2 rounded-lg", color)}>
+          <Icon className="w-4 h-4 text-white" />
         </div>
       </div>
-      {trend && (
-        <div className="flex items-center gap-1 mt-3 text-xs">
-          <span className={trend > 0 ? "text-green-600" : "text-red-600"}>
-            {trend > 0 ? "+" : ""}{trend}%
-          </span>
-          <span className="text-slate-400">od prošlog mjeseca</span>
-        </div>
-      )}
-    </motion.div>
+    </div>
   );
 }
 
 // Navigacijska kartica (mobilna)
-function NavCard({ id, label, icon: Icon, isActive, onClick, badge }) {
+function NavCard({ id, label, icon: Icon, isActive, onClick }) {
   return (
-    <motion.button
-      whileTap={{ scale: 0.98 }}
+    <button
       onClick={() => onClick(id)}
       className={cn(
-        "flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 w-full text-left",
+        "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 w-full text-left",
         isActive
-          ? "bg-primary/5 border-primary/20 text-primary"
-          : "bg-white border-slate-100 text-slate-700 hover:border-slate-200 hover:bg-slate-50"
+          ? "bg-slate-900 border-slate-900 text-white"
+          : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
       )}
     >
-      <div className={cn(
-        "p-2.5 rounded-xl transition-colors",
-        isActive ? "bg-primary/10" : "bg-slate-100"
-      )}>
-        <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-slate-600")} />
+      <div className={cn("p-2 rounded-lg", isActive ? "bg-white/15" : "bg-slate-100")}>
+        <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-slate-600")} />
       </div>
-      <div className="flex-1 min-w-0">
-        <span className="font-medium block truncate">{label}</span>
-      </div>
-      {badge && (
-        <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-600 rounded-full">
-          {badge}
-        </span>
-      )}
-      <ChevronRight className={cn("w-5 h-5 transition-colors", isActive ? "text-primary" : "text-slate-300")} />
-    </motion.button>
+      <span className="flex-1 text-sm font-medium">{label}</span>
+      <ChevronRight className={cn("w-4 h-4", isActive ? "text-white" : "text-slate-300")} />
+    </button>
   );
 }
 
 // Sekcija forma
-function FormSection({ 
-  title, 
-  description, 
-  icon: Icon,
-  children,
-  isEditing,
-  onEdit,
-  onSave,
-  onCancel,
-  isSaving,
-}) {
+function FormSection({ title, description, icon: Icon, children, isEditing, onEdit, onSave, onCancel, isSaving }) {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
-    >
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
       {/* Zaglavlje */}
-      <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-slate-50/50">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Icon className="w-5 h-5 text-primary" />
+            <div className="p-2 bg-slate-100 rounded-lg">
+              <Icon className="w-5 h-5 text-slate-600" />
             </div>
             <div>
               <h3 className="font-semibold text-slate-900">{title}</h3>
-              <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{description}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {isEditing ? (
               <>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={onCancel}
-                  disabled={isSaving}
-                  className="text-slate-600"
-                >
-                  <X className="w-4 h-4 mr-1.5" />
+                <Button size="sm" variant="ghost" onClick={onCancel} disabled={isSaving} className="gap-2">
+                  <X className="w-4 h-4" />
                   Otkaži
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={onSave}
-                  disabled={isSaving}
-                  className="bg-primary hover:bg-primary/90"
-                >
+                <Button size="sm" onClick={onSave} disabled={isSaving} className="gap-2 bg-slate-900 hover:bg-slate-800">
                   {isSaving ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -217,20 +170,15 @@ function FormSection({
                     </span>
                   ) : (
                     <>
-                      <Save className="w-4 h-4 mr-1.5" />
+                      <Save className="w-4 h-4" />
                       Sačuvaj
                     </>
                   )}
                 </Button>
               </>
             ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onEdit}
-                className="border-primary/30 text-primary hover:bg-primary/5"
-              >
-                <Edit3 className="w-4 h-4 mr-1.5" />
+              <Button size="sm" variant="outline" onClick={onEdit} className="gap-2">
+                <Edit3 className="w-4 h-4" />
                 Uredi
               </Button>
             )}
@@ -239,10 +187,8 @@ function FormSection({
       </div>
 
       {/* Sadržaj */}
-      <div className="p-5 sm:p-6">
-        {children}
-      </div>
-    </motion.div>
+      <div className="p-5">{children}</div>
+    </div>
   );
 }
 
@@ -254,11 +200,7 @@ function ToggleField({ label, description, checked, onChange, disabled }) {
         <p className="font-medium text-slate-900">{label}</p>
         <p className="text-sm text-slate-500 mt-0.5">{description}</p>
       </div>
-      <Switch
-        checked={checked}
-        onCheckedChange={onChange}
-        disabled={disabled}
-      />
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   );
 }
@@ -269,7 +211,7 @@ function VerificationBadge({ status, reason }) {
     approved: {
       icon: BadgeCheck,
       text: "Verifikovan",
-      className: "bg-green-100 text-green-700 border-green-200",
+      className: "bg-emerald-100 text-emerald-700 border-emerald-200",
     },
     pending: {
       icon: Clock,
@@ -289,7 +231,7 @@ function VerificationBadge({ status, reason }) {
     default: {
       icon: Shield,
       text: "Verifikuj se",
-      className: "bg-primary text-white border-primary",
+      className: "bg-slate-900 text-white border-slate-900",
       isLink: true,
     },
   };
@@ -302,28 +244,25 @@ function VerificationBadge({ status, reason }) {
       <CustomLink
         href="/user-verification"
         className={cn(
-          "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border transition-all hover:opacity-90",
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all hover:opacity-90",
           config.className
         )}
       >
-        <Icon className="w-4 h-4" />
+        <Icon className="w-3.5 h-3.5" />
         {config.text}
       </CustomLink>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <span className={cn(
-        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border",
-        config.className
-      )}>
-        <Icon className="w-4 h-4" />
+    <div className="space-y-1">
+      <span
+        className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border", config.className)}
+      >
+        <Icon className="w-3.5 h-3.5" />
         {config.text}
       </span>
-      {status === "rejected" && reason && (
-        <p className="text-sm text-red-600">{reason}</p>
-      )}
+      {status === "rejected" && reason && <p className="text-xs text-red-600">{reason}</p>}
     </div>
   );
 }
@@ -341,12 +280,12 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(true);
-  
+
   // Profil stanje
   const [profileImage, setProfileImage] = useState("");
   const [profileFile, setProfileFile] = useState(null);
   const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
-  
+
   // Režim uređivanja
   const [isEditing, setIsEditing] = useState({
     osnovno: false,
@@ -355,7 +294,7 @@ export default function Profile() {
     privatnost: false,
     notifikacije: false,
   });
-  
+
   // Podaci forme
   const [formData, setFormData] = useState({
     name: "",
@@ -367,7 +306,7 @@ export default function Profile() {
     region_code: "",
     country_code: "",
   });
-  
+
   // BiH lokacija
   const { userLocation, saveLocation } = useUserLocation();
   const [bihLocation, setBihLocation] = useState({
@@ -377,52 +316,58 @@ export default function Profile() {
     address: "",
     formattedAddress: "",
   });
-  
+
   // Verifikacija
   const [verificationStatus, setVerificationStatus] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
-  
+
   // Reference
   const initialDataRef = useRef(null);
   const fileInputRef = useRef(null);
 
   // Navigacijske stavke
-  const navItems = useMemo(() => [
-    { id: "osnovno", label: "Osnovni podaci", icon: User },
-    { id: "kontakt", label: "Kontakt", icon: Phone },
-    { id: "lokacija", label: "Lokacija", icon: MapPin },
-    { id: "privatnost", label: "Privatnost", icon: Eye },
-    { id: "notifikacije", label: "Obavijesti", icon: Bell },
-    { id: "verifikacija", label: "Verifikacija", icon: Shield },
-  ], []);
+  const navItems = useMemo(
+    () => [
+      { id: "osnovno", label: "Osnovni podaci", icon: User },
+      { id: "kontakt", label: "Kontakt", icon: Phone },
+      { id: "lokacija", label: "Lokacija", icon: MapPin },
+      { id: "privatnost", label: "Privatnost", icon: Eye },
+      { id: "notifikacije", label: "Obavijesti", icon: Bell },
+      { id: "verifikacija", label: "Verifikacija", icon: Shield },
+    ],
+    []
+  );
 
   // Statistike
-  const stats = useMemo(() => [
-    { 
-      icon: Layers, 
-      label: "Aktivni oglasi", 
-      value: UserData?.active_ads || 0, 
-      color: "bg-blue-500" 
-    },
-    { 
-      icon: MessageSquare, 
-      label: "Poruke", 
-      value: UserData?.unread_messages || 0, 
-      color: "bg-green-500" 
-    },
-    { 
-      icon: Heart, 
-      label: "Favoriti", 
-      value: UserData?.favorites_count || 0, 
-      color: "bg-pink-500" 
-    },
-    { 
-      icon: Star, 
-      label: "Ocjena", 
-      value: UserData?.avg_rating ? UserData.avg_rating.toFixed(1) : "0.0", 
-      color: "bg-amber-500" 
-    },
-  ], [UserData]);
+  const stats = useMemo(
+    () => [
+      {
+        icon: Layers,
+        label: "Aktivni oglasi",
+        value: UserData?.active_ads || 0,
+        color: "bg-blue-500",
+      },
+      {
+        icon: MessageSquare,
+        label: "Poruke",
+        value: UserData?.unread_messages || 0,
+        color: "bg-emerald-500",
+      },
+      {
+        icon: Heart,
+        label: "Favoriti",
+        value: UserData?.favorites_count || 0,
+        color: "bg-pink-500",
+      },
+      {
+        icon: Star,
+        label: "Ocjena",
+        value: UserData?.avg_rating ? UserData.avg_rating.toFixed(1) : "0.0",
+        color: "bg-amber-500",
+      },
+    ],
+    [UserData]
+  );
 
   // Efekti
   useEffect(() => {
@@ -474,7 +419,7 @@ export default function Profile() {
           setFormData(nextForm);
           setProfileImage(d?.profile || placeholder_image);
           initialDataRef.current = { ...nextForm, bihLocation: userLocation };
-          
+
           const currentFcmId = UserData?.fcm_id;
           if (!d?.fcm_id && currentFcmId) {
             loadUpdateUserData({ ...d, fcm_id: currentFcmId });
@@ -500,15 +445,15 @@ export default function Profile() {
 
   // Handleri
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handlePhoneChange = (value, data) => {
     const dial = data?.dialCode || "";
     const iso2 = data?.countryCode || "";
     const pureMobile = value.startsWith(dial) ? value.slice(dial.length) : value;
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
       phone: pureMobile,
       country_code: dial,
@@ -557,7 +502,7 @@ export default function Profile() {
         saveLocation(bihLocation);
       }
 
-      const formattedAddress = bihLocation?.formattedAddress 
+      const formattedAddress = bihLocation?.formattedAddress
         ? `${bihLocation.address || ""}, ${bihLocation.formattedAddress}`.trim()
         : formData.address;
 
@@ -577,7 +522,7 @@ export default function Profile() {
       if (response.data.error !== true) {
         const newData = response.data.data;
         const currentFcmId = UserData?.fcm_id;
-        
+
         if (!newData?.fcm_id && currentFcmId) {
           loadUpdateUserData({ ...newData, fcm_id: currentFcmId });
         } else {
@@ -585,7 +530,7 @@ export default function Profile() {
         }
 
         setProfileFile(null);
-        setIsEditing(prev => ({ ...prev, [section]: false }));
+        setIsEditing((prev) => ({ ...prev, [section]: false }));
         toast.success("Promjene su uspješno sačuvane");
       } else {
         toast.error(response.data.message || "Greška pri čuvanju");
@@ -599,11 +544,11 @@ export default function Profile() {
   };
 
   const startEditing = (section) => {
-    setIsEditing(prev => ({ ...prev, [section]: true }));
+    setIsEditing((prev) => ({ ...prev, [section]: true }));
   };
 
   const cancelEditing = (section) => {
-    setIsEditing(prev => ({ ...prev, [section]: false }));
+    setIsEditing((prev) => ({ ...prev, [section]: false }));
   };
 
   // Ako nije prijavljen
@@ -611,14 +556,14 @@ export default function Profile() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
-          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <User className="w-10 h-10 text-slate-400" />
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-slate-400" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-3">Niste prijavljeni</h2>
-          <p className="text-slate-600 mb-6">Prijavite se da biste pristupili postavkama profila</p>
-          <CustomLink 
-            href="/login" 
-            className="inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors"
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Niste prijavljeni</h2>
+          <p className="text-slate-600 text-sm mb-4">Prijavite se da biste pristupili postavkama profila</p>
+          <CustomLink
+            href="/login"
+            className="inline-flex items-center justify-center px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
           >
             Prijavi se
           </CustomLink>
@@ -632,55 +577,45 @@ export default function Profile() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-3 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Učitavanje profila...</p>
+          <div className="w-10 h-10 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-slate-500">Učitavanje profila...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       {/* Zaglavlje profila */}
-      <div className="mb-6 sm:mb-8">
+      <div className="mb-6">
         {/* Korisničke informacije */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-6">
-          <ProfileAvatar 
-            customAvatarUrl={profileImage} 
-            avatarId={sellerAvatarId} 
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-5">
+          <ProfileAvatar
+            customAvatarUrl={profileImage}
+            avatarId={sellerAvatarId}
             size="lg"
             onImageClick={() => fileInputRef.current?.click()}
           />
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageChange}
-          />
-          
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-3 mb-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
-                {formData.name || "Vaš profil"}
-              </h1>
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{formData.name || "Vaš profil"}</h1>
               <VerificationBadge status={verificationStatus} reason={rejectionReason} />
             </div>
-            <p className="text-slate-600 text-sm sm:text-base truncate">{formData.email}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1.5"
-              >
-                <Camera className="w-4 h-4" />
-                Promijeni sliku
-              </button>
-            </div>
+            <p className="text-slate-500 text-sm truncate">{formData.email}</p>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs text-slate-900 hover:underline font-medium flex items-center gap-1 mt-2"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              Promijeni sliku
+            </button>
           </div>
         </div>
 
         {/* Statistike */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {stats.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}
@@ -690,25 +625,21 @@ export default function Profile() {
       {/* Glavni sadržaj */}
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Desktop navigacija */}
-        <aside className="hidden lg:block w-64 flex-shrink-0">
+        <aside className="hidden lg:block w-56 flex-shrink-0">
           <div className="sticky top-24 space-y-4">
-            <nav className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 px-2">
-                Postavke profila
-              </h3>
-              <div className="space-y-1">
+            <nav className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-3">
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Postavke</h3>
+              <div className="space-y-0.5">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left",
-                      activeSection === item.id
-                        ? "bg-primary/10 text-primary"
-                        : "text-slate-700 hover:bg-slate-50"
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 text-left",
+                      activeSection === item.id ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-50"
                     )}
                   >
-                    <item.icon className="w-5 h-5" />
+                    <item.icon className="w-4 h-4" />
                     <span className="text-sm font-medium">{item.label}</span>
                   </button>
                 ))}
@@ -716,28 +647,28 @@ export default function Profile() {
             </nav>
 
             {/* Brzi linkovi */}
-            <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-5 text-white">
-              <h4 className="font-semibold mb-3">Brze akcije</h4>
+            <div className="bg-slate-900 rounded-2xl p-4 text-white">
+              <h4 className="text-sm font-semibold mb-3">Brze akcije</h4>
               <div className="space-y-2">
-                <CustomLink 
-                  href="/ad-listing" 
-                  className="flex items-center gap-2 text-sm text-white/90 hover:text-white transition-colors"
+                <CustomLink
+                  href="/ad-listing"
+                  className="flex items-center gap-2 text-xs text-white/80 hover:text-white transition-colors"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   Dodaj novi oglas
                 </CustomLink>
-                <CustomLink 
-                  href="/user-verification" 
-                  className="flex items-center gap-2 text-sm text-white/90 hover:text-white transition-colors"
+                <CustomLink
+                  href="/user-verification"
+                  className="flex items-center gap-2 text-xs text-white/80 hover:text-white transition-colors"
                 >
-                  <Shield className="w-4 h-4" />
+                  <Shield className="w-3.5 h-3.5" />
                   Verifikuj profil
                 </CustomLink>
-                <CustomLink 
-                  href="/help" 
-                  className="flex items-center gap-2 text-sm text-white/90 hover:text-white transition-colors"
+                <CustomLink
+                  href="/faqs"
+                  className="flex items-center gap-2 text-xs text-white/80 hover:text-white transition-colors"
                 >
-                  <HelpCircle className="w-4 h-4" />
+                  <HelpCircle className="w-3.5 h-3.5" />
                   Pomoć i podrška
                 </CustomLink>
               </div>
@@ -749,11 +680,11 @@ export default function Profile() {
         <div className="lg:hidden">
           <AnimatePresence>
             {showMobileNav && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mb-6 space-y-2"
+                className="mb-4 space-y-1.5"
               >
                 {navItems.map((item) => (
                   <NavCard
@@ -771,32 +702,30 @@ export default function Profile() {
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           {!showMobileNav && (
             <button
               onClick={() => setShowMobileNav(true)}
-              className="w-full flex items-center justify-between p-4 mb-6 bg-white rounded-2xl border border-slate-100 shadow-sm"
+              className="w-full flex items-center justify-between p-3 mb-4 bg-white rounded-xl border border-slate-200/80 shadow-sm"
             >
               <div className="flex items-center gap-3">
-                {navItems.find(item => item.id === activeSection)?.icon && (
-                  <div className="p-2 bg-primary/10 rounded-xl">
+                {navItems.find((item) => item.id === activeSection)?.icon && (
+                  <div className="p-2 bg-slate-100 rounded-lg">
                     {(() => {
-                      const Icon = navItems.find(item => item.id === activeSection)?.icon;
-                      return Icon ? <Icon className="w-5 h-5 text-primary" /> : null;
+                      const Icon = navItems.find((item) => item.id === activeSection)?.icon;
+                      return Icon ? <Icon className="w-4 h-4 text-slate-600" /> : null;
                     })()}
                   </div>
                 )}
-                <span className="font-medium text-slate-900">
-                  {navItems.find(item => item.id === activeSection)?.label}
-                </span>
+                <span className="font-medium text-slate-900">{navItems.find((item) => item.id === activeSection)?.label}</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400" />
+              <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
           )}
         </div>
 
         {/* Sadržaj sekcija */}
-        <main className="flex-1 min-w-0 space-y-6">
+        <main className="flex-1 min-w-0 space-y-5">
           {/* Osnovni podaci */}
           {activeSection === "osnovno" && (
             <FormSection
@@ -810,19 +739,23 @@ export default function Profile() {
               isSaving={isSaving}
             >
               <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700">Ime i prezime *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-sm font-medium text-slate-700">
+                    Ime i prezime *
+                  </Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     placeholder="Unesite vaše puno ime"
                     disabled={!isEditing.osnovno}
-                    className="h-11"
+                    className="h-10 rounded-xl"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700">Email adresa</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                    Email adresa
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -830,7 +763,7 @@ export default function Profile() {
                     onChange={(e) => handleChange("email", e.target.value)}
                     placeholder="email@primjer.com"
                     disabled={!isEditing.osnovno}
-                    className="h-11"
+                    className="h-10 rounded-xl"
                   />
                 </div>
               </div>
@@ -850,15 +783,17 @@ export default function Profile() {
               isSaving={isSaving}
             >
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-slate-700">Broj telefona</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone" className="text-sm font-medium text-slate-700">
+                    Broj telefona
+                  </Label>
                   <PhoneInput
                     country={formData.region_code || "ba"}
                     value={`${formData.country_code || ""}${formData.phone || ""}`}
                     onChange={handlePhoneChange}
                     inputStyle={{
                       width: "100%",
-                      height: "44px",
+                      height: "40px",
                       borderRadius: "12px",
                       border: "1px solid #e2e8f0",
                       fontSize: "14px",
@@ -890,19 +825,14 @@ export default function Profile() {
               isSaving={isSaving}
             >
               <div className="space-y-4">
-                <BiHLocationSelector
-                  value={bihLocation}
-                  onChange={setBihLocation}
-                  showAddress={true}
-                  disabled={!isEditing.lokacija}
-                />
-                
+                <BiHLocationSelector value={bihLocation} onChange={setBihLocation} showAddress={true} disabled={!isEditing.lokacija} />
+
                 {bihLocation.formattedAddress && (
-                  <div className="flex items-start gap-3 p-4 bg-green-50 rounded-xl border border-green-100">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div className="flex items-start gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-green-800">Trenutna lokacija</p>
-                      <p className="text-sm text-green-700 mt-0.5">{bihLocation.formattedAddress}</p>
+                      <p className="text-sm font-medium text-emerald-800">Trenutna lokacija</p>
+                      <p className="text-sm text-emerald-700 mt-0.5">{bihLocation.formattedAddress}</p>
                     </div>
                   </div>
                 )}
@@ -974,78 +904,70 @@ export default function Profile() {
 
           {/* Verifikacija */}
           {activeSection === "verifikacija" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-slate-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-primary/10 rounded-xl">
-                      <Shield className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900">Verifikacija profila</h3>
-                      <p className="text-sm text-slate-500 mt-0.5">Povećajte povjerenje i vjerodostojnost</p>
-                    </div>
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 rounded-lg">
+                    <Shield className="w-5 h-5 text-slate-600" />
                   </div>
-                </div>
-
-                <div className="p-5 sm:p-6 space-y-6">
-                  {/* Status */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl">
-                    <div>
-                      <p className="font-medium text-slate-900">Status verifikacije</p>
-                      <p className="text-sm text-slate-600 mt-0.5">
-                        Verifikovani profili imaju veću stopu uspješnih transakcija
-                      </p>
-                    </div>
-                    <VerificationBadge status={verificationStatus} reason={rejectionReason} />
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Verifikacija profila</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Povećajte povjerenje i vjerodostojnost</p>
                   </div>
-
-                  {/* Prednosti */}
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    <div className="text-center p-5 bg-slate-50 rounded-xl">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <BadgeCheck className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <p className="font-medium text-slate-900 mb-1">Povećano povjerenje</p>
-                      <p className="text-sm text-slate-600">Korisnici više vjeruju verifikovanim profilima</p>
-                    </div>
-                    
-                    <div className="text-center p-5 bg-slate-50 rounded-xl">
-                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <MessageSquare className="w-6 h-6 text-green-600" />
-                      </div>
-                      <p className="font-medium text-slate-900 mb-1">Više poruka</p>
-                      <p className="text-sm text-slate-600">Verifikovani profili dobijaju više upita</p>
-                    </div>
-                    
-                    <div className="text-center p-5 bg-slate-50 rounded-xl">
-                      <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Star className="w-6 h-6 text-amber-600" />
-                      </div>
-                      <p className="font-medium text-slate-900 mb-1">Bolje pozicije</p>
-                      <p className="text-sm text-slate-600">Oglasi se prikazuju na boljim pozicijama</p>
-                    </div>
-                  </div>
-
-                  {/* CTA */}
-                  {verificationStatus !== "approved" && (
-                    <div className="text-center pt-2">
-                      <CustomLink 
-                        href="/user-verification"
-                        className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors"
-                      >
-                        <Shield className="w-5 h-5" />
-                        Započni verifikaciju
-                      </CustomLink>
-                    </div>
-                  )}
                 </div>
               </div>
-            </motion.div>
+
+              <div className="p-5 space-y-5">
+                {/* Status */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 rounded-xl">
+                  <div>
+                    <p className="font-medium text-slate-900">Status verifikacije</p>
+                    <p className="text-sm text-slate-600 mt-0.5">Verifikovani profili imaju veću stopu uspješnih transakcija</p>
+                  </div>
+                  <VerificationBadge status={verificationStatus} reason={rejectionReason} />
+                </div>
+
+                {/* Prednosti */}
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <BadgeCheck className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <p className="font-medium text-slate-900 text-sm mb-0.5">Povećano povjerenje</p>
+                    <p className="text-xs text-slate-500">Korisnici više vjeruju verifikovanim profilima</p>
+                  </div>
+
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <MessageSquare className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <p className="font-medium text-slate-900 text-sm mb-0.5">Više poruka</p>
+                    <p className="text-xs text-slate-500">Verifikovani profili dobijaju više upita</p>
+                  </div>
+
+                  <div className="text-center p-4 bg-slate-50 rounded-xl">
+                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Star className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <p className="font-medium text-slate-900 text-sm mb-0.5">Bolje pozicije</p>
+                    <p className="text-xs text-slate-500">Oglasi se prikazuju na boljim pozicijama</p>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                {verificationStatus !== "approved" && (
+                  <div className="text-center pt-2">
+                    <CustomLink
+                      href="/user-verification"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Započni verifikaciju
+                    </CustomLink>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </main>
       </div>

@@ -1,6 +1,7 @@
 "use client";
  
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import SellerLsitings from "./SellerLsitings";
 import SellerDetailCard from "./SellerDetailCard";
 import { getSellerApi, gamificationApi } from "@/utils/api";
@@ -12,6 +13,16 @@ import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import { useSelector } from "react-redux";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
+import { cn } from "@/lib/utils";
+
+import {
+  Package,
+  ShoppingBag,
+  Star,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
  
 const Seller = ({ id, searchParams }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -24,7 +35,6 @@ const Seller = ({ id, searchParams }) => {
   const [badges, setBadges] = useState([]);
   const [isSellerDataLoading, setIsSellerDataLoading] = useState(false);
   
-  // Seller settings i membership status
   const [sellerSettings, setSellerSettings] = useState(null);
   const [isPro, setIsPro] = useState(false);
   const [isShop, setIsShop] = useState(false);
@@ -86,16 +96,12 @@ const Seller = ({ id, searchParams }) => {
         const sellerData = res?.data?.data?.seller;
         setSeller(sellerData);
         
-        // Dohvati seller settings iz API odgovora
         const settings = res?.data?.data?.seller_settings || sellerData?.seller_settings || null;
         setSellerSettings(settings);
         
-        // Odredi Pro/Shop status
-        // Prvo provjeri direktne flagove iz API-ja
         let proStatus = res?.data?.data?.is_pro || sellerData?.is_pro || false;
         let shopStatus = res?.data?.data?.is_shop || sellerData?.is_shop || false;
         
-        // Ako ima membership info, koristi to
         const membership = res?.data?.data?.membership || sellerData?.membership;
         if (membership) {
           const tier = (membership.tier || membership.tier_name || membership.plan || '').toLowerCase();
@@ -127,7 +133,23 @@ const Seller = ({ id, searchParams }) => {
   };
  
   if (isNoUserFound) {
-    return <NoData name="Nismo pronašli ovog prodavača." />;
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center"
+          >
+            <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-xl shadow-red-500/20">
+              <AlertCircle size={40} className="text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Prodavač nije pronađen</h2>
+            <p className="text-slate-500 dark:text-slate-400">Ovaj korisnik ne postoji ili je obrisan.</p>
+          </motion.div>
+        </div>
+      </Layout>
+    );
   }
  
   const reviewCount = ratings?.total ?? ratings?.meta?.total ?? ratings?.data?.length ?? 0;
@@ -135,9 +157,9 @@ const Seller = ({ id, searchParams }) => {
   const soldCount = seller?.sold_ads_count ?? seller?.sold_count ?? seller?.completed_ads_count ?? 0;
  
   const tabs = [
-    { key: "live", label: "Aktivni", count: liveCount },
-    { key: "sold", label: "Prodano", count: soldCount },
-    { key: "reviews", label: "Recenzije", count: reviewCount },
+    { key: "live", label: "Aktivni oglasi", icon: Package, count: liveCount, color: "from-blue-500 to-indigo-600" },
+    { key: "sold", label: "Prodano", icon: ShoppingBag, count: soldCount, color: "from-green-500 to-emerald-600" },
+    { key: "reviews", label: "Recenzije", icon: Star, count: reviewCount, color: "from-amber-500 to-orange-600" },
   ];
  
   return (
@@ -147,74 +169,111 @@ const Seller = ({ id, searchParams }) => {
       ) : (
         <>
           <BreadCrumb title2={seller?.name} />
-          <div className="container mx-auto mt-6 mb-10 space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-              <div className="col-span-12 lg:col-span-4">
-                <SellerDetailCard 
-                  seller={seller} 
-                  ratings={ratings} 
-                  badges={badges}
-                  sellerSettings={sellerSettings}
-                  isPro={isPro}
-                  isShop={isShop}
-                />
-              </div>
+          
+          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            <div className="container mx-auto px-4 py-8 space-y-8">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+                {/* Seller Card - Left Side */}
+                <motion.div 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="col-span-12 lg:col-span-4 lg:sticky lg:top-6 h-fit"
+                >
+                  <SellerDetailCard 
+                    seller={seller} 
+                    ratings={ratings} 
+                    badges={badges}
+                    sellerSettings={sellerSettings}
+                    isPro={isPro}
+                    isShop={isShop}
+                  />
+                </motion.div>
  
-              <div className="col-span-12 flex flex-col gap-6 lg:col-span-8">
-                <div className="flex w-full justify-start">
-                  <div className="grid grid-cols-3 w-full rounded-full border bg-slate-100/80 p-1 shadow-sm backdrop-blur">
+                {/* Main Content - Right Side */}
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="col-span-12 lg:col-span-8 space-y-6"
+                >
+                  {/* Tabs */}
+                  <div className="flex flex-wrap gap-2">
                     {tabs.map((tab) => {
+                      const Icon = tab.icon;
                       const isActive = activeTab === tab.key;
                       return (
-                        <button
+                        <motion.button
                           key={tab.key}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           type="button"
                           onClick={() => setActiveTab(tab.key)}
-                          className={`
-                            relative inline-flex items-center justify-center gap-1.5 w-full
-                            rounded-full px-1.5 py-1 text-[12px] sm:px-4 sm:py-1.5 sm:text-sm
-                            font-medium whitespace-nowrap transition-all duration-200 ease-out text-center
-                            ${isActive
-                              ? "bg-primary text-white shadow-md scale-[1.01]"
-                              : "bg-transparent text-slate-700 hover:bg-white hover:text-slate-900"
-                            }
-                          `}
+                          className={cn(
+                            "flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold transition-all duration-300",
+                            isActive
+                              ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                              : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50"
+                          )}
                         >
-                          <span>{tab.label}</span>
-                          <span className={`
-                            inline-flex items-center justify-center h-4 min-w-[1.2rem] 
-                            rounded-full text-[10px] font-semibold transition-all duration-200
-                            ${isActive ? "bg-white/90 text-primary" : "bg-slate-200 text-slate-700"}
-                          `}>
+                          <Icon size={18} />
+                          <span className="hidden sm:inline">{tab.label}</span>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-xs font-bold",
+                            isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                          )}>
                             {tab.count}
                           </span>
-                          {isActive && (
-                            <span className="pointer-events-none absolute inset-x-2 -bottom-[2px] h-[3px] rounded-full bg-primary/40 blur-[3px]" />
-                          )}
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>
-                </div>
  
-                <div className="rounded-xl border bg-white p-4 sm:p-5 shadow-sm">
-                  {activeTab === "live" && (
-                    <SellerLsitings id={id} emptyLabel="Ovaj prodavač trenutno nema aktivnih oglasa." />
-                  )}
-                  {activeTab === "sold" && (
-                    <SellerLsitings id={id} filterStatus="sold out" emptyLabel="Ovaj prodavač još nema prodanih oglasa." />
-                  )}
-                  {activeTab === "reviews" && (
-                    <SellerRating
-                      ratingsData={ratings}
-                      seller={seller}
-                      isLoadMoreReview={isLoadMoreReview}
-                      reviewHasMore={reviewHasMore}
-                      reviewCurrentPage={reviewCurrentPage}
-                      getSeller={getSeller}
-                    />
-                  )}
-                </div>
+                  {/* Tab Content */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-700/50 p-6 md:p-8"
+                  >
+                    <AnimatePresence mode="wait">
+                      {activeTab === "live" && (
+                        <motion.div
+                          key="live"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                        >
+                          <SellerLsitings id={id} emptyLabel="Ovaj prodavač trenutno nema aktivnih oglasa." />
+                        </motion.div>
+                      )}
+                      {activeTab === "sold" && (
+                        <motion.div
+                          key="sold"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                        >
+                          <SellerLsitings id={id} filterStatus="sold out" emptyLabel="Ovaj prodavač još nema prodanih oglasa." />
+                        </motion.div>
+                      )}
+                      {activeTab === "reviews" && (
+                        <motion.div
+                          key="reviews"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                        >
+                          <SellerRating
+                            ratingsData={ratings}
+                            seller={seller}
+                            isLoadMoreReview={isLoadMoreReview}
+                            reviewHasMore={reviewHasMore}
+                            reviewCurrentPage={reviewCurrentPage}
+                            getSeller={getSeller}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </motion.div>
               </div>
             </div>
           </div>
