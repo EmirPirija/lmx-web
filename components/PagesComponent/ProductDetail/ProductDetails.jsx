@@ -46,6 +46,7 @@ import AdEditedByAdmin from "./AdEditedByAdmin";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
+import ProductCard, { ProductCardSkeleton } from "@/components/Common/ProductCard";
 
 // Redux
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -194,6 +195,8 @@ const ProductDetails = ({ slug }) => {
   const [videoData, setVideoData] = useState({ url: "", thumbnail: "" });
   const [directVideo, setDirectVideo] = useState(null);
   const [status, setStatus] = useState("");
+  const [otherAds, setOtherAds] = useState([]);
+  const [isOtherAdsLoading, setIsOtherAdsLoading] = useState(false);
   
   // UI State
   const [isLoading, setIsLoading] = useState(true);
@@ -267,6 +270,33 @@ const ProductDetails = ({ slug }) => {
       getSellerApi.getSeller({ id: sellerId }).then(res => !res?.data?.error && setSellerSettings(res.data.data?.seller_settings));
     }
   }, [productDetails?.user?.id]);
+
+  // 2.1 Fetch other ads by the same seller
+  useEffect(() => {
+    const sellerId = productDetails?.user?.id;
+    if (!sellerId || isMyListing) return;
+
+    const fetchOtherAds = async () => {
+      try {
+        setIsOtherAdsLoading(true);
+        const res = await allItemApi.getItems({
+          user_id: sellerId,
+          page: 1,
+          sort_by: "new-to-old",
+        });
+        const list = res?.data?.data?.data || [];
+        const filtered = list.filter((item) => item?.id !== productDetails?.id).slice(0, 6);
+        setOtherAds(filtered);
+      } catch (error) {
+        console.error(error);
+        setOtherAds([]);
+      } finally {
+        setIsOtherAdsLoading(false);
+      }
+    };
+
+    fetchOtherAds();
+  }, [productDetails?.user?.id, productDetails?.id, isMyListing]);
 
   // 3. Effects
   useEffect(() => { fetchProductDetails(); }, [slug, CurrentLanguage?.id]);
@@ -441,6 +471,54 @@ const ProductDetails = ({ slug }) => {
         {!isMyListing && (
           <div className="mt-12 lg:mt-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <SimilarProducts productDetails={productDetails} onItemClick={trackSimilarItemsClick} />
+          </div>
+        )}
+
+        {/* OSTALI OGLASI KORISNIKA */}
+        {!isMyListing && (isOtherAdsLoading || otherAds.length > 0) && (
+          <div className="mt-12 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                  Ostali oglasi korisnika
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Pogledaj još oglasa od istog prodavača
+                </p>
+              </div>
+              {productDetails?.user?.id && (
+                <Link
+                  href={`/seller/${productDetails.user.id}`}
+                  className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Pogledaj sve
+                </Link>
+              )}
+            </div>
+
+            {isOtherAdsLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, index) => (
+                  <ProductCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {otherAds.map((item) => (
+                  <ProductCard
+                    key={item.id}
+                    item={item}
+                    handleLike={() => {
+                      setOtherAds((prev) =>
+                        prev.map((ad) =>
+                          ad.id === item.id ? { ...ad, is_liked: !ad.is_liked } : ad
+                        )
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
