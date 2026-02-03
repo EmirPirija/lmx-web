@@ -46,6 +46,7 @@ import AdEditedByAdmin from "./AdEditedByAdmin";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
+import ExistingConversationBanner from "./ExistingConversationBanner";
 
 // Redux
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -341,6 +342,16 @@ const ProductDetails = ({ slug }) => {
               onFavoriteToggle={trackFavorite}
               onShareClick={trackShare}
             />
+
+            {/* 2.5 POSTOJEĆI RAZGOVOR (Za kupce) */}
+            {!isMyListing && productDetails?.id && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                <ExistingConversationBanner
+                  itemId={productDetails.id}
+                  seller={productDetails?.user}
+                />
+              </div>
+            )}
 
             {/* 3. OPCIJE PRODAVAČA (Samo za moje oglase) */}
             {IsShowFeaturedAd && (

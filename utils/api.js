@@ -692,6 +692,36 @@ export const itemOfferApi = {
       },
     });
   },
+
+  // Dohvati sve ponude (primljene i poslane)
+  getMyOffers: ({ type, page = 1 } = {}) => {
+    return Api.get("my-offers", {
+      params: { type, page },
+    });
+  },
+
+  // Prihvati ponudu
+  acceptOffer: (offerId) => {
+    return Api.post(`offer/accept/${offerId}`);
+  },
+
+  // Odbij ponudu
+  rejectOffer: (offerId) => {
+    return Api.post(`offer/reject/${offerId}`);
+  },
+
+  // Kontra-ponuda
+  counterOffer: ({ offer_id, amount } = {}) => {
+    const formData = new FormData();
+    if (offer_id) formData.append("offer_id", offer_id);
+    if (amount) formData.append("amount", amount);
+
+    return Api.post("offer/counter", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 };
 
 export const chatListApi = {
