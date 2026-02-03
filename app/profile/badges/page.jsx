@@ -2,16 +2,15 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { motion } from "framer-motion";
 
-import Layout from "@/components/Layout/Layout";
-import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import ProfileNavigation from "@/components/Profile/ProfileNavigation";
-
+import ProfileLayout from "@/components/Profile/ProfileLayout";
 import BadgeList from "@/components/PagesComponent/Gamification/BadgeList";
 import UserLevel from "@/components/PagesComponent/Gamification/UserLevel";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 import Checkauth from "@/HOC/Checkauth";
 import { gamificationApi } from "@/utils/api";
@@ -25,13 +24,45 @@ import {
 } from "@/redux/reducer/gamificationSlice";
 import { cn } from "@/lib/utils";
 
-const StatCard = ({ label, value, sub }) => (
-  <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 shadow-sm">
-    <div className="text-xs font-semibold text-slate-500 dark:text-slate-300">{label}</div>
-    <div className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">{value}</div>
-    {sub ? <div className="mt-1 text-xs text-slate-500 dark:text-slate-300">{sub}</div> : null}
-  </div>
-);
+import {
+  Award,
+  Lock,
+  Unlock,
+  Search,
+  Eye,
+  EyeOff,
+  Trophy,
+  Target,
+  Zap,
+  Loader2,
+} from "lucide-react";
+
+// ============================================
+// COMPONENTS
+// ============================================
+
+function StatCard({ icon: Icon, label, value, sublabel, color }) {
+  return (
+    <motion.div
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
+    >
+      <div className={cn("absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-20", `bg-gradient-to-br ${color}`)} />
+      <div className="relative z-10">
+        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg", `bg-gradient-to-br ${color}`)}>
+          <Icon size={28} className="text-white" />
+        </div>
+        <div className="text-4xl font-black text-slate-900 dark:text-white">{value}</div>
+        <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-1">{label}</div>
+        {sublabel && <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{sublabel}</div>}
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 const BadgesPage = () => {
   const dispatch = useDispatch();
@@ -46,7 +77,6 @@ const BadgesPage = () => {
 
   useEffect(() => {
     fetchAllData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAllData = async () => {
@@ -69,7 +99,6 @@ const BadgesPage = () => {
       dispatch(setAllBadges(all));
       dispatch(setUserPoints(points));
     } catch (e) {
-      // keep UI usable even if API fails
       dispatch(setUserBadges({ badges: [] }));
       dispatch(setAllBadges([]));
     } finally {
@@ -101,117 +130,121 @@ const BadgesPage = () => {
   }, [lockedBadges, query]);
 
   return (
-    <Layout>
-      <BreadCrumb title2="Moji bedževi" />
-
-      <div className="container mt-8">
-        <ProfileNavigation />
-
-        <div className="mt-8 space-y-6">
-          {/* Level */}
+    <ProfileLayout title="Moji bedževi" subtitle="Pregled zarađenih postignuća i napretka">
+      <div className="space-y-8">
+        {/* User Level */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <UserLevel userPoints={userPoints} showProgress={true} />
+        </motion.div>
 
-          {/* Header controls */}
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
-            <div>
-              <div className="text-2xl font-extrabold text-slate-900 dark:text-white">Postignuća</div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
-                Pregled zarađenih i zaključanih bedževa. Pretraga radi po nazivu.
-              </div>
-            </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            icon={Unlock}
+            label="Zarađeni bedževi"
+            value={earnedBadges.length}
+            sublabel="Tvoja dostignuća"
+            color="from-green-500 to-emerald-600"
+          />
+          <StatCard
+            icon={Lock}
+            label="Zaključani bedževi"
+            value={lockedBadges.length}
+            sublabel="Otključaj nastavkom aktivnosti"
+            color="from-slate-500 to-slate-700"
+          />
+          <StatCard
+            icon={Trophy}
+            label="Ukupno bedževa"
+            value={Array.isArray(allBadges) ? allBadges.length : 0}
+            sublabel="Svi dostupni bedževi"
+            color="from-amber-500 to-orange-600"
+          />
+        </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Pretraži bedževe…"
-                className="h-11 w-full sm:w-[260px] rounded-2xl"
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowDescriptions((v) => !v)}
-                className={cn(
-                  "h-11 px-4 rounded-2xl border font-semibold text-sm transition shadow-sm",
-                  "border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900/60",
-                  "text-slate-800 dark:text-slate-100 hover:shadow-md"
-                )}
-              >
-                {showDescriptions ? "Sakrij opise" : "Prikaži opise"}
-              </button>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard label="Zarađeni bedževi" value={earnedBadges.length} sub="Tvoja dostignuća do sada" />
-            <StatCard label="Zaključani bedževi" value={lockedBadges.length} sub="Otključaj nastavkom aktivnosti" />
-            <StatCard
-              label="Ukupno bedževa"
-              value={(Array.isArray(allBadges) ? allBadges.length : 0)}
-              sub={userPointsLoading ? "Učitavam bodove…" : "Prati napredak kroz bodove i nivoe"}
+        {/* Search & Filter */}
+        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Pretraži bedževe..."
+              className="h-12 pl-11 rounded-2xl border-2"
             />
           </div>
-
-          {/* Tabs */}
-          <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 shadow-sm">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100/70 dark:bg-slate-800/60 rounded-2xl p-1">
-                <TabsTrigger value="earned" className="rounded-xl">
-                  Zarađeni ({earnedBadges.length})
-                </TabsTrigger>
-                <TabsTrigger value="locked" className="rounded-xl">
-                  Zaključani ({lockedBadges.length})
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="earned" className="mt-6">
-                {badgesLoading ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div key={i} className="animate-pulse rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto" />
-                        <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mt-3" />
-                        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded mt-2 w-3/4 mx-auto" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <BadgeList
-                    badges={filteredEarned}
-                    emptyMessage="Još nemaš zarađenih bedževa."
-                    size="lg"
-                    showDescription={showDescriptions}
-                  />
-                )}
-              </TabsContent>
-
-              <TabsContent value="locked" className="mt-6">
-                {allBadgesLoading ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div key={i} className="animate-pulse rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto" />
-                        <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mt-3" />
-                        <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded mt-2 w-3/4 mx-auto" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <BadgeList
-                    badges={filteredLocked}
-                    locked
-                    emptyMessage="Sve si otključao. Svaka čast!"
-                    size="lg"
-                    showDescription={showDescriptions}
-                  />
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowDescriptions((v) => !v)}
+            className="h-12 gap-2 rounded-2xl border-2"
+          >
+            {showDescriptions ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showDescriptions ? "Sakrij opise" : "Prikaži opise"}
+          </Button>
         </div>
+
+        {/* Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-700/50 p-6"
+        >
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100 dark:bg-slate-700 rounded-2xl p-1 mb-6">
+              <TabsTrigger value="earned" className="rounded-xl gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white">
+                <Unlock size={16} />
+                Zarađeni ({earnedBadges.length})
+              </TabsTrigger>
+              <TabsTrigger value="locked" className="rounded-xl gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-500 data-[state=active]:to-slate-700 data-[state=active]:text-white">
+                <Lock size={16} />
+                Zaključani ({lockedBadges.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="earned">
+              {badgesLoading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="animate-pulse p-4 bg-slate-100 dark:bg-slate-700 rounded-2xl">
+                      <div className="w-16 h-16 bg-slate-200 dark:bg-slate-600 rounded-2xl mx-auto" />
+                      <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded mt-3" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <BadgeList
+                  badges={filteredEarned}
+                  emptyMessage="Još nemaš zarađenih bedževa."
+                  size="lg"
+                  showDescription={showDescriptions}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="locked">
+              {allBadgesLoading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="animate-pulse p-4 bg-slate-100 dark:bg-slate-700 rounded-2xl">
+                      <div className="w-16 h-16 bg-slate-200 dark:bg-slate-600 rounded-2xl mx-auto" />
+                      <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded mt-3" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <BadgeList
+                  badges={filteredLocked}
+                  locked
+                  emptyMessage="Sve si otključao. Svaka čast!"
+                  size="lg"
+                  showDescription={showDescriptions}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
+        </motion.div>
       </div>
-    </Layout>
+    </ProfileLayout>
   );
 };
 
