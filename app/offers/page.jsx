@@ -16,7 +16,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatDate, formatPriceAbbreviated, t, truncate, extractYear } from "@/utils";
 import { itemOfferApi } from "@/utils/api";
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
@@ -657,6 +657,7 @@ const OffersPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userData = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
   const CurrentLanguage = useSelector(CurrentLanguageData);
 
   // State
@@ -721,10 +722,10 @@ const OffersPage = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    if (userData?.token) {
+    if (isLoggedIn) {
       fetchOffers(1, activeTab);
     }
-  }, [activeTab, CurrentLanguage?.id, userData?.token]);
+  }, [activeTab, CurrentLanguage?.id, isLoggedIn]);
 
   // Update URL when tab changes
   const handleTabChange = (tab) => {
@@ -803,7 +804,7 @@ const OffersPage = () => {
   };
 
   // Redirect if not logged in
-  if (!userData?.token) {
+  if (!isLoggedIn) {
     return (
       <Layout>
         <BreadCrumb title2="Ponude" />

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatDate, t, extractYear } from "@/utils";
-import { usersApi } from "@/utils/api";
+import { gamificationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
@@ -98,6 +98,10 @@ const UserCard = ({ user, view, onClick }) => {
   const memberSince = user?.created_at ? extractYear(user.created_at) : null;
   const isOnline = user?.is_online || user?.online;
   
+  // Support both regular user data and leaderboard data
+  const totalPoints = user?.total_points ?? 0;
+  const userLevel = user?.level ?? null;
+  const badgeCount = user?.badge_count ?? 0;
   const activeAds = user?.active_ads_count ?? user?.items_count ?? user?.live_ads_count ?? 0;
   const avgRating = user?.average_rating ?? user?.rating ?? 0;
   const totalReviews = user?.reviews_count ?? user?.total_reviews ?? 0;
@@ -174,10 +178,23 @@ const UserCard = ({ user, view, onClick }) => {
 
         {/* Stats */}
         <div className="hidden sm:flex items-center gap-4">
-          <div className="text-center px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800">
-            <p className="text-lg font-bold text-slate-900 dark:text-white">{activeAds}</p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">Oglasa</p>
-          </div>
+          {totalPoints > 0 ? (
+            <div className="text-center px-4 py-2 rounded-xl bg-primary/10 dark:bg-primary/20">
+              <p className="text-lg font-bold text-primary">{Number(totalPoints).toLocaleString("bs-BA")}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Bodova</p>
+            </div>
+          ) : activeAds > 0 ? (
+            <div className="text-center px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800">
+              <p className="text-lg font-bold text-slate-900 dark:text-white">{activeAds}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Oglasa</p>
+            </div>
+          ) : null}
+          {userLevel && (
+            <div className="text-center px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
+              <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">Nivo {userLevel}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">{badgeCount} bedževa</p>
+            </div>
+          )}
           {avgRating > 0 && (
             <div className="text-center px-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20">
               <p className="text-lg font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
@@ -287,11 +304,25 @@ const UserCard = ({ user, view, onClick }) => {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-center">
-            <p className="text-lg font-bold text-slate-900 dark:text-white">{activeAds}</p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">Oglasa</p>
+            {totalPoints > 0 ? (
+              <>
+                <p className="text-lg font-bold text-primary">{Number(totalPoints).toLocaleString("bs-BA")}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">Bodova</p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{activeAds}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">Oglasa</p>
+              </>
+            )}
           </div>
           <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-center">
-            {avgRating > 0 ? (
+            {userLevel ? (
+              <>
+                <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">Nivo {userLevel}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">{badgeCount} bedževa</p>
+              </>
+            ) : avgRating > 0 ? (
               <>
                 <p className="text-lg font-bold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
                   <Star className="w-4 h-4 fill-current" />
@@ -541,6 +572,7 @@ const SviKorisniciPage = () => {
   });
 
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [period, setPeriod] = useState(searchParams.get("period") || "all-time");
 
   // Debounced search
   useEffect(() => {
@@ -551,32 +583,49 @@ const SviKorisniciPage = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Fetch users
+  // Fetch users from leaderboard
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      const response = await usersApi.getAllUsers({
+      const response = await gamificationApi.getLeaderboard({
+        period,
         page: currentPage,
-        per_page: 24,
-        search: filters.search || undefined,
-        membership: filters.membership || undefined,
-        shop: filters.shop || undefined,
       });
 
       if (response?.data?.error === false) {
         const data = response.data.data;
-        setUsers(data?.data || data || []);
-        setTotalPages(data?.last_page || 1);
+        let usersList = data?.users || data?.data || [];
+        
+        // Client-side filtering for search
+        if (filters.search) {
+          const searchLower = filters.search.toLowerCase();
+          usersList = usersList.filter(user => 
+            user?.name?.toLowerCase().includes(searchLower)
+          );
+        }
+        
+        // Client-side filtering for verified
+        if (filters.verified === "1") {
+          usersList = usersList.filter(user => 
+            user?.is_verified || user?.verified || user?.verification_status === "verified"
+          );
+        }
+        
+        setUsers(usersList);
+        setTotalPages(Math.ceil((data?.total || usersList.length) / (data?.per_page || 20)));
         setCurrentPage(data?.current_page || 1);
-        setTotalUsers(data?.total || 0);
+        setTotalUsers(data?.total || usersList.length);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
+      // Set empty state on error
+      setUsers([]);
+      setTotalUsers(0);
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, filters]);
+  }, [currentPage, filters, period]);
 
   useEffect(() => {
     fetchUsers();
@@ -601,6 +650,12 @@ const SviKorisniciPage = () => {
   const handleSortChange = (newSort) => {
     setSortBy(newSort);
     updateUrl("sort", newSort);
+  };
+
+  const handlePeriodChange = (newPeriod) => {
+    setPeriod(newPeriod);
+    setCurrentPage(1);
+    updateUrl("period", newPeriod);
   };
 
   const goToUserProfile = (userId) => {
@@ -661,6 +716,21 @@ const SviKorisniciPage = () => {
                     </button>
                   )}
                 </div>
+
+                {/* Period */}
+                <Select value={period} onValueChange={handlePeriodChange}>
+                  <SelectTrigger className="w-full sm:w-40 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                    <TrendingUp className="w-4 h-4 mr-2 text-slate-400" />
+                    <SelectValue placeholder="Period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="weekly">Sedmično</SelectItem>
+                      <SelectItem value="monthly">Mjesečno</SelectItem>
+                      <SelectItem value="all-time">Ukupno</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
 
                 {/* Sort */}
                 <Select value={sortBy} onValueChange={handleSortChange}>
