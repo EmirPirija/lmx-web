@@ -1,10 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useSelector } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+
+import Layout from "@/components/Layout/Layout";
+import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
+import CustomImage from "@/components/Common/CustomImage";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { formatDate, formatPriceAbbreviated, t, truncate } from "@/utils";
+import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
+import { itemOfferApi } from "@/utils/api";
+
 import {
   Banknote,
   ArrowUpRight,
@@ -26,451 +36,438 @@ import {
   ChevronRight,
   Phone,
   Mail,
-  ShieldCheck,
-  Star
+  BadgeCheck,
+  Star,
+  Eye,
+  ExternalLink,
 } from "lucide-react";
 
-import Layout from "@/components/Layout/Layout";
-import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import { cn } from "@/lib/utils";
-import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
-import { itemOfferApi } from "@/utils/api";
-import CustomImage from "@/components/Common/CustomImage";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-
-// ============================================
-// ANIMACIJE
-// ============================================
+/* =====================================================
+   ANIMACIJE
+===================================================== */
 
 const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] },
 };
 
 const staggerContainer = {
   animate: {
-    transition: { staggerChildren: 0.06 },
+    transition: { staggerChildren: 0.08 },
   },
 };
 
-// ============================================
-// UI KOMPONENTE (stil iz SellerSettings)
-// ============================================
+/* =====================================================
+   AVATAR KOMPONENTA
+===================================================== */
 
-const GlassCard = ({ children, className, ...props }) => (
-  <motion.div
-    variants={fadeInUp}
-    className={cn(
-      "relative overflow-hidden rounded-3xl",
-      "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl",
-      "border border-slate-200/60 dark:border-slate-700/60",
-      "shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40",
-      className
-    )}
-    {...props}
-  >
-    <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/10 via-purple-400/5 to-transparent blur-2xl" />
-    {children}
-  </motion.div>
-);
+const UserAvatar = ({ src, name, size = "md", className }) => {
+  const sizeClasses = {
+    sm: "w-10 h-10",
+    md: "w-14 h-14",
+    lg: "w-20 h-20",
+    xl: "w-24 h-24",
+  };
 
-const CardHeader = ({ icon: Icon, title, subtitle, right }) => (
-  <div className="px-5 sm:px-6 pt-5 sm:pt-6 flex items-start justify-between gap-4">
-    <div className="flex items-start gap-3">
-      {Icon && (
-        <div className="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-          <Icon className="h-5 w-5" />
+  return (
+    <div
+      className={cn(
+        sizeClasses[size],
+        "rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex-shrink-0",
+        className
+      )}
+    >
+      {src ? (
+        <CustomImage
+          src={src}
+          alt={name || "Korisnik"}
+          width={96}
+          height={96}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800">
+          <User className="w-1/2 h-1/2 text-slate-400" />
         </div>
       )}
-      <div>
-        <div className="text-base font-bold text-slate-900 dark:text-white">{title}</div>
-        {subtitle && <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</div>}
-      </div>
     </div>
-    {right && <div className="shrink-0">{right}</div>}
-  </div>
-);
+  );
+};
 
-const CardBody = ({ children }) => <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-4">{children}</div>;
-
-const Spinner = ({ className }) => (
-  <motion.div
-    animate={{ rotate: 360 }}
-    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-    className={cn("h-5 w-5 border-2 border-current border-t-transparent rounded-full", className)}
-  />
-);
-
-const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) => (
-  <motion.button
-    whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -1 }}
-    whileTap={{ scale: disabled ? 1 : 0.98 }}
-    disabled={disabled || isLoading}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
-      "bg-gradient-to-r from-slate-900 to-slate-800 text-white",
-      "dark:from-white dark:to-slate-100 dark:text-slate-900",
-      "text-sm font-semibold shadow-lg shadow-slate-900/20 dark:shadow-white/10",
-      "disabled:opacity-50 disabled:cursor-not-allowed",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {isLoading ? <Spinner /> : children}
-  </motion.button>
-);
-
-const SecondaryButton = ({ children, className, ...props }) => (
-  <motion.button
-    whileHover={{ scale: 1.02, y: -1 }}
-    whileTap={{ scale: 0.98 }}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5",
-      "bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm",
-      "text-slate-800 dark:text-slate-200 text-sm font-semibold",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "hover:bg-slate-200/80 dark:hover:bg-slate-700/80",
-      "shadow-sm hover:shadow-md",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </motion.button>
-);
-
-// ============================================
-// HELPER KOMPONENTE
-// ============================================
-
-const TabButton = ({ active, onClick, children, count, icon: Icon }) => (
-  <motion.button
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className={cn(
-      "flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold text-sm transition-all duration-200",
-      active
-        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg"
-        : "bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/70 dark:border-slate-700/60"
-    )}
-  >
-    {Icon && <Icon size={18} />}
-    {children}
-    {count > 0 && (
-      <span className={cn(
-        "px-2 py-0.5 rounded-full text-xs font-bold",
-        active
-          ? "bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900"
-          : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-      )}>
-        {count}
-      </span>
-    )}
-  </motion.button>
-);
+/* =====================================================
+   STATUS BADGE
+===================================================== */
 
 const StatusBadge = ({ status }) => {
   const config = {
     pending: {
       icon: Clock,
       text: "Na čekanju",
-      className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+      className:
+        "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-700/50",
     },
     accepted: {
       icon: CheckCircle2,
       text: "Prihvaćeno",
-      className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      className:
+        "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/50",
     },
     rejected: {
       icon: XCircle,
       text: "Odbijeno",
-      className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800",
+      className:
+        "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-700/50",
     },
     countered: {
       icon: RefreshCw,
       text: "Kontra-ponuda",
-      className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      className:
+        "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700/50",
     },
   };
 
   const { icon: Icon, text, className } = config[status] || config.pending;
 
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border",
-      className
-    )}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border",
+        className
+      )}
+    >
       <Icon size={12} />
       {text}
     </span>
   );
 };
 
-// ============================================
-// USER CARD COMPONENT (lijeva strana)
-// ============================================
+/* =====================================================
+   TAB BUTTON
+===================================================== */
 
-const UserCard = ({ offer, type }) => {
+const TabButton = ({ active, onClick, children, count, icon: Icon }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200",
+      active
+        ? "bg-primary text-white shadow-lg"
+        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+    )}
+  >
+    {Icon && <Icon size={18} />}
+    {children}
+    {typeof count === "number" && count > 0 && (
+      <span
+        className={cn(
+          "px-2 py-0.5 rounded-full text-xs font-bold",
+          active
+            ? "bg-white/20 text-white"
+            : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+        )}
+      >
+        {count}
+      </span>
+    )}
+  </button>
+);
+
+/* =====================================================
+   USER CARD (Lijeva strana)
+===================================================== */
+
+const OfferUserCard = ({ offer, type }) => {
   const router = useRouter();
   const isSelling = type === "received";
-  const personName = isSelling ? offer.buyer_name : offer.seller_name;
-  const personId = isSelling ? offer.buyer_id : offer.seller_id;
-  const personAvatar = isSelling ? offer.buyer_avatar : offer.seller_avatar;
+
+  // Dobij podatke o drugoj osobi
+  const personName = isSelling
+    ? offer.buyer_name || offer.buyer?.name
+    : offer.seller_name || offer.seller?.name;
+  const personId = isSelling
+    ? offer.buyer_id || offer.buyer?.id
+    : offer.seller_id || offer.seller?.id;
+  const personAvatar = isSelling
+    ? offer.buyer_avatar || offer.buyer?.profile || offer.buyer?.profile_image
+    : offer.seller_avatar || offer.seller?.profile || offer.seller?.profile_image;
+  const personEmail = isSelling
+    ? offer.buyer_email || offer.buyer?.email
+    : offer.seller_email || offer.seller?.email;
+  const personPhone = isSelling
+    ? offer.buyer_phone || offer.buyer?.mobile
+    : offer.seller_phone || offer.seller?.mobile;
+  const personVerified = isSelling
+    ? offer.buyer?.is_verified
+    : offer.seller?.is_verified;
+  const personMemberSince = isSelling
+    ? offer.buyer?.created_at
+    : offer.seller?.created_at;
+
   const roleLabel = isSelling ? "Kupac" : "Prodavač";
-  
+  const roleDescription = isSelling
+    ? "Poslao vam je ponudu"
+    : "Prima vašu ponudu";
+
+  const handleViewProfile = () => {
+    if (personId) {
+      router.push(`/seller/${personId}`);
+    }
+  };
+
   return (
-    <div className="h-full">
-      <GlassCard className="h-full">
-        <div className="p-5">
-          {/* Label */}
-          <div className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold mb-4">
-            {isSelling ? "Ponudu poslao" : "Ponudu primio"}
-          </div>
-          
-          {/* Avatar & Name */}
-          <div className="flex flex-col items-center text-center mb-4">
-            <div 
-              onClick={() => personId && router.push(`/seller/${personId}`)}
-              className="w-20 h-20 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden cursor-pointer hover:scale-105 transition-transform border-2 border-slate-200/60 dark:border-slate-700/60 shadow-lg mb-3"
-            >
-              {personAvatar ? (
-                <CustomImage
-                  src={personAvatar}
-                  alt={personName || "User"}
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User size={32} className="text-slate-400 dark:text-slate-500" />
-              )}
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 h-full">
+      {/* Label */}
+      <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-4">
+        {roleLabel}
+      </div>
+
+      {/* Avatar & Name */}
+      <div className="flex flex-col items-center text-center">
+        <div className="relative mb-3">
+          <UserAvatar src={personAvatar} name={personName} size="xl" />
+          {personVerified && (
+            <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-lg p-0.5 shadow-sm border border-slate-200 dark:border-slate-700">
+              <BadgeCheck className="w-5 h-5 text-sky-500" />
             </div>
-            
-            <h4 
-              onClick={() => personId && router.push(`/seller/${personId}`)}
-              className="text-base font-bold text-slate-900 dark:text-white truncate max-w-full cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              {personName || "—"}
-            </h4>
-            
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 mt-2">
-              <User size={12} />
-              {roleLabel}
-            </span>
-          </div>
-          
-          {/* Role indicator */}
-          <div className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 text-center">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {isSelling ? "Vi ste prodavač" : "Vi ste kupac"}
-            </p>
-            <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">
-              {isSelling ? "Primili ste ovu ponudu" : "Poslali ste ovu ponudu"}
-            </p>
-          </div>
+          )}
         </div>
-      </GlassCard>
+
+        <h4 className="text-base font-bold text-slate-900 dark:text-white truncate max-w-full">
+          {personName || "Nepoznat korisnik"}
+        </h4>
+
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          {roleDescription}
+        </p>
+
+        {/* Member since */}
+        {personMemberSince && (
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-500 dark:text-slate-400">
+            <Calendar className="w-3 h-3" />
+            <span>Član od {formatDate(personMemberSince)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Contact info */}
+      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        {personEmail && (
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+            <Mail className="w-3.5 h-3.5 text-slate-400" />
+            <span className="truncate">{truncate(personEmail, 25)}</span>
+          </div>
+        )}
+        {personPhone && (
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+            <Phone className="w-3.5 h-3.5 text-slate-400" />
+            <span>{personPhone}</span>
+          </div>
+        )}
+      </div>
+
+      {/* View profile button */}
+      {personId && (
+        <button
+          onClick={handleViewProfile}
+          className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors"
+        >
+          <Eye className="w-4 h-4" />
+          Pogledaj profil
+        </button>
+      )}
     </div>
   );
 };
 
-// ============================================
-// OFFER DETAILS COMPONENT (desna strana)
-// ============================================
+/* =====================================================
+   OFFER DETAILS (Desna strana)
+===================================================== */
 
-const OfferDetails = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoading }) => {
+const OfferDetailsCard = ({
+  offer,
+  type,
+  onAccept,
+  onReject,
+  onCounter,
+  onChat,
+  isLoading,
+}) => {
   const router = useRouter();
   const isSelling = type === "received";
   const isPending = offer.status === "pending";
+
   const counteredAmount = offer.counter_amount || offer.counterAmount;
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("bs-BA", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  // Cijene
+  const offerAmount = Number(offer.amount) || 0;
+  const itemPrice = Number(offer.item_price) || 0;
+  const priceDiff = itemPrice - offerAmount;
+  const priceDiffPercent = itemPrice
+    ? Math.abs((priceDiff / itemPrice) * 100).toFixed(0)
+    : 0;
+
+  const handleViewItem = () => {
+    if (offer.item_slug) {
+      router.push(`/ad-details/${offer.item_slug}`);
+    }
   };
 
-  const safeItemPrice = Number(offer.item_price) || 0;
-  const safeOfferAmount = Number(offer.amount) || 0;
-  const priceDiff = safeItemPrice - safeOfferAmount;
-  const priceDiffPercent = safeItemPrice
-    ? ((priceDiff / safeItemPrice) * 100).toFixed(0)
-    : "0";
-
   return (
-    <GlassCard className="h-full">
-      <div className="p-5">
-        {/* Status & Date Header */}
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <StatusBadge status={offer.status} />
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-            <Calendar size={12} />
-            <span>{formatDate(offer.created_at)}</span>
-          </div>
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <StatusBadge status={offer.status} />
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <Calendar size={12} />
+          <span>{formatDate(offer.created_at)}</span>
+        </div>
+      </div>
+
+      {/* Item info */}
+      <div className="flex gap-4 mb-5">
+        <div
+          onClick={handleViewItem}
+          className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer group border border-slate-200 dark:border-slate-700"
+        >
+          <CustomImage
+            src={offer.item_image}
+            alt={offer.item_name}
+            width={80}
+            height={80}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+          />
         </div>
 
-        {/* Item Info */}
-        <div className="flex gap-4 mb-5">
-          <div
-            onClick={() => router.push(`/ad-details/${offer.item_slug}`)}
-            className="relative w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer group/image border border-slate-200/60 dark:border-slate-700/60"
-          >
-            <CustomImage
-              src={offer.item_image}
-              alt={offer.item_name}
-              width={80}
-              height={80}
-              className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors" />
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
-                <Package size={10} />
-                Oglas
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+              <Package size={10} />
+              Oglas #{offer.item_id}
+            </span>
+            {counteredAmount && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-[10px] font-semibold text-blue-700 dark:text-blue-300">
+                <RefreshCw size={10} />
+                Kontra {formatPriceAbbreviated(counteredAmount)}
               </span>
-              {counteredAmount && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:text-indigo-300">
-                  <RefreshCw size={10} />
-                  Kontra {counteredAmount?.toLocaleString("bs-BA")} KM
-                </span>
-              )}
-            </div>
-            <h3
-              onClick={() => router.push(`/ad-details/${offer.item_slug}`)}
-              className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              {offer.item_name}
-            </h3>
+            )}
           </div>
-        </div>
 
-        {/* Price Comparison */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200/50 dark:border-blue-800/30">
-            <p className="text-[10px] uppercase tracking-wide text-blue-600/80 dark:text-blue-400/80 font-medium mb-1">
-              Ponuda
-            </p>
-            <p className="text-xl font-black text-blue-700 dark:text-blue-300">
-              {offer.amount?.toLocaleString("bs-BA")} <span className="text-sm font-semibold">KM</span>
-            </p>
-          </div>
-          <div className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60">
-            <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium mb-1">
-              Tražena cijena
-            </p>
-            <p className="text-xl font-black text-slate-900 dark:text-white">
-              {offer.item_price?.toLocaleString("bs-BA")} <span className="text-sm font-semibold">KM</span>
-            </p>
-          </div>
-        </div>
+          <h3
+            onClick={handleViewItem}
+            className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2 cursor-pointer hover:text-primary transition-colors"
+          >
+            {offer.item_name || "Nepoznat artikal"}
+          </h3>
 
-        {/* Price Difference */}
-        <div className={cn(
-          "flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold mb-5",
+          <button
+            onClick={handleViewItem}
+            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Pogledaj oglas
+            <ExternalLink className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* Price comparison */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="p-3 rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/20">
+          <p className="text-[10px] uppercase tracking-wider text-primary/70 font-medium mb-1">
+            Ponuđena cijena
+          </p>
+          <p className="text-xl font-black text-primary">
+            {formatPriceAbbreviated(offerAmount)}
+          </p>
+        </div>
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-1">
+            Tražena cijena
+          </p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">
+            {formatPriceAbbreviated(itemPrice)}
+          </p>
+        </div>
+      </div>
+
+      {/* Price difference indicator */}
+      <div
+        className={cn(
+          "flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold mb-4",
           priceDiff > 0
             ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
             : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
-        )}>
-          {priceDiff > 0 ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
-          <span>
-            {priceDiff > 0 ? "Ponuda je niža za" : "Ponuda je viša za"} {Math.abs(priceDiffPercent)}%
-            <span className="ml-1 opacity-70">({Math.abs(priceDiff).toLocaleString("bs-BA")} KM)</span>
-          </span>
-        </div>
-
-        {/* ID Info */}
-        <div className="grid grid-cols-2 gap-2 mb-5">
-          <div className="p-2 rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-800/50">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Ponuda ID</p>
-            <p className="font-semibold text-sm text-slate-700 dark:text-slate-200">{offer.id || "—"}</p>
-          </div>
-          <div className="p-2 rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-800/50">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Oglas ID</p>
-            <p className="font-semibold text-sm text-slate-700 dark:text-slate-200">{offer.item_id || "—"}</p>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          {isSelling && isPending ? (
-            <>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onAccept(offer.id)}
-                disabled={isLoading}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl",
-                  "bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm",
-                  "shadow-lg shadow-emerald-500/20",
-                  "transition-colors duration-200",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                Prihvati
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onReject(offer.id)}
-                disabled={isLoading}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl",
-                  "bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50",
-                  "text-red-700 dark:text-red-300 font-semibold text-sm",
-                  "transition-colors duration-200",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
-                Odbij
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onCounter(offer)}
-                disabled={isLoading}
-                className={cn(
-                  "px-4 py-3 rounded-2xl",
-                  "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700",
-                  "text-slate-700 dark:text-slate-300 font-semibold text-sm",
-                  "transition-colors duration-200",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                <RefreshCw size={16} />
-              </motion.button>
-            </>
-          ) : (
-            <PrimaryButton onClick={() => onChat(offer)} className="w-full">
-              <MessageCircle size={16} />
-              Otvori chat
-            </PrimaryButton>
-          )}
-        </div>
+        )}
+      >
+        {priceDiff > 0 ? (
+          <TrendingDown size={14} />
+        ) : (
+          <TrendingUp size={14} />
+        )}
+        <span>
+          Ponuda je {priceDiff > 0 ? "niža" : "viša"} za {priceDiffPercent}% (
+          {formatPriceAbbreviated(Math.abs(priceDiff))})
+        </span>
       </div>
-    </GlassCard>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+        {isSelling && isPending ? (
+          <>
+            <button
+              onClick={() => onAccept(offer.id)}
+              disabled={isLoading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Check size={16} />
+              )}
+              Prihvati
+            </button>
+            <button
+              onClick={() => onReject(offer.id)}
+              disabled={isLoading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <X size={16} />
+              )}
+              Odbij
+            </button>
+            <button
+              onClick={() => onCounter(offer)}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Kontra-ponuda"
+            >
+              <RefreshCw size={16} />
+              <span className="sm:hidden">Kontra</span>
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => onChat(offer)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-sm transition-colors"
+          >
+            <MessageCircle size={16} />
+            Otvori chat
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 
-// ============================================
-// OFFER CARD (kombinuje UserCard + OfferDetails)
-// ============================================
+/* =====================================================
+   OFFER CARD (Kombinacija user + details)
+===================================================== */
 
 const OfferCard = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoading }) => {
   return (
@@ -479,10 +476,10 @@ const OfferCard = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoadi
       className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4"
     >
       {/* Left: User Card */}
-      <UserCard offer={offer} type={type} />
-      
+      <OfferUserCard offer={offer} type={type} />
+
       {/* Right: Offer Details */}
-      <OfferDetails
+      <OfferDetailsCard
         offer={offer}
         type={type}
         onAccept={onAccept}
@@ -495,61 +492,55 @@ const OfferCard = ({ offer, type, onAccept, onReject, onCounter, onChat, isLoadi
   );
 };
 
-// ============================================
-// EMPTY & SKELETON STATES
-// ============================================
+/* =====================================================
+   EMPTY STATE
+===================================================== */
 
 const EmptyState = ({ type }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-  >
-    <GlassCard>
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-        <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
-          <Banknote size={40} className="text-slate-400 dark:text-slate-500" />
-        </div>
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-          Nema {type === "received" ? "primljenih" : "poslatih"} ponuda
-        </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
-          {type === "received"
-            ? "Kada neko pošalje ponudu za vaš oglas, pojavit će se ovdje."
-            : "Kada pošaljete ponudu za neki oglas, pojavit će se ovdje."}
-        </p>
-      </div>
-    </GlassCard>
-  </motion.div>
+  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+    <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+      <Banknote size={40} className="text-slate-400" />
+    </div>
+    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+      Nema {type === "received" ? "primljenih" : "poslatih"} ponuda
+    </h3>
+    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+      {type === "received"
+        ? "Kada neko pošalje ponudu za vaš oglas, pojavit će se ovdje."
+        : "Kada pošaljete ponudu za neki oglas, pojavit će se ovdje."}
+    </p>
+  </div>
 );
+
+/* =====================================================
+   SKELETON
+===================================================== */
 
 const OffersSkeleton = () => (
   <div className="space-y-6">
     {[1, 2, 3].map((i) => (
-      <div
-        key={i}
-        className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4"
-      >
-        <div className="h-64 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
-        <div className="h-64 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
+      <div key={i} className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
+        <div className="h-72 rounded-2xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
+        <div className="h-72 rounded-2xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
       </div>
     ))}
   </div>
 );
 
-// ============================================
-// COUNTER OFFER MODAL
-// ============================================
+/* =====================================================
+   COUNTER OFFER MODAL
+===================================================== */
 
 const CounterOfferModal = ({ open, setOpen, offer, onSubmit, isLoading }) => {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (open && offer) {
+    if (open) {
       setAmount("");
       setError("");
     }
-  }, [open, offer]);
+  }, [open]);
 
   const handleSubmit = () => {
     const numAmount = parseFloat(amount);
@@ -576,10 +567,11 @@ const CounterOfferModal = ({ open, setOpen, offer, onSubmit, isLoading }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-0 overflow-hidden">
+      <DialogContent className="max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-0 overflow-hidden">
         <div className="p-6">
+          {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
               <RefreshCw size={24} className="text-blue-600 dark:text-blue-400" />
             </div>
             <div>
@@ -592,26 +584,26 @@ const CounterOfferModal = ({ open, setOpen, offer, onSubmit, isLoading }) => {
             </div>
           </div>
 
-          {/* Current prices info */}
+          {/* Current prices */}
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Trenutna ponuda</p>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+              <p className="text-xs text-slate-500 mb-1">Trenutna ponuda</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">
-                {offer?.amount?.toLocaleString("bs-BA")} KM
+                {formatPriceAbbreviated(offer?.amount)}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Vaša cijena</p>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+              <p className="text-xs text-slate-500 mb-1">Vaša cijena</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">
-                {offer?.item_price?.toLocaleString("bs-BA")} KM
+                {formatPriceAbbreviated(offer?.item_price)}
               </p>
             </div>
           </div>
 
-          {/* Amount input */}
+          {/* Input */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              Vaša kontra-ponuda (KM)
+              Vaša kontra-ponuda
             </label>
             <div className="relative">
               <input
@@ -621,16 +613,16 @@ const CounterOfferModal = ({ open, setOpen, offer, onSubmit, isLoading }) => {
                   setAmount(e.target.value);
                   setError("");
                 }}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
+                placeholder="0"
                 className={cn(
-                  "w-full rounded-2xl border bg-white dark:bg-slate-800",
+                  "w-full rounded-xl border bg-white dark:bg-slate-800",
                   "px-4 py-3 pr-14 text-lg font-bold text-slate-900 dark:text-white",
                   "placeholder:text-slate-400",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500",
-                  "transition-all duration-200",
-                  error ? "border-red-300 dark:border-red-700" : "border-slate-200 dark:border-slate-700"
+                  "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                  "transition-all",
+                  error
+                    ? "border-red-300 dark:border-red-700"
+                    : "border-slate-200 dark:border-slate-700"
                 )}
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
@@ -644,18 +636,26 @@ const CounterOfferModal = ({ open, setOpen, offer, onSubmit, isLoading }) => {
 
           {/* Actions */}
           <div className="flex gap-3">
-            <SecondaryButton onClick={() => setOpen(false)} className="flex-1">
+            <button
+              onClick={() => setOpen(false)}
+              className="flex-1 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
               Odustani
-            </SecondaryButton>
-            <PrimaryButton
+            </button>
+            <button
               onClick={handleSubmit}
               disabled={isLoading || !amount}
-              isLoading={isLoading}
-              className="flex-1"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <Send size={18} />
-              Pošalji
-            </PrimaryButton>
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>
+                  <Send size={18} />
+                  Pošalji
+                </>
+              )}
+            </button>
           </div>
         </div>
       </DialogContent>
@@ -663,9 +663,9 @@ const CounterOfferModal = ({ open, setOpen, offer, onSubmit, isLoading }) => {
   );
 };
 
-// ============================================
-// MAIN PAGE COMPONENT
-// ============================================
+/* =====================================================
+   MAIN PAGE COMPONENT
+===================================================== */
 
 const OffersPage = () => {
   const router = useRouter();
@@ -681,7 +681,7 @@ const OffersPage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
-  // Counter offer modal
+  // Counter modal
   const [counterModalOpen, setCounterModalOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
 
@@ -689,56 +689,57 @@ const OffersPage = () => {
   const [stats, setStats] = useState({
     receivedCount: 0,
     sentCount: 0,
-    pendingCount: 0,
   });
 
-  // Provjeri prijavu
+  // Check login
   useEffect(() => {
     if (!isLoggedIn) {
-      router.push("/login");
+      router.push("/");
     }
   }, [isLoggedIn, router]);
 
-  // Dohvati ponude
-  const fetchOffers = useCallback(async (pageNum = 1, type = activeTab) => {
-    try {
-      setIsLoading(pageNum === 1);
+  // Fetch offers
+  const fetchOffers = useCallback(
+    async (pageNum = 1, type = activeTab) => {
+      try {
+        setIsLoading(pageNum === 1);
 
-      const res = await itemOfferApi.getMyOffers({ type, page: pageNum });
+        const res = await itemOfferApi.getMyOffers({ type, page: pageNum });
 
-      if (res?.data?.error === false) {
-        const data = res.data.data;
-        const offersData = data?.data || data || [];
-        const currentPage = data?.current_page || 1;
-        const lastPage = data?.last_page || 1;
+        if (res?.data?.error === false) {
+          const data = res.data.data;
+          const offersData = data?.data || data || [];
+          const currentPage = data?.current_page || 1;
+          const lastPage = data?.last_page || 1;
 
-        if (pageNum === 1) {
-          setOffers(offersData);
-        } else {
-          setOffers((prev) => [...prev, ...offersData]);
+          if (pageNum === 1) {
+            setOffers(offersData);
+          } else {
+            setOffers((prev) => [...prev, ...offersData]);
+          }
+
+          setPage(currentPage);
+          setHasMore(currentPage < lastPage);
+
+          if (res.data.stats) {
+            setStats(res.data.stats);
+          }
         }
-
-        setPage(currentPage);
-        setHasMore(currentPage < lastPage);
-
-        // Update stats if available
-        if (res.data.stats) {
-          setStats(res.data.stats);
-        }
+      } catch (err) {
+        console.error("Error fetching offers:", err);
+        toast.error("Greška pri učitavanju ponuda");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching offers:", err);
-      toast.error("Greška pri učitavanju ponuda");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeTab]);
+    },
+    [activeTab]
+  );
 
   useEffect(() => {
     if (isLoggedIn) {
       fetchOffers(1, activeTab);
     }
-  }, [activeTab, isLoggedIn]);
+  }, [activeTab, isLoggedIn, fetchOffers]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -755,7 +756,8 @@ const OffersPage = () => {
         setOffers((prev) =>
           prev.map((o) => (o.id === offerId ? { ...o, status: "accepted" } : o))
         );
-        const conversationId = res.data.data?.conversation_id || res.data.data?.id;
+        const conversationId =
+          res.data.data?.conversation_id || res.data.data?.id;
         if (conversationId) {
           router.push(`/chat?chatid=${conversationId}`);
         }
@@ -806,7 +808,9 @@ const OffersPage = () => {
         setCounterModalOpen(false);
         setOffers((prev) =>
           prev.map((o) =>
-            o.id === offerId ? { ...o, status: "countered", counter_amount: amount } : o
+            o.id === offerId
+              ? { ...o, status: "countered", counter_amount: amount }
+              : o
           )
         );
       } else {
@@ -821,7 +825,8 @@ const OffersPage = () => {
   };
 
   const handleChat = (offer) => {
-    const conversationId = offer.conversation_id || offer.item_offer_id || offer.id;
+    const conversationId =
+      offer.conversation_id || offer.item_offer_id || offer.id;
     if (conversationId) {
       router.push(`/chat?chatid=${conversationId}`);
     }
@@ -834,88 +839,81 @@ const OffersPage = () => {
   return (
     <Layout>
       <BreadCrumb title2="Moje ponude" />
-      
+
       <div className="container py-6 lg:py-10">
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-          className="space-y-6"
-        >
-          {/* Page Header */}
-          <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Moje ponude</h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Upravljajte ponudama koje ste primili i poslali
-              </p>
-            </div>
-          </motion.div>
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+            Moje ponude
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Upravljajte ponudama koje ste primili i poslali
+          </p>
+        </div>
 
-          {/* Tabs */}
-          <motion.div
-            variants={fadeInUp}
-            className="flex flex-wrap gap-3"
+        {/* Tabs */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <TabButton
+            active={activeTab === "received"}
+            onClick={() => handleTabChange("received")}
+            icon={ArrowDownLeft}
+            count={stats.receivedCount}
           >
-            <TabButton
-              active={activeTab === "received"}
-              onClick={() => handleTabChange("received")}
-              icon={ArrowDownLeft}
-              count={stats.receivedCount}
-            >
-              Primljene
-            </TabButton>
-            <TabButton
-              active={activeTab === "sent"}
-              onClick={() => handleTabChange("sent")}
-              icon={ArrowUpRight}
-              count={stats.sentCount}
-            >
-              Poslate
-            </TabButton>
+            Primljene
+          </TabButton>
+          <TabButton
+            active={activeTab === "sent"}
+            onClick={() => handleTabChange("sent")}
+            icon={ArrowUpRight}
+            count={stats.sentCount}
+          >
+            Poslate
+          </TabButton>
+        </div>
+
+        {/* Content */}
+        {isLoading ? (
+          <OffersSkeleton />
+        ) : offers.length === 0 ? (
+          <EmptyState type={activeTab} />
+        ) : (
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="space-y-6"
+          >
+            <AnimatePresence mode="popLayout">
+              {offers.map((offer) => (
+                <OfferCard
+                  key={offer.id}
+                  offer={offer}
+                  type={activeTab}
+                  onAccept={handleAccept}
+                  onReject={handleReject}
+                  onCounter={handleOpenCounter}
+                  onChat={handleChat}
+                  isLoading={isActionLoading}
+                />
+              ))}
+            </AnimatePresence>
           </motion.div>
+        )}
 
-          {/* Content */}
-          {isLoading ? (
-            <OffersSkeleton />
-          ) : offers.length === 0 ? (
-            <EmptyState type={activeTab} />
-          ) : (
-            <motion.div
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-              className="space-y-6"
+        {/* Load more */}
+        {hasMore && !isLoading && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => fetchOffers(page + 1)}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
-              <AnimatePresence mode="popLayout">
-                {offers.map((offer) => (
-                  <OfferCard
-                    key={offer.id}
-                    offer={offer}
-                    type={activeTab}
-                    onAccept={handleAccept}
-                    onReject={handleReject}
-                    onCounter={handleOpenCounter}
-                    onChat={handleChat}
-                    isLoading={isActionLoading}
-                  />
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          )}
+              <RefreshCw size={16} />
+              Učitaj više
+            </button>
+          </div>
+        )}
 
-          {/* Load more */}
-          {hasMore && !isLoading && (
-            <div className="flex justify-center">
-              <SecondaryButton onClick={() => fetchOffers(page + 1)}>
-                <RefreshCw size={16} />
-                Učitaj više
-              </SecondaryButton>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Counter Offer Modal */}
+        {/* Counter Modal */}
         <CounterOfferModal
           open={counterModalOpen}
           setOpen={setCounterModalOpen}

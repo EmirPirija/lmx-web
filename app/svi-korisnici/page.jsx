@@ -1,246 +1,242 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import { 
-  Search, 
-  Users, 
-  Package, 
-  Star, 
-  Mail, 
-  Phone, 
+import CustomImage from "@/components/Common/CustomImage";
+import { cn } from "@/lib/utils";
+import { formatDate, t, truncate } from "@/utils";
+import axios from "axios";
+
+import {
+  Search,
+  Users,
+  Package,
+  Star,
+  Mail,
+  Phone,
   ShieldCheck,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  Calendar,
+  MapPin,
+  Eye,
+  MessageCircle,
+  BadgeCheck,
+  Clock,
   Filter,
-  SlidersHorizontal
-} from 'lucide-react';
-import Image from "next/image";
-import axios from "axios";
-import { cn } from "@/lib/utils";
+  X,
+} from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.lmx.ba';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://admin.lmx.ba";
 
-/* =====================
-  Animacije (isto kao SellerSettings)
-===================== */
+/* =====================================================
+   ANIMACIJE
+===================================================== */
+
 const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] },
 };
 
 const staggerContainer = {
   animate: {
-    transition: {
-      staggerChildren: 0.06,
-    },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
-/* =====================
-  UI Komponente (stil iz SellerSettings)
-===================== */
-const GlassCard = ({ children, className, ...props }) => (
+/* =====================================================
+   UI KOMPONENTE
+===================================================== */
+
+const GlassCard = ({ children, className, onClick, ...props }) => (
   <motion.div
     variants={fadeInUp}
+    onClick={onClick}
     className={cn(
-      "relative overflow-hidden rounded-3xl",
-      "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl",
+      "relative overflow-hidden rounded-2xl",
+      "bg-white dark:bg-slate-900",
       "border border-slate-200/60 dark:border-slate-700/60",
-      "shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40",
+      "shadow-sm hover:shadow-md",
+      "transition-all duration-300",
+      onClick && "cursor-pointer hover:-translate-y-1",
       className
     )}
     {...props}
   >
-    <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/10 via-purple-400/5 to-transparent blur-2xl" />
     {children}
   </motion.div>
 );
 
-const CardHeader = ({ icon: Icon, title, subtitle, right }) => (
-  <div className="px-5 sm:px-6 pt-5 sm:pt-6 flex items-start justify-between gap-4">
-    <div className="flex items-start gap-3">
-      {Icon && (
-        <div className="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-          <Icon className="h-5 w-5" />
+const Spinner = () => (
+  <div className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+);
+
+/* =====================================================
+   AVATAR KOMPONENTA
+===================================================== */
+
+const UserAvatar = ({ user, size = "md" }) => {
+  const sizeClasses = {
+    sm: "w-10 h-10",
+    md: "w-14 h-14",
+    lg: "w-20 h-20",
+  };
+
+  const profileImage = user?.profile || user?.profile_image || user?.avatar;
+
+  return (
+    <div
+      className={cn(
+        sizeClasses[size],
+        "rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex-shrink-0"
+      )}
+    >
+      {profileImage ? (
+        <CustomImage
+          src={profileImage}
+          alt={user?.name || "Korisnik"}
+          width={80}
+          height={80}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800">
+          <span className="text-slate-600 dark:text-slate-300 font-bold text-lg">
+            {user?.name?.charAt(0)?.toUpperCase() || "?"}
+          </span>
         </div>
       )}
-      <div>
-        <div className="text-base font-bold text-slate-900 dark:text-white">{title}</div>
-        {subtitle && <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</div>}
-      </div>
     </div>
-    {right && <div className="shrink-0">{right}</div>}
-  </div>
-);
+  );
+};
 
-const CardBody = ({ children }) => <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-4">{children}</div>;
+/* =====================================================
+   USER CARD KOMPONENTA
+===================================================== */
 
-const Spinner = ({ className }) => (
-  <motion.div
-    animate={{ rotate: 360 }}
-    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-    className={cn("h-5 w-5 border-2 border-current border-t-transparent rounded-full", className)}
-  />
-);
+const UserCard = ({ user, onClick }) => {
+  const memberSince = user?.created_at ? formatDate(user.created_at) : null;
+  const isOnline = user?.is_online || user?.online || false;
+  const lastSeen = user?.last_active_at || user?.last_seen;
+  
+  const activeAdsCount = user?.active_ads_count ?? user?.active_ads ?? user?.items_count ?? 0;
+  const totalAdsCount = user?.total_ads_count ?? user?.total_ads ?? user?.all_items_count ?? 0;
 
-const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) => (
-  <motion.button
-    whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -1 }}
-    whileTap={{ scale: disabled ? 1 : 0.98 }}
-    disabled={disabled || isLoading}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
-      "bg-gradient-to-r from-slate-900 to-slate-800 text-white",
-      "dark:from-white dark:to-slate-100 dark:text-slate-900",
-      "text-sm font-semibold shadow-lg shadow-slate-900/20 dark:shadow-white/10",
-      "disabled:opacity-50 disabled:cursor-not-allowed",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {isLoading ? <Spinner /> : children}
-  </motion.button>
-);
+  return (
+    <GlassCard onClick={onClick} className="group">
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          {/* Avatar */}
+          <div className="relative">
+            <UserAvatar user={user} size="md" />
+            {/* Online indikator */}
+            {isOnline && (
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
+            )}
+          </div>
 
-const SecondaryButton = ({ children, className, ...props }) => (
-  <motion.button
-    whileHover={{ scale: 1.02, y: -1 }}
-    whileTap={{ scale: 0.98 }}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5",
-      "bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm",
-      "text-slate-800 dark:text-slate-200 text-sm font-semibold",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "hover:bg-slate-200/80 dark:hover:bg-slate-700/80",
-      "shadow-sm hover:shadow-md",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </motion.button>
-);
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 dark:text-white truncate text-sm group-hover:text-primary transition-colors">
+                {user?.name || "Nepoznat korisnik"}
+              </h3>
+              {user?.is_verified && (
+                <BadgeCheck className="w-4 h-4 text-sky-500 flex-shrink-0" />
+              )}
+            </div>
 
-/* =====================
-  User Card Component
-===================== */
-const UserCard = ({ user, onClick }) => (
-  <motion.div
-    variants={fadeInUp}
-    whileHover={{ y: -4, scale: 1.01 }}
-    onClick={onClick}
-    className="relative overflow-hidden rounded-3xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40 cursor-pointer group"
-  >
-    {/* Decorative gradient */}
-    <div className="pointer-events-none absolute -top-16 -right-16 h-32 w-32 rounded-full bg-gradient-to-br from-blue-400/10 via-purple-400/5 to-transparent blur-2xl" />
-    
-    <div className="p-5">
-      {/* User Header */}
-      <div className="flex items-start gap-4 mb-4">
-        {/* Avatar */}
-        <div className="shrink-0">
-          <div className="w-14 h-14 rounded-2xl border-2 border-slate-200/60 dark:border-slate-700/60 shadow-sm overflow-hidden">
-            {user.avatar || user.svg_avatar ? (
-              user.svg_avatar ? (
-                <div dangerouslySetInnerHTML={{ __html: user.svg_avatar }} className="w-full h-full" />
-              ) : (
-                <Image 
-                  src={user.avatar} 
-                  alt={user.name} 
-                  width={56}
-                  height={56}
-                  className="w-full h-full object-cover" 
-                />
-              )
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
-                <span className="text-slate-700 dark:text-slate-200 text-lg font-bold">
-                  {user.name?.charAt(0)?.toUpperCase() || '?'}
+            {/* Status */}
+            <div className="flex items-center gap-2 mt-1">
+              {isOnline ? (
+                <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                  Online
                 </span>
+              ) : lastSeen ? (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Viđen {formatDate(lastSeen)}
+                </span>
+              ) : null}
+            </div>
+
+            {/* Email */}
+            {user?.email && (
+              <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                <Mail className="w-3 h-3" />
+                <span className="truncate">{truncate(user.email, 25)}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Name & Status */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              {user.name}
-            </h3>
-            {user.is_verified && (
-              <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
-            )}
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+            <Package className="w-4 h-4 text-slate-400" />
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{activeAdsCount}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Aktivnih</p>
+            </div>
           </div>
-          
-          {user.role === 'admin' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 mt-1">
-              <ShieldCheck className="w-2.5 h-2.5" />
-              Admin
-            </span>
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+            <Star className="w-4 h-4 text-amber-400" />
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{totalAdsCount}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Ukupno</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+          {memberSince && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <Calendar className="w-3 h-3" />
+              <span>Član {memberSince}</span>
+            </div>
           )}
-        </div>
-      </div>
-
-      {/* Contact Info */}
-      <div className="space-y-1.5 mb-3">
-        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-          <Mail className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">{user.email}</span>
-        </div>
-        {user.phone && (
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            <Phone className="w-3.5 h-3.5 shrink-0" />
-            <span>{user.phone}</span>
+          <div className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+            <span>Pogledaj profil</span>
+            <ChevronRight className="w-3 h-3" />
           </div>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/70 dark:border-slate-700/60 text-center">
-          <Package className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 mx-auto mb-0.5" />
-          <p className="text-lg font-bold text-slate-900 dark:text-white">{user.total_ads || 0}</p>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Ukupno</p>
-        </div>
-        <div className="p-2.5 rounded-xl bg-emerald-100/80 dark:bg-emerald-900/30 backdrop-blur-sm border border-emerald-200/70 dark:border-emerald-800/40 text-center">
-          <Star className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 mx-auto mb-0.5" />
-          <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{user.active_ads || 0}</p>
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Aktivnih</p>
         </div>
       </div>
+    </GlassCard>
+  );
+};
 
-      {/* Status Badge */}
-      <span className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold",
-        user.status === 'active' && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-        user.status === 'suspended' && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-        user.status !== 'active' && user.status !== 'suspended' && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-      )}>
-        <span className={cn(
-          "inline-block w-1.5 h-1.5 rounded-full",
-          user.status === 'active' && "bg-emerald-500",
-          user.status === 'suspended' && "bg-amber-500",
-          user.status !== 'active' && user.status !== 'suspended' && "bg-red-500"
-        )} />
-        {user.status === 'active' ? 'Aktivan' : user.status === 'suspended' ? 'Suspendovan' : 'Neaktivan'}
-      </span>
+/* =====================================================
+   SKELETON KOMPONENTE
+===================================================== */
+
+const UserCardSkeleton = () => (
+  <div className="rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-4 animate-pulse">
+    <div className="flex items-start gap-3">
+      <div className="w-14 h-14 rounded-xl bg-slate-200 dark:bg-slate-700" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+        <div className="h-3 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+      </div>
     </div>
-  </motion.div>
+    <div className="grid grid-cols-2 gap-2 mt-4">
+      <div className="h-16 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+      <div className="h-16 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+    </div>
+  </div>
 );
 
-/* =====================
-  Glavni Page Component
-===================== */
+/* =====================================================
+   MAIN PAGE COMPONENT
+===================================================== */
+
 const SviKorisniciPage = () => {
   const router = useRouter();
   const [users, setUsers] = useState([]);
@@ -249,281 +245,259 @@ const SviKorisniciPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterRole, setFilterRole] = useState("all");
 
-  const fetchUsers = async (page = 1) => {
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await axios.get(`${API_BASE_URL}/api/users`, {
         params: {
-          page,
+          page: currentPage,
           per_page: 12,
-          search: searchTerm || '',
-          role: filterRole !== 'all' ? filterRole : '',
+          search: debouncedSearch || undefined,
+          role: filterRole !== "all" ? filterRole : undefined,
         },
       });
 
       if (response.data.success) {
-        setUsers(response.data.data);
-        setTotalPages(response.data.last_page);
-        setCurrentPage(response.data.current_page);
-        setTotalUsers(response.data.total);
+        setUsers(response.data.data || []);
+        setTotalPages(response.data.last_page || 1);
+        setCurrentPage(response.data.current_page || 1);
+        setTotalUsers(response.data.total || 0);
+      } else {
+        setError("Greška pri učitavanju korisnika");
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
-      setError('Greška pri učitavanju korisnika');
+      console.error("Error fetching users:", err);
+      setError("Greška pri učitavanju korisnika. Provjerite konekciju.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearch, filterRole]);
 
   useEffect(() => {
-    fetchUsers(currentPage);
-  }, [currentPage, searchTerm, filterRole]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-  };
+    fetchUsers();
+  }, [fetchUsers]);
 
   const goToUserProfile = (userId) => {
     router.push(`/seller/${userId}`);
   };
 
-  // Loading State
-  if (loading && users.length === 0) {
-    return (
-      <Layout>
-        <BreadCrumb title2="Svi korisnici" />
-        <div className="container py-6 lg:py-10">
-          {/* Header skeleton */}
-          <div className="mb-8">
-            <div className="h-8 w-64 rounded-2xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse mb-2" />
-            <div className="h-5 w-96 rounded-xl bg-slate-200/40 dark:bg-slate-800/40 animate-pulse" />
-          </div>
-          
-          {/* Search skeleton */}
-          <div className="h-32 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse mb-6" />
-          
-          {/* Grid skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-64 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Error State
-  if (error && users.length === 0) {
-    return (
-      <Layout>
-        <BreadCrumb title2="Svi korisnici" />
-        <div className="container py-6 lg:py-10">
-          <GlassCard className="max-w-md mx-auto text-center">
-            <div className="p-8">
-              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Greška</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
-              <PrimaryButton onClick={() => fetchUsers(currentPage)}>
-                <RefreshCw className="w-4 h-4" />
-                Pokušaj ponovo
-              </PrimaryButton>
-            </div>
-          </GlassCard>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <BreadCrumb title2="Svi korisnici" />
-      
+
       <div className="container py-6 lg:py-10">
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-          className="space-y-6"
-        >
-          {/* Page Header */}
-          <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Svi korisnici</h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Pretraži i povežite se sa drugim korisnicima na LMX platformi
-              </p>
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+              Svi korisnici
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Pronađi i poveži se sa korisnicima na platformi
+            </p>
+          </div>
+
+          {totalUsers > 0 && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <Users className="w-4 h-4 text-slate-500" />
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                {totalUsers}
+              </span>
+              <span className="text-sm text-slate-500">korisnika</span>
+            </div>
+          )}
+        </div>
+
+        {/* Search & Filter */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Search input */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Pretraži po imenu ili emailu..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={cn(
+                  "w-full pl-12 pr-10 py-3 rounded-xl",
+                  "bg-slate-50 dark:bg-slate-800",
+                  "border border-slate-200 dark:border-slate-700",
+                  "text-slate-900 dark:text-white placeholder:text-slate-400",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                  "transition-all duration-200"
+                )}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              )}
             </div>
 
-            {totalUsers > 0 && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/70 dark:border-slate-700/60">
-                <Users className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">{totalUsers}</span>
-                <span className="text-sm text-slate-600 dark:text-slate-400">korisnika</span>
-              </div>
-            )}
-          </motion.div>
+            {/* Filter */}
+            <select
+              value={filterRole}
+              onChange={(e) => {
+                setFilterRole(e.target.value);
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-3 rounded-xl min-w-[160px]",
+                "bg-slate-50 dark:bg-slate-800",
+                "border border-slate-200 dark:border-slate-700",
+                "text-slate-900 dark:text-white text-sm font-medium",
+                "focus:outline-none focus:ring-2 focus:ring-primary/30",
+                "transition-all duration-200"
+              )}
+            >
+              <option value="all">Svi korisnici</option>
+              <option value="user">Obični korisnici</option>
+              <option value="admin">Administratori</option>
+            </select>
 
-          {/* Search & Filter Card */}
-          <GlassCard>
-            <CardHeader 
-              icon={Search} 
-              title="Pretraga korisnika" 
-              subtitle="Filtrirajte po imenu, emailu ili ulozi" 
-            />
-            <CardBody>
-              <form onSubmit={handleSearch} className="space-y-4">
-                <div className="flex flex-col md:flex-row gap-3">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      placeholder="Pretraži po imenu ili emailu..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className={cn(
-                        "w-full pl-12 pr-4 py-3 rounded-2xl",
-                        "bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm",
-                        "border border-slate-200/70 dark:border-slate-700/60",
-                        "text-slate-900 dark:text-white placeholder:text-slate-400",
-                        "focus:outline-none focus:ring-2 focus:ring-blue-500/30",
-                        "transition-all duration-200"
-                      )}
-                    />
-                  </div>
+            {/* Refresh button */}
+            <button
+              onClick={fetchUsers}
+              disabled={loading}
+              className={cn(
+                "px-4 py-3 rounded-xl",
+                "bg-primary text-white font-semibold",
+                "hover:bg-primary/90 disabled:opacity-50",
+                "transition-all duration-200",
+                "flex items-center justify-center gap-2"
+              )}
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              <span className="hidden sm:inline">Osvježi</span>
+            </button>
+          </div>
+        </div>
 
-                  <select
-                    value={filterRole}
-                    onChange={(e) => {
-                      setFilterRole(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className={cn(
-                      "px-4 py-3 rounded-2xl min-w-[180px]",
-                      "bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm",
-                      "border border-slate-200/70 dark:border-slate-700/60",
-                      "text-slate-900 dark:text-white text-sm font-medium",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500/30",
-                      "transition-all duration-200"
-                    )}
-                  >
-                    <option value="all">Svi korisnici</option>
-                    <option value="user">Obični korisnici</option>
-                    <option value="admin">Administratori</option>
-                  </select>
-
-                  <PrimaryButton type="submit" isLoading={loading}>
-                    <Search className="w-4 h-4" />
-                    Pretraži
-                  </PrimaryButton>
-                </div>
-              </form>
-            </CardBody>
-          </GlassCard>
-
-          {/* Users Grid */}
-          {users.length === 0 ? (
-            <GlassCard className="text-center">
-              <div className="p-12">
-                <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-10 h-10 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Nema rezultata</h3>
-                <p className="text-slate-600 dark:text-slate-400">Pokušajte sa drugačijim parametrima pretrage</p>
-              </div>
-            </GlassCard>
-          ) : (
+        {/* Content */}
+        {loading && users.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <UserCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <X className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+              Greška
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-4">{error}</p>
+            <button
+              onClick={fetchUsers}
+              className="px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+            >
+              Pokušaj ponovo
+            </button>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <Search className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+              Nema rezultata
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400">
+              Pokušajte sa drugačijim parametrima pretrage
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Users Grid */}
             <motion.div
               variants={staggerContainer}
               initial="initial"
               animate="animate"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
             >
-              {users.map((user) => (
-                <UserCard 
-                  key={user.id} 
-                  user={user} 
-                  onClick={() => goToUserProfile(user.id)} 
-                />
-              ))}
+              <AnimatePresence mode="popLayout">
+                {users.map((user) => (
+                  <UserCard
+                    key={user.id}
+                    user={user}
+                    onClick={() => goToUserProfile(user.id)}
+                  />
+                ))}
+              </AnimatePresence>
             </motion.div>
-          )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <GlassCard>
-              <div className="px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  Stranica <span className="font-semibold text-slate-900 dark:text-white">{currentPage}</span> od{' '}
-                  <span className="font-semibold text-slate-900 dark:text-white">{totalPages}</span>
-                </div>
-                
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Stranica{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {currentPage}
+                  </span>{" "}
+                  od{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {totalPages}
+                  </span>
+                </p>
+
                 <div className="flex items-center gap-2">
-                  <SecondaryButton
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium",
+                      "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
+                      "text-slate-700 dark:text-slate-200",
+                      "hover:bg-slate-50 dark:hover:bg-slate-700",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      "transition-all duration-200"
+                    )}
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Prethodna
-                  </SecondaryButton>
-                  
-                  {/* Page numbers */}
-                  <div className="hidden sm:flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <motion.button
-                          key={pageNum}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={cn(
-                            "w-10 h-10 rounded-xl text-sm font-semibold transition-all",
-                            currentPage === pageNum
-                              ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg"
-                              : "bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700/80"
-                          )}
-                        >
-                          {pageNum}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                  
-                  <SecondaryButton
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || loading}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium",
+                      "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
+                      "text-slate-700 dark:text-slate-200",
+                      "hover:bg-slate-50 dark:hover:bg-slate-700",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      "transition-all duration-200"
+                    )}
                   >
                     Sljedeća
                     <ChevronRight className="w-4 h-4" />
-                  </SecondaryButton>
+                  </button>
                 </div>
               </div>
-            </GlassCard>
-          )}
-        </motion.div>
+            )}
+          </>
+        )}
       </div>
     </Layout>
   );
