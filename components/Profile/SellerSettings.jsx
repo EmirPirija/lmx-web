@@ -51,7 +51,7 @@ import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
-import { SellerPreviewCard } from "@/components/PagesComponent/Seller/SellerDetailCard";
+import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
 
 // ============================================
 // CONSTANTS
@@ -1163,13 +1163,13 @@ const SellerSettings = () => {
               </div>
             </div>
             <div className="p-4">
-              <SellerPreviewCard
+              <MinimalSellerCard
                 seller={previewSeller}
                 sellerSettings={previewSettings}
                 badges={[]}
-                ratings={{ total: 0 }}
                 isPro={false}
                 isShop={false}
+                showProfileLink={false}
                 onChatClick={() => toast.message("Ovo je samo prikaz.")}
                 onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
               />
