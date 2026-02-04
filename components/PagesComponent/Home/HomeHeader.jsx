@@ -555,7 +555,8 @@ const HomeHeader = () => {
     <>
       {/* ✅ Clean 2-row header (desktop) + mobile quick actions dole */}
       <header className="top-0 z-50 border-b bg-white/75 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 dark:bg-slate-900/75 dark:supports-[backdrop-filter]:bg-slate-900/60">
-        <nav className="container">
+        <nav className="mx-4">
+          {/* container */}
           {isLargeScreen ? (
             <>
               {/* DESKTOP: GORE quick actions */}

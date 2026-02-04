@@ -7,15 +7,14 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    // Ažurirana sekcija za ekrane
     screens: {
       sm: "676px",
       md: "768px",
       lg: "992px",
       xl: "1200px",
-      "2xl": "1400px",
-      "3xl": "1600px", // Dodano: širi prikaz
-      "4xl": "1920px", // Dodano: Full HD puna širina
+      "2xl": "1280px",  // <-- suzi ovdje (umjesto 1400)
+      "3xl": "1360px",  // <-- ili koliko želiš
+      "4xl": "1440px",  // <-- cap za full HD/4K ekrane
     },
     container: {
       center: true,

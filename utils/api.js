@@ -1834,6 +1834,9 @@ export const sellerSettingsApi = {
     auto_reply_message,
     vacation_mode,
     vacation_message,
+    vacation_start_date,
+    vacation_end_date,
+    vacation_auto_activate,
     preferred_contact_method,
     business_description,
     return_policy,
@@ -1860,6 +1863,9 @@ export const sellerSettingsApi = {
     if (auto_reply_message !== undefined) formData.append("auto_reply_message", auto_reply_message);
     if (vacation_mode !== undefined) formData.append("vacation_mode", vacation_mode ? 1 : 0);
     if (vacation_message !== undefined) formData.append("vacation_message", vacation_message);
+    if (vacation_start_date !== undefined) formData.append("vacation_start_date", vacation_start_date || "");
+    if (vacation_end_date !== undefined) formData.append("vacation_end_date", vacation_end_date || "");
+    if (vacation_auto_activate !== undefined) formData.append("vacation_auto_activate", vacation_auto_activate ? 1 : 0);
     if (preferred_contact_method) formData.append("preferred_contact_method", preferred_contact_method);
     if (business_description !== undefined) formData.append("business_description", business_description);
     if (return_policy !== undefined) formData.append("return_policy", return_policy);

@@ -713,9 +713,9 @@ const handleToggleMuteChat = async (targetChatId, isCurrentlyMuted) => {
                     selectedChatDetails?.seller_id === user?.id;
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 h-full">
+    <div className="grid grid-cols-1 xl:grid-cols-12 h-full bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden">
       {/* Sidebar List */}
-      <div className="col-span-4">
+      <div className="xl:col-span-4 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
         {(isLargeScreen || !chatId || IsLoading) && (
           <ChatList
             chatId={chatId}
@@ -755,9 +755,9 @@ const handleToggleMuteChat = async (targetChatId, isCurrentlyMuted) => {
       
       {/* Main Chat Area */}
       {(isLargeScreen || chatId) && (
-        <div className="col-span-8">
+        <div className="xl:col-span-8">
           {selectedChatDetails?.id ? (
-            <div className="ltr:xl:border-l rtl:lg:border-r h-[65vh] lg:h-[800px] flex flex-col relative overflow-auto">
+            <div className="h-full min-h-[60vh] lg:min-h-[700px] flex flex-col relative bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
               
               {/* HEADER SA NOVIM FUNKCIJAMA */}
               <SelectedChatHeader
@@ -791,7 +791,7 @@ const handleToggleMuteChat = async (targetChatId, isCurrentlyMuted) => {
               />
             </div>
           ) : (
-            <div className="ltr:xl:border-l rtl:xl:border-r h-[60vh] lg:h-[800px] flex items-center justify-center">
+            <div className="h-full min-h-[60vh] lg:min-h-[700px] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
               <NoChatFound isLargeScreen={isLargeScreen} handleBack={handleBack} />
             </div>
           )}

@@ -1,23 +1,137 @@
 "use client";
+
 import { formatDateMonthYear, t } from "@/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import NoData from "@/components/EmptyStates/NoData";
-import { Badge } from "@/components/ui/badge";
 import TransactionSkeleton from "@/components/Skeletons/TransactionSkeleton";
 import { paymentTransactionApi } from "@/utils/api";
 import { toast } from "sonner";
 import Pagination from "@/components/Common/Pagination";
 import UploadReceiptModal from "./UploadReceiptModal";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+import {
+  CheckCircle,
+  Clock,
+  XCircle,
+  AlertCircle,
+  Upload,
+  CreditCard,
+  Receipt,
+  Calendar,
+  Hash,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
+
+// ============================================
+// COMPONENTS
+// ============================================
+
+function StatusBadge({ status }) {
+  const configs = {
+    succeed: { icon: CheckCircle, text: t("completed"), color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+    pending: { icon: Clock, text: t("pending"), color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+    failed: { icon: XCircle, text: t("failed"), color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+    "under review": { icon: AlertCircle, text: t("underReview"), color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  };
+
+  const config = configs[status] || { icon: AlertCircle, text: status, color: "bg-slate-100 text-slate-700" };
+  const Icon = config.icon;
+
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold", config.color)}>
+      <Icon size={14} />
+      {config.text}
+    </span>
+  );
+}
+
+function TransactionCard({ transaction, onUploadReceipt }) {
+  const isPending = transaction?.payment_status === "pending" && transaction?.payment_gateway === "BankTransfer";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-5 hover:border-primary/30 transition-all"
+    >
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        {/* Icon */}
+        <div className="shrink-0 hidden lg:flex">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <Receipt size={24} className="text-white" />
+          </div>
+        </div>
+
+        {/* Main Info */}
+        <div className="flex-1 min-w-0 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+              <Hash size={12} />
+              ID
+            </div>
+            <div className="font-bold text-slate-900 dark:text-white">#{transaction?.id}</div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+              <CreditCard size={12} />
+              {t("paymentMethod")}
+            </div>
+            <div className="font-semibold text-slate-700 dark:text-slate-300">{transaction?.payment_gateway}</div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+              <Calendar size={12} />
+              {t("date")}
+            </div>
+            <div className="font-semibold text-slate-700 dark:text-slate-300">
+              {formatDateMonthYear(transaction?.created_at)}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{t("price")}</div>
+            <div className="text-lg font-black text-slate-900 dark:text-white">{transaction?.amount}</div>
+          </div>
+        </div>
+
+        {/* Status / Action */}
+        <div className="shrink-0 flex items-center justify-between lg:justify-end gap-3">
+          {isPending ? (
+            <Button
+              onClick={() => onUploadReceipt(transaction?.id)}
+              className="gap-2 bg-gradient-to-r from-primary to-orange-500 hover:opacity-90 rounded-xl"
+            >
+              <Upload size={16} />
+              {t("uploadReceipt")}
+            </Button>
+          ) : (
+            <StatusBadge status={transaction?.payment_status} />
+          )}
+        </div>
+      </div>
+
+      {/* Transaction ID */}
+      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-500 dark:text-slate-400">{t("transactionId")}</span>
+          <span className="font-mono text-slate-700 dark:text-slate-300">{transaction?.order_id}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 const Transactions = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -36,9 +150,7 @@ const Transactions = () => {
   const fetchTransactions = async () => {
     try {
       setIsLoading(true);
-      const res = await paymentTransactionApi.transaction({
-        page: currentPage,
-      });
+      const res = await paymentTransactionApi.transaction({ page: currentPage });
       setTotalPages(res.data.data.last_page);
       setCurrentPage(res.data.data.current_page);
       if (res?.data?.error === false) {
@@ -47,7 +159,7 @@ const Transactions = () => {
         toast.error(res?.data?.message);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -61,82 +173,67 @@ const Transactions = () => {
     fetchTransactions();
   }, [currentPage]);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "succeed":
-        return <Badge className="bg-green-500">{t("completed")}</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-500">{t("pending")}</Badge>;
-      case "failed":
-        return <Badge className="bg-red-500">{t("failed")}</Badge>;
-      case "under review":
-        return <Badge className="bg-blue-500">{t("underReview")}</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  return (
-    <>
-      {isLoading ? (
-        <TransactionSkeleton />
-      ) : transactions.length > 0 ? (
-        <>
-          <div className="overflow-hidden border rounded-md">
-            <Table>
-              <TableHeader className="bg-muted">
-                <TableRow className="text-xs sm:text-sm">
-                  <TableHead>{t("id")}</TableHead>
-                  <TableHead>{t("paymentMethod")}</TableHead>
-                  <TableHead>{t("transactionId")}</TableHead>
-                  <TableHead>{t("date")}</TableHead>
-                  <TableHead>{t("price")}</TableHead>
-                  <TableHead>{t("status")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="text-xs sm:text-sm">
-                {transactions.map((transaction) => (
-                  <TableRow
-                    key={transaction?.id}
-                    className="hover:bg-muted text-center"
-                  >
-                    <TableCell>{transaction?.id}</TableCell>
-                    <TableCell>{transaction?.payment_gateway}</TableCell>
-                    <TableCell>{transaction?.order_id}</TableCell>
-                    <TableCell>
-                      {formatDateMonthYear(transaction?.created_at)}
-                    </TableCell>
-                    <TableCell>{transaction?.amount}</TableCell>
-                    <TableCell>
-                      {transaction?.payment_status === "pending" &&
-                      transaction?.payment_gateway === "BankTransfer" ? (
-                        <button
-                          onClick={() => handleUploadReceipt(transaction?.id)}
-                          className="py-2 px-4 rounded whitespace-nowrap text-white bg-primary"
-                        >
-                          {t("uploadReceipt")}
-                        </button>
-                      ) : (
-                        getStatusBadge(transaction?.payment_status)
-                      )}
-                    </TableCell>
-                  </TableRow>
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="animate-pulse p-6 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+              <div className="flex-1 grid grid-cols-4 gap-4">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="space-y-2">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24" />
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
-            <div className="flex justify-end items-center mb-2">
-              <Pagination
-                className="mt-7"
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
+              </div>
             </div>
           </div>
-        </>
-      ) : (
+        ))}
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!transactions || transactions.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="py-16"
+      >
         <NoData name={t("transaction")} />
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Transactions List */}
+      <div className="space-y-4">
+        {transactions.map((transaction, index) => (
+          <TransactionCard
+            key={transaction?.id}
+            transaction={transaction}
+            onUploadReceipt={handleUploadReceipt}
+          />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
       )}
+
+      {/* Upload Receipt Modal */}
       <UploadReceiptModal
         key={IsUploadRecipt}
         IsUploadRecipt={IsUploadRecipt}
@@ -144,7 +241,8 @@ const Transactions = () => {
         transactionId={transactionId}
         setData={setTransactions}
       />
-    </>
+    </div>
   );
 };
+
 export default Transactions;
