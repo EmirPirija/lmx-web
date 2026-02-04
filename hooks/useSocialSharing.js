@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
+import Api from "@/api/AxiosInterceptors";
 
 /**
  * Social Media Integration Hook
@@ -222,121 +223,278 @@ export function useSocialSharing() {
 }
 
 // ============================================
-// AUTO-POST SERVICE (Foundation for Backend Integration)
+// AUTO-POST SERVICE
 // ============================================
 
 /**
- * Auto-post configuration
- * This is the foundation for backend integration with Facebook/Instagram APIs
- * Full implementation requires:
- * 1. Facebook App setup with marketing permissions
- * 2. Instagram Business Account linked to Facebook Page
- * 3. Backend endpoints for OAuth flow and post scheduling
+ * Auto-post Service
+ * Handles social media auto-posting functionality
+ * Requires backend endpoints:
+ * - GET /api/social/connected-accounts
+ * - POST /api/social/connect/{platform}
+ * - POST /api/social/disconnect/{platform}
+ * - POST /api/social/schedule-post
+ * - GET /api/social/scheduled-posts
  */
 export const AutoPostService = {
   /**
    * Check if auto-post is configured for a platform
    */
-  isConfigured: async (platform, userId) => {
-    // TODO: Implement API call to check connected accounts
-    // This would check if user has connected their Facebook/Instagram account
-    return false;
+  isConfigured: async (platform) => {
+    try {
+      const response = await Api.get("/social/connected-accounts");
+      if (response?.data?.error === false) {
+        const accounts = response.data.data || [];
+        return accounts.some(acc => acc.platform === platform && acc.is_active);
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking social config:", error);
+      return false;
+    }
   },
 
   /**
    * Schedule auto-post for a new listing
    */
-  schedulePost: async ({ item, platforms, scheduledTime, userId }) => {
-    // TODO: Implement API call to schedule post
-    // This would send the post data to backend which handles:
-    // 1. Image processing for each platform's requirements
-    // 2. Caption generation with hashtags
-    // 3. Scheduled posting via platform APIs
-    console.log("Auto-post scheduled:", { item, platforms, scheduledTime });
-    return { success: false, message: "Auto-post nije još implementiran" };
+  schedulePost: async ({ itemId, platforms, scheduledTime, caption, hashtags }) => {
+    try {
+      const response = await Api.post("/social/schedule-post", {
+        item_id: itemId,
+        platforms: platforms,
+        scheduled_at: scheduledTime,
+        caption: caption,
+        hashtags: hashtags,
+      });
+      
+      if (response?.data?.error === false) {
+        return { 
+          success: true, 
+          data: response.data.data,
+          message: "Post zakazan uspješno!" 
+        };
+      }
+      return { 
+        success: false, 
+        message: response?.data?.message || "Greška pri zakazivanju posta" 
+      };
+    } catch (error) {
+      console.error("Error scheduling post:", error);
+      return { success: false, message: "Greška pri zakazivanju posta" };
+    }
   },
 
   /**
    * Get connected social accounts for user
    */
-  getConnectedAccounts: async (userId) => {
-    // TODO: Implement API call to get connected accounts
-    return [];
+  getConnectedAccounts: async () => {
+    try {
+      const response = await Api.get("/social/connected-accounts");
+      if (response?.data?.error === false) {
+        return response.data.data || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching connected accounts:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Get scheduled posts
+   */
+  getScheduledPosts: async ({ page = 1, status = "pending" } = {}) => {
+    try {
+      const response = await Api.get("/social/scheduled-posts", {
+        params: { page, status }
+      });
+      if (response?.data?.error === false) {
+        return response.data.data || { posts: [], total: 0 };
+      }
+      return { posts: [], total: 0 };
+    } catch (error) {
+      console.error("Error fetching scheduled posts:", error);
+      return { posts: [], total: 0 };
+    }
+  },
+
+  /**
+   * Cancel a scheduled post
+   */
+  cancelScheduledPost: async (postId) => {
+    try {
+      const response = await Api.post(`/social/scheduled-posts/${postId}/cancel`);
+      return response?.data?.error === false;
+    } catch (error) {
+      console.error("Error canceling post:", error);
+      return false;
+    }
   },
 
   /**
    * Connect a social account (initiates OAuth flow)
    */
   connectAccount: async (platform) => {
-    // TODO: Implement OAuth flow initiation
-    // This would redirect to platform's OAuth page
-    const oauthUrls = {
-      facebook: "/api/auth/facebook",
-      instagram: "/api/auth/instagram",
-    };
-    
-    if (oauthUrls[platform]) {
-      // window.location.href = oauthUrls[platform];
-      toast.info(`Povezivanje sa ${platform} dolazi uskoro!`);
+    try {
+      const response = await Api.get(`/social/connect/${platform}`);
+      if (response?.data?.error === false && response?.data?.data?.oauth_url) {
+        // Redirect to OAuth URL
+        window.location.href = response.data.data.oauth_url;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error connecting account:", error);
+      return false;
     }
-    return false;
   },
 
   /**
    * Disconnect a social account
    */
-  disconnectAccount: async (platform, userId) => {
-    // TODO: Implement account disconnection
-    return false;
+  disconnectAccount: async (platform) => {
+    try {
+      const response = await Api.post(`/social/disconnect/${platform}`);
+      return response?.data?.error === false;
+    } catch (error) {
+      console.error("Error disconnecting account:", error);
+      return false;
+    }
   },
 };
 
 // ============================================
-// INSTAGRAM SHOP IMPORT SERVICE (Foundation)
+// INSTAGRAM SHOP IMPORT SERVICE
 // ============================================
 
 /**
  * Instagram Shop Import Service
- * Foundation for importing products from Instagram Shop
- * Full implementation requires Instagram Graph API access
+ * Handles importing products from Instagram Shop
+ * Requires backend endpoints:
+ * - GET /api/instagram/products
+ * - POST /api/instagram/import
+ * - GET /api/instagram/sync-status
  */
 export const InstagramShopService = {
   /**
    * Check if Instagram Shop is connected
    */
-  isConnected: async (userId) => {
-    // TODO: Check if user has Instagram Business account connected
-    return false;
+  isConnected: async () => {
+    try {
+      const accounts = await AutoPostService.getConnectedAccounts();
+      const instagram = accounts.find(acc => acc.platform === "instagram");
+      return instagram?.has_shop_access === true;
+    } catch (error) {
+      console.error("Error checking Instagram connection:", error);
+      return false;
+    }
   },
 
   /**
    * Get products from Instagram Shop
    */
-  getProducts: async (userId, { page = 1, limit = 20 } = {}) => {
-    // TODO: Implement Instagram Graph API call to fetch products
-    // Requires: instagram_basic, instagram_shopping permissions
-    return { products: [], total: 0, hasMore: false };
+  getProducts: async ({ page = 1, limit = 20 } = {}) => {
+    try {
+      const response = await Api.get("/instagram/products", {
+        params: { page, limit }
+      });
+      
+      if (response?.data?.error === false) {
+        const data = response.data.data || {};
+        return {
+          products: data.products || [],
+          total: data.total || 0,
+          hasMore: data.has_more || false,
+          currentPage: data.current_page || page,
+        };
+      }
+      return { products: [], total: 0, hasMore: false };
+    } catch (error) {
+      console.error("Error fetching Instagram products:", error);
+      return { products: [], total: 0, hasMore: false };
+    }
   },
 
   /**
    * Import selected products as listings
    */
-  importProducts: async (productIds, userId) => {
-    // TODO: Implement product import
-    // This would:
-    // 1. Fetch full product details from Instagram
-    // 2. Map Instagram product fields to listing fields
-    // 3. Download and process images
-    // 4. Create draft listings for user review
-    return { success: false, imported: 0, message: "Instagram import dolazi uskoro!" };
+  importProducts: async (productIds, { categoryId, autoPublish = false } = {}) => {
+    try {
+      const response = await Api.post("/instagram/import", {
+        product_ids: productIds,
+        category_id: categoryId,
+        auto_publish: autoPublish,
+      });
+      
+      if (response?.data?.error === false) {
+        return {
+          success: true,
+          imported: response.data.data?.imported_count || 0,
+          failed: response.data.data?.failed_count || 0,
+          items: response.data.data?.items || [],
+          message: response.data.message || "Proizvodi uspješno importovani!",
+        };
+      }
+      return {
+        success: false,
+        imported: 0,
+        message: response?.data?.message || "Greška pri importu",
+      };
+    } catch (error) {
+      console.error("Error importing products:", error);
+      return { success: false, imported: 0, message: "Greška pri importu proizvoda" };
+    }
+  },
+
+  /**
+   * Get import history
+   */
+  getImportHistory: async ({ page = 1 } = {}) => {
+    try {
+      const response = await Api.get("/instagram/import-history", {
+        params: { page }
+      });
+      
+      if (response?.data?.error === false) {
+        return response.data.data || { imports: [], total: 0 };
+      }
+      return { imports: [], total: 0 };
+    } catch (error) {
+      console.error("Error fetching import history:", error);
+      return { imports: [], total: 0 };
+    }
   },
 
   /**
    * Sync existing listing with Instagram product
    */
   syncProduct: async (listingId, instagramProductId) => {
-    // TODO: Implement bi-directional sync
-    return false;
+    try {
+      const response = await Api.post("/instagram/sync", {
+        item_id: listingId,
+        instagram_product_id: instagramProductId,
+      });
+      return response?.data?.error === false;
+    } catch (error) {
+      console.error("Error syncing product:", error);
+      return false;
+    }
+  },
+
+  /**
+   * Get sync status for a listing
+   */
+  getSyncStatus: async (listingId) => {
+    try {
+      const response = await Api.get(`/instagram/sync-status/${listingId}`);
+      if (response?.data?.error === false) {
+        return response.data.data || null;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting sync status:", error);
+      return null;
+    }
   },
 };
 
