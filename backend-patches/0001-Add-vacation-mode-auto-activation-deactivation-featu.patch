@@ -1,0 +1,219 @@
+From 0d78525179f98ab6764f3ed655572ce5ef95fe44 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Wed, 4 Feb 2026 11:34:11 +0000
+Subject: [PATCH 1/2] Add vacation mode auto-activation/deactivation feature
+
+- Add migration for vacation_start_date, vacation_end_date, vacation_auto_activate
+- Update SellerSetting model with new fillable fields and casts
+- Update SellerSettingsController to handle vacation schedule fields
+- Create ProcessVacationSchedules command for daily auto-activation
+- Register vacation:process-schedules in Kernel scheduler (runs daily at 00:05)
+---
+ .../Commands/ProcessVacationSchedules.php     | 78 +++++++++++++++++++
+ app/Console/Kernel.php                        |  6 ++
+ .../Api/SellerSettingsController.php          |  6 ++
+ app/Models/SellerSetting.php                  |  6 ++
+ ...d_vacation_schedule_to_seller_settings.php | 41 ++++++++++
+ 5 files changed, 137 insertions(+)
+ create mode 100644 app/Console/Commands/ProcessVacationSchedules.php
+ create mode 100644 database/migrations/2026_02_04_100000_add_vacation_schedule_to_seller_settings.php
+
+diff --git a/app/Console/Commands/ProcessVacationSchedules.php b/app/Console/Commands/ProcessVacationSchedules.php
+new file mode 100644
+index 00000000..f30e4ecf
+--- /dev/null
++++ b/app/Console/Commands/ProcessVacationSchedules.php
+@@ -0,0 +1,78 @@
++<?php
++
++namespace App\Console\Commands;
++
++use App\Models\SellerSetting;
++use Illuminate\Console\Command;
++use Illuminate\Support\Facades\Log;
++
++class ProcessVacationSchedules extends Command
++{
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'vacation:process-schedules';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Auto-activate and deactivate vacation mode based on scheduled dates';
++
++    /**
++     * Execute the console command.
++     */
++    public function handle()
++    {
++        $today = now()->startOfDay();
++        $activatedCount = 0;
++        $deactivatedCount = 0;
++
++        // 1. Auto-activate vacation mode for sellers whose start date is today
++        $toActivate = SellerSetting::where('vacation_auto_activate', true)
++            ->where('vacation_mode', false)
++            ->whereNotNull('vacation_start_date')
++            ->whereDate('vacation_start_date', '<=', $today)
++            ->where(function ($query) use ($today) {
++                $query->whereNull('vacation_end_date')
++                    ->orWhereDate('vacation_end_date', '>=', $today);
++            })
++            ->get();
++
++        foreach ($toActivate as $setting) {
++            $setting->vacation_mode = true;
++            $setting->save();
++            $activatedCount++;
++            
++            Log::info("Vacation mode activated for user {$setting->user_id}");
++        }
++
++        // 2. Auto-deactivate vacation mode for sellers whose end date has passed
++        $toDeactivate = SellerSetting::where('vacation_auto_activate', true)
++            ->where('vacation_mode', true)
++            ->whereNotNull('vacation_end_date')
++            ->whereDate('vacation_end_date', '<', $today)
++            ->get();
++
++        foreach ($toDeactivate as $setting) {
++            $setting->vacation_mode = false;
++            // Clear the schedule after it's been processed
++            $setting->vacation_start_date = null;
++            $setting->vacation_end_date = null;
++            $setting->vacation_auto_activate = false;
++            $setting->save();
++            $deactivatedCount++;
++            
++            Log::info("Vacation mode deactivated for user {$setting->user_id}");
++        }
++
++        $this->info("Vacation schedules processed:");
++        $this->info("- Activated: {$activatedCount}");
++        $this->info("- Deactivated: {$deactivatedCount}");
++
++        return Command::SUCCESS;
++    }
++}
+diff --git a/app/Console/Kernel.php b/app/Console/Kernel.php
+index 7f7be8f8..42db3373 100644
+--- a/app/Console/Kernel.php
++++ b/app/Console/Kernel.php
+@@ -34,6 +34,12 @@ class Kernel extends ConsoleKernel
+                     'scheduled_at' => null
+                 ]);
+         })->everyMinute()->name('publish-scheduled-ads')->withoutOverlapping();
++
++        // NOVO: Procesira vacation mode rasporede (aktivacija/deaktivacija)
++        $schedule->command('vacation:process-schedules')
++            ->dailyAt('00:05')
++            ->name('process-vacation-schedules')
++            ->withoutOverlapping();
+         
+     }
+  
+diff --git a/app/Http/Controllers/Api/SellerSettingsController.php b/app/Http/Controllers/Api/SellerSettingsController.php
+index 210d6190..9c42ae16 100644
+--- a/app/Http/Controllers/Api/SellerSettingsController.php
++++ b/app/Http/Controllers/Api/SellerSettingsController.php
+@@ -170,6 +170,9 @@ class SellerSettingsController extends Controller
+ 
+                 'vacation_mode' => 'sometimes|boolean',
+                 'vacation_message' => 'nullable|string|max:200',
++                'vacation_start_date' => 'nullable|date',
++                'vacation_end_date' => 'nullable|date|after_or_equal:vacation_start_date',
++                'vacation_auto_activate' => 'sometimes|boolean',
+ 
+                 'business_description' => 'nullable|string|max:500',
+                 'return_policy' => 'nullable|string|max:300',
+@@ -219,6 +222,9 @@ class SellerSettingsController extends Controller
+ 
+                 'vacation_mode',
+                 'vacation_message',
++                'vacation_start_date',
++                'vacation_end_date',
++                'vacation_auto_activate',
+ 
+                 'business_description',
+                 'return_policy',
+diff --git a/app/Models/SellerSetting.php b/app/Models/SellerSetting.php
+index 6142a961..22816c44 100644
+--- a/app/Models/SellerSetting.php
++++ b/app/Models/SellerSetting.php
+@@ -28,6 +28,9 @@ class SellerSetting extends Model
+         'vacation_message',
+         'vacation_start',
+         'vacation_end',
++        'vacation_start_date',
++        'vacation_end_date',
++        'vacation_auto_activate',
+         'business_description',
+         'return_policy',
+         'shipping_info',
+@@ -49,6 +52,9 @@ class SellerSetting extends Model
+         'vacation_mode' => 'boolean',
+         'vacation_start' => 'datetime',
+         'vacation_end' => 'datetime',
++        'vacation_start_date' => 'date',
++        'vacation_end_date' => 'date',
++        'vacation_auto_activate' => 'boolean',
+         'business_hours' => 'array',
+         'avatar_id' => 'string',
+     ];
+diff --git a/database/migrations/2026_02_04_100000_add_vacation_schedule_to_seller_settings.php b/database/migrations/2026_02_04_100000_add_vacation_schedule_to_seller_settings.php
+new file mode 100644
+index 00000000..b6dd948e
+--- /dev/null
++++ b/database/migrations/2026_02_04_100000_add_vacation_schedule_to_seller_settings.php
+@@ -0,0 +1,41 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    /**
++     * Run the migrations.
++     */
++    public function up(): void
++    {
++        Schema::table('seller_settings', function (Blueprint $table) {
++            // Vacation schedule fields
++            if (!Schema::hasColumn('seller_settings', 'vacation_start_date')) {
++                $table->date('vacation_start_date')->nullable()->after('vacation_message');
++            }
++            if (!Schema::hasColumn('seller_settings', 'vacation_end_date')) {
++                $table->date('vacation_end_date')->nullable()->after('vacation_start_date');
++            }
++            if (!Schema::hasColumn('seller_settings', 'vacation_auto_activate')) {
++                $table->boolean('vacation_auto_activate')->default(false)->after('vacation_end_date');
++            }
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     */
++    public function down(): void
++    {
++        Schema::table('seller_settings', function (Blueprint $table) {
++            $table->dropColumn([
++                'vacation_start_date',
++                'vacation_end_date',
++                'vacation_auto_activate',
++            ]);
++        });
++    }
++};
+-- 
+2.43.0
+

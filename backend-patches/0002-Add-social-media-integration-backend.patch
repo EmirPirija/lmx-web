@@ -1,0 +1,1357 @@
+From 36866f2cd4965f1616d53cd037262f9e2bfa9839 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Wed, 4 Feb 2026 11:55:04 +0000
+Subject: [PATCH 2/2] Add social media integration backend
+
+Features:
+- Social accounts management (connect/disconnect Facebook/Instagram)
+- Scheduled posts to Facebook/Instagram
+- Instagram Shop product import
+- Auto-publishing via scheduler
+
+New Controllers:
+- SocialMediaController: OAuth flow, schedule posts, manage accounts
+- InstagramController: Import products from Instagram Shop
+
+New Models:
+- SocialAccount: Store connected social accounts and tokens
+- ScheduledPost: Manage scheduled posts with status tracking
+- InstagramImport: Track import history
+
+New Commands:
+- ProcessScheduledPosts: Publish scheduled posts (runs every minute)
+
+API Endpoints:
+- GET/POST /social/* - Social account management
+- GET/POST /instagram/* - Instagram Shop import
+
+Note: Requires Facebook App setup with proper permissions
+---
+ .../Commands/ProcessScheduledPosts.php        | 241 +++++++++++++
+ app/Console/Kernel.php                        |   6 +
+ .../Controllers/Api/InstagramController.php   | 315 +++++++++++++++++
+ .../Controllers/Api/SocialMediaController.php | 330 ++++++++++++++++++
+ app/Models/InstagramImport.php                |  30 ++
+ app/Models/ScheduledPost.php                  |  81 +++++
+ app/Models/SocialAccount.php                  |  68 ++++
+ ...04_110000_create_social_accounts_table.php |  43 +++
+ ...04_110001_create_scheduled_posts_table.php |  41 +++
+ ..._110002_create_instagram_imports_table.php |  49 +++
+ routes/api.php                                |  23 ++
+ 11 files changed, 1227 insertions(+)
+ create mode 100644 app/Console/Commands/ProcessScheduledPosts.php
+ create mode 100644 app/Http/Controllers/Api/InstagramController.php
+ create mode 100644 app/Http/Controllers/Api/SocialMediaController.php
+ create mode 100644 app/Models/InstagramImport.php
+ create mode 100644 app/Models/ScheduledPost.php
+ create mode 100644 app/Models/SocialAccount.php
+ create mode 100644 database/migrations/2026_02_04_110000_create_social_accounts_table.php
+ create mode 100644 database/migrations/2026_02_04_110001_create_scheduled_posts_table.php
+ create mode 100644 database/migrations/2026_02_04_110002_create_instagram_imports_table.php
+
+diff --git a/app/Console/Commands/ProcessScheduledPosts.php b/app/Console/Commands/ProcessScheduledPosts.php
+new file mode 100644
+index 00000000..beab3f39
+--- /dev/null
++++ b/app/Console/Commands/ProcessScheduledPosts.php
+@@ -0,0 +1,241 @@
++<?php
++
++namespace App\Console\Commands;
++
++use App\Models\ScheduledPost;
++use App\Models\SocialAccount;
++use Illuminate\Console\Command;
++use Illuminate\Support\Facades\Http;
++use Illuminate\Support\Facades\Log;
++
++class ProcessScheduledPosts extends Command
++{
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'social:process-scheduled-posts';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Process and publish scheduled social media posts';
++
++    /**
++     * Execute the console command.
++     */
++    public function handle()
++    {
++        $posts = ScheduledPost::readyToPublish()
++            ->with(['item', 'user'])
++            ->get();
++
++        $this->info("Found {$posts->count()} posts to process");
++
++        foreach ($posts as $post) {
++            $this->processPost($post);
++        }
++
++        return Command::SUCCESS;
++    }
++
++    /**
++     * Process a single scheduled post
++     */
++    private function processPost(ScheduledPost $post)
++    {
++        $post->update(['status' => ScheduledPost::STATUS_PROCESSING]);
++
++        $platformPostIds = [];
++        $errors = [];
++
++        foreach ($post->platforms as $platform) {
++            try {
++                $result = $this->publishToPlatform($post, $platform);
++                
++                if ($result['success']) {
++                    $platformPostIds[$platform] = $result['post_id'];
++                } else {
++                    $errors[$platform] = $result['error'];
++                }
++            } catch (\Throwable $e) {
++                $errors[$platform] = $e->getMessage();
++                Log::error("Error publishing to {$platform}: " . $e->getMessage());
++            }
++        }
++
++        if (count($errors) === count($post->platforms)) {
++            // All platforms failed
++            $post->markAsFailed(implode('; ', $errors));
++        } else {
++            // At least one succeeded
++            $post->markAsPublished($platformPostIds);
++        }
++    }
++
++    /**
++     * Publish to a specific platform
++     */
++    private function publishToPlatform(ScheduledPost $post, string $platform): array
++    {
++        $account = SocialAccount::where('user_id', $post->user_id)
++            ->where('platform', $platform)
++            ->where('is_active', true)
++            ->first();
++
++        if (!$account) {
++            return ['success' => false, 'error' => 'Account not connected'];
++        }
++
++        // Check token expiration
++        if ($account->isTokenExpired()) {
++            return ['success' => false, 'error' => 'Token expired'];
++        }
++
++        $item = $post->item;
++        
++        switch ($platform) {
++            case 'facebook':
++                return $this->publishToFacebook($post, $account, $item);
++            case 'instagram':
++                return $this->publishToInstagram($post, $account, $item);
++            default:
++                return ['success' => false, 'error' => 'Unsupported platform'];
++        }
++    }
++
++    /**
++     * Publish to Facebook Page
++     */
++    private function publishToFacebook(ScheduledPost $post, SocialAccount $account, $item): array
++    {
++        $pageId = $account->page_id;
++        $pageAccessToken = $account->page_access_token;
++
++        if (!$pageId || !$pageAccessToken) {
++            return ['success' => false, 'error' => 'Facebook Page not configured'];
++        }
++
++        $caption = $this->buildCaption($post, $item);
++        $imageUrl = $item->image;
++
++        try {
++            // Post with photo to Facebook Page
++            if ($imageUrl) {
++                $response = Http::post("https://graph.facebook.com/v18.0/{$pageId}/photos", [
++                    'url' => $imageUrl,
++                    'message' => $caption,
++                    'access_token' => $pageAccessToken,
++                ]);
++            } else {
++                // Text-only post
++                $response = Http::post("https://graph.facebook.com/v18.0/{$pageId}/feed", [
++                    'message' => $caption,
++                    'access_token' => $pageAccessToken,
++                ]);
++            }
++
++            if ($response->successful()) {
++                $data = $response->json();
++                return [
++                    'success' => true,
++                    'post_id' => $data['id'] ?? $data['post_id'] ?? null,
++                ];
++            }
++
++            $error = $response->json()['error']['message'] ?? 'Unknown error';
++            return ['success' => false, 'error' => $error];
++
++        } catch (\Throwable $e) {
++            return ['success' => false, 'error' => $e->getMessage()];
++        }
++    }
++
++    /**
++     * Publish to Instagram (via Facebook API)
++     */
++    private function publishToInstagram(ScheduledPost $post, SocialAccount $account, $item): array
++    {
++        $igAccountId = $account->instagram_account_id;
++        $accessToken = $account->access_token;
++
++        if (!$igAccountId) {
++            return ['success' => false, 'error' => 'Instagram account not linked'];
++        }
++
++        $caption = $this->buildCaption($post, $item);
++        $imageUrl = $item->image;
++
++        if (!$imageUrl) {
++            return ['success' => false, 'error' => 'Instagram requires an image'];
++        }
++
++        try {
++            // Step 1: Create media container
++            $containerResponse = Http::post("https://graph.facebook.com/v18.0/{$igAccountId}/media", [
++                'image_url' => $imageUrl,
++                'caption' => $caption,
++                'access_token' => $accessToken,
++            ]);
++
++            if (!$containerResponse->successful()) {
++                $error = $containerResponse->json()['error']['message'] ?? 'Failed to create media container';
++                return ['success' => false, 'error' => $error];
++            }
++
++            $containerId = $containerResponse->json()['id'];
++
++            // Step 2: Publish the container
++            $publishResponse = Http::post("https://graph.facebook.com/v18.0/{$igAccountId}/media_publish", [
++                'creation_id' => $containerId,
++                'access_token' => $accessToken,
++            ]);
++
++            if ($publishResponse->successful()) {
++                return [
++                    'success' => true,
++                    'post_id' => $publishResponse->json()['id'] ?? null,
++                ];
++            }
++
++            $error = $publishResponse->json()['error']['message'] ?? 'Failed to publish';
++            return ['success' => false, 'error' => $error];
++
++        } catch (\Throwable $e) {
++            return ['success' => false, 'error' => $e->getMessage()];
++        }
++    }
++
++    /**
++     * Build caption with hashtags
++     */
++    private function buildCaption(ScheduledPost $post, $item): string
++    {
++        $caption = $post->caption ?: $item->name;
++        
++        if ($item->price) {
++            $caption .= "\n\n💰 Cijena: {$item->price} KM";
++        }
++
++        if ($item->description) {
++            $caption .= "\n\n" . substr($item->description, 0, 200);
++            if (strlen($item->description) > 200) {
++                $caption .= '...';
++            }
++        }
++
++        // Add link to item
++        $itemUrl = config('app.frontend_url') . '/product-details/' . ($item->slug ?? $item->id);
++        $caption .= "\n\n🔗 {$itemUrl}";
++
++        // Add hashtags
++        if ($post->hashtags) {
++            $caption .= "\n\n" . $post->hashtags;
++        }
++
++        return $caption;
++    }
++}
+diff --git a/app/Console/Kernel.php b/app/Console/Kernel.php
+index 42db3373..2c223694 100644
+--- a/app/Console/Kernel.php
++++ b/app/Console/Kernel.php
+@@ -40,6 +40,12 @@ class Kernel extends ConsoleKernel
+             ->dailyAt('00:05')
+             ->name('process-vacation-schedules')
+             ->withoutOverlapping();
++
++        // NOVO: Procesira zakazane postove na društvene mreže
++        $schedule->command('social:process-scheduled-posts')
++            ->everyMinute()
++            ->name('process-scheduled-social-posts')
++            ->withoutOverlapping();
+         
+     }
+  
+diff --git a/app/Http/Controllers/Api/InstagramController.php b/app/Http/Controllers/Api/InstagramController.php
+new file mode 100644
+index 00000000..650b2d4b
+--- /dev/null
++++ b/app/Http/Controllers/Api/InstagramController.php
+@@ -0,0 +1,315 @@
++<?php
++
++namespace App\Http\Controllers\Api;
++
++use App\Http\Controllers\Controller;
++use App\Models\SocialAccount;
++use App\Models\InstagramImport;
++use App\Models\Item;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Auth;
++use Illuminate\Support\Facades\Http;
++use Illuminate\Support\Facades\Log;
++use Illuminate\Support\Facades\Validator;
++use Throwable;
++
++class InstagramController extends Controller
++{
++    /**
++     * Get products from Instagram Shop
++     */
++    public function getProducts(Request $request)
++    {
++        try {
++            $user = Auth::user();
++            $page = $request->get('page', 1);
++            $limit = min($request->get('limit', 20), 50);
++
++            // Get user's Instagram account
++            $account = SocialAccount::where('user_id', $user->id)
++                ->where('platform', 'instagram')
++                ->where('is_active', true)
++                ->where('has_shop_access', true)
++                ->first();
++
++            if (!$account) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Instagram Shop nije povezan'
++                ], 400);
++            }
++
++            // Call Instagram Graph API to get catalog products
++            // This requires: instagram_shopping_tag_products, catalog_management permissions
++            $catalogId = $account->meta['catalog_id'] ?? null;
++            
++            if (!$catalogId) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Katalog nije pronađen'
++                ], 400);
++            }
++
++            $response = Http::get("https://graph.facebook.com/v18.0/{$catalogId}/products", [
++                'access_token' => $account->access_token,
++                'fields' => 'id,name,description,price,currency,image_url,url,availability',
++                'limit' => $limit,
++            ]);
++
++            if (!$response->successful()) {
++                Log::error('Instagram API error: ' . $response->body());
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Greška pri dohvaćanju proizvoda sa Instagrama'
++                ], 500);
++            }
++
++            $data = $response->json();
++            $products = $data['data'] ?? [];
++            $hasMore = isset($data['paging']['next']);
++
++            return response()->json([
++                'error' => false,
++                'data' => [
++                    'products' => $products,
++                    'total' => count($products),
++                    'has_more' => $hasMore,
++                    'current_page' => $page,
++                ],
++                'message' => 'Products fetched successfully'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error fetching Instagram products: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Greška pri dohvaćanju proizvoda'
++            ], 500);
++        }
++    }
++
++    /**
++     * Import selected products as listings
++     */
++    public function importProducts(Request $request)
++    {
++        try {
++            $validator = Validator::make($request->all(), [
++                'product_ids' => 'required|array|min:1|max:50',
++                'product_ids.*' => 'string',
++                'category_id' => 'required|exists:categories,id',
++                'auto_publish' => 'boolean',
++            ]);
++
++            if ($validator->fails()) {
++                return response()->json([
++                    'error' => true,
++                    'message' => $validator->errors()->first(),
++                ], 422);
++            }
++
++            $user = Auth::user();
++            
++            // Get user's Instagram account
++            $account = SocialAccount::where('user_id', $user->id)
++                ->where('platform', 'instagram')
++                ->where('is_active', true)
++                ->where('has_shop_access', true)
++                ->first();
++
++            if (!$account) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Instagram Shop nije povezan'
++                ], 400);
++            }
++
++            $importedItems = [];
++            $failedCount = 0;
++
++            foreach ($request->product_ids as $productId) {
++                try {
++                    // Fetch product details from Instagram
++                    $response = Http::get("https://graph.facebook.com/v18.0/{$productId}", [
++                        'access_token' => $account->access_token,
++                        'fields' => 'id,name,description,price,currency,image_url,url,availability',
++                    ]);
++
++                    if (!$response->successful()) {
++                        $failedCount++;
++                        continue;
++                    }
++
++                    $product = $response->json();
++
++                    // Create item from Instagram product
++                    $item = Item::create([
++                        'user_id' => $user->id,
++                        'category_id' => $request->category_id,
++                        'name' => $product['name'] ?? 'Imported Product',
++                        'description' => $product['description'] ?? '',
++                        'price' => $this->parsePrice($product['price'] ?? '0'),
++                        'image' => $product['image_url'] ?? null,
++                        'status' => $request->auto_publish ? 'approved' : 'draft',
++                        'instagram_product_id' => $productId,
++                    ]);
++
++                    $importedItems[] = [
++                        'id' => $item->id,
++                        'name' => $item->name,
++                        'instagram_product_id' => $productId,
++                    ];
++                } catch (Throwable $e) {
++                    Log::error("Failed to import product {$productId}: " . $e->getMessage());
++                    $failedCount++;
++                }
++            }
++
++            // Log the import
++            InstagramImport::create([
++                'user_id' => $user->id,
++                'products_requested' => count($request->product_ids),
++                'products_imported' => count($importedItems),
++                'products_failed' => $failedCount,
++                'category_id' => $request->category_id,
++            ]);
++
++            return response()->json([
++                'error' => false,
++                'data' => [
++                    'imported_count' => count($importedItems),
++                    'failed_count' => $failedCount,
++                    'items' => $importedItems,
++                ],
++                'message' => count($importedItems) . ' proizvoda uspješno importovano!'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error importing products: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Greška pri importu proizvoda'
++            ], 500);
++        }
++    }
++
++    /**
++     * Get import history
++     */
++    public function getImportHistory(Request $request)
++    {
++        try {
++            $user = Auth::user();
++            $page = $request->get('page', 1);
++
++            $imports = InstagramImport::where('user_id', $user->id)
++                ->orderBy('created_at', 'desc')
++                ->paginate(20, ['*'], 'page', $page);
++
++            return response()->json([
++                'error' => false,
++                'data' => [
++                    'imports' => $imports->items(),
++                    'total' => $imports->total(),
++                ],
++                'message' => 'Import history fetched'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error fetching import history: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Greška pri dohvaćanju historije'
++            ], 500);
++        }
++    }
++
++    /**
++     * Sync listing with Instagram product
++     */
++    public function syncProduct(Request $request)
++    {
++        try {
++            $validator = Validator::make($request->all(), [
++                'item_id' => 'required|exists:items,id',
++                'instagram_product_id' => 'required|string',
++            ]);
++
++            if ($validator->fails()) {
++                return response()->json([
++                    'error' => true,
++                    'message' => $validator->errors()->first(),
++                ], 422);
++            }
++
++            $user = Auth::user();
++            $item = Item::where('id', $request->item_id)
++                ->where('user_id', $user->id)
++                ->first();
++
++            if (!$item) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Oglas nije pronađen'
++                ], 404);
++            }
++
++            $item->instagram_product_id = $request->instagram_product_id;
++            $item->save();
++
++            return response()->json([
++                'error' => false,
++                'message' => 'Sync uspješan'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error syncing product: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Greška pri sync-u'
++            ], 500);
++        }
++    }
++
++    /**
++     * Get sync status for a listing
++     */
++    public function getSyncStatus($itemId)
++    {
++        try {
++            $user = Auth::user();
++            $item = Item::where('id', $itemId)
++                ->where('user_id', $user->id)
++                ->first();
++
++            if (!$item) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Oglas nije pronađen'
++                ], 404);
++            }
++
++            return response()->json([
++                'error' => false,
++                'data' => [
++                    'item_id' => $item->id,
++                    'instagram_product_id' => $item->instagram_product_id,
++                    'is_synced' => !empty($item->instagram_product_id),
++                    'last_synced_at' => $item->instagram_synced_at,
++                ],
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error getting sync status: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Greška'
++            ], 500);
++        }
++    }
++
++    /**
++     * Parse price from Instagram format
++     */
++    private function parsePrice($priceString): float
++    {
++        // Instagram returns price like "1000 BAM" or similar
++        $numeric = preg_replace('/[^0-9.]/', '', $priceString);
++        return (float) $numeric;
++    }
++}
+diff --git a/app/Http/Controllers/Api/SocialMediaController.php b/app/Http/Controllers/Api/SocialMediaController.php
+new file mode 100644
+index 00000000..6ba6ff1d
+--- /dev/null
++++ b/app/Http/Controllers/Api/SocialMediaController.php
+@@ -0,0 +1,330 @@
++<?php
++
++namespace App\Http\Controllers\Api;
++
++use App\Http\Controllers\Controller;
++use App\Models\SocialAccount;
++use App\Models\ScheduledPost;
++use App\Models\Item;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Auth;
++use Illuminate\Support\Facades\Validator;
++use Illuminate\Support\Facades\Log;
++use Throwable;
++
++class SocialMediaController extends Controller
++{
++    /**
++     * Get connected social accounts for the authenticated user
++     */
++    public function getConnectedAccounts()
++    {
++        try {
++            $user = Auth::user();
++            
++            $accounts = SocialAccount::where('user_id', $user->id)
++                ->where('is_active', true)
++                ->get()
++                ->map(function ($account) {
++                    return [
++                        'id' => $account->id,
++                        'platform' => $account->platform,
++                        'account_name' => $account->account_name,
++                        'account_id' => $account->platform_user_id,
++                        'is_active' => $account->is_active,
++                        'has_shop_access' => $account->has_shop_access ?? false,
++                        'connected_at' => $account->created_at->toISOString(),
++                        'expires_at' => $account->token_expires_at?->toISOString(),
++                    ];
++                });
++
++            return response()->json([
++                'error' => false,
++                'data' => $accounts,
++                'message' => 'Connected accounts fetched successfully'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error fetching connected accounts: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Error fetching connected accounts'
++            ], 500);
++        }
++    }
++
++    /**
++     * Initiate OAuth connection for a platform
++     */
++    public function connectAccount(Request $request, $platform)
++    {
++        try {
++            $supportedPlatforms = ['facebook', 'instagram'];
++            
++            if (!in_array($platform, $supportedPlatforms)) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Unsupported platform'
++                ], 400);
++            }
++
++            $user = Auth::user();
++            
++            // Generate OAuth URL based on platform
++            // This requires Facebook App credentials in .env:
++            // FACEBOOK_APP_ID, FACEBOOK_APP_SECRET, FACEBOOK_REDIRECT_URI
++            
++            $state = base64_encode(json_encode([
++                'user_id' => $user->id,
++                'platform' => $platform,
++                'csrf' => csrf_token(),
++            ]));
++
++            if ($platform === 'facebook' || $platform === 'instagram') {
++                $appId = config('services.facebook.client_id');
++                $redirectUri = config('services.facebook.redirect');
++                
++                if (!$appId || !$redirectUri) {
++                    return response()->json([
++                        'error' => true,
++                        'message' => 'Facebook app nije konfigurisan. Kontaktirajte administratora.'
++                    ], 503);
++                }
++
++                // Permissions needed for posting and Instagram access
++                $scopes = [
++                    'public_profile',
++                    'email',
++                    'pages_show_list',
++                    'pages_read_engagement',
++                    'pages_manage_posts',
++                    'instagram_basic',
++                    'instagram_content_publish',
++                ];
++
++                if ($platform === 'instagram') {
++                    $scopes[] = 'instagram_shopping_tag_products';
++                    $scopes[] = 'catalog_management';
++                }
++
++                $oauthUrl = 'https://www.facebook.com/v18.0/dialog/oauth?' . http_build_query([
++                    'client_id' => $appId,
++                    'redirect_uri' => $redirectUri,
++                    'state' => $state,
++                    'scope' => implode(',', $scopes),
++                    'response_type' => 'code',
++                ]);
++
++                return response()->json([
++                    'error' => false,
++                    'data' => [
++                        'oauth_url' => $oauthUrl,
++                    ],
++                    'message' => 'OAuth URL generated'
++                ]);
++            }
++
++            return response()->json([
++                'error' => true,
++                'message' => 'Platform not configured'
++            ], 503);
++
++        } catch (Throwable $th) {
++            Log::error('Error initiating OAuth: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Error initiating connection'
++            ], 500);
++        }
++    }
++
++    /**
++     * Disconnect a social account
++     */
++    public function disconnectAccount(Request $request, $platform)
++    {
++        try {
++            $user = Auth::user();
++            
++            $account = SocialAccount::where('user_id', $user->id)
++                ->where('platform', $platform)
++                ->first();
++
++            if (!$account) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Account not found'
++                ], 404);
++            }
++
++            // Revoke token if possible (platform-specific)
++            // For Facebook, we could call the Graph API to revoke
++
++            $account->is_active = false;
++            $account->access_token = null;
++            $account->save();
++
++            return response()->json([
++                'error' => false,
++                'message' => 'Account disconnected successfully'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error disconnecting account: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Error disconnecting account'
++            ], 500);
++        }
++    }
++
++    /**
++     * Schedule a post to social media
++     */
++    public function schedulePost(Request $request)
++    {
++        try {
++            $validator = Validator::make($request->all(), [
++                'item_id' => 'required|exists:items,id',
++                'platforms' => 'required|array|min:1',
++                'platforms.*' => 'in:facebook,instagram',
++                'scheduled_at' => 'nullable|date|after:now',
++                'caption' => 'nullable|string|max:2200',
++                'hashtags' => 'nullable|string|max:500',
++            ]);
++
++            if ($validator->fails()) {
++                return response()->json([
++                    'error' => true,
++                    'message' => $validator->errors()->first(),
++                ], 422);
++            }
++
++            $user = Auth::user();
++            $item = Item::findOrFail($request->item_id);
++
++            // Check if user owns the item
++            if ($item->user_id !== $user->id) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Unauthorized'
++                ], 403);
++            }
++
++            // Check if user has connected accounts for requested platforms
++            $connectedPlatforms = SocialAccount::where('user_id', $user->id)
++                ->where('is_active', true)
++                ->whereIn('platform', $request->platforms)
++                ->pluck('platform')
++                ->toArray();
++
++            $missingPlatforms = array_diff($request->platforms, $connectedPlatforms);
++            if (!empty($missingPlatforms)) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Niste povezani sa: ' . implode(', ', $missingPlatforms),
++                ], 400);
++            }
++
++            // Create scheduled post
++            $scheduledPost = ScheduledPost::create([
++                'user_id' => $user->id,
++                'item_id' => $item->id,
++                'platforms' => $request->platforms,
++                'caption' => $request->caption ?? $item->name,
++                'hashtags' => $request->hashtags,
++                'scheduled_at' => $request->scheduled_at ?? now(),
++                'status' => 'pending',
++            ]);
++
++            return response()->json([
++                'error' => false,
++                'data' => [
++                    'id' => $scheduledPost->id,
++                    'item_id' => $scheduledPost->item_id,
++                    'platforms' => $scheduledPost->platforms,
++                    'scheduled_at' => $scheduledPost->scheduled_at->toISOString(),
++                    'status' => $scheduledPost->status,
++                ],
++                'message' => 'Post zakazan uspješno!'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error scheduling post: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Error scheduling post'
++            ], 500);
++        }
++    }
++
++    /**
++     * Get scheduled posts
++     */
++    public function getScheduledPosts(Request $request)
++    {
++        try {
++            $user = Auth::user();
++            $status = $request->get('status', 'pending');
++            $page = $request->get('page', 1);
++
++            $posts = ScheduledPost::where('user_id', $user->id)
++                ->when($status !== 'all', function ($query) use ($status) {
++                    $query->where('status', $status);
++                })
++                ->with('item:id,name,image,price')
++                ->orderBy('scheduled_at', 'desc')
++                ->paginate(20, ['*'], 'page', $page);
++
++            return response()->json([
++                'error' => false,
++                'data' => [
++                    'posts' => $posts->items(),
++                    'total' => $posts->total(),
++                    'current_page' => $posts->currentPage(),
++                    'last_page' => $posts->lastPage(),
++                ],
++                'message' => 'Scheduled posts fetched'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error fetching scheduled posts: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Error fetching scheduled posts'
++            ], 500);
++        }
++    }
++
++    /**
++     * Cancel a scheduled post
++     */
++    public function cancelScheduledPost(Request $request, $postId)
++    {
++        try {
++            $user = Auth::user();
++            
++            $post = ScheduledPost::where('id', $postId)
++                ->where('user_id', $user->id)
++                ->where('status', 'pending')
++                ->first();
++
++            if (!$post) {
++                return response()->json([
++                    'error' => true,
++                    'message' => 'Post not found or already processed'
++                ], 404);
++            }
++
++            $post->status = 'cancelled';
++            $post->save();
++
++            return response()->json([
++                'error' => false,
++                'message' => 'Post cancelled successfully'
++            ]);
++        } catch (Throwable $th) {
++            Log::error('Error cancelling post: ' . $th->getMessage());
++            return response()->json([
++                'error' => true,
++                'message' => 'Error cancelling post'
++            ], 500);
++        }
++    }
++}
+diff --git a/app/Models/InstagramImport.php b/app/Models/InstagramImport.php
+new file mode 100644
+index 00000000..68e9a1cf
+--- /dev/null
++++ b/app/Models/InstagramImport.php
+@@ -0,0 +1,30 @@
++<?php
++
++namespace App\Models;
++
++use Illuminate\Database\Eloquent\Factories\HasFactory;
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Eloquent\Relations\BelongsTo;
++
++class InstagramImport extends Model
++{
++    use HasFactory;
++
++    protected $fillable = [
++        'user_id',
++        'products_requested',
++        'products_imported',
++        'products_failed',
++        'category_id',
++    ];
++
++    public function user(): BelongsTo
++    {
++        return $this->belongsTo(User::class);
++    }
++
++    public function category(): BelongsTo
++    {
++        return $this->belongsTo(Category::class);
++    }
++}
+diff --git a/app/Models/ScheduledPost.php b/app/Models/ScheduledPost.php
+new file mode 100644
+index 00000000..f653be29
+--- /dev/null
++++ b/app/Models/ScheduledPost.php
+@@ -0,0 +1,81 @@
++<?php
++
++namespace App\Models;
++
++use Illuminate\Database\Eloquent\Factories\HasFactory;
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Eloquent\Relations\BelongsTo;
++
++class ScheduledPost extends Model
++{
++    use HasFactory;
++
++    protected $fillable = [
++        'user_id',
++        'item_id',
++        'platforms',
++        'caption',
++        'hashtags',
++        'scheduled_at',
++        'published_at',
++        'status',
++        'error_message',
++        'platform_post_ids',
++    ];
++
++    protected $casts = [
++        'platforms' => 'array',
++        'platform_post_ids' => 'array',
++        'scheduled_at' => 'datetime',
++        'published_at' => 'datetime',
++    ];
++
++    // Status constants
++    const STATUS_PENDING = 'pending';
++    const STATUS_PROCESSING = 'processing';
++    const STATUS_PUBLISHED = 'published';
++    const STATUS_FAILED = 'failed';
++    const STATUS_CANCELLED = 'cancelled';
++
++    public function user(): BelongsTo
++    {
++        return $this->belongsTo(User::class);
++    }
++
++    public function item(): BelongsTo
++    {
++        return $this->belongsTo(Item::class);
++    }
++
++    /**
++     * Scope for pending posts that are ready to be published
++     */
++    public function scopeReadyToPublish($query)
++    {
++        return $query->where('status', self::STATUS_PENDING)
++            ->where('scheduled_at', '<=', now());
++    }
++
++    /**
++     * Mark as published
++     */
++    public function markAsPublished(array $platformPostIds = [])
++    {
++        $this->update([
++            'status' => self::STATUS_PUBLISHED,
++            'published_at' => now(),
++            'platform_post_ids' => $platformPostIds,
++        ]);
++    }
++
++    /**
++     * Mark as failed
++     */
++    public function markAsFailed(string $errorMessage)
++    {
++        $this->update([
++            'status' => self::STATUS_FAILED,
++            'error_message' => $errorMessage,
++        ]);
++    }
++}
+diff --git a/app/Models/SocialAccount.php b/app/Models/SocialAccount.php
+new file mode 100644
+index 00000000..7c1e73c3
+--- /dev/null
++++ b/app/Models/SocialAccount.php
+@@ -0,0 +1,68 @@
++<?php
++
++namespace App\Models;
++
++use Illuminate\Database\Eloquent\Factories\HasFactory;
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Eloquent\Relations\BelongsTo;
++
++class SocialAccount extends Model
++{
++    use HasFactory;
++
++    protected $fillable = [
++        'user_id',
++        'platform',
++        'platform_user_id',
++        'account_name',
++        'access_token',
++        'refresh_token',
++        'token_expires_at',
++        'page_id',
++        'page_access_token',
++        'instagram_account_id',
++        'has_shop_access',
++        'is_active',
++        'meta',
++    ];
++
++    protected $casts = [
++        'token_expires_at' => 'datetime',
++        'has_shop_access' => 'boolean',
++        'is_active' => 'boolean',
++        'meta' => 'array',
++    ];
++
++    protected $hidden = [
++        'access_token',
++        'refresh_token',
++        'page_access_token',
++    ];
++
++    public function user(): BelongsTo
++    {
++        return $this->belongsTo(User::class);
++    }
++
++    /**
++     * Check if token is expired
++     */
++    public function isTokenExpired(): bool
++    {
++        if (!$this->token_expires_at) {
++            return false;
++        }
++        return $this->token_expires_at->isPast();
++    }
++
++    /**
++     * Check if token expires soon (within 7 days)
++     */
++    public function isTokenExpiringSoon(): bool
++    {
++        if (!$this->token_expires_at) {
++            return false;
++        }
++        return $this->token_expires_at->isBefore(now()->addDays(7));
++    }
++}
+diff --git a/database/migrations/2026_02_04_110000_create_social_accounts_table.php b/database/migrations/2026_02_04_110000_create_social_accounts_table.php
+new file mode 100644
+index 00000000..efc37c02
+--- /dev/null
++++ b/database/migrations/2026_02_04_110000_create_social_accounts_table.php
+@@ -0,0 +1,43 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    /**
++     * Run the migrations.
++     */
++    public function up(): void
++    {
++        Schema::create('social_accounts', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->onDelete('cascade');
++            $table->string('platform'); // facebook, instagram
++            $table->string('platform_user_id')->nullable();
++            $table->string('account_name')->nullable();
++            $table->text('access_token')->nullable();
++            $table->text('refresh_token')->nullable();
++            $table->timestamp('token_expires_at')->nullable();
++            $table->string('page_id')->nullable(); // Facebook Page ID
++            $table->text('page_access_token')->nullable();
++            $table->string('instagram_account_id')->nullable(); // Instagram Business Account ID
++            $table->boolean('has_shop_access')->default(false);
++            $table->boolean('is_active')->default(true);
++            $table->json('meta')->nullable(); // Additional platform-specific data
++            $table->timestamps();
++
++            $table->unique(['user_id', 'platform']);
++            $table->index(['platform', 'is_active']);
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     */
++    public function down(): void
++    {
++        Schema::dropIfExists('social_accounts');
++    }
++};
+diff --git a/database/migrations/2026_02_04_110001_create_scheduled_posts_table.php b/database/migrations/2026_02_04_110001_create_scheduled_posts_table.php
+new file mode 100644
+index 00000000..b5d34566
+--- /dev/null
++++ b/database/migrations/2026_02_04_110001_create_scheduled_posts_table.php
+@@ -0,0 +1,41 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    /**
++     * Run the migrations.
++     */
++    public function up(): void
++    {
++        Schema::create('scheduled_posts', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->onDelete('cascade');
++            $table->foreignId('item_id')->constrained()->onDelete('cascade');
++            $table->json('platforms'); // ['facebook', 'instagram']
++            $table->text('caption')->nullable();
++            $table->string('hashtags')->nullable();
++            $table->timestamp('scheduled_at');
++            $table->timestamp('published_at')->nullable();
++            $table->enum('status', ['pending', 'processing', 'published', 'failed', 'cancelled'])
++                ->default('pending');
++            $table->text('error_message')->nullable();
++            $table->json('platform_post_ids')->nullable(); // Store IDs of created posts per platform
++            $table->timestamps();
++
++            $table->index(['user_id', 'status']);
++            $table->index(['status', 'scheduled_at']);
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     */
++    public function down(): void
++    {
++        Schema::dropIfExists('scheduled_posts');
++    }
++};
+diff --git a/database/migrations/2026_02_04_110002_create_instagram_imports_table.php b/database/migrations/2026_02_04_110002_create_instagram_imports_table.php
+new file mode 100644
+index 00000000..9cc8de51
+--- /dev/null
++++ b/database/migrations/2026_02_04_110002_create_instagram_imports_table.php
+@@ -0,0 +1,49 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    /**
++     * Run the migrations.
++     */
++    public function up(): void
++    {
++        Schema::create('instagram_imports', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->onDelete('cascade');
++            $table->integer('products_requested');
++            $table->integer('products_imported')->default(0);
++            $table->integer('products_failed')->default(0);
++            $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
++            $table->timestamps();
++
++            $table->index('user_id');
++        });
++
++        // Add instagram_product_id to items table if not exists
++        if (!Schema::hasColumn('items', 'instagram_product_id')) {
++            Schema::table('items', function (Blueprint $table) {
++                $table->string('instagram_product_id')->nullable()->after('id');
++                $table->timestamp('instagram_synced_at')->nullable()->after('instagram_product_id');
++                $table->index('instagram_product_id');
++            });
++        }
++    }
++
++    /**
++     * Reverse the migrations.
++     */
++    public function down(): void
++    {
++        Schema::dropIfExists('instagram_imports');
++        
++        if (Schema::hasColumn('items', 'instagram_product_id')) {
++            Schema::table('items', function (Blueprint $table) {
++                $table->dropColumn(['instagram_product_id', 'instagram_synced_at']);
++            });
++        }
++    }
++};
+diff --git a/routes/api.php b/routes/api.php
+index 8fe10a03..83ebabcd 100644
+--- a/routes/api.php
++++ b/routes/api.php
+@@ -133,6 +133,29 @@ Route::group(['middleware' => ['auth:sanctum']], static function () {
+         Route::get('get-seller-settings', [SellerSettingsController::class, 'getSettings']);
+         Route::post('update-seller-settings', [SellerSettingsController::class, 'updateSettings']);
+ 
++    // ============================================
++    // SOCIAL MEDIA API
++    // ============================================
++    Route::prefix('social')->group(function () {
++        Route::get('connected-accounts', [\App\Http\Controllers\Api\SocialMediaController::class, 'getConnectedAccounts']);
++        Route::get('connect/{platform}', [\App\Http\Controllers\Api\SocialMediaController::class, 'connectAccount']);
++        Route::post('disconnect/{platform}', [\App\Http\Controllers\Api\SocialMediaController::class, 'disconnectAccount']);
++        Route::post('schedule-post', [\App\Http\Controllers\Api\SocialMediaController::class, 'schedulePost']);
++        Route::get('scheduled-posts', [\App\Http\Controllers\Api\SocialMediaController::class, 'getScheduledPosts']);
++        Route::post('scheduled-posts/{id}/cancel', [\App\Http\Controllers\Api\SocialMediaController::class, 'cancelScheduledPost']);
++    });
++
++    // ============================================
++    // INSTAGRAM SHOP API
++    // ============================================
++    Route::prefix('instagram')->group(function () {
++        Route::get('products', [\App\Http\Controllers\Api\InstagramController::class, 'getProducts']);
++        Route::post('import', [\App\Http\Controllers\Api\InstagramController::class, 'importProducts']);
++        Route::get('import-history', [\App\Http\Controllers\Api\InstagramController::class, 'getImportHistory']);
++        Route::post('sync', [\App\Http\Controllers\Api\InstagramController::class, 'syncProduct']);
++        Route::get('sync-status/{itemId}', [\App\Http\Controllers\Api\InstagramController::class, 'getSyncStatus']);
++    });
++
+     // ============================================
+     // MEMBERSHIP API 
+     // ============================================
+-- 
+2.43.0
+
