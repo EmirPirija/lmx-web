@@ -42,7 +42,7 @@ import {
   IoSearchOutline,
   IoMenuOutline,
   IoCloseOutline,
-  IoSettingsOutline,
+  IoChatbubbleOutline,
 } from "react-icons/io5";
 import { Crown, Store } from "lucide-react";
 import { MdVerified } from "react-icons/md";
@@ -327,13 +327,6 @@ const getNavigationConfig = (pathname, userStats) => {
             href: "/profile/seller-settings",
             isActive: pathname === "/profile/seller-settings",
           },
-          {
-            icon: IoSettingsOutline,
-            label: "Avatar",
-            description: "Prilagodi svoj avatar",
-            href: "/profile/avatar",
-            isActive: pathname === "/profile/avatar",
-          },
         ],
       },
       {
@@ -379,6 +372,14 @@ const getNavigationConfig = (pathname, userStats) => {
       {
         title: "Komunikacija",
         items: [
+          {
+            icon: IoChatbubbleOutline,
+            label: "Poruke",
+            description: "Sve tvoje poruke",
+            href: "/chat",
+            isActive: pathname === "/chat" || pathname?.startsWith("/chat"),
+            badge: userStats.unreadMessages,
+          },
           {
             icon: IoNotificationsOutline,
             label: "Notifikacije",
@@ -630,6 +631,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     activeAds: 0,
     totalViews: 0,
     unreadNotifications: 0,
+    unreadMessages: 0,
     rating: "0.0",
     membershipTier: "free",
     isVerified: false,
@@ -717,6 +719,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         activeAds,
         totalViews: userData?.total_views || userData?.profile_views || 0,
         unreadNotifications,
+        unreadMessages: userData?.unread_messages || 0,
         rating,
         membershipTier: String(membershipTier).toLowerCase(),
         isVerified,
