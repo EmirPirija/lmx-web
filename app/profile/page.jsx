@@ -1,7 +1,7 @@
-import ProfileDashboard from "@/components/PagesComponent/ProfileDashboard/ProfileDashboard";
+import Profile from "@/components/Profile/Profile";
 
 const ProfilePage = () => {
-  return <ProfileDashboard />;
+  return <Profile />;
 };
 
 export default ProfilePage;

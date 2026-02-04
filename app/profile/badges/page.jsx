@@ -3,17 +3,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import Layout from "@/components/Layout/Layout";
-import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import ProfileNavigation from "@/components/Profile/ProfileNavigation";
-
 import BadgeList from "@/components/PagesComponent/Gamification/BadgeList";
 import UserLevel from "@/components/PagesComponent/Gamification/UserLevel";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 
-import Checkauth from "@/HOC/Checkauth";
 import { gamificationApi } from "@/utils/api";
 import {
   setUserBadges,
@@ -101,13 +96,7 @@ const BadgesPage = () => {
   }, [lockedBadges, query]);
 
   return (
-    <Layout>
-      <BreadCrumb title2="Moji bedževi" />
-
-      <div className="container mt-8">
-        <ProfileNavigation />
-
-        <div className="mt-8 space-y-6">
+    <div className="space-y-6">
           {/* Level */}
           <UserLevel userPoints={userPoints} showProgress={true} />
 
@@ -210,9 +199,8 @@ const BadgesPage = () => {
             </Tabs>
           </div>
         </div>
-      </div>
-    </Layout>
+    </div>
   );
 };
 
-export default Checkauth(BadgesPage);
+export default BadgesPage;
