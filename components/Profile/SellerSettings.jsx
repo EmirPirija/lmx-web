@@ -4,32 +4,39 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
+import { format } from "date-fns";
 
 // Lucide Icons
 import {
-  AlertCircle as DangerCircleBold,
-  Calendar as CalendarBold,
-  Camera as CameraBold,
-  ChevronDown as AltArrowDownBold,
-  Clock as ClockCircleBold,
-  Copy as CopyBold,
-  Eye as EyeBold,
-  Globe as GlobalBold,
-  Mail as LetterBold,
-  MessageCircle as ChatRoundDotsBold,
-  Phone as PhoneBold,
-  RefreshCw as RestartBold,
-  Save as DisketteBold,
-  Shield as ShieldBold,
-  Sparkles as SparklesBold,
-  Store as ShopBold,
-  Users as UsersBold,
-  Zap as BoltBold,
-  CheckCircle2 as CheckCircleBold,
-  MapPin as MapPointBold,
-  Link as LinkBold,
-  Video as VideoBold,
-  Music as MusicBold,
+  AlertCircle,
+  Calendar,
+  Camera,
+  ChevronDown,
+  Clock,
+  Download,
+  Eye,
+  Globe,
+  Mail,
+  MessageCircle,
+  Phone,
+  RefreshCw,
+  Save,
+  Shield,
+  Sparkles,
+  Store,
+  Users,
+  Zap,
+  CheckCircle2,
+  MapPin,
+  Link as LinkIcon,
+  Video,
+  Music,
+  QrCode,
+  Share2,
+  Copy,
+  Loader2,
+  Plane,
 } from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
@@ -37,37 +44,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
-import { SellerPreviewCard } from "@/components/PagesComponent/Seller/SellerDetailCard";
+import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
 
-/* =====================
-  Animacije
-===================== */
-
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] },
-};
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.06,
-    },
-  },
-};
-
-/* =====================
-  Helperi / Utils
-===================== */
-
+// ============================================
+// CONSTANTS
+// ============================================
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DAY_LABEL = {
   monday: "Ponedjeljak",
@@ -89,14 +77,13 @@ const defaultBusinessHours = {
   sunday: { open: "09:00", close: "13:00", enabled: false },
 };
 
+// ============================================
+// HELPERS
+// ============================================
 function normalizeBusinessHours(raw) {
   let obj = raw;
   if (typeof obj === "string") {
-    try {
-      obj = JSON.parse(obj);
-    } catch {
-      obj = null;
-    }
+    try { obj = JSON.parse(obj); } catch { obj = null; }
   }
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) obj = {};
   const out = {};
@@ -118,9 +105,7 @@ function safeUrl(u) {
     const value = u.startsWith("http") ? u : `https://${u}`;
     new URL(value);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 function normalizePhone(p) {
@@ -151,208 +136,265 @@ const withTimeout = (promise, ms = 15000) =>
 
 const pickFn = (obj, names) => names.map((n) => obj?.[n]).find((v) => typeof v === "function");
 
-const ls = {
-  get(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return fallback;
-      return JSON.parse(raw);
-    } catch {
-      return fallback;
-    }
-  },
-  set(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {}
-  },
-};
+// ============================================
+// UI COMPONENTS
+// ============================================
 
-/* =====================
-  UI Komponente
-===================== */
-
-const GlassCard = ({ children, className, ...props }) => (
-  <motion.div
-    variants={fadeInUp}
-    className={cn(
-      "relative overflow-hidden rounded-3xl",
-      "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl",
-      "border border-slate-200/60 dark:border-slate-700/60",
-      "shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40",
-      className
-    )}
-    {...props}
-  >
-    {/* Dekorativni gradijent */}
-    <div className="pointer-events-none absolute -top-24 -right-24 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/10 via-purple-400/5 to-transparent blur-2xl" />
-    {children}
-  </motion.div>
-);
-
-const CardHeader = ({ icon: Icon, title, subtitle, right }) => (
-  <div className="px-5 sm:px-6 pt-5 sm:pt-6 flex items-start justify-between gap-4">
-    <div className="flex items-start gap-3">
-      {Icon && (
-        <div className="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-          <Icon className="h-5 w-5" />
-        </div>
-      )}
-      <div>
-        <div className="text-base font-bold text-slate-900 dark:text-white">{title}</div>
-        {subtitle && <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</div>}
-      </div>
-    </div>
-    {right && <div className="shrink-0">{right}</div>}
-  </div>
-);
-
-const CardBody = ({ children }) => <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-4">{children}</div>;
-
-const Spinner = ({ className }) => (
-  <motion.div
-    animate={{ rotate: 360 }}
-    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-    className={cn("h-5 w-5 border-2 border-current border-t-transparent rounded-full", className)}
-  />
-);
-
-const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) => (
-  <motion.button
-    whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -1 }}
-    whileTap={{ scale: disabled ? 1 : 0.98 }}
-    disabled={disabled || isLoading}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3",
-      "bg-gradient-to-r from-slate-900 to-slate-800 text-white",
-      "dark:from-white dark:to-slate-100 dark:text-slate-900",
-      "text-sm font-semibold shadow-lg shadow-slate-900/20 dark:shadow-white/10",
-      "disabled:opacity-50 disabled:cursor-not-allowed",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {isLoading ? <Spinner /> : children}
-  </motion.button>
-);
-
-const SecondaryButton = ({ children, className, ...props }) => (
-  <motion.button
-    whileHover={{ scale: 1.02, y: -1 }}
-    whileTap={{ scale: 0.98 }}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5",
-      "bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm",
-      "text-slate-800 dark:text-slate-200 text-sm font-semibold",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "hover:bg-slate-200/80 dark:hover:bg-slate-700/80",
-      "shadow-sm hover:shadow-md",
-      "transition-all duration-200",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </motion.button>
-);
-
-const ToggleRow = ({ title, desc, checked, onCheckedChange, icon: Icon }) => (
-  <motion.div
-    whileHover={{ scale: 1.01 }}
-    className={cn(
-      "flex items-start justify-between gap-4 rounded-2xl p-4",
-      "border border-slate-200/70 dark:border-slate-700/60",
-      "bg-white/60 dark:bg-slate-800/50 backdrop-blur-sm",
-      "transition-all duration-200",
-      checked && "border-blue-200/70 dark:border-blue-800/40 bg-blue-50/30 dark:bg-blue-900/10"
-    )}
-  >
-    <div className="min-w-0">
-      <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-        {Icon && (
-          <Icon
-            className={cn(
-              "h-5 w-5 transition-colors duration-200",
-              checked ? "text-blue-500" : "text-slate-400"
-            )}
-          />
-        )}
-        {title}
-      </div>
-      {desc && <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{desc}</div>}
-    </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} />
-  </motion.div>
-);
-
-const Disclosure = ({ title, icon: Icon, children, defaultOpen = false }) => {
+const SettingSection = ({ icon: Icon, title, description, children, defaultOpen = true }) => {
   const [open, setOpen] = useState(defaultOpen);
+  
   return (
-    <motion.div
-      variants={fadeInUp}
-      className="rounded-3xl border border-slate-200/70 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl overflow-hidden shadow-lg shadow-slate-200/30 dark:shadow-slate-900/30"
-    >
+    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "w-full px-4 sm:px-5 py-4 flex items-center justify-between gap-3",
-          "hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
-        )}
+        onClick={() => setOpen(!open)}
+        className="w-full px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
       >
-        <span className="inline-flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/50 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
-            <Icon className="h-5 w-5" />
-          </span>
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
-        </span>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Icon className="w-4 h-4 text-primary" />
+          </div>
+          <div className="text-left">
+            <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+            {description && <p className="text-xs text-slate-500">{description}</p>}
+          </div>
+        </div>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <AltArrowDownBold className="h-5 w-5 text-slate-400" />
+          <ChevronDown className="w-4 h-4 text-slate-400" />
         </motion.div>
       </button>
-
+      
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.2 }}
           >
-            <div className="px-4 sm:px-5 pb-5">{children}</div>
+            <div className="px-4 pb-4 pt-2 border-t border-slate-100">
+              {children}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
-const StatusBadge = ({ status, text }) => {
-  const colors = {
-    success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    warning: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    error: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    info: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+const ToggleRow = ({ title, description, checked, onCheckedChange, icon: Icon, disabled }) => (
+  <div className={cn(
+    "flex items-start justify-between gap-3 p-3 rounded-lg border transition-all",
+    checked ? "border-primary/20 bg-primary/5" : "border-slate-100 bg-slate-50/50",
+    disabled && "opacity-50"
+  )}>
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+        {Icon && <Icon className={cn("w-4 h-4", checked ? "text-primary" : "text-slate-400")} />}
+        {title}
+      </div>
+      {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+    </div>
+    <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+  </div>
+);
+
+// ============================================
+// QR CODE COMPONENT
+// ============================================
+const QRCodeSection = ({ userId, userName }) => {
+  const profileUrl = typeof window !== "undefined" 
+    ? `${window.location.origin}/seller/${userId}` 
+    : `/seller/${userId}`;
+  const qrRef = useRef(null);
+  const [copied, setCopied] = useState(false);
+
+  const downloadQR = () => {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = img.width * 2;
+      canvas.height = img.height * 2;
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `lmx-profil-${userName || userId}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      setCopied(true);
+      toast.success("Link kopiran u clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Greška pri kopiranju");
+    }
   };
 
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold",
-      colors[status] || colors.info
-    )}>
-      {status === "success" && <CheckCircleBold className="h-3.5 w-3.5" />}
-      {status === "error" && <DangerCircleBold className="h-3.5 w-3.5" />}
-      {text}
-    </span>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div 
+          ref={qrRef}
+          className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm"
+        >
+          <QRCodeSVG
+            value={profileUrl}
+            size={140}
+            level="H"
+            includeMargin={true}
+            fgColor="#0F172A"
+          />
+        </div>
+        
+        <div className="flex-1 space-y-3">
+          <p className="text-sm text-slate-600">
+            Skeniraj QR kod da brzo pristupiš svom profilu prodavača. 
+            Idealno za vizit kartice ili promotivne materijale.
+          </p>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadQR}
+              className="text-xs"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              Preuzmi QR
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyLink}
+              className="text-xs"
+            >
+              {copied ? (
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-green-600" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              {copied ? "Kopirano!" : "Kopiraj link"}
+            </Button>
+          </div>
+          
+          <div className="p-2 bg-slate-50 rounded-lg">
+            <p className="text-xs text-slate-500 break-all">{profileUrl}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
-/* =====================
-  Main Component
-===================== */
+// ============================================
+// VACATION MODE SECTION
+// ============================================
+const VacationModeSection = ({
+  vacationMode,
+  setVacationMode,
+  vacationMessage,
+  setVacationMessage,
+  vacationStartDate,
+  setVacationStartDate,
+  vacationEndDate,
+  setVacationEndDate,
+  vacationAutoActivate,
+  setVacationAutoActivate,
+  errors,
+  submitAttempted,
+}) => {
+  const today = format(new Date(), "yyyy-MM-dd");
+  
+  return (
+    <div className="space-y-4">
+      <ToggleRow
+        title="Aktiviraj odmor"
+        description="Kupci će vidjeti da trenutno nisi dostupan"
+        icon={Plane}
+        checked={vacationMode}
+        onCheckedChange={setVacationMode}
+      />
+      
+      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-4">
+        <ToggleRow
+          title="Automatska aktivacija"
+          description="Automatski uključi/isključi odmor prema datumima"
+          icon={Calendar}
+          checked={vacationAutoActivate}
+          onCheckedChange={setVacationAutoActivate}
+        />
+        
+        {vacationAutoActivate && (
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-600">Početak odmora</Label>
+              <Input
+                type="date"
+                value={vacationStartDate || ""}
+                onChange={(e) => setVacationStartDate(e.target.value)}
+                min={today}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-600">Kraj odmora</Label>
+              <Input
+                type="date"
+                value={vacationEndDate || ""}
+                onChange={(e) => setVacationEndDate(e.target.value)}
+                min={vacationStartDate || today}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+        )}
+        
+        {vacationAutoActivate && vacationStartDate && vacationEndDate && (
+          <p className="text-xs text-primary bg-primary/5 p-2 rounded-lg">
+            Odmor će se automatski aktivirati {format(new Date(vacationStartDate), "dd.MM.yyyy")} 
+            {" "}i deaktivirati {format(new Date(vacationEndDate), "dd.MM.yyyy")}.
+          </p>
+        )}
+      </div>
+      
+      <div className="space-y-1.5">
+        <Label className="text-xs text-slate-600">Poruka za kupce</Label>
+        <Textarea
+          className={cn(
+            "min-h-[80px] text-sm",
+            submitAttempted && errors.vacationMessage && "border-red-300"
+          )}
+          value={vacationMessage}
+          onChange={(e) => setVacationMessage(e.target.value)}
+          placeholder="Npr. Trenutno sam na odmoru. Vratit ću se 15.02.2024."
+        />
+        {errors.vacationMessage && (
+          <p className="text-xs text-red-600">{errors.vacationMessage}</p>
+        )}
+      </div>
+    </div>
+  );
+};
 
+// ============================================
+// MAIN COMPONENT
+// ============================================
 const SellerSettings = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
@@ -360,9 +402,7 @@ const SellerSettings = () => {
   const isMountedRef = useRef(true);
   useEffect(() => {
     isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
+    return () => { isMountedRef.current = false; };
   }, []);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -370,13 +410,13 @@ const SellerSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  // avatar
+  // Avatar
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
 
-  // contact toggles
+  // Contact toggles
   const [showPhone, setShowPhone] = useState(true);
   const [showEmail, setShowEmail] = useState(true);
   const [showWhatsapp, setShowWhatsapp] = useState(false);
@@ -385,119 +425,85 @@ const SellerSettings = () => {
   const [viberNumber, setViberNumber] = useState("");
   const [preferredContact, setPreferredContact] = useState("message");
 
-  // availability / shop
+  // Availability
   const [businessHours, setBusinessHours] = useState(defaultBusinessHours);
   const [responseTime, setResponseTime] = useState("auto");
   const [acceptsOffers, setAcceptsOffers] = useState(true);
 
-  // auto reply / vacation
+  // Auto reply
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [autoReplyMessage, setAutoReplyMessage] = useState(
     "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku."
   );
+
+  // Vacation
   const [vacationMode, setVacationMode] = useState(false);
   const [vacationMessage, setVacationMessage] = useState("Trenutno sam na odmoru. Vratit ću se uskoro!");
+  const [vacationStartDate, setVacationStartDate] = useState("");
+  const [vacationEndDate, setVacationEndDate] = useState("");
+  const [vacationAutoActivate, setVacationAutoActivate] = useState(false);
 
-  // info
+  // Info
   const [businessDescription, setBusinessDescription] = useState("");
   const [returnPolicy, setReturnPolicy] = useState("");
   const [shippingInfo, setShippingInfo] = useState("");
 
-  // socials
+  // Socials
   const [socialFacebook, setSocialFacebook] = useState("");
   const [socialInstagram, setSocialInstagram] = useState("");
   const [socialTiktok, setSocialTiktok] = useState("");
   const [socialYoutube, setSocialYoutube] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
 
-  // preview (local-only)
-  const prefsKey = currentUser?.id ? `seller_card_preview_prefs_${currentUser.id}` : "seller_card_preview_prefs";
-  const [previewPrefs, setPreviewPrefs] = useState({
-    showRatings: true,
-    showBadges: true,
-    showMemberSince: true,
-    showResponseTime: true,
-    compactness: "normal",
-    contactStyle: "inline",
-  });
-
   const initialPayloadRef = useRef(null);
-
-  useEffect(() => {
-    const loaded = ls.get(prefsKey, null);
-    if (loaded) setPreviewPrefs((p) => ({ ...p, ...loaded }));
-  }, [prefsKey]);
-
-  useEffect(() => {
-    ls.set(prefsKey, previewPrefs);
-  }, [prefsKey, previewPrefs]);
 
   useEffect(() => {
     if (currentUser?.profile_image) setPreviewImage(currentUser.profile_image);
     if (currentUser?.profile) setPreviewImage(currentUser.profile);
   }, [currentUser]);
 
-  const responseTimeOptions = useMemo(
-    () => [
-      { value: "auto", label: "Automatski" },
-      { value: "instant", label: "Par minuta" },
-      { value: "few_hours", label: "Par sati" },
-      { value: "same_day", label: "24 sata" },
-      { value: "few_days", label: "Par dana" },
-    ],
-    []
-  );
+  const responseTimeOptions = [
+    { value: "auto", label: "Automatski" },
+    { value: "instant", label: "Par minuta" },
+    { value: "few_hours", label: "Par sati" },
+    { value: "same_day", label: "24 sata" },
+    { value: "few_days", label: "Par dana" },
+  ];
 
-  const buildPayload = useCallback(
-    () => ({
-      show_phone: showPhone,
-      show_email: showEmail,
-      show_whatsapp: showWhatsapp,
-      show_viber: showViber,
-      whatsapp_number: whatsappNumber,
-      viber_number: viberNumber,
-      preferred_contact_method: preferredContact,
-      business_hours: businessHours,
-      response_time: responseTime,
-      accepts_offers: acceptsOffers,
-      auto_reply_enabled: autoReplyEnabled,
-      auto_reply_message: autoReplyMessage,
-      vacation_mode: vacationMode,
-      vacation_message: vacationMessage,
-      business_description: businessDescription,
-      return_policy: returnPolicy,
-      shipping_info: shippingInfo,
-      social_facebook: socialFacebook,
-      social_instagram: socialInstagram,
-      social_tiktok: socialTiktok,
-      social_youtube: socialYoutube,
-      social_website: socialWebsite,
-    }),
-    [
-      showPhone,
-      showEmail,
-      showWhatsapp,
-      showViber,
-      whatsappNumber,
-      viberNumber,
-      preferredContact,
-      businessHours,
-      responseTime,
-      acceptsOffers,
-      autoReplyEnabled,
-      autoReplyMessage,
-      vacationMode,
-      vacationMessage,
-      businessDescription,
-      returnPolicy,
-      shippingInfo,
-      socialFacebook,
-      socialInstagram,
-      socialTiktok,
-      socialYoutube,
-      socialWebsite,
-    ]
-  );
+  const buildPayload = useCallback(() => ({
+    show_phone: showPhone,
+    show_email: showEmail,
+    show_whatsapp: showWhatsapp,
+    show_viber: showViber,
+    whatsapp_number: whatsappNumber,
+    viber_number: viberNumber,
+    preferred_contact_method: preferredContact,
+    business_hours: businessHours,
+    response_time: responseTime,
+    accepts_offers: acceptsOffers,
+    auto_reply_enabled: autoReplyEnabled,
+    auto_reply_message: autoReplyMessage,
+    vacation_mode: vacationMode,
+    vacation_message: vacationMessage,
+    vacation_start_date: vacationStartDate,
+    vacation_end_date: vacationEndDate,
+    vacation_auto_activate: vacationAutoActivate,
+    business_description: businessDescription,
+    return_policy: returnPolicy,
+    shipping_info: shippingInfo,
+    social_facebook: socialFacebook,
+    social_instagram: socialInstagram,
+    social_tiktok: socialTiktok,
+    social_youtube: socialYoutube,
+    social_website: socialWebsite,
+  }), [
+    showPhone, showEmail, showWhatsapp, showViber, whatsappNumber, viberNumber,
+    preferredContact, businessHours, responseTime, acceptsOffers,
+    autoReplyEnabled, autoReplyMessage, vacationMode, vacationMessage,
+    vacationStartDate, vacationEndDate, vacationAutoActivate,
+    businessDescription, returnPolicy, shippingInfo,
+    socialFacebook, socialInstagram, socialTiktok, socialYoutube, socialWebsite,
+  ]);
 
   const hasChanges = useMemo(() => {
     if (!initialPayloadRef.current) return false;
@@ -519,23 +525,13 @@ const SellerSettings = () => {
     if (socialWebsite && !safeUrl(socialWebsite)) e.socialWebsite = "Unesite ispravan link.";
 
     if (autoReplyEnabled && autoReplyMessage.trim().length < 3) e.autoReplyMessage = "Poruka je prekratka.";
-    if (vacationMode && vacationMessage.trim().length < 3) e.vacationMessage = "Poruka je prekratka.";
+    if ((vacationMode || vacationAutoActivate) && vacationMessage.trim().length < 3) e.vacationMessage = "Poruka je prekratka.";
 
     return e;
   }, [
-    showWhatsapp,
-    whatsappNumber,
-    showViber,
-    viberNumber,
-    socialFacebook,
-    socialInstagram,
-    socialTiktok,
-    socialYoutube,
-    socialWebsite,
-    autoReplyEnabled,
-    autoReplyMessage,
-    vacationMode,
-    vacationMessage,
+    showWhatsapp, whatsappNumber, showViber, viberNumber,
+    socialFacebook, socialInstagram, socialTiktok, socialYoutube, socialWebsite,
+    autoReplyEnabled, autoReplyMessage, vacationMode, vacationAutoActivate, vacationMessage,
   ]);
 
   const isValid = Object.keys(errors).length === 0;
@@ -574,12 +570,13 @@ const SellerSettings = () => {
       setAcceptsOffers(s.accepts_offers ?? true);
 
       setAutoReplyEnabled(s.auto_reply_enabled ?? false);
-      setAutoReplyMessage(
-        s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku."
-      );
+      setAutoReplyMessage(s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
 
       setVacationMode(s.vacation_mode ?? false);
       setVacationMessage(s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!");
+      setVacationStartDate(s.vacation_start_date || "");
+      setVacationEndDate(s.vacation_end_date || "");
+      setVacationAutoActivate(s.vacation_auto_activate ?? false);
 
       setBusinessDescription(s.business_description || "");
       setReturnPolicy(s.return_policy || "");
@@ -603,10 +600,12 @@ const SellerSettings = () => {
         response_time: s.response_time || "auto",
         accepts_offers: s.accepts_offers ?? true,
         auto_reply_enabled: s.auto_reply_enabled ?? false,
-        auto_reply_message:
-          s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
+        auto_reply_message: s.auto_reply_message || "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
         vacation_mode: s.vacation_mode ?? false,
         vacation_message: s.vacation_message || "Trenutno sam na odmoru. Vratit ću se uskoro!",
+        vacation_start_date: s.vacation_start_date || "",
+        vacation_end_date: s.vacation_end_date || "",
+        vacation_auto_activate: s.vacation_auto_activate ?? false,
         business_description: s.business_description || "",
         return_policy: s.return_policy || "",
         shipping_info: s.shipping_info || "",
@@ -699,9 +698,7 @@ const SellerSettings = () => {
       toast.error(error?.message === "TIMEOUT" ? "Server ne odgovara." : "Greška pri uploadu slike.");
     } finally {
       setIsAvatarUploading(false);
-      try {
-        URL.revokeObjectURL(objectUrl);
-      } catch {}
+      try { URL.revokeObjectURL(objectUrl); } catch {}
     }
   };
 
@@ -728,708 +725,480 @@ const SellerSettings = () => {
     toast.message("Kopirano s ponedjeljka na ostale radne dane.");
   };
 
-  /* =====================
-    Loading State
-  ===================== */
-
+  // Loading State
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col gap-2"
-        >
-          <div className="h-8 w-64 rounded-2xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
-          <div className="h-5 w-96 rounded-xl bg-slate-200/40 dark:bg-slate-800/40 animate-pulse" />
-        </motion.div>
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_460px] gap-6">
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-48 rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
-            ))}
-          </div>
-          <div className="h-[520px] rounded-3xl bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+          <p className="text-sm text-slate-600">Učitavanje postavki...</p>
         </div>
       </div>
     );
   }
 
-  /* =====================
-    Error State
-  ===================== */
-
+  // Error State
   if (loadError) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <GlassCard className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-900/30">
-              <DangerCircleBold className="h-6 w-6 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="flex-1">
-              <div className="text-lg font-bold text-slate-900 dark:text-white">Greška pri učitavanju</div>
-              <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">{loadError}</div>
-              <SecondaryButton onClick={fetchSettings} className="mt-4">
-                <RestartBold className="h-4 w-4" /> Pokušaj ponovo
-              </SecondaryButton>
-            </div>
+      <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-800">Greška pri učitavanju</p>
+            <p className="text-xs text-red-600 mt-1">{loadError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchSettings}
+              className="mt-3 text-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Pokušaj ponovo
+            </Button>
           </div>
-        </GlassCard>
-      </motion.div>
+        </div>
+      </div>
     );
   }
 
   const previewSeller = { ...currentUser, profile: previewImage || currentUser?.profile_image || currentUser?.profile };
   const previewSettings = buildPayload();
 
-  /* =====================
-    Main Render
-  ===================== */
-
   return (
     <motion.div
-      variants={staggerContainer}
-      initial="initial"
-      animate="animate"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Postavke prodavača</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Podešavanja kako kupci vide tvoj profil i kako te mogu kontaktirati.
-          </p>
+          <h2 className="text-lg font-bold text-slate-900">Postavke prodavača</h2>
+          <p className="text-sm text-slate-500">Podešavanja kako kupci vide tvoj profil</p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-3">
-            <SecondaryButton onClick={handleReset} disabled={isSaving || isAvatarUploading}>
-              <RestartBold className="h-4 w-4" /> Poništi
-            </SecondaryButton>
-            <PrimaryButton
-              onClick={handleSave}
-              isLoading={isSaving}
-              disabled={isSaving || isAvatarUploading || !hasChanges || !isValid}
-            >
-              <DisketteBold className="h-4 w-4" /> Sačuvaj
-            </PrimaryButton>
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            {!isValid && <StatusBadge status="error" text="Ima grešaka u formi" />}
-            {isValid && !hasChanges && <StatusBadge status="info" text="Nema promjena" />}
-            {isValid && hasChanges && <StatusBadge status="success" text="Spremno za čuvanje" />}
-          </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            disabled={isSaving || isAvatarUploading}
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Poništi
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving || isAvatarUploading || !hasChanges || !isValid}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {isSaving ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            Sačuvaj
+          </Button>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_460px] gap-6 items-start">
+      {/* Status indicator */}
+      {hasChanges && isValid && (
+        <div className="flex items-center gap-2 text-xs text-primary bg-primary/5 px-3 py-2 rounded-lg">
+          <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+          Imate nesačuvane promjene
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
         {/* Left: Settings */}
-        <motion.div variants={staggerContainer} className="space-y-4">
-          {/* Avatar */}
-          <GlassCard>
-            <CardHeader
-              icon={CameraBold}
-              title="Profilna slika"
-              subtitle="Ovo kupci vide na tvojoj kartici prodavača."
-            />
-            <CardBody>
-              <div className="flex flex-col sm:flex-row gap-5 sm:items-center">
-                <div className="flex items-center gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg"
+        <div className="space-y-4">
+          {/* Profile Image */}
+          <SettingSection icon={Camera} title="Profilna slika" description="Slika koju kupci vide">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                {previewImage ? (
+                  <img src={previewImage} alt="Profil" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full grid place-items-center text-xs text-slate-400">Nema</div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isAvatarUploading}
                   >
-                    {previewImage ? (
-                      <img src={previewImage} alt="Profil" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full grid place-items-center text-xs text-slate-400">Nema slike</div>
-                    )}
-                  </motion.div>
+                    <Camera className="w-3.5 h-3.5 mr-1.5" />
+                    Učitaj
+                  </Button>
 
-                  <div className="flex flex-col gap-2">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                    />
-                    <SecondaryButton onClick={() => fileInputRef.current?.click()} disabled={isAvatarUploading}>
-                      <CameraBold className="h-4 w-4" /> Učitaj sliku
-                    </SecondaryButton>
-
-                    <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-                      <DialogTrigger asChild>
-                        <PrimaryButton disabled={isAvatarUploading}>
-                          <SparklesBold className="h-4 w-4" /> Studio avatara
-                        </PrimaryButton>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none">
-                        <LmxAvatarGenerator
-                          onSave={updateProfileImage}
-                          onCancel={() => setIsAvatarModalOpen(false)}
-                          isSaving={isAvatarUploading}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-
-                <div className="text-sm text-slate-600 dark:text-slate-300 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl p-3 border border-slate-200/50 dark:border-slate-700/50">
-                  <strong>Savjet:</strong> Koristi jasnu sliku lica ili logo. Kvalitetna slika direktno utiče na povjerenje kupaca.
-                </div>
-              </div>
-            </CardBody>
-          </GlassCard>
-
-          {/* Contact */}
-          <Disclosure title="Kontakt opcije" icon={PhoneBold} defaultOpen>
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ToggleRow
-                  title="Telefon"
-                  desc="Prikaži broj kupcima"
-                  icon={PhoneBold}
-                  checked={showPhone}
-                  onCheckedChange={setShowPhone}
-                />
-                <ToggleRow
-                  title="Email"
-                  desc="Prikaži email kupcima"
-                  icon={LetterBold}
-                  checked={showEmail}
-                  onCheckedChange={setShowEmail}
-                />
-                <ToggleRow
-                  title="WhatsApp"
-                  desc="Prikaži WhatsApp dugme"
-                  icon={ChatRoundDotsBold}
-                  checked={showWhatsapp}
-                  onCheckedChange={setShowWhatsapp}
-                />
-                <ToggleRow
-                  title="Viber"
-                  desc="Prikaži Viber dugme"
-                  icon={PhoneBold}
-                  checked={showViber}
-                  onCheckedChange={setShowViber}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">WhatsApp broj</Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl transition-all duration-200",
-                      submitAttempted && errors.whatsappNumber && "border-red-300 focus:border-red-400"
-                    )}
-                    placeholder="+38761234567"
-                    value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
-                    disabled={!showWhatsapp}
-                  />
-                  {errors.whatsappNumber && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-xs text-red-600 flex items-center gap-1"
-                    >
-                      <DangerCircleBold className="h-3 w-3" />
-                      {errors.whatsappNumber}
-                    </motion.div>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Viber broj</Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl transition-all duration-200",
-                      submitAttempted && errors.viberNumber && "border-red-300 focus:border-red-400"
-                    )}
-                    placeholder="+38761234567"
-                    value={viberNumber}
-                    onChange={(e) => setViberNumber(e.target.value)}
-                    disabled={!showViber}
-                  />
-                  {errors.viberNumber && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-xs text-red-600 flex items-center gap-1"
-                    >
-                      <DangerCircleBold className="h-3 w-3" />
-                      {errors.viberNumber}
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Preferirani način kontakta</Label>
-                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {["message", "phone", "whatsapp", "viber", "email"].map((v) => {
-                    const active = preferredContact === v;
-                    const label =
-                      v === "message" ? "Poruka" :
-                      v === "phone" ? "Poziv" :
-                      v === "whatsapp" ? "WhatsApp" :
-                      v === "viber" ? "Viber" : "Email";
-                    return (
-                      <motion.button
-                        key={v}
-                        type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setPreferredContact(v)}
-                        className={cn(
-                          "h-11 rounded-2xl border px-4 text-sm font-semibold transition-all duration-200",
-                          active
-                            ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 shadow-lg"
-                            : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                        )}
-                      >
-                        {label}
-                      </motion.button>
-                    );
-                  })}
+                  <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={isAvatarUploading}>
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                        Studio
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none">
+                      <LmxAvatarGenerator
+                        onSave={updateProfileImage}
+                        onCancel={() => setIsAvatarModalOpen(false)}
+                        isSaving={isAvatarUploading}
+                      />
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </div>
-          </Disclosure>
+          </SettingSection>
 
-          {/* Availability */}
-          <Disclosure title="Dostupnost i ponude" icon={BoltBold} defaultOpen={false}>
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/50 p-4">
-                <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                  <ClockCircleBold className="h-4 w-4 text-blue-500" />
-                  Vrijeme odgovora
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {responseTimeOptions.map((o) => {
-                    const active = responseTime === o.value;
-                    return (
-                      <motion.button
-                        key={o.value}
-                        type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setResponseTime(o.value)}
-                        className={cn(
-                          "h-11 rounded-2xl border px-4 text-sm font-semibold transition-all duration-200",
-                          active
-                            ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 shadow-lg"
-                            : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                        )}
-                      >
-                        {o.label}
-                      </motion.button>
-                    );
-                  })}
-                </div>
+          {/* QR Code */}
+          <SettingSection icon={QrCode} title="QR kod profila" description="Za vizit kartice i promociju">
+            <QRCodeSection userId={currentUser?.id} userName={currentUser?.name} />
+          </SettingSection>
+
+          {/* Contact Options */}
+          <SettingSection icon={Phone} title="Kontakt opcije" description="Kako te kupci mogu kontaktirati">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <ToggleRow title="Telefon" icon={Phone} checked={showPhone} onCheckedChange={setShowPhone} />
+                <ToggleRow title="Email" icon={Mail} checked={showEmail} onCheckedChange={setShowEmail} />
+                <ToggleRow title="WhatsApp" icon={MessageCircle} checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
+                <ToggleRow title="Viber" icon={Phone} checked={showViber} onCheckedChange={setShowViber} />
               </div>
 
-              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/50 p-4">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                    <CalendarBold className="h-4 w-4 text-emerald-500" />
-                    Radno vrijeme
-                  </div>
-                  <SecondaryButton onClick={copyWeekdays}>
-                    <CopyBold className="h-4 w-4" /> Kopiraj ponedjeljak
-                  </SecondaryButton>
+              {(showWhatsapp || showViber) && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  {showWhatsapp && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-600">WhatsApp broj</Label>
+                      <Input
+                        className={cn("h-9 text-sm", submitAttempted && errors.whatsappNumber && "border-red-300")}
+                        placeholder="+38761234567"
+                        value={whatsappNumber}
+                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                      />
+                      {errors.whatsappNumber && <p className="text-xs text-red-600">{errors.whatsappNumber}</p>}
+                    </div>
+                  )}
+                  {showViber && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-600">Viber broj</Label>
+                      <Input
+                        className={cn("h-9 text-sm", submitAttempted && errors.viberNumber && "border-red-300")}
+                        placeholder="+38761234567"
+                        value={viberNumber}
+                        onChange={(e) => setViberNumber(e.target.value)}
+                      />
+                      {errors.viberNumber && <p className="text-xs text-red-600">{errors.viberNumber}</p>}
+                    </div>
+                  )}
                 </div>
+              )}
 
-                <div className="space-y-3">
-                  {DAYS.map((day) => (
-                    <motion.div
-                      key={day}
-                      whileHover={{ scale: 1.005 }}
+              <div className="pt-2">
+                <Label className="text-xs text-slate-600 mb-2 block">Preferirani način kontakta</Label>
+                <div className="flex flex-wrap gap-2">
+                  {["message", "phone", "whatsapp", "viber", "email"].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setPreferredContact(v)}
                       className={cn(
-                        "rounded-2xl border p-4 transition-all duration-200",
-                        businessHours?.[day]?.enabled
-                          ? "border-emerald-200/70 bg-emerald-50/30 dark:border-emerald-800/40 dark:bg-emerald-900/10"
-                          : "border-slate-200/70 bg-slate-50/50 dark:border-slate-700/60 dark:bg-slate-800/30"
+                        "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
+                        preferredContact === v
+                          ? "border-primary bg-primary text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       )}
                     >
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="text-sm font-semibold text-slate-900 dark:text-white">{DAY_LABEL[day]}</div>
-                          <div className="flex items-center gap-2">
-                            <span className={cn(
-                              "text-xs font-medium px-2 py-1 rounded-lg",
-                              businessHours?.[day]?.enabled
-                                ? "text-emerald-600 bg-emerald-100/50 dark:bg-emerald-900/30"
-                                : "text-slate-500 bg-slate-100/50 dark:bg-slate-800/50"
-                            )}>
-                              {businessHours?.[day]?.enabled ? "Otvoreno" : "Zatvoreno"}
-                            </span>
-                            <Switch checked={businessHours?.[day]?.enabled} onCheckedChange={(v) => setDay(day, { enabled: v })} />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 md:w-[280px]">
-                          <div>
-                            <Label className="text-xs text-slate-500">Od</Label>
-                            <Input
-                              type="time"
-                              className="h-10 mt-1 rounded-xl text-sm"
-                              value={businessHours?.[day]?.open || "09:00"}
-                              onChange={(e) => setDay(day, { open: e.target.value })}
-                              disabled={!businessHours?.[day]?.enabled}
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-slate-500">Do</Label>
-                            <Input
-                              type="time"
-                              className="h-10 mt-1 rounded-xl text-sm"
-                              value={businessHours?.[day]?.close || "17:00"}
-                              onChange={(e) => setDay(day, { close: e.target.value })}
-                              disabled={!businessHours?.[day]?.enabled}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
+                      {v === "message" ? "Poruka" : v === "phone" ? "Poziv" : v === "whatsapp" ? "WhatsApp" : v === "viber" ? "Viber" : "Email"}
+                    </button>
                   ))}
                 </div>
               </div>
-
-              <ToggleRow
-                title="Primam ponude"
-                desc="Kupci mogu slati cjenovne ponude na tvoje proizvode"
-                icon={ShieldBold}
-                checked={acceptsOffers}
-                onCheckedChange={setAcceptsOffers}
-              />
             </div>
-          </Disclosure>
+          </SettingSection>
 
-          {/* Auto reply */}
-          <Disclosure title="Automatski odgovor" icon={ChatRoundDotsBold} defaultOpen={false}>
+          {/* Vacation Mode */}
+          <SettingSection icon={Plane} title="Odmor / Pauza" description="Auto-aktivacija i deaktivacija" defaultOpen={false}>
+            <VacationModeSection
+              vacationMode={vacationMode}
+              setVacationMode={setVacationMode}
+              vacationMessage={vacationMessage}
+              setVacationMessage={setVacationMessage}
+              vacationStartDate={vacationStartDate}
+              setVacationStartDate={setVacationStartDate}
+              vacationEndDate={vacationEndDate}
+              setVacationEndDate={setVacationEndDate}
+              vacationAutoActivate={vacationAutoActivate}
+              setVacationAutoActivate={setVacationAutoActivate}
+              errors={errors}
+              submitAttempted={submitAttempted}
+            />
+          </SettingSection>
+
+          {/* Auto Reply */}
+          <SettingSection icon={MessageCircle} title="Automatski odgovor" description="Poruka koja se šalje automatski" defaultOpen={false}>
             <div className="space-y-3">
               <ToggleRow
                 title="Uključi automatski odgovor"
-                desc="Automatska poruka se šalje kupcu čim ti napiše poruku"
-                icon={ChatRoundDotsBold}
+                description="Automatska poruka se šalje kupcu čim ti napiše poruku"
+                icon={MessageCircle}
                 checked={autoReplyEnabled}
                 onCheckedChange={setAutoReplyEnabled}
               />
-              <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Poruka automatskog odgovora</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600">Poruka automatskog odgovora</Label>
                 <Textarea
-                  className={cn(
-                    "mt-2 rounded-2xl min-h-[110px] transition-all duration-200",
-                    submitAttempted && errors.autoReplyMessage && "border-red-300"
-                  )}
+                  className={cn("min-h-[80px] text-sm", submitAttempted && errors.autoReplyMessage && "border-red-300")}
                   value={autoReplyMessage}
                   onChange={(e) => setAutoReplyMessage(e.target.value)}
                   disabled={!autoReplyEnabled}
                 />
-                {errors.autoReplyMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-xs text-red-600"
-                  >
-                    {errors.autoReplyMessage}
-                  </motion.div>
-                )}
+                {errors.autoReplyMessage && <p className="text-xs text-red-600">{errors.autoReplyMessage}</p>}
               </div>
             </div>
-          </Disclosure>
+          </SettingSection>
 
-          {/* Vacation */}
-          <Disclosure title="Odmor / Pauza" icon={CalendarBold} defaultOpen={false}>
+          {/* Business Hours */}
+          <SettingSection icon={Clock} title="Radno vrijeme" description="Kada si dostupan" defaultOpen={false}>
             <div className="space-y-3">
-              <ToggleRow
-                title="Uključi mode odmora"
-                desc="Kupci vide da trenutno nisi dostupan za brze odgovore"
-                icon={CalendarBold}
-                checked={vacationMode}
-                onCheckedChange={setVacationMode}
-              />
-              <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Poruka za kupce</Label>
-                <Textarea
-                  className={cn(
-                    "mt-2 rounded-2xl min-h-[110px] transition-all duration-200",
-                    submitAttempted && errors.vacationMessage && "border-red-300"
-                  )}
-                  value={vacationMessage}
-                  onChange={(e) => setVacationMessage(e.target.value)}
-                  disabled={!vacationMode}
-                />
-                {errors.vacationMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-xs text-red-600"
-                  >
-                    {errors.vacationMessage}
-                  </motion.div>
-                )}
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-xs text-slate-600">Vrijeme odgovora</Label>
+                <div className="flex gap-1">
+                  {responseTimeOptions.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setResponseTime(o.value)}
+                      className={cn(
+                        "px-2.5 py-1 rounded text-xs font-medium transition-all",
+                        responseTime === o.value
+                          ? "bg-primary text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </Disclosure>
 
-          {/* Info */}
-          <Disclosure title="Informacije za kupce" icon={ShopBold} defaultOpen={false}>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-slate-600">Radno vrijeme po danima</Label>
+                <Button variant="ghost" size="sm" onClick={copyWeekdays} className="text-xs h-7">
+                  Kopiraj pon. na sve
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {DAYS.map((day) => (
+                  <div
+                    key={day}
+                    className={cn(
+                      "rounded-lg border p-3 transition-all",
+                      businessHours?.[day]?.enabled
+                        ? "border-primary/20 bg-primary/5"
+                        : "border-slate-100 bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          checked={businessHours?.[day]?.enabled}
+                          onCheckedChange={(v) => setDay(day, { enabled: v })}
+                        />
+                        <span className="text-sm font-medium text-slate-900 w-24">{DAY_LABEL[day]}</span>
+                      </div>
+
+                      {businessHours?.[day]?.enabled && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="time"
+                            className="h-8 w-24 text-xs"
+                            value={businessHours?.[day]?.open || "09:00"}
+                            onChange={(e) => setDay(day, { open: e.target.value })}
+                          />
+                          <span className="text-slate-400">-</span>
+                          <Input
+                            type="time"
+                            className="h-8 w-24 text-xs"
+                            value={businessHours?.[day]?.close || "17:00"}
+                            onChange={(e) => setDay(day, { close: e.target.value })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <ToggleRow
+                title="Primam ponude"
+                description="Kupci mogu slati cjenovne ponude"
+                icon={Shield}
+                checked={acceptsOffers}
+                onCheckedChange={setAcceptsOffers}
+              />
+            </div>
+          </SettingSection>
+
+          {/* Business Info */}
+          <SettingSection icon={Store} title="Informacije za kupce" description="O tebi i tvojoj djelatnosti" defaultOpen={false}>
             <div className="space-y-4">
-              <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">O meni / Opis djelatnosti</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600">O meni / Opis djelatnosti</Label>
                 <Textarea
-                  className="mt-2 rounded-2xl min-h-[110px]"
-                  placeholder="Napiši kratko ko si, šta prodaješ i zašto bi kupci trebali kupovati od tebe..."
+                  className="min-h-[80px] text-sm"
+                  placeholder="Napiši kratko ko si, šta prodaješ..."
                   value={businessDescription}
                   onChange={(e) => setBusinessDescription(e.target.value)}
                 />
               </div>
-              <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Informacije o dostavi</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600">Informacije o dostavi</Label>
                 <Textarea
-                  className="mt-2 rounded-2xl min-h-[110px]"
-                  placeholder="Kako šalješ, rokovi isporuke, cijene dostave..."
+                  className="min-h-[60px] text-sm"
+                  placeholder="Kako šalješ, rokovi isporuke..."
                   value={shippingInfo}
                   onChange={(e) => setShippingInfo(e.target.value)}
                 />
               </div>
-              <div>
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Povrat i reklamacije</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600">Povrat i reklamacije</Label>
                 <Textarea
-                  className="mt-2 rounded-2xl min-h-[110px]"
-                  placeholder="Uslovi povrata, garancija, reklamacije..."
+                  className="min-h-[60px] text-sm"
+                  placeholder="Uslovi povrata, garancija..."
                   value={returnPolicy}
                   onChange={(e) => setReturnPolicy(e.target.value)}
                 />
               </div>
             </div>
-          </Disclosure>
+          </SettingSection>
 
-          {/* Social */}
-          <Disclosure title="Društvene mreže" icon={GlobalBold} defaultOpen={false}>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <UsersBold className="h-4 w-4 text-blue-500" /> Facebook
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialFacebook && "border-red-300"
-                    )}
-                    value={socialFacebook}
-                    onChange={(e) => setSocialFacebook(e.target.value)}
-                    placeholder="https://facebook.com/..."
-                  />
-                  {errors.socialFacebook && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialFacebook}</div>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <CameraBold className="h-4 w-4 text-pink-500" /> Instagram
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialInstagram && "border-red-300"
-                    )}
-                    value={socialInstagram}
-                    onChange={(e) => setSocialInstagram(e.target.value)}
-                    placeholder="https://instagram.com/..."
-                  />
-                  {errors.socialInstagram && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialInstagram}</div>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <MusicBold className="h-4 w-4 text-slate-900 dark:text-white" /> TikTok
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialTiktok && "border-red-300"
-                    )}
-                    value={socialTiktok}
-                    onChange={(e) => setSocialTiktok(e.target.value)}
-                    placeholder="https://tiktok.com/@..."
-                  />
-                  {errors.socialTiktok && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialTiktok}</div>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <VideoBold className="h-4 w-4 text-red-500" /> YouTube
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialYoutube && "border-red-300"
-                    )}
-                    value={socialYoutube}
-                    onChange={(e) => setSocialYoutube(e.target.value)}
-                    placeholder="https://youtube.com/..."
-                  />
-                  {errors.socialYoutube && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialYoutube}</div>
-                  )}
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <LinkBold className="h-4 w-4 text-emerald-500" /> Web stranica
-                  </Label>
-                  <Input
-                    className={cn(
-                      "h-11 mt-2 rounded-2xl",
-                      submitAttempted && errors.socialWebsite && "border-red-300"
-                    )}
-                    value={socialWebsite}
-                    onChange={(e) => setSocialWebsite(e.target.value)}
-                    placeholder="https://..."
-                  />
-                  {errors.socialWebsite && (
-                    <div className="mt-1 text-xs text-red-600">{errors.socialWebsite}</div>
-                  )}
-                </div>
+          {/* Social Links */}
+          <SettingSection icon={Globe} title="Društvene mreže" description="Tvoji profili na mrežama" defaultOpen={false}>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-blue-500" /> Facebook
+                </Label>
+                <Input
+                  className={cn("h-9 text-sm", submitAttempted && errors.socialFacebook && "border-red-300")}
+                  value={socialFacebook}
+                  onChange={(e) => setSocialFacebook(e.target.value)}
+                  placeholder="facebook.com/..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-pink-500" /> Instagram
+                </Label>
+                <Input
+                  className={cn("h-9 text-sm", submitAttempted && errors.socialInstagram && "border-red-300")}
+                  value={socialInstagram}
+                  onChange={(e) => setSocialInstagram(e.target.value)}
+                  placeholder="instagram.com/..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <Music className="w-3.5 h-3.5" /> TikTok
+                </Label>
+                <Input
+                  className={cn("h-9 text-sm", submitAttempted && errors.socialTiktok && "border-red-300")}
+                  value={socialTiktok}
+                  onChange={(e) => setSocialTiktok(e.target.value)}
+                  placeholder="tiktok.com/@..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <Video className="w-3.5 h-3.5 text-red-500" /> YouTube
+                </Label>
+                <Input
+                  className={cn("h-9 text-sm", submitAttempted && errors.socialYoutube && "border-red-300")}
+                  value={socialYoutube}
+                  onChange={(e) => setSocialYoutube(e.target.value)}
+                  placeholder="youtube.com/..."
+                />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs text-slate-600 flex items-center gap-1.5">
+                  <LinkIcon className="w-3.5 h-3.5 text-emerald-500" /> Web stranica
+                </Label>
+                <Input
+                  className={cn("h-9 text-sm", submitAttempted && errors.socialWebsite && "border-red-300")}
+                  value={socialWebsite}
+                  onChange={(e) => setSocialWebsite(e.target.value)}
+                  placeholder="https://..."
+                />
               </div>
             </div>
-          </Disclosure>
+          </SettingSection>
+        </div>
 
-          {/* Preview prefs (local only) */}
-          <Disclosure title="Prikaz kartice (lokalno)" icon={EyeBold} defaultOpen={false}>
-            <div className="space-y-3">
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                Ove postavke se čuvaju samo na tvom uređaju i ne utiču na prikaz kupcima.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <ToggleRow
-                  title="Ocjena"
-                  desc="Prikaži rating zvjezdice"
-                  icon={EyeBold}
-                  checked={previewPrefs.showRatings}
-                  onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showRatings: v }))}
-                />
-                <ToggleRow
-                  title="Bedževi"
-                  desc="Prikaži gamifikacione bedževe"
-                  icon={EyeBold}
-                  checked={previewPrefs.showBadges}
-                  onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showBadges: v }))}
-                />
-                <ToggleRow
-                  title="Član od"
-                  desc="Prikaži datum registracije"
-                  icon={EyeBold}
-                  checked={previewPrefs.showMemberSince}
-                  onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showMemberSince: v }))}
-                />
-                <ToggleRow
-                  title="Vrijeme odgovora"
-                  desc="Prikaži chip za brzinu"
-                  icon={EyeBold}
-                  checked={previewPrefs.showResponseTime}
-                  onCheckedChange={(v) => setPreviewPrefs((p) => ({ ...p, showResponseTime: v }))}
-                />
-
-                <div className="md:col-span-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-white/60 dark:bg-slate-800/50 p-4">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Stil kontakt sekcije</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {["inline", "sheet"].map((v) => {
-                      const active = previewPrefs.contactStyle === v;
-                      return (
-                        <motion.button
-                          key={v}
-                          type="button"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setPreviewPrefs((p) => ({ ...p, contactStyle: v }))}
-                          className={cn(
-                            "h-11 rounded-2xl border px-4 text-sm font-semibold transition-all duration-200",
-                            active
-                              ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900 shadow-lg"
-                              : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                          )}
-                        >
-                          {v === "inline" ? "Inline ikone" : "Kontakt panel"}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Disclosure>
-        </motion.div>
-
-        {/* Right: Live preview */}
+        {/* Right: Live Preview */}
         <div className="xl:sticky xl:top-6 space-y-4">
-          <GlassCard>
-            <CardHeader
-              icon={EyeBold}
-              title="Live preview"
-              subtitle="Ovako izgleda tvoja kartica prodavača kupcima."
-            />
-            <CardBody>
-              <SellerPreviewCard
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Eye className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Pregled kartice</h3>
+                <p className="text-xs text-slate-500">Kako te kupci vide</p>
+              </div>
+            </div>
+            <div className="p-4">
+              <MinimalSellerCard
                 seller={previewSeller}
                 sellerSettings={previewSettings}
                 badges={[]}
-                ratings={{ total: 0 }}
                 isPro={false}
                 isShop={false}
-                uiPrefs={previewPrefs}
+                showProfileLink={false}
                 onChatClick={() => toast.message("Ovo je samo prikaz.")}
                 onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
               />
-            </CardBody>
-          </GlassCard>
+            </div>
+          </div>
 
-          {/* Additional Tips Card */}
-          <GlassCard>
-            <CardHeader
-              icon={SparklesBold}
-              title="Savjeti"
-              subtitle="Kako povećati prodaju"
-            />
-            <CardBody>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30">
-                  <CheckCircleBold className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <strong>Brzi odgovori</strong> - Prodavači koji odgovaraju u roku od sat vremena imaju 3x veću šansu za prodaju.
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100/50 dark:border-emerald-800/30">
-                  <CheckCircleBold className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <strong>Kvalitetna slika</strong> - Profili sa slikom dobijaju 50% više upita od onih bez.
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100/50 dark:border-purple-800/30">
-                  <CheckCircleBold className="h-5 w-5 text-purple-500 shrink-0 mt-0.5" />
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    <strong>Više kontakata</strong> - Omogući WhatsApp i Viber da kupci lakše dođu do tebe.
-                  </div>
-                </div>
+          {/* Tips */}
+          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900">Savjeti za bolju prodaju</h4>
+                <ul className="text-xs text-slate-600 mt-2 space-y-1.5">
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5" />
+                    Brzi odgovori povećavaju šansu za prodaju 3x
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5" />
+                    Kvalitetna slika dobija 50% više upita
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5" />
+                    Omogući više načina kontakta
+                  </li>
+                </ul>
               </div>
-            </CardBody>
-          </GlassCard>
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
