@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "usehooks-ts";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { settingsData } from "@/redux/reducer/settingSlice";
@@ -21,7 +20,7 @@ import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { cn } from "@/lib/utils";
 
-// Icons
+// Ikone iz react-icons/io5 (kao u ProfileDropdown)
 import {
   IoPersonOutline,
   IoLayersOutline,
@@ -40,14 +39,12 @@ import {
   IoStorefrontOutline,
   IoBagHandleOutline,
   IoRibbonOutline,
-  IoSparklesOutline,
   IoSearchOutline,
   IoMenuOutline,
   IoCloseOutline,
   IoSettingsOutline,
-  IoChevronBack,
 } from "react-icons/io5";
-import { Crown, Store, Sparkles, TrendingUp } from "lucide-react";
+import { Crown, Store } from "lucide-react";
 import { MdVerified } from "react-icons/md";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -84,7 +81,7 @@ const extractTotal = (payload) => {
 };
 
 // ============================================
-// USER AVATAR COMPONENT
+// USER AVATAR (isti stil kao ProfileDropdown)
 // ============================================
 function UserAvatar({
   customAvatarUrl,
@@ -134,7 +131,7 @@ function UserAvatar({
 }
 
 // ============================================
-// MEMBERSHIP BADGE
+// MEMBERSHIP BADGE (isti stil kao ProfileDropdown)
 // ============================================
 const MembershipBadge = ({ tier, size = "sm" }) => {
   if (!tier || tier === "free") return null;
@@ -142,16 +139,16 @@ const MembershipBadge = ({ tier, size = "sm" }) => {
   const configs = {
     pro: {
       icon: Crown,
-      bg: "bg-gradient-to-r from-amber-100 to-yellow-100",
-      text: "text-amber-700",
-      border: "border-amber-200",
+      bg: "bg-primary/10",
+      text: "text-primary",
+      border: "border-primary/20",
       label: "Pro",
     },
     shop: {
       icon: Store,
-      bg: "bg-gradient-to-r from-blue-100 to-indigo-100",
-      text: "text-blue-700",
-      border: "border-blue-200",
+      bg: "bg-secondary/10",
+      text: "text-secondary",
+      border: "border-secondary/20",
       label: "Shop",
     },
   };
@@ -162,7 +159,13 @@ const MembershipBadge = ({ tier, size = "sm" }) => {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${config.bg} ${config.text} ${config.border} ${sizeClasses[size]}`}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full font-semibold border",
+        config.bg,
+        config.text,
+        config.border,
+        sizeClasses[size]
+      )}
     >
       <Icon size={size === "xs" ? 10 : 12} />
       {config.label}
@@ -171,7 +174,7 @@ const MembershipBadge = ({ tier, size = "sm" }) => {
 };
 
 // ============================================
-// MENU ITEM
+// MENU ITEM (isti stil kao ProfileDropdown)
 // ============================================
 const MenuItem = ({
   icon: Icon,
@@ -192,7 +195,7 @@ const MenuItem = ({
           ? "text-red-600 hover:bg-red-50"
           : isActive
           ? "bg-primary/10 text-primary"
-          : "text-slate-700 hover:bg-slate-50/80 hover:text-slate-900"
+          : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
       )}
       onClick={onClick}
       role="button"
@@ -231,13 +234,13 @@ const MenuItem = ({
       </div>
 
       {typeof badge === "number" && badge > 0 && (
-        <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] text-center animate-pulse">
+        <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] text-center">
           {badge > 99 ? "99+" : badge}
         </span>
       )}
 
       {isNew && (
-        <span className="px-1.5 py-0.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[9px] font-bold rounded uppercase tracking-wide">
+        <span className="px-1.5 py-0.5 bg-primary text-white text-[9px] font-bold rounded uppercase tracking-wide">
           Novo
         </span>
       )}
@@ -258,7 +261,7 @@ const MenuItem = ({
 const MenuSection = ({ title, children }) => (
   <div className="py-1.5">
     {title && (
-      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
         {title}
       </p>
     )}
@@ -269,19 +272,18 @@ const MenuSection = ({ title, children }) => (
 const MenuDivider = () => <div className="h-px bg-slate-100 mx-3 my-1" />;
 
 // ============================================
-// QUICK STAT ITEM
+// QUICK STAT (isti stil kao ProfileDropdown)
 // ============================================
-const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
+const QuickStat = ({ icon: Icon, value, label, color = "primary" }) => {
   const colors = {
-    blue: "text-blue-500 bg-blue-50",
-    green: "text-green-500 bg-green-50",
-    amber: "text-amber-500 bg-amber-50",
-    purple: "text-purple-500 bg-purple-50",
+    primary: "text-primary bg-primary/10",
+    secondary: "text-secondary bg-secondary/10",
+    accent: "text-accent bg-accent/10",
   };
 
   return (
     <div className="flex flex-col items-center gap-1 p-2">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
+      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", colors[color])}>
         <Icon size={16} />
       </div>
       <span className="text-sm font-bold text-slate-800">{value}</span>
@@ -293,7 +295,7 @@ const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
 // ============================================
 // NAVIGATION CONFIG
 // ============================================
-const getNavigationConfig = (pathname, userStats, handleNavigate, handleLogout) => {
+const getNavigationConfig = (pathname, userStats) => {
   return {
     sections: [
       {
@@ -340,7 +342,7 @@ const getNavigationConfig = (pathname, userStats, handleNavigate, handleLogout) 
           {
             icon: IoLayersOutline,
             label: "Moji oglasi",
-            description: `${userStats.activeAds} aktivnih oglasa`,
+            description: userStats.activeAds > 0 ? `${userStats.activeAds} aktivnih oglasa` : "Upravljaj oglasima",
             href: "/my-ads",
             isActive: pathname === "/my-ads" || pathname?.startsWith("/my-ads/"),
           },
@@ -449,7 +451,7 @@ const getNavigationConfig = (pathname, userStats, handleNavigate, handleLogout) 
 };
 
 // ============================================
-// SIDEBAR COMPONENT
+// SIDEBAR COMPONENT (isti stil kao ProfileDropdown MenuPanel)
 // ============================================
 const ProfileSidebar = ({
   userData,
@@ -466,13 +468,13 @@ const ProfileSidebar = ({
   return (
     <div className="bg-white overflow-hidden h-full flex flex-col">
       {/* HEADER */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <UserAvatar
             customAvatarUrl={customAvatarUrl}
             avatarId={sellerAvatarId}
             size={48}
-            ringClassName="border-2 border-white"
+            ringClassName="border-2 border-white shadow-sm"
             showVerified={userStats.isVerified}
             verifiedSize={12}
           />
@@ -501,16 +503,16 @@ const ProfileSidebar = ({
       {/* CONTENT */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {/* QUICK STATS */}
-        <div className="px-4 py-3 bg-gradient-to-br from-slate-50/50 to-white border-b border-slate-100">
+        <div className="px-4 py-3 bg-slate-50/50 border-b border-slate-100">
           <div className="grid grid-cols-3 gap-1 bg-white rounded-xl p-2 border border-slate-100">
-            <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="blue" />
+            <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="primary" />
             <QuickStat
               icon={IoNotificationsOutline}
               value={userStats.unreadNotifications}
               label="Obavijesti"
-              color="amber"
+              color="secondary"
             />
-            <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="purple" />
+            <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="accent" />
           </div>
         </div>
 
@@ -519,10 +521,10 @@ const ProfileSidebar = ({
           <CustomLink
             href="/ad-listing"
             onClick={onClose}
-            className="flex items-center justify-center gap-2 py-3 bg-primary from-primary to-primary/90 text-white rounded-xl font-semibold hover:scale-[1.02] transition-all duration-200 w-full group"
+            className="flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-all duration-200 w-full group"
           >
             <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-            {"Dodaj oglas"}
+            Dodaj oglas
           </CustomLink>
         </div>
 
@@ -566,35 +568,34 @@ const ProfileSidebar = ({
           </MenuSection>
         </div>
 
-        {/* UPGRADE BANNER */}
+        {/* UPGRADE BANNER (za free korisnike) */}
         {userStats.membershipTier === "free" && (
-          <div className="p-4 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-t border-amber-100/50">
+          <div className="p-4 bg-primary/5 border-t border-primary/10">
             <CustomLink
               href="/membership/upgrade"
               onClick={onClose}
-              className="flex items-center gap-4 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-amber-200/50 hover:border-amber-300 transition-all duration-200 group"
+              className="flex items-center gap-4 p-3 bg-white rounded-xl border border-primary/20 hover:border-primary/40 transition-all duration-200 group"
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                <Sparkles className="text-white" size={24} />
+              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <Crown className="text-white" size={24} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h5 className="text-sm font-bold text-slate-800">
                   Nadogradi na Pro
-                  <TrendingUp size={14} className="text-amber-500" />
                 </h5>
-                <p className="text-xs text-slate-600">Otključaj sve mogućnosti i prednosti</p>
+                <p className="text-xs text-slate-600">Otključaj sve mogućnosti</p>
               </div>
-              <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={20} />
+              <IoChevronForward className="text-primary group-hover:translate-x-1 transition-transform" size={20} />
             </CustomLink>
           </div>
         )}
 
         {/* PRO USER BANNER */}
         {isPro && (
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100/50">
-            <div className="flex items-center gap-3 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200/50">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <IoSparklesOutline className="text-white" size={20} />
+          <div className="p-4 bg-primary/5 border-t border-primary/10">
+            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-primary/20">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <Crown className="text-white" size={20} />
               </div>
               <div className="flex-1">
                 <h5 className="text-sm font-semibold text-slate-800">
@@ -653,14 +654,6 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
       // silent fallback
     }
   }, []);
-
-  const handleNavigate = useCallback(
-    (path) => {
-      setMobileMenuOpen(false);
-      navigate(path);
-    },
-    [navigate]
-  );
 
   const handleLogout = useCallback(() => {
     setMobileMenuOpen(false);
@@ -741,8 +734,8 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
   // Navigation config
   const navigationConfig = useMemo(
-    () => getNavigationConfig(pathname, userStats, handleNavigate, handleLogout),
-    [pathname, userStats, handleNavigate, handleLogout]
+    () => getNavigationConfig(pathname, userStats),
+    [pathname, userStats]
   );
 
   // Get current page title
@@ -754,7 +747,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     return "Profil";
   }, [navigationConfig]);
 
-  // Mobile sidebar component
+  // Mobile sidebar (Sheet kao ProfileDropdown)
   const MobileSidebar = (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetTrigger asChild>
@@ -782,15 +775,12 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-[var(--background)]">
       <div className="container mx-auto px-4 lg:px-6 py-6 lg:py-8">
         {/* Mobile Header */}
         <div className="lg:hidden mb-6">
-          <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center justify-between gap-4">
             {MobileSidebar}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-slate-900 truncate">{currentPageTitle}</h1>
-            </div>
             <CustomLink
               href="/ad-listing"
               className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -822,26 +812,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
           {/* Main Content */}
           <main className="flex-1 min-w-0">
-            {/* Desktop Header */}
-            <div className="hidden lg:block mb-6">
-              <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                <CustomLink href="/" className="hover:text-primary transition-colors">
-                  Početna
-                </CustomLink>
-                <IoChevronForward size={14} />
-                <span className="text-slate-900 font-medium">{currentPageTitle}</span>
-              </div>
-              <h1 className="text-2xl font-bold text-slate-900">{currentPageTitle}</h1>
-            </div>
-
             {/* Content Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
-            >
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-4 sm:p-6">{children}</div>
-            </motion.div>
+            </div>
           </main>
         </div>
       </div>
