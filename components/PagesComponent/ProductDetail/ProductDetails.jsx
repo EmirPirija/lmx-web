@@ -51,6 +51,7 @@ import ExistingConversationBanner from "@/components/PagesComponent/ProductDetai
 // Redux
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { setBreadcrumbPath } from "@/redux/reducer/breadCrumbSlice";
+import { userSignUpData } from "@/redux/reducer/authSlice";
 
 // Utils & Hooks
 import { getFilteredCustomFields, getYouTubeVideoId, truncate } from "@/utils";
@@ -178,6 +179,7 @@ const SkeletonLoader = () => (
 // ============================================
 const ProductDetails = ({ slug }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
+  const currentUser = useSelector(userSignUpData);
   const dispatch = useDispatch();
   const pathName = usePathname();
   const router = useRouter();
@@ -185,7 +187,7 @@ const ProductDetails = ({ slug }) => {
 
   // Flags
   const isShare = searchParams.get("share") === "true";
-  const isMyListing = pathName?.startsWith("/my-listing");
+  const isMyListingPath = pathName?.startsWith("/my-listing");
 
   // State
   const [productDetails, setProductDetails] = useState(null);
@@ -220,7 +222,8 @@ const ProductDetails = ({ slug }) => {
       setVideoData({ url: "", thumbnail: "" });
       setDirectVideo(null);
 
-      const apiCall = isMyListing ? getMyItemsApi.getMyItems : allItemApi.getItems;
+      // Use path-based check for API call since we don't have product data yet
+      const apiCall = isMyListingPath ? getMyItemsApi.getMyItems : allItemApi.getItems;
       const res = await apiCall({ slug });
       const product = res?.data?.data?.data?.[0];
 
@@ -245,11 +248,17 @@ const ProductDetails = ({ slug }) => {
       const extraImages = product.gallery_images?.map(img => img?.image) || [];
       setGalleryImages([product.image, ...extraImages]);
 
-      // Views
-      if (!isMyListing) await setItemTotalClickApi.setItemTotalClick({ item_id: product.id });
+      // Check if current user is the owner (for view tracking)
+      const productOwnerId = product?.user?.id || product?.user?.user_id || product?.user_id;
+      const isProductOwner = currentUser?.id && String(currentUser.id) === String(productOwnerId);
+
+      // Views - don't track if owner or accessed via my-listing
+      if (!isMyListingPath && !isProductOwner) {
+        await setItemTotalClickApi.setItemTotalClick({ item_id: product.id });
+      }
 
       // Breadcrumb
-      if (isMyListing) {
+      if (isMyListingPath) {
         dispatch(setBreadcrumbPath([{ name: "Moji oglasi", slug: "/my-ads" }, { name: truncate(product.name, 40) }]));
       }
 
@@ -259,6 +268,18 @@ const ProductDetails = ({ slug }) => {
       setIsLoading(false);
     }
   };
+
+  // Check if current user is the owner of this product
+  const isOwner = Boolean(
+    currentUser?.id && 
+    productDetails?.user && 
+    (String(currentUser.id) === String(productDetails.user.id) || 
+     String(currentUser.id) === String(productDetails.user.user_id) ||
+     String(currentUser.id) === String(productDetails.user_id))
+  );
+  
+  // isMyListing = true if accessed via /my-listing OR if the logged-in user is the owner
+  const isMyListing = isMyListingPath || isOwner;
 
   // 2. Fetch Seller Info
   useEffect(() => {
@@ -271,8 +292,8 @@ const ProductDetails = ({ slug }) => {
 
   // 3. Effects
   useEffect(() => { fetchProductDetails(); }, [slug, CurrentLanguage?.id]);
-  useEffect(() => { if (itemId && !isMyListing) trackView(searchParams.get("ref"), searchParams.get("query")); }, [itemId]);
-  useEffect(() => { if (window.innerWidth <= 768 && !isMyListing && isShare) setIsOpenInApp(true); }, []);
+  useEffect(() => { if (itemId && !isMyListing && !isOwner) trackView(searchParams.get("ref"), searchParams.get("query")); }, [itemId, isMyListing, isOwner]);
+  useEffect(() => { if (window.innerWidth <= 768 && !isMyListing && !isOwner && isShare) setIsOpenInApp(true); }, [isMyListing, isOwner]);
 
   // Handlers
   const handleDeleteAd = async () => {
