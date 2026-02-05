@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
-import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
+import { SellerPreviewCard } from "@/components/PagesComponent/Seller/SellerDetailCard";
 
 // ============================================
 // CONSTANTS
@@ -682,7 +682,7 @@ const SellerSettings = () => {
               </div>
             </div>
             <div className="p-4">
-              <MinimalSellerCard
+              <SellerPreviewCard
                 seller={previewSeller}
                 sellerSettings={previewSettings}
                 badges={[]}
