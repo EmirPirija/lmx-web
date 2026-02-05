@@ -3,53 +3,56 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 
 import {
-  Phone,
-  Mail,
-  MessageCircle,
-  Clock,
-  Shield,
-  Truck,
-  RotateCcw,
-  Globe,
-  Camera,
-  Save,
-  RefreshCw,
-  Loader2,
-  AlertCircle,
-  BadgeCheck,
-  Eye,
-  EyeOff,
-  Star,
-  Calendar,
-  Zap,
-  Store,
-  ChevronRight,
-} from "lucide-react";
+  IoCallOutline,
+  IoMailOutline,
+  IoLogoWhatsapp,
+  IoTimeOutline,
+  IoShieldCheckmarkOutline,
+  IoAirplaneOutline,
+  IoGlobeOutline,
+  IoSaveOutline,
+  IoRefreshOutline,
+  IoAlertCircleOutline,
+  IoCheckmarkCircleOutline,
+  IoEyeOutline,
+  IoEyeOffOutline,
+  IoStarOutline,
+  IoCalendarOutline,
+  IoFlashOutline,
+  IoStorefrontOutline,
+  IoChevronForward,
+  IoGridOutline,
+  IoInformationCircleOutline,
+  IoCarOutline,
+  IoReturnDownBackOutline,
+  IoLogoFacebook,
+  IoLogoInstagram,
+  IoLinkOutline,
+} from "react-icons/io5";
+import { Loader2 } from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
-import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
-import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
+import { sellerSettingsApi } from "@/utils/api";
+import { userSignUpData } from "@/redux/reducer/authSlice";
 
 // ============================================
 // KONSTANTE
 // ============================================
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DAY_LABELS = {
-  monday: "Ponedjeljak",
-  tuesday: "Utorak",
-  wednesday: "Srijeda",
-  thursday: "Četvrtak",
-  friday: "Petak",
-  saturday: "Subota",
-  sunday: "Nedjelja",
+  monday: "Pon",
+  tuesday: "Uto",
+  wednesday: "Sri",
+  thursday: "Čet",
+  friday: "Pet",
+  saturday: "Sub",
+  sunday: "Ned",
 };
 
 const defaultBusinessHours = DAYS.reduce((acc, day) => {
@@ -90,59 +93,121 @@ const normalizeCardPreferences = (raw) => {
 const stableStringify = (value) => JSON.stringify(value, Object.keys(value).sort());
 
 // ============================================
-// UI KOMPONENTE
+// UI KOMPONENTE - ProfileDropdown stil
 // ============================================
-const SettingRow = ({ icon: Icon, title, description, checked, onChange, disabled }) => (
-  <div className={cn(
-    "flex items-center justify-between gap-4 p-4 rounded-xl border transition-all",
-    checked ? "bg-primary/5 border-primary/20" : "bg-slate-50 border-slate-100",
-    disabled && "opacity-50"
-  )}>
-    <div className="flex items-center gap-3 min-w-0">
-      <div className={cn(
-        "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-        checked ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-400"
-      )}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-900">{title}</p>
-        {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
-      </div>
+const MenuSection = ({ title, children }) => (
+  <div className="py-1.5">
+    {title && (
+      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+        {title}
+      </p>
+    )}
+    <div className="space-y-0.5">{children}</div>
+  </div>
+);
+
+const MenuDivider = () => <div className="h-px bg-slate-100 mx-3 my-1" />;
+
+const SettingRow = ({ icon: Icon, label, description, checked, onChange, disabled }) => (
+  <div
+    className={cn(
+      "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
+      checked ? "bg-primary/5" : "hover:bg-slate-50/80",
+      disabled && "opacity-50"
+    )}
+  >
+    <div
+      className={cn(
+        "w-9 h-9 rounded-lg flex items-center justify-center transition-colors",
+        checked ? "bg-primary/10" : "bg-slate-100"
+      )}
+    >
+      <Icon
+        size={18}
+        className={cn(checked ? "text-primary" : "text-slate-500")}
+      />
+    </div>
+    <div className="flex-1 min-w-0">
+      <span className="text-sm font-medium text-slate-700 block">{label}</span>
+      {description && <span className="text-[11px] text-slate-400 block">{description}</span>}
     </div>
     <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
   </div>
 );
 
-const SectionTitle = ({ children, badge }) => (
-  <div className="flex items-center gap-2 mb-4">
-    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">{children}</h3>
-    {badge && (
-      <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full">
-        {badge}
-      </span>
-    )}
+const InputRow = ({ icon: Icon, label, placeholder, value, onChange, type = "text" }) => (
+  <div className="flex items-start gap-3 px-3 py-2.5">
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-slate-100 flex-shrink-0">
+      <Icon size={18} className="text-slate-500" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <span className="text-sm font-medium text-slate-700 block mb-1.5">{label}</span>
+      <Input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 text-sm"
+      />
+    </div>
   </div>
 );
 
-const StatusBadge = ({ verified, className }) => (
-  <div className={cn(
-    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
-    verified 
-      ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-      : "bg-slate-100 text-slate-600 border border-slate-200",
-    className
-  )}>
-    <BadgeCheck className={cn("w-3.5 h-3.5", verified ? "text-emerald-500" : "text-slate-400")} />
-    {verified ? "Verificiran" : "Nije verificiran"}
+const TextareaRow = ({ icon: Icon, label, placeholder, value, onChange }) => (
+  <div className="flex items-start gap-3 px-3 py-2.5">
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-slate-100 flex-shrink-0 mt-0.5">
+      <Icon size={18} className="text-slate-500" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <span className="text-sm font-medium text-slate-700 block mb-1.5">{label}</span>
+      <Textarea
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-h-[60px] text-sm resize-none"
+      />
+    </div>
   </div>
+);
+
+const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
+  const colors = {
+    blue: "text-blue-500 bg-blue-50",
+    green: "text-green-500 bg-green-50",
+    amber: "text-amber-500 bg-amber-50",
+    purple: "text-purple-500 bg-purple-50",
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1 p-2">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
+        <Icon size={16} />
+      </div>
+      <span className="text-sm font-bold text-slate-800">{value}</span>
+      <span className="text-[10px] text-slate-400 font-medium">{label}</span>
+    </div>
+  );
+};
+
+const ResponseTimeButton = ({ label, isActive, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "px-3 py-2 rounded-lg text-xs font-medium transition-all",
+      isActive
+        ? "bg-primary text-white"
+        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+    )}
+  >
+    {label}
+  </button>
 );
 
 // ============================================
 // GLAVNA KOMPONENTA
 // ============================================
 const SellerSettings = () => {
-  const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
   const isMountedRef = useRef(true);
 
@@ -178,7 +243,7 @@ const SellerSettings = () => {
   const [socialInstagram, setSocialInstagram] = useState("");
   const [socialWebsite, setSocialWebsite] = useState("");
 
-  // Prikaz kartice - šta kupci vide
+  // Prikaz kartice
   const [cardPreferences, setCardPreferences] = useState(defaultCardPreferences);
 
   // Odmor
@@ -225,7 +290,7 @@ const SellerSettings = () => {
       const response = await sellerSettingsApi.getSettings();
       
       if (response?.data?.error !== false || !response?.data?.data) {
-        setLoadError(response?.data?.message || "Greška pri učitavanju postavki.");
+        setLoadError(response?.data?.message || "Greška pri učitavanju.");
         return;
       }
 
@@ -289,13 +354,13 @@ const SellerSettings = () => {
       
       if (response?.data?.error === false) {
         initialPayloadRef.current = stableStringify(payload);
-        toast.success("Postavke uspješno sačuvane!");
+        toast.success("Postavke sačuvane!");
       } else {
         toast.error(response?.data?.message || "Greška pri spremanju.");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Greška pri spremanju postavki.");
+      toast.error("Greška pri spremanju.");
     } finally {
       setIsSaving(false);
     }
@@ -312,8 +377,8 @@ const SellerSettings = () => {
   // Loading
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[300px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-[200px]">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -321,17 +386,21 @@ const SellerSettings = () => {
   // Error
   if (loadError) {
     return (
-      <div className="bg-red-50 border border-red-100 rounded-2xl p-6">
-        <div className="flex items-start gap-4">
-          <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
-          <div>
-            <p className="font-medium text-red-900">Greška</p>
-            <p className="text-sm text-red-700 mt-1">{loadError}</p>
-            <Button variant="outline" size="sm" onClick={fetchSettings} className="mt-4">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Pokušaj ponovo
-            </Button>
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-50">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-100">
+            <IoAlertCircleOutline size={18} className="text-red-500" />
           </div>
+          <div className="flex-1">
+            <span className="text-sm font-medium text-red-800 block">Greška</span>
+            <span className="text-[11px] text-red-600 block">{loadError}</span>
+          </div>
+          <button
+            onClick={fetchSettings}
+            className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
+          >
+            Ponovo
+          </button>
         </div>
       </div>
     );
@@ -340,342 +409,328 @@ const SellerSettings = () => {
   const isVerified = currentUser?.is_verified === 1 || currentUser?.is_verified === true;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-8"
-    >
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      {/* HEADER */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Postavke prodavača</h1>
-          <p className="text-slate-500 mt-1">Upravljaj kako te kupci vide i kontaktiraju</p>
-          <div className="mt-3">
-            <StatusBadge verified={isVerified} />
+          <h2 className="text-sm font-semibold text-slate-900">Postavke prodavača</h2>
+          <p className="text-[11px] text-slate-400">Kako te kupci vide</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Verified badge */}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+              isVerified
+                ? "bg-green-50 text-green-700 border-green-200"
+                : "bg-slate-50 text-slate-500 border-slate-200"
+            )}
+          >
+            {isVerified ? (
+              <IoCheckmarkCircleOutline size={12} />
+            ) : (
+              <IoAlertCircleOutline size={12} />
+            )}
+            {isVerified ? "Verificiran" : "Nije verificiran"}
+          </span>
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+        {/* QUICK STATS */}
+        <div className="px-4 py-3 bg-gradient-to-br from-slate-50/50 to-white border-b border-slate-100">
+          <div className="grid grid-cols-4 gap-1 bg-white rounded-xl p-2 border border-slate-100">
+            <QuickStat icon={IoEyeOutline} value={cardPreferences.show_ratings ? "Da" : "Ne"} label="Ocjene" color="amber" />
+            <QuickStat icon={IoStarOutline} value={cardPreferences.show_badges ? "Da" : "Ne"} label="Bedževi" color="purple" />
+            <QuickStat icon={IoFlashOutline} value={cardPreferences.show_response_time ? "Da" : "Ne"} label="Odgovor" color="blue" />
+            <QuickStat icon={IoCalendarOutline} value={cardPreferences.show_member_since ? "Da" : "Ne"} label="Član od" color="green" />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {hasChanges && (
-            <span className="text-xs text-primary font-medium flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              Nesačuvane izmjene
-            </span>
-          )}
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || !hasChanges}
-            className="bg-primary hover:bg-primary/90"
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            Sačuvaj
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Lijeva kolona */}
-        <div className="space-y-8">
-          {/* Prikaz kartice */}
-          <section>
-            <SectionTitle badge="Važno">Šta kupci vide</SectionTitle>
-            <p className="text-xs text-slate-500 mb-4">
-              Kontroliši koje informacije se prikazuju na tvojoj prodavačkoj kartici na oglasima i profilu.
-            </p>
-            <div className="space-y-3">
-              <SettingRow
-                icon={Star}
-                title="Ocjene i recenzije"
-                description="Prikaži prosječnu ocjenu i broj recenzija"
-                checked={cardPreferences.show_ratings}
-                onChange={(v) => updateCardPref("show_ratings", v)}
-              />
-              <SettingRow
-                icon={BadgeCheck}
-                title="Bedževi"
-                description="Prikaži osvojene bedževe"
-                checked={cardPreferences.show_badges}
-                onChange={(v) => updateCardPref("show_badges", v)}
-              />
-              <SettingRow
-                icon={Calendar}
-                title="Datum registracije"
-                description="Prikaži kada si se registrovao"
-                checked={cardPreferences.show_member_since}
-                onChange={(v) => updateCardPref("show_member_since", v)}
-              />
-              <SettingRow
-                icon={Zap}
-                title="Vrijeme odgovora"
-                description="Prikaži koliko brzo odgovaraš"
-                checked={cardPreferences.show_response_time}
-                onChange={(v) => updateCardPref("show_response_time", v)}
-              />
-              <SettingRow
-                icon={Clock}
-                title="Radno vrijeme"
-                description="Prikaži radno vrijeme (samo za trgovine)"
-                checked={cardPreferences.show_business_hours}
-                onChange={(v) => updateCardPref("show_business_hours", v)}
-              />
-              <SettingRow
-                icon={Truck}
-                title="Informacije o dostavi"
-                description="Prikaži način i uslove dostave"
-                checked={cardPreferences.show_shipping_info}
-                onChange={(v) => updateCardPref("show_shipping_info", v)}
-              />
-              <SettingRow
-                icon={RotateCcw}
-                title="Politika povrata"
-                description="Prikaži uslove povrata"
-                checked={cardPreferences.show_return_policy}
-                onChange={(v) => updateCardPref("show_return_policy", v)}
-              />
-            </div>
-          </section>
-
-          {/* Kontakt */}
-          <section>
-            <SectionTitle>Kontakt opcije</SectionTitle>
-            <p className="text-xs text-slate-500 mb-4">
-              Odaberi koje kontakt opcije kupci mogu koristiti.
-            </p>
-            <div className="space-y-3">
-              <SettingRow
-                icon={Phone}
-                title="Telefon"
-                description="Kupci mogu vidjeti tvoj broj"
-                checked={showPhone}
-                onChange={setShowPhone}
-              />
-              <SettingRow
-                icon={Mail}
-                title="Email"
-                description="Kupci mogu vidjeti tvoj email"
-                checked={showEmail}
-                onChange={setShowEmail}
-              />
-              <SettingRow
-                icon={MessageCircle}
-                title="WhatsApp"
-                description="Omogući kontakt putem WhatsApp-a"
-                checked={showWhatsapp}
-                onChange={setShowWhatsapp}
-              />
-              {showWhatsapp && (
-                <div className="pl-14">
-                  <Input
-                    placeholder="+387 61 123 456"
-                    value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
-                    className="h-10"
-                  />
-                </div>
-              )}
-              <SettingRow
-                icon={Phone}
-                title="Viber"
-                description="Omogući kontakt putem Viber-a"
-                checked={showViber}
-                onChange={setShowViber}
-              />
-              {showViber && (
-                <div className="pl-14">
-                  <Input
-                    placeholder="+387 61 123 456"
-                    value={viberNumber}
-                    onChange={(e) => setViberNumber(e.target.value)}
-                    className="h-10"
-                  />
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
-
-        {/* Desna kolona */}
-        <div className="space-y-8">
-          {/* Informacije */}
-          <section>
-            <SectionTitle>Informacije</SectionTitle>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">O tebi</label>
-                <Textarea
-                  placeholder="Ukratko o sebi i šta prodaješ..."
-                  value={businessDescription}
-                  onChange={(e) => setBusinessDescription(e.target.value)}
-                  className="min-h-[80px] resize-none"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Dostava</label>
-                <Textarea
-                  placeholder="Način slanja, rokovi, cijene dostave..."
-                  value={shippingInfo}
-                  onChange={(e) => setShippingInfo(e.target.value)}
-                  className="min-h-[60px] resize-none"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Povrat</label>
-                <Textarea
-                  placeholder="Uslovi povrata i zamjene..."
-                  value={returnPolicy}
-                  onChange={(e) => setReturnPolicy(e.target.value)}
-                  className="min-h-[60px] resize-none"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Vrijeme odgovora */}
-          <section>
-            <SectionTitle>Dostupnost</SectionTitle>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-3 block">Prosječno vrijeme odgovora</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { value: "auto", label: "Automatski" },
-                    { value: "instant", label: "Par minuta" },
-                    { value: "few_hours", label: "Par sati" },
-                    { value: "same_day", label: "Isti dan" },
-                    { value: "few_days", label: "Par dana" },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setResponseTime(opt.value)}
-                      className={cn(
-                        "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                        responseTime === opt.value
-                          ? "bg-primary text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <SettingRow
-                icon={Shield}
-                title="Primam ponude"
-                description="Dopusti kupcima da šalju cjenovne ponude"
-                checked={acceptsOffers}
-                onChange={setAcceptsOffers}
-              />
-            </div>
-          </section>
-
-          {/* Društvene mreže */}
-          <section>
-            <SectionTitle>Društvene mreže</SectionTitle>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Facebook</label>
-                <Input
-                  placeholder="facebook.com/tvojprofil"
-                  value={socialFacebook}
-                  onChange={(e) => setSocialFacebook(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Instagram</label>
-                <Input
-                  placeholder="instagram.com/tvojprofil"
-                  value={socialInstagram}
-                  onChange={(e) => setSocialInstagram(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Web stranica</label>
-                <Input
-                  placeholder="https://tvojasstranica.ba"
-                  value={socialWebsite}
-                  onChange={(e) => setSocialWebsite(e.target.value)}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Odmor */}
-          <section>
-            <SectionTitle>Način odmora</SectionTitle>
-            <div className="space-y-3">
-              <SettingRow
-                icon={EyeOff}
-                title="Aktiviraj odmor"
-                description="Kupci će vidjeti da trenutno nisi dostupan"
-                checked={vacationMode}
-                onChange={setVacationMode}
-              />
-              {vacationMode && (
-                <Textarea
-                  placeholder="Poruka za kupce dok si na odmoru..."
-                  value={vacationMessage}
-                  onChange={(e) => setVacationMessage(e.target.value)}
-                  className="min-h-[60px] resize-none"
-                />
-              )}
-            </div>
-          </section>
-        </div>
-      </div>
-
-      {/* Radno vrijeme - puna širina */}
-      <section className="pt-4 border-t border-slate-100">
-        <SectionTitle>Radno vrijeme</SectionTitle>
-        <p className="text-xs text-slate-500 mb-4">
-          Postavi radno vrijeme ako imaš fizičku lokaciju ili definisan raspored.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {DAYS.map((day) => (
-            <div
-              key={day}
-              className={cn(
-                "p-4 rounded-xl border transition-all",
-                businessHours[day]?.enabled
-                  ? "bg-white border-slate-200"
-                  : "bg-slate-50 border-slate-100"
-              )}
+        {/* SAVE BUTTON */}
+        {hasChanges && (
+          <div className="px-4 py-3 border-b border-slate-100">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-slate-900">
-                  {DAY_LABELS[day]}
-                </span>
-                <Switch
-                  checked={businessHours[day]?.enabled}
-                  onCheckedChange={(v) => setDay(day, { enabled: v })}
-                />
-              </div>
-              {businessHours[day]?.enabled && (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="time"
-                    value={businessHours[day]?.open || "09:00"}
-                    onChange={(e) => setDay(day, { open: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                  <span className="text-slate-400">-</span>
-                  <Input
-                    type="time"
-                    value={businessHours[day]?.close || "17:00"}
-                    onChange={(e) => setDay(day, { close: e.target.value })}
-                    className="h-9 text-sm"
-                  />
-                </div>
+              {isSaving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <IoSaveOutline size={16} />
               )}
+              Sačuvaj promjene
+            </button>
+          </div>
+        )}
+
+        {/* CARD PREFERENCES */}
+        <div className="px-2 pb-2">
+          <MenuSection title="Šta kupci vide">
+            <SettingRow
+              icon={IoStarOutline}
+              label="Ocjene i recenzije"
+              description="Prosječna ocjena i broj recenzija"
+              checked={cardPreferences.show_ratings}
+              onChange={(v) => updateCardPref("show_ratings", v)}
+            />
+            <SettingRow
+              icon={IoShieldCheckmarkOutline}
+              label="Bedževi"
+              description="Osvojeni bedževi"
+              checked={cardPreferences.show_badges}
+              onChange={(v) => updateCardPref("show_badges", v)}
+            />
+            <SettingRow
+              icon={IoCalendarOutline}
+              label="Datum registracije"
+              description="Kada si se registrovao"
+              checked={cardPreferences.show_member_since}
+              onChange={(v) => updateCardPref("show_member_since", v)}
+            />
+            <SettingRow
+              icon={IoFlashOutline}
+              label="Vrijeme odgovora"
+              description="Koliko brzo odgovaraš"
+              checked={cardPreferences.show_response_time}
+              onChange={(v) => updateCardPref("show_response_time", v)}
+            />
+            <SettingRow
+              icon={IoTimeOutline}
+              label="Radno vrijeme"
+              description="Samo za trgovine"
+              checked={cardPreferences.show_business_hours}
+              onChange={(v) => updateCardPref("show_business_hours", v)}
+            />
+            <SettingRow
+              icon={IoCarOutline}
+              label="Info o dostavi"
+              description="Način i uslovi dostave"
+              checked={cardPreferences.show_shipping_info}
+              onChange={(v) => updateCardPref("show_shipping_info", v)}
+            />
+            <SettingRow
+              icon={IoReturnDownBackOutline}
+              label="Politika povrata"
+              description="Uslovi povrata"
+              checked={cardPreferences.show_return_policy}
+              onChange={(v) => updateCardPref("show_return_policy", v)}
+            />
+          </MenuSection>
+
+          <MenuDivider />
+
+          {/* CONTACT */}
+          <MenuSection title="Kontakt opcije">
+            <SettingRow
+              icon={IoCallOutline}
+              label="Telefon"
+              description="Kupci vide tvoj broj"
+              checked={showPhone}
+              onChange={setShowPhone}
+            />
+            <SettingRow
+              icon={IoMailOutline}
+              label="Email"
+              description="Kupci vide tvoj email"
+              checked={showEmail}
+              onChange={setShowEmail}
+            />
+            <SettingRow
+              icon={IoLogoWhatsapp}
+              label="WhatsApp"
+              description="Kontakt putem WhatsApp-a"
+              checked={showWhatsapp}
+              onChange={setShowWhatsapp}
+            />
+            {showWhatsapp && (
+              <InputRow
+                icon={IoLogoWhatsapp}
+                label="WhatsApp broj"
+                placeholder="+387 61 123 456"
+                value={whatsappNumber}
+                onChange={setWhatsappNumber}
+              />
+            )}
+            <SettingRow
+              icon={IoCallOutline}
+              label="Viber"
+              description="Kontakt putem Viber-a"
+              checked={showViber}
+              onChange={setShowViber}
+            />
+            {showViber && (
+              <InputRow
+                icon={IoCallOutline}
+                label="Viber broj"
+                placeholder="+387 61 123 456"
+                value={viberNumber}
+                onChange={setViberNumber}
+              />
+            )}
+          </MenuSection>
+
+          <MenuDivider />
+
+          {/* AVAILABILITY */}
+          <MenuSection title="Dostupnost">
+            <div className="px-3 py-2.5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-slate-100">
+                  <IoFlashOutline size={18} className="text-slate-500" />
+                </div>
+                <span className="text-sm font-medium text-slate-700">Vrijeme odgovora</span>
+              </div>
+              <div className="flex flex-wrap gap-2 ml-12">
+                {[
+                  { value: "auto", label: "Auto" },
+                  { value: "instant", label: "Minuti" },
+                  { value: "few_hours", label: "Sati" },
+                  { value: "same_day", label: "24h" },
+                  { value: "few_days", label: "Dani" },
+                ].map((opt) => (
+                  <ResponseTimeButton
+                    key={opt.value}
+                    label={opt.label}
+                    isActive={responseTime === opt.value}
+                    onClick={() => setResponseTime(opt.value)}
+                  />
+                ))}
+              </div>
             </div>
-          ))}
+            <SettingRow
+              icon={IoShieldCheckmarkOutline}
+              label="Primam ponude"
+              description="Kupci mogu slati cjenovne ponude"
+              checked={acceptsOffers}
+              onChange={setAcceptsOffers}
+            />
+          </MenuSection>
+
+          <MenuDivider />
+
+          {/* INFO */}
+          <MenuSection title="Informacije">
+            <TextareaRow
+              icon={IoInformationCircleOutline}
+              label="O tebi"
+              placeholder="Ukratko o sebi i šta prodaješ..."
+              value={businessDescription}
+              onChange={setBusinessDescription}
+            />
+            <TextareaRow
+              icon={IoCarOutline}
+              label="Dostava"
+              placeholder="Način slanja, rokovi, cijene..."
+              value={shippingInfo}
+              onChange={setShippingInfo}
+            />
+            <TextareaRow
+              icon={IoReturnDownBackOutline}
+              label="Povrat"
+              placeholder="Uslovi povrata i zamjene..."
+              value={returnPolicy}
+              onChange={setReturnPolicy}
+            />
+          </MenuSection>
+
+          <MenuDivider />
+
+          {/* SOCIAL */}
+          <MenuSection title="Društvene mreže">
+            <InputRow
+              icon={IoLogoFacebook}
+              label="Facebook"
+              placeholder="facebook.com/tvojprofil"
+              value={socialFacebook}
+              onChange={setSocialFacebook}
+            />
+            <InputRow
+              icon={IoLogoInstagram}
+              label="Instagram"
+              placeholder="instagram.com/tvojprofil"
+              value={socialInstagram}
+              onChange={setSocialInstagram}
+            />
+            <InputRow
+              icon={IoLinkOutline}
+              label="Web stranica"
+              placeholder="https://tvojasstranica.ba"
+              value={socialWebsite}
+              onChange={setSocialWebsite}
+            />
+          </MenuSection>
+
+          <MenuDivider />
+
+          {/* VACATION */}
+          <MenuSection title="Odmor">
+            <SettingRow
+              icon={IoAirplaneOutline}
+              label="Aktiviraj odmor"
+              description="Kupci vide da nisi dostupan"
+              checked={vacationMode}
+              onChange={setVacationMode}
+            />
+            {vacationMode && (
+              <TextareaRow
+                icon={IoAirplaneOutline}
+                label="Poruka za odmor"
+                placeholder="Poruka za kupce dok si na odmoru..."
+                value={vacationMessage}
+                onChange={setVacationMessage}
+              />
+            )}
+          </MenuSection>
+
+          <MenuDivider />
+
+          {/* BUSINESS HOURS */}
+          <MenuSection title="Radno vrijeme">
+            <div className="px-3 py-2.5 space-y-2">
+              {DAYS.map((day) => (
+                <div
+                  key={day}
+                  className={cn(
+                    "flex items-center gap-3 p-2.5 rounded-xl border transition-all",
+                    businessHours[day]?.enabled
+                      ? "bg-white border-slate-200"
+                      : "bg-slate-50 border-slate-100"
+                  )}
+                >
+                  <Switch
+                    checked={businessHours[day]?.enabled}
+                    onCheckedChange={(v) => setDay(day, { enabled: v })}
+                  />
+                  <span className="text-sm font-medium text-slate-700 w-10">
+                    {DAY_LABELS[day]}
+                  </span>
+                  {businessHours[day]?.enabled && (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        type="time"
+                        value={businessHours[day]?.open || "09:00"}
+                        onChange={(e) => setDay(day, { open: e.target.value })}
+                        className="h-8 text-xs w-24"
+                      />
+                      <span className="text-slate-400 text-xs">-</span>
+                      <Input
+                        type="time"
+                        value={businessHours[day]?.close || "17:00"}
+                        onChange={(e) => setDay(day, { close: e.target.value })}
+                        className="h-8 text-xs w-24"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </MenuSection>
         </div>
-      </section>
-    </motion.div>
+      </div>
+    </div>
   );
 };
 

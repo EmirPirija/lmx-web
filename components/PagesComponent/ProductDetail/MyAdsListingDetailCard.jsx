@@ -1,27 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import {
-  Edit,
-  Trash2,
-  Copy,
-  Share2,
-  Eye,
-  Heart,
-  MessageCircle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Star,
-  Shield,
-  TrendingUp,
-  ExternalLink,
-} from "lucide-react";
-import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import Link from "next/link";
+import { toast } from "sonner";
+
+import {
+  IoCreateOutline,
+  IoTrashOutline,
+  IoCopyOutline,
+  IoShareSocialOutline,
+  IoEyeOutline,
+  IoHeartOutline,
+  IoChatbubbleOutline,
+  IoCalendarOutline,
+  IoCheckmarkCircleOutline,
+  IoTimeOutline,
+  IoAlertCircleOutline,
+  IoStarOutline,
+  IoShieldCheckmarkOutline,
+  IoTrendingUpOutline,
+  IoOpenOutline,
+  IoChevronForward,
+} from "react-icons/io5";
 
 import { deleteItemApi } from "@/utils/api";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
@@ -43,8 +44,8 @@ const formatDate = (dateString) => {
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return "";
   const day = date.getDate();
-  const months = ["januar", "februar", "mart", "april", "maj", "juni", "juli", "august", "septembar", "oktobar", "novembar", "decembar"];
-  return `${day}. ${months[date.getMonth()]} ${date.getFullYear()}.`;
+  const months = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
+  return `${day}. ${months[date.getMonth()]} ${date.getFullYear()}`;
 };
 
 const formatNumber = (num) => {
@@ -54,38 +55,123 @@ const formatNumber = (num) => {
 };
 
 // ============================================
-// STATUS KOMPONENTE
+// UI KOMPONENTE - ProfileDropdown stil
 // ============================================
-const StatusIndicator = ({ status }) => {
-  const config = {
-    approved: { color: "bg-emerald-500", text: "Aktivan", icon: CheckCircle },
-    pending: { color: "bg-amber-500", text: "Na čekanju", icon: Clock },
-    rejected: { color: "bg-red-500", text: "Odbijen", icon: AlertCircle },
-    scheduled: { color: "bg-blue-500", text: "Zakazano", icon: Calendar },
-    reserved: { color: "bg-purple-500", text: "Rezervisano", icon: Shield },
-    "sold out": { color: "bg-slate-500", text: "Prodano", icon: CheckCircle },
-    expired: { color: "bg-slate-400", text: "Istekao", icon: Clock },
+const MenuSection = ({ title, children }) => (
+  <div className="py-1.5">
+    {title && (
+      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+        {title}
+      </p>
+    )}
+    <div className="space-y-0.5">{children}</div>
+  </div>
+);
+
+const MenuDivider = () => <div className="h-px bg-slate-100 mx-3 my-1" />;
+
+const MenuItem = ({
+  icon: Icon,
+  label,
+  href,
+  onClick,
+  description,
+  danger,
+  external,
+  badge,
+  disabled,
+}) => {
+  const content = (
+    <div
+      className={cn(
+        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group",
+        danger
+          ? "text-red-600 hover:bg-red-50"
+          : "text-slate-700 hover:bg-slate-50/80 hover:text-slate-900",
+        disabled && "opacity-50 pointer-events-none"
+      )}
+      onClick={disabled ? undefined : onClick}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+    >
+      <div
+        className={cn(
+          "w-9 h-9 rounded-lg flex items-center justify-center transition-colors",
+          danger ? "bg-red-50 group-hover:bg-red-100" : "bg-slate-100 group-hover:bg-slate-200/70"
+        )}
+      >
+        <Icon
+          size={18}
+          className={danger ? "text-red-500" : "text-slate-500 group-hover:text-slate-700"}
+        />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium block">{label}</span>
+        {description && <span className="text-[11px] text-slate-400 block truncate">{description}</span>}
+      </div>
+
+      {badge && (
+        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full">
+          {badge}
+        </span>
+      )}
+
+      {external && <IoChevronForward size={14} className="text-slate-300" />}
+    </div>
+  );
+
+  if (href && !onClick) {
+    return (
+      <Link href={href} className="block" target={external ? "_blank" : undefined}>
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
+};
+
+const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
+  const colors = {
+    blue: "text-blue-500 bg-blue-50",
+    green: "text-green-500 bg-green-50",
+    amber: "text-amber-500 bg-amber-50",
+    purple: "text-purple-500 bg-purple-50",
+    red: "text-red-500 bg-red-50",
   };
 
-  const { color, text, icon: Icon } = config[status] || { color: "bg-slate-400", text: status, icon: AlertCircle };
-
   return (
-    <div className="flex items-center gap-2">
-      <span className={cn("w-2 h-2 rounded-full", color)} />
-      <span className="text-sm font-medium text-slate-700">{text}</span>
+    <div className="flex flex-col items-center gap-1 p-2">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
+        <Icon size={16} />
+      </div>
+      <span className="text-sm font-bold text-slate-800">{value}</span>
+      <span className="text-[10px] text-slate-400 font-medium">{label}</span>
     </div>
   );
 };
 
-const StatItem = ({ icon: Icon, label, value, color = "text-slate-400" }) => (
-  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-    <Icon className={cn("w-5 h-5", color)} />
-    <div>
-      <p className="text-lg font-bold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
-    </div>
-  </div>
-);
+const StatusBadge = ({ status }) => {
+  const config = {
+    approved: { color: "bg-green-50 text-green-700 border-green-200", icon: IoCheckmarkCircleOutline, text: "Aktivan" },
+    pending: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: IoTimeOutline, text: "Na čekanju" },
+    rejected: { color: "bg-red-50 text-red-700 border-red-200", icon: IoAlertCircleOutline, text: "Odbijen" },
+    scheduled: { color: "bg-blue-50 text-blue-700 border-blue-200", icon: IoCalendarOutline, text: "Zakazano" },
+    reserved: { color: "bg-purple-50 text-purple-700 border-purple-200", icon: IoShieldCheckmarkOutline, text: "Rezervisano" },
+    "sold out": { color: "bg-slate-100 text-slate-600 border-slate-200", icon: IoCheckmarkCircleOutline, text: "Prodano" },
+    expired: { color: "bg-slate-100 text-slate-500 border-slate-200", icon: IoTimeOutline, text: "Istekao" },
+  };
+
+  const { color, icon: Icon, text } = config[status] || config.pending;
+
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border", color)}>
+      <Icon size={12} />
+      {text}
+    </span>
+  );
+};
 
 // ============================================
 // GLAVNA KOMPONENTA
@@ -111,14 +197,14 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
     try {
       const res = await deleteItemApi.deleteItem({ item_id: productDetails?.id });
       if (!res?.data?.error) {
-        toast.success("Oglas je uspješno obrisan");
+        toast.success("Oglas uspješno obrisan");
         navigate("/my-ads");
       } else {
         toast.error(res?.data?.message || "Greška pri brisanju");
       }
     } catch (error) {
       console.error("Delete error:", error);
-      toast.error("Greška pri brisanju oglasa");
+      toast.error("Greška pri brisanju");
     } finally {
       setIsDeleting(false);
       setIsDeleteOpen(false);
@@ -126,145 +212,134 @@ const MyAdsListingDetailCard = ({ productDetails }) => {
   };
 
   const handleDuplicate = () => {
-    // Navigacija na kreiranje novog oglasa sa podacima postojećeg
     navigate(`/ad-listing?duplicate=${productDetails?.id}`);
     toast.success("Kreiraj kopiju oglasa");
   };
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl border border-slate-200 overflow-hidden"
-      >
-        {/* Header sa nazivom i statusom */}
-        <div className="p-5 border-b border-slate-100">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                {isFeatured && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
-                    <Star className="w-3 h-3" />
-                    Istaknuto
-                  </span>
-                )}
-              </div>
-              
-              {/* Naziv */}
-              <h2 className="text-lg font-bold text-slate-900 line-clamp-2">{productName}</h2>
-              
-              {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
-                <StatusIndicator status={productDetails?.status} />
-                <span className="text-slate-400">ID: #{productDetails?.id}</span>
-                <span className="text-slate-400">{formatDate(productDetails?.created_at)}</span>
-              </div>
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <StatusBadge status={productDetails?.status} />
+              {isFeatured && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold border border-amber-200">
+                  <IoStarOutline size={10} />
+                  Istaknuto
+                </span>
+              )}
             </div>
-
-            {/* Share button */}
-            {productDetails?.status === "approved" && (
-              <ShareDropdown
-                url={currentUrl}
-                title={shareTitle}
-                headline={shareHeadline}
-                companyName={CompanyName}
-              >
-                <button className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                  <Share2 className="w-5 h-5" />
-                </button>
-              </ShareDropdown>
-            )}
-          </div>
-        </div>
-
-        {/* Cijena */}
-        <div className="px-5 py-4 bg-slate-50 border-b border-slate-100">
-          <p className="text-xs text-slate-500 mb-1">Cijena</p>
-          <p className="text-2xl font-bold text-primary">{formatPrice(productDetails?.price)}</p>
-        </div>
-
-        {/* Statistika */}
-        <div className="p-5 border-b border-slate-100">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">Statistika</p>
-          <div className="grid grid-cols-3 gap-3">
-            <StatItem
-              icon={Eye}
-              label="Pregledi"
-              value={formatNumber(productDetails?.clicks || productDetails?.total_clicks || 0)}
-              color="text-blue-500"
-            />
-            <StatItem
-              icon={Heart}
-              label="Sačuvano"
-              value={formatNumber(productDetails?.favourites_count || 0)}
-              color="text-red-500"
-            />
-            <StatItem
-              icon={MessageCircle}
-              label="Poruke"
-              value={formatNumber(productDetails?.total_messages || 0)}
-              color="text-emerald-500"
-            />
-          </div>
-        </div>
-
-        {/* Akcije */}
-        <div className="p-5 space-y-3">
-          {/* Primarne akcije */}
-          <div className="grid grid-cols-2 gap-3">
-            {isEditable && (
-              <Link
-                href={`/edit-listing/${productDetails?.id}`}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors"
-              >
-                <Edit className="w-4 h-4" />
-                Uredi
-              </Link>
-            )}
-            <button
-              onClick={() => setIsDeleteOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              Obriši
-            </button>
+            <h2 className="text-sm font-semibold text-slate-900 truncate">{productName}</h2>
+            <p className="text-[11px] text-slate-400">ID: #{productDetails?.id} · {formatDate(productDetails?.created_at)}</p>
           </div>
 
-          {/* Sekundarne akcije */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleDuplicate}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors"
-            >
-              <Copy className="w-4 h-4" />
-              Dupliciraj
-            </button>
-            <Link
-              href={`/ad-details/${productDetails?.slug}`}
-              target="_blank"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Pogledaj
-            </Link>
-          </div>
-
-          {/* Promocija - ako nije istaknuto i status je approved */}
-          {!isFeatured && productDetails?.status === "approved" && (
-            <Link
-              href={`/featured-ads?item=${productDetails?.id}`}
-              className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all"
-            >
-              <TrendingUp className="w-4 h-4" />
-              Promoviši oglas
-            </Link>
+          {productDetails?.status === "approved" && (
+            <ShareDropdown url={currentUrl} title={shareTitle} headline={shareHeadline} companyName={CompanyName}>
+              <button className="w-9 h-9 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-slate-200 transition-colors">
+                <IoShareSocialOutline size={16} className="text-slate-500" />
+              </button>
+            </ShareDropdown>
           )}
         </div>
-      </motion.div>
 
-      {/* Delete confirmation */}
+        {/* PRICE */}
+        <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-br from-slate-50/50 to-white">
+          <p className="text-[11px] text-slate-400 mb-1">Cijena</p>
+          <p className="text-xl font-bold text-primary">{formatPrice(productDetails?.price)}</p>
+        </div>
+
+        {/* QUICK STATS */}
+        <div className="px-4 py-3 border-b border-slate-100">
+          <div className="grid grid-cols-3 gap-1 bg-slate-50 rounded-xl p-2 border border-slate-100">
+            <QuickStat
+              icon={IoEyeOutline}
+              value={formatNumber(productDetails?.clicks || productDetails?.total_clicks || 0)}
+              label="Pregledi"
+              color="blue"
+            />
+            <QuickStat
+              icon={IoHeartOutline}
+              value={formatNumber(productDetails?.favourites_count || 0)}
+              label="Sačuvano"
+              color="red"
+            />
+            <QuickStat
+              icon={IoChatbubbleOutline}
+              value={formatNumber(productDetails?.total_messages || 0)}
+              label="Poruke"
+              color="green"
+            />
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="px-2 pb-2">
+          {/* PRIMARY ACTIONS */}
+          <MenuSection title="Akcije">
+            {isEditable && (
+              <MenuItem
+                icon={IoCreateOutline}
+                label="Uredi oglas"
+                description="Izmijeni podatke oglasa"
+                href={`/edit-listing/${productDetails?.id}`}
+                external
+              />
+            )}
+            <MenuItem
+              icon={IoCopyOutline}
+              label="Dupliciraj"
+              description="Napravi kopiju ovog oglasa"
+              onClick={handleDuplicate}
+            />
+            <MenuItem
+              icon={IoOpenOutline}
+              label="Pogledaj oglas"
+              description="Otvori javni prikaz"
+              href={`/ad-details/${productDetails?.slug}`}
+              external
+            />
+          </MenuSection>
+
+          <MenuDivider />
+
+          {/* PROMOTE */}
+          {!isFeatured && productDetails?.status === "approved" && (
+            <>
+              <MenuSection title="Promocija">
+                <Link
+                  href={`/featured-ads?item=${productDetails?.id}`}
+                  className="flex items-center gap-4 mx-3 p-3 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 rounded-xl border border-amber-200/50 hover:border-amber-300 transition-all group"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <IoTrendingUpOutline size={20} className="text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h5 className="text-sm font-semibold text-slate-800">Promoviši oglas</h5>
+                    <p className="text-[11px] text-slate-500">Povećaj vidljivost do 10x</p>
+                  </div>
+                  <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={18} />
+                </Link>
+              </MenuSection>
+              <MenuDivider />
+            </>
+          )}
+
+          {/* DANGER ZONE */}
+          <MenuSection title="Zona opasnosti">
+            <MenuItem
+              icon={IoTrashOutline}
+              label="Obriši oglas"
+              description="Trajno ukloni ovaj oglas"
+              onClick={() => setIsDeleteOpen(true)}
+              danger
+            />
+          </MenuSection>
+        </div>
+      </div>
+
+      {/* DELETE CONFIRMATION */}
       <ReusableAlertDialog
         open={isDeleteOpen}
         onCancel={() => setIsDeleteOpen(false)}
