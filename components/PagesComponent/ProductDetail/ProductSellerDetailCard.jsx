@@ -460,8 +460,8 @@ const ProductSellerDetailCard = ({
 
   if (!seller) return <ProductSellerCardSkeleton />;
 
-  // Use user_id if available, fallback to id
-  const sellerId = seller?.user_id ?? seller?.id;
+  // Use user_id if available, fallback to id, then to productDetails.user_id
+  const sellerId = seller?.user_id ?? seller?.id ?? productDetails?.user_id;
 
   const shareUrl = sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -552,34 +552,60 @@ const ProductSellerDetailCard = ({
           {/* Header: Avatar + Info */}
           <div className="flex items-start gap-3">
             {/* Avatar */}
-            <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group">
-              <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 group-hover:border-slate-300 transition-colors">
-                <CustomImage
-                  src={seller?.profile || seller?.profile_image}
-                  alt={seller?.name || "Prodavač"}
-                  width={56}
-                  height={56}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              
-              {seller?.is_verified && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-sky-500 rounded-lg flex items-center justify-center border-2 border-white">
-                  <BadgeCheck className="w-3 h-3 text-white" />
+            {sellerId ? (
+              <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group cursor-pointer">
+                <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 group-hover:border-slate-300 transition-colors">
+                  <CustomImage
+                    src={seller?.profile || seller?.profile_image}
+                    alt={seller?.name || "Prodavač"}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              )}
-            </CustomLink>
+                
+                {seller?.is_verified && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-sky-500 rounded-lg flex items-center justify-center border-2 border-white">
+                    <BadgeCheck className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </CustomLink>
+            ) : (
+              <div className="relative flex-shrink-0">
+                <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
+                  <CustomImage
+                    src={seller?.profile || seller?.profile_image}
+                    alt={seller?.name || "Prodavač"}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                
+                {seller?.is_verified && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-sky-500 rounded-lg flex items-center justify-center border-2 border-white">
+                    <BadgeCheck className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Info */}
             <div className="flex-1 min-w-0">
               {/* Name row */}
               <div className="flex items-center justify-between gap-2">
-                <CustomLink 
-                  href={`/seller/${sellerId}`}
-                  className="text-base font-semibold text-slate-900 hover:text-primary truncate transition-colors"
-                >
-                  {seller?.name}
-                </CustomLink>
+                {sellerId ? (
+                  <CustomLink 
+                    href={`/seller/${sellerId}`}
+                    className="text-base font-semibold text-slate-900 hover:text-primary truncate transition-colors cursor-pointer"
+                  >
+                    {seller?.name}
+                  </CustomLink>
+                ) : (
+                  <span className="text-base font-semibold text-slate-900 truncate">
+                    {seller?.name}
+                  </span>
+                )}
                 
                 <ShareDropdown url={shareUrl} title={title} headline={title} companyName={CompanyName}>
                   <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
@@ -704,13 +730,15 @@ const ProductSellerDetailCard = ({
           </div>
 
           {/* Profile link */}
-          <CustomLink
-            href={`/seller/${sellerId}`}
-            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors group"
-          >
-            Pogledaj kompletan profil
-            <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-          </CustomLink>
+          {sellerId && (
+            <CustomLink
+              href={`/seller/${sellerId}`}
+              className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors group cursor-pointer"
+            >
+              Pogledaj kompletan profil
+              <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </CustomLink>
+          )}
         </div>
 
         {/* Info sections */}
