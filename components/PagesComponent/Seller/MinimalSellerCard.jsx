@@ -593,8 +593,11 @@ export const MinimalSellerCard = ({
     return <MinimalSellerCardSkeleton />;
   }
 
-  const computedShareUrl = shareUrl || (seller?.id
-    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
+  // Use user_id if available, fallback to id
+  const sellerId = seller?.user_id ?? seller?.id;
+
+  const computedShareUrl = shareUrl || (sellerId
+    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
     : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
   const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
@@ -673,7 +676,7 @@ export const MinimalSellerCard = ({
         {/* Header: Avatar + Info */}
         <div className="flex items-start gap-3">
           {/* Avatar */}
-          <CustomLink href={`/seller/${seller?.id}`} className="relative flex-shrink-0 group">
+          <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group">
             <div className={cn(
               "rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60",
               "group-hover:border-slate-300 transition-colors",
@@ -701,7 +704,7 @@ export const MinimalSellerCard = ({
             {/* Name row with share */}
             <div className="flex items-center justify-between gap-2">
               <CustomLink 
-                href={`/seller/${seller?.id}`}
+                href={`/seller/${sellerId}`}
                 className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors"
               >
                 {seller?.name}
@@ -825,7 +828,7 @@ export const MinimalSellerCard = ({
         {/* Profile link */}
         {showProfileLink && (
           <CustomLink
-            href={`/seller/${seller?.id}`}
+            href={`/seller/${sellerId}`}
             className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group"
           >
             Pogledaj kompletan profil

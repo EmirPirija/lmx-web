@@ -879,8 +879,11 @@ export const SellerPreviewCard = ({
 
   if (!seller) return <SellerPreviewSkeleton compactness={compactness} />;
 
-  const computedShareUrl = shareUrl || (seller?.id
-    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
+  // Use user_id if available, fallback to id
+  const sellerId = seller?.user_id ?? seller?.id;
+
+  const computedShareUrl = shareUrl || (sellerId
+    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
     : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
   const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
@@ -1079,7 +1082,7 @@ export const SellerPreviewCard = ({
             </PrimaryButton>
 
             <SavedToListButton
-              sellerId={seller?.id}
+              sellerId={sellerId}
               sellerName={seller?.name}
               variant="pill"
             />
@@ -1124,7 +1127,7 @@ export const SellerPreviewCard = ({
               className="mt-5"
             >
               <CustomLink
-                href={`/seller/${seller?.id}`}
+                href={`/seller/${sellerId}`}
                 className="group inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 Pogledaj profil
@@ -1304,7 +1307,10 @@ const SellerDetailCard = ({
 
   const hasSocialLinks = Boolean(socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite);
 
-  const storageKey = seller?.id ? `seller_accordion_open_${seller.id}` : "seller_accordion_open";
+  // Use user_id if available, fallback to id
+  const mainSellerId = seller?.user_id ?? seller?.id;
+
+  const storageKey = mainSellerId ? `seller_accordion_open_${mainSellerId}` : "seller_accordion_open";
   const [openId, setOpenId] = useLocalStorageState(storageKey, "contact");
 
   const handleChatClick = () => {
@@ -1483,7 +1489,7 @@ const SellerDetailCard = ({
         transition={{ delay: 0.5 }}
       >
         <CustomLink
-          href={`/seller/${seller?.id}`}
+          href={`/seller/${mainSellerId}`}
           onClick={onProfileClick}
           className="group inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
         >

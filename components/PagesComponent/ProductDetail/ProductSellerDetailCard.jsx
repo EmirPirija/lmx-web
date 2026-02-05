@@ -460,8 +460,11 @@ const ProductSellerDetailCard = ({
 
   if (!seller) return <ProductSellerCardSkeleton />;
 
-  const shareUrl = seller?.id
-    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
+  // Use user_id if available, fallback to id
+  const sellerId = seller?.user_id ?? seller?.id;
+
+  const shareUrl = sellerId
+    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
     : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
 
   const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
@@ -549,7 +552,7 @@ const ProductSellerDetailCard = ({
           {/* Header: Avatar + Info */}
           <div className="flex items-start gap-3">
             {/* Avatar */}
-            <CustomLink href={`/seller/${seller?.id}`} className="relative flex-shrink-0 group">
+            <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group">
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 group-hover:border-slate-300 transition-colors">
                 <CustomImage
                   src={seller?.profile || seller?.profile_image}
@@ -572,7 +575,7 @@ const ProductSellerDetailCard = ({
               {/* Name row */}
               <div className="flex items-center justify-between gap-2">
                 <CustomLink 
-                  href={`/seller/${seller?.id}`}
+                  href={`/seller/${sellerId}`}
                   className="text-base font-semibold text-slate-900 hover:text-primary truncate transition-colors"
                 >
                   {seller?.name}
@@ -702,7 +705,7 @@ const ProductSellerDetailCard = ({
 
           {/* Profile link */}
           <CustomLink
-            href={`/seller/${seller?.id}`}
+            href={`/seller/${sellerId}`}
             className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors group"
           >
             Pogledaj kompletan profil
