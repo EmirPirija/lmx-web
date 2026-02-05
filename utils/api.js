@@ -1729,10 +1729,19 @@ export const LIKE_QUESTION = "like-question";
 export const DELETE_QUESTION = "delete-question";
 export const REPORT_QUESTION = "report-question";
 
+export const SELLER_QUESTIONS = "seller-questions";
+
 export const itemQuestionsApi = {
   getQuestions: ({ item_id, page = 1 } = {}) => {
     return Api.get(ITEM_QUESTIONS, {
       params: { item_id, page },
+    });
+  },
+
+  // Dohvati sva pitanja za prodavačeve oglase
+  getSellerQuestions: ({ page = 1, status, item_id } = {}) => {
+    return Api.get(SELLER_QUESTIONS, {
+      params: { page, status, item_id },
     });
   },
 
@@ -1769,8 +1778,6 @@ export const itemQuestionsApi = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-
-  
 
   reportQuestion: ({ question_id, reason } = {}) => {
     const formData = new FormData();
