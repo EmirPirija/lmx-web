@@ -45,6 +45,7 @@ import {
   IoRibbonOutline,
   IoSparklesOutline,
   IoSearchOutline,
+  IoChatbubbleEllipsesOutline,
 } from "react-icons/io5";
 import { Crown, Store, Sparkles, TrendingUp } from "lucide-react";
 import { MdVerified } from "react-icons/md";
@@ -564,6 +565,12 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
               description="Sve obavijesti na jednom mjestu"
               onClick={() => handleNavigate("/notifications")}
               badge={userStats.unreadNotifications}
+            />
+            <MenuItem
+              icon={IoChatbubbleEllipsesOutline}
+              label="Javna pitanja"
+              description="Pitanja na vašim oglasima"
+              onClick={() => handleNavigate("/profile/public-questions")}
             />
           </MenuSection>
 
