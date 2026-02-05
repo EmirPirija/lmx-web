@@ -377,12 +377,15 @@ const SellerSettings = () => {
       }
 
       // Postavke
+      console.log("📥 Učitane postavke:", settingsRes?.data);
+      
       if (settingsRes?.data?.error !== false || !settingsRes?.data?.data) {
         setLoadError(settingsRes?.data?.message || "Greška pri učitavanju.");
         return;
       }
 
       const s = settingsRes.data.data;
+      console.log("📋 Parsiran objekt postavki:", s);
       setShowPhone(s.show_phone ?? true);
       setShowEmail(s.show_email ?? true);
       setShowWhatsapp(s.show_whatsapp ?? false);
@@ -438,17 +441,23 @@ const SellerSettings = () => {
     try {
       setIsSaving(true);
       const payload = buildPayload();
+      
+      console.log("📤 Šaljem postavke:", payload);
+      
       const response = await sellerSettingsApi.updateSettings(payload);
+      
+      console.log("📥 Odgovor servera:", response?.data);
       
       if (response?.data?.error === false) {
         initialPayloadRef.current = stableStringify(payload);
-        toast.success("Postavke sačuvane! Promjene će biti vidljive na tvojim oglasima.");
+        toast.success("Postavke sačuvane!");
       } else {
+        console.error("❌ Greška od servera:", response?.data);
         toast.error(response?.data?.message || "Greška pri spremanju.");
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Greška pri spremanju.");
+      console.error("❌ Izuzetak pri spremanju:", err);
+      toast.error("Greška pri spremanju: " + (err?.message || "Nepoznata greška"));
     } finally {
       setIsSaving(false);
     }
