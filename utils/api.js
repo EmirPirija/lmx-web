@@ -1806,19 +1806,25 @@ export const itemConversationApi = {
 // SELLER SETTINGS API
 // ============================================
  
+// ============================================
+// SELLER SETTINGS API (ažurirano sa card_preferences)
+// ============================================
+
+// Dodaj ovo u utils/api.js - zamijeni postojeću sellerSettingsApi
+
 export const sellerSettingsApi = {
   // Dohvati vlastite postavke (zahtjeva auth)
   getSettings: () => {
     return Api.get(GET_SELLER_SETTINGS);
   },
- 
+
   // Dohvati javne postavke prodavača po user_id (bez auth)
   getPublicSettings: ({ user_id } = {}) => {
     return Api.get("get-public-seller-settings", {
       params: { user_id },
     });
   },
- 
+
   updateSettings: ({
     show_phone,
     show_email,
@@ -1846,9 +1852,11 @@ export const sellerSettingsApi = {
     social_tiktok,
     social_youtube,
     social_website,
+    // NEW: Card preferences
+    card_preferences,
   } = {}) => {
     const formData = new FormData();
- 
+
     if (show_phone !== undefined) formData.append("show_phone", show_phone ? 1 : 0);
     if (avatar_id) formData.append("avatar_id", avatar_id);
     if (show_email !== undefined) formData.append("show_email", show_email ? 1 : 0);
@@ -1875,11 +1883,56 @@ export const sellerSettingsApi = {
     if (social_tiktok !== undefined) formData.append("social_tiktok", social_tiktok);
     if (social_youtube !== undefined) formData.append("social_youtube", social_youtube);
     if (social_website !== undefined) formData.append("social_website", social_website);
- 
+    
+    // NEW: Card preferences - šalje se kao JSON string
+    if (card_preferences !== undefined) {
+      formData.append("card_preferences", JSON.stringify(card_preferences));
+    }
+
     return Api.post(UPDATE_SELLER_SETTINGS, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+};
+
+
+// ============================================
+// HELPER: Default Card Preferences
+// ============================================
+// Ovo možeš dodati u utils/index.jsx ili utils/sellerHelpers.js
+
+export const defaultCardPreferences = {
+  show_ratings: true,
+  show_badges: true,
+  show_member_since: false,
+  show_response_time: true,
+  show_business_hours: true,
+  show_shipping_info: true,
+  show_return_policy: true,
+  max_badges: 2,
+};
+
+export const normalizeCardPreferences = (raw) => {
+  let obj = raw;
+  if (typeof obj === "string") {
+    try {
+      obj = JSON.parse(obj);
+    } catch {
+      obj = null;
+    }
+  }
+  if (!obj || typeof obj !== "object") obj = {};
+  
+  return {
+    show_ratings: obj.show_ratings ?? defaultCardPreferences.show_ratings,
+    show_badges: obj.show_badges ?? defaultCardPreferences.show_badges,
+    show_member_since: obj.show_member_since ?? defaultCardPreferences.show_member_since,
+    show_response_time: obj.show_response_time ?? defaultCardPreferences.show_response_time,
+    show_business_hours: obj.show_business_hours ?? defaultCardPreferences.show_business_hours,
+    show_shipping_info: obj.show_shipping_info ?? defaultCardPreferences.show_shipping_info,
+    show_return_policy: obj.show_return_policy ?? defaultCardPreferences.show_return_policy,
+    max_badges: obj.max_badges ?? defaultCardPreferences.max_badges,
+  };
 };
 
 
@@ -2252,3 +2305,4 @@ export const transformItemsForMap = (items) => {
 
 // Export za lakse koriscenje
 export { transformItemsForMap as formatMapItems };
+

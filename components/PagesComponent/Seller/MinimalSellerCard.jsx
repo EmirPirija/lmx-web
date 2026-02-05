@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -15,11 +15,15 @@ import {
   Copy,
   Check,
   X,
+  Star,
+  BadgeCheck,
+  ChevronRight,
+  MoreHorizontal,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import CustomImage from "@/components/Common/CustomImage";
 import CustomLink from "@/components/Common/CustomLink";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -27,7 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
-import { itemConversationApi, sendMessageApi } from "@/utils/api";
+import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -58,7 +62,7 @@ const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
 };
 
 /* =====================================================
-   SHARE POPOVER
+   SHARE POPOVER (kompaktniji)
 ===================================================== */
 
 const SharePopover = ({ url, title }) => {
@@ -75,72 +79,38 @@ const SharePopover = ({ url, title }) => {
     }
   };
 
-  const shareOptions = [
-    {
-      name: "Facebook",
-      icon: () => (
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-        </svg>
-      ),
-      onClick: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank"),
-      color: "hover:bg-blue-50 hover:text-blue-600",
-    },
-    {
-      name: "WhatsApp",
-      icon: () => (
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-        </svg>
-      ),
-      onClick: () => window.open(`https://wa.me/?text=${encodeURIComponent(title + " " + url)}`, "_blank"),
-      color: "hover:bg-green-50 hover:text-green-600",
-    },
-    {
-      name: "Viber",
-      icon: () => (
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M11.398.002C9.47.028 5.61.46 3.294 2.6 1.244 4.473.319 7.3.126 10.84c-.19 3.543-.24 10.182 6.29 11.838h.005l-.002 2.717s-.047.872.543 1.054c.71.217 1.13-.457 1.81-1.19.374-.404.89-.998 1.28-1.452 3.52.296 6.228-.38 6.535-.48.71-.232 4.726-.745 5.38-6.082.676-5.508-.328-8.99-2.16-10.56l-.003-.002c-.53-.524-2.673-2.433-7.737-2.673 0 0-.376-.024-.87-.008zm.105 1.764c.425-.013.753.007.753.007 4.34.205 6.168 1.74 6.608 2.188l.003.002c1.566 1.343 2.38 4.456 1.794 9.07-.56 4.59-4.016 4.887-4.612 5.08-.255.084-2.607.67-5.622.507 0 0-2.227 2.69-2.922 3.39-.11.11-.238.152-.324.132-.12-.028-.153-.147-.152-.326l.016-3.67c-5.572-1.406-5.25-6.664-5.094-9.593.167-3.037.93-5.39 2.652-6.963 1.98-1.833 5.216-2.185 6.9-2.218zm.2 1.884a.5.5 0 00-.5.51c0 .28.22.5.5.5 1.29.01 2.46.51 3.37 1.46.9.94 1.38 2.2 1.37 3.54 0 .28.22.51.5.51.28 0 .5-.23.5-.52.01-1.53-.53-3-1.58-4.12a5.92 5.92 0 00-3.93-1.88.53.53 0 00-.23-.01zm-.032 1.646a.5.5 0 00-.4.58c.05.28.31.46.58.42.74-.1 1.47.12 2.04.63a2.76 2.76 0 01.95 1.92c.02.28.26.49.54.48.28-.02.5-.26.48-.54-.07-.9-.45-1.72-1.1-2.33a3.58 3.58 0 00-2.59-.88c-.18 0-.36.06-.5.17v.56zm-3.636.42c-.17.01-.34.07-.474.18l-.02.01c-.334.29-.648.61-.937.96-.21.26-.31.57-.306.89a1.1 1.1 0 00.14.41l.01.02c.387.79.86 1.54 1.432 2.22a13.6 13.6 0 002.614 2.59l.036.027a13.5 13.5 0 003.36 1.94l.026.01c.13.06.28.09.42.14a1.16 1.16 0 00.45.03c.32-.04.6-.2.79-.46.35-.42.62-.87.9-1.15l.01-.02c.23-.28.23-.64.04-.94-.4-.62-1.08-1.02-1.77-1.43l-.22-.13c-.36-.21-.77-.19-1.1.05l-.63.48c-.163.13-.39.11-.53-.03l-.02-.02a8.5 8.5 0 01-1.2-1.26c-.33-.43-.66-.88-.94-1.35l-.01-.02a.36.36 0 01.04-.46l.53-.56c.27-.28.35-.7.2-1.07l-.06-.16c-.28-.74-.57-1.49-1.17-2.03a.94.94 0 00-.57-.23c-.05-.01-.1-.01-.16 0zm3.9.81a.5.5 0 00-.41.56c.07.49.25.96.54 1.36.3.4.69.71 1.14.9.28.1.58-.04.68-.31.1-.28-.04-.58-.31-.68a1.9 1.9 0 01-.75-.58 1.78 1.78 0 01-.35-.89.5.5 0 00-.55-.39z" />
-        </svg>
-      ),
-      onClick: () => window.open(`viber://forward?text=${encodeURIComponent(title + " " + url)}`, "_blank"),
-      color: "hover:bg-purple-50 hover:text-purple-600",
-    },
-  ];
-
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
         >
           <Share2 className="w-4 h-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-48 p-2">
-        <div className="space-y-1">
-          {shareOptions.map((option) => (
-            <button
-              key={option.name}
-              type="button"
-              onClick={option.onClick}
-              className={cn(
-                "w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-slate-600",
-                option.color
-              )}
-            >
-              <option.icon />
-              {option.name}
-            </button>
-          ))}
-          <div className="h-px bg-slate-100 my-1" />
+      <PopoverContent align="end" className="w-44 p-1.5">
+        <div className="space-y-0.5">
+          <button
+            type="button"
+            onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank")}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md hover:bg-slate-50 text-slate-600"
+          >
+            Facebook
+          </button>
+          <button
+            type="button"
+            onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(title + " " + url)}`, "_blank")}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md hover:bg-slate-50 text-slate-600"
+          >
+            WhatsApp
+          </button>
           <button
             type="button"
             onClick={copyLink}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-slate-50 text-slate-600"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md hover:bg-slate-50 text-slate-600"
           >
-            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
             {copied ? "Kopirano!" : "Kopiraj link"}
           </button>
         </div>
@@ -150,7 +120,7 @@ const SharePopover = ({ url, title }) => {
 };
 
 /* =====================================================
-   CONTACT MODAL
+   CONTACT MODAL (kompaktniji)
 ===================================================== */
 
 const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) => {
@@ -177,148 +147,96 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
   const viberNumber = settings?.viber_number || seller?.mobile;
   const email = seller?.email;
 
-  const contactMethods = [
-    {
-      key: "message",
-      show: true,
-      icon: MessageCircle,
-      label: "Pošalji poruku",
-      description: "Poruka u inbox",
-      color: "bg-primary text-white",
-      onClick: onMessageClick,
-    },
-    {
-      key: "phone",
-      show: showPhone,
-      icon: Phone,
-      label: "Pozovi",
-      description: phone,
-      color: "bg-emerald-500 text-white",
-      href: `tel:${phone}`,
-      copyValue: phone,
-    },
-    {
-      key: "whatsapp",
-      show: showWhatsapp,
-      icon: () => (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-        </svg>
-      ),
-      label: "WhatsApp",
-      description: whatsappNumber,
-      color: "bg-green-500 text-white",
-      href: `https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`,
-      external: true,
-    },
-    {
-      key: "viber",
-      show: showViber,
-      icon: () => (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M11.398.002C9.47.028 5.61.46 3.294 2.6 1.244 4.473.319 7.3.126 10.84c-.19 3.543-.24 10.182 6.29 11.838h.005l-.002 2.717s-.047.872.543 1.054c.71.217 1.13-.457 1.81-1.19.374-.404.89-.998 1.28-1.452 3.52.296 6.228-.38 6.535-.48.71-.232 4.726-.745 5.38-6.082.676-5.508-.328-8.99-2.16-10.56l-.003-.002c-.53-.524-2.673-2.433-7.737-2.673 0 0-.376-.024-.87-.008zm.105 1.764c.425-.013.753.007.753.007 4.34.205 6.168 1.74 6.608 2.188l.003.002c1.566 1.343 2.38 4.456 1.794 9.07-.56 4.59-4.016 4.887-4.612 5.08-.255.084-2.607.67-5.622.507 0 0-2.227 2.69-2.922 3.39-.11.11-.238.152-.324.132-.12-.028-.153-.147-.152-.326l.016-3.67c-5.572-1.406-5.25-6.664-5.094-9.593.167-3.037.93-5.39 2.652-6.963 1.98-1.833 5.216-2.185 6.9-2.218z" />
-        </svg>
-      ),
-      label: "Viber",
-      description: viberNumber,
-      color: "bg-violet-500 text-white",
-      href: `viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`,
-    },
-    {
-      key: "email",
-      show: showEmail,
-      icon: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-      label: "Email",
-      description: email,
-      color: "bg-sky-500 text-white",
-      href: `mailto:${email}`,
-      copyValue: email,
-    },
-  ];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Kontaktiraj prodavača</h3>
+      <DialogContent className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900">Kontakt</h3>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1 rounded-md hover:bg-slate-100 text-slate-400"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Contact methods */}
-        <div className="p-4 space-y-2">
-          {contactMethods.map((method) => {
-            if (!method.show) return null;
+        <div className="p-3 space-y-1.5">
+          {/* Message - always first */}
+          <button
+            type="button"
+            onClick={() => {
+              onMessageClick?.();
+              onOpenChange(false);
+            }}
+            className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Pošalji poruku
+          </button>
 
-            const Icon = method.icon;
-            const isComponent = typeof Icon !== "function" || Icon.$$typeof;
+          {showPhone && (
+            <div className="flex items-center gap-1.5">
+              <a
+                href={`tel:${phone}`}
+                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+              >
+                <Phone className="w-4 h-4 text-emerald-500" />
+                <span className="text-slate-700">{phone}</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => copy("phone", phone)}
+                className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50"
+              >
+                {copiedKey === "phone" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+              </button>
+            </div>
+          )}
 
-            const content = (
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", method.color)}>
-                  {isComponent ? <Icon className="w-5 h-5" /> : <Icon />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-slate-900">{method.label}</div>
-                  {method.description && (
-                    <div className="text-xs text-slate-500 truncate">{method.description}</div>
-                  )}
-                </div>
+          {showWhatsapp && (
+            <a
+              href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+            >
+              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                <MessageCircle className="w-2.5 h-2.5 text-white" />
               </div>
-            );
+              <span className="text-slate-700">WhatsApp</span>
+            </a>
+          )}
 
-            if (method.onClick) {
-              return (
-                <button
-                  key={method.key}
-                  type="button"
-                  onClick={() => {
-                    method.onClick();
-                    onOpenChange(false);
-                  }}
-                  className="w-full flex items-center gap-2 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-colors"
-                >
-                  {content}
-                </button>
-              );
-            }
-
-            return (
-              <div key={method.key} className="flex items-center gap-2">
-                <a
-                  href={method.href}
-                  target={method.external ? "_blank" : undefined}
-                  rel={method.external ? "noreferrer" : undefined}
-                  className="flex-1 flex items-center gap-2 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-colors"
-                >
-                  {content}
-                </a>
-                {method.copyValue && (
-                  <button
-                    type="button"
-                    onClick={() => copy(method.key, method.copyValue)}
-                    className="p-3 rounded-xl border border-slate-100 hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {copiedKey === method.key ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                )}
+          {showViber && (
+            <a
+              href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+            >
+              <div className="w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
+                <Phone className="w-2.5 h-2.5 text-white" />
               </div>
-            );
-          })}
+              <span className="text-slate-700">Viber</span>
+            </a>
+          )}
+
+          {showEmail && (
+            <div className="flex items-center gap-1.5">
+              <a
+                href={`mailto:${email}`}
+                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm truncate"
+              >
+                <span className="text-slate-700 truncate">{email}</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => copy("email", email)}
+                className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50"
+              >
+                {copiedKey === "email" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+              </button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -329,9 +247,10 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
    SEND MESSAGE MODAL
 ===================================================== */
 
-const SendMessageModal = ({ open, onOpenChange, seller }) => {
+const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -348,11 +267,11 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
     const sellerUserId = seller?.user_id ?? seller?.id;
 
     if (!message.trim()) {
-      setError("Molimo unesite poruku.");
+      setError("Unesite poruku.");
       return;
     }
 
-    if (!currentUser?.token) {
+    if (!isLoggedIn || !currentUser?.id) {
       toast.error("Morate biti prijavljeni.");
       router.push("/login");
       return;
@@ -363,8 +282,8 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
       return;
     }
 
-    if (currentUser?.id && String(currentUser.id) === String(sellerUserId)) {
-      setError("Ne možete slati poruku sami sebi.");
+    if (String(currentUser.id) === String(sellerUserId)) {
+      setError("Ne možete slati poruku sebi.");
       return;
     }
 
@@ -372,25 +291,33 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
     setError("");
 
     try {
-      const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
-
       let conversationId = null;
 
-      if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
-        conversationId = checkRes.data.data.conversation_id;
-      } else {
-        const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+      const extractId = (data) => data?.conversation_id || data?.item_offer_id || data?.id || null;
 
-        if (startRes?.data?.error === false) {
-          conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
+      if (itemId) {
+        const checkRes = await itemConversationApi.checkConversation({ item_id: itemId });
+        if (checkRes?.data?.error === false && extractId(checkRes?.data?.data)) {
+          conversationId = extractId(checkRes.data.data);
         } else {
-          throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor.");
+          const startRes = await itemConversationApi.startItemConversation({ item_id: itemId });
+          if (startRes?.data?.error === false) {
+            conversationId = extractId(startRes.data.data);
+          }
+        }
+      } else {
+        const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
+        if (checkRes?.data?.error === false && extractId(checkRes?.data?.data)) {
+          conversationId = extractId(checkRes.data.data);
+        } else {
+          const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+          if (startRes?.data?.error === false) {
+            conversationId = extractId(startRes.data.data);
+          }
         }
       }
 
-      if (!conversationId) {
-        throw new Error("Nije moguće kreirati razgovor.");
-      }
+      if (!conversationId) throw new Error("Nije moguće kreirati razgovor.");
 
       const sendRes = await sendMessageApi.sendMessage({
         item_offer_id: conversationId,
@@ -401,12 +328,11 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
         toast.success("Poruka poslana!");
         setMessage("");
         onOpenChange(false);
-        router.push(`/chat?id=${conversationId}`);
       } else {
         throw new Error(sendRes?.data?.message || "Greška pri slanju.");
       }
     } catch (err) {
-      const errorMessage = err?.response?.data?.message || err?.message || "Došlo je do greške.";
+      const errorMessage = err?.response?.data?.message || err?.message || "Greška.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -416,19 +342,30 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden rounded-2xl">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Pošalji poruku</h3>
+      <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100">
+              <CustomImage
+                src={seller?.profile || seller?.profile_image}
+                alt={seller?.name}
+                width={32}
+                height={32}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <span className="text-sm font-semibold text-slate-900">{seller?.name}</span>
+          </div>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1 rounded-md hover:bg-slate-100 text-slate-400"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-4 space-y-3">
           <textarea
             value={message}
             onChange={(e) => {
@@ -436,24 +373,22 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
               setError("");
             }}
             placeholder="Napišite poruku..."
-            rows={4}
+            rows={3}
             className={cn(
-              "w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm",
-              "placeholder:text-slate-400 resize-none",
+              "w-full rounded-xl border bg-slate-50 px-3 py-2.5 text-sm resize-none",
+              "placeholder:text-slate-400",
               "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
               error ? "border-red-300" : "border-slate-200"
             )}
           />
 
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+          {error && <p className="text-xs text-red-600">{error}</p>}
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              className="flex-1 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
             >
               Odustani
             </button>
@@ -461,9 +396,9 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
               type="button"
               onClick={handleSend}
               disabled={!message.trim() || isSending}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-xl transition-colors disabled:opacity-50"
+              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-colors disabled:opacity-50"
             >
-              {isSending ? "Šaljem..." : "Pošalji"}
+              {isSending ? "..." : "Pošalji"}
             </button>
           </div>
         </div>
@@ -473,40 +408,189 @@ const SendMessageModal = ({ open, onOpenChange, seller }) => {
 };
 
 /* =====================================================
-   MINIMAL SELLER CARD
+   SEND OFFER MODAL
+===================================================== */
+
+const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
+  const router = useRouter();
+  const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
+
+  const [amount, setAmount] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    if (open) {
+      setAmount("");
+      setError("");
+    }
+  }, [open]);
+
+  const handleSend = async () => {
+    const numAmount = parseFloat(amount);
+
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      setError("Unesite validan iznos.");
+      return;
+    }
+
+    if (!isLoggedIn || !currentUser?.id) {
+      toast.error("Morate biti prijavljeni.");
+      router.push("/login");
+      return;
+    }
+
+    if (!itemId) {
+      setError("Proizvod nije pronađen.");
+      return;
+    }
+
+    setIsSending(true);
+    setError("");
+
+    try {
+      const res = await itemOfferApi.offer({ item_id: itemId, amount: numAmount });
+
+      if (res?.data?.error === false) {
+        toast.success("Ponuda poslana!");
+        setAmount("");
+        onOpenChange(false);
+      } else {
+        throw new Error(res?.data?.message || "Greška.");
+      }
+    } catch (err) {
+      const errorMessage = err?.response?.data?.message || err?.message || "Greška.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900">Pošalji ponudu</h3>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="p-1 rounded-md hover:bg-slate-100 text-slate-400"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {itemPrice && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Cijena</span>
+              <span className="font-semibold text-slate-900">
+                {typeof itemPrice === 'number' ? `${itemPrice.toFixed(2)} KM` : itemPrice}
+              </span>
+            </div>
+          )}
+
+          <div className="relative">
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setError("");
+              }}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              className={cn(
+                "w-full rounded-xl border bg-slate-50 px-3 py-2.5 pr-12 text-lg font-semibold",
+                "placeholder:text-slate-400",
+                "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+                error ? "border-red-300" : "border-slate-200"
+              )}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">KM</span>
+          </div>
+
+          {error && <p className="text-xs text-red-600">{error}</p>}
+
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!amount || isSending}
+            className="w-full px-3 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {isSending ? "..." : "Pošalji ponudu"}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/* =====================================================
+   SKELETON
+===================================================== */
+
+export const MinimalSellerCardSkeleton = () => (
+  <div className="animate-pulse space-y-3">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 rounded-xl bg-slate-200" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 bg-slate-200 rounded w-28" />
+        <div className="h-3 bg-slate-100 rounded w-20" />
+      </div>
+    </div>
+    <div className="flex gap-2">
+      <div className="flex-1 h-10 bg-slate-200 rounded-xl" />
+      <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+    </div>
+  </div>
+);
+
+/* =====================================================
+   MINIMAL SELLER CARD - GLAVNI COMPONENT
 ===================================================== */
 
 export const MinimalSellerCard = ({
   seller,
   sellerSettings,
   badges = [],
+  ratings,
   isPro = false,
   isShop = false,
   showProfileLink = true,
   onChatClick,
   onPhoneClick,
   shareUrl,
+  // Product context
+  itemId,
+  itemPrice,
+  acceptsOffers = false,
+  // UI Preferences (from SellerSettings)
+  variant = "default", // "default" | "compact" | "inline"
 }) => {
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
 
   const settings = sellerSettings || {};
+  
+  // Card preferences from seller settings
+  const cardPrefs = settings?.card_preferences || {};
+  const showRatings = cardPrefs.show_ratings ?? true;
+  const showBadges = cardPrefs.show_badges ?? true;
+  const showMemberSince = cardPrefs.show_member_since ?? false; // Default off for cleaner look
+  const showResponseTime = cardPrefs.show_response_time ?? true;
+  const maxBadges = cardPrefs.max_badges ?? 2;
 
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
+  const [isOfferOpen, setIsOfferOpen] = useState(false);
 
+  // Skeleton
   if (!seller) {
-    return (
-      <div className="animate-pulse space-y-4 p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-16 h-16 rounded-xl bg-slate-200" />
-          <div className="flex-1 space-y-2">
-            <div className="h-5 bg-slate-200 rounded w-32" />
-            <div className="h-4 bg-slate-100 rounded w-24" />
-          </div>
-        </div>
-      </div>
-    );
+    return <MinimalSellerCardSkeleton />;
   }
 
   const computedShareUrl = shareUrl || (seller?.id
@@ -515,15 +599,31 @@ export const MinimalSellerCard = ({
 
   const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
 
-  const responseLabel = getResponseTimeLabel({
-    responseTime: settings?.response_time || "auto",
-    responseTimeAvg: seller?.response_time_avg,
-    settings,
-  });
+  const responseLabel = showResponseTime
+    ? getResponseTimeLabel({
+        responseTime: settings?.response_time || "auto",
+        responseTimeAvg: seller?.response_time_avg,
+        settings,
+      })
+    : null;
 
-  const memberSince = formatMemberSince(seller?.created_at);
+  const memberSince = showMemberSince ? formatMemberSince(seller?.created_at) : "";
 
-  const badgeList = (badges || []).slice(0, 3);
+  // Rating
+  const ratingValue = useMemo(
+    () => (seller?.average_rating != null ? Number(seller.average_rating).toFixed(1) : null),
+    [seller?.average_rating]
+  );
+  const ratingCount = useMemo(() => ratings?.total || ratings?.count || seller?.ratings_count || 0, [ratings, seller]);
+
+  // Badges - limit display
+  const badgeList = useMemo(() => (badges || []).slice(0, maxBadges), [badges, maxBadges]);
+
+  // Can make offer
+  const canMakeOffer = acceptsOffers || settings?.accepts_offers;
+
+  // Has contact options
+  const hasContactOptions = settings?.show_phone || settings?.show_whatsapp || settings?.show_viber || settings?.show_email;
 
   const handleChatClick = () => {
     if (onChatClick) {
@@ -555,127 +655,170 @@ export const MinimalSellerCard = ({
         open={isMessageOpen}
         onOpenChange={setIsMessageOpen}
         seller={seller}
+        itemId={itemId}
       />
 
-      <div className="space-y-4">
-        {/* Main Card */}
-        <div className="relative">
-          {/* Share button - top right */}
-          <div className="absolute top-0 right-0">
-            <SharePopover url={computedShareUrl} title={title} />
-          </div>
+      <SendOfferModal
+        open={isOfferOpen}
+        onOpenChange={setIsOfferOpen}
+        seller={seller}
+        itemId={itemId}
+        itemPrice={itemPrice}
+      />
 
-          {/* Avatar + Name row */}
-          <div className="flex items-start gap-3 pr-10">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-slate-100 bg-slate-50">
-                <CustomImage
-                  src={seller?.profile || seller?.profile_image}
-                  alt={seller?.name || "Prodavač"}
-                  width={64}
-                  height={64}
-                  className="w-full h-full object-cover"
-                />
+      <div className={cn(
+        "space-y-3",
+        variant === "compact" && "space-y-2"
+      )}>
+        {/* Header: Avatar + Info */}
+        <div className="flex items-start gap-3">
+          {/* Avatar */}
+          <CustomLink href={`/seller/${seller?.id}`} className="relative flex-shrink-0 group">
+            <div className={cn(
+              "rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60",
+              "group-hover:border-slate-300 transition-colors",
+              variant === "compact" ? "w-10 h-10" : "w-12 h-12"
+            )}>
+              <CustomImage
+                src={seller?.profile || seller?.profile_image}
+                alt={seller?.name || "Prodavač"}
+                width={variant === "compact" ? 40 : 48}
+                height={variant === "compact" ? 40 : 48}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            {/* Verified badge */}
+            {seller?.is_verified && (
+              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                <BadgeCheck className="w-2.5 h-2.5 text-white" />
               </div>
-              {seller?.is_verified && (
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-sky-500 rounded-md flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
+            )}
+          </CustomLink>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            {/* Name row with share */}
+            <div className="flex items-center justify-between gap-2">
+              <CustomLink 
+                href={`/seller/${seller?.id}`}
+                className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors"
+              >
+                {seller?.name}
+              </CustomLink>
+              
+              <SharePopover url={computedShareUrl} title={title} />
+            </div>
+
+            {/* Meta row */}
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {/* Rating */}
+              {showRatings && ratingValue && (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  <span className="font-medium">{ratingValue}</span>
+                  <span className="text-slate-400">({ratingCount})</span>
+                </span>
+              )}
+
+              {/* Response time */}
+              {responseLabel && (
+                <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                  <Zap className="w-3 h-3 text-amber-500" />
+                  {responseLabel}
+                </span>
+              )}
+
+              {/* Member since - only if enabled */}
+              {memberSince && (
+                <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                  <Calendar className="w-3 h-3" />
+                  {memberSince}
+                </span>
+              )}
+
+              {/* Pro/Shop badge inline */}
+              {isPro && (
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">
+                  PRO
+                </span>
+              )}
+              {isShop && (
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 rounded">
+                  SHOP
+                </span>
               )}
             </div>
 
-            {/* Name + Badges */}
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-semibold text-slate-900 truncate">
-                {seller?.name}
-              </h3>
-
-              {/* Badges row */}
-              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                {isPro && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-md">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    Pro
-                  </span>
-                )}
-                {isShop && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-md">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    Trgovina
-                  </span>
-                )}
+            {/* Gamification badges */}
+            {showBadges && badgeList.length > 0 && (
+              <div className="flex items-center gap-1 mt-1.5">
                 {badgeList.map((b) => (
-                  <GamificationBadge key={b.id} badge={b} size="sm" showName={false} showDescription={false} />
+                  <GamificationBadge 
+                    key={b.id} 
+                    badge={b} 
+                    size="xs" 
+                    showName={false} 
+                    showDescription={false}
+                    className="w-5 h-5" 
+                  />
                 ))}
+                {badges.length > maxBadges && (
+                  <span className="text-[10px] text-slate-400 ml-0.5">
+                    +{badges.length - maxBadges}
+                  </span>
+                )}
               </div>
-            </div>
-          </div>
-
-          {/* Response time + Member since */}
-          <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-            {responseLabel && (
-              <span className="inline-flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                Odgovara za {responseLabel}
-              </span>
-            )}
-            {memberSince && (
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" />
-                Član od {memberSince}
-              </span>
             )}
           </div>
         </div>
 
-        {/* Actions row */}
+        {/* Actions */}
         <div className="flex items-center gap-2">
           {/* Primary: Send message */}
           <button
             type="button"
             onClick={handleChatClick}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl transition-colors"
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2",
+              "bg-slate-900 hover:bg-slate-800 text-white",
+              "text-sm font-medium rounded-xl transition-colors",
+              variant === "compact" ? "px-3 py-2" : "px-4 py-2.5"
+            )}
           >
             <MessageCircle className="w-4 h-4" />
             Pošalji poruku
           </button>
 
-          {/* Save button */}
-          <SavedToListButton
-            sellerId={seller?.id}
-            sellerName={seller?.name}
-            variant="icon"
-            className="w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50"
-          />
-
-          {/* Contact button */}
-          <button
-            type="button"
-            onClick={handleContactClick}
-            className="w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-emerald-600 transition-colors"
-          >
-            <Phone className="w-4 h-4" />
-          </button>
-
-          {/* WhatsApp quick access */}
-          {settings?.show_whatsapp && (settings?.whatsapp_number || seller?.mobile) && (
-            <a
-              href={`https://wa.me/${String(settings?.whatsapp_number || seller?.mobile).replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noreferrer"
-              className="w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-green-600 transition-colors"
+          {/* Make offer - if allowed and has item */}
+          {canMakeOffer && itemId && (
+            <button
+              type="button"
+              onClick={() => setIsOfferOpen(true)}
+              className={cn(
+                "flex items-center justify-center gap-1.5",
+                "bg-emerald-600 hover:bg-emerald-700 text-white",
+                "text-sm font-medium rounded-xl transition-colors",
+                variant === "compact" ? "px-3 py-2" : "px-4 py-2.5"
+              )}
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-              </svg>
-            </a>
+              Ponuda
+            </button>
+          )}
+
+          {/* Contact options */}
+          {hasContactOptions && (
+            <button
+              type="button"
+              onClick={handleContactClick}
+              className={cn(
+                "flex items-center justify-center rounded-xl border border-slate-200",
+                "hover:bg-slate-50 text-slate-600 transition-colors",
+                variant === "compact" ? "w-9 h-9" : "w-10 h-10"
+              )}
+            >
+              <Phone className="w-4 h-4" />
+            </button>
           )}
         </div>
 
@@ -683,12 +826,10 @@ export const MinimalSellerCard = ({
         {showProfileLink && (
           <CustomLink
             href={`/seller/${seller?.id}`}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group"
           >
-            Pogledaj profil
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
+            Pogledaj kompletan profil
+            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </CustomLink>
         )}
       </div>
