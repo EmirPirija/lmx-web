@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { toast } from "sonner";
 
 import {
@@ -11,25 +11,20 @@ import {
   IoTimeOutline,
   IoShieldCheckmarkOutline,
   IoAirplaneOutline,
-  IoGlobeOutline,
   IoSaveOutline,
-  IoRefreshOutline,
   IoAlertCircleOutline,
   IoCheckmarkCircleOutline,
   IoEyeOutline,
-  IoEyeOffOutline,
   IoStarOutline,
   IoCalendarOutline,
   IoFlashOutline,
-  IoStorefrontOutline,
-  IoChevronForward,
-  IoGridOutline,
-  IoInformationCircleOutline,
   IoCarOutline,
   IoReturnDownBackOutline,
   IoLogoFacebook,
   IoLogoInstagram,
   IoLinkOutline,
+  IoInformationCircleOutline,
+  IoHourglassOutline,
 } from "react-icons/io5";
 import { Loader2 } from "lucide-react";
 
@@ -38,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { cn } from "@/lib/utils";
-import { sellerSettingsApi } from "@/utils/api";
+import { sellerSettingsApi, getVerificationStatusApi } from "@/utils/api";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 
 // ============================================
@@ -75,7 +70,10 @@ const defaultCardPreferences = {
 // HELPERI
 // ============================================
 const normalizeBusinessHours = (raw) => {
-  let obj = typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : raw;
+  let obj = raw;
+  if (typeof raw === "string") {
+    try { obj = JSON.parse(raw); } catch { obj = null; }
+  }
   if (!obj || typeof obj !== "object") obj = {};
   return DAYS.reduce((acc, day) => {
     const base = defaultBusinessHours[day];
@@ -86,11 +84,21 @@ const normalizeBusinessHours = (raw) => {
 };
 
 const normalizeCardPreferences = (raw) => {
-  let obj = typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : raw;
-  return { ...defaultCardPreferences, ...(obj || {}) };
+  let obj = raw;
+  if (typeof raw === "string") {
+    try { obj = JSON.parse(raw); } catch { obj = null; }
+  }
+  if (!obj || typeof obj !== "object") obj = {};
+  return { ...defaultCardPreferences, ...obj };
 };
 
-const stableStringify = (value) => JSON.stringify(value, Object.keys(value).sort());
+const stableStringify = (value) => {
+  try {
+    return JSON.stringify(value, Object.keys(value).sort());
+  } catch {
+    return JSON.stringify(value);
+  }
+};
 
 // ============================================
 // UI KOMPONENTE - ProfileDropdown stil
@@ -204,6 +212,70 @@ const ResponseTimeButton = ({ label, isActive, onClick }) => (
   </button>
 );
 
+// Verification Badge - kao u Profile.jsx
+const VerificationBadge = ({ status }) => {
+  const config = {
+    approved: {
+      icon: IoCheckmarkCircleOutline,
+      text: "Verificiran",
+      bg: "bg-green-50",
+      border: "border-green-200",
+      textColor: "text-green-700",
+      iconColor: "text-green-500",
+    },
+    pending: {
+      icon: IoHourglassOutline,
+      text: "Na čekanju",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      textColor: "text-amber-700",
+      iconColor: "text-amber-500",
+    },
+    submitted: {
+      icon: IoHourglassOutline,
+      text: "Na čekanju",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      textColor: "text-amber-700",
+      iconColor: "text-amber-500",
+    },
+    resubmitted: {
+      icon: IoHourglassOutline,
+      text: "Na ponovnom pregledu",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      textColor: "text-amber-700",
+      iconColor: "text-amber-500",
+    },
+    rejected: {
+      icon: IoAlertCircleOutline,
+      text: "Odbijeno",
+      bg: "bg-red-50",
+      border: "border-red-200",
+      textColor: "text-red-700",
+      iconColor: "text-red-500",
+    },
+    "not applied": {
+      icon: IoAlertCircleOutline,
+      text: "Nije verificiran",
+      bg: "bg-slate-50",
+      border: "border-slate-200",
+      textColor: "text-slate-600",
+      iconColor: "text-slate-400",
+    },
+  };
+
+  const c = config[status] || config["not applied"];
+  const Icon = c.icon;
+
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border", c.bg, c.border, c.textColor)}>
+      <Icon size={12} className={c.iconColor} />
+      {c.text}
+    </span>
+  );
+};
+
 // ============================================
 // GLAVNA KOMPONENTA
 // ============================================
@@ -219,6 +291,9 @@ const SellerSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Verification status - dohvaćen iz API-ja
+  const [verificationStatus, setVerificationStatus] = useState("not applied");
 
   // Kontakt postavke
   const [showPhone, setShowPhone] = useState(true);
@@ -287,14 +362,27 @@ const SellerSettings = () => {
     try {
       setIsLoading(true);
       setLoadError("");
-      const response = await sellerSettingsApi.getSettings();
-      
-      if (response?.data?.error !== false || !response?.data?.data) {
-        setLoadError(response?.data?.message || "Greška pri učitavanju.");
+
+      // Dohvati verifikaciju i postavke paralelno
+      const [verificationRes, settingsRes] = await Promise.all([
+        getVerificationStatusApi.getVerificationStatus(),
+        sellerSettingsApi.getSettings(),
+      ]);
+
+      // Verifikacija
+      if (verificationRes?.data?.error === true) {
+        setVerificationStatus("not applied");
+      } else {
+        setVerificationStatus(verificationRes?.data?.data?.status || "not applied");
+      }
+
+      // Postavke
+      if (settingsRes?.data?.error !== false || !settingsRes?.data?.data) {
+        setLoadError(settingsRes?.data?.message || "Greška pri učitavanju.");
         return;
       }
 
-      const s = response.data.data;
+      const s = settingsRes.data.data;
       setShowPhone(s.show_phone ?? true);
       setShowEmail(s.show_email ?? true);
       setShowWhatsapp(s.show_whatsapp ?? false);
@@ -354,7 +442,7 @@ const SellerSettings = () => {
       
       if (response?.data?.error === false) {
         initialPayloadRef.current = stableStringify(payload);
-        toast.success("Postavke sačuvane!");
+        toast.success("Postavke sačuvane! Promjene će biti vidljive na tvojim oglasima.");
       } else {
         toast.error(response?.data?.message || "Greška pri spremanju.");
       }
@@ -406,34 +494,15 @@ const SellerSettings = () => {
     );
   }
 
-  const isVerified = currentUser?.is_verified === 1 || currentUser?.is_verified === true;
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
       {/* HEADER */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Postavke prodavača</h2>
-          <p className="text-[11px] text-slate-400">Kako te kupci vide</p>
+          <p className="text-[11px] text-slate-400">Kontroliše prikaz na tvojim oglasima</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Verified badge */}
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border",
-              isVerified
-                ? "bg-green-50 text-green-700 border-green-200"
-                : "bg-slate-50 text-slate-500 border-slate-200"
-            )}
-          >
-            {isVerified ? (
-              <IoCheckmarkCircleOutline size={12} />
-            ) : (
-              <IoAlertCircleOutline size={12} />
-            )}
-            {isVerified ? "Verificiran" : "Nije verificiran"}
-          </span>
-        </div>
+        <VerificationBadge status={verificationStatus} />
       </div>
 
       {/* CONTENT */}
@@ -468,7 +537,7 @@ const SellerSettings = () => {
 
         {/* CARD PREFERENCES */}
         <div className="px-2 pb-2">
-          <MenuSection title="Šta kupci vide">
+          <MenuSection title="Šta kupci vide na tvojim oglasima">
             <SettingRow
               icon={IoStarOutline}
               label="Ocjene i recenzije"

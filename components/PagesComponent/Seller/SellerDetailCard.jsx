@@ -863,13 +863,19 @@ export const SellerPreviewCard = ({
   const settings = sellerSettings || {};
   const prefs = uiPrefs || {};
 
-  const compactness = prefs.compactness || settings?.card_preferences?.compactness || "normal";
-  const contactStyle = prefs.contactStyle || settings?.card_preferences?.contactStyle || settings?.contact_style || "inline";
+  // Parse card_preferences if it's a string
+  const rawCardPrefs = settings?.card_preferences;
+  const cardPrefs = typeof rawCardPrefs === "string"
+    ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
+    : (rawCardPrefs || {});
 
-  const showRatings = prefs.showRatings ?? true;
-  const showBadges = prefs.showBadges ?? true;
-  const showMemberSince = prefs.showMemberSince ?? true;
-  const showResponseTime = prefs.showResponseTime ?? true;
+  const compactness = prefs.compactness || cardPrefs?.compactness || "normal";
+  const contactStyle = prefs.contactStyle || cardPrefs?.contactStyle || settings?.contact_style || "inline";
+
+  const showRatings = prefs.showRatings ?? cardPrefs.show_ratings ?? true;
+  const showBadges = prefs.showBadges ?? cardPrefs.show_badges ?? true;
+  const showMemberSince = prefs.showMemberSince ?? cardPrefs.show_member_since ?? true;
+  const showResponseTime = prefs.showResponseTime ?? cardPrefs.show_response_time ?? true;
   const showShare = prefs.showShare ?? true;
 
   const c = compactnessMap[compactness] || compactnessMap.normal;
