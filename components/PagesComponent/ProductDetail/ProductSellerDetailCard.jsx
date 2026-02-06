@@ -43,6 +43,132 @@ import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 
 const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
 
+
+const toBool = (v) => {
+  if (v === true) return true;
+  if (v === false || v == null) return false;
+
+  if (typeof v === "number") return v > 0;
+
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (["true", "yes", "y", "approved", "verified", "active"].includes(s)) return true;
+
+    // hvata "1", "2", "3"...
+    const n = Number(s);
+    if (!Number.isNaN(n)) return n > 0;
+
+    return false;
+  }
+
+  return Boolean(v);
+};
+
+const hasVerifiedBadge = (seller) => {
+  const list = Array.isArray(seller?.badges) ? seller.badges : [];
+  return list.some((b) => {
+    const id = String(b?.id || "").toLowerCase();
+    // SAMO ako imate badge koji znači "profil verified"
+    return id === "seller_verified" || id === "kyc_verified" || id === "account_verified";
+  });
+};
+
+
+
+
+const normalize = (v) => String(v ?? "").trim().toLowerCase();
+const looksLikeVerifiedKey = (k) => {
+  const key = String(k || "").toLowerCase();
+  return (
+    key.includes("verif") ||
+    key.includes("verified") ||
+    key.includes("kyc") ||
+    key.includes("approve") ||
+    key.includes("approval")
+  );
+};
+
+const scanForVerified = (obj) => {
+  if (!obj || typeof obj !== "object") return false;
+
+  // 1 nivo
+  for (const [k, v] of Object.entries(obj)) {
+    if (looksLikeVerifiedKey(k) && toBool(v)) return true;
+
+    // 2 nivo (ako je nested)
+    if (v && typeof v === "object") {
+      for (const [k2, v2] of Object.entries(v)) {
+        if (looksLikeVerifiedKey(k2) && toBool(v2)) return true;
+        if (looksLikeVerifiedKey(`${k}.${k2}`) && toBool(v2)) return true;
+      }
+    }
+  }
+  return false;
+};
+
+const getVerifiedStatus = (seller, settings) => {
+  const status = normalize(
+    settings?.verification_status ??
+      settings?.verificationStatus ??
+      settings?.verified_status ??
+      settings?.verifiedStatus ??
+      settings?.kyc_status ??
+      seller?.verification_status ??
+      seller?.verificationStatus ??
+      seller?.verified_status ??
+      seller?.verifiedStatus ??
+      seller?.kyc_status ??
+      seller?.status ??
+      settings?.status
+  );
+
+  console.log(seller)
+
+  // NEGATIVNI statusi - prvo!
+if (
+  status.includes("not") ||
+  status.includes("unver") ||
+  status.includes("reject") ||
+  status.includes("declin") ||
+  status.includes("pend") ||
+  status.includes("wait")
+) {
+  return false;
+}
+
+// POZITIVNI statusi - strogo
+if (
+  status === "approved" ||
+  status === "verified" ||
+  status === "active" ||
+  status === "kyc_approved" ||
+  status === "approved_kyc"
+) {
+  return true;
+}
+
+
+  // prvo tvoji standardni flagovi
+  const direct =
+    toBool(seller?.is_verified) ||
+    toBool(seller?.verified) ||
+    toBool(seller?.isVerified) ||
+    toBool(seller?.is_verified_status) ||
+    toBool(seller?.is_kyc_verified) ||
+    toBool(seller?.kyc_verified) ||
+    toBool(settings?.is_verified) ||
+    toBool(settings?.verified) ||
+    toBool(settings?.isVerified);
+
+  if (direct) return true;
+
+  // catch-all: skeniraj sve moguće key-eve
+  return false;
+
+};
+
+
+
 const formatMemberSince = (dateStr) => {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -439,9 +565,29 @@ const ProductSellerDetailCard = ({
   const isShop = isShopProp || productDetails?.user?.is_shop;
   const itemId = itemIdProp || productDetails?.id;
   const itemPrice = itemPriceProp || productDetails?.price;
-  const acceptsOffers = acceptsOffersProp || productDetails?.accepts_offers || sellerSettings?.accepts_offers;
 
-  const settings = sellerSettings || {};
+  const settings = useMemo(() => {
+    const a = productDetails?.user_settings && typeof productDetails.user_settings === "object"
+      ? productDetails.user_settings
+      : {};
+    const b = sellerSettings && typeof sellerSettings === "object"
+      ? sellerSettings
+      : {};
+    return { ...a, ...b }; // sellerSettings override, ali ne briše a
+  }, [productDetails?.user_settings, sellerSettings]);
+  
+
+    const acceptsOffers = acceptsOffersProp || productDetails?.accepts_offers || sellerSettings?.accepts_offers;
+
+
+    const isVerified = useMemo(() => {
+      // plava kvačica = samo pravi verified account/kyc
+      return toBool(seller?.is_verified) || getVerifiedStatus(seller, settings);
+      // ako imate baš badge koji znači account verified, onda dodaj:
+      // || hasVerifiedBadge(seller)
+    }, [seller, settings]);
+    
+    
   
   // Card preferences from seller settings - parse if string
   const rawCardPrefs = settings?.card_preferences;
@@ -567,7 +713,8 @@ const ProductSellerDetailCard = ({
                   />
                 </div>
                 
-                {seller?.is_verified && (
+                {isVerified && (
+
                   <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-sky-500 rounded-lg flex items-center justify-center border-2 border-white">
                     <BadgeCheck className="w-3 h-3 text-white" />
                   </div>
@@ -585,7 +732,8 @@ const ProductSellerDetailCard = ({
                   />
                 </div>
                 
-                {seller?.is_verified && (
+                {isVerified && (
+
                   <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-sky-500 rounded-lg flex items-center justify-center border-2 border-white">
                     <BadgeCheck className="w-3 h-3 text-white" />
                   </div>

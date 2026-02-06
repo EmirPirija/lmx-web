@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
+import { getVerificationStatusApi } from "@/utils/api";
+import { MdVerified } from "react-icons/md";
 
 // Lucide ikone
 import {
@@ -53,6 +55,8 @@ import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
 import { itemConversationApi, sendMessageApi } from "@/utils/api";
 
+
+
 /* =====================================================
    ANIMACIJE I STILOVI
 ===================================================== */
@@ -75,6 +79,51 @@ const staggerContainer = {
   },
 };
 
+/* =====================================================
+   HELPER FUNKCIJE (POPRAVLJENO)
+===================================================== */
+
+const normalize = (v) => String(v ?? "").trim().toLowerCase();
+
+// Popravljen toBool da hvata i string "true"
+const toBool = (v) => {
+  if (v === true || v === 1 || v === "1") return true;
+  if (typeof v === "string" && v.toLowerCase() === "true") return true;
+  return false;
+};
+const getVerifiedStatus = (seller, settings) => {
+  if (!seller && !settings) return false;
+
+  // 1. Provjera eksplicitnih statusnih stringova (Approved status iz API-ja)
+  const statusCandidates = [
+    settings?.verification_status,
+    seller?.verification_status,
+    seller?.verification?.status,
+    seller?.status, // Dodato jer ProfileDropdown provjera statusData?.status
+    settings?.status 
+  ];
+
+  console.log(seller)
+
+  const hasValidStatus = statusCandidates.some(s => {
+    const val = String(s ?? "").trim().toLowerCase();
+    return val === "approved" || val === "verified" || val === "active";
+  });
+
+  if (hasValidStatus) return true;
+
+  // 2. Provjera Boolean zastavica (Flags) - ista logika kao u toBool u Dropdownu
+  const flagCandidates = [
+    seller?.is_verified,
+    seller?.verified,
+    seller?.is_verified_status,
+    seller?.isVerified,
+    settings?.is_verified,
+    settings?.verified
+  ];
+
+  return flagCandidates.some(v => v === true || v === 1 || v === "1" || String(v).toLowerCase() === "true");
+};
 const shimmerCss = `
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
@@ -170,6 +219,8 @@ const getTomorrowHours = (businessHours) => {
   const tomorrowKey = getDayKeyByIndex(new Date().getDay() + 1);
   return getHoursText(businessHours[tomorrowKey]);
 };
+
+
 
 const isCurrentlyOpen = (businessHours) => {
   if (!businessHours) return null;
@@ -426,13 +477,16 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
    MODAL ZA SLANJE PORUKE
 ===================================================== */
 
-const SendMessageModal = ({ open, setOpen, seller, onSuccess }) => {
+const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
+
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
+
+
 
   // Reset stanja kada se modal otvori
   useEffect(() => {
@@ -441,6 +495,7 @@ const SendMessageModal = ({ open, setOpen, seller, onSuccess }) => {
       setError("");
     }
   }, [open]);
+
 
   const handleSend = async () => {
     // Izvuci seller ID
@@ -541,9 +596,10 @@ const SendMessageModal = ({ open, setOpen, seller, onSuccess }) => {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                {seller?.is_verified && (
+                {isVerified && (
+
                   <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-lg p-0.5 shadow-md">
-                    <Verified size={18} className="text-sky-500" />
+                    <MdVerified size={18} className="text-blue-500" />
                   </div>
                 )}
               </div>
@@ -854,13 +910,42 @@ export const SellerPreviewCard = ({
   onChatClick,
   onPhoneClick,
   shareUrl,
+  isVerifiedOverride,
 }) => {
   const pathname = usePathname();
   const router = useRouter();
   const CompanyName = useSelector(getCompanyName);
   const currentUser = useSelector(userSignUpData);
 
-  const settings = sellerSettings || {};
+  const settings = useMemo(() => sellerSettings || {}, [sellerSettings]);
+  const computedVerified = useMemo(
+    () => getVerifiedStatus(seller, settings),
+    [seller, settings]
+  );
+  
+  // ✅ ako je parent izračunao verifikaciju (remote + local), koristi to
+  const isVerified = isVerifiedOverride ?? computedVerified;
+  
+  
+  useEffect(() => {
+    if (seller?.id) {
+      console.log("SELLER VERIFY FIELDS", {
+        id: seller?.id,
+        name: seller?.name,
+        seller_verification_status: seller?.verification_status,
+        seller_kyc_status: seller?.kyc_status,
+        seller_flags: {
+          is_verified: seller?.is_verified,
+          verified: seller?.verified,
+          is_verified_status: seller?.is_verified_status,
+          isVerified: seller?.isVerified,
+        },
+        settings_verification_status: settings?.verification_status,
+        settings_kyc_status: settings?.kyc_status,
+      });
+    }
+  }, [seller?.id]);
+  
   const prefs = uiPrefs || {};
 
   // Parse card_preferences if it's a string
@@ -939,6 +1024,8 @@ export const SellerPreviewCard = ({
         open={isMessageModalOpen}
         setOpen={setIsMessageModalOpen}
         seller={seller}
+        settings={settings}
+        isVerified={isVerified}
       />
 
       <ContactSheet
@@ -976,14 +1063,15 @@ export const SellerPreviewCard = ({
                   </div>
                 </motion.div>
 
-                {seller?.is_verified && (
+                {isVerified && (
+
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ type: "spring", delay: 0.3, stiffness: 200 }}
                     className="absolute -bottom-1.5 -right-1.5 bg-white dark:bg-slate-900 rounded-xl p-1 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
                   >
-                    <Verified size={18} className="text-sky-500" />
+                    <MdVerified size={18} className="text-blue-500" />
                   </motion.div>
                 )}
               </div>
@@ -1280,6 +1368,11 @@ const SocialPill = ({ icon: Icon, label, href }) => {
    GLAVNI SELLER DETAIL CARD
 ===================================================== */
 
+
+/* =====================================================
+   GLAVNI SELLER DETAIL CARD (POPRAVLJENO)
+===================================================== */
+
 const SellerDetailCard = ({
   seller,
   ratings,
@@ -1292,9 +1385,59 @@ const SellerDetailCard = ({
   onPhoneReveal,
 }) => {
   const settings = sellerSettings || {};
+
+  // 1. LOKALNI STATUS: Provjerava props-e koji su stigli odmah (iz listinga)
+  const localVerified = useMemo(
+    () => getVerifiedStatus(seller, settings),
+    [seller, settings]
+  );
+
+  // 2. REMOTE STATUS: Provjera preko API-ja (za slučaj da podaci fale u listingu)
+  const [verifiedRemote, setVerifiedRemote] = useState(false);
+  const sellerId = seller?.user_id ?? seller?.id;
+
+  useEffect(() => {
+    // Ako je već lokalno verifikovan preko propsa, ne zovi API
+    if (localVerified || !sellerId) return;
+  
+    let alive = true;
+  
+    const fetchRemote = async () => {
+      try {
+        // Koristimo istu API funkciju kao u ProfileDropdown
+        const res = await getVerificationStatusApi.getVerificationStatus(sellerId);
+        
+        // ProfileDropdown čita: res.value?.data?.data
+        const statusData = res?.data?.data || res?.data; 
+  
+        if (alive && statusData) {
+          // Provjera identična onoj u Dropdownu: status === "approved"
+          const verifiedByStatus = String(statusData?.status || "").toLowerCase() === "approved";
+          
+          // Ili opšta provjera preko našeg helpera
+          const isRemoteValid = verifiedByStatus || getVerifiedStatus(statusData, statusData);
+          
+          if (isRemoteValid) {
+            setVerifiedRemote(true);
+          }
+        }
+      } catch (e) {
+        console.error("Greška pri provjeri verifikacije:", e);
+      }
+    };
+  
+    fetchRemote();
+    return () => { alive = false; };
+  }, [sellerId, localVerified]);
+
+  // FINALNI STATUS
+  const isVerified = localVerified || verifiedRemote;
+
+  // State za modale
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
+  // Parsiranje postavki
   const businessDescription = settings.business_description || "";
   const returnPolicy = settings.return_policy || "";
   const shippingInfo = settings.shipping_info || "";
@@ -1311,20 +1454,21 @@ const SellerDetailCard = ({
   const tomorrowHoursText = showHours ? getTomorrowHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
 
-  const hasSocialLinks = Boolean(socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite);
+  const hasSocialLinks = Boolean(
+    socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite
+  );
 
-  // Use user_id if available, fallback to id
   const mainSellerId = seller?.user_id ?? seller?.id;
 
-  const storageKey = mainSellerId ? `seller_accordion_open_${mainSellerId}` : "seller_accordion_open";
+  const storageKey = mainSellerId
+    ? `seller_accordion_open_${mainSellerId}`
+    : "seller_accordion_open";
+
   const [openId, setOpenId] = useLocalStorageState(storageKey, "contact");
 
   const handleChatClick = () => {
-    if (onChatClick) {
-      onChatClick();
-    } else {
-      setIsMessageModalOpen(true);
-    }
+    if (onChatClick) onChatClick();
+    else setIsMessageModalOpen(true);
   };
 
   if (!seller) return <SellerPreviewSkeleton />;
@@ -1340,8 +1484,11 @@ const SellerDetailCard = ({
         open={isMessageModalOpen}
         setOpen={setIsMessageModalOpen}
         seller={seller}
+        settings={settings}
+        isVerified={isVerified}
       />
 
+      {/* GLAVNA KARTICA */}
       <SellerPreviewCard
         seller={seller}
         sellerSettings={settings}
@@ -1354,9 +1501,12 @@ const SellerDetailCard = ({
         onChatClick={handleChatClick}
         onPhoneClick={() => setIsContactSheetOpen(true)}
         uiPrefs={{ contactStyle: "sheet" }}
+        // Ako je isVerified TRUE, šaljemo true. Ako je FALSE, šaljemo undefined 
+        // kako bi SellerPreviewCard koristio svoj fallback izračun.
+        isVerifiedOverride={isVerified || undefined} 
       />
 
-      {/* Contact accordion */}
+      {/* KONTAKT SEKCIJA */}
       <AccordionSection
         id="contact"
         title="Kontakt"
@@ -1392,7 +1542,7 @@ const SellerDetailCard = ({
         )}
       </AccordionSection>
 
-      {/* Business hours accordion */}
+      {/* RADNO VRIJEME SEKCIJA */}
       {showHours && (
         <AccordionSection
           id="hours"
@@ -1412,12 +1562,14 @@ const SellerDetailCard = ({
                   {todayHoursText}
                 </span>
                 {openNow !== null && (
-                  <span className={cn(
-                    "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
-                    openNow
-                      ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-                      : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-                  )}>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
+                      openNow
+                        ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                        : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                    )}
+                  >
                     <span className={cn("h-1.5 w-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
                     {openNow ? "Otvoreno" : "Zatvoreno"}
                   </span>
@@ -1440,7 +1592,7 @@ const SellerDetailCard = ({
         </AccordionSection>
       )}
 
-      {/* Info accordion */}
+      {/* INFO SEKCIJA (SHIPPING, RETURN, DESCRIPTION) */}
       {(shippingInfo || returnPolicy || businessDescription) && (
         <AccordionSection
           id="info"
@@ -1488,12 +1640,8 @@ const SellerDetailCard = ({
         </AccordionSection>
       )}
 
-      {/* Profile link */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
+      {/* LINK ZA PROFIL */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
         <CustomLink
           href={`/seller/${mainSellerId}`}
           onClick={onProfileClick}

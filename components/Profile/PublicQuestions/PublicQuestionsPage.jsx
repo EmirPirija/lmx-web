@@ -240,13 +240,19 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
 
         {/* Asker info */}
         <div className="flex items-start gap-3">
-          <UserAvatar
-            customAvatarUrl={question.user?.profile}
-            avatarId="lmx-01"
-            size={40}
-            showVerified={question.user?.is_verified}
-            verifiedSize={10}
-          />
+        <UserAvatar
+  customAvatarUrl={question.user?.profile}
+  avatarId="lmx-01"
+  size={40}
+  showVerified={
+    question.user?.is_verified === true ||
+    question.user?.verified === true ||
+    Number(question.user?.is_verified) === 1 ||
+    Number(question.user?.verified) === 1
+  }
+  verifiedSize={10}
+/>
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-slate-900">

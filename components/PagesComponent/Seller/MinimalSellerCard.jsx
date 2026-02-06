@@ -46,6 +46,35 @@ const formatMemberSince = (dateStr) => {
   return `${MONTHS_BS[d.getMonth()]} ${d.getFullYear()}`;
 };
 
+const toBool = (v) => {
+  if (v === true || v === 1) return true;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "1" || s === "true" || s === "yes";
+  }
+  return false;
+};
+
+const getSellerVerified = (seller, sellerSettings) => {
+  // 1) ako sellerSettings donosi verification_status
+  const status =
+    sellerSettings?.verification_status ||
+    sellerSettings?.verificationStatus ||
+    seller?.verification_status ||
+    seller?.verificationStatus;
+
+  if (String(status || "").toLowerCase() === "approved") return true;
+
+  // 2) fallback na razna boolean polja
+  return (
+    toBool(seller?.is_verified) ||
+    toBool(seller?.verified) ||
+    toBool(seller?.is_verified_status) ||
+    toBool(seller?.isVerified)
+  );
+};
+
+
 const responseTimeLabels = {
   instant: "par minuta",
   few_hours: "par sati",
@@ -575,6 +604,15 @@ export const MinimalSellerCard = ({
   const CompanyName = useSelector(getCompanyName);
 
   const settings = sellerSettings || {};
+
+  const isVerified =
+  String(settings?.verification_status || "").toLowerCase() === "approved" ||
+  seller?.is_verified === 1 ||
+  seller?.is_verified === true ||
+  seller?.verified === 1 ||
+  seller?.verified === true;
+
+  
   
   // Card preferences from seller settings
   const cardPrefs = settings?.card_preferences || {};
@@ -689,7 +727,8 @@ export const MinimalSellerCard = ({
             </div>
             
             {/* Verified badge */}
-            {seller?.is_verified && (
+            {isVerified && (
+
               <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                 <BadgeCheck className="w-2.5 h-2.5 text-white" />
               </div>

@@ -40,7 +40,9 @@ const VerificationBadge = ({ status }) => {
     rejected: { color: "bg-red-100 text-red-700 border-red-200", label: "Odbijeno" },
     "not applied": { color: "bg-slate-100 text-slate-600 border-slate-200", label: "Nije verificiran" },
   };
-  const c = config[status] || config["not applied"];
+  const key = String(status || "").trim().toLowerCase();
+const c = config[key] || config["not applied"];
+
   return (
     <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-medium rounded-full border", c.color)}>
       <Shield className="w-3 h-3" />
@@ -335,6 +337,7 @@ const SellerSettings = () => {
     business_description: businessDescription, return_policy: returnPolicy, shipping_info: shippingInfo,
     social_facebook: socialFacebook, social_instagram: socialInstagram, social_tiktok: socialTiktok,
     social_youtube: socialYoutube, social_website: socialWebsite,
+    verification_status: verificationStatus,
     card_preferences: cardPreferences,
   }), [showPhone, showEmail, showWhatsapp, showViber, whatsappNumber, viberNumber, preferredContact,
       businessHours, responseTime, acceptsOffers, autoReplyEnabled, autoReplyMessage, vacationMode,
@@ -359,6 +362,31 @@ const SellerSettings = () => {
 
   const isValid = Object.keys(errors).length === 0;
 
+  const normalizeVerificationStatus = (res) => {
+    // axios response ili već "data" objekat
+    const payload = res?.data ?? res;
+  
+    // backend kod tebe koristi error=true kad nije aplicirano
+    if (payload?.error === true) return "not applied";
+  
+    // podrži oba formata:
+    // 1) payload.status
+    // 2) payload.data.status (kao u tvom logu)
+    // 3) payload.data.data.status (neki drugi backendi)
+    const raw =
+      payload?.status ??
+      payload?.data?.status ??
+      payload?.data?.data?.status;
+  
+    const s = String(raw || "").trim().toLowerCase();
+  
+    if (["approved", "pending", "submitted", "resubmitted", "rejected"].includes(s)) return s;
+  
+    return "not applied";
+  };
+  
+  
+
   const fetchSettings = useCallback(async () => {
     const getFn = pickFn(sellerSettingsApi, ["getSettings", "get"]);
     if (!getFn) { setIsLoading(false); setLoadError("API nije dostupan."); return; }
@@ -369,13 +397,13 @@ const SellerSettings = () => {
       // Fetch both settings and verification status
       const [response, verificationRes] = await Promise.all([
         withTimeout(getFn(), 15000),
-        getVerificationStatusApi.getVerificationStatus().catch(() => ({ data: { error: true } })),
+        getVerificationStatusApi.getVerificationStatus().catch(() => ({ error: true })),
       ]);
       
-      // Set verification status
-      if (verificationRes?.data?.error !== true) {
-        setVerificationStatus(verificationRes?.data?.data?.status || "not applied");
-      }
+      setVerificationStatus(normalizeVerificationStatus(verificationRes));
+      
+
+      
       
       if (response?.data?.error !== false || !response?.data?.data) { setLoadError(response?.data?.message || "Greška."); return; }
 

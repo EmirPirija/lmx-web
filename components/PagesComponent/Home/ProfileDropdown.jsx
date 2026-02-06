@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import Link from "next/link";
 import { useMediaQuery } from "usehooks-ts";
+import { getVerificationStatusApi } from "@/utils/api";
 
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { settingsData } from "@/redux/reducer/settingSlice";
@@ -65,6 +66,9 @@ const toRating = (v) => {
   return n === null ? "0.0" : n.toFixed(1);
 };
 
+const toBool = (v) => v === true || v === 1 || v === "1";
+
+
 const extractList = (payload) => {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
@@ -123,7 +127,7 @@ function UserAvatar({
         )}
       </div>
 
-      {showVerified && (
+      {showVerified === true && (
         <div
           className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white"
           style={{ width: Math.max(14, Math.round(size * 0.33)), height: Math.max(14, Math.round(size * 0.33)) }}
@@ -298,6 +302,8 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
 
   const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
 
+  
+
   const [userStats, setUserStats] = useState({
     activeAds: 0,
     totalViews: 0,
@@ -356,9 +362,18 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
           limit: 1,
         }),
         getMyReviewsApi.getMyReviews({ page: 1 }),
+        getVerificationStatusApi.getVerificationStatus(),
       ]);
 
-      const [membershipRes, notifRes, adsRes, reviewsRes] = results;
+      const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] = results;
+
+      // DODAJ OVE LOGOVE OVDJE:
+      console.log("DROPDOWN DEBUG - User Data:", userData);
+      if (verificationRes.status === "fulfilled") {
+        console.log("DROPDOWN DEBUG - Verification API Raw:", verificationRes.value?.data);
+      } else {
+        console.log("DROPDOWN DEBUG - Verification API Failed:", verificationRes.reason);
+      }
 
       let membershipTier = userData?.membership_tier || "free";
       if (membershipRes.status === "fulfilled") {
@@ -379,6 +394,13 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         activeAds = extractTotal(payload) || payload?.total || 0;
       }
 
+      let verifiedByStatus = false;
+if (verificationRes?.status === "fulfilled") {
+  const statusData = verificationRes.value?.data?.data;
+  // ovdje backend daje npr: "approved", "pending", "not applied"
+  verifiedByStatus = String(statusData?.status || "").toLowerCase() === "approved";
+}
+
       let ratingFromReviews = null;
       if (reviewsRes?.status === "fulfilled") {
         const payload = getApiData(reviewsRes.value);
@@ -391,7 +413,12 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         toNum(userData?.rating);
 
       const rating = toRating(ratingFromReviews ?? ratingFallback);
-      const isVerified = userData?.is_verified === 1 || userData?.verified === true;
+      const isVerified =
+      verifiedByStatus ||
+      toBool(userData?.is_verified) ||
+      toBool(userData?.verified) ||
+      toBool(userData?.is_verified_status) ||
+      toBool(userData?.isVerified);
 
       setUserStats({
         activeAds,
