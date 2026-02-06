@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useSocialSharing } from "@/hooks/useSocialsharing";
+import { useSocialSharing } from "@/hooks/useSocialSharing";
 import { Button } from "@/components/ui/button";
 import {
   Popover,

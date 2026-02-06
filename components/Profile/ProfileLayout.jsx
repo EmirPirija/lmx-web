@@ -43,6 +43,7 @@ import {
   IoMenuOutline,
   IoCloseOutline,
   IoChatbubbleOutline,
+  IoChatbubbleEllipsesOutline,
 } from "react-icons/io5";
 import { Crown, Store } from "lucide-react";
 import { MdVerified } from "react-icons/md";
@@ -387,6 +388,13 @@ const getNavigationConfig = (pathname, userStats) => {
             href: "/notifications",
             isActive: pathname === "/notifications",
             badge: userStats.unreadNotifications,
+          },
+          {
+            icon: IoChatbubbleEllipsesOutline,
+            label: "Javna pitanja",
+            description: "Pitanja na vašim oglasima",
+            href: "/profile/public-questions",
+            isActive: pathname === "/profile/public-questions",
           },
         ],
       },

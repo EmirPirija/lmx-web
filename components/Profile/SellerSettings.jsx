@@ -23,10 +23,31 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
 import { cn } from "@/lib/utils";
-import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
+import { sellerSettingsApi, updateProfileApi, getVerificationStatusApi } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
+
+// ============================================
+// VERIFICATION BADGE
+// ============================================
+const VerificationBadge = ({ status }) => {
+  const config = {
+    approved: { color: "bg-green-100 text-green-700 border-green-200", label: "Verificiran" },
+    pending: { color: "bg-amber-100 text-amber-700 border-amber-200", label: "Na čekanju" },
+    submitted: { color: "bg-amber-100 text-amber-700 border-amber-200", label: "Na čekanju" },
+    resubmitted: { color: "bg-amber-100 text-amber-700 border-amber-200", label: "Na pregledu" },
+    rejected: { color: "bg-red-100 text-red-700 border-red-200", label: "Odbijeno" },
+    "not applied": { color: "bg-slate-100 text-slate-600 border-slate-200", label: "Nije verificiran" },
+  };
+  const c = config[status] || config["not applied"];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-medium rounded-full border", c.color)}>
+      <Shield className="w-3 h-3" />
+      {c.label}
+    </span>
+  );
+};
 
 // ============================================
 // CONSTANTS
@@ -241,6 +262,7 @@ const SellerSettings = () => {
   const [loadError, setLoadError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState("not applied");
 
   // Avatar
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -343,7 +365,18 @@ const SellerSettings = () => {
 
     try {
       setIsLoading(true); setLoadError("");
-      const response = await withTimeout(getFn(), 15000);
+      
+      // Fetch both settings and verification status
+      const [response, verificationRes] = await Promise.all([
+        withTimeout(getFn(), 15000),
+        getVerificationStatusApi.getVerificationStatus().catch(() => ({ data: { error: true } })),
+      ]);
+      
+      // Set verification status
+      if (verificationRes?.data?.error !== true) {
+        setVerificationStatus(verificationRes?.data?.data?.status || "not applied");
+      }
+      
       if (response?.data?.error !== false || !response?.data?.data) { setLoadError(response?.data?.message || "Greška."); return; }
 
       const s = response.data.data;
@@ -498,7 +531,10 @@ const SellerSettings = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Postavke prodavača</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-slate-900">Postavke prodavača</h2>
+            <VerificationBadge status={verificationStatus} />
+          </div>
           <p className="text-sm text-slate-500">Kako te kupci vide</p>
         </div>
         <div className="flex items-center gap-2">
