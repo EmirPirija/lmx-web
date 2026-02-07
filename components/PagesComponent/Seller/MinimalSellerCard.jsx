@@ -55,6 +55,39 @@ const toBool = (v) => {
   return false;
 };
 
+const normalizePrefBool = (value, fallback) => {
+  if (value == null) return fallback;
+  return toBool(value);
+};
+
+const defaultCardPreferences = {
+  show_ratings: true,
+  show_badges: true,
+  show_member_since: false,
+  show_response_time: true,
+  max_badges: 2,
+};
+
+const normalizeCardPreferences = (raw) => {
+  let obj = raw;
+  if (typeof raw === "string") {
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      obj = {};
+    }
+  }
+
+  const merged = { ...defaultCardPreferences, ...(obj || {}) };
+  return {
+    ...merged,
+    show_ratings: normalizePrefBool(obj?.show_ratings, defaultCardPreferences.show_ratings),
+    show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
+    show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
+    show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
+  };
+};
+
 const getSellerVerified = (seller, sellerSettings) => {
   // 1) ako sellerSettings donosi verification_status
   const status =
@@ -615,14 +648,11 @@ export const MinimalSellerCard = ({
   
   
   // Card preferences from seller settings - parse if JSON string
-  const rawCardPrefs = settings?.card_preferences;
-  const cardPrefs = typeof rawCardPrefs === "string"
-    ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
-    : (rawCardPrefs || {});
-  const showRatings = cardPrefs.show_ratings ?? true;
-  const showBadges = cardPrefs.show_badges ?? true;
-  const showMemberSince = cardPrefs.show_member_since ?? false; // Default off for cleaner look
-  const showResponseTime = cardPrefs.show_response_time ?? true;
+  const cardPrefs = normalizeCardPreferences(settings?.card_preferences);
+  const showRatings = cardPrefs.show_ratings;
+  const showBadges = cardPrefs.show_badges;
+  const showMemberSince = cardPrefs.show_member_since;
+  const showResponseTime = cardPrefs.show_response_time;
   const maxBadges = cardPrefs.max_badges ?? 2;
 
   const [isContactOpen, setIsContactOpen] = useState(false);

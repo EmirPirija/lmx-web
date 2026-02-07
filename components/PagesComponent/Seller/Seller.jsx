@@ -1,167 +1,232 @@
 "use client";
- 
-import { useEffect, useState } from "react";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
+
+import { AlertCircle, Package, ShoppingBag, Star } from "lucide-react";
+
+import Layout from "@/components/Layout/Layout";
+import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
+import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
+
 import SellerLsitings from "./SellerLsitings";
 import SellerDetailCard from "./SellerDetailCard";
-import { getSellerApi, gamificationApi } from "@/utils/api";
 import SellerRating from "./SellerRating";
 import SellerSkeleton from "./SellerSkeleton";
-import NoData from "@/components/EmptyStates/NoData";
-import Layout from "@/components/Layout/Layout";
-import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
-import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import { useSelector } from "react-redux";
+
+import { getSellerApi, gamificationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { cn } from "@/lib/utils";
 
-import {
-  Package,
-  ShoppingBag,
-  Star,
-  ChevronRight,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
- 
+// ============================================
+// HELPERS
+// ============================================
+const getMembershipFlags = (data) => {
+  const membership = data?.membership;
+  if (!membership) return { isPro: !!data?.is_pro, isShop: !!data?.is_shop };
+
+  const tier = String(membership.tier || membership.tier_name || membership.plan || "").toLowerCase();
+  const status = String(membership.status || "").toLowerCase();
+
+  // Only treat as active when membership status is active.
+  if (status !== "active") return { isPro: !!data?.is_pro, isShop: !!data?.is_shop };
+
+  // Heuristics based on existing backend naming.
+  if (tier.includes("shop") || tier.includes("business")) return { isPro: true, isShop: true };
+  if (tier.includes("pro") || tier.includes("premium")) return { isPro: true, isShop: false };
+  return { isPro: !!data?.is_pro, isShop: !!data?.is_shop };
+};
+
+const normalizeRatingsPagination = (ratings) => {
+  const current = Number(ratings?.current_page || ratings?.meta?.current_page || 1);
+  const last = Number(ratings?.last_page || ratings?.meta?.last_page || 1);
+  return { currentPage: current, hasMore: current < last };
+};
+
+// ============================================
+// UI
+// ============================================
+const TabButton = ({ active, icon: Icon, label, count, onClick }) => (
+  <motion.button
+    type="button"
+    whileHover={{ scale: 1.01 }}
+    whileTap={{ scale: 0.99 }}
+    onClick={onClick}
+    className={cn(
+      "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all",
+      active
+        ? "bg-primary/10 border-primary/20 text-primary shadow-sm"
+        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/60"
+    )}
+  >
+    <Icon className={cn("w-4 h-4", active ? "text-primary" : "text-slate-400")} />
+    <span className="hidden sm:inline whitespace-nowrap">{label}</span>
+    <span
+      className={cn(
+        "ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold",
+        active ? "bg-primary/15 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+      )}
+    >
+      {count}
+    </span>
+  </motion.button>
+);
+
+// ============================================
+// PAGE
+// ============================================
 const Seller = ({ id, searchParams }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
- 
+
   const [activeTab, setActiveTab] = useState("live");
   const [isNoUserFound, setIsNoUserFound] = useState(false);
- 
+
   const [seller, setSeller] = useState(null);
   const [ratings, setRatings] = useState(null);
   const [badges, setBadges] = useState([]);
-  const [isSellerDataLoading, setIsSellerDataLoading] = useState(false);
-  
   const [sellerSettings, setSellerSettings] = useState(null);
-  const [isPro, setIsPro] = useState(false);
-  const [isShop, setIsShop] = useState(false);
- 
+
+  const [isSellerDataLoading, setIsSellerDataLoading] = useState(false);
   const [isLoadMoreReview, setIsLoadMoreReview] = useState(false);
   const [reviewHasMore, setReviewHasMore] = useState(false);
   const [reviewCurrentPage, setReviewCurrentPage] = useState(1);
- 
+
+  const [isPro, setIsPro] = useState(false);
+  const [isShop, setIsShop] = useState(false);
+
   const [isOpenInApp, setIsOpenInApp] = useState(false);
   const isShare = searchParams?.share === "true";
- 
+
+  // Open app drawer on mobile when accessed through share link.
   useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth <= 768 && isShare) {
-      setIsOpenInApp(true);
-    }
+    if (typeof window !== "undefined" && window.innerWidth <= 768 && isShare) setIsOpenInApp(true);
   }, [isShare]);
- 
-  useEffect(() => {
-    getSeller(reviewCurrentPage);
-  }, [CurrentLanguage?.id, id]);
- 
-  useEffect(() => {
-    if (seller?.id) {
-      fetchSellerBadges();
-    }
-  }, [seller?.id]);
- 
-  const fetchSellerBadges = async () => {
+
+  const fetchSellerBadges = useCallback(async (userId) => {
+    if (!userId) return;
     try {
-      const res = await gamificationApi.getUserBadges({ user_id: seller?.id });
-      if (!res.data.error) {
-        setBadges(res.data.data.badges || []);
-      }
+      const res = await gamificationApi.getUserBadges({ user_id: userId });
+      if (!res?.data?.error) setBadges(res?.data?.data?.badges || []);
     } catch (error) {
       console.error("Error fetching seller badges:", error);
     }
-  };
- 
-  const getSeller = async (page) => {
-    if (page === 1) {
-      setIsSellerDataLoading(true);
-    }
-    try {
-      const res = await getSellerApi.getSeller({ id: Number(id), page });
-      
-      if (res?.data.error && res?.data?.code === 103) {
-        setIsNoUserFound(true);
-      } else {
-        const sellerRatings = res?.data?.data?.ratings;
+  }, []);
+
+  const getSeller = useCallback(
+    async (page = 1) => {
+      if (page === 1) setIsSellerDataLoading(true);
+      if (page > 1) setIsLoadMoreReview(true);
+
+      try {
+        const res = await getSellerApi.getSeller({ id: Number(id), page });
+        const payload = res?.data;
+
+        if (payload?.error && payload?.code === 103) {
+          setIsNoUserFound(true);
+          return;
+        }
+
+        const sellerData = payload?.data?.seller;
+        const ratingsData = payload?.data?.ratings;
+
+        // Ratings
         if (page === 1) {
-          setRatings(sellerRatings);
+          setRatings(ratingsData);
         } else {
           setRatings((prev) => ({
             ...prev,
-            data: [...(prev?.data || []), ...(sellerRatings?.data || [])],
+            ...ratingsData,
+            data: [...(prev?.data || []), ...(ratingsData?.data || [])],
           }));
         }
-        
-        const sellerData = res?.data?.data?.seller;
-        setSeller(sellerData);
-        
-        const settings = res?.data?.data?.seller_settings || sellerData?.seller_settings || null;
+
+        // Seller
+        setSeller(sellerData || null);
+
+        // Settings can come either nested under seller or on the root of the response.
+        const settings = payload?.data?.seller_settings || sellerData?.seller_settings || null;
         setSellerSettings(settings);
-        
-        let proStatus = res?.data?.data?.is_pro || sellerData?.is_pro || false;
-        let shopStatus = res?.data?.data?.is_shop || sellerData?.is_shop || false;
-        
-        const membership = res?.data?.data?.membership || sellerData?.membership;
-        if (membership) {
-          const tier = (membership.tier || membership.tier_name || membership.plan || '').toLowerCase();
-          const status = (membership.status || '').toLowerCase();
-          
-          if (status === 'active') {
-            if (tier.includes('shop') || tier.includes('business')) {
-              proStatus = true;
-              shopStatus = true;
-            } else if (tier.includes('pro') || tier.includes('premium')) {
-              proStatus = true;
-              shopStatus = false;
-            }
-          }
-        }
-        
-        setIsPro(proStatus);
-        setIsShop(shopStatus);
-        
-        setReviewCurrentPage(sellerRatings?.current_page || 1);
-        setReviewHasMore(sellerRatings?.current_page < sellerRatings?.last_page);
+
+        // Membership flags
+        const mergedForMembership = {
+          ...sellerData,
+          membership: payload?.data?.membership || sellerData?.membership,
+          is_pro: payload?.data?.is_pro ?? sellerData?.is_pro,
+          is_shop: payload?.data?.is_shop ?? sellerData?.is_shop,
+        };
+        const flags = getMembershipFlags(mergedForMembership);
+        setIsPro(flags.isPro);
+        setIsShop(flags.isShop);
+
+        // Pagination
+        const { currentPage, hasMore } = normalizeRatingsPagination(ratingsData);
+        setReviewCurrentPage(currentPage);
+        setReviewHasMore(hasMore);
+
+        // Badges
+        if (sellerData?.id) fetchSellerBadges(sellerData.id);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsSellerDataLoading(false);
+        setIsLoadMoreReview(false);
       }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsSellerDataLoading(false);
-      setIsLoadMoreReview(false);
-    }
-  };
- 
+    },
+    [id, fetchSellerBadges]
+  );
+
+  // Reload seller data when language or seller id changes.
+  useEffect(() => {
+    setIsNoUserFound(false);
+    setSeller(null);
+    setRatings(null);
+    setBadges([]);
+    setSellerSettings(null);
+    setReviewCurrentPage(1);
+    setReviewHasMore(false);
+    getSeller(1);
+  }, [CurrentLanguage?.id, id, getSeller]);
+
+  const reviewCount = useMemo(() => {
+    return ratings?.total ?? ratings?.meta?.total ?? ratings?.data?.length ?? 0;
+  }, [ratings]);
+
+  const liveCount = useMemo(() => {
+    return seller?.live_ads_count ?? seller?.live_count ?? seller?.active_ads_count ?? 0;
+  }, [seller]);
+
+  const soldCount = useMemo(() => {
+    return seller?.sold_ads_count ?? seller?.sold_count ?? seller?.completed_ads_count ?? 0;
+  }, [seller]);
+
+  const tabs = useMemo(
+    () => [
+      { key: "live", label: "Aktivni oglasi", icon: Package, count: liveCount },
+      { key: "sold", label: "Prodano", icon: ShoppingBag, count: soldCount },
+      { key: "reviews", label: "Recenzije", icon: Star, count: reviewCount },
+    ],
+    [liveCount, soldCount, reviewCount]
+  );
+
   if (isNoUserFound) {
     return (
       <Layout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
-          >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-xl shadow-red-500/20">
-              <AlertCircle size={40} className="text-white" />
+        <div className="min-h-[60vh] flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full px-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center shadow-sm">
+              <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Prodavač nije pronađen</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ovaj korisnik ne postoji ili je obrisan.</p>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Prodavač nije pronađen</h2>
-            <p className="text-slate-500 dark:text-slate-400">Ovaj korisnik ne postoji ili je obrisan.</p>
           </motion.div>
         </div>
       </Layout>
     );
   }
- 
-  const reviewCount = ratings?.total ?? ratings?.meta?.total ?? ratings?.data?.length ?? 0;
-  const liveCount = seller?.live_ads_count ?? seller?.live_count ?? seller?.active_ads_count ?? 0;
-  const soldCount = seller?.sold_ads_count ?? seller?.sold_count ?? seller?.completed_ads_count ?? 0;
- 
-  const tabs = [
-    { key: "live", label: "Aktivni oglasi", icon: Package, count: liveCount, color: "from-blue-500 to-indigo-600" },
-    { key: "sold", label: "Prodano", icon: ShoppingBag, count: soldCount, color: "from-green-500 to-emerald-600" },
-    { key: "reviews", label: "Recenzije", icon: Star, count: reviewCount, color: "from-amber-500 to-orange-600" },
-  ];
- 
+
   return (
     <Layout>
       {isSellerDataLoading && !seller ? (
@@ -169,119 +234,111 @@ const Seller = ({ id, searchParams }) => {
       ) : (
         <>
           <BreadCrumb title2={seller?.name} />
-          
-          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-            <div className="container mx-auto px-4 py-8 space-y-8">
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                {/* Seller Card - Left Side */}
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
+
+          <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+            <div className="container mx-auto px-4 py-8 space-y-6">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                {/* LEFT: Seller card */}
+                <motion.div
+                  initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="col-span-12 lg:col-span-4 lg:sticky lg:top-6 h-fit"
                 >
-                  <SellerDetailCard 
-                    seller={seller} 
-                    ratings={ratings} 
-                    badges={badges}
-                    sellerSettings={sellerSettings}
-                    isPro={isPro}
-                    isShop={isShop}
-                  />
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <SellerDetailCard
+                      seller={seller}
+                      ratings={ratings}
+                      badges={badges}
+                      sellerSettings={sellerSettings}
+                      isPro={isPro}
+                      isShop={isShop}
+                    />
+                  </div>
                 </motion.div>
- 
-                {/* Main Content - Right Side */}
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
+
+                {/* RIGHT: Content */}
+                <motion.div
+                  initial={{ opacity: 0, x: 12 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="col-span-12 lg:col-span-8 space-y-6"
+                  className="col-span-12 lg:col-span-8 space-y-4"
                 >
                   {/* Tabs */}
                   <div className="flex flex-wrap gap-2">
-                    {tabs.map((tab) => {
-                      const Icon = tab.icon;
-                      const isActive = activeTab === tab.key;
-                      return (
-                        <motion.button
-                          key={tab.key}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="button"
-                          onClick={() => setActiveTab(tab.key)}
-                          className={cn(
-                            "flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold transition-all duration-300",
-                            isActive
-                              ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
-                              : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50"
-                          )}
-                        >
-                          <Icon size={18} />
-                          <span className="hidden sm:inline">{tab.label}</span>
-                          <span className={cn(
-                            "px-2 py-0.5 rounded-full text-xs font-bold",
-                            isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-                          )}>
-                            {tab.count}
-                          </span>
-                        </motion.button>
-                      );
-                    })}
+                    {tabs.map((t) => (
+                      <TabButton
+                        key={t.key}
+                        active={activeTab === t.key}
+                        icon={t.icon}
+                        label={t.label}
+                        count={t.count}
+                        onClick={() => setActiveTab(t.key)}
+                      />
+                    ))}
                   </div>
- 
-                  {/* Tab Content */}
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-700/50 p-6 md:p-8"
-                  >
-                    <AnimatePresence mode="wait">
-                      {activeTab === "live" && (
-                        <motion.div
-                          key="live"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                        >
-                          <SellerLsitings id={id} emptyLabel="Ovaj prodavač trenutno nema aktivnih oglasa." />
-                        </motion.div>
-                      )}
-                      {activeTab === "sold" && (
-                        <motion.div
-                          key="sold"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                        >
-                          <SellerLsitings id={id} filterStatus="sold out" emptyLabel="Ovaj prodavač još nema prodanih oglasa." />
-                        </motion.div>
-                      )}
-                      {activeTab === "reviews" && (
-                        <motion.div
-                          key="reviews"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                        >
-                          <SellerRating
-                            ratingsData={ratings}
-                            seller={seller}
-                            isLoadMoreReview={isLoadMoreReview}
-                            reviewHasMore={reviewHasMore}
-                            reviewCurrentPage={reviewCurrentPage}
-                            getSeller={getSeller}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
+
+                  {/* Content Card */}
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div className="p-4 sm:p-6">
+                      <AnimatePresence mode="wait" initial={false}>
+                        {activeTab === "live" && (
+                          <motion.div
+                            key="tab-live"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <SellerLsitings id={id} emptyLabel="Ovaj prodavač trenutno nema aktivnih oglasa." />
+                          </motion.div>
+                        )}
+
+                        {activeTab === "sold" && (
+                          <motion.div
+                            key="tab-sold"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <SellerLsitings
+                              id={id}
+                              filterStatus="sold out"
+                              emptyLabel="Ovaj prodavač još nema prodanih oglasa."
+                            />
+                          </motion.div>
+                        )}
+
+                        {activeTab === "reviews" && (
+                          <motion.div
+                            key="tab-reviews"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <SellerRating
+                              ratingsData={ratings}
+                              seller={seller}
+                              isLoadMoreReview={isLoadMoreReview}
+                              reviewHasMore={reviewHasMore}
+                              reviewCurrentPage={reviewCurrentPage}
+                              getSeller={getSeller}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
                 </motion.div>
               </div>
             </div>
           </div>
         </>
       )}
+
       <OpenInAppDrawer isOpenInApp={isOpenInApp} setIsOpenInApp={setIsOpenInApp} />
     </Layout>
   );
 };
- 
+
 export default Seller;

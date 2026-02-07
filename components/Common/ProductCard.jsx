@@ -4,6 +4,7 @@ import {
   t,
 } from "@/utils";
 import { useState, useMemo, useRef, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { BiBadgeCheck } from "react-icons/bi";
 import { FaHeart, FaRegHeart, FaYoutube } from "react-icons/fa";
 import { IoLocationOutline, IoTimeOutline } from "react-icons/io5";
@@ -19,132 +20,99 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import CustomImage from "./CustomImage";
 import { IconRocket, IconRosetteDiscount } from "@tabler/icons-react";
 
-
 import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/reducer/compareSlice";
 import { IoGitCompareOutline } from "react-icons/io5";
 
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl flex flex-col h-full animate-pulse">
-      <div className="relative aspect-square rounded-t-2xl bg-gray-200" />
-      <div className="flex flex-col gap-2 p-2">
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-        <div className="h-3 bg-gray-200 rounded w-1/2" />
-        <div className="flex gap-1">
-          <div className="h-4 w-14 bg-gray-200 rounded-full" />
-          <div className="h-4 w-10 bg-gray-200 rounded-full" />
+    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
+      <div className="relative aspect-square bg-gray-100" />
+      <div className="p-2 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-16 bg-gray-100 rounded" />
+          <div className="h-3 w-12 bg-gray-100 rounded" />
         </div>
-        <div className="border-t border-gray-100 mt-1" />
-        <div className="flex justify-between">
-          <div className="h-3 bg-gray-200 rounded w-16" />
-          <div className="h-3 bg-gray-200 rounded w-14" />
+        <div className="h-4 w-3/4 bg-gray-100 rounded" />
+        <div className="h-3 w-2/3 bg-gray-100 rounded" />
+        <div className="flex gap-1">
+          <div className="h-4 w-12 bg-gray-100 rounded" />
+          <div className="h-4 w-10 bg-gray-100 rounded" />
         </div>
       </div>
     </div>
   );
 };
 
-// Helper function to format relative time
-const formatRelativeTime = (dateString) => {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInSeconds = Math.floor((now - date) / 1000);
-
-  if (diffInSeconds < 60) return "Upravo sada";
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    if (diffInMinutes === 1) return "Prije 1 min";
-    return `Prije ${diffInMinutes} min`;
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    if (diffInHours === 1) return "Prije 1 sat";
-    return `Prije ${diffInHours} sati`;
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    if (diffInDays === 1) return "Prije 1 dan";
-    return `Prije ${diffInDays} dana`;
-  }
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    if (diffInMonths === 1) return "Prije 1 mj";
-    return `Prije ${diffInMonths} mj`;
-  }
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  if (diffInYears === 1) return "Prije 1 god";
-  return `Prije ${diffInYears} god`;
-};
-
-
-// Izvlači Godište, Gorivo, Mjenjač, Pogon i Stanje
-const getKeyAttributes = (item) => {
-  const attributes = [];
-  const customFields = item?.translated_custom_fields || [];
-
-  const findValue = (keys) => {
-    const field = customFields.find((f) => {
-      const name = (f.translated_name || f.name || "").toLowerCase();
-      return keys.includes(name);
-    });
-    return field?.translated_selected_values?.[0] || field?.value?.[0];
-  };
-
-  const condition = findValue(["stanje oglasa", "stanje"]);
-  if (condition) attributes.push(condition);
-
-  const year = findValue(["godište", "godiste"]);
-  if (year) attributes.push(year);
-
-  const fuel = findValue(["gorivo"]);
-  if (fuel) attributes.push(fuel);
-
-  const transmission = findValue(["mjenjač", "mjenjac"]);
-  if (transmission) attributes.push(transmission);
-
-  if (attributes.length === 0) {
-    return getSmartTagsFallback(item);
-  }
-
-  return attributes;
-};
-
-// Fallback funkcija
-const getSmartTagsFallback = (item) => {
-  const tags = [];
-  const skipFields = ["stanje", "condition", "opis", "description", "naslov", "title"];
-  const customFields = item?.translated_custom_fields || [];
-
-  for (const field of customFields) {
-    if (tags.length >= 3) break;
-    const fieldName = (field.name || field.translated_name || "").toLowerCase();
-    if (skipFields.some((skip) => fieldName.includes(skip))) continue;
-    const value = field.translated_selected_values?.[0] || field.value?.[0];
-    if (value && typeof value === "string" && value.length < 25 && value.length > 0) {
-      tags.push(value);
-    }
-  }
-  return tags;
-};
-
-const formatPriceOrInquiry = (price) => {
-  if (price === null || price === undefined) return "Na upit";
-  if (typeof price === "string" && price.trim() === "") return "Na upit";
-  if (Number(price) === 0) return "Na upit";
-  return formatPriceAbbreviated(Number(price));
-};
-
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+const buildDotItems = (count, current, maxDots = 7) => {
+  const last = Math.max(0, count - 1);
+  if (count <= maxDots) {
+    return Array.from({ length: count }, (_, index) => ({ type: "dot", index, key: `d-${index}` }));
+  }
+
+  let windowLen = Math.max(1, maxDots - 2);
+
+  // Iteratively adjust windowLen based on whether we need ellipses.
+  for (let i = 0; i < 3; i++) {
+    let start = current - Math.floor(windowLen / 2);
+    let end = start + windowLen - 1;
+
+    if (start < 1) {
+      start = 1;
+      end = start + windowLen - 1;
+    }
+    if (end > last - 1) {
+      end = last - 1;
+      start = end - windowLen + 1;
+      if (start < 1) start = 1;
+    }
+
+    const needLeftEllipsis = start > 1;
+    const needRightEllipsis = end < last - 1;
+
+    const nextWindowLen = Math.max(
+      1,
+      (maxDots - 2) - (needLeftEllipsis ? 1 : 0) - (needRightEllipsis ? 1 : 0)
+    );
+
+    if (nextWindowLen === windowLen) break;
+    windowLen = nextWindowLen;
+  }
+
+  let start = current - Math.floor(windowLen / 2);
+  let end = start + windowLen - 1;
+
+  if (start < 1) {
+    start = 1;
+    end = start + windowLen - 1;
+  }
+  if (end > last - 1) {
+    end = last - 1;
+    start = end - windowLen + 1;
+    if (start < 1) start = 1;
+  }
+
+  const items = [];
+  items.push({ type: "dot", index: 0, key: "d-0" });
+
+  if (start > 1) items.push({ type: "ellipsis", key: "e-left" });
+
+  for (let index = start; index <= end; index++) {
+    items.push({ type: "dot", index, key: `d-${index}` });
+  }
+
+  if (end < last - 1) items.push({ type: "ellipsis", key: "e-right" });
+
+  items.push({ type: "dot", index: last, key: `d-${last}` });
+
+  return items;
+};
 
 const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
   const userData = useSelector(userSignUpData);
-  
+
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
   const translated_item = item?.translated_item;
 
@@ -160,7 +128,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
   const handleCompare = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (isInCompare) {
       dispatch(removeFromCompare(item.id));
     } else {
@@ -240,7 +208,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
     e.stopPropagation();
     try {
       if (!userData) {
-        setIsLoginOpen(true);
+        dispatch(setIsLoginOpen(true));
         return;
       }
       const response = await manageFavouriteApi.manageFavouriteApi({
@@ -248,7 +216,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
       });
       if (response?.data?.error === false) {
         toast.success(response?.data?.message);
-        handleLike(item?.id);
+        handleLike?.(item?.id);
       } else {
         toast.error("Greška pri dodavanju u favorite");
       }
@@ -395,77 +363,115 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
           </>
         )}
 
-        {/* Dot Indicators */}
+        {/* Dot Indicators (high-end, max 7 + ellipsis) */}
         {totalSlides > 1 && (
-          <div
-            className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 transition-opacity duration-300 ${
-              isHovered ? "opacity-100" : "opacity-0"
+          <motion.div
+            initial={false}
+            animate={{
+              opacity: isHovered ? 1 : 0,
+              y: isHovered ? 0 : 4,
+            }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 ${
+              isHovered ? "pointer-events-auto" : "pointer-events-none"
             }`}
           >
-            {allSlides.map((_, index) => {
-              // ✅ bez wrap-around logike
-              const diff = Math.abs(index - currentSlide);
-              const isVisible = diff === 0 || diff === 1;
-              if (!isVisible) return null;
+            {buildDotItems(totalSlides, currentSlide, 7).map((d) => {
+              if (d.type === "ellipsis") {
+                return (
+                  <span
+                    key={d.key}
+                    className="text-white/80 text-[11px] leading-none px-0.5 select-none"
+                    aria-hidden="true"
+                  >
+                    …
+                  </span>
+                );
+              }
+
+              const active = d.index === currentSlide;
 
               return (
                 <button
-                  key={index}
-                  onClick={(e) => goToSlide(e, index)}
-                  className={`rounded-full transition-all duration-300 ease-out ${
-                    index === currentSlide
-                      ? "w-5 h-1.5 bg-white shadow-sm"
-                      : "w-1.5 h-1.5 bg-white/60 hover:bg-white hover:scale-125"
-                  }`}
-                />
+                  key={d.key}
+                  onClick={(e) => goToSlide(e, d.index)}
+                  className="rounded-full"
+                  aria-label={`Slide ${d.index + 1}`}
+                >
+                  {active ? (
+                    <motion.span
+                      layout
+                      className="block w-5 h-1.5 bg-white rounded-full shadow-sm"
+                      transition={{ type: "spring", stiffness: 520, damping: 34 }}
+                    />
+                  ) : (
+                    <motion.span
+                      layout
+                      whileHover={{ scale: 1.25 }}
+                      className="block w-1.5 h-1.5 bg-white/60 rounded-full"
+                      transition={{ type: "spring", stiffness: 520, damping: 34 }}
+                    />
+                  )}
+                </button>
               );
             })}
+          </motion.div>
+        )}
+
+        {/* Action Buttons (row-reverse; compare always in far corner) */}
+        {!isViewMoreSlide && (
+          <div className="absolute top-2 ltr:right-2 rtl:left-2 z-20 flex flex-row-reverse items-center gap-2">
+            <AnimatePresence initial={false}>
+              {(isHovered || isInCompare) && (
+                <motion.button
+                  key="compare"
+                  onClick={handleCompare}
+                  initial={{ opacity: 0, y: -8, scale: 0.92 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 520, damping: 34 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  className={`h-8 w-8 bg-white/95 rounded-full flex items-center justify-center shadow-md transition-colors ${
+                    isInCompare ? "text-blue-600 ring-2 ring-blue-100" : "text-gray-500 hover:text-blue-600"
+                  }`}
+                  title="Usporedi"
+                >
+                  <IoGitCompareOutline size={16} />
+                </motion.button>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence initial={false}>
+              {(isHovered || item?.is_liked) && (
+                <motion.button
+                  key="like"
+                  onClick={handleLikeItem}
+                  initial={{ opacity: 0, y: -8, scale: 0.92 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 520, damping: 34 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  className="h-8 w-8 bg-white/95 rounded-full flex items-center justify-center shadow-md transition-colors"
+                  title="Favorit"
+                >
+                  {item?.is_liked ? (
+                    <motion.span
+                      animate={{ scale: [1, 1.18, 1] }}
+                      transition={{ duration: 0.35 }}
+                      className="inline-flex"
+                    >
+                      <FaHeart size={14} className="text-red-500 transition-transform duration-300" />
+                    </motion.span>
+                  ) : (
+                    <FaRegHeart size={14} className="text-gray-500 transition-all duration-300 hover:text-red-400" />
+                  )}
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         )}
-
-        {/* Like Button */}
-        {!isViewMoreSlide && (
-          <button
-            onClick={handleLikeItem}
-            className={`absolute h-8 w-8 ltr:right-2 rtl:left-2 top-2 bg-white/95 rounded-full flex items-center justify-center shadow-md z-20 transition-all duration-300 ease-out hover:scale-110 active:scale-90
-            ${
-              isHovered || item?.is_liked
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-2"
-            }`}
-          >
-            {item?.is_liked ? (
-              <FaHeart
-                size={14}
-                className="text-red-500 transition-transform duration-300"
-              />
-            ) : (
-              <FaRegHeart
-                size={14}
-                className="text-gray-500 transition-all duration-300 hover:text-red-400"
-              />
-            )}
-          </button>
-        )}
-
-        {!isViewMoreSlide && (
-          <button
-            onClick={handleCompare}
-            className={`absolute h-8 w-8 ltr:right-2 rtl:left-2 top-11 bg-white/95 rounded-full flex items-center justify-center shadow-md z-20 transition-all duration-300 ease-out hover:scale-110 active:scale-90
-            ${
-              isHovered || isInCompare
-                ? "opacity-100 translate-x-0"
-                : "opacity-0 ltr:translate-x-4 rtl:-translate-x-4 pointer-events-none" 
-            }
-            ${isInCompare ? "text-blue-600 ring-2 ring-blue-100" : "text-gray-500 hover:text-blue-600"}
-            `}
-            title="Usporedi"
-          >
-            <IoGitCompareOutline size={16} />
-          </button>
-        )}
-
-
 
         {/* STATUS BADGES (Sale + Featured) */}
         {!isViewMoreSlide && (
@@ -518,9 +524,8 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-1.5 p-2 flex-gro relative">
-      <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
-
+      <div className="flex flex-col gap-1.5 p-2 flex-grow relative">
+        <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
           {translated_item?.name || item?.name}
         </h3>
 
@@ -544,38 +549,26 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
           </div>
         )}
 
-        <div className="flex-grow" />
-        <div className="border-t border-gray-100 mt-1.5" />
+        <div className="flex-1" />
 
-        {/* PRICE SECTION WITH AKCIJA SUPPORT */}
-        <div className="flex items-center justify-between gap-2 mt-1">
-          <div className="flex items-center gap-1 text-gray-400">
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
             <IoTimeOutline size={12} />
-            <span className="text-[10px]">
-              {formatRelativeTime(item?.created_at)}
-            </span>
+            <span>{formatTimeAgo(item?.created_at)}</span>
           </div>
 
           {!isHidePrice && (
-            <div className="flex flex-col items-center">
-              {/* Stara cijena prekrižena */}
-              {isOnSale && Number(oldPrice) > 0 && discountPercentage > 0 && (
-                <span className="text-[10px] text-gray-400 line-through decoration-red-400">
-                  {formatPriceAbbreviated(Number(oldPrice))}
+            <div className="flex items-center gap-1">
+              {isOnSale && oldPrice && Number(oldPrice) > Number(currentPrice) ? (
+                <span className="text-xs text-gray-400 line-through">
+                  {formatPriceAbbreviated(oldPrice)}
                 </span>
-              )}
+              ) : null}
 
-              {/* Trenutna cijena */}
-              <span
-                className={`text-sm font-bold ${
-                  isOnSale && discountPercentage > 0 && Number(currentPrice) > 0
-                    ? "text-red-600"
-                    : "text-gray-900"
-                }`}
-              >
+              <span className="text-sm font-semibold text-foreground">
                 {isJobCategory
                   ? formatSalaryRange(item?.min_salary, item?.max_salary)
-                  : formatPriceOrInquiry(item?.price)}
+                  : formatPriceAbbreviated(currentPrice)}
               </span>
             </div>
           )}
@@ -586,3 +579,66 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
 };
 
 export default ProductCard;
+
+// --------------------
+// HELPERS iz tvog file-a
+// --------------------
+
+function formatTimeAgo(createdAt) {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now - date;
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) return "Upravo sada";
+  if (minutes < 60) return `${minutes} min`;
+  if (hours < 24) return `${hours} h`;
+  return `${days} d`;
+}
+
+function getKeyAttributes(item) {
+  const attributes = [];
+  const customFields = item?.translated_custom_fields || [];
+
+  const findValue = (keys) => {
+    const field = customFields.find((f) => {
+      const name = (f?.translated_name || f?.name || "").toLowerCase();
+      return keys.includes(name);
+    });
+
+    return field?.translated_selected_values?.[0] || field?.value?.[0];
+  };
+
+  const condition = findValue(["stanje oglasa", "stanje"]);
+  if (condition) attributes.push(condition);
+
+  const year = findValue(["godište", "godiste"]);
+  if (year) attributes.push(year);
+
+  const fuel = findValue(["gorivo"]);
+  if (fuel) attributes.push(fuel);
+
+  const transmission = findValue(["mjenjač", "mjenjac"]);
+  if (transmission) attributes.push(transmission);
+
+  // fallback
+  if (attributes.length === 0) {
+    const tags = [];
+    const skipFields = ["stanje", "condition", "opis", "description", "naslov", "title"];
+    for (const field of customFields) {
+      if (tags.length >= 3) break;
+      const fieldName = (field?.name || field?.translated_name || "").toLowerCase();
+      if (skipFields.some((skip) => fieldName.includes(skip))) continue;
+      const value = field?.translated_selected_values?.[0] || field?.value?.[0];
+      if (value && typeof value === "string" && value.length < 25) tags.push(value);
+    }
+    return tags;
+  }
+
+  return attributes;
+}

@@ -1,30 +1,35 @@
-import { formatPriceAbbreviated, formatSalaryRange, t } from "@/utils";
-import { useState, useMemo, useRef } from "react";
-import { IoEye } from "react-icons/io5";
-import { FaHeart, FaYoutube } from "react-icons/fa";
-import { IoLocationOutline, IoTimeOutline } from "react-icons/io5";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { HiOutlineArrowRight } from "react-icons/hi";
-import CustomImage from "@/components/Common/CustomImage";
-import CustomLink from "@/components/Common/CustomLink";
-import GetMyAdStatus from "./GetMyAdStatus";
-import SoldOutModal from "../../PagesComponent/ProductDetail/SoldOutModal";
+"use client";
+
+import React, { useMemo, useRef, useState } from "react";
+
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
+  ArrowRight,
+  BadgePercent,
+  CheckCircle,
+  CheckSquare,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Edit,
+  Eye,
+  EyeOff,
+  Heart,
+  Images,
+  MapPin,
+  MoreVertical,
+  Rocket,
   RotateCcw,
   Trash2,
-  CheckSquare,
-  MoreVertical,
-  EyeOff,
-  CheckCircle,
-  Edit,
+  Youtube,
 } from "lucide-react";
+
+import CustomLink from "@/components/Common/CustomLink";
+import CustomImage from "@/components/Common/CustomImage";
+
+import SoldOutModal from "../../PagesComponent/ProductDetail/SoldOutModal";
+import GetMyAdStatus from "./GetMyAdStatus";
+
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,55 +37,87 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IconRocket, IconRosetteDiscount } from "@tabler/icons-react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { Button } from "@/components/ui/button";
 
-// Helper function to format relative time
+import { cn } from "@/lib/utils";
+import { formatPriceAbbreviated, formatSalaryRange, t } from "@/utils";
+
+// ============================================
+// HELPERS
+// ============================================
+
 const formatRelativeTime = (dateString) => {
+  if (!dateString) return "";
+
   const now = new Date();
   const date = new Date(dateString);
-  const diffInSeconds = Math.floor((now - date) / 1000);
 
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffInSeconds = Math.floor((now - date) / 1000);
   if (diffInSeconds < 60) return "Upravo sada";
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    if (diffInMinutes === 1) return "Prije 1 min";
-    return `Prije ${diffInMinutes} min`;
-  }
+  if (diffInMinutes < 60)
+    return diffInMinutes === 1 ? "Prije 1 min" : `Prije ${diffInMinutes} min`;
 
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    if (diffInHours === 1) return "Prije 1 sat";
-    return `Prije ${diffInHours} sati`;
-  }
+  if (diffInHours < 24)
+    return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
 
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    if (diffInDays === 1) return "Prije 1 dan";
-    return `Prije ${diffInDays} dana`;
-  }
+  if (diffInDays < 30)
+    return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
 
   const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    if (diffInMonths === 1) return "Prije 1 mj";
-    return `Prije ${diffInMonths} mj`;
-  }
+  if (diffInMonths < 12)
+    return diffInMonths === 1 ? "Prije 1 mj" : `Prije ${diffInMonths} mj`;
 
   const diffInYears = Math.floor(diffInMonths / 12);
-  if (diffInYears === 1) return "Prije 1 god";
-  return `Prije ${diffInYears} god`;
+  return diffInYears === 1 ? "Prije 1 god" : `Prije ${diffInYears} god`;
 };
 
-// Funkcija za atribute (Godište, Gorivo...)
+const getSmartTagsFallback = (item) => {
+  const tags = [];
+  const skipFields = [
+    "stanje",
+    "condition",
+    "opis",
+    "description",
+    "naslov",
+    "title",
+  ];
+  const customFields = item?.translated_custom_fields || [];
+
+  for (const field of customFields) {
+    if (tags.length >= 3) break;
+    const fieldName = (field?.name || field?.translated_name || "").toLowerCase();
+    if (skipFields.some((skip) => fieldName.includes(skip))) continue;
+
+    const value =
+      field?.translated_selected_values?.[0] || field?.value?.[0];
+    if (value && typeof value === "string" && value.length < 25) tags.push(value);
+  }
+
+  return tags;
+};
+
 const getKeyAttributes = (item) => {
   const attributes = [];
   const customFields = item?.translated_custom_fields || [];
 
   const findValue = (keys) => {
     const field = customFields.find((f) => {
-      const name = (f.translated_name || f.name || "").toLowerCase();
+      const name = (f?.translated_name || f?.name || "").toLowerCase();
       return keys.includes(name);
     });
+
     return field?.translated_selected_values?.[0] || field?.value?.[0];
   };
 
@@ -96,30 +133,48 @@ const getKeyAttributes = (item) => {
   const transmission = findValue(["mjenjač", "mjenjac"]);
   if (transmission) attributes.push(transmission);
 
-  if (attributes.length === 0) {
-    return getSmartTagsFallback(item);
-  }
-
+  if (attributes.length === 0) return getSmartTagsFallback(item);
   return attributes;
 };
 
-// Fallback funkcija
-const getSmartTagsFallback = (item) => {
-  const tags = [];
-  const skipFields = ["stanje", "condition", "opis", "description", "naslov", "title"];
-  const customFields = item?.translated_custom_fields || [];
+// ============================================
+// UI
+// ============================================
 
-  for (const field of customFields) {
-    if (tags.length >= 3) break;
-    const fieldName = (field.name || field.translated_name || "").toLowerCase();
-    if (skipFields.some((skip) => fieldName.includes(skip))) continue;
-    const value = field.translated_selected_values?.[0] || field?.value?.[0];
-    if (value && typeof value === "string" && value.length < 25 && value.length > 0) {
-      tags.push(value);
-    }
-  }
-  return tags;
-};
+const OverlayPill = ({ icon: Icon, children, className }) => (
+  <div
+    className={cn(
+      "inline-flex items-center gap-1.5",
+      "px-2 py-1 rounded-lg border text-[11px] font-semibold",
+      "bg-white/90 backdrop-blur-sm",
+      "shadow-sm",
+      className
+    )}
+  >
+    {Icon ? <Icon className="w-3.5 h-3.5" /> : null}
+    {children}
+  </div>
+);
+
+const StatChip = ({ icon: Icon, value, className, title }) => (
+  <div
+    className={cn(
+      "inline-flex items-center gap-1.5",
+      "px-2 py-1 rounded-lg border",
+      "bg-slate-50 text-slate-700 border-slate-100",
+      "text-[11px] font-semibold",
+      className
+    )}
+    title={title}
+  >
+    <Icon className="w-3.5 h-3.5" />
+    <span>{value}</span>
+  </div>
+);
+
+// ============================================
+// CARD
+// ============================================
 
 const MyAdsCard = ({
   data,
@@ -130,7 +185,7 @@ const MyAdsCard = ({
   onContextMenuAction,
 }) => {
   const isJobCategory = Number(data?.category?.is_job_category) === 1;
-  const translated_item = data?.translated_item;
+  const translatedItem = data?.translated_item;
 
   const keyAttributes = getKeyAttributes(data);
   const displayCity = data?.translated_city || data?.city || "";
@@ -138,13 +193,22 @@ const MyAdsCard = ({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
-  // STATE ZA SOLD OUT MODAL
+  // SOLD OUT MODAL
   const [isSoldOutDialogOpen, setIsSoldOutDialogOpen] = useState(false);
   const [selectedBuyerId, setSelectedBuyerId] = useState(null);
 
-  // Touch/Swipe ref
+  // Touch/Swipe refs
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  const status = data?.status;
+  const isExpired = status === "expired";
+  const isInactive = status === "inactive";
+  const isSoldOut = status === "sold out";
+  const isApproved = status === "approved" || status === "featured";
+  const isEditable = isApproved;
+
+  const hasVideo = !!(data?.video_link && String(data?.video_link).trim() !== "");
 
   const isHidePrice = isJobCategory
     ? [data?.min_salary, data?.max_salary].every(
@@ -157,51 +221,56 @@ const MyAdsCard = ({
       data?.price === undefined ||
       (typeof data?.price === "string" && data?.price.trim() === "");
 
-  const status = data?.status;
-  const isExpired = status === "expired";
-  const isInactive = status === "inactive";
-  const isSoldOut = status === "sold out";
-  const isApproved = status === "approved" || status === "featured";
-  const hasVideo = data?.video_link && data?.video_link !== "";
-
-  // 🔥 AKCIJA / SALE logika (isto kao u ProductCard)
+  // Sale logic
   const isOnSale = data?.is_on_sale === true || data?.is_on_sale === 1;
   const oldPrice = data?.old_price;
   const currentPrice = data?.price;
-  const discountPercentage =
-    data?.discount_percentage ||
-    (isOnSale &&
-      oldPrice &&
-      currentPrice &&
-      Number(oldPrice) > Number(currentPrice)
-      ? Math.round(
-          ((Number(oldPrice) - Number(currentPrice)) / Number(oldPrice)) * 100
-        )
-      : 0);
 
-  // Provjera da li je oglas editabilan
-  const isEditable = isApproved;
+  const discountPercentage = useMemo(() => {
+    const explicit = Number(data?.discount_percentage || 0);
+    if (explicit > 0) return explicit;
 
-  // Build slider images
-  const allSlides = useMemo(() => {
-    const slides = [];
-    if (data?.image) {
-      slides.push({ type: "image", src: data.image });
-    }
-    if (data?.gallery_images?.length) {
+    if (!isOnSale) return 0;
+    if (!oldPrice || !currentPrice) return 0;
+
+    const oldN = Number(oldPrice);
+    const curN = Number(currentPrice);
+    if (!Number.isFinite(oldN) || !Number.isFinite(curN) || oldN <= curN) return 0;
+
+    return Math.round(((oldN - curN) / oldN) * 100);
+  }, [data?.discount_percentage, isOnSale, oldPrice, currentPrice]);
+
+  // Build slider slides (images + "view more")
+  const slides = useMemo(() => {
+    const s = [];
+    const seen = new Set();
+
+    const pushImage = (src) => {
+      if (!src) return;
+      if (seen.has(src)) return;
+      seen.add(src);
+      s.push({ type: "image", src });
+    };
+
+    pushImage(data?.image);
+
+    if (Array.isArray(data?.gallery_images) && data.gallery_images.length) {
       data.gallery_images.forEach((img) => {
         const src = img?.image || img;
-        if (src) slides.push({ type: "image", src });
+        pushImage(src);
       });
     }
-    slides.push({ type: "viewMore" });
-    return slides;
+
+    s.push({ type: "viewMore" });
+    return s;
   }, [data?.image, data?.gallery_images]);
 
-  const totalSlides = allSlides.length;
-  const totalImages = totalSlides - 1;
+  const totalSlides = slides.length;
+  const totalImages = Math.max(0, totalSlides - 1);
 
-  // Handlers for Slider
+  const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
+
+  // Slider controls
   const handlePrevSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -221,327 +290,300 @@ const MyAdsCard = ({
   };
 
   // Touch logic
-  const handleTouchStart = (e) => (touchStartX.current = e.touches[0].clientX);
-  const handleTouchMove = (e) => (touchEndX.current = e.touches[0].clientX);
-  const handleTouchEnd = (e) => {
+  const handleTouchStart = (e) => (touchStartX.current = e.touches?.[0]?.clientX || 0);
+  const handleTouchMove = (e) => (touchEndX.current = e.touches?.[0]?.clientX || 0);
+  const handleTouchEnd = () => {
     if (isSelectable) return;
+
     const swipeDistance = touchStartX.current - touchEndX.current;
-    if (Math.abs(swipeDistance) > 50) {
-      if (swipeDistance > 0)
-        setCurrentSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
-      else setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
-    }
+    if (Math.abs(swipeDistance) <= 50) return;
+
+    if (swipeDistance > 0) setCurrentSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
+    else setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
   };
 
-  const isViewMoreSlide = allSlides[currentSlide]?.type === "viewMore";
+  const handleSoldOutClick = () => setIsSoldOutDialogOpen(true);
 
-  // Handle sold out triggering modal
-  const handleSoldOutClick = () => {
-    setIsSoldOutDialogOpen(true);
-  };
-
-  // callback iz SoldOutModal-a
   const handleSoldOutAction = (shouldProcess) => {
-    if (shouldProcess) {
-      onContextMenuAction("markAsSoldOut", data?.id, selectedBuyerId);
-      setIsSoldOutDialogOpen(false);
-    }
+    if (!shouldProcess) return;
+    onContextMenuAction?.("markAsSoldOut", data?.id, selectedBuyerId);
+    setIsSoldOutDialogOpen(false);
   };
 
-  // Card Content JSX
+  const title = translatedItem?.name || data?.name;
+
   const cardContent = (
     <CustomLink
       href={`/my-listing/${data?.slug}`}
-      className={`bg-white border border-gray-100 rounded-2xl flex flex-col h-full group overflow-hidden transition-all duration-200 ${
-        isSelected ? "ring-2 ring-primary bg-primary/5 shadow-md" : "hover:shadow-lg"
-      } cursor-pointer`}
+      className={cn(
+        "group relative flex flex-col h-full overflow-hidden",
+        "bg-white rounded-xl border border-slate-100",
+        "transition-all duration-200",
+        isSelected ? "ring-2 ring-primary/70 bg-primary/5 shadow-sm" : "hover:shadow-sm",
+        "cursor-pointer"
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
-        if (isSelectable) {
-          e.preventDefault();
-          onSelectionToggle?.();
-        }
+        if (!isSelectable) return;
+        e.preventDefault();
+        onSelectionToggle?.();
       }}
     >
-      {/* --- SLIDER SECTION --- */}
+      {/* MEDIA */}
       <div
-        className="relative overflow-hidden rounded-t-2xl touch-pan-y"
+        className={cn("relative overflow-hidden", "rounded-t-xl", "touch-pan-y")}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative aspect-square">
-          {/* Images */}
-          {allSlides.map((slide, index) => (
+        <div className="relative aspect-square bg-slate-50">
+          {slides.map((slide, index) => (
             <div
-              key={index}
-              className={`absolute inset-0 transition-all duration-500 ease-out ${
-                index === currentSlide
-                  ? "opacity-100 z-[1] scale-100"
-                  : "opacity-0 z-0 scale-105"
-              }`}
+              key={`${slide.type}-${index}`}
+              className={cn(
+                "absolute inset-0 transition-all duration-500 ease-out",
+                index === currentSlide ? "opacity-100 z-[1] scale-100" : "opacity-0 z-0 scale-105"
+              )}
             >
               {slide.type === "image" ? (
                 <CustomImage
                   src={slide.src}
-                  width={288}
-                  height={288}
+                  width={420}
+                  height={420}
                   className="w-full h-full object-cover"
-                  alt={translated_item?.name || data?.name}
+                  alt={title || "listing"}
                 />
               ) : (
-                <div className="w-full h-full bg-[#76b6b0] flex flex-col items-center justify-center text-white p-6">
-                  <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
-                    <HiOutlineArrowRight size={30} />
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-50">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15">
+                    <ArrowRight className="w-6 h-6" />
                   </div>
-                  <p className="text-lg font-semibold text-center mb-1">
-                    Detalji
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900 text-center">Detalji</p>
+                  <p className="text-xs text-slate-500 text-center mt-1">Otvori oglas</p>
                 </div>
               )}
             </div>
           ))}
 
-          {!isViewMoreSlide && (
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-[2]" />
+          {/* Selection */}
+          {isSelectable && (
+            <div
+              className="absolute top-2 left-2 z-30"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onSelectionToggle}
+                className={cn(
+                  "h-5 w-5",
+                  "bg-white shadow-sm border border-slate-200",
+                  "data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                )}
+              />
+            </div>
           )}
-        </div>
 
-        {/* Checkbox (MyAds specific) */}
-        {isSelectable && (
+          {/* Top-left badges (premium / sale) */}
+          {!isViewMoreSlide && (
+            <div className={cn("absolute top-2 z-20 flex items-center gap-2", isSelectable ? "left-9" : "left-2")}>
+              {data?.is_feature ? (
+                <OverlayPill icon={Rocket} className="text-amber-700 bg-amber-100/90 border-amber-200">
+                  
+                </OverlayPill>
+              ) : null}
+
+              {isOnSale && discountPercentage > 0 ? (
+                <OverlayPill icon={BadgePercent} className="text-rose-700 bg-rose-100/90 border-rose-200">
+                  
+                </OverlayPill>
+              ) : null}
+            </div>
+          )}
+
+          {/* Top-right menu */}
           <div
-            className="absolute top-2 left-2 z-30"
+            className="absolute top-2 right-2 z-30"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
             }}
           >
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={onSelectionToggle}
-              className="bg-white shadow-sm border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full",
+                    "bg-white/90 backdrop-blur-sm",
+                    "border-slate-200 shadow-sm",
+                    "hover:bg-white"
+                  )}
+                >
+                  <MoreVertical className="w-4 h-4 text-slate-700" />
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-52">
+                {isEditable ? (
+                  <DropdownMenuItem
+                    onClick={() => onContextMenuAction?.("edit", data?.id)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>Uredi oglas</span>
+                  </DropdownMenuItem>
+                ) : null}
+
+                {isApproved ? (
+                  <DropdownMenuItem
+                    onClick={() => onContextMenuAction?.("deactivate", data?.id)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <EyeOff className="w-4 h-4" />
+                    <span>Sakrij oglas</span>
+                  </DropdownMenuItem>
+                ) : null}
+
+                {isInactive ? (
+                  <DropdownMenuItem
+                    onClick={() => onContextMenuAction?.("activate", data?.id)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-green-600">Otkrij</span>
+                  </DropdownMenuItem>
+                ) : null}
+
+                {isApproved && !isSoldOut ? (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSoldOutClick();
+                    }}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle className="w-4 h-4 text-blue-600" />
+                    <span className="text-blue-600">Označi kao prodano</span>
+                  </DropdownMenuItem>
+                ) : null}
+
+                {isExpired || isEditable ? <DropdownMenuSeparator /> : null}
+
+                {isExpired ? (
+                  <DropdownMenuItem
+                    onClick={() => onContextMenuAction?.("renew", data?.id)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4 text-primary" />
+                    <span className="text-primary">{t("renew")}</span>
+                  </DropdownMenuItem>
+                ) : null}
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onClick={() => onContextMenuAction?.("delete", data?.id)}
+                  className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Izbriši</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        )}
 
-        {/* 🚀 PREMIUM + 🏷️ AKCIJA IKONE (gornji lijevi ćošak) */}
-        {!isViewMoreSlide && (
-          <div
-            className={`absolute top-2 ${
-              isSelectable ? "left-9" : "left-2"
-            } z-20 flex items-center gap-1.5`}
-          >
-            {/* PREMIUM / FEATURED */}
-            {data?.is_feature && (
-              <div className="flex items-center justify-center bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-400 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
-                <IconRocket size={18} stroke={2} className="text-white" />
-              </div>
-            )}
+          {/* Bottom-left meta pills */}
+          {!isViewMoreSlide && (
+            <div className="absolute bottom-2 left-2 z-20 flex items-center gap-2">
+              {hasVideo ? (
+                <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
+                  Video
+                </OverlayPill>
+              ) : null}
 
-            {/* AKCIJA / SALE */}
-            {isOnSale && discountPercentage > 0 && (
-              <div className="flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm">
-                <IconRosetteDiscount size={18} stroke={2} className="text-white" />
-              </div>
-            )}
-          </div>
-        )}
+              {totalImages > 1 ? (
+                <OverlayPill icon={Images} className="text-slate-700 bg-white/90 border-slate-200">
+                  {totalImages}
+                </OverlayPill>
+              ) : null}
+            </div>
+          )}
 
-        {/* Status badge sada u contentu (ako si već prebacio), pa ovdje nema GetMyAdStatus */}
-
-        {/* DROPDOWN MENI - Gornji desni ugao */}
-        <div
-          className="absolute top-2 right-2 z-30 overflow-visible"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white hover:scale-110 transition-all duration-200">
-                <MoreVertical size={16} className="text-gray-700" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {isEditable && (
-                <DropdownMenuItem
-                  onClick={() => onContextMenuAction("edit", data?.id)}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Edit className="size-4" />
-                  <span>{"Uredi oglas"}</span>
-                </DropdownMenuItem>
-              )}
-
-              {isApproved && (
-                <DropdownMenuItem
-                  onClick={() => onContextMenuAction("deactivate", data?.id)}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <EyeOff className="size-4" />
-                  <span>{"Sakrij oglas"}</span>
-                </DropdownMenuItem>
-              )}
-
-              {isInactive && (
-                <DropdownMenuItem
-                  onClick={() => onContextMenuAction("activate", data?.id)}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle className="size-4 text-green-600" />
-                  <span className="text-green-600">{"Otkrij"}</span>
-                </DropdownMenuItem>
-              )}
-
-              {isApproved && !isSoldOut && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSoldOutClick();
-                  }}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle className="size-4 text-blue-600" />
-                  <span className="text-blue-600">
-                    {"Označi kao prodano"}
-                  </span>
-                </DropdownMenuItem>
-              )}
-
-              {(isExpired || isEditable) && <DropdownMenuSeparator />}
-
-              {isExpired && (
-                <DropdownMenuItem
-                  onClick={() => onContextMenuAction("renew", data?.id)}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <RotateCcw className="size-4 text-primary" />
-                  <span className="text-primary">{"Obnovi"}</span>
-                </DropdownMenuItem>
-              )}
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => onContextMenuAction("delete", data?.id)}
-                className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
-              >
-                <Trash2 className="size-4" />
-                <span>{"Izbriši"}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Navigation Arrows */}
-        {totalSlides > 1 && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrevSlide(e);
-              }}
-              className={`absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
-                ${
-                  isHovered
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 ltr:-translate-x-4 rtl:translate-x-4 pointer-events-none"
-                }`}
-            >
-              <FiChevronLeft size={16} className="text-gray-700 rtl:rotate-180" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNextSlide(e);
-              }}
-              className={`absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/95 rounded-full items-center justify-center shadow-lg z-20 hidden sm:flex transition-all duration-300 ease-out hover:bg-white hover:scale-110 active:scale-95
-                ${
-                  isHovered
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 ltr:translate-x-4 rtl:-translate-x-4 pointer-events-none"
-                }`}
-            >
-              <FiChevronRight size={16} className="text-gray-700 rtl:rotate-180" />
-            </button>
-          </>
-        )}
-
-        {/* Dots */}
-        {totalSlides > 1 && (
-          <div
-            className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 transition-opacity duration-300 ${
-              isHovered ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            {allSlides.map((_, index) => {
-              const diff = Math.abs(index - currentSlide);
-              if (
-                diff > 1 &&
-                !(currentSlide === 0 && index === totalSlides - 1) &&
-                !(currentSlide === totalSlides - 1 && index === 0)
-              )
-                return null;
-
-              return (
+          {/* Dots */}
+          {totalSlides > 1 ? (
+            <div className="absolute bottom-2 right-2 z-20 hidden sm:flex items-center gap-1.5">
+              {slides.map((_, index) => (
                 <button
                   key={index}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goToSlide(e, index);
-                  }}
-                  className={`rounded-full transition-all duration-300 ease-out ${
-                    index === currentSlide
-                      ? "w-5 h-1.5 bg-white shadow-sm"
-                      : "w-1.5 h-1.5 bg-white/60 hover:bg-white hover:scale-125"
-                  }`}
+                  type="button"
+                  onClick={(e) => goToSlide(e, index)}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all",
+                    index === currentSlide ? "w-6 bg-white shadow-sm" : "w-1.5 bg-white/70"
+                  )}
+                  aria-label={`Slide ${index + 1}`}
                 />
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          ) : null}
 
-        {/* Media Counters */}
-        {!isViewMoreSlide && (
-          <div className="absolute bottom-2 ltr:right-2 rtl:left-2 z-10 flex items-center gap-1.5">
-            {hasVideo && (
-              <div className="bg-red-600/90 backdrop-blur-md text-white px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
-                <FaYoutube size={12} />
-              </div>
-            )}
-            {totalImages > 1 && (
-              <div className="bg-black/50 backdrop-blur-md text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                {totalImages}
-              </div>
-            )}
-          </div>
-        )}
+          {/* Prev/Next */}
+          {totalSlides > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={handlePrevSlide}
+                className={cn(
+                  "absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 z-20",
+                  "hidden sm:flex items-center justify-center",
+                  "w-8 h-8 rounded-full",
+                  "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                  "transition-all duration-200",
+                  isHovered
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 ltr:-translate-x-3 rtl:translate-x-3 pointer-events-none",
+                  isSelectable ? "pointer-events-none opacity-0" : ""
+                )}
+                aria-label="Prethodna slika"
+              >
+                <ChevronLeft className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNextSlide}
+                className={cn(
+                  "absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 z-20",
+                  "hidden sm:flex items-center justify-center",
+                  "w-8 h-8 rounded-full",
+                  "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                  "transition-all duration-200",
+                  isHovered
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 ltr:translate-x-3 rtl:-translate-x-3 pointer-events-none",
+                  isSelectable ? "pointer-events-none opacity-0" : ""
+                )}
+                aria-label="Sljedeća slika"
+              >
+                <ChevronRight className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
 
-      {/* --- CONTENT SECTION --- */}
-      <div className="flex flex-col gap-1.5 p-2 flex-grow">
-        {/* Naslov + status ikonice (GetMyAdStatus) */}
+      {/* CONTENT */}
+      <div className="flex flex-col gap-2 p-3 flex-1">
         <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
-
-            {translated_item?.name || data?.name}
+          <h3 className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+            {title}
           </h3>
-          {status && (
+
+          {status ? (
             <div className="shrink-0">
               <GetMyAdStatus
                 status={status}
@@ -550,71 +592,57 @@ const MyAdsCard = ({
                 isJobCategory={isJobCategory}
               />
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Location + Date */}
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <div className="flex items-center gap-1">
-            <IoLocationOutline size={12} />
-            <span className="truncate max-w-[100px]">{displayCity}</span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-1 min-w-0">
+            <MapPin className="w-3.5 h-3.5" />
+            <span className="truncate max-w-[160px]">{displayCity}</span>
           </div>
-          <span className="text-gray-300">|</span>
+          <span className="text-slate-300">•</span>
           <div className="flex items-center gap-1">
-            <IoTimeOutline size={12} />
+            <Clock className="w-3.5 h-3.5" />
             <span>{formatRelativeTime(data?.created_at)}</span>
           </div>
         </div>
 
-        {/* Attributes */}
-        {keyAttributes.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-0.5">
+        {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
             {keyAttributes.map((attr, index) => (
               <span
-                key={index}
-                className="inline-flex px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded text-[10px] font-medium border border-gray-100"
+                key={`${attr}-${index}`}
+                className={cn(
+                  "inline-flex items-center",
+                  "px-2 py-0.5 rounded-md border",
+                  "bg-slate-50 text-slate-700 border-slate-100",
+                  "text-[10px] font-semibold"
+                )}
               >
                 {attr}
               </span>
             ))}
           </div>
-        )}
+        ) : null}
 
-        <div className="flex-grow" />
-        <div className="border-t border-gray-100 mt-1.5" />
-
-        {/* Bottom Row: Stats & Price */}
-        <div className="flex items-center justify-between gap-2 mt-1">
-          {/* Stats */}
+        <div className="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div
-              className="flex items-center gap-1 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md transition-colors hover:bg-gray-200"
-              title="Ukupan broj pregleda"
-            >
-              <IoEye size={12} />
-              <span className="text-[10px] font-semibold">
-                {data?.clicks || 0}
-              </span>
-            </div>
-
-            <div
-              className="flex items-center gap-1 bg-red-50 text-red-500 px-1.5 py-0.5 rounded-md transition-colors hover:bg-red-100"
+            <StatChip icon={Eye} value={data?.clicks || 0} title="Ukupan broj pregleda" />
+            <StatChip
+              icon={Heart}
+              value={data?.total_likes || 0}
               title="Ukupan broj sviđanja"
-            >
-              <FaHeart size={10} />
-              <span className="text-[10px] font-semibold">
-                {data?.total_likes || 0}
-              </span>
-            </div>
+              className="bg-rose-50 text-rose-700 border-rose-100"
+            />
           </div>
 
-          {!isHidePrice && (
-            <span className="text-sm font-bold text-gray-900">
+          {!isHidePrice ? (
+            <span className="text-sm font-bold text-slate-900">
               {isJobCategory
                 ? formatSalaryRange(data?.min_salary, data?.max_salary)
                 : formatPriceAbbreviated(data?.price)}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -635,27 +663,30 @@ const MyAdsCard = ({
       <ContextMenuTrigger asChild disabled={!isExpired}>
         {cardContent}
       </ContextMenuTrigger>
+
       <ContextMenuContent>
         <ContextMenuItem
-          onClick={() => onContextMenuAction("select")}
+          onClick={() => onContextMenuAction?.("select", data?.id)}
           className="flex items-center gap-2 cursor-pointer"
         >
-          <CheckSquare className="size-4" />
-          {isSelected ? "Poništi odabir" : "Odaberi"}
+          <CheckSquare className="w-4 h-4" />
+          <span>{isSelected ? "Poništi odabir" : "Odaberi"}</span>
         </ContextMenuItem>
+
         <ContextMenuItem
-          onClick={() => onContextMenuAction("renew")}
+          onClick={() => onContextMenuAction?.("renew", data?.id)}
           className="flex items-center gap-2 cursor-pointer"
         >
-          <RotateCcw className="size-4 text-primary" />
+          <RotateCcw className="w-4 h-4 text-primary" />
           <span className="text-primary">{t("renew")}</span>
         </ContextMenuItem>
+
         <ContextMenuItem
-          onClick={() => onContextMenuAction("delete")}
+          onClick={() => onContextMenuAction?.("delete", data?.id)}
           className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
         >
-          <Trash2 className="size-4" />
-          {"remove"}
+          <Trash2 className="w-4 h-4" />
+          <span>{t("remove") || "Izbriši"}</span>
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

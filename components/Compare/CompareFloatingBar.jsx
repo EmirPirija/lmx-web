@@ -1,70 +1,114 @@
 "use client";
-import { useSelector, useDispatch } from "react-redux";
-import { selectCompareList, clearCompare, removeFromCompare } from "@/redux/reducer/compareSlice";
-import { motion, AnimatePresence } from "framer-motion";
+
+import React from "react";
 import Link from "next/link";
-import { IoCloseCircleOutline, IoGitCompareOutline } from "react-icons/io5";
+import { useDispatch, useSelector } from "react-redux";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeftRight, X } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import CustomImage from "@/components/Common/CustomImage";
+
+import { cn } from "@/lib/utils";
+import { clearCompare, removeFromCompare, selectCompareList } from "@/redux/reducer/compareSlice";
+
+// ============================================
+// COMPARE FLOATING BAR
+// ============================================
 
 const CompareFloatingBar = () => {
   const list = useSelector(selectCompareList);
   const dispatch = useDispatch();
 
-  if (!list || list.length === 0) return null;
+  const hasItems = Array.isArray(list) && list.length > 0;
+  if (!hasItems) return null;
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ y: 100, opacity: 0 }}
+        initial={{ y: 28, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] bg-white dark:bg-slate-800 p-3 px-5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 dark:border-slate-700 flex items-center gap-6"
+        exit={{ y: 28, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-x-0 bottom-4 z-[999] px-4"
       >
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-             <span className="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-               {list.length}
-             </span>
-             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 hidden sm:block">Usporedba</span>
-          </div>
+        <div
+          className={cn(
+            "mx-auto w-full max-w-3xl",
+            "bg-white rounded-xl border border-slate-200 shadow-sm",
+            "px-3 py-3 sm:px-4",
+            "flex items-center justify-between gap-3"
+          )}
+        >
+          {/* Left */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                {list.length}
+              </span>
+              <span className="text-sm font-semibold text-slate-900 hidden sm:block">Usporedba</span>
+            </div>
 
-          <div className="flex -space-x-3">
-            {list.map((item) => (
-              <div key={item.id} className="relative group w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 overflow-hidden bg-gray-100">
-                <CustomImage 
-                  src={item.image} 
-                  width={32} 
-                  height={32} 
-                  className="object-cover w-full h-full" 
-                  alt="compare item"
-                />
-                <button 
-                  onClick={() => dispatch(removeFromCompare(item.id))}
-                  className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            <div className="flex items-center -space-x-2 overflow-hidden">
+              {list.map((item) => (
+                <div
+                  key={item?.id}
+                  className={cn(
+                    "relative group",
+                    "w-9 h-9 rounded-lg overflow-hidden",
+                    "bg-slate-50 border border-slate-200"
+                  )}
+                  title={item?.title || ""}
                 >
-                  <IoCloseCircleOutline className="text-white" size={16} />
-                </button>
-              </div>
-            ))}
+                  <CustomImage
+                    src={item?.image}
+                    width={36}
+                    height={36}
+                    className="object-cover w-full h-full"
+                    alt={item?.title || "compare item"}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => dispatch(removeFromCompare(item?.id))}
+                    className={cn(
+                      "absolute inset-0",
+                      "bg-slate-900/60 backdrop-blur-[1px]",
+                      "flex items-center justify-center",
+                      "opacity-0 group-hover:opacity-100 transition-opacity"
+                    )}
+                    aria-label="Ukloni iz usporedbe"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="h-6 w-px bg-gray-200 dark:bg-slate-700" />
+          {/* Right */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => dispatch(clearCompare())}
+              className={cn(
+                "h-9 px-3 rounded-lg text-xs font-semibold",
+                "text-slate-600 hover:text-red-600",
+                "hover:bg-red-50"
+              )}
+            >
+              Očisti
+            </Button>
 
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => dispatch(clearCompare())}
-            className="text-xs text-gray-500 hover:text-red-500 transition-colors font-medium"
-          >
-            Očisti
-          </button>
-          
-          <Link href="/compare">
-            <button className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-full transition-all active:scale-95">
-              <IoGitCompareOutline size={14} />
-              Usporedi
-            </button>
-          </Link>
+            <Button asChild size="sm" className="h-9 rounded-lg text-xs font-semibold gap-2">
+              <Link href="/compare">
+                <ArrowLeftRight className="w-4 h-4" />
+                Usporedi
+              </Link>
+            </Button>
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>
