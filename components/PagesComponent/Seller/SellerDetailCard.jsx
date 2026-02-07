@@ -1032,6 +1032,19 @@ export const SellerPreviewCard = ({
   const sellerId = seller?.user_id ?? seller?.id;
   const canOpenReel = Boolean(onRingClick);
   const showReelPrompt = canOpenReel && !showReelRing;
+  const ringMotion = showReelRing
+    ? {
+        scale: [1, 1.04, 1],
+        boxShadow: [
+          "0 0 0 0 rgba(17,183,176,0)",
+          "0 0 0 6px rgba(249,115,22,0.25)",
+          "0 0 0 0 rgba(17,183,176,0)",
+        ],
+      }
+    : undefined;
+  const ringTransition = showReelRing
+    ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
+    : undefined;
 
   const computedShareUrl = shareUrl || (sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -1111,11 +1124,13 @@ export const SellerPreviewCard = ({
                     showReelRing && "cursor-pointer"
                   )}
                 >
-                  <div
+                  <motion.div
                     className={cn(
                       "rounded-[14px] p-[2px]",
                       showReelRing ? "reel-ring" : "bg-transparent"
                     )}
+                    animate={ringMotion}
+                    transition={ringTransition}
                   >
                     <div
                       className={cn(
@@ -1133,7 +1148,7 @@ export const SellerPreviewCard = ({
                         className="w-full h-full object-cover"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {showReelRing && (
                     <motion.span

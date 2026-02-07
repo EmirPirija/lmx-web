@@ -519,7 +519,13 @@ const ReelCard = ({ item, index, isLoggedIn, onLike }) => {
       return;
     }
 
-    if (currentUser?.id && String(currentUser.id) === String(item?.user_id)) {
+    const sellerId = item?.user_id || item?.user?.id;
+    if (!sellerId) {
+      toast.error("Prodavač nije dostupan.");
+      return;
+    }
+
+    if (currentUser?.id && String(currentUser.id) === String(sellerId)) {
       toast.error("Ne možete poslati poruku na svoj oglas.");
       return;
     }

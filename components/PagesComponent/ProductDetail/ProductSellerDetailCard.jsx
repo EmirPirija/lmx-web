@@ -663,6 +663,19 @@ const ProductSellerDetailCard = ({
       seller?.has_reel ||
       seller?.reel_video
   );
+  const ringMotion = showReelRing
+    ? {
+        scale: [1, 1.04, 1],
+        boxShadow: [
+          "0 0 0 0 rgba(17,183,176,0)",
+          "0 0 0 6px rgba(249,115,22,0.25)",
+          "0 0 0 0 rgba(17,183,176,0)",
+        ],
+      }
+    : undefined;
+  const ringTransition = showReelRing
+    ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
+    : undefined;
     
     
   
@@ -804,11 +817,13 @@ const ProductSellerDetailCard = ({
                   className="focus:outline-none"
                   aria-label="Otvori reelove"
                 >
-                  <div
+                  <motion.div
                     className={cn(
                       "rounded-[14px] p-[2px]",
                       showReelRing ? "reel-ring" : "bg-transparent"
                     )}
+                    animate={ringMotion}
+                    transition={ringTransition}
                   >
                     <div
                       className={cn(
@@ -826,7 +841,7 @@ const ProductSellerDetailCard = ({
                         className="w-full h-full object-cover"
                       />
                     </div>
-                  </div>
+                  </motion.div>
                   {showReelRing && (
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
                       <Play className="w-3 h-3 text-[#1e3a8a]" />
@@ -854,11 +869,13 @@ const ProductSellerDetailCard = ({
               </div>
             ) : (
               <div className="relative flex-shrink-0">
-                <div
+                <motion.div
                   className={cn(
                     "rounded-[14px] p-[2px]",
                     showReelRing ? "reel-ring" : "bg-transparent"
                   )}
+                  animate={ringMotion}
+                  transition={ringTransition}
                 >
                   <div
                     className={cn(
@@ -876,7 +893,7 @@ const ProductSellerDetailCard = ({
                       className="w-full h-full object-cover"
                     />
                   </div>
-                </div>
+                </motion.div>
                 {showReelRing && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
                     <Play className="w-3 h-3 text-[#1e3a8a]" />
