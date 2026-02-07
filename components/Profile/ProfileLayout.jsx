@@ -472,7 +472,9 @@ const ProfileSidebar = ({
   onClose,
   isMobile = false,
 }) => {
-  const isPro = userStats.membershipTier === "pro" || userStats.membershipTier === "shop";
+  const isPro = userStats.membershipTier === "pro";
+  const isShop = userStats.membershipTier === "shop";
+  const isPremium = isPro || isShop;
 
   return (
     <div className="bg-white overflow-hidden h-full flex flex-col">
@@ -600,7 +602,7 @@ const ProfileSidebar = ({
         )}
 
         {/* PRO USER BANNER */}
-        {isPro && (
+        {isPremium && (
           <div className="p-4 bg-primary/5 border-t border-primary/10">
             <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-primary/20">
               <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
@@ -608,7 +610,7 @@ const ProfileSidebar = ({
               </div>
               <div className="flex-1">
                 <h5 className="text-sm font-semibold text-slate-800">
-                  {userStats.membershipTier === "shop" ? "Shop" : "Pro"} član
+                  {isShop ? "Shop" : "Pro"} član
                 </h5>
                 <p className="text-xs text-slate-500">Uživaj u svim premium pogodnostima</p>
               </div>

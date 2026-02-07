@@ -968,6 +968,9 @@ export const SellerPreviewCard = ({
     () => getVerifiedStatus(seller, settings),
     [seller, settings]
   );
+
+  const resolvedIsShop = Boolean(isShop);
+  const resolvedIsPro = Boolean(!resolvedIsShop && isPro);
   
   // ✅ ako je parent izračunao verifikaciju (remote + local), koristi to
   const isVerified = isVerifiedOverride ?? computedVerified;
@@ -1152,10 +1155,10 @@ export const SellerPreviewCard = ({
                   </span>
                 )}
 
-                {isPro && (
+                {resolvedIsPro && (
                   <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">PRO</span>
                 )}
-                {isShop && (
+                {resolvedIsShop && (
                   <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 rounded">SHOP</span>
                 )}
               </div>
