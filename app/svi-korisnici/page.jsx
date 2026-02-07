@@ -28,6 +28,7 @@ import {
   LayoutGrid,
   LayoutList,
   SlidersHorizontal,
+  BadgeCheck,
   TrendingUp,
   Crown,
   Store,
@@ -105,6 +106,207 @@ const UserCard = ({ user, view, onClick }) => {
       </div>
     </motion.div>
   );
+};
+
+/* =====================================================
+   FILTER SIDEBAR
+===================================================== */
+
+const FilterSidebar = ({
+  filters,
+  setFilters,
+  isOpen,
+  onClose,
+  totalUsers,
+}) => {
+  const [expandedSections, setExpandedSections] = useState({
+    membership: true,
+    verification: true,
+    status: false,
+  });
+
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const FilterSection = ({ title, section, children }) => (
+    <div className="border-b border-slate-200 dark:border-slate-700 last:border-b-0">
+      <button
+        onClick={() => toggleSection(section)}
+        className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+      >
+        <span className="font-semibold text-slate-900 dark:text-white text-sm">
+          {title}
+        </span>
+        {expandedSections[section] ? (
+          <ChevronUp className="w-4 h-4 text-slate-400" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-slate-400" />
+        )}
+      </button>
+      <AnimatePresence>
+        {expandedSections[section] && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
+  const FilterOption = ({ label, checked, onChange, icon: Icon }) => (
+    <label className="flex items-center gap-3 py-2 cursor-pointer group">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+      />
+      <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+        {Icon && <Icon className="w-4 h-4 text-slate-400" />}
+        {label}
+      </span>
+    </label>
+  );
+
+  const content = (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-slate-900 dark:text-white">Filteri</h3>
+          </div>
+          {totalUsers > 0 && (
+            <span className="text-xs text-slate-500">{totalUsers} korisnika</span>
+          )}
+        </div>
+      </div>
+
+      {/* Sections */}
+      <FilterSection title="Tip članstva" section="membership">
+        <div className="space-y-1">
+          <FilterOption
+            label="Pro korisnici"
+            icon={Crown}
+            checked={filters.membership === "pro"}
+            onChange={(e) =>
+              setFilters((f) => ({
+                ...f,
+                membership: e.target.checked ? "pro" : "",
+              }))
+            }
+          />
+          <FilterOption
+            label="Shop / Trgovine"
+            icon={Store}
+            checked={filters.shop === "1"}
+            onChange={(e) =>
+              setFilters((f) => ({
+                ...f,
+                shop: e.target.checked ? "1" : "",
+              }))
+            }
+          />
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Verifikacija" section="verification">
+        <FilterOption
+          label="Samo verificirani"
+          icon={BadgeCheck}
+          checked={filters.verified === "1"}
+          onChange={(e) =>
+            setFilters((f) => ({
+              ...f,
+              verified: e.target.checked ? "1" : "",
+            }))
+          }
+        />
+      </FilterSection>
+
+      <FilterSection title="Status" section="status">
+        <FilterOption
+          label="Trenutno online"
+          checked={filters.online === "1"}
+          onChange={(e) =>
+            setFilters((f) => ({
+              ...f,
+              online: e.target.checked ? "1" : "",
+            }))
+          }
+        />
+      </FilterSection>
+
+      {/* Reset */}
+      <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() =>
+            setFilters({
+              search: "",
+              membership: "",
+              shop: "",
+              verified: "",
+              online: "",
+            })
+          }
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Resetiraj filtere
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Mobile overlay
+  if (isOpen !== undefined) {
+    return (
+      <>
+        {/* Desktop */}
+        <div className="hidden lg:block w-72 flex-shrink-0">{content}</div>
+
+        {/* Mobile overlay */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 z-50 bg-black/50"
+              onClick={onClose}
+            >
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                className="absolute left-0 top-0 bottom-0 w-80 max-w-[90vw] bg-white dark:bg-slate-900 overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="sticky top-0 px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900 dark:text-white">Filteri</h3>
+                  <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                {content}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  }
+
+  return <div className="w-72 flex-shrink-0">{content}</div>;
 };
 
 /* =====================================================
