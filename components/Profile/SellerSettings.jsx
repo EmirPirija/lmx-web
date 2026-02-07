@@ -95,6 +95,25 @@ const toBool = (value, fallback = false) => {
   return Boolean(value);
 };
 
+const getCardPrefsStorageKey = (userId) => `seller_card_prefs_${userId || "me"}`;
+
+const readStoredCardPreferences = (userId) => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(getCardPrefsStorageKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredCardPreferences = (userId, prefs) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(getCardPrefsStorageKey(userId), JSON.stringify(prefs));
+  } catch {}
+};
+
 const normalizeBusinessHours = (raw) => {
   let obj = typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : raw;
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) obj = {};
@@ -525,7 +544,9 @@ const SellerSettings = () => {
       setSocialTiktok(s.social_tiktok || "");
       setSocialYoutube(s.social_youtube || "");
       setSocialWebsite(s.social_website || "");
-      setCardPreferences(normalizeCardPreferences(s.card_preferences));
+      const storedPrefs = readStoredCardPreferences(currentUser?.id);
+      const normalizedPrefs = normalizeCardPreferences(s.card_preferences ?? storedPrefs);
+      setCardPreferences(normalizedPrefs);
 
       setInitialPayloadStr(stableStringify({
         show_phone: toBool(s.show_phone, true), show_email: toBool(s.show_email, true),
@@ -543,7 +564,7 @@ const SellerSettings = () => {
         shipping_info: s.shipping_info || "", social_facebook: s.social_facebook || "",
         social_instagram: s.social_instagram || "", social_tiktok: s.social_tiktok || "",
         social_youtube: s.social_youtube || "", social_website: s.social_website || "",
-        card_preferences: normalizeCardPreferences(s.card_preferences),
+        card_preferences: normalizedPrefs,
       }));
     } catch (err) {
       console.error(err);
@@ -551,7 +572,7 @@ const SellerSettings = () => {
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, []);
+  }, [currentUser?.id]);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
@@ -568,6 +589,7 @@ const SellerSettings = () => {
       const payload = buildPayload();
       const response = await withTimeout(updateFn(payload), 15000);
       if (response?.data?.error === false) {
+        writeStoredCardPreferences(currentUser?.id, payload.card_preferences);
         setInitialPayloadStr(stableStringify(payload));
         toast.success("Postavke sačuvane!");
       } else {
