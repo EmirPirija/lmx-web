@@ -55,6 +55,7 @@ import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
 import { itemConversationApi, sendMessageApi } from "@/utils/api";
+import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
 
 
 
@@ -165,6 +166,41 @@ const shimmerCss = `
 `;
 
 const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
+
+const reelRingCss = `
+@keyframes reel-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes reel-glow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.reel-ring {
+  position: relative;
+  padding: 2px;
+  border-radius: 16px;
+  background: conic-gradient(from 0deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
+  animation: reel-spin 8s linear infinite;
+}
+.reel-ring::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from 180deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
+  filter: blur(8px);
+  opacity: 0.45;
+  animation: reel-glow 3.2s ease-in-out infinite;
+  z-index: 0;
+}
+.reel-ring-inner {
+  position: relative;
+  z-index: 1;
+}
+`;
+
+const ReelRingStyles = () => <style jsx global>{reelRingCss}</style>;
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -957,11 +993,12 @@ export const SellerPreviewCard = ({
   onPhoneClick,
   shareUrl,
   isVerifiedOverride,
+  showReelRing = false,
+  onReelClick,
 }) => {
   const pathname = usePathname();
   const router = useRouter();
   const CompanyName = useSelector(getCompanyName);
-  const currentUser = useSelector(userSignUpData);
 
   const settings = useMemo(() => sellerSettings || {}, [sellerSettings]);
   const computedVerified = useMemo(
@@ -995,6 +1032,8 @@ export const SellerPreviewCard = ({
 
   // Use user_id if available, fallback to id
   const sellerId = seller?.user_id ?? seller?.id;
+  const canOpenReel = Boolean(onReelClick);
+  const showReelPrompt = canOpenReel && !showReelRing;
 
   const computedShareUrl = shareUrl || (sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -1066,41 +1105,89 @@ export const SellerPreviewCard = ({
           {/* Header: Avatar + Info — matching MinimalSellerCard */}
           <div className="flex items-start gap-3">
             {/* Avatar */}
-            {sellerId ? (
-              <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 group-hover:border-slate-300 transition-colors">
-                  <CustomImage
-                    src={seller?.profile || seller?.profile_image}
-                    alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                {isVerified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
-                    <Verified className="w-2.5 h-2.5 text-white" />
+            {(() => {
+              const avatar = (
+                <div
+                  className={cn(
+                    "relative flex-shrink-0 group",
+                    showReelRing && "cursor-pointer"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "rounded-[14px] p-[2px]",
+                      showReelRing ? "reel-ring" : "bg-transparent"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
+                        showReelRing
+                          ? "border border-white/70"
+                          : "border border-slate-200/60"
+                      )}
+                    >
+                      <CustomImage
+                        src={seller?.profile || seller?.profile_image}
+                        alt={seller?.name || "Prodavač"}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </div>
-                )}
-              </CustomLink>
-            ) : (
-              <div className="relative flex-shrink-0">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
-                  <CustomImage
-                    src={seller?.profile || seller?.profile_image}
-                    alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                  />
+
+                  {showReelRing && (
+                    <motion.span
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center"
+                    >
+                      <Play className="w-3 h-3 text-[#1e3a8a]" />
+                    </motion.span>
+                  )}
+
+                  {isVerified && (
+                    <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                      <Verified className="w-2.5 h-2.5 text-white" />
+                    </div>
+                  )}
+
+                  {showReelPrompt && (
+                    <motion.span
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-white text-[10px] font-semibold text-slate-700 shadow-sm"
+                    >
+                      Dodaj reel
+                    </motion.span>
+                  )}
                 </div>
-                {isVerified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
-                    <Verified className="w-2.5 h-2.5 text-white" />
-                  </div>
-                )}
-              </div>
-            )}
+              );
+
+              if (canOpenReel) {
+                return (
+                  <button
+                    type="button"
+                    onClick={onReelClick}
+                    className="flex-shrink-0 focus:outline-none"
+                    aria-label="Dodaj video za Home Reels"
+                  >
+                    {avatar}
+                  </button>
+                );
+              }
+
+              if (sellerId) {
+                return (
+                  <CustomLink href={`/seller/${sellerId}`} className="flex-shrink-0">
+                    {avatar}
+                  </CustomLink>
+                );
+              }
+
+              return <div className="flex-shrink-0">{avatar}</div>;
+            })()}
 
             {/* Info */}
             <div className="flex-1 min-w-0">
@@ -1424,6 +1511,10 @@ const SellerDetailCard = ({
   // 2. REMOTE STATUS: Provjera preko API-ja (za slučaj da podaci fale u listingu)
   const [verifiedRemote, setVerifiedRemote] = useState(false);
   const sellerId = seller?.user_id ?? seller?.id;
+  const currentUser = useSelector(userSignUpData);
+  const isOwnProfile = Boolean(
+    currentUser?.id && String(currentUser.id) === String(sellerId)
+  );
 
   useEffect(() => {
     // Ako je već lokalno verifikovan preko propsa, ne zovi API
@@ -1465,6 +1556,14 @@ const SellerDetailCard = ({
   // State za modale
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [isReelModalOpen, setIsReelModalOpen] = useState(false);
+  const [hasReel, setHasReel] = useState(
+    Boolean(seller?.has_reel || seller?.reel_video || seller?.video)
+  );
+
+  useEffect(() => {
+    setHasReel(Boolean(seller?.has_reel || seller?.reel_video || seller?.video));
+  }, [seller]);
 
   // Parsiranje postavki
   const businessDescription = settings.business_description || "";
@@ -1513,12 +1612,20 @@ const SellerDetailCard = ({
       animate="animate"
       className="space-y-4"
     >
+      <ReelRingStyles />
+
       <SendMessageModal
         open={isMessageModalOpen}
         setOpen={setIsMessageModalOpen}
         seller={seller}
         settings={settings}
         isVerified={isVerified}
+      />
+
+      <ReelUploadModal
+        open={isReelModalOpen}
+        onOpenChange={setIsReelModalOpen}
+        onUploaded={() => setHasReel(true)}
       />
 
       {/* GLAVNA KARTICA */}
@@ -1534,6 +1641,8 @@ const SellerDetailCard = ({
         onChatClick={handleChatClick}
         onPhoneClick={() => setIsContactSheetOpen(true)}
         uiPrefs={{ contactStyle: "sheet" }}
+        showReelRing={hasReel}
+        onReelClick={isOwnProfile ? () => setIsReelModalOpen(true) : undefined}
         // Ako je isVerified TRUE, šaljemo true. Ako je FALSE, šaljemo undefined 
         // kako bi SellerPreviewCard koristio svoj fallback izračun.
         isVerifiedOverride={isVerified || undefined} 

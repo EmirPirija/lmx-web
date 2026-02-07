@@ -1,11 +1,30 @@
 "use client";
 
 import React, { useMemo } from "react";
+import {
+  Award,
+  BadgeCheck,
+  CalendarCheck,
+  Crown,
+  Flame,
+  Gem,
+  Handshake,
+  ListChecks,
+  Medal,
+  MessageCircle,
+  Rocket,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Store,
+  Trophy,
+  Zap,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * Badge.jsx (BS ijekavica)
- * - Custom "domaće" ikonice (inline SVG)
+ * - Lucide ikonice
  * - Minimal / premium, bez šarenila
  * - Podržava dinamičke bedževe: godine, prodaje, poruke, ocjene, oglasi, streak...
  */
@@ -22,6 +41,8 @@ function pickBadgeKey(badge) {
     badge?.key,
     badge?.code,
     badge?.type,
+    badge?.category,
+    badge?.group,
     badge?.name,
     badge?.title,
     badge?.label,
@@ -53,6 +74,22 @@ function pickBadgeKey(badge) {
 }
 
 function extractNumber(badge) {
+  const numberFields = [
+    badge?.value,
+    badge?.count,
+    badge?.current,
+    badge?.level,
+    badge?.milestone,
+    badge?.goal,
+    badge?.progress?.value,
+    badge?.progress?.current,
+    badge?.progress?.target,
+  ];
+  for (const field of numberFields) {
+    const num = Number(field);
+    if (Number.isFinite(num) && num > 0) return num;
+  }
+
   const s =
     badge?.slug ||
     badge?.key ||
@@ -64,15 +101,6 @@ function extractNumber(badge) {
 
   const m = String(s).match(/(\d{1,6})/);
   return m ? Number(m[1]) : null;
-}
-
-function clampTier(n) {
-  if (n == null) return 1;
-  if (n >= 10000) return 5;
-  if (n >= 1000) return 4;
-  if (n >= 100) return 3;
-  if (n >= 10) return 2;
-  return 1;
 }
 
 function formatCompactNumber(n) {
@@ -91,6 +119,20 @@ function formatYears(n) {
   return `${n} godina`;
 }
 
+function formatNoun(value, one, few, many) {
+  if (value === 1) return one;
+  if (value >= 2 && value <= 4) return few;
+  return many;
+}
+
+function formatCount(n, suffix) {
+  if (n == null) return "";
+  const value = Number(n);
+  if (!Number.isFinite(value)) return "";
+  if (!suffix) return formatCompactNumber(value);
+  return `${formatCompactNumber(value)} ${suffix}`;
+}
+
 function getTierClasses(tier = 1, locked = false) {
   // Monochrome tiers: border weight + subtle shadow (no colors)
   const base = locked
@@ -102,113 +144,6 @@ function getTierClasses(tier = 1, locked = false) {
   if (tier === 2) return cn(base, "border-slate-200 dark:border-slate-700 shadow-sm");
   return cn(base, "border-slate-200/70 dark:border-slate-800 shadow-sm");
 }
-
-/* -----------------------------
-  Custom “domaće” ikonice (SVG)
-  Sve su linijske / neutralne da ne bude šareno.
------------------------------ */
-
-const IconWrap = ({ children, className }) => (
-  <span
-    className={cn(
-      "inline-flex items-center justify-center rounded-2xl border border-slate-200/70 dark:border-slate-700/70",
-      "bg-white dark:bg-slate-900/60",
-      className
-    )}
-  >
-    {children}
-  </span>
-);
-
-const Ljiljan = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-    <path
-      d="M12 3c1.6 2 2.4 3.8 2.4 5.6 0 1.2-.4 2.2-1.1 3 2.2-.3 3.8-1.6 4.7-4.1 1.2 2.1.9 4.4-.8 6.2-.8.9-1.9 1.5-3.3 1.8.8.7 1.2 1.6 1.2 2.8V21H9v-2.2c0-1.2.4-2.1 1.2-2.8-1.4-.3-2.5-.9-3.3-1.8-1.7-1.8-2-4.1-.8-6.2.9 2.5 2.5 3.8 4.7 4.1-.7-.8-1.1-1.8-1.1-3C9.6 6.8 10.4 5 12 3z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const Most = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-    <path
-      d="M4 18h16M6 18c0-4.4 2.7-8 6-8s6 3.6 6 8"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M7 18V9.5c0-1 .8-1.8 1.8-1.8H9M17 18V9.5c0-1-.8-1.8-1.8-1.8H15"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const Stecak = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-    <path
-      d="M7.5 9.5l4.5-3 4.5 3v9.5H7.5V9.5z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M9 12.3h6M10.2 15.1h3.6"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const Dzezva = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-    <path
-      d="M7 10h8l-1 9H8l-1-9z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M15 11.2h2.2c1 0 1.8.8 1.8 1.8v1c0 1-.8 1.8-1.8 1.8H15"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M9 6h7"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const Medalja = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-    <path
-      d="M8 3h3l1 4-2 2-2-2 0-4zM13 3h3v4l-2 2-2-2 1-4z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M12 10a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    />
-    <path
-      d="M12 13.2l.8 1.7 1.9.2-1.4 1.2.4 1.9-1.7-1-1.7 1 .4-1.9-1.4-1.2 1.9-.2.8-1.7z"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
 const LockMini = (props) => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -227,6 +162,68 @@ const LockMini = (props) => (
   </svg>
 );
 
+const IconWrap = ({ children, className }) => (
+  <span
+    className={cn(
+      "inline-flex items-center justify-center rounded-2xl border border-slate-200/70 dark:border-slate-700/70",
+      "bg-white dark:bg-slate-900/60",
+      className
+    )}
+  >
+    {children}
+  </span>
+);
+
+const MILESTONE_CONFIG = {
+  tenure: {
+    milestones: [1, 2, 3, 5, 7, 10],
+    icons: [CalendarCheck, Star, Medal, Trophy, Crown, Gem],
+    label: "godina",
+  },
+  sales: {
+    milestones: [2, 5, 10, 25, 50, 100, 250, 500, 1000],
+    icons: [Handshake, Star, Medal, Trophy, Crown, Gem, Rocket, ShieldCheck, Award],
+    label: "prodaja",
+  },
+  reviews: {
+    milestones: [2, 5, 10, 25, 50, 100, 250, 500],
+    icons: [BadgeCheck, Star, Medal, Trophy, Crown, Gem, ShieldCheck, Award],
+    label: "ocjena",
+  },
+  listings: {
+    milestones: [5, 10, 25, 50, 100, 250, 500, 1000],
+    icons: [ListChecks, Star, Medal, Trophy, Crown, Gem, Rocket, ShieldCheck],
+    label: "oglas",
+  },
+  messages: {
+    milestones: [25, 50, 100, 250, 500, 1000, 2500, 5000],
+    icons: [MessageCircle, Zap, Flame, Rocket, Crown, Gem, ShieldCheck, Award],
+    label: "poruka",
+  },
+  streak: {
+    milestones: [7, 14, 30, 60, 90, 180, 365],
+    icons: [Flame, Zap, Trophy, Rocket, Crown, Gem, Award],
+    label: "dan",
+  },
+};
+
+function getMilestoneMeta(kind, value) {
+  const config = MILESTONE_CONFIG[kind];
+  const numeric = Number(value || 0);
+  if (!config) {
+    return { milestone: numeric || 1, Icon: Sparkles, tier: 1 };
+  }
+  const milestones = config.milestones;
+  let milestone = milestones[0];
+  for (const m of milestones) {
+    if (numeric >= m) milestone = m;
+  }
+  const index = Math.max(0, milestones.indexOf(milestone));
+  const Icon = config.icons[Math.min(index, config.icons.length - 1)] || Sparkles;
+  const tier = Math.min(5, Math.max(1, Math.ceil(((index + 1) / milestones.length) * 5)));
+  return { milestone, Icon, tier, label: config.label };
+}
+
 /* -----------------------------
   Catalog (BS ijekavica)
 ----------------------------- */
@@ -238,65 +235,70 @@ function resolveBadgeCopy(badge, locked = false) {
   // Dynamic: tenure (years)
   if (key === "tenure") {
     const years = n || 1;
-    const tier = Math.min(5, Math.max(1, years)); // 1..5
+    const meta = getMilestoneMeta("tenure", years);
     return {
       key: `tenure_${years}`,
       title: `${years}. godina s nama`,
-      description: years === 1 ? "Prva godišnjica na platformi." : "Godišnjica registracije na platformi.",
-      Icon: Ljiljan,
-      tier,
+      description: years === 1 ? "Prva godišnjica na platformi." : `Stabilnost i povjerenje kroz ${formatYears(years)}.`,
+      Icon: meta.Icon,
+      tier: meta.tier,
     };
   }
 
   // Dynamic: counts
   if (key === "sales") {
     const count = n ?? 1;
+    const meta = getMilestoneMeta("sales", count);
     return {
       key: `sales_${count}`,
       title: `Prodaje: ${formatCompactNumber(count)}`,
-      description: "Uspješno zaključene prodaje i dogovori (milestone).",
-      Icon: Medalja,
-      tier: clampTier(count),
+      description: `Uspješno zaključene prodaje (${formatCount(count, formatNoun(count, "prodaja", "prodaje", "prodaja"))}).`,
+      Icon: meta.Icon,
+      tier: meta.tier,
     };
   }
   if (key === "reviews") {
     const count = n ?? 1;
+    const meta = getMilestoneMeta("reviews", count);
     return {
       key: `reviews_${count}`,
       title: `Ocjene: ${formatCompactNumber(count)}`,
-      description: "Ocjene i povratne informacije od kupaca (milestone).",
-      Icon: Stecak,
-      tier: clampTier(count),
+      description: `Povjerenje kupaca kroz ${formatCount(count, formatNoun(count, "ocjenu", "ocjene", "ocjena"))}.`,
+      Icon: meta.Icon,
+      tier: meta.tier,
     };
   }
   if (key === "listings") {
     const count = n ?? 1;
+    const meta = getMilestoneMeta("listings", count);
     return {
       key: `listings_${count}`,
       title: `Oglasi: ${formatCompactNumber(count)}`,
-      description: "Broj objavljenih oglasa i ponuda (milestone).",
-      Icon: Most,
-      tier: clampTier(count),
+      description: `Aktivnost kroz ${formatCount(count, formatNoun(count, "oglas", "oglasa", "oglasa"))}.`,
+      Icon: meta.Icon,
+      tier: meta.tier,
     };
   }
   if (key === "messages") {
     const count = n ?? 1;
+    const meta = getMilestoneMeta("messages", count);
     return {
       key: `messages_${count}`,
       title: `Poruke: ${formatCompactNumber(count)}`,
-      description: "Aktivna komunikacija i briga o kupcima (milestone).",
-      Icon: Dzezva,
-      tier: clampTier(count),
+      description: `Odgovorna komunikacija kroz ${formatCount(count, formatNoun(count, "poruku", "poruke", "poruka"))}.`,
+      Icon: meta.Icon,
+      tier: meta.tier,
     };
   }
   if (key === "streak") {
     const days = n ?? 7;
+    const meta = getMilestoneMeta("streak", days);
     return {
       key: `streak_${days}`,
       title: `Niz aktivnosti: ${days} dana`,
-      description: "Kontinuirano prisustvo i aktivnost (milestone).",
-      Icon: Ljiljan,
-      tier: clampTier(days),
+      description: `Kontinuirano prisustvo tokom ${formatCount(days, formatNoun(days, "dana", "dana", "dana"))}.`,
+      Icon: meta.Icon,
+      tier: meta.tier,
     };
   }
 
@@ -305,31 +307,31 @@ function resolveBadgeCopy(badge, locked = false) {
     verified: {
       title: "Verificiran korisnik",
       description: "Identitet je potvrđen. Kupci imaju više povjerenja.",
-      Icon: Ljiljan,
+      Icon: BadgeCheck,
       tier: 3,
     },
-    pro: { title: "Pro", description: "Napredni profil sa dodatnim pogodnostima.", Icon: Medalja, tier: 4 },
-    shop: { title: "Shop", description: "Registrovana radnja / brend.", Icon: Most, tier: 4 },
+    pro: { title: "Pro", description: "Napredni profil sa dodatnim pogodnostima.", Icon: Crown, tier: 4 },
+    shop: { title: "Shop", description: "Registrovana radnja / brend.", Icon: Store, tier: 4 },
     early_adopter: {
       title: "Rani usvojitelj",
       description: "Bio/la si među prvima koji su koristili platformu.",
-      Icon: Stecak,
+      Icon: Sparkles,
       tier: 2,
     },
     top_seller: {
       title: "Top prodavač",
       description: "Odlični rezultati i aktivnost u zajednici.",
-      Icon: Medalja,
+      Icon: Trophy,
       tier: 5,
     },
-    trusted: { title: "Pouzdan prodavač", description: "Dosljedan i korektan u komunikaciji.", Icon: Ljiljan, tier: 4 },
-    fast_reply: { title: "Brz odgovor", description: "Odgovara brzo na upite kupaca.", Icon: Dzezva, tier: 3 },
+    trusted: { title: "Pouzdan prodavač", description: "Dosljedan i korektan u komunikaciji.", Icon: ShieldCheck, tier: 4 },
+    fast_reply: { title: "Brz odgovor", description: "Odgovara brzo na upite kupaca.", Icon: Zap, tier: 3 },
   };
 
   const picked = staticCatalog[key] || {
     title: "Postignuće",
     description: locked ? "Otključaj ispunjavanjem uslova." : "Nastavi graditi svoj profil.",
-    Icon: Medalja,
+    Icon: Award,
     tier: 1,
   };
 
@@ -361,10 +363,10 @@ const TIER_LABEL = {
 
 const MILESTONES = {
   tenure: [1, 2, 3, 5, 7, 10],
-  sales: [1, 10, 25, 50, 100, 250, 500, 1000],
-  reviews: [1, 5, 10, 25, 50, 100, 250, 500],
-  listings: [1, 5, 10, 25, 50, 100, 250, 500],
-  messages: [25, 100, 250, 500, 1000, 2500, 5000],
+  sales: [2, 5, 10, 25, 50, 100, 250, 500, 1000],
+  reviews: [2, 5, 10, 25, 50, 100, 250, 500],
+  listings: [5, 10, 25, 50, 100, 250, 500, 1000],
+  messages: [25, 50, 100, 250, 500, 1000, 2500, 5000],
   streak: [7, 14, 30, 60, 90, 180, 365],
 };
 
@@ -538,7 +540,7 @@ export default function Badge({
   const s = SIZE[size] || SIZE.md;
 
   const meta = useMemo(() => resolveBadgeCopy(badge, locked), [badge, locked]);
-  const Icon = meta.Icon || Medalja;
+  const Icon = meta.Icon || Award;
 
   return (
     <div
