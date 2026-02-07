@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { usersApi } from "@/utils/api";
+import { gamificationApi, usersApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
@@ -450,15 +450,27 @@ const SviKorisniciPage = () => {
     try {
       setIsLoading(true);
 
-      const response = await usersApi.getAllUsers({
-        page: currentPage,
-        per_page: 24,
-        search: filters.search || undefined,
-        membership: filters.membership || undefined,
-        shop: filters.shop || undefined,
-      });
+      let response;
+      try {
+        response = await usersApi.getAllUsers({
+          page: currentPage,
+          per_page: 24,
+          search: filters.search || undefined,
+          membership: filters.membership || undefined,
+          shop: filters.shop || undefined,
+        });
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          response = await gamificationApi.getLeaderboard({
+            period,
+            page: currentPage,
+          });
+        } else {
+          throw error;
+        }
+      }
 
-      if (response?.data?.error === false) {
+      if (response?.data?.error === false || response?.data?.error == null) {
         const data = response.data.data;
         const usersList = data?.users || data?.data || data?.items || data || [];
         
@@ -478,7 +490,7 @@ const SviKorisniciPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, filters.membership, filters.search, filters.shop]);
+  }, [currentPage, filters.membership, filters.search, filters.shop, period]);
 
   const filteredUsers = useMemo(() => {
     let filtered = [...allUsers];
@@ -558,7 +570,7 @@ const SviKorisniciPage = () => {
       params.delete(key);
     }
     window.history.replaceState(null, "", `?${params.toString()}`);
-  }, [searchParams]);
+  }, []);
 
   const handleViewChange = (newView) => {
     setView(newView);
