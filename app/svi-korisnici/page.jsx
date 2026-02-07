@@ -80,9 +80,89 @@ const UserCardSkeleton = ({ view }) => {
    USER CARD KOMPONENTA
 ===================================================== */
 
+const normalizeBadgeKey = (badge) =>
+  String(
+    badge?.slug ||
+      badge?.key ||
+      badge?.code ||
+      badge?.type ||
+      badge?.name ||
+      badge?.title ||
+      badge?.label ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+const getMembershipTier = (user) => {
+  const tierValue =
+    user?.membership?.tier?.slug ||
+    user?.membership?.tier?.name ||
+    user?.membership?.tier?.title ||
+    user?.membership?.tier ||
+    user?.membership?.plan ||
+    user?.membership?.slug ||
+    user?.membership_tier ||
+    user?.membershipTier ||
+    user?.plan ||
+    "";
+  return String(tierValue).toLowerCase();
+};
+
+const hasBadgeMatch = (user, matchers = []) => {
+  const badgeList = Array.isArray(user?.badges) ? user.badges : [];
+  if (!badgeList.length) return false;
+  return badgeList.some((badge) => {
+    const key = normalizeBadgeKey(badge);
+    return matchers.some((matcher) =>
+      typeof matcher === "string" ? key.includes(matcher) : matcher(key)
+    );
+  });
+};
+
+const isProUser = (user) =>
+  Boolean(
+    user?.is_pro ||
+      user?.isPro ||
+      user?.membership?.is_pro ||
+      user?.membership?.tier === "pro" ||
+      getMembershipTier(user).includes("pro") ||
+      getMembershipTier(user).includes("premium") ||
+      hasBadgeMatch(user, ["pro", "premium"])
+  );
+
+const isShopUser = (user) =>
+  Boolean(
+    user?.is_shop ||
+      user?.isShop ||
+      user?.membership?.is_shop ||
+      user?.membership?.tier === "shop" ||
+      getMembershipTier(user).includes("shop") ||
+      getMembershipTier(user).includes("business") ||
+      hasBadgeMatch(user, ["shop", "business", "store"])
+  );
+
+const isVerifiedUser = (user) =>
+  Boolean(
+    user?.is_verified ||
+      user?.verified ||
+      user?.isVerified ||
+      user?.verification_status === "verified" ||
+      user?.verification_status === "approved" ||
+      hasBadgeMatch(user, ["verified"])
+  );
+
+const isOnlineUser = (user) =>
+  Boolean(
+    user?.is_online ||
+      user?.online ||
+      user?.isOnline ||
+      user?.online_status === "online"
+  );
+
 const UserCard = ({ user, view, onClick }) => {
-  const isPro = user?.is_pro || user?.membership?.tier?.includes("pro");
-  const isShop = user?.is_shop || user?.membership?.tier?.includes("shop");
+  const isPro = isProUser(user);
+  const isShop = isShopUser(user);
   const sellerSettings = user?.seller_settings || user?.sellerSettings || {
     card_preferences: {
       show_ratings: true,
@@ -357,102 +437,6 @@ const SviKorisniciPage = () => {
 
   const [allUsers, setAllUsers] = useState([]);
 
-  const getMembershipTier = useCallback((user) => {
-    const tierValue =
-      user?.membership?.tier?.slug ||
-      user?.membership?.tier?.name ||
-      user?.membership?.tier?.title ||
-      user?.membership?.tier ||
-      user?.membership?.plan ||
-      user?.membership?.slug ||
-      user?.membership_tier ||
-      user?.membershipTier ||
-      user?.plan ||
-      "";
-    return String(tierValue).toLowerCase();
-  }, []);
-
-  const normalizeBadgeKey = useCallback((badge) => {
-    return String(
-      badge?.slug ||
-        badge?.key ||
-        badge?.code ||
-        badge?.type ||
-        badge?.name ||
-        badge?.title ||
-        badge?.label ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
-  }, []);
-
-  const hasBadgeMatch = useCallback(
-    (user, matchers = []) => {
-      const badgeList = Array.isArray(user?.badges) ? user.badges : [];
-      if (!badgeList.length) return false;
-      return badgeList.some((badge) => {
-        const key = normalizeBadgeKey(badge);
-        return matchers.some((matcher) =>
-          typeof matcher === "string" ? key.includes(matcher) : matcher(key)
-        );
-      });
-    },
-    [normalizeBadgeKey]
-  );
-
-  const isProUser = useCallback(
-    (user) =>
-      Boolean(
-        user?.is_pro ||
-          user?.isPro ||
-          user?.membership?.is_pro ||
-          user?.membership?.tier === "pro" ||
-          getMembershipTier(user).includes("pro") ||
-          getMembershipTier(user).includes("premium") ||
-          hasBadgeMatch(user, ["pro", "premium"])
-      ),
-    [getMembershipTier, hasBadgeMatch]
-  );
-
-  const isShopUser = useCallback(
-    (user) =>
-      Boolean(
-        user?.is_shop ||
-          user?.isShop ||
-          user?.membership?.is_shop ||
-          user?.membership?.tier === "shop" ||
-          getMembershipTier(user).includes("shop") ||
-          getMembershipTier(user).includes("business") ||
-          hasBadgeMatch(user, ["shop", "business", "store"])
-      ),
-    [getMembershipTier, hasBadgeMatch]
-  );
-
-  const isVerifiedUser = useCallback(
-    (user) =>
-      Boolean(
-        user?.is_verified ||
-          user?.verified ||
-          user?.isVerified ||
-          user?.verification_status === "verified" ||
-          user?.verification_status === "approved" ||
-          hasBadgeMatch(user, ["verified"])
-      ),
-    [hasBadgeMatch]
-  );
-
-  const isOnlineUser = useCallback(
-    (user) =>
-      Boolean(
-        user?.is_online ||
-          user?.online ||
-          user?.isOnline ||
-          user?.online_status === "online"
-      ),
-    []
-  );
-
   const sortUsers = useCallback((list) => {
     const usersCopy = [...list];
     if (sortBy === "newest") {
@@ -577,10 +561,6 @@ const SviKorisniciPage = () => {
     filters.search,
     filters.shop,
     filters.verified,
-    isOnlineUser,
-    isProUser,
-    isShopUser,
-    isVerifiedUser,
     period,
     sortUsers,
   ]);
