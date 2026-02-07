@@ -181,6 +181,45 @@ const responseTimeLabels = {
   few_days: "par dana",
 };
 
+const defaultCardPreferences = {
+  show_ratings: true,
+  show_badges: true,
+  show_member_since: false,
+  show_response_time: true,
+  show_business_hours: true,
+  show_shipping_info: true,
+  show_return_policy: true,
+  max_badges: 2,
+};
+
+const normalizePrefBool = (value, fallback) => {
+  if (value == null) return fallback;
+  return toBool(value);
+};
+
+const normalizeCardPreferences = (raw) => {
+  let obj = raw;
+  if (typeof raw === "string") {
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      obj = {};
+    }
+  }
+
+  const merged = { ...defaultCardPreferences, ...(obj || {}) };
+  return {
+    ...merged,
+    show_ratings: normalizePrefBool(obj?.show_ratings, defaultCardPreferences.show_ratings),
+    show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
+    show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
+    show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
+    show_business_hours: normalizePrefBool(obj?.show_business_hours, defaultCardPreferences.show_business_hours),
+    show_shipping_info: normalizePrefBool(obj?.show_shipping_info, defaultCardPreferences.show_shipping_info),
+    show_return_policy: normalizePrefBool(obj?.show_return_policy, defaultCardPreferences.show_return_policy),
+  };
+};
+
 const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
   const direct = settings?.response_time_label || settings?.response_time_text || null;
   if (direct) return direct;
@@ -588,18 +627,16 @@ const ProductSellerDetailCard = ({
     
   
   // Card preferences from seller settings - parse if string
-  const rawCardPrefs = settings?.card_preferences;
-  const cardPrefs = typeof rawCardPrefs === "string" 
-    ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
-    : (rawCardPrefs || {});
-  const showRatings = cardPrefs.show_ratings ?? true;
-  const showBadges = cardPrefs.show_badges ?? true;
-  const showResponseTime = cardPrefs.show_response_time ?? true;
-  const showMemberSince = cardPrefs.show_member_since ?? true;
-  const showBusinessHours = cardPrefs.show_business_hours ?? true;
-  const showShippingInfo = cardPrefs.show_shipping_info ?? true;
-  const showReturnPolicy = cardPrefs.show_return_policy ?? true;
-  const maxBadges = cardPrefs.max_badges ?? 3;
+  const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
+  const showRatings = mergedPrefs.show_ratings;
+  const showBadges = mergedPrefs.show_badges;
+  const showResponseTime = mergedPrefs.show_response_time;
+  const showMemberSince = mergedPrefs.show_member_since;
+  const showBusinessHours = mergedPrefs.show_business_hours;
+  const showShippingInfo = mergedPrefs.show_shipping_info;
+  const showReturnPolicy = mergedPrefs.show_return_policy;
+  const maxBadges = mergedPrefs.max_badges ?? 2;
+  const showExtendedSections = false;
 
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
@@ -693,7 +730,7 @@ const ProductSellerDetailCard = ({
         itemPrice={itemPrice}
       />
 
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
         {/* Main Card */}
         <div className="p-4 space-y-3">
           {/* Header: Avatar + Info — identical layout to MinimalSellerCard */}
@@ -813,7 +850,7 @@ const ProductSellerDetailCard = ({
           </div>
 
           {/* Business hours */}
-          {hasBusinessHours && todayHoursText && (
+          {showExtendedSections && hasBusinessHours && todayHoursText && (
             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <Clock className="w-4 h-4 text-slate-400" />
@@ -876,7 +913,7 @@ const ProductSellerDetailCard = ({
         </div>
 
         {/* Info sections */}
-        {(shippingInfo || returnPolicy) && (
+        {showExtendedSections && (shippingInfo || returnPolicy) && (
           <div className="border-t border-slate-100">
             {shippingInfo && (
               <div className="px-4 py-3 border-b border-slate-50">
