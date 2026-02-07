@@ -41,10 +41,14 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmReplace, setConfirmReplace] = useState(false);
 
   const selectedItem = useMemo(
     () => items.find((item) => String(item?.id) === String(selectedItemId)),
     [items, selectedItemId]
+  );
+  const hasExistingVideo = Boolean(
+    selectedItem?.video || selectedItem?.video_link
   );
 
   const resetState = useCallback(() => {
@@ -54,6 +58,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     setIsUploading(false);
     setUploadProgress(0);
     setIsSubmitting(false);
+    setConfirmReplace(false);
   }, []);
 
   const deleteTemp = useCallback(async (id) => {
@@ -102,6 +107,10 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     const url = uploadedVideo?.url || uploadedVideo?.path || null;
     setVideoPreviewUrl(url);
   }, [uploadedVideo]);
+
+  useEffect(() => {
+    setConfirmReplace(false);
+  }, [selectedItemId]);
 
   const uploadFile = async (file, onProgress) => {
     const fd = new FormData();
@@ -155,6 +164,10 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const handleSubmit = async () => {
     if (!selectedItemId) {
       toast.error("Odaberite oglas za koji dodajete reel.");
+      return;
+    }
+    if (hasExistingVideo && !confirmReplace) {
+      toast.error("Ovaj oglas već ima video. Potvrdite zamjenu.");
       return;
     }
     if (!uploadedVideo?.id) {
@@ -240,6 +253,24 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                 )}
               </SelectContent>
             </Select>
+            {hasExistingVideo && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                <p className="font-semibold">Ovaj oglas već ima video.</p>
+                <p className="mt-1">
+                  Ako nastavite, trenutni video će biti zamijenjen novim reel
+                  videom.
+                </p>
+                <label className="mt-2 flex items-center gap-2 text-amber-800">
+                  <input
+                    type="checkbox"
+                    checked={confirmReplace}
+                    onChange={(e) => setConfirmReplace(e.target.checked)}
+                    className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-400"
+                  />
+                  Svjestan/na sam da mijenjam postojeći video.
+                </label>
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -350,7 +381,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (hasExistingVideo && !confirmReplace)}
               className="min-w-[160px]"
             >
               {isSubmitting ? (
