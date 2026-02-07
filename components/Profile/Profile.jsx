@@ -23,6 +23,7 @@ import {
   Camera,
   BadgeCheck,
   Loader2,
+  Info,
 } from "lucide-react";
 
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
@@ -608,20 +609,13 @@ export default function Profile() {
         </div>
       </SettingCard>
 
-      {/* Privacy & Notifications */}
+      {/* Notifications */}
       <SettingCard
         icon={Bell}
-        title="Privatnost i obavijesti"
-        description="Postavke privatnosti"
+        title="Obavijesti"
+        description="Postavke notifikacija"
       >
-        <div className="space-y-1 divide-y divide-slate-100">
-          <ToggleSetting
-            label="Prikaži kontakt podatke"
-            description="Omogućite drugim korisnicima da vide vaš broj telefona"
-            checked={formData.show_personal_details === 1}
-            onChange={() => handleToggle("show_personal_details")}
-            saving={savingField === "show_personal_details"}
-          />
+        <div className="space-y-1">
           <ToggleSetting
             label="Email obavijesti"
             description="Primajte obavijesti na vašu email adresu"
@@ -629,6 +623,21 @@ export default function Profile() {
             onChange={() => handleToggle("notification")}
             saving={savingField === "notification"}
           />
+        </div>
+        
+        {/* Info note about seller settings */}
+        <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+          <div className="flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs text-slate-600">
+                Detaljne postavke kontakta (telefon, WhatsApp, Viber, radno vrijeme) možete podesiti u{" "}
+                <CustomLink href="/profile/seller-settings" className="text-primary font-medium hover:underline">
+                  Postavkama prodavača
+                </CustomLink>
+              </p>
+            </div>
+          </div>
         </div>
       </SettingCard>
 
