@@ -17,6 +17,7 @@ import {
   X,
   Star,
   BadgeCheck,
+  Play,
   ChevronRight,
   Clock,
   Shield,
@@ -617,12 +618,19 @@ const ProductSellerDetailCard = ({
     const acceptsOffers = acceptsOffersProp || productDetails?.accepts_offers || sellerSettings?.accepts_offers;
 
 
-    const isVerified = useMemo(() => {
+  const isVerified = useMemo(() => {
       // plava kvačica = samo pravi verified account/kyc
       return toBool(seller?.is_verified) || getVerifiedStatus(seller, settings);
       // ako imate baš badge koji znači account verified, onda dodaj:
       // || hasVerifiedBadge(seller)
     }, [seller, settings]);
+
+  const showReelRing = Boolean(
+    productDetails?.video ||
+      productDetails?.video_link ||
+      seller?.has_reel ||
+      seller?.reel_video
+  );
     
     
   
@@ -738,34 +746,76 @@ const ProductSellerDetailCard = ({
             {/* Avatar */}
             {sellerId ? (
               <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group cursor-pointer">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 group-hover:border-slate-300 transition-colors">
-                  <CustomImage
-                    src={seller?.profile || seller?.profile_image}
-                    alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                  />
+                <div
+                  className={cn(
+                    "rounded-[14px] p-[2px]",
+                    showReelRing
+                      ? "bg-gradient-to-tr from-[#F7941D] via-[#E1306C] to-[#833AB4]"
+                      : "bg-transparent"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100",
+                      showReelRing
+                        ? "border border-white/70"
+                        : "border border-slate-200/60 group-hover:border-slate-300 transition-colors"
+                    )}
+                  >
+                    <CustomImage
+                      src={seller?.profile || seller?.profile_image}
+                      alt={seller?.name || "Prodavač"}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 </div>
+                {showReelRing && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
+                    <Play className="w-3 h-3 text-[#E1306C]" />
+                  </div>
+                )}
                 {isVerified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                     <BadgeCheck className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
               </CustomLink>
             ) : (
               <div className="relative flex-shrink-0">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
-                  <CustomImage
-                    src={seller?.profile || seller?.profile_image}
-                    alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                  />
+                <div
+                  className={cn(
+                    "rounded-[14px] p-[2px]",
+                    showReelRing
+                      ? "bg-gradient-to-tr from-[#F7941D] via-[#E1306C] to-[#833AB4]"
+                      : "bg-transparent"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100",
+                      showReelRing
+                        ? "border border-white/70"
+                        : "border border-slate-200/60"
+                    )}
+                  >
+                    <CustomImage
+                      src={seller?.profile || seller?.profile_image}
+                      alt={seller?.name || "Prodavač"}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 </div>
+                {showReelRing && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
+                    <Play className="w-3 h-3 text-[#E1306C]" />
+                  </div>
+                )}
                 {isVerified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                     <BadgeCheck className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}

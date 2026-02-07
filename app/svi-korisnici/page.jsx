@@ -19,17 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { gamificationApi } from "@/utils/api";
+import { usersApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
   Search,
-  Users,
   LayoutGrid,
   LayoutList,
   SlidersHorizontal,
   BadgeCheck,
-  TrendingUp,
   Crown,
   Store,
   Filter,
@@ -344,8 +342,6 @@ const SviKorisniciPage = () => {
   });
 
   const [searchInput, setSearchInput] = useState(filters.search);
-  const [period, setPeriod] = useState(searchParams.get("period") || "all-time");
-
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -358,24 +354,104 @@ const SviKorisniciPage = () => {
   // Store all users for client-side filtering
   const [allUsers, setAllUsers] = useState([]);
 
-  // Fetch users from leaderboard
+  const perPage = 24;
+  const apiPerPage = 100;
+
+  const getLabelText = (user) => {
+    const rawLabel =
+      user?.label ||
+      user?.membership?.label ||
+      user?.membership?.tier ||
+      user?.membership?.tier_name ||
+      user?.membership?.plan ||
+      user?.role ||
+      "";
+    return String(rawLabel || "").toLowerCase();
+  };
+
+  const getMembershipFlags = (user) => {
+    const label = getLabelText(user);
+    const isShop = Boolean(
+      user?.is_shop ||
+        label.includes("shop") ||
+        label.includes("trgovina") ||
+        label.includes("business")
+    );
+    const isPro = Boolean(
+      user?.is_pro ||
+        (!isShop && (label.includes("pro") || label.includes("premium")))
+    );
+    return { isPro, isShop };
+  };
+
+  const normalizeUser = (user) => {
+    if (!user) return user;
+    const label = getLabelText(user);
+    const isShop = Boolean(
+      user?.is_shop ||
+        label.includes("shop") ||
+        label.includes("trgovina") ||
+        label.includes("business")
+    );
+    const isPro = Boolean(
+      user?.is_pro ||
+        (!isShop && (label.includes("pro") || label.includes("premium")))
+    );
+
+    const normalized = {
+      ...user,
+      profile: user?.profile || user?.profile_image || user?.avatar || user?.svg_avatar || null,
+      is_verified: user?.is_verified ?? user?.verified ?? user?.isVerified,
+      total_ads: user?.total_ads ?? user?.items_count ?? user?.ads_count ?? 0,
+      average_rating: user?.average_rating ?? user?.rating ?? user?.ratings_avg,
+      ratings_count: user?.ratings_count ?? user?.reviews_count ?? user?.reviews ?? 0,
+      is_pro: user?.is_pro ?? isPro,
+      is_shop: user?.is_shop ?? isShop,
+    };
+    return normalized;
+  };
+
+  const isOnline = (user) => {
+    const lastSeen = user?.last_seen || user?.lastSeen || user?.updated_at;
+    if (!lastSeen) return false;
+    const last = new Date(lastSeen).getTime();
+    if (Number.isNaN(last)) return false;
+    const diffMs = Date.now() - last;
+    return diffMs <= 5 * 60 * 1000;
+  };
+
+  // Fetch users from API
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      const response = await gamificationApi.getLeaderboard({
-        period,
-        page: currentPage,
-      });
+      let page = 1;
+      let lastPage = 1;
+      const aggregated = [];
 
-      if (response?.data?.error === false) {
-        const data = response.data.data;
-        const usersList = data?.users || data?.data || [];
-        
-        setAllUsers(usersList);
-        setTotalPages(Math.ceil((data?.total || usersList.length) / (data?.per_page || 20)));
-        setTotalUsers(data?.total || usersList.length);
-      }
+      do {
+        const response = await usersApi.getUsers({
+          page,
+          per_page: apiPerPage,
+          search: filters.search || "",
+        });
+
+        const data = response?.data;
+
+        if (!data?.success) {
+          throw new Error(data?.message || "Ne mogu dohvatiti korisnike.");
+        }
+
+        const usersList = data?.data || [];
+        aggregated.push(...usersList);
+        lastPage = data?.last_page || 1;
+        page += 1;
+      } while (page <= lastPage);
+
+      const normalized = aggregated.map(normalizeUser);
+      setAllUsers(normalized);
+      setTotalUsers(normalized.length);
+      setTotalPages(Math.max(1, Math.ceil(normalized.length / perPage)));
     } catch (error) {
       console.error("Error fetching users:", error);
       setAllUsers([]);
@@ -383,7 +459,7 @@ const SviKorisniciPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, period]);
+  }, [filters.search]);
 
   // Apply client-side filters
   useEffect(() => {
@@ -406,31 +482,46 @@ const SviKorisniciPage = () => {
 
     // Filter by membership (pro)
     if (filters.membership === "pro") {
-      filteredUsers = filteredUsers.filter(user =>
-        user?.is_pro ||
-        user?.membership?.tier?.includes("pro") ||
-        user?.membership?.tier?.includes("premium")
-      );
+      filteredUsers = filteredUsers.filter(user => getMembershipFlags(user).isPro);
     }
 
     // Filter by shop
     if (filters.shop === "1") {
-      filteredUsers = filteredUsers.filter(user =>
-        user?.is_shop ||
-        user?.membership?.tier?.includes("shop") ||
-        user?.membership?.tier?.includes("business")
-      );
+      filteredUsers = filteredUsers.filter(user => getMembershipFlags(user).isShop);
     }
     
     // Filter by online
     if (filters.online === "1") {
-      filteredUsers = filteredUsers.filter(user => 
-        user?.is_online || user?.online
+      filteredUsers = filteredUsers.filter(user =>
+        user?.is_online || user?.online || isOnline(user)
       );
     }
+
+    const sorted = [...filteredUsers];
+    if (sortBy === "newest") {
+      sorted.sort((a, b) => new Date(b?.created_at || 0) - new Date(a?.created_at || 0));
+    } else if (sortBy === "oldest") {
+      sorted.sort((a, b) => new Date(a?.created_at || 0) - new Date(b?.created_at || 0));
+    } else if (sortBy === "most_ads") {
+      sorted.sort((a, b) => (b?.total_ads || 0) - (a?.total_ads || 0));
+    } else if (sortBy === "top_rated") {
+      sorted.sort((a, b) => (b?.average_rating || 0) - (a?.average_rating || 0));
+    }
     
-    setUsers(filteredUsers);
-  }, [allUsers, filters]);
+    const totalFiltered = sorted.length;
+    const newTotalPages = Math.max(1, Math.ceil(totalFiltered / perPage));
+    const safePage = currentPage > newTotalPages ? 1 : currentPage;
+    const start = (safePage - 1) * perPage;
+    const paginated = sorted.slice(start, start + perPage);
+
+    if (safePage !== currentPage) {
+      setCurrentPage(safePage);
+    }
+
+    setUsers(paginated);
+    setTotalUsers(totalFiltered);
+    setTotalPages(newTotalPages);
+  }, [allUsers, filters, sortBy, currentPage, perPage]);
 
   useEffect(() => {
     fetchUsers();
@@ -455,12 +546,6 @@ const SviKorisniciPage = () => {
   const handleSortChange = (newSort) => {
     setSortBy(newSort);
     updateUrl("sort", newSort);
-  };
-
-  const handlePeriodChange = (newPeriod) => {
-    setPeriod(newPeriod);
-    setCurrentPage(1);
-    updateUrl("period", newPeriod);
   };
 
   const goToUserProfile = (userId) => {
@@ -521,21 +606,6 @@ const SviKorisniciPage = () => {
                     </button>
                   )}
                 </div>
-
-                {/* Period */}
-                <Select value={period} onValueChange={handlePeriodChange}>
-                  <SelectTrigger className="w-full sm:w-40 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                    <TrendingUp className="w-4 h-4 mr-2 text-slate-400" />
-                    <SelectValue placeholder="Period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="weekly">Sedmično</SelectItem>
-                      <SelectItem value="monthly">Mjesečno</SelectItem>
-                      <SelectItem value="all-time">Ukupno</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
 
                 {/* Sort */}
                 <Select value={sortBy} onValueChange={handleSortChange}>

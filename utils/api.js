@@ -65,7 +65,7 @@ export const GET_LOCATION = "get-location";
 export const GET_USER_INFO = "get-user-info";
 export const LOGOUT = "logout";
 export const SET_ITEM_TOTAL_CLICK = "set-item-total-click";
-export const GET_ALL_USERS = "get-users";
+export const GET_ALL_USERS = "users";
 
 export const GET_MAP_ITEMS = "get-items";
 
@@ -138,6 +138,13 @@ export const getSellerApi = {
   getSeller: ({ id, page } = {}) => {
     return Api.get(GET_SELLER, {
       params: { id, page },
+    });
+  },
+};
+export const usersApi = {
+  getUsers: ({ page = 1, per_page = 24, search, role, status } = {}) => {
+    return Api.get(GET_ALL_USERS, {
+      params: { page, per_page, search, role, status },
     });
   },
 };
