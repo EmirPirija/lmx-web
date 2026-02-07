@@ -274,14 +274,6 @@ export const getMyReviewsApi = {
   },
 };
 
-export const usersApi = {
-  getAllUsers: ({ page = 1, per_page = 24, search, membership, shop } = {}) => {
-    return Api.get(GET_ALL_USERS, {
-      params: { page, per_page, search, membership, shop },
-    });
-  },
-};
-
 // 5. GET_FEATURED_SECTION
 export const FeaturedSectionApi = {
   getFeaturedSections: ({
