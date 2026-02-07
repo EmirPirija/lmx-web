@@ -83,6 +83,18 @@ const defaultCardPreferences = {
 // ============================================
 // HELPERS
 // ============================================
+const toBool = (value, fallback = false) => {
+  if (value == null) return fallback;
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  if (typeof value === "string") {
+    const s = value.trim().toLowerCase();
+    if (["1", "true", "yes"].includes(s)) return true;
+    if (["0", "false", "no"].includes(s)) return false;
+  }
+  return Boolean(value);
+};
+
 const normalizeBusinessHours = (raw) => {
   let obj = typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : raw;
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) obj = {};
@@ -90,7 +102,8 @@ const normalizeBusinessHours = (raw) => {
   for (const day of DAYS) {
     const base = defaultBusinessHours[day];
     const d = obj?.[day] && typeof obj[day] === "object" ? obj[day] : {};
-    out[day] = { open: d.open || base.open, close: d.close || base.close, enabled: d.enabled ?? base.enabled };
+    const enabled = d.enabled == null ? base.enabled : toBool(d.enabled, base.enabled);
+    out[day] = { open: d.open || base.open, close: d.close || base.close, enabled };
   }
   return out;
 };
@@ -98,7 +111,17 @@ const normalizeBusinessHours = (raw) => {
 const normalizeCardPreferences = (raw) => {
   let obj = typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : raw;
   if (!obj || typeof obj !== "object") obj = {};
-  return { ...defaultCardPreferences, ...obj };
+  return {
+    ...defaultCardPreferences,
+    ...obj,
+    show_ratings: toBool(obj.show_ratings, defaultCardPreferences.show_ratings),
+    show_badges: toBool(obj.show_badges, defaultCardPreferences.show_badges),
+    show_member_since: toBool(obj.show_member_since, defaultCardPreferences.show_member_since),
+    show_response_time: toBool(obj.show_response_time, defaultCardPreferences.show_response_time),
+    show_business_hours: toBool(obj.show_business_hours, defaultCardPreferences.show_business_hours),
+    show_shipping_info: toBool(obj.show_shipping_info, defaultCardPreferences.show_shipping_info),
+    show_return_policy: toBool(obj.show_return_policy, defaultCardPreferences.show_return_policy),
+  };
 };
 
 const safeUrl = (u) => { if (!u) return true; try { new URL(u.startsWith("http") ? u : `https://${u}`); return true; } catch { return false; } };
@@ -477,23 +500,23 @@ const SellerSettings = () => {
       if (response?.data?.error !== false || !response?.data?.data) { setLoadError(response?.data?.message || "Greška."); return; }
 
       const s = response.data.data;
-      setShowPhone(s.show_phone ?? true);
-      setShowEmail(s.show_email ?? true);
-      setShowWhatsapp(s.show_whatsapp ?? false);
-      setShowViber(s.show_viber ?? false);
+      setShowPhone(toBool(s.show_phone, true));
+      setShowEmail(toBool(s.show_email, true));
+      setShowWhatsapp(toBool(s.show_whatsapp, false));
+      setShowViber(toBool(s.show_viber, false));
       setWhatsappNumber(s.whatsapp_number || "");
       setViberNumber(s.viber_number || "");
       setPreferredContact(s.preferred_contact_method || "message");
       setBusinessHours(normalizeBusinessHours(s.business_hours));
       setResponseTime(s.response_time || "auto");
-      setAcceptsOffers(s.accepts_offers ?? true);
-      setAutoReplyEnabled(s.auto_reply_enabled ?? false);
+      setAcceptsOffers(toBool(s.accepts_offers, true));
+      setAutoReplyEnabled(toBool(s.auto_reply_enabled, false));
       setAutoReplyMessage(s.auto_reply_message || "Hvala na poruci!");
-      setVacationMode(s.vacation_mode ?? false);
+      setVacationMode(toBool(s.vacation_mode, false));
       setVacationMessage(s.vacation_message || "Na odmoru sam.");
       setVacationStartDate(s.vacation_start_date || "");
       setVacationEndDate(s.vacation_end_date || "");
-      setVacationAutoActivate(s.vacation_auto_activate ?? false);
+      setVacationAutoActivate(toBool(s.vacation_auto_activate, false));
       setBusinessDescription(s.business_description || "");
       setReturnPolicy(s.return_policy || "");
       setShippingInfo(s.shipping_info || "");
@@ -505,17 +528,17 @@ const SellerSettings = () => {
       setCardPreferences(normalizeCardPreferences(s.card_preferences));
 
       setInitialPayloadStr(stableStringify({
-        show_phone: s.show_phone ?? true, show_email: s.show_email ?? true,
-        show_whatsapp: s.show_whatsapp ?? false, show_viber: s.show_viber ?? false,
+        show_phone: toBool(s.show_phone, true), show_email: toBool(s.show_email, true),
+        show_whatsapp: toBool(s.show_whatsapp, false), show_viber: toBool(s.show_viber, false),
         whatsapp_number: s.whatsapp_number || "", viber_number: s.viber_number || "",
         preferred_contact_method: s.preferred_contact_method || "message",
         business_hours: normalizeBusinessHours(s.business_hours),
-        response_time: s.response_time || "auto", accepts_offers: s.accepts_offers ?? true,
-        auto_reply_enabled: s.auto_reply_enabled ?? false,
+        response_time: s.response_time || "auto", accepts_offers: toBool(s.accepts_offers, true),
+        auto_reply_enabled: toBool(s.auto_reply_enabled, false),
         auto_reply_message: s.auto_reply_message || "Hvala na poruci!",
-        vacation_mode: s.vacation_mode ?? false, vacation_message: s.vacation_message || "Na odmoru sam.",
+        vacation_mode: toBool(s.vacation_mode, false), vacation_message: s.vacation_message || "Na odmoru sam.",
         vacation_start_date: s.vacation_start_date || "", vacation_end_date: s.vacation_end_date || "",
-        vacation_auto_activate: s.vacation_auto_activate ?? false,
+        vacation_auto_activate: toBool(s.vacation_auto_activate, false),
         business_description: s.business_description || "", return_policy: s.return_policy || "",
         shipping_info: s.shipping_info || "", social_facebook: s.social_facebook || "",
         social_instagram: s.social_instagram || "", social_tiktok: s.social_tiktok || "",
