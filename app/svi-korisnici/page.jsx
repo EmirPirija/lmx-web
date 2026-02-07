@@ -83,7 +83,14 @@ const UserCardSkeleton = ({ view }) => {
 const UserCard = ({ user, view, onClick }) => {
   const isPro = user?.is_pro || user?.membership?.tier?.includes("pro");
   const isShop = user?.is_shop || user?.membership?.tier?.includes("shop");
-  const sellerSettings = user?.seller_settings || user?.sellerSettings || null;
+  const sellerSettings = user?.seller_settings || user?.sellerSettings || {
+    card_preferences: {
+      show_ratings: true,
+      show_badges: true,
+      show_member_since: true,
+      show_response_time: true,
+    },
+  };
 
   return (
     <motion.div
@@ -394,6 +401,24 @@ const SviKorisniciPage = () => {
     if (filters.verified === "1") {
       filteredUsers = filteredUsers.filter(user => 
         user?.is_verified || user?.verified || user?.verification_status === "verified"
+      );
+    }
+
+    // Filter by membership (pro)
+    if (filters.membership === "pro") {
+      filteredUsers = filteredUsers.filter(user =>
+        user?.is_pro ||
+        user?.membership?.tier?.includes("pro") ||
+        user?.membership?.tier?.includes("premium")
+      );
+    }
+
+    // Filter by shop
+    if (filters.shop === "1") {
+      filteredUsers = filteredUsers.filter(user =>
+        user?.is_shop ||
+        user?.membership?.tier?.includes("shop") ||
+        user?.membership?.tier?.includes("business")
       );
     }
     

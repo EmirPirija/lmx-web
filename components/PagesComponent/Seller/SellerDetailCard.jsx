@@ -116,11 +116,9 @@ const getVerifiedStatus = (seller, settings) => {
   const statusCandidates = [
     settings?.verification_status,
     settings?.verificationStatus,
-    settings?.status,
     seller?.verification_status,
     seller?.verificationStatus,
     seller?.verification?.status,
-    seller?.status,
   ];
 
   if (statusCandidates.some(isNegativeStatus)) return false;
@@ -1440,6 +1438,9 @@ const SellerDetailCard = ({
         const statusData = res?.data?.data || res?.data; 
   
         if (alive && statusData) {
+          const statusUserId = statusData?.user_id ?? statusData?.id ?? null;
+          if (statusUserId && String(statusUserId) !== String(sellerId)) return;
+
           // Provjera identična onoj u Dropdownu: status === "approved"
           const verifiedByStatus = String(statusData?.status || "").toLowerCase() === "approved";
           
