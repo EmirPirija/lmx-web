@@ -346,7 +346,9 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     setIsLogout(true);
   }, [setIsLogout]);
 
-  const isPro = userStats.membershipTier === "pro" || userStats.membershipTier === "shop";
+  const isPro = userStats.membershipTier === "pro";
+  const isShop = userStats.membershipTier === "shop";
+  const isPremium = isPro || isShop;
 
   const fetchAllData = useCallback(async () => {
     if (!userData) return;
@@ -663,7 +665,7 @@ if (verificationRes?.status === "fulfilled") {
         )}
 
         {/* PRO USER BANNER */}
-        {isPro && (
+        {isPremium && (
           <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100/50">
             <div className="flex items-center gap-3 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200/50">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
@@ -671,7 +673,7 @@ if (verificationRes?.status === "fulfilled") {
               </div>
               <div className="flex-1">
                 <h5 className="text-sm font-semibold text-slate-800">
-                  {userStats.membershipTier === "shop" ? "Shop" : "Pro"} član
+                  {isShop ? "Shop" : "Pro"} član
                 </h5>
                 <p className="text-xs text-slate-500">Uživaj u svim premium pogodnostima</p>
               </div>

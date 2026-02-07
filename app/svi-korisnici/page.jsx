@@ -91,8 +91,8 @@ const UserCardSkeleton = ({ view }) => {
 
 const UserCard = ({ user, view, onClick }) => {
   const isVerified = user?.is_verified || user?.verified || user?.verification_status === "verified";
-  const isPro = user?.is_pro || user?.membership?.tier?.includes("pro");
-  const isShop = user?.is_shop || user?.membership?.tier?.includes("shop");
+  const isShop = user?.is_shop || String(user?.membership?.tier || "").includes("shop");
+  const isPro = !isShop && (user?.is_pro || String(user?.membership?.tier || "").includes("pro"));
   
   const profileImage = user?.profile || user?.profile_image || user?.avatar;
   const memberSince = user?.created_at ? extractYear(user.created_at) : null;

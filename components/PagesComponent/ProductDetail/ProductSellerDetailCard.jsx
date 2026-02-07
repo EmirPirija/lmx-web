@@ -598,8 +598,8 @@ const ProductSellerDetailCard = ({
   // Extract from productDetails or use props
   const seller = sellerProp || productDetails?.user;
   const ratings = ratingsProp || productDetails?.ratings;
-  const isPro = isProProp || productDetails?.user?.is_pro;
-  const isShop = isShopProp || productDetails?.user?.is_shop;
+  const isShop = Boolean(isShopProp || productDetails?.user?.is_shop);
+  const isPro = Boolean(!isShop && (isProProp || productDetails?.user?.is_pro));
   const itemId = itemIdProp || productDetails?.id;
   const itemPrice = itemPriceProp || productDetails?.price;
 
