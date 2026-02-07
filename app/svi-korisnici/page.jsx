@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { gamificationApi, usersApi } from "@/utils/api";
+import { gamificationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
@@ -450,25 +450,10 @@ const SviKorisniciPage = () => {
     try {
       setIsLoading(true);
 
-      let response;
-      try {
-        response = await usersApi.getAllUsers({
-          page: currentPage,
-          per_page: 24,
-          search: filters.search || undefined,
-          membership: filters.membership || undefined,
-          shop: filters.shop || undefined,
-        });
-      } catch (error) {
-        if (error?.response?.status === 404) {
-          response = await gamificationApi.getLeaderboard({
-            period,
-            page: currentPage,
-          });
-        } else {
-          throw error;
-        }
-      }
+      const response = await gamificationApi.getLeaderboard({
+        period,
+        page: currentPage,
+      });
 
       if (response?.data?.error === false || response?.data?.error == null) {
         const data = response.data.data;
@@ -490,7 +475,7 @@ const SviKorisniciPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, filters.membership, filters.search, filters.shop, period]);
+  }, [currentPage, period]);
 
   const filteredUsers = useMemo(() => {
     let filtered = [...allUsers];

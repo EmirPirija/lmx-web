@@ -1,9 +1,11 @@
 "use client";
 
+import { use } from "react";
 import Seller from "@/components/PagesComponent/Seller/Seller";
 import { useSearchParams } from "next/navigation";
 
 export default function SellerPage({ params }) {
+  const resolvedParams = use(params);
   const searchParams = useSearchParams();
   
   // Convert searchParams to plain object for the component
@@ -12,5 +14,5 @@ export default function SellerPage({ params }) {
     searchParamsObj[key] = value;
   });
 
-  return <Seller id={params.id} searchParams={searchParamsObj} />;
+  return <Seller id={resolvedParams.id} searchParams={searchParamsObj} />;
 }
