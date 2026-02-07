@@ -153,6 +153,8 @@ const ComponentFour = ({
   setUploadedVideo,
   setStep,
   handleGoBack,
+  videoSectionRef,
+  highlightVideo = false,
 }) => {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
@@ -542,7 +544,14 @@ const ComponentFour = ({
       </div>
 
       {/* --- VIDEO SEKCIJA --- */}
-      <div className="space-y-4 pt-8 border-t border-slate-100">
+      <div
+        ref={videoSectionRef}
+        id="ad-video-section"
+        className={cn(
+          "space-y-4 pt-8 border-t border-slate-100 scroll-mt-24 transition-all duration-300",
+          highlightVideo && "rounded-2xl ring-2 ring-primary/40 shadow-[0_0_0_6px_rgba(255,111,0,0.12)]"
+        )}
+      >
         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <Play className="w-5 h-5 text-red-500" />
             Video Prezentacija

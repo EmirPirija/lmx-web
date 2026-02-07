@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { gamificationApi } from "@/utils/api";
+import { usersApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
@@ -358,24 +358,32 @@ const SviKorisniciPage = () => {
   // Store all users for client-side filtering
   const [allUsers, setAllUsers] = useState([]);
 
-  // Fetch users from leaderboard
+  // Fetch users
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-
-      const response = await gamificationApi.getLeaderboard({
-        period,
+      const response = await usersApi.getAllUsers({
         page: currentPage,
+        per_page: 24,
+        search: filters.search || undefined,
+        membership: filters.membership || undefined,
+        shop: filters.shop || undefined,
       });
 
-      if (response?.data?.error === false) {
-        const data = response.data.data;
-        const usersList = data?.users || data?.data || [];
-        
-        setAllUsers(usersList);
-        setTotalPages(Math.ceil((data?.total || usersList.length) / (data?.per_page || 20)));
-        setTotalUsers(data?.total || usersList.length);
+      const payload = response?.data;
+      if (payload?.error === true) {
+        throw new Error(payload?.message || "API error");
       }
+      const dataRoot = payload?.data ?? payload ?? {};
+      const usersList = Array.isArray(dataRoot)
+        ? dataRoot
+        : dataRoot?.data || dataRoot?.users || dataRoot?.items || [];
+      const total = dataRoot?.total || dataRoot?.meta?.total || usersList.length;
+      const perPage = dataRoot?.per_page || dataRoot?.meta?.per_page || 24;
+
+      setAllUsers(usersList);
+      setTotalPages(Math.max(1, Math.ceil(total / perPage)));
+      setTotalUsers(total);
     } catch (error) {
       console.error("Error fetching users:", error);
       setAllUsers([]);
@@ -383,7 +391,7 @@ const SviKorisniciPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, period]);
+  }, [currentPage, filters.membership, filters.search, filters.shop]);
 
   // Apply client-side filters
   useEffect(() => {
@@ -429,8 +437,39 @@ const SviKorisniciPage = () => {
       );
     }
     
+    const getDateValue = (user) => {
+      const raw = user?.created_at || user?.createdAt || user?.registered_at || user?.registeredAt;
+      const parsed = raw ? new Date(raw).getTime() : 0;
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+
+    const getAdsCount = (user) =>
+      Number(
+        user?.live_ads_count ??
+          user?.total_ads ??
+          user?.ads_count ??
+          user?.active_ads_count ??
+          0
+      );
+
+    const getRating = (user) =>
+      Number(
+        user?.ratings_avg ??
+          user?.avg_rating ??
+          user?.rating ??
+          user?.average_rating ??
+          0
+      );
+
+    filteredUsers.sort((a, b) => {
+      if (sortBy === "oldest") return getDateValue(a) - getDateValue(b);
+      if (sortBy === "most_ads") return getAdsCount(b) - getAdsCount(a);
+      if (sortBy === "top_rated") return getRating(b) - getRating(a);
+      return getDateValue(b) - getDateValue(a);
+    });
+
     setUsers(filteredUsers);
-  }, [allUsers, filters]);
+  }, [allUsers, filters, sortBy]);
 
   useEffect(() => {
     fetchUsers();

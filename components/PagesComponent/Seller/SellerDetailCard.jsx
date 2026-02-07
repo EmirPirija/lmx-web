@@ -1491,7 +1491,13 @@ const SellerDetailCard = ({
     socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite
   );
 
+  const currentUser = useSelector(userSignUpData);
   const mainSellerId = seller?.user_id ?? seller?.id;
+  const isOwner = Boolean(
+    currentUser?.id &&
+    mainSellerId &&
+    String(currentUser.id) === String(mainSellerId)
+  );
 
   const storageKey = mainSellerId
     ? `seller_accordion_open_${mainSellerId}`
@@ -1538,6 +1544,51 @@ const SellerDetailCard = ({
         // kako bi SellerPreviewCard koristio svoj fallback izračun.
         isVerifiedOverride={isVerified || undefined} 
       />
+
+      {isOwner && (
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-amber-50 via-white to-rose-50 shadow-sm"
+        >
+          <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
+          <div className="absolute -bottom-12 -left-10 h-28 w-28 rounded-full bg-rose-200/30 blur-2xl" />
+          <div className="relative p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1 space-y-2">
+              <div className="inline-flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-100/70 px-2.5 py-1 rounded-full">
+                <Lightning className="w-3.5 h-3.5" />
+                Video spotlight
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900">
+                Istakni se na početnoj stranici
+              </h3>
+              <p className="text-sm text-slate-600">
+                Dodaj kratki video oglas i automatski ulaziš u Reels sekciju na početnoj.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <CustomLink
+                href="/ad-listing?focus=video"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 hover:-translate-y-0.5"
+              >
+                <Play className="w-4 h-4" />
+                Dodaj video oglas
+              </CustomLink>
+              <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
+                  <Star className="w-3 h-3 text-amber-500" />
+                  Premium prikaz
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
+                  <Eye className="w-3 h-3 text-slate-400" />
+                  Više pregleda
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* KONTAKT SEKCIJA */}
       {hasSocialLinks && (
