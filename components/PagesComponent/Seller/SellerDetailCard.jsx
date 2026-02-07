@@ -92,36 +92,51 @@ const toBool = (v) => {
   if (typeof v === "string" && v.toLowerCase() === "true") return true;
   return false;
 };
+
+const isNegativeStatus = (status) => {
+  const s = normalize(status);
+  return (
+    s.includes("not") ||
+    s.includes("unver") ||
+    s.includes("reject") ||
+    s.includes("declin") ||
+    s.includes("pend") ||
+    s.includes("wait")
+  );
+};
+
+const isApprovedStatus = (status) => {
+  const s = normalize(status);
+  return s === "approved" || s === "verified" || s === "kyc_approved" || s === "approved_kyc";
+};
+
 const getVerifiedStatus = (seller, settings) => {
   if (!seller && !settings) return false;
 
-  // 1. Provjera eksplicitnih statusnih stringova (Approved status iz API-ja)
   const statusCandidates = [
     settings?.verification_status,
+    settings?.verificationStatus,
+    settings?.status,
     seller?.verification_status,
+    seller?.verificationStatus,
     seller?.verification?.status,
-    seller?.status, // Dodato jer ProfileDropdown provjera statusData?.status
-    settings?.status 
+    seller?.status,
   ];
 
-  const hasValidStatus = statusCandidates.some(s => {
-    const val = String(s ?? "").trim().toLowerCase();
-    return val === "approved" || val === "verified" || val === "active";
-  });
+  if (statusCandidates.some(isNegativeStatus)) return false;
+  if (statusCandidates.some(isApprovedStatus)) return true;
 
-  if (hasValidStatus) return true;
-
-  // 2. Provjera Boolean zastavica (Flags) - ista logika kao u toBool u Dropdownu
   const flagCandidates = [
     seller?.is_verified,
     seller?.verified,
     seller?.is_verified_status,
     seller?.isVerified,
     settings?.is_verified,
-    settings?.verified
+    settings?.verified,
+    settings?.isVerified,
   ];
 
-  return flagCandidates.some(v => v === true || v === 1 || v === "1" || String(v).toLowerCase() === "true");
+  return flagCandidates.some((v) => toBool(v));
 };
 const shimmerCss = `
 @keyframes shimmer {
@@ -178,6 +193,17 @@ export const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }
   if (!responseTime) return null;
   if (responseTime === "auto") return formatResponseTimeBs(responseTimeAvg);
   return responseTimeLabels[responseTime] || null;
+};
+
+const defaultCardPreferences = {
+  show_ratings: true,
+  show_badges: true,
+  show_member_since: false,
+  show_response_time: true,
+  show_business_hours: true,
+  show_shipping_info: true,
+  show_return_policy: true,
+  max_badges: 2,
 };
 
 const parseBusinessHours = (hours) => {
@@ -932,14 +958,16 @@ export const SellerPreviewCard = ({
   const cardPrefs = typeof rawCardPrefs === "string"
     ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
     : (rawCardPrefs || {});
+  const mergedPrefs = { ...defaultCardPreferences, ...cardPrefs };
 
   const compactness = prefs.compactness || cardPrefs?.compactness || "normal";
   const contactStyle = prefs.contactStyle || cardPrefs?.contactStyle || settings?.contact_style || "inline";
 
-  const showRatings = prefs.showRatings ?? cardPrefs.show_ratings ?? true;
-  const showBadges = prefs.showBadges ?? cardPrefs.show_badges ?? true;
-  const showMemberSince = prefs.showMemberSince ?? cardPrefs.show_member_since ?? true;
-  const showResponseTime = prefs.showResponseTime ?? cardPrefs.show_response_time ?? true;
+  const showRatings = prefs.showRatings ?? mergedPrefs.show_ratings;
+  const showBadges = prefs.showBadges ?? mergedPrefs.show_badges;
+  const showMemberSince = prefs.showMemberSince ?? mergedPrefs.show_member_since;
+  const showResponseTime = prefs.showResponseTime ?? mergedPrefs.show_response_time;
+  const showBusinessHours = mergedPrefs.show_business_hours;
   const showShare = prefs.showShare ?? true;
 
   const c = compactnessMap[compactness] || compactnessMap.normal;
@@ -974,10 +1002,10 @@ export const SellerPreviewCard = ({
   );
   const ratingCount = useMemo(() => ratings?.total || ratings?.count || 0, [ratings]);
 
-  const badgeList = (badges || []).slice(0, 3);
+  const badgeList = (badges || []).slice(0, mergedPrefs.max_badges || 2);
 
   const businessHours = parseBusinessHours(settings.business_hours);
-  const showHours = Boolean(businessHours && Object.values(businessHours).some(d => d?.enabled));
+  const showHours = Boolean(showBusinessHours && businessHours && Object.values(businessHours).some(d => d?.enabled));
   const todayHoursText = showHours ? getTodayHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
 
@@ -1017,7 +1045,7 @@ export const SellerPreviewCard = ({
         onChatClick={handleChatClick}
       />
 
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
         <div className="p-4 space-y-3">
           {/* Header: Avatar + Info — matching MinimalSellerCard */}
           <div className="flex items-start gap-3">
@@ -1253,22 +1281,22 @@ const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-[24px] border border-slate-200/60 dark:border-slate-700/50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl overflow-hidden shadow-lg"
+      className="rounded-xl border border-slate-100 bg-white overflow-hidden"
     >
       <button
         type="button"
         onClick={() => setOpenId(isOpen ? "" : id)}
         className={cn(
-          "w-full flex items-center justify-between gap-3 px-5 py-4 text-left transition-colors",
-          "hover:bg-slate-50/90 dark:hover:bg-slate-800/70",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30"
+          "w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
+          "hover:bg-slate-50/80",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
         )}
       >
         <span className="inline-flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-            <Icon size={20} />
+          <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary border border-primary/10">
+            <Icon size={18} />
           </span>
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">{title}</span>
+          <span className="text-sm font-semibold text-slate-900">{title}</span>
         </span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
@@ -1318,15 +1346,13 @@ const SocialPill = ({ icon: Icon, label, href }) => {
       target="_blank"
       rel="noreferrer"
       className={cn(
-        "group relative inline-flex items-center gap-2.5 rounded-2xl",
-        "border border-slate-200/60 dark:border-slate-700/50",
-        "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm",
-        "px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200",
-        "hover:border-indigo-300 dark:hover:border-indigo-700",
-        "hover:shadow-lg transition-all duration-250"
+        "group relative inline-flex items-center gap-2.5 rounded-xl",
+        "border border-slate-100 bg-slate-50/80",
+        "px-4 py-2.5 text-sm font-medium text-slate-700",
+        "hover:border-primary/30 hover:bg-white transition-all duration-250"
       )}
     >
-      <Icon size={18} className="text-slate-500 dark:text-slate-400" />
+      <Icon size={18} className="text-slate-500" />
       <span className="truncate max-w-[8rem]">{label}</span>
 
       <motion.button
@@ -1336,7 +1362,7 @@ const SocialPill = ({ icon: Icon, label, href }) => {
         onClick={copy}
         className={cn(
           "ml-1 p-1.5 rounded-lg",
-          "hover:bg-slate-100 dark:hover:bg-slate-700",
+          "hover:bg-white",
           "opacity-0 group-hover:opacity-100 transition-opacity"
         )}
       >
@@ -1371,6 +1397,11 @@ const SellerDetailCard = ({
   onPhoneReveal,
 }) => {
   const settings = sellerSettings || {};
+  const rawCardPrefs = settings?.card_preferences;
+  const cardPrefs = typeof rawCardPrefs === "string"
+    ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
+    : (rawCardPrefs || {});
+  const mergedPrefs = { ...defaultCardPreferences, ...cardPrefs };
 
   // 1. LOKALNI STATUS: Provjerava props-e koji su stigli odmah (iz listinga)
   const localVerified = useMemo(
@@ -1425,8 +1456,8 @@ const SellerDetailCard = ({
 
   // Parsiranje postavki
   const businessDescription = settings.business_description || "";
-  const returnPolicy = settings.return_policy || "";
-  const shippingInfo = settings.shipping_info || "";
+  const returnPolicy = mergedPrefs.show_return_policy ? (settings.return_policy || "") : "";
+  const shippingInfo = mergedPrefs.show_shipping_info ? (settings.shipping_info || "") : "";
 
   const socialFacebook = settings.social_facebook || "";
   const socialInstagram = settings.social_instagram || "";
@@ -1435,7 +1466,11 @@ const SellerDetailCard = ({
   const socialWebsite = settings.social_website || "";
 
   const businessHours = parseBusinessHours(settings.business_hours);
-  const showHours = Boolean(businessHours && Object.values(businessHours).some(d => d?.enabled));
+  const showHours = Boolean(
+    mergedPrefs.show_business_hours &&
+    businessHours &&
+    Object.values(businessHours).some(d => d?.enabled)
+  );
   const todayHoursText = showHours ? getTodayHours(businessHours) : null;
   const tomorrowHoursText = showHours ? getTomorrowHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
