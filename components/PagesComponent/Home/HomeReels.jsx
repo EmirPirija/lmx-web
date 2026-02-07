@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { allItemApi, manageFavouriteApi, itemOfferApi } from "@/utils/api";
+import { allItemApi, manageFavouriteApi, itemConversationApi } from "@/utils/api";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 
@@ -514,13 +514,31 @@ const ReelCard = ({ item, index, isLoggedIn, onLike }) => {
     }
 
     try {
-      const res = await itemOfferApi.offer({ item_id: item?.id });
-      if (res?.data?.error === false) {
-        const offerId = res?.data?.data?.id;
-        router.push(offerId ? `/chat?activeTab=buying&chatid=${offerId}` : `/chat?activeTab=buying`);
-      } else {
-        toast.error(res?.data?.message || "Ne mogu otvoriti chat");
+      const checkRes = await itemConversationApi.checkConversation({ item_id: item?.id });
+      const existingId =
+        checkRes?.data?.data?.conversation_id ||
+        checkRes?.data?.data?.item_offer_id ||
+        checkRes?.data?.data?.id ||
+        null;
+
+      if (checkRes?.data?.error === false && existingId) {
+        router.push(`/chat?activeTab=buying&chatid=${existingId}`);
+        return;
       }
+
+      const startRes = await itemConversationApi.startItemConversation({ item_id: item?.id });
+      const convoId =
+        startRes?.data?.data?.conversation_id ||
+        startRes?.data?.data?.item_offer_id ||
+        startRes?.data?.data?.id ||
+        null;
+
+      if (startRes?.data?.error === false && convoId) {
+        router.push(`/chat?activeTab=buying&chatid=${convoId}`);
+        return;
+      }
+
+      toast.error(startRes?.data?.message || "Ne mogu otvoriti chat");
     } catch (err) {
       console.error(err);
       toast.error("Ne mogu otvoriti chat");
