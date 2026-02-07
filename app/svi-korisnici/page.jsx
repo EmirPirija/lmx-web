@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { gamificationApi } from "@/utils/api";
+import { usersApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
@@ -80,9 +80,89 @@ const UserCardSkeleton = ({ view }) => {
    USER CARD KOMPONENTA
 ===================================================== */
 
+const normalizeBadgeKey = (badge) =>
+  String(
+    badge?.slug ||
+      badge?.key ||
+      badge?.code ||
+      badge?.type ||
+      badge?.name ||
+      badge?.title ||
+      badge?.label ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+const getMembershipTier = (user) => {
+  const tierValue =
+    user?.membership?.tier?.slug ||
+    user?.membership?.tier?.name ||
+    user?.membership?.tier?.title ||
+    user?.membership?.tier ||
+    user?.membership?.plan ||
+    user?.membership?.slug ||
+    user?.membership_tier ||
+    user?.membershipTier ||
+    user?.plan ||
+    "";
+  return String(tierValue).toLowerCase();
+};
+
+const hasBadgeMatch = (user, matchers = []) => {
+  const badgeList = Array.isArray(user?.badges) ? user.badges : [];
+  if (!badgeList.length) return false;
+  return badgeList.some((badge) => {
+    const key = normalizeBadgeKey(badge);
+    return matchers.some((matcher) =>
+      typeof matcher === "string" ? key.includes(matcher) : matcher(key)
+    );
+  });
+};
+
+const isProUser = (user) =>
+  Boolean(
+    user?.is_pro ||
+      user?.isPro ||
+      user?.membership?.is_pro ||
+      user?.membership?.tier === "pro" ||
+      getMembershipTier(user).includes("pro") ||
+      getMembershipTier(user).includes("premium") ||
+      hasBadgeMatch(user, ["pro", "premium"])
+  );
+
+const isShopUser = (user) =>
+  Boolean(
+    user?.is_shop ||
+      user?.isShop ||
+      user?.membership?.is_shop ||
+      user?.membership?.tier === "shop" ||
+      getMembershipTier(user).includes("shop") ||
+      getMembershipTier(user).includes("business") ||
+      hasBadgeMatch(user, ["shop", "business", "store"])
+  );
+
+const isVerifiedUser = (user) =>
+  Boolean(
+    user?.is_verified ||
+      user?.verified ||
+      user?.isVerified ||
+      user?.verification_status === "verified" ||
+      user?.verification_status === "approved" ||
+      hasBadgeMatch(user, ["verified"])
+  );
+
+const isOnlineUser = (user) =>
+  Boolean(
+    user?.is_online ||
+      user?.online ||
+      user?.isOnline ||
+      user?.online_status === "online"
+  );
+
 const UserCard = ({ user, view, onClick }) => {
-  const isPro = user?.is_pro || user?.membership?.tier?.includes("pro");
-  const isShop = user?.is_shop || user?.membership?.tier?.includes("shop");
+  const isPro = isProUser(user);
+  const isShop = isShopUser(user);
   const sellerSettings = user?.seller_settings || user?.sellerSettings || {
     card_preferences: {
       show_ratings: true,
@@ -355,26 +435,72 @@ const SviKorisniciPage = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Store all users for client-side filtering
   const [allUsers, setAllUsers] = useState([]);
 
-  // Fetch users from leaderboard
+  const sortUsers = useCallback((list) => {
+    const usersCopy = [...list];
+    if (sortBy === "newest") {
+      return usersCopy.sort((a, b) => {
+        const aDate = new Date(a?.created_at || a?.createdAt || 0).getTime();
+        const bDate = new Date(b?.created_at || b?.createdAt || 0).getTime();
+        return bDate - aDate;
+      });
+    }
+    if (sortBy === "oldest") {
+      return usersCopy.sort((a, b) => {
+        const aDate = new Date(a?.created_at || a?.createdAt || 0).getTime();
+        const bDate = new Date(b?.created_at || b?.createdAt || 0).getTime();
+        return aDate - bDate;
+      });
+    }
+    if (sortBy === "most_ads") {
+      return usersCopy.sort((a, b) => {
+        const aCount = Number(a?.ads_count || a?.listings_count || a?.items_count || 0);
+        const bCount = Number(b?.ads_count || b?.listings_count || b?.items_count || 0);
+        return bCount - aCount;
+      });
+    }
+    if (sortBy === "top_rated") {
+      return usersCopy.sort((a, b) => {
+        const aRating = Number(a?.rating || a?.average_rating || a?.rating_avg || 0);
+        const bRating = Number(b?.rating || b?.average_rating || b?.rating_avg || 0);
+        return bRating - aRating;
+      });
+    }
+    return usersCopy;
+  }, [sortBy]);
+
+  // Fetch users
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      const response = await gamificationApi.getLeaderboard({
-        period,
+      const response = await usersApi.getAllUsers({
         page: currentPage,
+        per_page: 24,
+        search: filters.search || undefined,
+        membership: filters.membership || undefined,
+        shop: filters.shop || undefined,
       });
 
-      if (response?.data?.error === false) {
+      if (response?.data?.error === false || response?.data?.error == null) {
         const data = response.data.data;
-        const usersList = data?.users || data?.data || [];
+        const usersList =
+          data?.users?.data ||
+          data?.users ||
+          data?.data ||
+          data?.items ||
+          data ||
+          [];
         
         setAllUsers(usersList);
-        setTotalPages(Math.ceil((data?.total || usersList.length) / (data?.per_page || 20)));
-        setTotalUsers(data?.total || usersList.length);
+        setTotalPages(
+          Math.ceil(
+            (data?.total || data?.meta?.total || usersList.length) /
+              (data?.per_page || data?.meta?.per_page || 24)
+          )
+        );
+        setTotalUsers(data?.total || data?.meta?.total || usersList.length);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -383,69 +509,83 @@ const SviKorisniciPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, period]);
+  }, [currentPage, filters.membership, filters.search, filters.shop]);
 
-  // Apply client-side filters
-  useEffect(() => {
-    let filteredUsers = [...allUsers];
-    
-    // Filter by search
+  const filteredUsers = useMemo(() => {
+    let filtered = [...allUsers];
+
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filteredUsers = filteredUsers.filter(user => 
-        user?.name?.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter((user) => {
+        const haystack = [
+          user?.name,
+          user?.full_name,
+          user?.username,
+          user?.email,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(searchLower);
+      });
     }
-    
-    // Filter by verified
+
     if (filters.verified === "1") {
-      filteredUsers = filteredUsers.filter(user => 
-        user?.is_verified || user?.verified || user?.verification_status === "verified"
-      );
+      filtered = filtered.filter((user) => isVerifiedUser(user));
     }
 
-    // Filter by membership (pro)
     if (filters.membership === "pro") {
-      filteredUsers = filteredUsers.filter(user =>
-        user?.is_pro ||
-        user?.membership?.tier?.includes("pro") ||
-        user?.membership?.tier?.includes("premium")
-      );
+      filtered = filtered.filter((user) => isProUser(user));
     }
 
-    // Filter by shop
     if (filters.shop === "1") {
-      filteredUsers = filteredUsers.filter(user =>
-        user?.is_shop ||
-        user?.membership?.tier?.includes("shop") ||
-        user?.membership?.tier?.includes("business")
-      );
+      filtered = filtered.filter((user) => isShopUser(user));
     }
-    
-    // Filter by online
+
     if (filters.online === "1") {
-      filteredUsers = filteredUsers.filter(user => 
-        user?.is_online || user?.online
-      );
+      filtered = filtered.filter((user) => isOnlineUser(user));
     }
-    
-    setUsers(filteredUsers);
-  }, [allUsers, filters]);
+
+    if (period !== "all-time") {
+      const days = period === "weekly" ? 7 : 30;
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      filtered = filtered.filter((user) => {
+        const dateValue = user?.last_active_at || user?.created_at || user?.createdAt || 0;
+        const timestamp = new Date(dateValue).getTime();
+        return Number.isFinite(timestamp) && timestamp >= cutoff;
+      });
+    }
+
+    return sortUsers(filtered);
+  }, [
+    allUsers,
+    filters.membership,
+    filters.online,
+    filters.search,
+    filters.shop,
+    filters.verified,
+    period,
+    sortUsers,
+  ]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers, CurrentLanguage?.id]);
 
+  useEffect(() => {
+    setUsers(filteredUsers);
+  }, [filteredUsers]);
+
   // Update URL
   const updateUrl = useCallback((key, value) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(window.location.search);
     if (value) {
       params.set(key, value);
     } else {
       params.delete(key);
     }
     window.history.replaceState(null, "", `?${params.toString()}`);
-  }, [searchParams]);
+  }, []);
 
   const handleViewChange = (newView) => {
     setView(newView);
@@ -462,6 +602,22 @@ const SviKorisniciPage = () => {
     setCurrentPage(1);
     updateUrl("period", newPeriod);
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+    updateUrl("membership", filters.membership);
+    updateUrl("shop", filters.shop);
+    updateUrl("verified", filters.verified);
+    updateUrl("online", filters.online);
+    updateUrl("search", filters.search);
+  }, [
+    filters.membership,
+    filters.online,
+    filters.search,
+    filters.shop,
+    filters.verified,
+    updateUrl,
+  ]);
 
   const goToUserProfile = (userId) => {
     router.push(`/seller/${userId}`);
