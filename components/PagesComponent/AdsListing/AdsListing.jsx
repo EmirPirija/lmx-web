@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import ComponentOne from "./ComponentOne";
 import {
   addItemApi,
@@ -187,6 +188,9 @@ const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const userData = useSelector(userSignUpData);
+  const searchParams = useSearchParams();
+  const focus = searchParams?.get("focus");
+  const shouldFocusVideo = focus === "video";
 
   const [step, setStep] = useState(1);
 
@@ -214,10 +218,12 @@ const AdsListing = () => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [otherImages, setOtherImages] = useState([]);
   const [uploadedVideo, setUploadedVideo] = useState(null);
+  const [highlightVideo, setHighlightVideo] = useState(false);
 
   const uploadedImagesRef = useRef(uploadedImages);
   const otherImagesRef = useRef(otherImages);
   const uploadedVideoRef = useRef(uploadedVideo);
+  const videoSectionRef = useRef(null);
 
   useEffect(() => {
     uploadedImagesRef.current = uploadedImages;
@@ -230,6 +236,16 @@ const AdsListing = () => {
   useEffect(() => {
     uploadedVideoRef.current = uploadedVideo;
   }, [uploadedVideo]);
+
+  useEffect(() => {
+    if (!shouldFocusVideo || step !== 4) return;
+    if (videoSectionRef.current) {
+      videoSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      setHighlightVideo(true);
+      const timeout = setTimeout(() => setHighlightVideo(false), 2200);
+      return () => clearTimeout(timeout);
+    }
+  }, [shouldFocusVideo, step]);
 
   const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [location, setLocation] = useState({});
@@ -1030,6 +1046,8 @@ const AdsListing = () => {
                     setUploadedVideo={setUploadedVideoValidated}
                     setStep={setStep}
                     handleGoBack={handleGoBack}
+                    videoSectionRef={videoSectionRef}
+                    highlightVideo={highlightVideo}
                   />
                 )}
 

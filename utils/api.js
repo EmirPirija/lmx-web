@@ -65,7 +65,7 @@ export const GET_LOCATION = "get-location";
 export const GET_USER_INFO = "get-user-info";
 export const LOGOUT = "logout";
 export const SET_ITEM_TOTAL_CLICK = "set-item-total-click";
-export const GET_ALL_USERS = "get-users";
+export const GET_ALL_USERS = "users";
 
 export const GET_MAP_ITEMS = "get-items";
 
