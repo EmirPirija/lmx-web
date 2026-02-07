@@ -17,6 +17,7 @@ import {
   X,
   Star,
   BadgeCheck,
+  Play,
   ChevronRight,
   Clock,
   Shield,
@@ -36,12 +37,48 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
+import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
 
 /* =====================================================
    HELPER FUNKCIJE
 ===================================================== */
 
 const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
+
+const reelRingCss = `
+@keyframes reel-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes reel-glow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.reel-ring {
+  position: relative;
+  padding: 2px;
+  border-radius: 16px;
+  background: conic-gradient(from 0deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
+  animation: reel-spin 8s linear infinite;
+}
+.reel-ring::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from 180deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
+  filter: blur(8px);
+  opacity: 0.45;
+  animation: reel-glow 3.2s ease-in-out infinite;
+  z-index: 0;
+}
+.reel-ring-inner {
+  position: relative;
+  z-index: 1;
+}
+`;
+
+const ReelRingStyles = () => <style jsx global>{reelRingCss}</style>;
 
 
 const toBool = (v) => {
@@ -617,12 +654,19 @@ const ProductSellerDetailCard = ({
     const acceptsOffers = acceptsOffersProp || productDetails?.accepts_offers || sellerSettings?.accepts_offers;
 
 
-    const isVerified = useMemo(() => {
+  const isVerified = useMemo(() => {
       // plava kvačica = samo pravi verified account/kyc
       return toBool(seller?.is_verified) || getVerifiedStatus(seller, settings);
       // ako imate baš badge koji znači account verified, onda dodaj:
       // || hasVerifiedBadge(seller)
     }, [seller, settings]);
+
+  const showReelRing = Boolean(
+    productDetails?.video ||
+      productDetails?.video_link ||
+      seller?.has_reel ||
+      seller?.reel_video
+  );
     
     
   
@@ -641,11 +685,18 @@ const ProductSellerDetailCard = ({
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [isOfferOpen, setIsOfferOpen] = useState(false);
+  const [isReelModalOpen, setIsReelModalOpen] = useState(false);
 
   if (!seller) return <ProductSellerCardSkeleton />;
 
+  const currentUser = useSelector(userSignUpData);
+
   // Use user_id if available, fallback to id, then to productDetails.user_id
   const sellerId = seller?.user_id ?? seller?.id ?? productDetails?.user_id;
+  const isOwner = Boolean(
+    currentUser?.id && String(currentUser.id) === String(sellerId)
+  );
+  const hasVideo = Boolean(productDetails?.video || productDetails?.video_link);
 
   const shareUrl = sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -707,6 +758,8 @@ const ProductSellerDetailCard = ({
 
   return (
     <>
+      <ReelRingStyles />
+
       <ContactModal
         open={isContactOpen}
         onOpenChange={setIsContactOpen}
@@ -730,6 +783,11 @@ const ProductSellerDetailCard = ({
         itemPrice={itemPrice}
       />
 
+      <ReelUploadModal
+        open={isReelModalOpen}
+        onOpenChange={setIsReelModalOpen}
+      />
+
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
         {/* Main Card */}
         <div className="p-4 space-y-3">
@@ -738,34 +796,72 @@ const ProductSellerDetailCard = ({
             {/* Avatar */}
             {sellerId ? (
               <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group cursor-pointer">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 group-hover:border-slate-300 transition-colors">
-                  <CustomImage
-                    src={seller?.profile || seller?.profile_image}
-                    alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                  />
+                <div
+                  className={cn(
+                    "rounded-[14px] p-[2px]",
+                    showReelRing ? "reel-ring" : "bg-transparent"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
+                      showReelRing
+                        ? "border border-white/70"
+                        : "border border-slate-200/60 group-hover:border-slate-300 transition-colors"
+                    )}
+                  >
+                    <CustomImage
+                      src={seller?.profile || seller?.profile_image}
+                      alt={seller?.name || "Prodavač"}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 </div>
+                {showReelRing && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
+                    <Play className="w-3 h-3 text-[#1e3a8a]" />
+                  </div>
+                )}
                 {isVerified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                     <BadgeCheck className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
               </CustomLink>
             ) : (
               <div className="relative flex-shrink-0">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
-                  <CustomImage
-                    src={seller?.profile || seller?.profile_image}
-                    alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                  />
+                <div
+                  className={cn(
+                    "rounded-[14px] p-[2px]",
+                    showReelRing ? "reel-ring" : "bg-transparent"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
+                      showReelRing
+                        ? "border border-white/70"
+                        : "border border-slate-200/60"
+                    )}
+                  >
+                    <CustomImage
+                      src={seller?.profile || seller?.profile_image}
+                      alt={seller?.name || "Prodavač"}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 </div>
+                {showReelRing && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
+                    <Play className="w-3 h-3 text-[#1e3a8a]" />
+                  </div>
+                )}
                 {isVerified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                     <BadgeCheck className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
@@ -827,6 +923,16 @@ const ProductSellerDetailCard = ({
                   <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 rounded">SHOP</span>
                 )}
               </div>
+
+              {isOwner && !hasVideo && (
+                <button
+                  type="button"
+                  onClick={() => setIsReelModalOpen(true)}
+                  className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#11b7b0]/40 bg-[#11b7b0]/10 px-3 py-1 text-xs font-semibold text-[#0f766e] hover:bg-[#11b7b0]/20 transition-colors"
+                >
+                  Dodaj video za ovaj oglas
+                </button>
+              )}
 
               {/* Gamification badges */}
               {showBadges && badgeList.length > 0 && (
