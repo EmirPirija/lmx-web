@@ -862,15 +862,20 @@ export const SellerPreviewCard = ({
 
   const settings = sellerSettings || {};
   const prefs = uiPrefs || {};
+  
+  // Card preferences - koristi iz sellerSettings ako postoje, inače fallback na uiPrefs ili default
+  const cardPrefs = settings?.card_preferences || {};
 
-  const compactness = prefs.compactness || settings?.card_preferences?.compactness || "normal";
-  const contactStyle = prefs.contactStyle || settings?.card_preferences?.contactStyle || settings?.contact_style || "inline";
+  const compactness = prefs.compactness || cardPrefs.compactness || "normal";
+  const contactStyle = prefs.contactStyle || cardPrefs.contactStyle || settings?.contact_style || "inline";
 
-  const showRatings = prefs.showRatings ?? true;
-  const showBadges = prefs.showBadges ?? true;
-  const showMemberSince = prefs.showMemberSince ?? true;
-  const showResponseTime = prefs.showResponseTime ?? true;
+  // Koristi card_preferences iz backend postavki, sa fallback na uiPrefs
+  const showRatings = prefs.showRatings ?? cardPrefs.show_ratings ?? true;
+  const showBadges = prefs.showBadges ?? cardPrefs.show_badges ?? true;
+  const showMemberSince = prefs.showMemberSince ?? cardPrefs.show_member_since ?? false;
+  const showResponseTime = prefs.showResponseTime ?? cardPrefs.show_response_time ?? true;
   const showShare = prefs.showShare ?? true;
+  const maxBadges = cardPrefs.max_badges ?? 3;
 
   const c = compactnessMap[compactness] || compactnessMap.normal;
 
@@ -901,7 +906,7 @@ export const SellerPreviewCard = ({
   );
   const ratingCount = useMemo(() => ratings?.total || ratings?.count || 0, [ratings]);
 
-  const badgeList = (badges || []).slice(0, 3);
+  const badgeList = (badges || []).slice(0, maxBadges);
 
   const businessHours = parseBusinessHours(settings.business_hours);
   const showHours = Boolean(isShop && businessHours);
@@ -1286,9 +1291,20 @@ const SellerDetailCard = ({
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
+  // Card preferences - na profilu prodavača prikazujemo SVE informacije (extended view)
+  const cardPrefs = settings?.card_preferences || {};
+  const showRatings = cardPrefs.show_ratings ?? true;
+  const showBadges = cardPrefs.show_badges ?? true;
+  const showMemberSince = cardPrefs.show_member_since ?? false;
+  const showResponseTime = cardPrefs.show_response_time ?? true;
+  const showBusinessHours = cardPrefs.show_business_hours ?? true;
+  const showShippingInfo = cardPrefs.show_shipping_info ?? true;
+  const showReturnPolicy = cardPrefs.show_return_policy ?? true;
+  const maxBadges = cardPrefs.max_badges ?? 3;
+
   const businessDescription = settings.business_description || "";
-  const returnPolicy = settings.return_policy || "";
-  const shippingInfo = settings.shipping_info || "";
+  const returnPolicy = showReturnPolicy ? (settings.return_policy || "") : "";
+  const shippingInfo = showShippingInfo ? (settings.shipping_info || "") : "";
 
   const socialFacebook = settings.social_facebook || "";
   const socialInstagram = settings.social_instagram || "";
@@ -1297,7 +1313,8 @@ const SellerDetailCard = ({
   const socialWebsite = settings.social_website || "";
 
   const businessHours = parseBusinessHours(settings.business_hours);
-  const showHours = Boolean(isShop && businessHours);
+  // Na profilu prodavača prikazujemo radno vrijeme ako je uključeno u postavkama
+  const showHours = showBusinessHours && Boolean(businessHours) && Object.values(businessHours).some(d => d?.enabled);
   const todayHoursText = showHours ? getTodayHours(businessHours) : null;
   const tomorrowHoursText = showHours ? getTomorrowHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;

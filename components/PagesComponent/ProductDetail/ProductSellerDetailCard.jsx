@@ -444,15 +444,20 @@ const ProductSellerDetailCard = ({
   const settings = sellerSettings || {};
   
   // Card preferences from seller settings
+  // Na stranici oglasa prikazujemo SAMO osnovne informacije
+  // Extended info (dostava, povrat, radno vrijeme) se prikazuje samo na profilu prodavača
   const cardPrefs = settings?.card_preferences || {};
   const showRatings = cardPrefs.show_ratings ?? true;
   const showBadges = cardPrefs.show_badges ?? true;
   const showResponseTime = cardPrefs.show_response_time ?? true;
-  const showMemberSince = cardPrefs.show_member_since ?? true;
-  const showBusinessHours = cardPrefs.show_business_hours ?? true;
-  const showShippingInfo = cardPrefs.show_shipping_info ?? true;
-  const showReturnPolicy = cardPrefs.show_return_policy ?? true;
+  const showMemberSince = cardPrefs.show_member_since ?? false; // Default false za čistiji izgled
   const maxBadges = cardPrefs.max_badges ?? 3;
+  
+  // Na ProductDetail kartici NE prikazujemo extended info
+  // Ovo se prikazuje samo na stranici profila prodavača (SellerDetailCard)
+  const showBusinessHours = false; // Samo na profilu
+  const showShippingInfo = false;  // Samo na profilu
+  const showReturnPolicy = false;  // Samo na profilu
 
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);

@@ -577,12 +577,13 @@ export const MinimalSellerCard = ({
   const settings = sellerSettings || {};
   
   // Card preferences from seller settings
+  // MinimalSellerCard se koristi za preview i kompaktan prikaz
   const cardPrefs = settings?.card_preferences || {};
-  const showRatings = cardPrefs.show_ratings ?? true;
-  const showBadges = cardPrefs.show_badges ?? true;
-  const showMemberSince = cardPrefs.show_member_since ?? false; // Default off for cleaner look
-  const showResponseTime = cardPrefs.show_response_time ?? true;
-  const maxBadges = cardPrefs.max_badges ?? 2;
+  const showRatings = cardPrefs.show_ratings !== undefined ? cardPrefs.show_ratings : true;
+  const showBadges = cardPrefs.show_badges !== undefined ? cardPrefs.show_badges : true;
+  const showMemberSince = cardPrefs.show_member_since !== undefined ? cardPrefs.show_member_since : false;
+  const showResponseTime = cardPrefs.show_response_time !== undefined ? cardPrefs.show_response_time : true;
+  const maxBadges = cardPrefs.max_badges !== undefined ? cardPrefs.max_badges : 2;
 
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);

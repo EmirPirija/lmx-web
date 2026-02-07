@@ -11,7 +11,8 @@ import {
   AlertCircle, Calendar, Camera, ChevronDown, Clock, Download, Eye, Globe, Mail,
   MessageCircle, Phone, RefreshCw, Save, Shield, Sparkles, Store, Users, Zap,
   CheckCircle2, Link as LinkIcon, Video, Music, QrCode, Copy, Loader2, Plane,
-  Star, LayoutGrid, Settings2, Truck, RotateCcw,
+  Star, LayoutGrid, Settings2, Truck, RotateCcw, BadgeCheck, ExternalLink,
+  Info, Smartphone, Monitor, ChevronRight,
 } from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
@@ -21,12 +22,13 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { cn } from "@/lib/utils";
 import { sellerSettingsApi, updateProfileApi } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
-import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
+import CustomImage from "@/components/Common/CustomImage";
 
 // ============================================
 // CONSTANTS
@@ -198,29 +200,330 @@ const QRCodeSection = ({ userId, userName }) => {
 };
 
 // ============================================
-// CARD PREFERENCES
+// CARD PREFERENCES - POBOLJŠANA VERZIJA
 // ============================================
 const CardPreferencesSection = ({ cardPreferences, setCardPreferences }) => {
   const updatePref = (key, value) => setCardPreferences(prev => ({ ...prev, [key]: value }));
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">Kontroliši šta se prikazuje na tvojoj prodavačkoj kartici.</p>
-      <div className="grid grid-cols-2 gap-2">
-        <CompactToggle title="Ocjene" checked={cardPreferences.show_ratings} onCheckedChange={(v) => updatePref("show_ratings", v)} />
-        <CompactToggle title="Bedževi" checked={cardPreferences.show_badges} onCheckedChange={(v) => updatePref("show_badges", v)} />
-        <CompactToggle title="Član od" checked={cardPreferences.show_member_since} onCheckedChange={(v) => updatePref("show_member_since", v)} />
-        <CompactToggle title="Vrijeme odg." checked={cardPreferences.show_response_time} onCheckedChange={(v) => updatePref("show_response_time", v)} />
-        <CompactToggle title="Radno vrijeme" checked={cardPreferences.show_business_hours} onCheckedChange={(v) => updatePref("show_business_hours", v)} />
-        <CompactToggle title="Info dostave" checked={cardPreferences.show_shipping_info} onCheckedChange={(v) => updatePref("show_shipping_info", v)} />
+      <p className="text-xs text-slate-500">Kontroliši šta se prikazuje na tvojoj prodavačkoj kartici na stranicama oglasa i na profilu.</p>
+      
+      {/* Osnovni prikaz - na oglasima */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+          <span className="text-xs font-semibold text-slate-700">Osnovni prikaz (na oglasima)</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <CompactToggle title="Ocjene" checked={cardPreferences.show_ratings} onCheckedChange={(v) => updatePref("show_ratings", v)} />
+          <CompactToggle title="Bedževi" checked={cardPreferences.show_badges} onCheckedChange={(v) => updatePref("show_badges", v)} />
+          <CompactToggle title="Član od" checked={cardPreferences.show_member_since} onCheckedChange={(v) => updatePref("show_member_since", v)} />
+          <CompactToggle title="Vrijeme odg." checked={cardPreferences.show_response_time} onCheckedChange={(v) => updatePref("show_response_time", v)} />
+        </div>
       </div>
+      
+      {/* Extended prikaz - na profilu */}
+      <div className="space-y-2 pt-3 border-t border-slate-100">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-xs font-semibold text-slate-700">Prošireni prikaz (na profilu)</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <CompactToggle title="Radno vrijeme" checked={cardPreferences.show_business_hours} onCheckedChange={(v) => updatePref("show_business_hours", v)} />
+          <CompactToggle title="Info dostave" checked={cardPreferences.show_shipping_info} onCheckedChange={(v) => updatePref("show_shipping_info", v)} />
+          <CompactToggle title="Politika povrata" checked={cardPreferences.show_return_policy} onCheckedChange={(v) => updatePref("show_return_policy", v)} />
+        </div>
+      </div>
+      
       {cardPreferences.show_badges && (
         <div className="p-3 bg-slate-50 rounded-lg space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-slate-600">Max bedževa</Label>
+            <Label className="text-xs text-slate-600">Maksimalan broj bedževa</Label>
             <span className="text-xs font-semibold text-slate-900">{cardPreferences.max_badges}</span>
           </div>
           <Slider value={[cardPreferences.max_badges]} onValueChange={([v]) => updatePref("max_badges", v)} min={1} max={5} step={1} className="w-full" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// LIVE PREVIEW - OSNOVNI (za oglase)
+// ============================================
+const BasicSellerPreview = ({ seller, settings, cardPreferences }) => {
+  const showRatings = cardPreferences?.show_ratings ?? true;
+  const showBadges = cardPreferences?.show_badges ?? true;
+  const showMemberSince = cardPreferences?.show_member_since ?? false;
+  const showResponseTime = cardPreferences?.show_response_time ?? true;
+
+  const responseTimeLabels = {
+    instant: "par minuta",
+    few_hours: "par sati",
+    same_day: "isti dan",
+    few_days: "par dana",
+    auto: "~30 min",
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div className="relative flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
+            {seller?.profile || seller?.profile_image ? (
+              <img
+                src={seller?.profile || seller?.profile_image}
+                alt={seller?.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                <span className="text-primary font-bold text-lg">{seller?.name?.[0]?.toUpperCase() || "P"}</span>
+              </div>
+            )}
+          </div>
+          {seller?.is_verified && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+              <BadgeCheck className="w-2.5 h-2.5 text-white" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-slate-900 truncate">
+              {seller?.name || "Tvoje ime"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {showRatings && (
+              <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <span className="font-medium">4.8</span>
+                <span className="text-slate-400">(12)</span>
+              </span>
+            )}
+            {showResponseTime && (
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <Zap className="w-3 h-3 text-amber-500" />
+                {responseTimeLabels[settings?.response_time] || "~30 min"}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {showMemberSince && (
+              <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                <Calendar className="w-3 h-3" />
+                jan 2024
+              </span>
+            )}
+          </div>
+
+          {showBadges && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center">
+                <Star className="w-3 h-3 text-amber-600" />
+              </div>
+              <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2">
+        <button className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white text-sm font-medium rounded-xl px-3 py-2.5">
+          <MessageCircle className="w-4 h-4" />
+          Pošalji poruku
+        </button>
+        {(settings?.show_phone || settings?.show_whatsapp || settings?.show_viber) && (
+          <button className="flex items-center justify-center rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 w-10 h-10">
+            <Phone className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// LIVE PREVIEW - EXTENDED (za profil prodavača)
+// ============================================
+const ExtendedSellerPreview = ({ seller, settings, cardPreferences }) => {
+  const showRatings = cardPreferences?.show_ratings ?? true;
+  const showBadges = cardPreferences?.show_badges ?? true;
+  const showMemberSince = cardPreferences?.show_member_since ?? false;
+  const showResponseTime = cardPreferences?.show_response_time ?? true;
+  const showBusinessHours = cardPreferences?.show_business_hours ?? true;
+  const showShippingInfo = cardPreferences?.show_shipping_info ?? true;
+  const showReturnPolicy = cardPreferences?.show_return_policy ?? true;
+
+  const responseTimeLabels = {
+    instant: "par minuta",
+    few_hours: "par sati",
+    same_day: "isti dan",
+    few_days: "par dana",
+    auto: "~30 min",
+  };
+
+  // Business hours helpers
+  const businessHours = settings?.business_hours || {};
+  const dayLabels = { monday: "Pon", tuesday: "Uto", wednesday: "Sri", thursday: "Čet", friday: "Pet", saturday: "Sub", sunday: "Ned" };
+  
+  const getTodayHours = () => {
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const today = days[new Date().getDay()];
+    const todayHours = businessHours[today];
+    if (!todayHours || !todayHours.enabled) return "Zatvoreno";
+    return `${todayHours.open} – ${todayHours.close}`;
+  };
+
+  const isOpen = () => {
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const today = days[new Date().getDay()];
+    const todayHours = businessHours[today];
+    if (!todayHours || !todayHours.enabled) return false;
+    
+    const now = new Date();
+    const [openH, openM] = (todayHours.open || "09:00").split(":").map(Number);
+    const [closeH, closeM] = (todayHours.close || "17:00").split(":").map(Number);
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    return currentMins >= (openH * 60 + openM) && currentMins <= (closeH * 60 + closeM);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Main Card */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <div className="relative flex-shrink-0">
+            <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
+              {seller?.profile || seller?.profile_image ? (
+                <img
+                  src={seller?.profile || seller?.profile_image}
+                  alt={seller?.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-primary font-bold text-xl">{seller?.name?.[0]?.toUpperCase() || "P"}</span>
+                </div>
+              )}
+            </div>
+            {seller?.is_verified && (
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-sky-500 rounded-lg flex items-center justify-center border-2 border-white">
+                <BadgeCheck className="w-3 h-3 text-white" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-semibold text-slate-900 truncate">
+                {seller?.name || "Tvoje ime"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {showRatings && (
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span className="font-semibold text-slate-900">4.8</span>
+                  <span className="text-slate-400">(12)</span>
+                </span>
+              )}
+              {showResponseTime && (
+                <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                  <Zap className="w-3 h-3 text-amber-500" />
+                  Odgovara za {responseTimeLabels[settings?.response_time] || "~30 min"}
+                </span>
+              )}
+            </div>
+
+            {showMemberSince && (
+              <span className="inline-flex items-center gap-1 text-xs text-slate-400 mt-1">
+                <Calendar className="w-3 h-3" />
+                Član od jan 2024
+              </span>
+            )}
+
+            {showBadges && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Star className="w-3.5 h-3.5 text-amber-600" />
+                </div>
+                <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Business Hours */}
+        {showBusinessHours && Object.values(businessHours).some(d => d?.enabled) && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Clock className="w-4 h-4 text-slate-400" />
+              <span>Danas: <strong className="text-slate-900">{getTodayHours()}</strong></span>
+            </div>
+            <span className={cn(
+              "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
+              isOpen() ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
+            )}>
+              <span className={cn("w-1.5 h-1.5 rounded-full", isOpen() ? "bg-emerald-500" : "bg-slate-400")} />
+              {isOpen() ? "Otvoreno" : "Zatvoreno"}
+            </span>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="space-y-2">
+          <button className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white text-sm font-medium rounded-xl px-4 py-3">
+            <MessageCircle className="w-4 h-4" />
+            Pošalji poruku
+          </button>
+          {(settings?.show_phone || settings?.show_whatsapp || settings?.show_viber || settings?.show_email) && (
+            <button className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl px-4 py-2.5">
+              <Phone className="w-4 h-4" />
+              Kontakt opcije
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Info Sections */}
+      {(showShippingInfo || showReturnPolicy) && (settings?.shipping_info || settings?.return_policy) && (
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          {showShippingInfo && settings?.shipping_info && (
+            <div className="px-4 py-3 border-b border-slate-50">
+              <div className="flex items-start gap-2.5">
+                <Truck className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-xs font-medium text-slate-700 mb-0.5">Dostava</div>
+                  <p className="text-xs text-slate-500 line-clamp-2">{settings.shipping_info}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {showReturnPolicy && settings?.return_policy && (
+            <div className="px-4 py-3">
+              <div className="flex items-start gap-2.5">
+                <RotateCcw className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-xs font-medium text-slate-700 mb-0.5">Povrat</div>
+                  <p className="text-xs text-slate-500 line-clamp-2">{settings.return_policy}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -674,25 +977,54 @@ const SellerSettings = () => {
         {/* Preview */}
         <div className="xl:sticky xl:top-6 space-y-4">
           <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg"><Eye className="w-4 h-4 text-primary" /></div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">Pregled</h3>
-                <p className="text-xs text-slate-500">Kako te kupci vide</p>
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg"><Eye className="w-4 h-4 text-primary" /></div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-slate-900">Pregled uživo</h3>
+                  <p className="text-xs text-slate-500">Kako te kupci vide</p>
+                </div>
               </div>
             </div>
-            <div className="p-4">
-              <MinimalSellerCard
-                seller={previewSeller}
-                sellerSettings={previewSettings}
-                badges={[]}
-                isPro={false}
-                isShop={false}
-                showProfileLink={false}
-                onChatClick={() => toast.message("Ovo je samo prikaz.")}
-                onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
-              />
-            </div>
+            
+            <Tabs defaultValue="basic" className="w-full">
+              <div className="px-4 pt-3">
+                <TabsList className="grid w-full grid-cols-2 h-9">
+                  <TabsTrigger value="basic" className="text-xs flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5" />
+                    Na oglasu
+                  </TabsTrigger>
+                  <TabsTrigger value="extended" className="text-xs flex items-center gap-1.5">
+                    <Monitor className="w-3.5 h-3.5" />
+                    Na profilu
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              
+              <TabsContent value="basic" className="p-4 pt-3">
+                <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5" />
+                  Ovako izgledaš na stranici oglasa
+                </div>
+                <BasicSellerPreview 
+                  seller={previewSeller} 
+                  settings={previewSettings}
+                  cardPreferences={cardPreferences}
+                />
+              </TabsContent>
+              
+              <TabsContent value="extended" className="p-4 pt-3">
+                <div className="text-xs text-slate-500 mb-3 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5" />
+                  Ovako izgledaš na stranici profila prodavača
+                </div>
+                <ExtendedSellerPreview 
+                  seller={previewSeller} 
+                  settings={previewSettings}
+                  cardPreferences={cardPreferences}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Tips */}
@@ -700,12 +1032,50 @@ const SellerSettings = () => {
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
               <div>
-                <h4 className="text-sm font-semibold text-slate-900">Savjeti</h4>
-                <ul className="text-xs text-slate-600 mt-2 space-y-1">
-                  <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />Brzi odgovori = 3x više prodaje</li>
-                  <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />Dobra slika = 50% više upita</li>
-                  <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />Više kontakt opcija = bolje</li>
+                <h4 className="text-sm font-semibold text-slate-900">Savjeti za bolju prodaju</h4>
+                <ul className="text-xs text-slate-600 mt-2 space-y-1.5">
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Brzi odgovori = 3x više prodaje</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Kvalitetna profilna slika = 50% više upita</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Više kontakt opcija = veća dostupnost</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Definirano radno vrijeme = profesionalnost</span>
+                  </li>
                 </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Info */}
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <h4 className="text-xs font-semibold text-slate-700 mb-2">Gdje se prikazuju postavke?</h4>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-primary">1</span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-700">Stranica oglasa</p>
+                  <p className="text-[11px] text-slate-500">Osnovni podaci, ocjene, vrijeme odgovora</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-emerald-600">2</span>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-700">Profil prodavača</p>
+                  <p className="text-[11px] text-slate-500">Sve informacije + dostava, povrat, radno vrijeme</p>
+                </div>
               </div>
             </div>
           </div>
