@@ -108,7 +108,7 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
                 </span>
               ) : null}
 
-              {Boolean(seller?.is_pro ?? seller?.isPro) ? (
+              {Boolean(!seller?.is_shop && (seller?.is_pro ?? seller?.isPro)) ? (
                 <span className="inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200">
                   Pro
                 </span>

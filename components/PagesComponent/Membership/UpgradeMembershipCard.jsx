@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Crown, Store, Check, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { t } from "@/utils";
 import { useRouter } from "next/navigation";
 
 const UpgradeMembershipCard = () => {
@@ -45,7 +44,7 @@ const UpgradeMembershipCard = () => {
       }
     } catch (error) {
       console.error("Error fetching membership:", error);
-      toast.error(t("errorFetchingData"));
+      toast.error("Greška pri dohvatanju podataka o članstvu.");
     }
   };
 
@@ -73,14 +72,14 @@ const UpgradeMembershipCard = () => {
               <Icon size={24} />
             </div>
             <div>
-              <p className="text-sm opacity-90">{t("currentPlan")}</p>
+              <p className="text-sm opacity-90">Trenutni plan</p>
               <h3 className="text-2xl font-bold">{config.name}</h3>
             </div>
           </div>
 
           {membership.expires_at && (
             <p className="text-sm opacity-80">
-              {t("expiresOn")}: {new Date(membership.expires_at).toLocaleDateString()}
+              Ističe: {new Date(membership.expires_at).toLocaleDateString()}
             </p>
           )}
 
@@ -89,7 +88,7 @@ const UpgradeMembershipCard = () => {
             className="mt-4 w-full bg-white/10 border-white/30 text-white hover:bg-white/20"
             onClick={() => router.push("/membership/manage")}
           >
-            {t("manageMembership")}
+            Upravljaj članstvom
           </Button>
         </div>
       </div>
@@ -106,10 +105,10 @@ const UpgradeMembershipCard = () => {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              {t("upgradeToPremium")}
+              Nadogradi članstvo
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {t("unlockExclusiveFeatures")}
+              Otključaj ekskluzivne mogućnosti i premium pogodnosti
             </p>
           </div>
         </div>
@@ -125,9 +124,9 @@ const UpgradeMembershipCard = () => {
             <div className="relative z-10">
               <Crown className="text-white mb-2" size={28} />
               <h4 className="text-white font-bold text-lg">LMX Pro</h4>
-              <p className="text-amber-100 text-xs mt-1">{t("forPowerUsers")}</p>
+              <p className="text-amber-100 text-xs mt-1">Za napredne korisnike koji žele više mogućnosti</p>
               <div className="flex items-center gap-1 mt-3 text-white">
-                <span className="text-sm">{t("learnMore")}</span>
+                <span className="text-sm">Saznaj više</span>
                 <ArrowRight size={14} />
               </div>
             </div>
@@ -142,9 +141,9 @@ const UpgradeMembershipCard = () => {
             <div className="relative z-10">
               <Store className="text-white mb-2" size={28} />
               <h4 className="text-white font-bold text-lg">LMX Shop</h4>
-              <p className="text-blue-100 text-xs mt-1">{t("forBusinessOwners")}</p>
+              <p className="text-blue-100 text-xs mt-1">Za biznise i profesionalne prodavače</p>
               <div className="flex items-center gap-1 mt-3 text-white">
-                <span className="text-sm">{t("learnMore")}</span>
+                <span className="text-sm">Saznaj više</span>
                 <ArrowRight size={14} />
               </div>
             </div>
@@ -154,14 +153,14 @@ const UpgradeMembershipCard = () => {
         {/* Benefits Preview */}
         <div className="space-y-2">
           <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-            {t("premiumBenefits")}:
+            Premium pogodnosti:
           </p>
           <div className="grid gap-2 text-sm">
             {[
-              t("prioritySupport"),
-              t("unlimitedListings"),
-              t("advancedAnalytics"),
-              t("exclusiveBadge"),
+              "Prioritetna podrška",
+              "Neograničen broj oglasa",
+              "Napredna analitika",
+              "Ekskluzivni bedž",
             ].map((benefit, idx) => (
               <div key={idx} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                 <Check size={16} className="text-green-600 dark:text-green-400" />

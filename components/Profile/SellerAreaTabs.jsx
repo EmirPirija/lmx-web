@@ -28,31 +28,31 @@ const tabs = [
     icon: Settings,
     description: "Uredi profil prodavača",
   },
-  {
-    href: "/my-ads",
-    label: "Oglasi",
-    icon: Package,
-    description: "Upravljaj objavama",
-  },
-  {
-    href: "/profile/saved",
-    label: "Kontakti",
-    icon: Bookmark,
-    description: "Sačuvani kupci i selleri",
-  },
-  {
-    href: "/chat",
-    label: "Poruke",
-    icon: MessageSquare,
-    description: "Chat sa kupcima",
-    badge: true,
-  },
-  {
-    href: "/reviews",
-    label: "Recenzije",
-    icon: Star,
-    description: "Tvoje ocjene",
-  },
+  // {
+  //   href: "/my-ads",
+  //   label: "Oglasi",
+  //   icon: Package,
+  //   description: "Upravljaj objavama",
+  // },
+  // {
+  //   href: "/profile/saved",
+  //   label: "Kontakti",
+  //   icon: Bookmark,
+  //   description: "Sačuvani kupci i selleri",
+  // },
+  // {
+  //   href: "/chat",
+  //   label: "Poruke",
+  //   icon: MessageSquare,
+  //   description: "Chat sa kupcima",
+  //   badge: true,
+  // },
+  // {
+  //   href: "/reviews",
+  //   label: "Recenzije",
+  //   icon: Star,
+  //   description: "Tvoje ocjene",
+  // },
 ];
 
 export default function SellerAreaTabs({ badge = 0 }) {

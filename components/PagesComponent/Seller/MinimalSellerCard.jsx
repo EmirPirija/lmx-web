@@ -637,6 +637,8 @@ export const MinimalSellerCard = ({
   const CompanyName = useSelector(getCompanyName);
 
   const settings = sellerSettings || {};
+  const resolvedIsShop = Boolean(isShop);
+  const resolvedIsPro = Boolean(!resolvedIsShop && isPro);
 
   const isVerified =
   String(settings?.verification_status || "").toLowerCase() === "approved" ||
@@ -810,12 +812,12 @@ export const MinimalSellerCard = ({
               )}
 
               {/* Pro/Shop badge inline */}
-              {isPro && (
+              {resolvedIsPro && (
                 <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">
                   PRO
                 </span>
               )}
-              {isShop && (
+              {resolvedIsShop && (
                 <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 rounded">
                   SHOP
                 </span>

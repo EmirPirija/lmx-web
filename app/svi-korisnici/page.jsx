@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
-import CustomImage from "@/components/Common/CustomImage";
 import NoData from "@/components/EmptyStates/NoData";
+import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatDate, t, extractYear } from "@/utils";
 import { gamificationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
@@ -30,10 +29,6 @@ import {
   LayoutList,
   SlidersHorizontal,
   BadgeCheck,
-  MapPin,
-  Calendar,
-  Package,
-  Star,
   TrendingUp,
   Crown,
   Store,
@@ -43,10 +38,6 @@ import {
   ChevronUp,
   RefreshCw,
   ArrowUpDown,
-  Eye,
-  MessageCircle,
-  Clock,
-  Sparkles,
 } from "lucide-react";
 
 /* =====================================================
@@ -90,254 +81,35 @@ const UserCardSkeleton = ({ view }) => {
 ===================================================== */
 
 const UserCard = ({ user, view, onClick }) => {
-  const isVerified = user?.is_verified || user?.verified || user?.verification_status === "verified";
   const isPro = user?.is_pro || user?.membership?.tier?.includes("pro");
   const isShop = user?.is_shop || user?.membership?.tier?.includes("shop");
-  
-  const profileImage = user?.profile || user?.profile_image || user?.avatar;
-  const memberSince = user?.created_at ? extractYear(user.created_at) : null;
-  const isOnline = user?.is_online || user?.online;
-  
-  // Support both regular user data and leaderboard data
-  const totalPoints = user?.total_points ?? 0;
-  const userLevel = user?.level ?? null;
-  const badgeCount = user?.badge_count ?? 0;
-  const activeAds = user?.active_ads_count ?? user?.items_count ?? user?.live_ads_count ?? 0;
-  const avgRating = user?.average_rating ?? user?.rating ?? 0;
-  const totalReviews = user?.reviews_count ?? user?.total_reviews ?? 0;
+  const sellerSettings = user?.seller_settings || user?.sellerSettings || {
+    card_preferences: {
+      show_ratings: true,
+      show_badges: true,
+      show_member_since: true,
+      show_response_time: true,
+    },
+  };
 
-  // List view
-  if (view === "list") {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        onClick={onClick}
-        className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md cursor-pointer transition-all group"
-      >
-        {/* Avatar */}
-        <div className="relative flex-shrink-0">
-          <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700">
-            {profileImage ? (
-              <CustomImage
-                src={profileImage}
-                alt={user?.name || "Korisnik"}
-                width={64}
-                height={64}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                <span className="text-xl font-bold text-primary">
-                  {user?.name?.charAt(0)?.toUpperCase() || "?"}
-                </span>
-              </div>
-            )}
-          </div>
-          {isOnline && (
-            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors truncate">
-              {user?.name || "Nepoznat korisnik"}
-            </h3>
-            {isVerified && <BadgeCheck className="w-5 h-5 text-sky-500 flex-shrink-0" />}
-            {isPro && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                <Crown className="w-3 h-3" />
-                Pro
-              </span>
-            )}
-            {isShop && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                <Store className="w-3 h-3" />
-                Shop
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3 mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {user?.city && (
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" />
-                {user.city}
-              </span>
-            )}
-            {memberSince && (
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                Član od {memberSince}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="hidden sm:flex items-center gap-4">
-          {totalPoints > 0 ? (
-            <div className="text-center px-4 py-2 rounded-xl bg-primary/10 dark:bg-primary/20">
-              <p className="text-lg font-bold text-primary">{Number(totalPoints).toLocaleString("bs-BA")}</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">Bodova</p>
-            </div>
-          ) : activeAds > 0 ? (
-            <div className="text-center px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800">
-              <p className="text-lg font-bold text-slate-900 dark:text-white">{activeAds}</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">Oglasa</p>
-            </div>
-          ) : null}
-          {userLevel && (
-            <div className="text-center px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
-              <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">Nivo {userLevel}</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">{badgeCount} bedževa</p>
-            </div>
-          )}
-          {avgRating > 0 && (
-            <div className="text-center px-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20">
-              <p className="text-lg font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                <Star className="w-4 h-4 fill-current" />
-                {Number(avgRating).toFixed(1)}
-              </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">({totalReviews})</p>
-            </div>
-          )}
-        </div>
-
-        {/* Action */}
-        <div className="hidden md:block">
-          <span className="flex items-center gap-1 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-            Pogledaj
-            <Eye className="w-4 h-4" />
-          </span>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Grid view (default)
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onClick}
-      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg cursor-pointer transition-all group overflow-hidden"
+      className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
     >
-      {/* Header gradient */}
-      <div className="h-16 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent" />
-      
-      <div className="px-4 pb-4 -mt-10">
-        {/* Avatar */}
-        <div className="relative inline-block mb-3">
-          <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white dark:border-slate-900 shadow-lg">
-            {profileImage ? (
-              <CustomImage
-                src={profileImage}
-                alt={user?.name || "Korisnik"}
-                width={80}
-                height={80}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">
-                  {user?.name?.charAt(0)?.toUpperCase() || "?"}
-                </span>
-              </div>
-            )}
-          </div>
-          {isOnline && (
-            <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-3 border-white dark:border-slate-900 rounded-full" />
-          )}
-          {isVerified && (
-            <span className="absolute -top-1 -right-1 w-6 h-6 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">
-              <BadgeCheck className="w-4 h-4 text-sky-500" />
-            </span>
-          )}
-        </div>
-
-        {/* Name & badges */}
-        <div className="mb-3">
-          <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors truncate">
-            {user?.name || "Nepoznat korisnik"}
-          </h3>
-          
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            {isPro && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                <Crown className="w-3 h-3" />
-                Pro
-              </span>
-            )}
-            {isShop && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                <Store className="w-3 h-3" />
-                Shop
-              </span>
-            )}
-            {isOnline && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                Online
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Location & member since */}
-        <div className="space-y-1 mb-4 text-xs text-slate-500 dark:text-slate-400">
-          {user?.city && (
-            <p className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5" />
-              {user.city}
-            </p>
-          )}
-          {memberSince && (
-            <p className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              Član od {memberSince}
-            </p>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-center">
-            {totalPoints > 0 ? (
-              <>
-                <p className="text-lg font-bold text-primary">{Number(totalPoints).toLocaleString("bs-BA")}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">Bodova</p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">{activeAds}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">Oglasa</p>
-              </>
-            )}
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-center">
-            {userLevel ? (
-              <>
-                <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">Nivo {userLevel}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">{badgeCount} bedževa</p>
-              </>
-            ) : avgRating > 0 ? (
-              <>
-                <p className="text-lg font-bold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
-                  <Star className="w-4 h-4 fill-current" />
-                  {Number(avgRating).toFixed(1)}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">Ocjena</p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-bold text-slate-400">—</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">Ocjena</p>
-              </>
-            )}
-          </div>
-        </div>
+      <div className="p-4">
+        <MinimalSellerCard
+          seller={user}
+          sellerSettings={sellerSettings}
+          badges={user?.badges || []}
+          ratings={{ total: user?.reviews_count ?? user?.total_reviews ?? user?.ratings_count ?? 0 }}
+          isPro={isPro}
+          isShop={isShop}
+          showProfileLink
+          variant={view === "list" ? "default" : "compact"}
+        />
       </div>
     </motion.div>
   );
@@ -629,6 +401,24 @@ const SviKorisniciPage = () => {
     if (filters.verified === "1") {
       filteredUsers = filteredUsers.filter(user => 
         user?.is_verified || user?.verified || user?.verification_status === "verified"
+      );
+    }
+
+    // Filter by membership (pro)
+    if (filters.membership === "pro") {
+      filteredUsers = filteredUsers.filter(user =>
+        user?.is_pro ||
+        user?.membership?.tier?.includes("pro") ||
+        user?.membership?.tier?.includes("premium")
+      );
+    }
+
+    // Filter by shop
+    if (filters.shop === "1") {
+      filteredUsers = filteredUsers.filter(user =>
+        user?.is_shop ||
+        user?.membership?.tier?.includes("shop") ||
+        user?.membership?.tier?.includes("business")
       );
     }
     

@@ -994,8 +994,9 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
     }
   }, [isExpanded, fetchStatistics]);
 
-  const isPro = membershipTier === "pro" || membershipTier === "shop";
+  const isPro = membershipTier === "pro";
   const isShop = membershipTier === "shop";
+  const isPremium = isPro || isShop;
 
   // Quick stats
   const [quickStats, setQuickStats] = useState(null);
@@ -1044,7 +1045,7 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isPro && (
+          {isPremium && (
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${isShop ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
               {isShop ? "Shop" : "Pro"}
             </span>
@@ -1136,13 +1137,13 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                       icon={Crown}
                       title="Pro statistika"
                       iconColor="text-amber-500"
-                      badge={isPro ? { text: "Aktivno", color: "bg-amber-100 text-amber-700" } : null}
-                      locked={!isPro}
+                      badge={isPremium ? { text: "Aktivno", color: "bg-amber-100 text-amber-700" } : null}
+                      locked={!isPremium}
                     />
 
                     <div className="relative">
-                      {!isPro && <LockOverlay tier="pro" feature="Pro statistika" />}
-                      <div className={`space-y-4 ${!isPro ? "blur-sm pointer-events-none select-none" : ""}`}>
+                      {!isPremium && <LockOverlay tier="pro" feature="Pro statistika" />}
+                      <div className={`space-y-4 ${!isPremium ? "blur-sm pointer-events-none select-none" : ""}`}>
                         <ContactBreakdownSection summary={stats.summary} />
                         <div className="grid lg:grid-cols-2 gap-4">
                           <SearchTermsSection searchTerms={stats.search_terms} />

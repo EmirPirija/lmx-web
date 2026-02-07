@@ -23,6 +23,8 @@ const SellerCard = ({
   const hasBadges = Array.isArray(badgeNodes) && badgeNodes.length > 0;
   const showActions = Array.isArray(actions) ? actions.length > 0 : Boolean(actions);
   const showContacts = Array.isArray(contacts) ? contacts.length > 0 : Boolean(contacts);
+  const resolvedIsShop = Boolean(isShop);
+  const resolvedIsPro = Boolean(!resolvedIsShop && isPro);
 
   return (
     <div
@@ -49,14 +51,14 @@ const SellerCard = ({
             {Boolean(isVerified) && <MdVerified className="text-primary text-xl" title="Verificiran" />}
           </div>
 
-          {(isPro || isShop) && (
+          {(resolvedIsPro || resolvedIsShop) && (
             <div className="mt-2 flex items-center gap-2">
-              {isShop ? (
+              {resolvedIsShop ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary dark:bg-primary/20">
                   Shop
                 </span>
               ) : null}
-              {isPro ? (
+              {resolvedIsPro ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200">
                   Pro
                 </span>

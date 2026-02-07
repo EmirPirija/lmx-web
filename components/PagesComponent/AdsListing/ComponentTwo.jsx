@@ -575,7 +575,7 @@ const ComponentTwo = ({
       {isDefaultLang && (
         <AccordionSection
           title="Zalihe"
-          subtitle="Unesite samo ako imate više komada"
+          subtitle="Zalihe su dostupne samo za LMX Shop"
           isOpen={stockOpen}
           onToggle={() => setStockOpen((v) => !v)}
           badge="optional"
@@ -585,7 +585,7 @@ const ComponentTwo = ({
               Količina na zalihi
             </Label>
             <p className="text-sm text-gray-600">
-              Ostavite prazno ako prodajete samo jedan artikal.
+              Ostavite prazno ako prodajete samo jedan artikal. Zalihe su dostupne isključivo za LMX Shop članove.
             </p>
 
             <Input

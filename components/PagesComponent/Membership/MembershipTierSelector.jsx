@@ -5,8 +5,7 @@ import { membershipApi } from "@/utils/api";
 import { setMembershipTiers, setMembershipTiersLoading } from "@/redux/reducer/membershipSlice";
 import { Button } from "@/components/ui/button";
 import { Crown, Store, Check } from "lucide-react";
-import { toast } from "sonner";
-import { t, formatPriceAbbreviated } from "@/utils";
+import { formatPriceAbbreviated } from "@/utils";
 
 // ============================================
 // MOCK TIEROVI - Koriste se kada backend ne radi
@@ -18,7 +17,7 @@ const MOCK_MEMBERSHIP_TIERS = [
     slug: "pro",
     price: 9.99,
     duration_days: 30,
-    description: "Za power usere koji žele više mogućnosti",
+    description: "Za napredne korisnike koji žele više mogućnosti",
   },
   {
     id: 2,
@@ -87,14 +86,14 @@ const MembershipTierSelector = ({ tiers: propTiers, selectedTier: propSelectedTi
       gradient: "from-amber-400 to-yellow-600",
       hoverGradient: "hover:from-amber-500 hover:to-yellow-700",
       name: "LMX Pro",
-      tagline: t("forPowerUsers"),
+      tagline: "Za napredne korisnike koji žele više mogućnosti",
       features: [
-        t("unlimitedListings"),
-        t("priorityCustomerSupport"),
-        t("advancedAnalytics"),
-        t("proBadge"),
-        t("highlightedListings"),
-        t("noAds"),
+        "Neograničen broj oglasa",
+        "Prioritetna korisnička podrška",
+        "Napredna analitika",
+        "Pro bedž",
+        "Istaknuti oglasi",
+        "Bez reklama",
       ],
     },
     shop: {
@@ -102,15 +101,15 @@ const MembershipTierSelector = ({ tiers: propTiers, selectedTier: propSelectedTi
       gradient: "from-blue-500 to-indigo-600",
       hoverGradient: "hover:from-blue-600 hover:to-indigo-700",
       name: "LMX Shop",
-      tagline: t("forBusinessOwners"),
+      tagline: "Za biznise i profesionalne prodavače",
       features: [
-        t("allProFeatures"),
-        t("businessProfile"),
-        t("multipleLocations"),
-        t("bulkUpload"),
-        t("dedicatedAccountManager"),
-        t("apiAccess"),
-        t("customBranding"),
+        "Sve Pro mogućnosti",
+        "Poslovni profil",
+        "Više lokacija",
+        "Masovni unos oglasa",
+        "Namjenski menadžer naloga",
+        "API pristup",
+        "Prilagođeni brending",
       ],
     },
   };
@@ -147,7 +146,7 @@ const MembershipTierSelector = ({ tiers: propTiers, selectedTier: propSelectedTi
               </div>
               <div className="mt-4">
                 <span className="text-4xl font-bold">{formatPriceAbbreviated(tier.price)}</span>
-                <span className="text-sm opacity-80">/{tier.duration_days} {t("days")}</span>
+                <span className="text-sm opacity-80">/{tier.duration_days} dana</span>
               </div>
             </div>
 
@@ -166,14 +165,14 @@ const MembershipTierSelector = ({ tiers: propTiers, selectedTier: propSelectedTi
                 className={`w-full mt-6 bg-gradient-to-r ${config.gradient} ${config.hoverGradient} text-white border-0`}
                 onClick={() => handleSelect(tier)}
               >
-                {isSelected ? t("selected") : t("selectPlan")}
+                {isSelected ? "Odabrano" : "Odaberi plan"}
               </Button>
             </div>
 
             {/* Popular Badge */}
             {tier.slug === 'shop' && (
               <div className="absolute top-4 right-4 bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">
-                {t("popular")}
+                Popularno
               </div>
             )}
           </div>
