@@ -206,6 +206,34 @@ const defaultCardPreferences = {
   max_badges: 2,
 };
 
+const normalizePrefBool = (value, fallback) => {
+  if (value == null) return fallback;
+  return toBool(value);
+};
+
+const normalizeCardPreferences = (raw) => {
+  let obj = raw;
+  if (typeof raw === "string") {
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      obj = {};
+    }
+  }
+
+  const merged = { ...defaultCardPreferences, ...(obj || {}) };
+  return {
+    ...merged,
+    show_ratings: normalizePrefBool(obj?.show_ratings, defaultCardPreferences.show_ratings),
+    show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
+    show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
+    show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
+    show_business_hours: normalizePrefBool(obj?.show_business_hours, defaultCardPreferences.show_business_hours),
+    show_shipping_info: normalizePrefBool(obj?.show_shipping_info, defaultCardPreferences.show_shipping_info),
+    show_return_policy: normalizePrefBool(obj?.show_return_policy, defaultCardPreferences.show_return_policy),
+  };
+};
+
 const parseBusinessHours = (hours) => {
   if (!hours) return null;
   try {
@@ -606,33 +634,32 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-lg bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-700/50 rounded-[28px] p-0 overflow-hidden shadow-2xl">
-        <motion.div {...fadeInUp} transition={{ duration: 0.4 }} className="p-6">
+      <DialogContent className="max-w-lg bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
+        <motion.div {...fadeInUp} transition={{ duration: 0.3 }} className="p-5">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-slate-200/60 dark:border-slate-700/60 shadow-lg">
+                <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200/60 shadow-sm">
                   <CustomImage
                     src={seller?.profile || seller?.profile_image}
                     alt={seller?.name || "Prodavač"}
-                    width={56}
-                    height={56}
+                    width={48}
+                    height={48}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 {isVerified && (
-
-                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-lg p-0.5 shadow-md">
-                    <MdVerified size={18} className="text-blue-500" />
+                  <div className="absolute -bottom-1 -right-1 bg-white rounded-lg p-0.5 shadow-sm">
+                    <MdVerified size={16} className="text-sky-500" />
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base font-semibold text-slate-900">
                   Pošalji poruku
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   {seller?.name || "Prodavač"}
                 </p>
               </div>
@@ -643,7 +670,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
               whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
             >
               <CloseCircle size={20} className="text-slate-500" />
             </motion.button>
@@ -652,7 +679,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
           {/* Message input */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2.5">
+              <label className="block text-xs font-semibold text-slate-700 mb-2">
                 Vaša poruka
               </label>
               <textarea
@@ -664,12 +691,12 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
                 placeholder="Napišite poruku prodavaču..."
                 rows={4}
                 className={cn(
-                  "w-full rounded-2xl border bg-white/90 dark:bg-slate-800/90",
-                  "px-4 py-3.5 text-sm text-slate-900 dark:text-white",
-                  "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                  "focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500",
-                  "transition-all duration-250 resize-none",
-                  error ? "border-red-300 dark:border-red-700" : "border-slate-200/70 dark:border-slate-700/70"
+                  "w-full rounded-xl border bg-white",
+                  "px-3 py-2.5 text-sm text-slate-900",
+                  "placeholder:text-slate-400",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
+                  "transition-all duration-200 resize-none",
+                  error ? "border-red-300" : "border-slate-200"
                 )}
               />
               <AnimatePresence>
@@ -678,7 +705,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
                     initial={{ opacity: 0, y: -8, height: 0 }}
                     animate={{ opacity: 1, y: 0, height: "auto" }}
                     exit={{ opacity: 0, y: -8, height: 0 }}
-                    className="mt-2.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-2"
+                    className="mt-2 text-xs text-red-600 flex items-center gap-2"
                   >
                     <InfoCircle size={16} />
                     {error}
@@ -688,7 +715,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3">
+            <div className="flex items-center justify-end gap-2 pt-2">
               <SecondaryButton type="button" onClick={() => setOpen(false)}>
                 Odustani
               </SecondaryButton>
@@ -798,15 +825,15 @@ const ContactSheet = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-700/50 rounded-[28px] p-0 overflow-hidden shadow-2xl">
-        <motion.div {...fadeInUp} transition={{ duration: 0.4 }} className="p-6">
+      <DialogContent className="max-w-md bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
+        <motion.div {...fadeInUp} transition={{ duration: 0.3 }} className="p-5">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h3 className="text-base font-semibold text-slate-900">
                 Kontaktiraj prodavača
               </h3>
-              <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-slate-500">
                 Odaberi način kontaktiranja
               </p>
             </div>
@@ -815,7 +842,7 @@ const ContactSheet = ({
               whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
             >
               <CloseCircle size={20} className="text-slate-500" />
             </motion.button>
@@ -841,25 +868,22 @@ const ContactSheet = ({
                     rel={method.external ? "noreferrer" : undefined}
                     onClick={() => method.onClick?.()}
                     className={cn(
-                      "flex-1 flex items-center gap-3.5 p-4 rounded-2xl",
-                      "border",
-                      method.borderColor,
-                      "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm",
-                      "hover:bg-slate-50 dark:hover:bg-slate-700/80",
-                      "hover:border-slate-300 dark:hover:border-slate-600",
-                      "transition-all duration-250",
-                      "shadow-sm hover:shadow-md",
+                      "flex-1 flex items-center gap-3.5 p-3.5 rounded-xl",
+                      "border border-slate-100",
+                      "bg-slate-50/70",
+                      "hover:bg-white hover:border-slate-200",
+                      "transition-all duration-200",
                       actionsDisabled && "opacity-50 pointer-events-none"
                     )}
                   >
-                    <div className={cn("p-3 rounded-xl border", method.bgColor, method.borderColor)}>
+                    <div className="p-2.5 rounded-lg border border-slate-100 bg-white">
                       <Icon size={20} className={method.iconColor} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-slate-900 dark:text-white">
+                      <div className="text-sm font-semibold text-slate-900">
                         {method.label}
                       </div>
-                      <div className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                      <div className="text-xs text-slate-500 truncate">
                         {method.value}
                       </div>
                     </div>
@@ -873,10 +897,10 @@ const ContactSheet = ({
                       type="button"
                       onClick={() => copy(method.key, method.value)}
                       className={cn(
-                        "p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-700/70",
-                        "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm",
-                        "hover:bg-slate-50 dark:hover:bg-slate-700",
-                        "transition-all duration-200 shadow-sm hover:shadow-md"
+                        "p-3 rounded-xl border border-slate-100",
+                        "bg-white",
+                        "hover:bg-slate-50",
+                        "transition-all duration-200"
                       )}
                     >
                       {copiedKey === method.key ? (
@@ -899,12 +923,9 @@ const ContactSheet = ({
                 setOpen(false);
               }}
               className={cn(
-                "w-full flex items-center justify-center gap-2.5 p-4 rounded-2xl mt-4",
-                "bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600",
-                "text-white font-semibold",
-                "shadow-xl shadow-indigo-500/25",
-                "hover:shadow-2xl hover:shadow-indigo-500/35",
-                "transition-all duration-300"
+                "w-full flex items-center justify-center gap-2 p-3 rounded-xl mt-3",
+                "bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold",
+                "transition-colors"
               )}
             >
               <ChatRound size={20} />
@@ -953,15 +974,10 @@ export const SellerPreviewCard = ({
   
   const prefs = uiPrefs || {};
 
-  // Parse card_preferences if it's a string
-  const rawCardPrefs = settings?.card_preferences;
-  const cardPrefs = typeof rawCardPrefs === "string"
-    ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
-    : (rawCardPrefs || {});
-  const mergedPrefs = { ...defaultCardPreferences, ...cardPrefs };
+  const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
 
-  const compactness = prefs.compactness || cardPrefs?.compactness || "normal";
-  const contactStyle = prefs.contactStyle || cardPrefs?.contactStyle || settings?.contact_style || "inline";
+  const compactness = prefs.compactness || mergedPrefs?.compactness || "normal";
+  const contactStyle = prefs.contactStyle || mergedPrefs?.contactStyle || settings?.contact_style || "inline";
 
   const showRatings = prefs.showRatings ?? mergedPrefs.show_ratings;
   const showBadges = prefs.showBadges ?? mergedPrefs.show_badges;
@@ -1397,11 +1413,7 @@ const SellerDetailCard = ({
   onPhoneReveal,
 }) => {
   const settings = sellerSettings || {};
-  const rawCardPrefs = settings?.card_preferences;
-  const cardPrefs = typeof rawCardPrefs === "string"
-    ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
-    : (rawCardPrefs || {});
-  const mergedPrefs = { ...defaultCardPreferences, ...cardPrefs };
+  const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
 
   // 1. LOKALNI STATUS: Provjerava props-e koji su stigli odmah (iz listinga)
   const localVerified = useMemo(
@@ -1528,36 +1540,16 @@ const SellerDetailCard = ({
       />
 
       {/* KONTAKT SEKCIJA */}
-      <AccordionSection
-        id="contact"
-        title="Kontakt"
-        icon={Phone}
-        openId={openId}
-        setOpenId={setOpenId}
-      >
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsContactSheetOpen(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors"
-          >
-            <Phone className="w-4 h-4" />
-            Kontakt opcije
-          </button>
-
-          <button
-            type="button"
-            onClick={handleChatClick}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            <ChatRound className="w-4 h-4" />
-            Pošalji poruku
-          </button>
-        </div>
-
-        {hasSocialLinks && (
-          <div className="mt-5">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">
+      {hasSocialLinks && (
+        <AccordionSection
+          id="contact"
+          title="Kontakt"
+          icon={Phone}
+          openId={openId}
+          setOpenId={setOpenId}
+        >
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
               Društvene mreže
             </div>
             <div className="flex flex-wrap gap-2.5">
@@ -1568,8 +1560,8 @@ const SellerDetailCard = ({
               {socialWebsite && <SocialPill icon={Global} label="Web stranica" href={socialWebsite} />}
             </div>
           </div>
-        )}
-      </AccordionSection>
+        </AccordionSection>
+      )}
 
       {/* RADNO VRIJEME SEKCIJA */}
       {showHours && (
