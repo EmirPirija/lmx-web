@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -44,6 +44,8 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingMore, setIsSubmittingMore] = useState(false);
   const [confirmReplace, setConfirmReplace] = useState(false);
+  const uploadedRef = useRef(null);
+  const queuedRef = useRef([]);
 
   const allUploads = useMemo(
     () => (uploadedVideo ? [uploadedVideo, ...queuedVideos] : [...queuedVideos]),
@@ -79,9 +81,19 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   }, []);
 
   useEffect(() => {
+    uploadedRef.current = uploadedVideo;
+  }, [uploadedVideo]);
+
+  useEffect(() => {
+    queuedRef.current = queuedVideos;
+  }, [queuedVideos]);
+
+  useEffect(() => {
     if (!open) {
-      if (uploadedVideo?.id) deleteTemp(uploadedVideo.id);
-      queuedVideos.forEach((video) => deleteTemp(video?.id));
+      const prevUploaded = uploadedRef.current;
+      const prevQueued = queuedRef.current;
+      if (prevUploaded?.id) deleteTemp(prevUploaded.id);
+      prevQueued.forEach((video) => deleteTemp(video?.id));
       resetState();
       return;
     }
@@ -105,7 +117,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     };
 
     fetchItems();
-  }, [open, deleteTemp, resetState, uploadedVideo?.id, queuedVideos]);
+  }, [open, deleteTemp, resetState]);
 
   useEffect(() => {
     if (!uploadedVideo) {

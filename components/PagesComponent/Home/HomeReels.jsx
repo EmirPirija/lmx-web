@@ -354,6 +354,7 @@ export default HomeReels;
 const ReelCard = ({ item, index, isLoggedIn, onLike }) => {
   const router = useRouter();
   const dispatch = useDispatch();
+  const currentUser = useSelector(userSignUpData);
 
   const videoRef = useRef(null);
   const wrapperRef = useRef(null);
