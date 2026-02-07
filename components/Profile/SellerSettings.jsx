@@ -404,6 +404,10 @@ const SellerSettings = () => {
 
   // Card Preferences
   const [cardPreferences, setCardPreferences] = useState(defaultCardPreferences);
+  const normalizedCardPreferences = useMemo(
+    () => normalizeCardPreferences(cardPreferences),
+    [cardPreferences]
+  );
 
   const [initialPayloadStr, setInitialPayloadStr] = useState(null);
 
@@ -430,12 +434,12 @@ const SellerSettings = () => {
     business_description: businessDescription, return_policy: returnPolicy, shipping_info: shippingInfo,
     social_facebook: socialFacebook, social_instagram: socialInstagram, social_tiktok: socialTiktok,
     social_youtube: socialYoutube, social_website: socialWebsite,
-    card_preferences: cardPreferences,
+    card_preferences: normalizedCardPreferences,
   }), [showPhone, showEmail, showWhatsapp, showViber, whatsappNumber, viberNumber, preferredContact,
       businessHours, responseTime, acceptsOffers, autoReplyEnabled, autoReplyMessage, vacationMode,
       vacationMessage, vacationStartDate, vacationEndDate, vacationAutoActivate, businessDescription,
       returnPolicy, shippingInfo, socialFacebook, socialInstagram, socialTiktok, socialYoutube,
-      socialWebsite, cardPreferences]);
+      socialWebsite, normalizedCardPreferences]);
 
   const hasChanges = useMemo(() => {
     if (!initialPayloadStr) return false;
@@ -844,7 +848,7 @@ const SellerSettings = () => {
             socialInstagram={socialInstagram}
             socialWebsite={socialWebsite}
             verificationStatus={verificationStatus}
-            cardPreferences={cardPreferences}
+            cardPreferences={normalizedCardPreferences}
           />
 
           {/* Tips */}
