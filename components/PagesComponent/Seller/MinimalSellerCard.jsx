@@ -614,8 +614,11 @@ export const MinimalSellerCard = ({
 
   
   
-  // Card preferences from seller settings
-  const cardPrefs = settings?.card_preferences || {};
+  // Card preferences from seller settings - parse if JSON string
+  const rawCardPrefs = settings?.card_preferences;
+  const cardPrefs = typeof rawCardPrefs === "string"
+    ? (() => { try { return JSON.parse(rawCardPrefs); } catch { return {}; } })()
+    : (rawCardPrefs || {});
   const showRatings = cardPrefs.show_ratings ?? true;
   const showBadges = cardPrefs.show_badges ?? true;
   const showMemberSince = cardPrefs.show_member_since ?? false; // Default off for cleaner look

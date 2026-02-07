@@ -41,6 +41,7 @@ import {
   Eye,
   Loader2,
   X,
+  ChevronRight,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -102,8 +103,6 @@ const getVerifiedStatus = (seller, settings) => {
     seller?.status, // Dodato jer ProfileDropdown provjera statusData?.status
     settings?.status 
   ];
-
-  console.log(seller)
 
   const hasValidStatus = statusCandidates.some(s => {
     const val = String(s ?? "").trim().toLowerCase();
@@ -926,26 +925,6 @@ export const SellerPreviewCard = ({
   // ✅ ako je parent izračunao verifikaciju (remote + local), koristi to
   const isVerified = isVerifiedOverride ?? computedVerified;
   
-  
-  useEffect(() => {
-    if (seller?.id) {
-      console.log("SELLER VERIFY FIELDS", {
-        id: seller?.id,
-        name: seller?.name,
-        seller_verification_status: seller?.verification_status,
-        seller_kyc_status: seller?.kyc_status,
-        seller_flags: {
-          is_verified: seller?.is_verified,
-          verified: seller?.verified,
-          is_verified_status: seller?.is_verified_status,
-          isVerified: seller?.isVerified,
-        },
-        settings_verification_status: settings?.verification_status,
-        settings_kyc_status: settings?.kyc_status,
-      });
-    }
-  }, [seller?.id]);
-  
   const prefs = uiPrefs || {};
 
   // Parse card_preferences if it's a string
@@ -998,7 +977,7 @@ export const SellerPreviewCard = ({
   const badgeList = (badges || []).slice(0, 3);
 
   const businessHours = parseBusinessHours(settings.business_hours);
-  const showHours = Boolean(isShop && businessHours);
+  const showHours = Boolean(businessHours && Object.values(businessHours).some(d => d?.enabled));
   const todayHoursText = showHours ? getTodayHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
 
@@ -1038,142 +1017,153 @@ export const SellerPreviewCard = ({
         onChatClick={handleChatClick}
       />
 
-      <GlassCard>
-        <ShimmerStyles />
-
-        <div className={cn("relative z-10", c.pad)}>
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <motion.div
-                  whileHover={{ scale: 1.05, rotate: 2 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="rounded-2xl p-0.5 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/20"
-                >
-                  <div className="rounded-[14px] p-0.5 bg-white dark:bg-slate-900">
-                    <CustomImage
-                      src={seller?.profile || seller?.profile_image}
-                      alt={seller?.name || "Prodavač"}
-                      width={72}
-                      height={72}
-                      className={cn(c.avatar, "rounded-xl object-cover")}
-                    />
-                  </div>
-                </motion.div>
-
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+        <div className="p-4 space-y-3">
+          {/* Header: Avatar + Info — matching MinimalSellerCard */}
+          <div className="flex items-start gap-3">
+            {/* Avatar */}
+            {sellerId ? (
+              <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 group-hover:border-slate-300 transition-colors">
+                  <CustomImage
+                    src={seller?.profile || seller?.profile_image}
+                    alt={seller?.name || "Prodavač"}
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 {isVerified && (
-
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", delay: 0.3, stiffness: 200 }}
-                    className="absolute -bottom-1.5 -right-1.5 bg-white dark:bg-slate-900 rounded-xl p-1 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
-                  >
-                    <MdVerified size={18} className="text-blue-500" />
-                  </motion.div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                    <Verified className="w-2.5 h-2.5 text-white" />
+                  </div>
                 )}
-              </div>
-
-              {/* Name & badges */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h3 className={cn("font-bold text-slate-900 dark:text-white truncate", c.name)}>
-                    {seller?.name}
-                  </h3>
-                  {isPro && (
-                    <StatusBadge variant="pro" icon={Crown}>Pro</StatusBadge>
-                  )}
-                  {isShop && (
-                    <StatusBadge variant="shop" icon={Buildings2}>Trgovina</StatusBadge>
-                  )}
+              </CustomLink>
+            ) : (
+              <div className="relative flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
+                  <CustomImage
+                    src={seller?.profile || seller?.profile_image}
+                    alt={seller?.name || "Prodavač"}
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-
-                {/* Meta info */}
-                <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  {showRatings && ratingValue && (
-                    <IconPill icon={Star} tone="warning">
-                      {ratingValue} ({ratingCount})
-                    </IconPill>
-                  )}
-                  {responseLabel && (
-                    <IconPill icon={Lightning} tone="info">
-                      Odgovara za {responseLabel}
-                    </IconPill>
-                  )}
-                  {memberSince && (
-                    <IconPill icon={Calendar}>
-                      Član od {memberSince}
-                    </IconPill>
-                  )}
-                </div>
-
-                {/* Badges */}
-                {showBadges && badgeList.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {badgeList.map((b) => (
-                      <GamificationBadge key={b.id} badge={b} size="sm" showName={false} showDescription={false} />
-                    ))}
+                {isVerified && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                    <Verified className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Share button */}
-            {showShare && (
-              <ShareDropdown
-                url={computedShareUrl}
-                title={title}
-                headline={title}
-                companyName={CompanyName}
-              >
-                <IconButton>
-                  <Share size={18} />
-                </IconButton>
-              </ShareDropdown>
             )}
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              {/* Name row with share */}
+              <div className="flex items-center justify-between gap-2">
+                {sellerId ? (
+                  <CustomLink
+                    href={`/seller/${sellerId}`}
+                    className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors"
+                  >
+                    {seller?.name}
+                  </CustomLink>
+                ) : (
+                  <span className="text-sm font-semibold text-slate-900 truncate">
+                    {seller?.name}
+                  </span>
+                )}
+
+                {showShare && (
+                  <ShareDropdown url={computedShareUrl} title={title} headline={title} companyName={CompanyName}>
+                    <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                      <Share className="w-4 h-4" />
+                    </button>
+                  </ShareDropdown>
+                )}
+              </div>
+
+              {/* Meta row */}
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                {showRatings && ratingValue && (
+                  <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    <span className="font-medium">{ratingValue}</span>
+                    <span className="text-slate-400">({ratingCount})</span>
+                  </span>
+                )}
+
+                {responseLabel && (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                    <Lightning className="w-3 h-3 text-amber-500" />
+                    {responseLabel}
+                  </span>
+                )}
+
+                {memberSince && (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                    <Calendar className="w-3 h-3" />
+                    {memberSince}
+                  </span>
+                )}
+
+                {isPro && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">PRO</span>
+                )}
+                {isShop && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 rounded">SHOP</span>
+                )}
+              </div>
+
+              {/* Gamification badges */}
+              {showBadges && badgeList.length > 0 && (
+                <div className="flex items-center gap-1 mt-1.5">
+                  {badgeList.map((b) => (
+                    <GamificationBadge
+                      key={b.id}
+                      badge={b}
+                      size="xs"
+                      showName={false}
+                      showDescription={false}
+                      className="w-5 h-5"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Business hours (for shops) */}
+          {/* Business hours */}
           {showHours && todayHoursText && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mt-5 flex items-center justify-between p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40"
-            >
-              <div className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300">
-                <Clock size={16} />
-                <span>Danas: <strong className="text-slate-900 dark:text-white">{todayHoursText}</strong></span>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <span>Danas: <strong className="text-slate-900">{todayHoursText}</strong></span>
               </div>
               {openNow !== null && (
                 <span className={cn(
-                  "inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full",
-                  openNow
-                    ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-700/40"
-                    : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-300/50 dark:border-slate-600/50"
+                  "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
+                  openNow ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
                 )}>
-                  <span className={cn("h-2 w-2 rounded-full", openNow ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
+                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
-            </motion.div>
+            </div>
           )}
 
-          {/* Action buttons */}
-          <div className={cn(
-            "mt-6 flex items-center gap-3",
-            mode === "header" && "flex-col items-stretch"
-          )}>
-            <PrimaryButton
+          {/* Actions — inline like MinimalSellerCard */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
               onClick={handleChatClick}
               disabled={actionsDisabled}
-              className="flex-1"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
             >
-              <ChatRound size={18} />
+              <ChatRound className="w-4 h-4" />
               Pošalji poruku
-            </PrimaryButton>
+            </button>
 
             <SavedToListButton
               sellerId={sellerId}
@@ -1182,55 +1172,51 @@ export const SellerPreviewCard = ({
             />
 
             {contactStyle === "sheet" ? (
-              <IconButton onClick={handlePhoneClick} disabled={actionsDisabled}>
-                <Phone size={18} />
-              </IconButton>
+              <button
+                type="button"
+                onClick={handlePhoneClick}
+                disabled={actionsDisabled}
+                className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-50"
+              >
+                <Phone className="w-4 h-4" />
+              </button>
             ) : (
               <>
                 {settings?.show_phone && seller?.mobile && (
-                  <IconButton
-                    as="a"
+                  <a
                     href={`tel:${seller.mobile}`}
                     onClick={handlePhoneClick}
-                    disabled={actionsDisabled}
+                    className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-emerald-600 transition-colors"
                   >
-                    <Phone size={18} className="text-emerald-500" />
-                  </IconButton>
+                    <Phone className="w-4 h-4" />
+                  </a>
                 )}
                 {settings?.show_whatsapp && (settings?.whatsapp_number || seller?.mobile) && (
-                  <IconButton
-                    as="a"
+                  <a
                     href={`https://wa.me/${String(settings?.whatsapp_number || seller?.mobile).replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noreferrer"
-                    disabled={actionsDisabled}
+                    className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-green-600 transition-colors"
                   >
-                    <ChatRound size={18} className="text-green-500" />
-                  </IconButton>
+                    <ChatRound className="w-4 h-4" />
+                  </a>
                 )}
               </>
             )}
           </div>
 
           {/* Profile link */}
-          {mode === "compact" && showProfileLink && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="mt-5"
+          {mode === "compact" && showProfileLink && sellerId && (
+            <CustomLink
+              href={`/seller/${sellerId}`}
+              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group"
             >
-              <CustomLink
-                href={`/seller/${sellerId}`}
-                className="group inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              >
-                Pogledaj profil
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </CustomLink>
-            </motion.div>
+              Pogledaj kompletan profil
+              <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </CustomLink>
           )}
         </div>
-      </GlassCard>
+      </div>
     </>
   );
 };
@@ -1449,7 +1435,7 @@ const SellerDetailCard = ({
   const socialWebsite = settings.social_website || "";
 
   const businessHours = parseBusinessHours(settings.business_hours);
-  const showHours = Boolean(isShop && businessHours);
+  const showHours = Boolean(businessHours && Object.values(businessHours).some(d => d?.enabled));
   const todayHoursText = showHours ? getTodayHours(businessHours) : null;
   const tomorrowHoursText = showHours ? getTomorrowHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
@@ -1514,16 +1500,24 @@ const SellerDetailCard = ({
         openId={openId}
         setOpenId={setOpenId}
       >
-        <div className="flex flex-wrap gap-3">
-          <SecondaryButton onClick={() => setIsContactSheetOpen(true)}>
-            <Phone size={18} />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsContactSheetOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-xl transition-colors"
+          >
+            <Phone className="w-4 h-4" />
             Kontakt opcije
-          </SecondaryButton>
+          </button>
 
-          <PrimaryButton onClick={handleChatClick}>
-            <ChatRound size={18} />
+          <button
+            type="button"
+            onClick={handleChatClick}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            <ChatRound className="w-4 h-4" />
             Pošalji poruku
-          </PrimaryButton>
+          </button>
         </div>
 
         {hasSocialLinks && (
@@ -1551,41 +1545,30 @@ const SellerDetailCard = ({
           openId={openId}
           setOpenId={setOpenId}
         >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40">
-              <div className="flex items-center gap-2.5">
-                <Calendar size={16} className="text-slate-500" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Danas</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <Calendar className="w-4 h-4 text-slate-400" />
+                <span>Danas: <strong className="text-slate-900">{todayHoursText}</strong></span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  {todayHoursText}
+              {openNow !== null && (
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
+                  openNow ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
+                )}>
+                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
+                  {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
-                {openNow !== null && (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
-                      openNow
-                        ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-                        : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-                    )}
-                  >
-                    <span className={cn("h-1.5 w-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
-                    {openNow ? "Otvoreno" : "Zatvoreno"}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
 
             {tomorrowHoursText && (
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/30 dark:border-slate-700/30">
-                <div className="flex items-center gap-2.5">
-                  <Calendar size={16} className="text-slate-400" />
-                  <span className="text-sm text-slate-600 dark:text-slate-300">Sutra</span>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 border border-slate-100/60">
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Calendar className="w-4 h-4 text-slate-300" />
+                  <span>Sutra</span>
                 </div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {tomorrowHoursText}
-                </span>
+                <span className="text-sm font-medium text-slate-700">{tomorrowHoursText}</span>
               </div>
             )}
           </div>
@@ -1601,39 +1584,34 @@ const SellerDetailCard = ({
           openId={openId}
           setOpenId={setOpenId}
         >
-          <div className="space-y-4">
+          <div className="space-y-3">
             {shippingInfo && (
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-50/90 to-indigo-50/90 dark:from-sky-900/25 dark:to-indigo-900/25 border border-sky-100/60 dark:border-sky-800/40">
-                <div className="flex items-center gap-2.5 text-sm font-semibold text-sky-800 dark:text-sky-200 mb-2.5">
-                  <Lightning size={16} />
-                  Dostava
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-50/80 border border-sky-100/60">
+                <Lightning className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-xs font-medium text-sky-800 mb-0.5">Dostava</div>
+                  <p className="text-xs text-sky-600 whitespace-pre-line">{shippingInfo}</p>
                 </div>
-                <p className="text-sm text-sky-700/85 dark:text-sky-300/85 whitespace-pre-line leading-relaxed">
-                  {shippingInfo}
-                </p>
               </div>
             )}
 
             {returnPolicy && (
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/90 to-orange-50/90 dark:from-amber-900/25 dark:to-orange-900/25 border border-amber-100/60 dark:border-amber-800/40">
-                <div className="flex items-center gap-2.5 text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2.5">
-                  <Shield size={16} />
-                  Povrat
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-100/60">
+                <Shield className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-xs font-medium text-amber-800 mb-0.5">Povrat</div>
+                  <p className="text-xs text-amber-600 whitespace-pre-line">{returnPolicy}</p>
                 </div>
-                <p className="text-sm text-amber-700/85 dark:text-amber-300/85 whitespace-pre-line leading-relaxed">
-                  {returnPolicy}
-                </p>
               </div>
             )}
 
             {businessDescription && (
-              <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/40">
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2.5">
-                  O prodavaču
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <InfoCircle className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-xs font-medium text-slate-700 mb-0.5">O prodavaču</div>
+                  <p className="text-xs text-slate-500 whitespace-pre-line">{businessDescription}</p>
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed">
-                  {businessDescription}
-                </p>
               </div>
             )}
           </div>
@@ -1641,16 +1619,14 @@ const SellerDetailCard = ({
       )}
 
       {/* LINK ZA PROFIL */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-        <CustomLink
-          href={`/seller/${mainSellerId}`}
-          onClick={onProfileClick}
-          className="group inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-        >
-          Pogledaj kompletan profil
-          <LinkIcon size={16} className="group-hover:translate-x-1 group-hover:-translate-y-0.5 transition-transform" />
-        </CustomLink>
-      </motion.div>
+      <CustomLink
+        href={`/seller/${mainSellerId}`}
+        onClick={onProfileClick}
+        className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group"
+      >
+        Pogledaj kompletan profil
+        <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+      </CustomLink>
 
       <ContactSheet
         open={isContactSheetOpen}

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 
+
 import {
   AlertCircle, Calendar, Camera, ChevronDown, Clock, Download, Eye, Globe, Mail,
   MessageCircle, Phone, RefreshCw, Save, Shield, Sparkles, Store, Users, Zap,
@@ -229,13 +230,16 @@ const CardPreferencesSection = ({ cardPreferences, setCardPreferences }) => {
   return (
     <div className="space-y-4">
       <p className="text-xs text-slate-500">Kontroliši šta se prikazuje na tvojoj prodavačkoj kartici.</p>
-      <div className="grid grid-cols-2 gap-2">
-        <CompactToggle title="Ocjene" checked={cardPreferences.show_ratings} onCheckedChange={(v) => updatePref("show_ratings", v)} />
-        <CompactToggle title="Bedževi" checked={cardPreferences.show_badges} onCheckedChange={(v) => updatePref("show_badges", v)} />
-        <CompactToggle title="Član od" checked={cardPreferences.show_member_since} onCheckedChange={(v) => updatePref("show_member_since", v)} />
-        <CompactToggle title="Vrijeme odg." checked={cardPreferences.show_response_time} onCheckedChange={(v) => updatePref("show_response_time", v)} />
-        <CompactToggle title="Radno vrijeme" checked={cardPreferences.show_business_hours} onCheckedChange={(v) => updatePref("show_business_hours", v)} />
-        <CompactToggle title="Info dostave" checked={cardPreferences.show_shipping_info} onCheckedChange={(v) => updatePref("show_shipping_info", v)} />
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <CompactToggle title="Ocjene" checked={cardPreferences.show_ratings} onCheckedChange={(v) => updatePref("show_ratings", v)} />
+          <CompactToggle title="Bedževi" checked={cardPreferences.show_badges} onCheckedChange={(v) => updatePref("show_badges", v)} />
+          <CompactToggle title="Član od" checked={cardPreferences.show_member_since} onCheckedChange={(v) => updatePref("show_member_since", v)} />
+          <CompactToggle title="Vrijeme odg." checked={cardPreferences.show_response_time} onCheckedChange={(v) => updatePref("show_response_time", v)} />
+          <CompactToggle title="Radno vrijeme" checked={cardPreferences.show_business_hours} onCheckedChange={(v) => updatePref("show_business_hours", v)} />
+          <CompactToggle title="Info dostave" checked={cardPreferences.show_shipping_info} onCheckedChange={(v) => updatePref("show_shipping_info", v)} />
+          <CompactToggle title="Politika povrata" checked={cardPreferences.show_return_policy} onCheckedChange={(v) => updatePref("show_return_policy", v)} />
+        </div>
       </div>
       {cardPreferences.show_badges && (
         <div className="p-3 bg-slate-50 rounded-lg space-y-2">
@@ -246,6 +250,256 @@ const CardPreferencesSection = ({ cardPreferences, setCardPreferences }) => {
           <Slider value={[cardPreferences.max_badges]} onValueChange={([v]) => updatePref("max_badges", v)} min={1} max={5} step={1} className="w-full" />
         </div>
       )}
+    </div>
+  );
+};
+
+// ============================================
+// PREVIEW PANEL
+// ============================================
+const PREVIEW_DAY_LABELS = {
+  monday: "Ponedjeljak", tuesday: "Utorak", wednesday: "Srijeda",
+  thursday: "Četvrtak", friday: "Petak", saturday: "Subota", sunday: "Nedjelja",
+};
+
+const PreviewPanel = ({
+  previewSeller, previewSettings, businessHours, businessDescription,
+  shippingInfo, returnPolicy, responseTime, vacationMode, vacationMessage,
+  socialFacebook, socialInstagram, socialWebsite, verificationStatus, cardPreferences,
+}) => {
+  const [activeTab, setActiveTab] = useState("card");
+  const [showHoursDropdown, setShowHoursDropdown] = useState(false);
+
+  const responseLabels = { auto: "Automatski", instant: "Par minuta", few_hours: "Par sati", same_day: "Isti dan", few_days: "Par dana" };
+  const isVerified = String(verificationStatus || "").toLowerCase() === "approved";
+
+  const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const todayKey = dayOrder[new Date().getDay()];
+  const todayData = businessHours?.[todayKey];
+  const isOpenNow = todayData?.enabled && (() => {
+    const now = new Date();
+    const cur = now.getHours() * 60 + now.getMinutes();
+    const [oh, om] = (todayData.open || "09:00").split(":").map(Number);
+    const [ch, cm] = (todayData.close || "17:00").split(":").map(Number);
+    return cur >= (oh * 60 + om) && cur <= (ch * 60 + cm);
+  })();
+
+  const hasHours = DAYS.some(d => businessHours?.[d]?.enabled);
+  const hasSocials = socialFacebook || socialInstagram || socialWebsite;
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2 bg-primary/10 rounded-lg"><Eye className="w-4 h-4 text-primary" /></div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Pregled uživo</h3>
+            <p className="text-xs text-slate-500">Promjene se vide odmah</p>
+          </div>
+        </div>
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+          <button type="button" onClick={() => setActiveTab("card")} className={cn("flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all", activeTab === "card" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+            Kartica
+          </button>
+          <button type="button" onClick={() => setActiveTab("extended")} className={cn("flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all", activeTab === "extended" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+            Profil prodavača
+          </button>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <AnimatePresence mode="wait">
+          {activeTab === "card" ? (
+            <motion.div key="card" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.15 }}>
+              <MinimalSellerCard
+                seller={previewSeller}
+                sellerSettings={previewSettings}
+                badges={[]}
+                isPro={false}
+                isShop={false}
+                showProfileLink={false}
+                onChatClick={() => toast.message("Ovo je samo prikaz.")}
+                onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
+              />
+            </motion.div>
+          ) : (
+            <motion.div key="extended" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }} className="space-y-3">
+              {/* Seller Header — isti stil kao MinimalSellerCard */}
+              <div className="flex items-start gap-3">
+                <div className="relative flex-shrink-0">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60">
+                    {previewSeller?.profile ? (
+                      <img src={previewSeller.profile} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full grid place-items-center text-xs text-slate-400">Nema</div>
+                    )}
+                  </div>
+                  {isVerified && (
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                      <Shield className="w-2.5 h-2.5 text-white" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-slate-900 truncate">{previewSeller?.name || "Ime prodavača"}</div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {cardPreferences.show_ratings && (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <span className="font-medium">4.8</span>
+                        <span className="text-slate-400">(23)</span>
+                      </span>
+                    )}
+                    {cardPreferences.show_response_time && (
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                        <Zap className="w-3 h-3 text-amber-500" />
+                        {responseLabels[responseTime] || "Automatski"}
+                      </span>
+                    )}
+                    {cardPreferences.show_member_since && (
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                        <Calendar className="w-3 h-3" />
+                        jan 2024
+                      </span>
+                    )}
+                  </div>
+                  {cardPreferences.show_badges && (
+                    <div className="flex items-center gap-1 mt-1.5">
+                      {[...Array(Math.min(cardPreferences.max_badges || 2, 3))].map((_, i) => (
+                        <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center">
+                          <Sparkles className="w-2.5 h-2.5 text-primary" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Odmor */}
+              {vacationMode && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                  <Plane className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium text-amber-800">Na odmoru</div>
+                    {vacationMessage && <p className="text-xs text-amber-600 mt-0.5">{vacationMessage}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Radno vrijeme */}
+              {cardPreferences.show_business_hours && hasHours && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowHoursDropdown(!showHoursDropdown)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <span>Danas: <strong className="text-slate-900">{todayData?.enabled ? `${todayData.open} – ${todayData.close}` : "Zatvoreno"}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {todayData?.enabled && (
+                        <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", isOpenNow ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600")}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", isOpenNow ? "bg-emerald-500" : "bg-slate-400")} />
+                          {isOpenNow ? "Otvoreno" : "Zatvoreno"}
+                        </span>
+                      )}
+                      <motion.div animate={{ rotate: showHoursDropdown ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      </motion.div>
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {showHoursDropdown && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                        <div className="mt-1.5 p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                          {DAYS.map((day) => {
+                            const d = businessHours?.[day];
+                            const isTd = day === todayKey;
+                            return (
+                              <div key={day} className={cn("flex items-center justify-between py-1 px-2 rounded-lg text-xs", isTd && "bg-primary/5 font-medium")}>
+                                <span className={cn("text-slate-600", isTd && "text-primary")}>{PREVIEW_DAY_LABELS[day]}</span>
+                                <span className={cn(d?.enabled ? "text-slate-900" : "text-slate-400", isTd && d?.enabled && "text-primary")}>
+                                  {d?.enabled ? `${d.open} – ${d.close}` : "Zatvoreno"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Dostava */}
+              {cardPreferences.show_shipping_info && shippingInfo && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-50/80 border border-sky-100/60">
+                  <Truck className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium text-sky-800">Dostava</div>
+                    <p className="text-xs text-sky-600 mt-0.5 whitespace-pre-line">{shippingInfo}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Povrat */}
+              {cardPreferences.show_return_policy && returnPolicy && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-100/60">
+                  <RotateCcw className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium text-amber-800">Povrat</div>
+                    <p className="text-xs text-amber-600 mt-0.5 whitespace-pre-line">{returnPolicy}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Opis */}
+              {businessDescription && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <Store className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium text-slate-700">O prodavaču</div>
+                    <p className="text-xs text-slate-500 mt-0.5 whitespace-pre-line">{businessDescription}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Mreže */}
+              {hasSocials && (
+                <div className="flex flex-wrap gap-1.5">
+                  {socialFacebook && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                      <Users className="w-3 h-3" />Facebook
+                    </span>
+                  )}
+                  {socialInstagram && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                      <Camera className="w-3 h-3" />Instagram
+                    </span>
+                  )}
+                  {socialWebsite && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                      <Globe className="w-3 h-3" />Web
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Dugmad */}
+              <div className="space-y-2 pt-1">
+                <button type="button" onClick={() => toast.message("Ovo je samo prikaz.")} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl">
+                  <MessageCircle className="w-4 h-4" />Pošalji poruku
+                </button>
+                <button type="button" onClick={() => toast.message("Ovo je samo prikaz.")} className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 text-slate-700 text-xs font-medium rounded-xl hover:bg-slate-50">
+                  <Phone className="w-3.5 h-3.5" />Kontakt opcije
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };
@@ -312,7 +566,7 @@ const SellerSettings = () => {
   // Card Preferences
   const [cardPreferences, setCardPreferences] = useState(defaultCardPreferences);
 
-  const initialPayloadRef = useRef(null);
+  const [initialPayloadStr, setInitialPayloadStr] = useState(null);
 
   useEffect(() => {
     if (currentUser?.profile_image) setPreviewImage(currentUser.profile_image);
@@ -337,7 +591,6 @@ const SellerSettings = () => {
     business_description: businessDescription, return_policy: returnPolicy, shipping_info: shippingInfo,
     social_facebook: socialFacebook, social_instagram: socialInstagram, social_tiktok: socialTiktok,
     social_youtube: socialYoutube, social_website: socialWebsite,
-    verification_status: verificationStatus,
     card_preferences: cardPreferences,
   }), [showPhone, showEmail, showWhatsapp, showViber, whatsappNumber, viberNumber, preferredContact,
       businessHours, responseTime, acceptsOffers, autoReplyEnabled, autoReplyMessage, vacationMode,
@@ -346,9 +599,9 @@ const SellerSettings = () => {
       socialWebsite, cardPreferences]);
 
   const hasChanges = useMemo(() => {
-    if (!initialPayloadRef.current) return false;
-    return stableStringify(buildPayload()) !== initialPayloadRef.current;
-  }, [buildPayload]);
+    if (!initialPayloadStr) return false;
+    return stableStringify(buildPayload()) !== initialPayloadStr;
+  }, [buildPayload, initialPayloadStr]);
 
   const errors = useMemo(() => {
     const e = {};
@@ -435,7 +688,7 @@ const SellerSettings = () => {
       setSocialWebsite(s.social_website || "");
       setCardPreferences(normalizeCardPreferences(s.card_preferences));
 
-      initialPayloadRef.current = stableStringify({
+      setInitialPayloadStr(stableStringify({
         show_phone: s.show_phone ?? true, show_email: s.show_email ?? true,
         show_whatsapp: s.show_whatsapp ?? false, show_viber: s.show_viber ?? false,
         whatsapp_number: s.whatsapp_number || "", viber_number: s.viber_number || "",
@@ -452,7 +705,7 @@ const SellerSettings = () => {
         social_instagram: s.social_instagram || "", social_tiktok: s.social_tiktok || "",
         social_youtube: s.social_youtube || "", social_website: s.social_website || "",
         card_preferences: normalizeCardPreferences(s.card_preferences),
-      });
+      }));
     } catch (err) {
       console.error(err);
       setLoadError(err?.message === "TIMEOUT" ? "Timeout." : "Greška.");
@@ -476,7 +729,7 @@ const SellerSettings = () => {
       const payload = buildPayload();
       const response = await withTimeout(updateFn(payload), 15000);
       if (response?.data?.error === false) {
-        initialPayloadRef.current = stableStringify(payload);
+        setInitialPayloadStr(stableStringify(payload));
         toast.success("Postavke sačuvane!");
       } else {
         toast.error(response?.data?.message || "Greška.");
@@ -552,7 +805,7 @@ const SellerSettings = () => {
   }
 
   const previewSeller = { ...currentUser, profile: previewImage || currentUser?.profile_image || currentUser?.profile };
-  const previewSettings = buildPayload();
+  const previewSettings = { ...buildPayload(), verification_status: verificationStatus };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
@@ -737,27 +990,22 @@ const SellerSettings = () => {
 
         {/* Preview */}
         <div className="xl:sticky xl:top-6 space-y-4">
-          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg"><Eye className="w-4 h-4 text-primary" /></div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">Pregled</h3>
-                <p className="text-xs text-slate-500">Kako te kupci vide</p>
-              </div>
-            </div>
-            <div className="p-4">
-              <MinimalSellerCard
-                seller={previewSeller}
-                sellerSettings={previewSettings}
-                badges={[]}
-                isPro={false}
-                isShop={false}
-                showProfileLink={false}
-                onChatClick={() => toast.message("Ovo je samo prikaz.")}
-                onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
-              />
-            </div>
-          </div>
+          <PreviewPanel
+            previewSeller={previewSeller}
+            previewSettings={previewSettings}
+            businessHours={businessHours}
+            businessDescription={businessDescription}
+            shippingInfo={shippingInfo}
+            returnPolicy={returnPolicy}
+            responseTime={responseTime}
+            vacationMode={vacationMode}
+            vacationMessage={vacationMessage}
+            socialFacebook={socialFacebook}
+            socialInstagram={socialInstagram}
+            socialWebsite={socialWebsite}
+            verificationStatus={verificationStatus}
+            cardPreferences={cardPreferences}
+          />
 
           {/* Tips */}
           <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
