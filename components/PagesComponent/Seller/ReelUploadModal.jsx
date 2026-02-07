@@ -37,6 +37,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const [items, setItems] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [uploadedVideo, setUploadedVideo] = useState(null);
+  const [queuedVideos, setQueuedVideos] = useState([]);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -55,6 +56,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const resetState = useCallback(() => {
     setSelectedItemId("");
     setUploadedVideo(null);
+    setQueuedVideos([]);
     setVideoPreviewUrl(null);
     setIsUploading(false);
     setUploadProgress(0);
@@ -131,23 +133,47 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     return res.data.data;
   };
 
-  const handleVideoUpload = async (file) => {
-    if (!file) return;
-    if (!file.type?.startsWith("video/")) {
-      toast.error("Odaberite validan video fajl.");
-      return;
-    }
-    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
-      toast.error(`Video je prevelik. Maksimum je ${MAX_VIDEO_MB}MB.`);
-      return;
-    }
+  const handleVideoUpload = async (input) => {
+    const files = Array.isArray(input) ? input : input ? [input] : [];
+    if (!files.length) return;
+
+    const validFiles = files.filter((file) => {
+      if (!file?.type?.startsWith("video/")) {
+        toast.error("Odaberite validan video fajl.");
+        return false;
+      }
+      if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+        toast.error(`Video je prevelik. Maksimum je ${MAX_VIDEO_MB}MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (!validFiles.length) return;
 
     try {
       setIsUploading(true);
-      setUploadProgress(0);
-      const data = await uploadFile(file, (p) => setUploadProgress(p));
-      setUploadedVideo(data);
-      toast.success("Video je uspješno otpremljen.");
+      const uploads = [];
+
+      for (let i = 0; i < validFiles.length; i += 1) {
+        setUploadProgress(0);
+        // eslint-disable-next-line no-await-in-loop
+        const data = await uploadFile(validFiles[i], (p) => setUploadProgress(p));
+        uploads.push(data);
+      }
+
+      if (!uploadedVideo && uploads.length > 0) {
+        setUploadedVideo(uploads[0]);
+        setQueuedVideos(uploads.slice(1));
+      } else {
+        setQueuedVideos((prev) => [...prev, ...uploads]);
+      }
+
+      toast.success(
+        uploads.length > 1
+          ? `Otpremljeno ${uploads.length} videa.`
+          : "Video je uspješno otpremljen."
+      );
     } catch (e) {
       console.error(e);
       toast.error(e?.message || "Video nije moguće otpremiti.");
@@ -158,6 +184,12 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
 
   const handleRemoveVideo = async () => {
     if (uploadedVideo?.id) await deleteTemp(uploadedVideo.id);
+    if (queuedVideos.length > 0) {
+      const [next, ...rest] = queuedVideos;
+      setUploadedVideo(next);
+      setQueuedVideos(rest);
+      return;
+    }
     setUploadedVideo(null);
     setVideoPreviewUrl(null);
   };
@@ -191,8 +223,14 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             : "Reel je spreman za Home Reels."
         );
         onUploaded?.(selectedItem);
-        if (keepOpen) {
-          setUploadedVideo(null);
+        if (keepOpen || queuedVideos.length > 0) {
+          if (queuedVideos.length > 0) {
+            const [next, ...rest] = queuedVideos;
+            setUploadedVideo(next);
+            setQueuedVideos(rest);
+          } else {
+            setUploadedVideo(null);
+          }
           setVideoPreviewUrl(null);
           setConfirmReplace(false);
           return;
@@ -304,8 +342,9 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                 <input
                   type="file"
                   accept="video/*"
+                  multiple
                   className="hidden"
-                  onChange={(e) => handleVideoUpload(e.target.files?.[0])}
+                  onChange={(e) => handleVideoUpload(Array.from(e.target.files || []))}
                 />
                 <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
                   {isUploading ? (
@@ -390,7 +429,9 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              Reel se prikazuje nakon što oglas ostane aktivan.
+              {queuedVideos.length > 0
+                ? `Spremno još ${queuedVideos.length} videa.`
+                : "Reel se prikazuje nakon što oglas ostane aktivan."}
             </div>
             <div className="flex items-center gap-2">
               <Button

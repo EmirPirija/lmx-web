@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { allItemApi, manageFavouriteApi, itemConversationApi } from "@/utils/api";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import { getIsLoggedIn } from "@/redux/reducer/authSlice";
+import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 
 import {
   MdFavorite,
@@ -100,6 +100,7 @@ const formatCount = (num) => {
 const HomeReels = () => {
   const dispatch = useDispatch();
   const isLoggedIn = useSelector(getIsLoggedIn);
+  const currentUser = useSelector(userSignUpData);
 
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -510,6 +511,16 @@ const ReelCard = ({ item, index, isLoggedIn, onLike }) => {
 
     if (!isLoggedIn) {
       dispatch(setIsLoginOpen(true));
+      return;
+    }
+
+    if (!item?.id) {
+      toast.error("Oglas nije dostupan.");
+      return;
+    }
+
+    if (currentUser?.id && String(currentUser.id) === String(item?.user_id)) {
+      toast.error("Ne možete poslati poruku na svoj oglas.");
       return;
     }
 
