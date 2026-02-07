@@ -358,24 +358,61 @@ const SviKorisniciPage = () => {
   const [allUsers, setAllUsers] = useState([]);
 
   const getMembershipTier = useCallback((user) => {
-    return String(
+    const tierValue =
       user?.membership?.tier?.slug ||
+      user?.membership?.tier?.name ||
+      user?.membership?.tier?.title ||
       user?.membership?.tier ||
+      user?.membership?.plan ||
+      user?.membership?.slug ||
       user?.membership_tier ||
       user?.membershipTier ||
-      ""
-    ).toLowerCase();
+      user?.plan ||
+      "";
+    return String(tierValue).toLowerCase();
   }, []);
+
+  const normalizeBadgeKey = useCallback((badge) => {
+    return String(
+      badge?.slug ||
+        badge?.key ||
+        badge?.code ||
+        badge?.type ||
+        badge?.name ||
+        badge?.title ||
+        badge?.label ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+  }, []);
+
+  const hasBadgeMatch = useCallback(
+    (user, matchers = []) => {
+      const badgeList = Array.isArray(user?.badges) ? user.badges : [];
+      if (!badgeList.length) return false;
+      return badgeList.some((badge) => {
+        const key = normalizeBadgeKey(badge);
+        return matchers.some((matcher) =>
+          typeof matcher === "string" ? key.includes(matcher) : matcher(key)
+        );
+      });
+    },
+    [normalizeBadgeKey]
+  );
 
   const isProUser = useCallback(
     (user) =>
       Boolean(
         user?.is_pro ||
           user?.isPro ||
+          user?.membership?.is_pro ||
+          user?.membership?.tier === "pro" ||
           getMembershipTier(user).includes("pro") ||
-          getMembershipTier(user).includes("premium")
+          getMembershipTier(user).includes("premium") ||
+          hasBadgeMatch(user, ["pro", "premium"])
       ),
-    [getMembershipTier]
+    [getMembershipTier, hasBadgeMatch]
   );
 
   const isShopUser = useCallback(
@@ -383,10 +420,13 @@ const SviKorisniciPage = () => {
       Boolean(
         user?.is_shop ||
           user?.isShop ||
+          user?.membership?.is_shop ||
+          user?.membership?.tier === "shop" ||
           getMembershipTier(user).includes("shop") ||
-          getMembershipTier(user).includes("business")
+          getMembershipTier(user).includes("business") ||
+          hasBadgeMatch(user, ["shop", "business", "store"])
       ),
-    [getMembershipTier]
+    [getMembershipTier, hasBadgeMatch]
   );
 
   const isVerifiedUser = useCallback(
@@ -396,9 +436,10 @@ const SviKorisniciPage = () => {
           user?.verified ||
           user?.isVerified ||
           user?.verification_status === "verified" ||
-          user?.verification_status === "approved"
+          user?.verification_status === "approved" ||
+          hasBadgeMatch(user, ["verified"])
       ),
-    []
+    [hasBadgeMatch]
   );
 
   const isOnlineUser = useCallback(
@@ -457,7 +498,13 @@ const SviKorisniciPage = () => {
 
       if (response?.data?.error === false || response?.data?.error == null) {
         const data = response.data.data;
-        const usersList = data?.users || data?.data || data?.items || data || [];
+        const usersList =
+          data?.users?.data ||
+          data?.users ||
+          data?.data ||
+          data?.items ||
+          data ||
+          [];
         
         setAllUsers(usersList);
         setTotalPages(
