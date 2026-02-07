@@ -41,6 +41,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingMore, setIsSubmittingMore] = useState(false);
   const [confirmReplace, setConfirmReplace] = useState(false);
 
   const selectedItem = useMemo(
@@ -161,7 +162,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     setVideoPreviewUrl(null);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async ({ keepOpen } = {}) => {
     if (!selectedItemId) {
       toast.error("Odaberite oglas za koji dodajete reel.");
       return;
@@ -176,15 +177,26 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     }
 
     try {
-      setIsSubmitting(true);
+      if (keepOpen) setIsSubmittingMore(true);
+      else setIsSubmitting(true);
       const res = await editItemApi.editItem({
         id: selectedItemId,
         temp_video_id: uploadedVideo.id,
       });
 
       if (res?.data?.error === false) {
-        toast.success("Reel je spreman za Home Reels.");
+        toast.success(
+          keepOpen
+            ? "Reel je dodan. Možete postaviti još jedan."
+            : "Reel je spreman za Home Reels."
+        );
         onUploaded?.(selectedItem);
+        if (keepOpen) {
+          setUploadedVideo(null);
+          setVideoPreviewUrl(null);
+          setConfirmReplace(false);
+          return;
+        }
         onOpenChange(false);
         return;
       }
@@ -195,6 +207,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
       toast.error(e?.message || "Nešto je pošlo po zlu.");
     } finally {
       setIsSubmitting(false);
+      setIsSubmittingMore(false);
     }
   };
 
@@ -379,20 +392,44 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               Reel se prikazuje nakon što oglas ostane aktivan.
             </div>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || (hasExistingVideo && !confirmReplace)}
-              className="min-w-[160px]"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Spremam...
-                </>
-              ) : (
-                "Objavi reel"
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleSubmit({ keepOpen: true })}
+                disabled={
+                  isSubmitting ||
+                  isSubmittingMore ||
+                  (hasExistingVideo && !confirmReplace)
+                }
+              >
+                {isSubmittingMore ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Spremam...
+                  </>
+                ) : (
+                  "Objavi i dodaj još"
+                )}
+              </Button>
+              <Button
+                onClick={() => handleSubmit({ keepOpen: false })}
+                disabled={
+                  isSubmitting ||
+                  isSubmittingMore ||
+                  (hasExistingVideo && !confirmReplace)
+                }
+                className="min-w-[160px]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Spremam...
+                  </>
+                ) : (
+                  "Objavi reel"
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

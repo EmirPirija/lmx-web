@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { usersApi } from "@/utils/api";
+import { usersApi, getSellerApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
 import {
@@ -353,60 +353,85 @@ const SviKorisniciPage = () => {
 
   // Store all users for client-side filtering
   const [allUsers, setAllUsers] = useState([]);
+  const [sellerDetailsMap, setSellerDetailsMap] = useState({});
+  const [isEnriching, setIsEnriching] = useState(false);
+  const sellerDetailsRef = useRef({});
 
   const perPage = 24;
-  const apiPerPage = 100;
+  const apiPerPage = 50;
 
-  const getLabelText = (user) => {
+  useEffect(() => {
+    sellerDetailsRef.current = sellerDetailsMap;
+  }, [sellerDetailsMap]);
+
+  const getLabelText = (user, details) => {
     const rawLabel =
       user?.label ||
+      details?.membership?.tier ||
+      details?.membership?.tier_name ||
+      details?.membership?.plan ||
       user?.membership?.label ||
       user?.membership?.tier ||
       user?.membership?.tier_name ||
       user?.membership?.plan ||
+      user?.seller_level ||
       user?.role ||
       "";
     return String(rawLabel || "").toLowerCase();
   };
 
-  const getMembershipFlags = (user) => {
-    const label = getLabelText(user);
+  const getMembershipFlags = (user, details) => {
+    const label = getLabelText(user, details);
     const isShop = Boolean(
-      user?.is_shop ||
+      details?.is_shop ||
+        user?.is_shop ||
         label.includes("shop") ||
         label.includes("trgovina") ||
         label.includes("business")
     );
     const isPro = Boolean(
-      user?.is_pro ||
+      details?.is_pro ||
+        user?.is_pro ||
         (!isShop && (label.includes("pro") || label.includes("premium")))
     );
     return { isPro, isShop };
   };
 
-  const normalizeUser = (user) => {
+  const normalizeUser = (user, details) => {
     if (!user) return user;
-    const label = getLabelText(user);
-    const isShop = Boolean(
-      user?.is_shop ||
-        label.includes("shop") ||
-        label.includes("trgovina") ||
-        label.includes("business")
-    );
-    const isPro = Boolean(
-      user?.is_pro ||
-        (!isShop && (label.includes("pro") || label.includes("premium")))
-    );
+    const { isPro, isShop } = getMembershipFlags(user, details);
+    const seller = details?.seller || {};
 
     const normalized = {
       ...user,
-      profile: user?.profile || user?.profile_image || user?.avatar || user?.svg_avatar || null,
+      profile:
+        user?.profile ||
+        user?.profile_image ||
+        user?.avatar ||
+        user?.svg_avatar ||
+        seller?.profile ||
+        null,
       is_verified: user?.is_verified ?? user?.verified ?? user?.isVerified,
-      total_ads: user?.total_ads ?? user?.items_count ?? user?.ads_count ?? 0,
-      average_rating: user?.average_rating ?? user?.rating ?? user?.ratings_avg,
-      ratings_count: user?.ratings_count ?? user?.reviews_count ?? user?.reviews ?? 0,
-      is_pro: user?.is_pro ?? isPro,
-      is_shop: user?.is_shop ?? isShop,
+      total_ads:
+        user?.total_ads ??
+        seller?.total_ads ??
+        user?.items_count ??
+        user?.ads_count ??
+        0,
+      average_rating:
+        seller?.average_rating ??
+        user?.average_rating ??
+        user?.rating ??
+        user?.ratings_avg,
+      ratings_count:
+        seller?.reviews_count ??
+        user?.ratings_count ??
+        user?.reviews_count ??
+        user?.reviews ??
+        0,
+      is_pro: user?.is_pro ?? details?.is_pro ?? isPro,
+      is_shop: user?.is_shop ?? details?.is_shop ?? isShop,
+      membership: details?.membership || user?.membership,
     };
     return normalized;
   };
@@ -419,6 +444,42 @@ const SviKorisniciPage = () => {
     const diffMs = Date.now() - last;
     return diffMs <= 5 * 60 * 1000;
   };
+
+  const enrichUsers = useCallback(async (usersList) => {
+    const missingIds = (usersList || [])
+      .map((user) => user?.id)
+      .filter((id) => id && !sellerDetailsRef.current[id]);
+
+    if (!missingIds.length) return;
+
+    setIsEnriching(true);
+    const updates = {};
+
+    const chunkSize = 6;
+    for (let i = 0; i < missingIds.length; i += chunkSize) {
+      const chunk = missingIds.slice(i, i + chunkSize);
+      const responses = await Promise.allSettled(
+        chunk.map((id) => getSellerApi.getSeller({ id }))
+      );
+
+      responses.forEach((res, idx) => {
+        if (res.status !== "fulfilled") return;
+        const data = res.value?.data?.data;
+        if (!data?.seller?.id) return;
+        updates[chunk[idx]] = {
+          seller: data.seller,
+          membership: data.membership,
+          is_pro: data.is_pro,
+          is_shop: data.is_shop,
+        };
+      });
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setSellerDetailsMap((prev) => ({ ...prev, ...updates }));
+    }
+    setIsEnriching(false);
+  }, []);
 
   // Fetch users from API
   const fetchUsers = useCallback(async () => {
@@ -448,10 +509,10 @@ const SviKorisniciPage = () => {
         page += 1;
       } while (page <= lastPage);
 
-      const normalized = aggregated.map(normalizeUser);
-      setAllUsers(normalized);
-      setTotalUsers(normalized.length);
-      setTotalPages(Math.max(1, Math.ceil(normalized.length / perPage)));
+      setAllUsers(aggregated);
+      setTotalUsers(aggregated.length);
+      setTotalPages(Math.max(1, Math.ceil(aggregated.length / perPage)));
+      enrichUsers(aggregated);
     } catch (error) {
       console.error("Error fetching users:", error);
       setAllUsers([]);
@@ -459,17 +520,22 @@ const SviKorisniciPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters.search]);
+  }, [filters.search, enrichUsers]);
 
   // Apply client-side filters
   useEffect(() => {
-    let filteredUsers = [...allUsers];
+    const mergedUsers = allUsers.map((user) =>
+      normalizeUser(user, sellerDetailsMap[user?.id])
+    );
+    let filteredUsers = [...mergedUsers];
     
     // Filter by search
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filteredUsers = filteredUsers.filter(user => 
-        user?.name?.toLowerCase().includes(searchLower)
+      filteredUsers = filteredUsers.filter((user) =>
+        user?.name?.toLowerCase().includes(searchLower) ||
+        user?.email?.toLowerCase().includes(searchLower) ||
+        user?.phone?.toLowerCase().includes(searchLower)
       );
     }
     
@@ -482,12 +548,16 @@ const SviKorisniciPage = () => {
 
     // Filter by membership (pro)
     if (filters.membership === "pro") {
-      filteredUsers = filteredUsers.filter(user => getMembershipFlags(user).isPro);
+      filteredUsers = filteredUsers.filter((user) =>
+        getMembershipFlags(user, sellerDetailsMap[user?.id]).isPro
+      );
     }
 
     // Filter by shop
     if (filters.shop === "1") {
-      filteredUsers = filteredUsers.filter(user => getMembershipFlags(user).isShop);
+      filteredUsers = filteredUsers.filter((user) =>
+        getMembershipFlags(user, sellerDetailsMap[user?.id]).isShop
+      );
     }
     
     // Filter by online
@@ -521,7 +591,7 @@ const SviKorisniciPage = () => {
     setUsers(paginated);
     setTotalUsers(totalFiltered);
     setTotalPages(newTotalPages);
-  }, [allUsers, filters, sortBy, currentPage, perPage]);
+  }, [allUsers, filters, sortBy, currentPage, perPage, sellerDetailsMap]);
 
   useEffect(() => {
     fetchUsers();
@@ -622,6 +692,12 @@ const SviKorisniciPage = () => {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+
+                {isEnriching && (
+                  <div className="flex items-center text-xs text-slate-500">
+                    Učitavam detalje korisnika...
+                  </div>
+                )}
 
                 {/* View toggle */}
                 <div className="hidden sm:flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800">

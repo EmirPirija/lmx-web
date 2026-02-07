@@ -167,6 +167,41 @@ const shimmerCss = `
 
 const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
 
+const reelRingCss = `
+@keyframes reel-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes reel-glow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.reel-ring {
+  position: relative;
+  padding: 2px;
+  border-radius: 16px;
+  background: conic-gradient(from 0deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
+  animation: reel-spin 8s linear infinite;
+}
+.reel-ring::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from 180deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
+  filter: blur(8px);
+  opacity: 0.45;
+  animation: reel-glow 3.2s ease-in-out infinite;
+  z-index: 0;
+}
+.reel-ring-inner {
+  position: relative;
+  z-index: 1;
+}
+`;
+
+const ReelRingStyles = () => <style jsx global>{reelRingCss}</style>;
+
 /* =====================================================
    HELPER FUNKCIJE
 ===================================================== */
@@ -998,6 +1033,7 @@ export const SellerPreviewCard = ({
   // Use user_id if available, fallback to id
   const sellerId = seller?.user_id ?? seller?.id;
   const canOpenReel = Boolean(onReelClick);
+  const showReelPrompt = canOpenReel && !showReelRing;
 
   const computedShareUrl = shareUrl || (sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -1080,14 +1116,12 @@ export const SellerPreviewCard = ({
                   <div
                     className={cn(
                       "rounded-[14px] p-[2px]",
-                      showReelRing
-                        ? "bg-gradient-to-tr from-[#F7941D] via-[#E1306C] to-[#833AB4] shadow-sm"
-                        : "bg-transparent"
+                      showReelRing ? "reel-ring" : "bg-transparent"
                     )}
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100",
+                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
                         showReelRing
                           ? "border border-white/70"
                           : "border border-slate-200/60"
@@ -1109,7 +1143,7 @@ export const SellerPreviewCard = ({
                       animate={{ scale: 1, opacity: 1 }}
                       className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center"
                     >
-                      <Play className="w-3 h-3 text-[#E1306C]" />
+                      <Play className="w-3 h-3 text-[#1e3a8a]" />
                     </motion.span>
                   )}
 
@@ -1119,7 +1153,7 @@ export const SellerPreviewCard = ({
                     </div>
                   )}
 
-                  {showReelRing && canOpenReel && (
+                  {showReelPrompt && (
                     <motion.span
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1523,6 +1557,13 @@ const SellerDetailCard = ({
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
+  const [hasReel, setHasReel] = useState(
+    Boolean(seller?.has_reel || seller?.reel_video || seller?.video)
+  );
+
+  useEffect(() => {
+    setHasReel(Boolean(seller?.has_reel || seller?.reel_video || seller?.video));
+  }, [seller]);
 
   // Parsiranje postavki
   const businessDescription = settings.business_description || "";
@@ -1571,6 +1612,8 @@ const SellerDetailCard = ({
       animate="animate"
       className="space-y-4"
     >
+      <ReelRingStyles />
+
       <SendMessageModal
         open={isMessageModalOpen}
         setOpen={setIsMessageModalOpen}
@@ -1582,6 +1625,7 @@ const SellerDetailCard = ({
       <ReelUploadModal
         open={isReelModalOpen}
         onOpenChange={setIsReelModalOpen}
+        onUploaded={() => setHasReel(true)}
       />
 
       {/* GLAVNA KARTICA */}
@@ -1597,7 +1641,7 @@ const SellerDetailCard = ({
         onChatClick={handleChatClick}
         onPhoneClick={() => setIsContactSheetOpen(true)}
         uiPrefs={{ contactStyle: "sheet" }}
-        showReelRing={isOwnProfile}
+        showReelRing={hasReel}
         onReelClick={isOwnProfile ? () => setIsReelModalOpen(true) : undefined}
         // Ako je isVerified TRUE, šaljemo true. Ako je FALSE, šaljemo undefined 
         // kako bi SellerPreviewCard koristio svoj fallback izračun.
