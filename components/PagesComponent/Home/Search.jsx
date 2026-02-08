@@ -12,6 +12,7 @@ import CustomImage from "@/components/Common/CustomImage";
 import { useSelector } from "react-redux";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { useSavedSearches } from "@/hooks/useSavedSearches";
+import { useSearchTracking } from "@/hooks/useItemTracking";
 
 import {
   IconSearch,
@@ -24,77 +25,6 @@ import {
   IconWorld,
   IconStarFilled,
 } from "@tabler/icons-react";
-
-const API_BASE =
-  (process.env.NEXT_PUBLIC_API_URL
-    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "") + "/api"
-    : "/api") || "/api";
-
-const getVisitorId = () => {
-  if (typeof window === "undefined") return null;
-  let visitorId = localStorage.getItem("visitor_id");
-  if (!visitorId) {
-    visitorId =
-      "v_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now();
-    localStorage.setItem("visitor_id", visitorId);
-  }
-  return visitorId;
-};
-
-const getDeviceType = () => {
-  if (typeof window === "undefined") return "unknown";
-  const ua = navigator.userAgent.toLowerCase();
-  if (/tablet|ipad/i.test(ua)) return "tablet";
-  if (/mobile|iphone|android/i.test(ua)) return "mobile";
-  return "desktop";
-};
-
-const getUTMParams = () => {
-  if (typeof window === "undefined") return {};
-  const params = new URLSearchParams(window.location.search);
-  return {
-    utm_source: params.get("utm_source"),
-    utm_medium: params.get("utm_medium"),
-    utm_campaign: params.get("utm_campaign"),
-    utm_content: params.get("utm_content"),
-  };
-};
-
-const getReferrer = () => {
-  if (typeof window === "undefined") return null;
-  return document.referrer || null;
-};
-
-const postForm = async (endpoint, data) => {
-  try {
-    const form = new FormData();
-    const baseData = {
-      ...data,
-      visitor_id: getVisitorId(),
-      device_type: getDeviceType(),
-      ...getUTMParams(),
-      referrer_url: getReferrer(),
-      timestamp: new Date().toISOString(),
-    };
-
-    Object.entries(baseData).forEach(([k, v]) => {
-      if (v === undefined || v === null) return;
-      if (typeof v === "object") form.append(k, JSON.stringify(v));
-      else form.append(k, String(v));
-    });
-
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
-      method: "POST",
-      body: form,
-      keepalive: true,
-    });
-
-    return res.ok;
-  } catch (e) {
-    console.error("Tracking error:", endpoint, e);
-    return false;
-  }
-};
 
 const SEARCH_HISTORY_KEY = "lmx_search_history";
 const MAX_HISTORY_ITEMS = 8;
@@ -235,6 +165,7 @@ const Search = () => {
   const { navigate } = useNavigate();
   const { savedSearches, markUsed } = useSavedSearches();
   const settings = useSelector(settingsData);
+  const { trackSearchImpressions, getSearchId } = useSearchTracking();
 
   const categoryList = [
     { slug: "all-categories", translated_name: t("allCategories") },
@@ -341,33 +272,32 @@ const Search = () => {
     return result;
   }, []);
 
-  const trackSearchImpressions = useCallback(
+  const trackAutocompleteImpressions = useCallback(
     async (ads, query) => {
       if (!ads?.length || !query) return;
 
-      const impressionId =
-        "imp_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now();
-
       const itemIds = ads.map((a) => a.id).filter(Boolean);
-
       const filters = {
         category:
           selectedItem?.slug && selectedItem.slug !== "all-categories"
             ? selectedItem.slug
             : null,
+        search_type: "autocomplete",
+      };
+      const searchContext = {
+        search_query: query,
+        category_slug: filters.category,
+        filters,
       };
 
-      await postForm("track/search-impressions", {
-        impression_id: impressionId,
-        item_ids: itemIds,
-        search_query: query,
-        search_type: "autocomplete",
+      getSearchId(searchContext);
+      await trackSearchImpressions(itemIds, {
+        ...searchContext,
         page: 1,
-        results_total: ads.length,
-        filters,
+        results_count: ads.length,
       });
     },
-    [selectedItem?.slug]
+    [selectedItem?.slug, trackSearchImpressions, getSearchId]
   );
 
   const performSearch = useCallback(
@@ -415,7 +345,7 @@ const Search = () => {
 
         setDidYouMean([]);
 
-        await trackSearchImpressions(ads, query);
+        await trackAutocompleteImpressions(ads, query);
 
         const titleWords = new Set();
         const queryLower = query.toLowerCase();
@@ -478,7 +408,7 @@ const Search = () => {
         setIsSearching(false);
       }
     },
-    [cateData, flattenCategories, trackSearchImpressions, searchHistory]
+    [cateData, flattenCategories, trackAutocompleteImpressions, searchHistory]
   );
 
   useEffect(() => {
