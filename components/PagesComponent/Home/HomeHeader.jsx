@@ -73,6 +73,7 @@ import {
 import {
   getIsLoginModalOpen,
   setIsLoginOpen,
+  getHideMobileBottomNav,
 } from "@/redux/reducer/globalStateSlice.js";
 
 const Search = dynamic(() => import("./Search.jsx"), { ssr: false });
@@ -123,6 +124,7 @@ const HomeHeader = () => {
   const userData = useSelector(userSignUpData);
   const IsLoggedin = useSelector(getIsLoggedIn);
   const IsLoginOpen = useSelector(getIsLoginModalOpen);
+  const hideMobileBottomNav = useSelector(getHideMobileBottomNav);
   const isCategoryLoading = useSelector(getIsCatLoading);
   const cateData = useSelector(CategoryData);
   const IsFreeAdListing = useSelector(getIsFreAdListing);
@@ -691,93 +693,15 @@ const HomeHeader = () => {
           ) : (
             <>
               {/* MOBILE: GORE (brand + right actions) */}
-              <div className="flex items-center justify-between gap-2 pt-3 pb-2">
-                <div className="flex items-center gap-2">
-                  {/* Theme Toggle (desno) */}
-                  <ThemeToggle />
-                  <CustomLink
-                    href="/svi-korisnici"
-                    className="flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
-                  >
-                    Svi korisnici
-                  </CustomLink>
-                </div>
-
-                {/* Right side: (od desna) Theme, Poruke, Moji oglasi, Profil */}
-                <div className="flex items-center gap-1.5">
-                  {/* Lokacija (ostaje lijevo u ovom bloku) */}
-                  <button
-                    className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
-                    onClick={() => setIsLocationModalOpen(true)}
-                    type="button"
-                    aria-label="Lokacija"
-                    title={locationText || "Dodaj lokaciju"}
-                  >
-                    <MapPin
-                      size={16}
-                      className="text-slate-600 dark:text-slate-400"
-                    />
-                  </button>
-
-                  {/* Profil (prije oglasa/poruka/theme) */}
-                  {IsLoggedin ? (
-                    <ProfileDropdown
-                      setIsLogout={setIsLogout}
-                      IsLogout={IsLogout}
-                      hideNameOnMobile={false}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => setIsLoginOpen(true)}
-                      className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
-                      type="button"
-                      aria-label="Prijava"
-                      title="Prijava"
-                    >
-                      <IconUserCircle
-                        size={20}
-                        className="text-slate-600 dark:text-slate-400"
-                      />
-                    </button>
-                  )}
-
-                  {/* Moji oglasi */}
-                  <button
-                    className={`w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all ${
-                      isMyAdsActive
-                        ? "text-primary"
-                        : "text-slate-600 dark:text-slate-400"
-                    }`}
-                    onClick={handleMyAdsClick}
-                    type="button"
-                    aria-label="Moji oglasi"
-                    title="Moji oglasi"
-                  >
-                    <IconListDetails
-                      size={18}
-                      strokeWidth={isMyAdsActive ? 2.5 : 1.8}
-                    />
-                  </button>
-
-                  {/* Poruke */}
-                  <button
-                    onClick={handleChatClick}
-                    className="relative w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
-                    title="Poruke"
-                    type="button"
-                    aria-label="Poruke"
-                  >
-                    <MessageSquareMore
-                      size={18}
-                      className="text-slate-700 dark:text-slate-300"
-                    />
-                    {IsLoggedin && totalUnreadMessages > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-                        {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
-                      </span>
-                    )}
-                  </button>
-                </div>
+              <div className="flex items-center gap-2 pt-3 pb-2">
+                {/* Theme Toggle (desno) */}
+                <ThemeToggle />
+                <CustomLink
+                  href="/svi-korisnici"
+                  className="flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                >
+                  Svi korisnici
+                </CustomLink>
               </div>
 
               {/* MOBILE: Search */}
@@ -802,13 +726,35 @@ const HomeHeader = () => {
       )}
 
       {/* ========== MOBILE BOTTOM NAVIGATION ========== */}
-      {!isLargeScreen && (
+      {!isLargeScreen && !hideMobileBottomNav && (
         <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
           {/* Gradient shadow */}
           <div className="absolute inset-x-0 -top-4 h-4 bg-gradient-to-t from-white/80 dark:from-slate-900/80 to-transparent pointer-events-none" />
 
           <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 safe-area-pb">
             <div className="grid grid-cols-5 h-16">
+              {/* Lokacija */}
+              <button
+                type="button"
+                onClick={() => setIsLocationModalOpen(true)}
+                className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400"
+                aria-label="Lokacija"
+              >
+                <MapPin size={20} className="text-slate-600 dark:text-slate-400" />
+                <span className="text-[10px]">Lokacija</span>
+              </button>
+
+              {/* Profil */}
+              <button
+                type="button"
+                onClick={handleProfileQuick}
+                className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400"
+                aria-label="Profil"
+              >
+                <IconUserCircle size={20} className="text-slate-600 dark:text-slate-400" />
+                <span className="text-[10px]">Profil</span>
+              </button>
+
               {/* Moji oglasi */}
               <button
                 type="button"
@@ -818,7 +764,7 @@ const HomeHeader = () => {
                 }`}
                 aria-label="Moji oglasi"
               >
-                <IconListDetails size={22} strokeWidth={isMyAdsActive ? 2.5 : 1.5} />
+                <IconListDetails size={20} strokeWidth={isMyAdsActive ? 2.5 : 1.5} />
                 <span className={`text-[10px] ${isMyAdsActive ? "font-semibold" : ""}`}>
                   Moji oglasi
                 </span>
@@ -834,7 +780,7 @@ const HomeHeader = () => {
                 aria-label="Poruke"
               >
                 <div className="relative">
-                  <MessageSquareMore size={22} strokeWidth={isChatActive ? 0.5 : 0} />
+                  <MessageSquareMore size={20} strokeWidth={isChatActive ? 0.5 : 0} />
                   {IsLoggedin && totalUnreadMessages > 0 && (
                     <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
                       {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
@@ -845,43 +791,6 @@ const HomeHeader = () => {
                   Poruke
                 </span>
               </button>
-
-              {/* Objavi oglas - centralni, istaknut */}
-              <button
-                type="button"
-                onClick={handleAdListing}
-                disabled={IsAdListingClicked}
-                className="flex flex-col items-center justify-center gap-0.5 -mt-3"
-                aria-label="Objavi oglas"
-              >
-                <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-95">
-                  {IsAdListingClicked ? (
-                    <Loader2 size={24} className="animate-spin" />
-                  ) : (
-                    <IoIosAddCircleOutline size={26} />
-                  )}
-                </div>
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
-                  Objavi
-                </span>
-              </button>
-
-              {/* Favoriti */}
-              <button
-                type="button"
-                onClick={handleFavoritesClick}
-                className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                  isFavoritesActive ? "text-primary" : "text-slate-600 dark:text-slate-400"
-                }`}
-                aria-label="Favoriti"
-              >
-                <IconHeart size={22} strokeWidth={isFavoritesActive ? 2.5 : 1.5} />
-                <span className={`text-[10px] ${isFavoritesActive ? "font-semibold" : ""}`}>
-                  Favoriti
-                </span>
-              </button>
-
-              {/* Više - otvara Sheet */}
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <button
@@ -889,7 +798,7 @@ const HomeHeader = () => {
                     className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400"
                     aria-label="Više opcija"
                   >
-                    <IconDotsCircleHorizontal size={22} strokeWidth={1.5} />
+                    <IconDotsCircleHorizontal size={20} strokeWidth={1.5} />
                     <span className="text-[10px]">Više</span>
                   </button>
                 </SheetTrigger>
@@ -1004,7 +913,7 @@ const HomeHeader = () => {
       )}
 
       {/* Spacer za mobile bottom nav - da content ne bude prekriven */}
-      {!isLargeScreen && <div className="h-16 lg:hidden" />}
+      {!isLargeScreen && !hideMobileBottomNav && <div className="h-16 lg:hidden" />}
 
       {/* modals (isto kao prije) */}
       <LoginModal
