@@ -295,18 +295,17 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
       <DialogContent className="max-w-5xl p-0 overflow-hidden bg-slate-950 text-white">
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#11b7b0] via-[#f97316] to-[#1e3a8a] p-[2px]">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#F7941D] via-[#E1306C] to-[#833AB4] p-[2px]">
               <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center">
-                <Play className="w-5 h-5 text-[#11b7b0]" />
+                <Play className="w-5 h-5 text-[#E1306C]" />
               </div>
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">
-                Objavi Reelove
+                Objavi video priče
               </h3>
               <p className="text-sm text-slate-300">
-                Dodajte više videa i objavite ih jedan za drugim, kao na
-                Instagramu.
+                Dodajte više videa za svoje oglase - svaki video postaje dio vaše priče.
               </p>
             </div>
           </div>
@@ -378,7 +377,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     "flex flex-col items-center justify-center gap-3",
                     "border border-dashed border-white/15 rounded-2xl",
                     "bg-slate-900/60 px-6 py-10 text-center cursor-pointer",
-                    "transition-colors hover:border-[#11b7b0]/60 hover:bg-[#11b7b0]/10"
+                    "transition-colors hover:border-[#E1306C]/60 hover:bg-[#E1306C]/10"
                   )}
                 >
                   <input
@@ -390,9 +389,9 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   />
                   <div className="w-12 h-12 rounded-2xl bg-white/10 shadow-sm flex items-center justify-center">
                     {isUploading ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-[#11b7b0]" />
+                      <Loader2 className="w-6 h-6 animate-spin text-[#E1306C]" />
                     ) : (
-                      <UploadCloud className="w-6 h-6 text-[#11b7b0]" />
+                      <UploadCloud className="w-6 h-6 text-[#E1306C]" />
                     )}
                   </div>
                   <div>
@@ -418,7 +417,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                         </div>
                         <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
                           <div
-                            className="h-full bg-[#11b7b0] transition-all"
+                            className="h-full bg-gradient-to-r from-[#F7941D] to-[#E1306C] transition-all"
                             style={{ width: `${uploadProgress}%` }}
                           />
                         </div>
@@ -501,7 +500,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     isSubmittingMore ||
                     (hasExistingVideo && !confirmReplace)
                   }
-                  className="min-w-[160px] bg-[#11b7b0] hover:bg-[#0fa29c]"
+                  className="min-w-[160px] bg-gradient-to-r from-[#F7941D] to-[#E1306C] hover:opacity-90"
                 >
                   {isSubmitting ? (
                     <>
@@ -541,7 +540,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     className={cn(
                       "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
                       index === 0
-                        ? "border-[#11b7b0] bg-[#11b7b0]/15"
+                        ? "border-[#E1306C] bg-[#E1306C]/15"
                         : "border-white/10 bg-slate-900/40 hover:bg-slate-900/60"
                     )}
                   >
