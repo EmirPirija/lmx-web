@@ -55,6 +55,7 @@ import ExistingConversationBanner from "@/components/PagesComponent/ProductDetai
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { setBreadcrumbPath } from "@/redux/reducer/breadCrumbSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
+import { setHideMobileBottomNav } from "@/redux/reducer/globalStateSlice";
 
 // Utils & Hooks
 import { getFilteredCustomFields, getYouTubeVideoId, truncate } from "@/utils";
@@ -295,6 +296,13 @@ const ProductDetails = ({ slug }) => {
 
   // 3. Effects
   useEffect(() => { fetchProductDetails(); }, [slug, CurrentLanguage?.id]);
+
+  useEffect(() => {
+    dispatch(setHideMobileBottomNav(true));
+    return () => {
+      dispatch(setHideMobileBottomNav(false));
+    };
+  }, [dispatch]);
   useEffect(() => {
     if (!itemId || isMyListing || isOwner) return;
 

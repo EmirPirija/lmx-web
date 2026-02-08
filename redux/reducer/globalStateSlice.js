@@ -8,6 +8,7 @@ const initialState = {
   Notification: null,
   IsUnauthorized: false,
   selectedLocation: null,
+  hideMobileBottomNav: false,
   // Add blocked users state
   blockedUsersList: [],
   blockedUsersLoading: false,
@@ -34,6 +35,9 @@ export const globalStateSlice = createSlice({
     },
     setSelectedLocation: (state, action) => {
       state.selectedLocation = action.payload;
+    },
+    setHideMobileBottomNav: (state, action) => {
+      state.hideMobileBottomNav = action.payload;
     },
     // Add blocked users reducers
     setBlockedUsersList: (state, action) => {
@@ -63,6 +67,7 @@ export const {
   setNotification,
   setIsUnauthorized,
   setSelectedLocation,
+  setHideMobileBottomNav,
   // Export blocked users actions
   setBlockedUsersList,
   setBlockedUsersLoading,
@@ -110,6 +115,11 @@ export const getIsUnauthorized = createSelector(
 export const getSelectedLocation = createSelector(
   (state) => state.GlobalState,
   (GlobalState) => GlobalState.selectedLocation
+);
+
+export const getHideMobileBottomNav = createSelector(
+  (state) => state.GlobalState,
+  (GlobalState) => GlobalState.hideMobileBottomNav
 );
 
 // Add blocked users selectors with fallbacks
