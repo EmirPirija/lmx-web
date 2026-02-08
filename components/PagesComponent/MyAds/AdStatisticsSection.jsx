@@ -103,6 +103,38 @@ const getPeakDay = (daily) => {
   return daily.reduce((max, current) => (current.views > max.views ? current : max), daily[0]);
 };
 
+const getSourceTotals = (sources) => {
+  const internalTotal = (sources?.internal || []).reduce((sum, item) => sum + (item.value || 0), 0);
+  const externalTotal = (sources?.external || []).reduce((sum, item) => sum + (item.value || 0), 0);
+  return {
+    internalTotal,
+    externalTotal,
+    total: internalTotal + externalTotal,
+  };
+};
+
+const getPeakHour = (hourly) => {
+  if (!hourly?.length) return null;
+  return hourly.reduce((max, current) => (current.views > max.views ? current : max), hourly[0]);
+};
+
+const getEngagementScore = (summary) => {
+  const period = summary?.period || {};
+  const views = period.views || 0;
+  const interactions =
+    (period.messages || 0) +
+    (period.public_questions || 0) +
+    (period.favorites || 0) +
+    (period.shares || 0) +
+    (period.phone_clicks || 0) +
+    (period.whatsapp_clicks || 0) +
+    (period.viber_clicks || 0) +
+    (period.email_clicks || 0);
+
+  if (!views) return 0;
+  return Math.min((interactions / views) * 100, 100);
+};
+
 // ============================================
 // CUSTOM TOOLTIP
 // ============================================
@@ -353,6 +385,43 @@ const ViewsChartSection = ({ daily }) => {
 };
 
 // ============================================
+// TRAFFIC OVERVIEW
+// ============================================
+const TrafficOverviewSection = ({ sources }) => {
+  const { internalTotal, externalTotal, total } = getSourceTotals(sources);
+  const topSource = getTopSource(sources);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+        <IoLocationOutline className="text-indigo-500" />
+        Pregled izvora prometa
+      </h4>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Ukupno posjeta", value: total, color: "text-indigo-600 bg-indigo-50" },
+          { label: "Interni izvori", value: internalTotal, color: "text-blue-600 bg-blue-50" },
+          { label: "Eksterni izvori", value: externalTotal, color: "text-emerald-600 bg-emerald-50" },
+          {
+            label: "Najbolji izvor",
+            value: topSource?.name || "—",
+            color: "text-purple-600 bg-purple-50",
+            isLabel: true,
+          },
+        ].map((item) => (
+          <div key={item.label} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">{item.label}</p>
+            <p className={`text-sm font-bold ${item.color}`}>
+              {item.isLabel ? item.value : formatNumber(item.value)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // INTERACTIONS GRID
 // ============================================
 const InteractionsSection = ({ summary }) => {
@@ -442,6 +511,17 @@ const EngagementRatesSection = ({ summary }) => {
             </div>
           </div>
         ))}
+      </div>
+      <div className="mt-4 bg-slate-50 rounded-xl p-3 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Skor angažmana</p>
+          <p className="text-sm font-bold text-slate-800">{formatPercent(getEngagementScore(summary))}</p>
+        </div>
+        <div className="text-xs text-slate-500 text-right">
+          Više interakcija
+          <br />
+          znači kvalitetniji interes
+        </div>
       </div>
     </div>
   );
@@ -594,6 +674,58 @@ const TrafficSourcesSection = ({ sources }) => {
               <span className="font-semibold text-slate-800 text-xs">{source.percent}%</span>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// SOURCES DETAIL (PRO)
+// ============================================
+const SourcesDetailSection = ({ sources }) => {
+  const internal = sources?.internal || [];
+  const external = sources?.external || [];
+
+  if (internal.length === 0 && external.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <IoLocationOutline className="text-emerald-500" />
+          Detaljni izvori
+        </h4>
+        <div className="h-[160px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
+        </div>
+      </div>
+    );
+  }
+
+  const renderList = (items) => (
+    <div className="space-y-2">
+      {items.slice(0, 6).map((source, index) => (
+        <div key={`${source.name}-${index}`} className="flex items-center justify-between text-xs">
+          <span className="text-slate-600 truncate">{source.name}</span>
+          <span className="text-slate-800 font-semibold">{formatNumber(source.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoLocationOutline className="text-emerald-500" />
+        Detaljni izvori
+      </h4>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Interni izvori</p>
+          {internal.length ? renderList(internal) : <p className="text-xs text-slate-400">Nema podataka</p>}
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Eksterni izvori</p>
+          {external.length ? renderList(external) : <p className="text-xs text-slate-400">Nema podataka</p>}
         </div>
       </div>
     </div>
@@ -828,6 +960,35 @@ const ViewsByTimeSection = ({ hourlyData }) => {
 };
 
 // ============================================
+// BEST TIMES (SHOP)
+// ============================================
+const BestTimesSection = ({ daily, hourly }) => {
+  const peakDay = getPeakDay(daily);
+  const peakHour = getPeakHour(hourly);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoTimeOutline className="text-blue-500" />
+        Najbolji termini
+      </h4>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Najbolji dan</p>
+          <p className="text-sm font-bold text-slate-800">{peakDay?.formatted_date || "—"}</p>
+          <p className="text-xs text-slate-400">{formatNumber(peakDay?.views || 0)} pregleda</p>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Najaktivniji sat</p>
+          <p className="text-sm font-bold text-slate-800">{peakHour?.hour || "—"}</p>
+          <p className="text-xs text-slate-400">{formatNumber(peakHour?.views || 0)} pregleda</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // CONVERSION FUNNEL (SHOP)
 // ============================================
 const ConversionSection = ({ funnel }) => {
@@ -997,6 +1158,14 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
   const isPro = membershipTier === "pro";
   const isShop = membershipTier === "shop";
   const isPremium = isPro || isShop;
+  const motionFade = {
+    hidden: { opacity: 0, y: 12 },
+    show: (delay = 0) => ({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.35, delay },
+    }),
+  };
 
   // Quick stats
   const [quickStats, setQuickStats] = useState(null);
@@ -1087,48 +1256,66 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                   {/* BASIC TIER */}
                   <div className="space-y-4">
                     {/* Main stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Danas"
-                        value={stats.summary?.today?.views || 0}
-                        color="blue"
-                        highlight
-                      />
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Jučer"
-                        value={stats.summary?.yesterday?.views || 0}
-                        color="blue"
-                      />
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Period"
-                        value={stats.summary?.period?.views || 0}
-                        trend={stats.summary?.trends?.views_vs_yesterday}
-                        color="blue"
-                      />
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Prosječno/dan"
-                        value={stats.summary?.period?.avg_views_per_day || 0}
-                        color="blue"
-                      />
-                    </div>
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0}>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Danas"
+                          value={stats.summary?.today?.views || 0}
+                          color="blue"
+                          highlight
+                        />
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Jučer"
+                          value={stats.summary?.yesterday?.views || 0}
+                          color="blue"
+                        />
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Period"
+                          value={stats.summary?.period?.views || 0}
+                          trend={stats.summary?.trends?.views_vs_yesterday}
+                          color="blue"
+                        />
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Prosječno/dan"
+                          value={stats.summary?.period?.avg_views_per_day || 0}
+                          color="blue"
+                        />
+                      </div>
+                    </motion.div>
 
-                    <ViewsChartSection daily={stats.daily} />
-                    <InteractionsSection summary={stats.summary} />
-                    <PromotionSection summary={stats.summary} />
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.05}>
+                      <ViewsChartSection daily={stats.daily} />
+                    </motion.div>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
-                      <EngagementRatesSection summary={stats.summary} />
-                      <HighlightsSection sources={stats.sources} devices={stats.devices} daily={stats.daily} />
-                    </div>
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.1}>
+                      <InteractionsSection summary={stats.summary} />
+                    </motion.div>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
-                      <TrafficSourcesSection sources={stats.sources} />
-                      <PlatformsSection devices={stats.devices} />
-                    </div>
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.15}>
+                      <TrafficOverviewSection sources={stats.sources} />
+                    </motion.div>
+
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.2}>
+                      <PromotionSection summary={stats.summary} />
+                    </motion.div>
+
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.25}>
+                      <div className="grid lg:grid-cols-2 gap-4">
+                        <EngagementRatesSection summary={stats.summary} />
+                        <HighlightsSection sources={stats.sources} devices={stats.devices} daily={stats.daily} />
+                      </div>
+                    </motion.div>
+
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.3}>
+                      <div className="grid lg:grid-cols-2 gap-4">
+                        <TrafficSourcesSection sources={stats.sources} />
+                        <PlatformsSection devices={stats.devices} />
+                      </div>
+                    </motion.div>
                   </div>
 
                   {/* PRO TIER */}
@@ -1149,6 +1336,7 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                           <SearchTermsSection searchTerms={stats.search_terms} />
                           <SearchPositionSection searchPositions={stats.search_positions} />
                         </div>
+                        <SourcesDetailSection sources={stats.sources} />
                       </div>
                     </div>
                   </div>
@@ -1168,6 +1356,7 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                       <div className={`space-y-4 ${!isShop ? "blur-sm pointer-events-none select-none" : ""}`}>
                         <ViewsByTimeSection hourlyData={stats.hourly} />
                         <ConversionSection funnel={stats.funnel} />
+                        <BestTimesSection daily={stats.daily} hourly={stats.hourly} />
                       </div>
                     </div>
                   </div>
