@@ -110,7 +110,7 @@ const buildDotItems = (count, current, maxDots = 7) => {
   return items;
 };
 
-const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
+const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) => {
   const userData = useSelector(userSignUpData);
 
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
@@ -198,10 +198,13 @@ const ProductCard = ({ item, handleLike, isLoading, onClick }) => {
       )
     : false;
 
-  const productLink =
+  const productLinkBase =
     userData?.id === item?.user_id
       ? `/my-listing/${item?.slug}`
       : `/ad-details/${item?.slug}`;
+  const productLink = trackingParams
+    ? `${productLinkBase}?${new URLSearchParams(trackingParams).toString()}`
+    : productLinkBase;
 
   const handleLikeItem = async (e) => {
     e.preventDefault();

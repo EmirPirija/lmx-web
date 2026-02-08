@@ -54,8 +54,9 @@ const Ads = () => {
   // ============================================
   // SEARCH TRACKING HOOK
   // ============================================
-  const { trackSearchImpressions, trackSearchClick } = useSearchTracking();
+  const { trackSearchImpressions, trackSearchClick, getSearchId } = useSearchTracking();
   const lastImpressionIdRef = useRef(null);
+  const searchIdRef = useRef(null);
 
   const [view, setView] = useState("grid");
   const [advertisements, setAdvertisements] = useState({
@@ -347,18 +348,27 @@ const Ads = () => {
         // ✅ TRACK SEARCH IMPRESSIONS
         if (items.length > 0) {
           const itemIds = items.map((item) => item.id);
-          const impressionId = await trackSearchImpressions(itemIds, {
-            search_query: query || null,
-            category_slug: slug || null,
-            sort_by: sortBy,
+          const filters = {
             min_price: isMinPrice ? min_price : null,
             max_price: max_price || null,
             location: city || state || country || null,
-            results_count: data?.data?.total || items.length,
-            page: page,
+            extra: extraDetails || null,
+          };
+          const searchContext = {
+            search_query: query || null,
+            category_slug: slug || null,
+            sort_by: sortBy,
             featured_section: featured_section || null,
+            filters,
+          };
+          const searchId = getSearchId(searchContext);
+          searchIdRef.current = searchId;
+          await trackSearchImpressions(itemIds, {
+            ...searchContext,
+            results_count: data?.data?.total || items.length,
+            page,
           });
-          lastImpressionIdRef.current = impressionId;
+          lastImpressionIdRef.current = null;
         }
 
         page > 1
@@ -723,7 +733,12 @@ const Ads = () => {
                     <ProductHorizontalCard
                       item={item}
                       handleLike={handleLike}
-                      onItemClick={() => handleItemClick(item.id, index)}
+                      onClick={() => handleItemClick(item.id, index)}
+                      trackingParams={
+                        searchIdRef.current
+                          ? { search_id: searchIdRef.current, ref: "search" }
+                          : undefined
+                      }
                     />
                   </div>
                 ) : (
@@ -734,7 +749,12 @@ const Ads = () => {
                     <ProductCard
                       item={item}
                       handleLike={handleLike}
-                      onItemClick={() => handleItemClick(item.id, index)}
+                      onClick={() => handleItemClick(item.id, index)}
+                      trackingParams={
+                        searchIdRef.current
+                          ? { search_id: searchIdRef.current, ref: "search" }
+                          : undefined
+                      }
                     />
                   </div>
                 )
