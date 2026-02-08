@@ -37,7 +37,7 @@ const fetchCitiesForCountry = async (countryId) => {
   return [];
 };
 
-const LocationPopup = ({ onClose, extraDetails }) => {
+const LocationPopup = ({ onClose, extraDetails = {}, country, state, city, area }) => {
   const { navigate } = useNavigate();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -114,6 +114,13 @@ const LocationPopup = ({ onClose, extraDetails }) => {
   }, [searchTerm]);
 
   const currentLocationSlug = searchParams.get("location");
+  const locationSummary = useMemo(() => {
+    const parts = [area, city, state, country].filter(Boolean);
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+    return currentLocationSlug || "Sve lokacije";
+  }, [area, city, state, country, currentLocationSlug]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300" onClick={onClose}>
@@ -148,6 +155,28 @@ const LocationPopup = ({ onClose, extraDetails }) => {
 
         {/* CONTENT */}
         <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200">
+          <div className="mb-4 rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg">
+                📌
+              </div>
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wide text-gray-400">Aktivna lokacija</p>
+                <p className="text-sm font-semibold text-gray-800">{locationSummary}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Brzo filtriraj oglase po gradu, regiji ili cijeloj državi.
+                </p>
+              </div>
+              {currentLocationSlug && (
+                <button
+                  onClick={() => selectLocation(null)}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                >
+                  Poništi
+                </button>
+              )}
+            </div>
+          </div>
           
           {/* OPCIJA: SVE ZEMLJE (Reset) */}
           {!isSearching && (

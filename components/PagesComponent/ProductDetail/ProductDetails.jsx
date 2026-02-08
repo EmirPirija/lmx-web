@@ -295,7 +295,27 @@ const ProductDetails = ({ slug }) => {
 
   // 3. Effects
   useEffect(() => { fetchProductDetails(); }, [slug, CurrentLanguage?.id]);
-  useEffect(() => { if (itemId && !isMyListing && !isOwner) trackView(searchParams.get("ref"), searchParams.get("query")); }, [itemId, isMyListing, isOwner]);
+  useEffect(() => {
+    if (!itemId || isMyListing || isOwner) return;
+
+    const searchId = searchParams.get("search_id");
+    const ref = searchParams.get("ref");
+    const sourceDetail = searchParams.get("source_detail");
+    const sourceMap = {
+      search: "search",
+      category: "category",
+      featured: "featured",
+      similar: "similar",
+      seller: "seller",
+      favorites: "favorites",
+      notification: "notification",
+      chat: "chat",
+      home: "direct",
+    };
+    const source = sourceMap[ref] || null;
+
+    trackView({ searchId, source, source_detail: sourceDetail });
+  }, [itemId, isMyListing, isOwner, trackView, searchParams]);
   useEffect(() => { if (window.innerWidth <= 768 && !isMyListing && !isOwner && isShare) setIsOpenInApp(true); }, [isMyListing, isOwner]);
 
   // Handlers

@@ -197,7 +197,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
       if (response?.data?.error === false) {
         setProductDetails((prev) => ({ ...prev, is_liked: !productDetails?.is_liked }));
         toast.success(productDetails?.is_liked ? "Uklonjeno iz omiljenih" : "Dodano u omiljene");
-        if(onFavoriteToggle) onFavoriteToggle();
+        if (onFavoriteToggle) onFavoriteToggle(!productDetails?.is_liked);
       }
     } catch (error) {
       console.log(error);
@@ -242,6 +242,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                 headline={headline}
                 companyName={CompanyName}
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary dark:hover:text-primary transition-all active:scale-95 border border-slate-100 dark:border-slate-700"
+                onShare={(platform) => onShareClick?.(platform)}
               />
               <button
                 onClick={handleLikeItem}

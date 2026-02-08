@@ -8,7 +8,7 @@ import { FaHeart, FaRegHeart, FaYoutube } from "react-icons/fa";
 import { IoLocationOutline, IoTimeOutline } from "react-icons/io5";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { HiOutlineArrowRight } from "react-icons/hi";
-import { manageFavouriteApi } from "@/utils/api";
+import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { toast } from "sonner";
@@ -108,7 +108,7 @@ const formatPriceOrInquiry = (price) => {
   return formatPriceAbbreviated(Number(price));
 };
 
-const ProductHorizontalCard = ({ item, handleLike, onClick }) => {
+const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) => {
   const userData = useSelector(userSignUpData);
   const translated_item = item?.translated_item;
 
@@ -124,10 +124,13 @@ const ProductHorizontalCard = ({ item, handleLike, onClick }) => {
       )
     : false;
 
-  const productLink =
+  const productLinkBase =
     userData?.id === item?.user_id
       ? `/my-listing/${item?.slug}`
       : `/ad-details/${item?.slug}`;
+  const productLink = trackingParams
+    ? `${productLinkBase}?${new URLSearchParams(trackingParams).toString()}`
+    : productLinkBase;
 
   const keyAttributes = getKeyAttributes(item);
 
@@ -186,6 +189,12 @@ const ProductHorizontalCard = ({ item, handleLike, onClick }) => {
       if (response?.data?.error === false) {
         toast.success(response?.data?.message);
         handleLike(item?.id);
+        const nextLiked = !item?.is_liked;
+        try {
+          await itemStatisticsApi.trackFavorite({ item_id: item?.id, added: nextLiked });
+        } catch (trackingError) {
+          console.warn("Praćenje favorita nije uspjelo.", trackingError);
+        }
       } else {
         toast.error(t("failedToLike"));
       }
