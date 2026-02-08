@@ -19,6 +19,7 @@ import {
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { itemQuestionsApi } from "@/utils/api";
+import { useItemTracking } from "@/hooks/useItemTracking";
 import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -144,6 +145,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const itemId = productDetails?.id;
+  const { trackEngagement } = useItemTracking(itemId, { autoTrackView: false });
 
   const fetchQuestions = useCallback(async (pageNum = 1, append = false) => {
     if (!itemId) return;
@@ -171,6 +173,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
         toast.success("Pitanje postavljeno");
         setNewQuestion("");
         setShowAskForm(false);
+        trackEngagement("public_question", { action: "add", question_id: res?.data?.data?.id });
         fetchQuestions();
       } else toast.error(res?.data?.message);
     } catch { toast.error("Greška"); } finally { setIsSubmitting(false); }
@@ -179,7 +182,11 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
   const handleAnswer = async (qId, ans) => {
     try {
       const res = await itemQuestionsApi.answerQuestion({ question_id: qId, answer: ans.trim() });
-      if (!res?.data?.error) { toast.success("Odgovoreno"); fetchQuestions(); }
+      if (!res?.data?.error) {
+        toast.success("Odgovoreno");
+        trackEngagement("public_question", { action: "answer", question_id: qId });
+        fetchQuestions();
+      }
       else toast.error(res?.data?.message);
     } catch { toast.error("Greška"); }
   };
@@ -189,6 +196,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
     try {
       await itemQuestionsApi.likeQuestion({ question_id: qId });
       setQuestions(prev => prev.map(q => q.id === qId ? { ...q, is_liked: !q.is_liked, likes_count: q.is_liked ? q.likes_count - 1 : q.likes_count + 1 } : q));
+      trackEngagement("public_question", { action: "like", question_id: qId });
     } catch (e) { console.error(e); }
   };
 
@@ -200,13 +208,18 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
         toast.success("Obrisano");
         setQuestions(prev => prev.filter(q => q.id !== qId));
         setTotalCount(prev => prev - 1);
+        trackEngagement("public_question", { action: "delete", question_id: qId });
       }
     } catch { toast.error("Greška"); }
   };
 
   const handleReport = async (qId) => {
     if (!isLoggedIn) return dispatch(setIsLoginOpen(true));
-    try { await itemQuestionsApi.reportQuestion({ question_id: qId }); toast.success("Prijavljeno"); } catch { toast.error("Greška"); }
+    try {
+      await itemQuestionsApi.reportQuestion({ question_id: qId });
+      trackEngagement("public_question", { action: "report", question_id: qId });
+      toast.success("Prijavljeno");
+    } catch { toast.error("Greška"); }
   };
 
   const displayedQuestions = isExpanded ? questions : questions.slice(0, 3);

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useMediaQuery } from "usehooks-ts";
 
 import { userSignUpData } from "@/redux/reducer/authSlice";
-import { itemQuestionsApi } from "@/utils/api";
+import { itemQuestionsApi, itemStatisticsApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -476,6 +476,7 @@ const PublicQuestionsPage = () => {
     setAnsweringId(questionId);
 
     try {
+      const currentQuestion = questions.find((q) => q.id === questionId);
       const response = await itemQuestionsApi.answerQuestion({
         question_id: questionId,
         answer: answerText,
@@ -497,6 +498,13 @@ const PublicQuestionsPage = () => {
           unanswered: Math.max(0, prev.unanswered - 1),
           answered: prev.answered + 1,
         }));
+        if (currentQuestion?.item_id || currentQuestion?.item?.id) {
+          await itemStatisticsApi.trackEngagement({
+            item_id: currentQuestion?.item_id || currentQuestion?.item?.id,
+            engagement_type: "public_question",
+            extra_data: [{ action: "answer", question_id: questionId }],
+          });
+        }
       } else {
         toast.error(response?.data?.message || "Greška pri slanju odgovora");
       }
