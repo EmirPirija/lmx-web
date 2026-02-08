@@ -693,15 +693,93 @@ const HomeHeader = () => {
           ) : (
             <>
               {/* MOBILE: GORE (brand + right actions) */}
-              <div className="flex items-center gap-2 pt-3 pb-2">
-                {/* Theme Toggle (desno) */}
-                <ThemeToggle />
-                <CustomLink
-                  href="/svi-korisnici"
-                  className="flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
-                >
-                  Svi korisnici
-                </CustomLink>
+              <div className="flex items-center justify-between gap-2 pt-3 pb-2">
+                <div className="flex items-center gap-2">
+                  {/* Theme Toggle (desno) */}
+                  <ThemeToggle />
+                  <CustomLink
+                    href="/svi-korisnici"
+                    className="flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                  >
+                    Svi korisnici
+                  </CustomLink>
+                </div>
+
+                {/* Right side: (od desna) Theme, Poruke, Moji oglasi, Profil */}
+                <div className="flex items-center gap-1.5">
+                  {/* Lokacija (ostaje lijevo u ovom bloku) */}
+                  <button
+                    className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    type="button"
+                    aria-label="Lokacija"
+                    title={locationText || "Dodaj lokaciju"}
+                  >
+                    <MapPin
+                      size={16}
+                      className="text-slate-600 dark:text-slate-400"
+                    />
+                  </button>
+
+                  {/* Profil (prije oglasa/poruka/theme) */}
+                  {IsLoggedin ? (
+                    <ProfileDropdown
+                      setIsLogout={setIsLogout}
+                      IsLogout={IsLogout}
+                      hideNameOnMobile={false}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setIsLoginOpen(true)}
+                      className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
+                      type="button"
+                      aria-label="Prijava"
+                      title="Prijava"
+                    >
+                      <IconUserCircle
+                        size={20}
+                        className="text-slate-600 dark:text-slate-400"
+                      />
+                    </button>
+                  )}
+
+                  {/* Moji oglasi */}
+                  <button
+                    className={`w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all ${
+                      isMyAdsActive
+                        ? "text-primary"
+                        : "text-slate-600 dark:text-slate-400"
+                    }`}
+                    onClick={handleMyAdsClick}
+                    type="button"
+                    aria-label="Moji oglasi"
+                    title="Moji oglasi"
+                  >
+                    <IconListDetails
+                      size={18}
+                      strokeWidth={isMyAdsActive ? 2.5 : 1.8}
+                    />
+                  </button>
+
+                  {/* Poruke */}
+                  <button
+                    onClick={handleChatClick}
+                    className="relative w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
+                    title="Poruke"
+                    type="button"
+                    aria-label="Poruke"
+                  >
+                    <MessageSquareMore
+                      size={18}
+                      className="text-slate-700 dark:text-slate-300"
+                    />
+                    {IsLoggedin && totalUnreadMessages > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+                        {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* MOBILE: Search */}
