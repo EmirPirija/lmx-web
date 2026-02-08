@@ -31,10 +31,6 @@ import MailSentSuccessModal from "@/components/Auth/MailSentSuccessModal.jsx";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { Skeleton } from "@/components/ui/skeleton.jsx";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-import FilterTree from "@/components/Filter/FilterTree";
 import { deleteUser, getAuth } from "firebase/auth";
 
 import {
@@ -42,7 +38,6 @@ import {
   getLimitsApi,
   logoutApi,
   chatListApi,
-  getNotificationList,
 } from "@/utils/api.js";
 
 import { Loader2 } from "lucide-react";
@@ -50,25 +45,7 @@ import { IoIosAddCircleOutline } from "react-icons/io";
 import { MapPin, MessageSquareMore } from "lucide-react";
 
 
-import {
-  IconMenu2,
-  IconBell,
-  IconMapPin,
-  IconHome,
-  IconUserCircle,
-  IconCirclePlus,
-  IconListDetails,
-  IconLoader2,
-  IconCurrencyDollar,
-  IconHeart,
-  IconFileText,
-  IconMessage,
-  IconBriefcase,
-  IconTrash,
-  IconLogout,
-  IconCategory2,
-  IconDotsCircleHorizontal,
-} from "@tabler/icons-react";
+import { IconUserCircle, IconListDetails } from "@tabler/icons-react";
 
 import {
   getIsLoginModalOpen,
@@ -97,28 +74,12 @@ const HeaderCategoriesSkeleton = () => (
   </div>
 );
 
-// Helpers
-const safeList = (payload) => {
-  if (!payload) return [];
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.data)) return payload.data.data;
-  if (Array.isArray(payload?.data?.data?.data)) return payload.data.data.data;
-  return [];
-};
-
 const HomeHeader = () => {
   const { navigate } = useNavigate();
   const { signOut } = FirebaseData();
   const pathname = usePathname();
 
   const isLargeScreen = useMediaQuery("(min-width: 992px)");
-
-  const handleProfileQuick = () => {
-    setIsMobileMenuOpen(false);
-    if (!IsLoggedin) setIsLoginOpen(true);
-    else navigate("/profile");
-  };
 
   // Redux
   const userData = useSelector(userSignUpData);
@@ -140,9 +101,6 @@ const HomeHeader = () => {
   const [IsAdListingClicked, setIsAdListingClicked] = useState(false);
   const [IsMailSentSuccess, setIsMailSentSuccess] = useState(false);
 
-  // Mobile header sheet
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
   // Delete account (mobile dialog)
   const [manageDeleteAccount, setManageDeleteAccount] = useState({
     IsDeleteAccount: false,
@@ -151,11 +109,6 @@ const HomeHeader = () => {
 
   // Counts
   const [totalUnreadMessages, setTotalUnreadMessages] = useState(0);
-  const [totalUnreadNotifications, setTotalUnreadNotifications] = useState(0);
-
-  useEffect(() => {
-    if (isLargeScreen && isMobileMenuOpen) setIsMobileMenuOpen(false);
-  }, [isLargeScreen, isMobileMenuOpen]);
 
   // --- unread chat count ---
   useEffect(() => {
@@ -212,39 +165,6 @@ const HomeHeader = () => {
     };
   }, [IsLoggedin, pathname]);
 
-  // --- unread notifications count ---
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchUnreadNotifications = async () => {
-      if (!IsLoggedin) {
-        setTotalUnreadNotifications(0);
-        return;
-      }
-
-      try {
-        const res = await getNotificationList.getNotification({ page: 1 });
-        if (!isMounted) return;
-
-        const payload = res?.data?.data ?? res?.data ?? null;
-        const list = safeList(payload);
-
-        const unread = list.filter((n) => !n?.read_at && !n?.is_read).length;
-        setTotalUnreadNotifications(Number(unread || 0));
-      } catch (e) {
-        console.error("Greška prilikom dohvatanja notifikacija:", e);
-      }
-    };
-
-    fetchUnreadNotifications();
-    const interval = setInterval(fetchUnreadNotifications, 45000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [IsLoggedin, pathname]);
-
   const locationText = cityData?.formattedAddress;
 
   const handleLogout = async () => {
@@ -275,8 +195,6 @@ const HomeHeader = () => {
   };
 
   const handleAdListing = async () => {
-    setIsMobileMenuOpen(false);
-
     if (!IsLoggedin) {
       setIsLoginOpen(true);
       return;
@@ -341,212 +259,18 @@ const HomeHeader = () => {
   };
 
   const handleChatClick = () => {
-    setIsMobileMenuOpen(false);
     if (!IsLoggedin) setIsLoginOpen(true);
     else navigate("/chat");
   };
 
-  const handleNotificationsClick = () => {
-    setIsMobileMenuOpen(false);
-    if (!IsLoggedin) setIsLoginOpen(true);
-    else navigate("/notifications");
-  };
-
-  const handleFavoritesClick = () => {
-    setIsMobileMenuOpen(false);
-    if (!IsLoggedin) setIsLoginOpen(true);
-    else navigate("/favorites");
-  };
-
   const handleMyAdsClick = () => {
-    setIsMobileMenuOpen(false);
     if (!IsLoggedin) setIsLoginOpen(true);
     else navigate("/my-ads");
   };
 
-  const openLocationEditModal = () => {
-    setIsMobileMenuOpen(false);
-    setIsLocationModalOpen(true);
-  };
-
   // Mobile menu items (postojeće, samo zadržano)
-  const isHomeActive = pathname === "/";
-  const isProfileActive = pathname.startsWith("/profile");
   const isChatActive = pathname.startsWith("/chat");
   const isMyAdsActive = pathname.startsWith("/my-ads");
-  const isFavoritesActive = pathname.startsWith("/favorites");
-
-  const showMobileMenu = !!userData;
-  const showMobileCategories = !pathname.startsWith("/ads");
-
-  const mainNavItems = (
-    <div className="flex flex-col border-b border-border pb-2 mb-2">
-      <CustomLink
-        href="/"
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${
-          isHomeActive ? "bg-primary/10 text-primary" : ""
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconHome size={22} className={isHomeActive ? "text-primary" : ""} />
-        <span className={isHomeActive ? "font-medium" : ""}>Početna</span>
-      </CustomLink>
-
-      <CustomLink
-        href="/profile"
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${
-          isProfileActive ? "bg-primary/10 text-primary" : ""
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconUserCircle
-          size={22}
-          className={isProfileActive ? "text-primary" : ""}
-        />
-        <span className={isProfileActive ? "font-medium" : ""}>
-          {t("myProfile")}
-        </span>
-      </CustomLink>
-
-      <button
-        onClick={handleChatClick}
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg text-left w-full ${
-          isChatActive ? "bg-primary/10 text-primary" : ""
-        }`}
-      >
-        <div className="relative">
-          <MessageSquareMore
-            size={22}
-            className={isChatActive ? "text-primary" : ""}
-          />
-          {IsLoggedin && totalUnreadMessages > 0 && (
-            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-[2px] rounded-full bg-red-600 text-white text-[10px] font-bold border-2 border-background">
-              {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
-            </span>
-          )}
-        </div>
-        <span className={isChatActive ? "font-medium" : ""}>Poruke</span>
-      </button>
-
-      <button
-        onClick={handleAdListing}
-        disabled={IsAdListingClicked}
-        className="flex items-center gap-3 py-3 px-2 rounded-lg text-left w-full bg-primary/5 hover:bg-primary/10 transition-colors"
-      >
-        {IsAdListingClicked ? (
-          <IconLoader2 size={22} className="animate-spin text-primary" />
-        ) : (
-          <IconCirclePlus size={22} className="text-primary" />
-        )}
-        <span className="font-medium text-primary">{t("adListing")}</span>
-      </button>
-
-      <CustomLink
-        href="/my-ads"
-        className={`flex items-center gap-3 py-3 px-2 rounded-lg ${
-          isMyAdsActive ? "bg-primary/10 text-primary" : ""
-        }`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconListDetails
-          size={22}
-          className={isMyAdsActive ? "text-primary" : ""}
-        />
-        <span className={isMyAdsActive ? "font-medium" : ""}>{t("myAds")}</span>
-      </CustomLink>
-    </div>
-  );
-
-  const secondaryNavItems = (
-    <div className="flex flex-col">
-      
-      <button
-        onClick={handleNotificationsClick}
-        className="flex items-center justify-between gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors text-left"
-      >
-        <div className="flex items-center gap-3">
-          <IconBell size={22} />
-          <span>{t("notifications")}</span>
-        </div>
-        {IsLoggedin && totalUnreadNotifications > 0 && (
-          <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
-            {totalUnreadNotifications > 99 ? "99+" : totalUnreadNotifications}
-          </span>
-        )}
-      </button>
-
-      <CustomLink
-        href="/user-subscription"
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconCurrencyDollar size={22} />
-        <span>{t("subscription")}</span>
-      </CustomLink>
-
-      <CustomLink
-        href="/favorites"
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconHeart size={22} />
-        <span>{t("favorites")}</span>
-      </CustomLink>
-
-      <CustomLink
-        href="/transactions"
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconFileText size={22} />
-        <span>{t("transaction")}</span>
-      </CustomLink>
-
-      <CustomLink
-        href="/reviews"
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconMessage size={22} />
-        <span>{t("myReviews")}</span>
-      </CustomLink>
-
-      <CustomLink
-        href="/job-applications"
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors"
-        onClick={() => setIsMobileMenuOpen(false)}
-      >
-        <IconBriefcase size={22} />
-        <span>{t("jobApplications")}</span>
-      </CustomLink>
-    </div>
-  );
-
-  const actionItems = (
-    <div className="flex flex-col border-t border-border pt-2 mt-2">
-      <button
-        onClick={() => {
-          setIsMobileMenuOpen(false);
-          setIsLogout(true);
-        }}
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-muted transition-colors text-left w-full"
-      >
-        <IconLogout size={22} />
-        <span>{t("signOut")}</span>
-      </button>
-
-      <button
-        onClick={() => {
-          setIsMobileMenuOpen(false);
-          setManageDeleteAccount((prev) => ({ ...prev, IsDeleteAccount: true }));
-        }}
-        className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-destructive/10 transition-colors text-destructive text-left w-full"
-      >
-        <IconTrash size={22} />
-        <span>{t("deleteAccount")}</span>
-      </button>
-    </div>
-  );
 
   const logoSrc = settings?.header_logo;
   const brandName = settings?.company_name || settings?.app_name || "LMX";
@@ -705,9 +429,8 @@ const HomeHeader = () => {
                   </CustomLink>
                 </div>
 
-                {/* Right side: (od desna) Theme, Poruke, Moji oglasi, Profil */}
+                {/* Right side: Lokacija */}
                 <div className="flex items-center gap-1.5">
-                  {/* Lokacija (ostaje lijevo u ovom bloku) */}
                   <button
                     className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
                     onClick={() => setIsLocationModalOpen(true)}
@@ -719,65 +442,6 @@ const HomeHeader = () => {
                       size={16}
                       className="text-slate-600 dark:text-slate-400"
                     />
-                  </button>
-
-                  {/* Profil (prije oglasa/poruka/theme) */}
-                  {IsLoggedin ? (
-                    <ProfileDropdown
-                      setIsLogout={setIsLogout}
-                      IsLogout={IsLogout}
-                      hideNameOnMobile={false}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => setIsLoginOpen(true)}
-                      className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
-                      type="button"
-                      aria-label="Prijava"
-                      title="Prijava"
-                    >
-                      <IconUserCircle
-                        size={20}
-                        className="text-slate-600 dark:text-slate-400"
-                      />
-                    </button>
-                  )}
-
-                  {/* Moji oglasi */}
-                  <button
-                    className={`w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all ${
-                      isMyAdsActive
-                        ? "text-primary"
-                        : "text-slate-600 dark:text-slate-400"
-                    }`}
-                    onClick={handleMyAdsClick}
-                    type="button"
-                    aria-label="Moji oglasi"
-                    title="Moji oglasi"
-                  >
-                    <IconListDetails
-                      size={18}
-                      strokeWidth={isMyAdsActive ? 2.5 : 1.8}
-                    />
-                  </button>
-
-                  {/* Poruke */}
-                  <button
-                    onClick={handleChatClick}
-                    className="relative w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
-                    title="Poruke"
-                    type="button"
-                    aria-label="Poruke"
-                  >
-                    <MessageSquareMore
-                      size={18}
-                      className="text-slate-700 dark:text-slate-300"
-                    />
-                    {IsLoggedin && totalUnreadMessages > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-                        {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
-                      </span>
-                    )}
                   </button>
                 </div>
               </div>
@@ -810,29 +474,7 @@ const HomeHeader = () => {
           <div className="absolute inset-x-0 -top-4 h-4 bg-gradient-to-t from-white/80 dark:from-slate-900/80 to-transparent pointer-events-none" />
 
           <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 safe-area-pb">
-            <div className="grid grid-cols-5 h-16">
-              {/* Lokacija */}
-              <button
-                type="button"
-                onClick={() => setIsLocationModalOpen(true)}
-                className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400"
-                aria-label="Lokacija"
-              >
-                <MapPin size={20} className="text-slate-600 dark:text-slate-400" />
-                <span className="text-[10px]">Lokacija</span>
-              </button>
-
-              {/* Profil */}
-              <button
-                type="button"
-                onClick={handleProfileQuick}
-                className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400"
-                aria-label="Profil"
-              >
-                <IconUserCircle size={20} className="text-slate-600 dark:text-slate-400" />
-                <span className="text-[10px]">Profil</span>
-              </button>
-
+            <div className="grid grid-cols-4 h-16">
               {/* Moji oglasi */}
               <button
                 type="button"
@@ -842,9 +484,29 @@ const HomeHeader = () => {
                 }`}
                 aria-label="Moji oglasi"
               >
-                <IconListDetails size={20} strokeWidth={isMyAdsActive ? 2.5 : 1.5} />
+                <IconListDetails size={22} strokeWidth={isMyAdsActive ? 2.5 : 1.5} />
                 <span className={`text-[10px] ${isMyAdsActive ? "font-semibold" : ""}`}>
                   Moji oglasi
+                </span>
+              </button>
+
+              {/* Objavi oglas - centralni, istaknut */}
+              <button
+                type="button"
+                onClick={handleAdListing}
+                disabled={IsAdListingClicked}
+                className="flex flex-col items-center justify-center gap-0.5 -mt-3"
+                aria-label="Objavi oglas"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-95">
+                  {IsAdListingClicked ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <IoIosAddCircleOutline size={26} />
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
+                  Objavi
                 </span>
               </button>
 
@@ -858,7 +520,7 @@ const HomeHeader = () => {
                 aria-label="Poruke"
               >
                 <div className="relative">
-                  <MessageSquareMore size={20} strokeWidth={isChatActive ? 0.5 : 0} />
+                  <MessageSquareMore size={22} strokeWidth={isChatActive ? 0.5 : 0} />
                   {IsLoggedin && totalUnreadMessages > 0 && (
                     <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
                       {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
@@ -869,122 +531,26 @@ const HomeHeader = () => {
                   Poruke
                 </span>
               </button>
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
+
+              {/* Profil */}
+              <div className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400">
+                {IsLoggedin ? (
+                  <>
+                    <ProfileDropdown setIsLogout={setIsLogout} IsLogout={IsLogout} />
+                    <span className="text-[10px]">Profil</span>
+                  </>
+                ) : (
                   <button
                     type="button"
-                    className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400"
-                    aria-label="Više opcija"
+                    onClick={() => setIsLoginOpen(true)}
+                    className="flex flex-col items-center justify-center gap-0.5"
+                    aria-label="Prijava"
                   >
-                    <IconDotsCircleHorizontal size={20} strokeWidth={1.5} />
-                    <span className="text-[10px]">Više</span>
+                    <IconUserCircle size={22} className="text-slate-600 dark:text-slate-400" />
+                    <span className="text-[10px]">Profil</span>
                   </button>
-                </SheetTrigger>
-
-                <SheetContent
-                  side="bottom"
-                  className="p-0 overflow-y-auto max-h-[85vh] rounded-t-2xl border-t bg-background"
-                >
-                  {/* header */}
-                  <div className="p-4 border-b border-border">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      
-                      {userData ? (
-                        <CustomLink
-                          href="/profile"
-                          className="flex items-center gap-2"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <IconUserCircle size={24} className="text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{userData?.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {userData?.email}
-                            </p>
-                          </div>
-                        </CustomLink>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => {
-                              setIsMobileMenuOpen(false);
-                              setIsLoginOpen(true);
-                            }}
-                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
-                          >
-                            {t("login")}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsMobileMenuOpen(false);
-                              setIsRegisterModalOpen(true);
-                            }}
-                            className="px-4 py-2 border border-border rounded-lg font-medium"
-                          >
-                            {t("register")}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Lokacija */}
-                    <div
-                      className="mt-1 flex items-center gap-2 p-3 bg-muted rounded-xl cursor-pointer hover:bg-muted/80 transition-colors"
-                      onClick={openLocationEditModal}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <IconMapPin size={18} className="text-muted-foreground" />
-                      <p className="text-sm line-clamp-1">
-                        {locationText || "Dodaj lokaciju"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* sadržaj */}
-                  {showMobileMenu && showMobileCategories ? (
-                    <Tabs defaultValue="menu">
-                      <TabsList className="flex items-center justify-between bg-muted rounded-none border-b">
-                        <TabsTrigger
-                          value="menu"
-                          className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none"
-                        >
-                          Meni
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="categories"
-                          className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none"
-                        >
-                          Kategorije
-                        </TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="menu" className="px-4 py-2 pb-20">
-                        {mainNavItems}
-                        {secondaryNavItems}
-                        {actionItems}
-                      </TabsContent>
-
-                      <TabsContent value="categories" className="p-4 pb-20">
-                        <FilterTree />
-                      </TabsContent>
-                    </Tabs>
-                  ) : showMobileMenu ? (
-                    <div className="px-4 py-2 pb-20">
-                      {mainNavItems}
-                      {secondaryNavItems}
-                      {actionItems}
-                    </div>
-                  ) : showMobileCategories ? (
-                    <div className="p-4 pb-20">
-                      <h1 className="font-medium mb-4">Kategorije</h1>
-                      <FilterTree />
-                    </div>
-                  ) : null}
-                </SheetContent>
-              </Sheet>
+                )}
+              </div>
             </div>
           </nav>
         </div>
