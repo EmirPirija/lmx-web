@@ -93,6 +93,11 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
       rooms: rooms,
       roomType: roomType,
       createdAt: productDetails?.created_at,
+      address: productDetails?.translated_address || productDetails?.address,
+      location: productDetails?.translated_item?.address || productDetails?.address,
+      category: productDetails?.category?.name,
+      featured: productDetails?.is_feature === 1,
+      status: productDetails?.status,
     };
   }, [productDetails]);
 
