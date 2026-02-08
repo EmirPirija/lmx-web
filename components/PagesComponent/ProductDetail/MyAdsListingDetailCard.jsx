@@ -231,7 +231,7 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
     <>
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         {/* HEADER */}
-        <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+        {/* <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-slate-900 truncate mb-2">
               {productName}
@@ -245,10 +245,10 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
               <span>ID: #{productDetails?.id}</span>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* STATUS */}
-        <div className={cn(
+        {/* <div className={cn(
           "px-4 py-3 border-b border-slate-100",
           statusInfo.bgColor
         )}>
@@ -268,17 +268,17 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
               {statusInfo.label}
             </span>
           </div>
-        </div>
+        </div> */}
 
         {/* CIJENA */}
-        <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-br from-slate-50/50 to-white">
+        {/* <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-br from-slate-50/50 to-white">
           <p className="text-[11px] text-slate-400 mb-1 uppercase tracking-wide font-semibold">
             Cijena
           </p>
           <p className="text-xl font-bold text-primary">
             {formatPrice(productDetails?.price)}
           </p>
-        </div>
+        </div> */}
 
         {/* AKCIJE */}
         <div className="px-2 pb-2">
@@ -311,10 +311,10 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
             />
           </MenuSection>
 
-          <MenuDivider />
+          {/* <MenuDivider /> */}
 
           {/* BRISANJE */}
-          <MenuSection title="Zona opasnosti">
+          {/* <MenuSection title="Zona opasnosti">
             <MenuItem
               icon={IoTrashOutline}
               label="Obriši oglas"
@@ -322,7 +322,7 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
               onClick={() => setIsDeleteOpen(true)}
               danger
             />
-          </MenuSection>
+          </MenuSection> */}
         </div>
       </div>
 

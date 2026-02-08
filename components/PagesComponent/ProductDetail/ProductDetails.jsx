@@ -420,11 +420,17 @@ const ProductDetails = ({ slug }) => {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
               <ProductQuestions productDetails={productDetails} isSeller={isMyListing} />
             </div>
+
+            
+              {/* LOKACIJA */}
+              <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
+                <ProductLocation productDetails={productDetails} onMapOpen={trackMapOpen} />
+              </div>
           </div>
 
           {/* --- DESNA KOLONA (Sidebar) --- */}
           <div className="lg:col-span-4 flex flex-col gap-6 lg:gap-8">
-            <div className="lg:sticky lg:top-24 lg:self-start flex flex-col gap-6">
+            <div className="lg:sticky lg:top-5 lg:self-start flex flex-col gap-6">
               
               {/* MY ADS SIDEBAR */}
               {isMyListing && (
@@ -453,7 +459,7 @@ const ProductDetails = ({ slug }) => {
               )}
 
               {/* STATISTIKA (Za prodavače) */}
-              {isMyListing && (
+              {/* {isMyListing && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-150">
                   <button
                     onClick={() => setShowStatsModal(true)}
@@ -463,7 +469,7 @@ const ProductDetails = ({ slug }) => {
                     <span>Statistika oglasa</span>
                   </button>
                 </div>
-              )}
+              )} */}
 
               {/* STATUS CHANGE (Desktop) */}
               {isMyListing && (
@@ -476,11 +482,6 @@ const ProductDetails = ({ slug }) => {
                   />
                 </div>
               )}
-
-              {/* LOKACIJA */}
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
-                <ProductLocation productDetails={productDetails} onMapOpen={trackMapOpen} />
-              </div>
 
               {/* PRIJAVA OGLASA */}
               {!isMyListing && !productDetails?.is_already_reported && (
