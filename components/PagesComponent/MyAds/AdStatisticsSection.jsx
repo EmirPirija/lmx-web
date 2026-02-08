@@ -7,7 +7,6 @@ import { itemStatisticsApi, membershipApi } from "@/utils/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   IoChevronDown,
-  IoChevronUp,
   IoEyeOutline,
   IoHeartOutline,
   IoChatbubbleOutline,
@@ -17,6 +16,7 @@ import {
   IoPhonePortraitOutline,
   IoDesktopOutline,
   IoTabletPortraitOutline,
+  IoShareSocialOutline,
   IoSearchOutline,
   IoLayersOutline,
   IoRocketOutline,
@@ -29,7 +29,7 @@ import {
   IoSparkles,
   IoLockClosed,
 } from "react-icons/io5";
-import { FaWhatsapp, FaViber } from "react-icons/fa";
+import { FaWhatsapp, FaViber, FaAndroid, FaApple } from "react-icons/fa";
 import { MdOutlineEmail, MdTouchApp } from "react-icons/md";
 import { Crown, Store, Sparkles } from "lucide-react";
 import {
@@ -83,6 +83,14 @@ const formatPercent = (value) => {
   return `${value.toFixed(1)}%`;
 };
 
+const formatDuration = (seconds) => {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0s";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+};
+
 const getTopSource = (sources) => {
   const data = [...(sources?.internal || []), ...(sources?.external || [])];
   if (!data.length) return null;
@@ -101,6 +109,55 @@ const getTopDevice = (devices) => {
 const getPeakDay = (daily) => {
   if (!daily?.length) return null;
   return daily.reduce((max, current) => (current.views > max.views ? current : max), daily[0]);
+};
+
+const getSourceTotals = (sources) => {
+  if (sources?.total !== undefined) {
+    const internalTotal = (sources?.internal || []).reduce((sum, item) => sum + (item.value || 0), 0);
+    const externalTotal = (sources?.external || []).reduce((sum, item) => sum + (item.value || 0), 0);
+    return {
+      internalTotal,
+      externalTotal,
+      total: sources.total,
+    };
+  }
+  const internalTotal = (sources?.internal || []).reduce((sum, item) => sum + (item.value || 0), 0);
+  const externalTotal = (sources?.external || []).reduce((sum, item) => sum + (item.value || 0), 0);
+  return {
+    internalTotal,
+    externalTotal,
+    total: internalTotal + externalTotal,
+  };
+};
+
+const getPeakHour = (hourly) => {
+  if (!hourly?.length) return null;
+  return hourly.reduce((max, current) => (current.views > max.views ? current : max), hourly[0]);
+};
+
+const getEngagementScore = (summary) => {
+  const period = summary?.period || {};
+  const views = period.views || 0;
+  const interactions =
+    (period.messages || 0) +
+    (period.public_questions || 0) +
+    (period.favorites || 0) +
+    (period.shares || 0) +
+    (period.phone_clicks || 0) +
+    (period.whatsapp_clicks || 0) +
+    (period.viber_clicks || 0) +
+    (period.email_clicks || 0);
+
+  if (!views) return 0;
+  return Math.min((interactions / views) * 100, 100);
+};
+
+const normalizeTier = (tier) => {
+  if (!tier) return "free";
+  const value = tier.toString().toLowerCase();
+  if (value.includes("shop") || value.includes("business")) return "shop";
+  if (value.includes("pro") || value.includes("premium")) return "pro";
+  return value;
 };
 
 // ============================================
@@ -353,6 +410,43 @@ const ViewsChartSection = ({ daily }) => {
 };
 
 // ============================================
+// TRAFFIC OVERVIEW
+// ============================================
+const TrafficOverviewSection = ({ sources }) => {
+  const { internalTotal, externalTotal, total } = getSourceTotals(sources);
+  const topSource = getTopSource(sources);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+        <IoLocationOutline className="text-indigo-500" />
+        Pregled izvora prometa
+      </h4>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Ukupno posjeta", value: total, color: "text-indigo-600 bg-indigo-50" },
+          { label: "Interni izvori", value: internalTotal, color: "text-blue-600 bg-blue-50" },
+          { label: "Eksterni izvori", value: externalTotal, color: "text-emerald-600 bg-emerald-50" },
+          {
+            label: "Najbolji izvor",
+            value: topSource?.name || "—",
+            color: "text-purple-600 bg-purple-50",
+            isLabel: true,
+          },
+        ].map((item) => (
+          <div key={item.label} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">{item.label}</p>
+            <p className={`text-sm font-bold ${item.color}`}>
+              {item.isLabel ? item.value : formatNumber(item.value)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // INTERACTIONS GRID
 // ============================================
 const InteractionsSection = ({ summary }) => {
@@ -360,7 +454,7 @@ const InteractionsSection = ({ summary }) => {
 
   const items = [
     { icon: IoChatbubbleOutline, label: "Poruke", value: period.messages || 0, color: "blue" },
-    { icon: IoHelpCircleOutline, label: "Pitanja", value: period.public_questions || 0, color: "purple" },
+    { icon: IoHelpCircleOutline, label: "Upiti", value: period.public_questions || 0, color: "purple" },
     { icon: IoHeartOutline, label: "Favoriti", value: period.favorites || 0, color: "red" },
     {
       icon: MdTouchApp,
@@ -443,6 +537,17 @@ const EngagementRatesSection = ({ summary }) => {
           </div>
         ))}
       </div>
+      <div className="mt-4 bg-slate-50 rounded-xl p-3 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Skor angažmana</p>
+          <p className="text-sm font-bold text-slate-800">{formatPercent(getEngagementScore(summary))}</p>
+        </div>
+        <div className="text-xs text-slate-500 text-right">
+          Veći broj interakcija
+          <br />
+          znači jači interes kupaca
+        </div>
+      </div>
     </div>
   );
 };
@@ -509,7 +614,7 @@ const PromotionSection = ({ summary }) => {
           </div>
           <div className="flex-1">
             <h4 className="font-semibold text-amber-900 text-sm">Istaknite oglas</h4>
-            <p className="text-xs text-amber-700/80">Do 5x više pregleda</p>
+            <p className="text-xs text-amber-700/80">Više pregleda uz isticanje</p>
           </div>
           <Link href="/featured">
             <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8">
@@ -529,7 +634,7 @@ const PromotionSection = ({ summary }) => {
       </h4>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
-          { label: "Pregledi", value: featured?.total_views || 0 },
+          { label: "Pregledi", value: featured?.views || 0 },
           { label: "Prosječno/dan", value: featured?.avg_views_per_day || 0 },
           { label: "Poboljšanje", value: improvement > 0 ? `+${improvement}%` : "N/A", highlight: true },
           { label: "Dana", value: featured?.days || 0 },
@@ -601,6 +706,58 @@ const TrafficSourcesSection = ({ sources }) => {
 };
 
 // ============================================
+// SOURCES DETAIL (PRO)
+// ============================================
+const SourcesDetailSection = ({ sources }) => {
+  const internal = sources?.internal || [];
+  const external = sources?.external || [];
+
+  if (internal.length === 0 && external.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <IoLocationOutline className="text-emerald-500" />
+          Detaljni izvori
+        </h4>
+        <div className="h-[160px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
+        </div>
+      </div>
+    );
+  }
+
+  const renderList = (items) => (
+    <div className="space-y-2">
+      {items.slice(0, 6).map((source, index) => (
+        <div key={`${source.name}-${index}`} className="flex items-center justify-between text-xs">
+          <span className="text-slate-600 truncate">{source.name}</span>
+          <span className="text-slate-800 font-semibold">{formatNumber(source.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoLocationOutline className="text-emerald-500" />
+        Detaljni izvori
+      </h4>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Interni izvori</p>
+          {internal.length ? renderList(internal) : <p className="text-xs text-slate-400">Nema podataka</p>}
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Eksterni izvori</p>
+          {external.length ? renderList(external) : <p className="text-xs text-slate-400">Nema podataka</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // PLATFORMS/DEVICES
 // ============================================
 const PlatformsSection = ({ devices }) => {
@@ -610,6 +767,8 @@ const PlatformsSection = ({ devices }) => {
     { name: "Mobitel", data: devices.mobile, icon: IoPhonePortraitOutline, color: COLORS.primary },
     { name: "Desktop", data: devices.desktop, icon: IoDesktopOutline, color: COLORS.secondary },
     { name: "Tablet", data: devices.tablet, icon: IoTabletPortraitOutline, color: COLORS.success },
+    { name: "iOS aplikacija", data: devices.app_ios, icon: FaApple, color: "#111827" },
+    { name: "Android aplikacija", data: devices.app_android, icon: FaAndroid, color: "#22c55e" },
   ];
 
   const total = platforms.reduce((sum, p) => sum + (p.data?.value || 0), 0);
@@ -632,7 +791,7 @@ const PlatformsSection = ({ devices }) => {
     <div className="bg-white rounded-2xl border border-slate-100 p-4 h-full">
       <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm">
         <IoPhonePortraitOutline className="text-cyan-500" />
-        Uređaji
+        Uređaji i aplikacije
       </h4>
       <div className="space-y-3">
         {platforms.map((platform) => {
@@ -671,18 +830,21 @@ const PlatformsSection = ({ devices }) => {
 // ============================================
 // CONTACT BREAKDOWN (PRO)
 // ============================================
-const ContactBreakdownSection = ({ summary }) => {
+const ContactBreakdownSection = ({ summary, breakdown }) => {
   const period = summary?.period || {};
+  const mapBreakdown = (key, fallback) => breakdown?.[key]?.total ?? fallback;
 
   const contacts = [
-    { icon: IoCallOutline, label: "Pozivi", value: period.phone_clicks || 0, color: "text-blue-500 bg-blue-50" },
-    { icon: FaWhatsapp, label: "WhatsApp", value: period.whatsapp_clicks || 0, color: "text-green-500 bg-green-50" },
-    { icon: FaViber, label: "Viber", value: period.viber_clicks || 0, color: "text-purple-500 bg-purple-50" },
-    { icon: MdOutlineEmail, label: "Email", value: period.email_clicks || 0, color: "text-orange-500 bg-orange-50" },
+    { icon: IoCallOutline, label: "Pozivi", value: mapBreakdown("phone_click", period.phone_clicks || 0), color: "text-blue-500 bg-blue-50" },
+    { icon: MdTouchApp, label: "Otkrivanja broja", value: mapBreakdown("phone_reveal", period.phone_reveals || 0), color: "text-slate-600 bg-slate-100" },
+    { icon: FaWhatsapp, label: "WhatsApp", value: mapBreakdown("whatsapp", period.whatsapp_clicks || 0), color: "text-green-500 bg-green-50" },
+    { icon: FaViber, label: "Viber", value: mapBreakdown("viber", period.viber_clicks || 0), color: "text-purple-500 bg-purple-50" },
+    { icon: MdOutlineEmail, label: "Email", value: mapBreakdown("email", period.email_clicks || 0), color: "text-orange-500 bg-orange-50" },
+    { icon: IoChatbubbleOutline, label: "Poruke", value: mapBreakdown("message", period.messages || 0), color: "text-indigo-500 bg-indigo-50" },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
       {contacts.map((c) => {
         const Icon = c.icon;
         return (
@@ -727,9 +889,15 @@ const SearchTermsSection = ({ searchTerms }) => {
       </h4>
       <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
         {searchTerms.slice(0, 8).map((item, index) => (
-          <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-            <span className="text-xs text-slate-700 font-medium truncate flex-1">"{item.term}"</span>
-            <span className="text-xs text-slate-500 ml-2">{item.count}x</span>
+          <div key={index} className="p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-700 font-medium truncate flex-1">"{item.term}"</span>
+              <span className="text-xs text-slate-500 ml-2">{item.count}x</span>
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+              <span>Klikovi: {item.clicks || 0}</span>
+              <span>CTR: {formatPercent(item.ctr || 0)}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -789,6 +957,42 @@ const SearchPositionSection = ({ searchPositions }) => {
 };
 
 // ============================================
+// SHARE BREAKDOWN (PRO)
+// ============================================
+const ShareBreakdownSection = ({ shares }) => {
+  if (!shares || shares.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <IoShareSocialOutline className="text-pink-500" />
+          Dijeljenja po kanalima
+        </h4>
+        <div className="h-[140px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoShareSocialOutline className="text-pink-500" />
+        Dijeljenja po kanalima
+      </h4>
+      <div className="space-y-2">
+        {shares.slice(0, 8).map((share, index) => (
+          <div key={`${share.platform}-${index}`} className="flex items-center justify-between text-xs">
+            <span className="text-slate-600 uppercase">{share.platform?.replace("_", " ")}</span>
+            <span className="font-semibold text-slate-800">{formatNumber(share.count)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // VIEWS BY TIME (SHOP)
 // ============================================
 const ViewsByTimeSection = ({ hourlyData }) => {
@@ -822,6 +1026,171 @@ const ViewsByTimeSection = ({ hourlyData }) => {
             <Bar dataKey="views" name="Pregledi" fill={COLORS.cyan} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// BEST TIMES (SHOP)
+// ============================================
+const BestTimesSection = ({ daily, hourly }) => {
+  const peakDay = getPeakDay(daily);
+  const peakHour = getPeakHour(hourly);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoTimeOutline className="text-blue-500" />
+        Najbolji termini
+      </h4>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Najbolji dan</p>
+          <p className="text-sm font-bold text-slate-800">{peakDay?.formatted_date || "—"}</p>
+          <p className="text-xs text-slate-400">{formatNumber(peakDay?.views || 0)} pregleda</p>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Najaktivniji sat</p>
+          <p className="text-sm font-bold text-slate-800">{peakHour?.hour || "—"}</p>
+          <p className="text-xs text-slate-400">{formatNumber(peakHour?.views || 0)} pregleda</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// GEO INSIGHTS (SHOP)
+// ============================================
+const GeoInsightsSection = ({ geo }) => {
+  if (!geo || geo.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <IoLocationOutline className="text-emerald-500" />
+          Gradovi i regije
+        </h4>
+        <div className="h-[140px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoLocationOutline className="text-emerald-500" />
+        Gradovi i regije
+      </h4>
+      <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
+        {geo.slice(0, 10).map((city, index) => (
+          <div key={`${city.city}-${index}`} className="flex items-center justify-between text-xs">
+            <span className="text-slate-600">{city.city}</span>
+            <span className="font-semibold text-slate-800">{formatNumber(city.views)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// COMPETITION (SHOP)
+// ============================================
+const CompetitionSection = ({ competition }) => {
+  if (!competition) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <IoTrendingUp className="text-blue-500" />
+          Pozicija u kategoriji
+        </h4>
+        <div className="h-[140px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoTrendingUp className="text-blue-500" />
+        Pozicija u kategoriji
+      </h4>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Rang u kategoriji</p>
+          <p className="text-sm font-bold text-slate-800">#{competition.your_rank}</p>
+          <p className="text-xs text-slate-400">od {competition.category_total_items} oglasa</p>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Percentil</p>
+          <p className="text-sm font-bold text-slate-800">{competition.percentile}%</p>
+          <p className="text-xs text-slate-400">Prosjek kategorije: {formatNumber(competition.avg_views_in_category)}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// DETAILED CONVERSION (SHOP)
+// ============================================
+const DetailedConversionSection = ({ data }) => {
+  if (!data) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <IoStatsChartOutline className="text-emerald-500" />
+          Detaljna konverzija
+        </h4>
+        <div className="h-[140px] flex items-center justify-center text-slate-400 text-sm">
+          Nema podataka
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-4">
+      <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+        <IoStatsChartOutline className="text-emerald-500" />
+        Detaljna konverzija
+      </h4>
+      <div className="grid lg:grid-cols-3 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3 space-y-1">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Pretraga</p>
+          <p className="text-sm font-bold text-slate-800">{formatNumber(data.search?.impressions || 0)} impresija</p>
+          <p className="text-xs text-slate-400">CTR: {formatPercent(data.search?.ctr || 0)}</p>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3 space-y-1">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Kategorija</p>
+          <p className="text-sm font-bold text-slate-800">{formatNumber(data.category?.impressions || 0)} impresija</p>
+          <p className="text-xs text-slate-400">CTR: {formatPercent(data.category?.ctr || 0)}</p>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3 space-y-1">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Angažman</p>
+          <p className="text-sm font-bold text-slate-800">{formatNumber(data.engagement?.views || 0)} pregleda</p>
+          <p className="text-xs text-slate-400">Galerija: {formatPercent(data.engagement?.gallery_rate || 0)}</p>
+        </div>
+      </div>
+      <div className="mt-3 grid sm:grid-cols-2 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Kontakti</p>
+          <div className="text-xs text-slate-600 space-y-1 mt-1">
+            <p>Pozivi: {formatNumber(data.contacts?.calls_total || 0)}</p>
+            <p>Poruke: {formatNumber(data.contacts?.messages || 0)}</p>
+            <p>Ponude: {formatNumber(data.contacts?.offers || 0)}</p>
+          </div>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wide">Otkrivanja broja</p>
+          <p className="text-sm font-bold text-slate-800">{formatNumber(data.contacts?.phone_reveals || 0)}</p>
+          <p className="text-xs text-slate-400">Interes za direktni kontakt</p>
+        </div>
       </div>
     </div>
   );
@@ -948,10 +1317,10 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
       try {
         const response = await membershipApi.getUserMembership({});
         const tier = response?.data?.data?.tier?.slug || response?.data?.data?.membership_tier || "free";
-        setMembershipTier(tier.toLowerCase());
+        setMembershipTier(normalizeTier(tier));
       } catch {
         const tier = userData?.membership_tier || userData?.membership?.tier?.slug || "free";
-        setMembershipTier(tier.toLowerCase());
+        setMembershipTier(normalizeTier(tier));
       }
     };
     fetchMembership();
@@ -977,6 +1346,9 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
 
       if ((isOk || payload?.data) && payload?.data) {
         setStats(payload.data);
+        if (payload.data?.membership_tier) {
+          setMembershipTier(normalizeTier(payload.data.membership_tier));
+        }
       } else {
         setStats(null);
       }
@@ -997,6 +1369,14 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
   const isPro = membershipTier === "pro";
   const isShop = membershipTier === "shop";
   const isPremium = isPro || isShop;
+  const motionFade = {
+    hidden: { opacity: 0, y: 12 },
+    show: (delay = 0) => ({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.35, delay },
+    }),
+  };
 
   // Quick stats
   const [quickStats, setQuickStats] = useState(null);
@@ -1087,48 +1467,107 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                   {/* BASIC TIER */}
                   <div className="space-y-4">
                     {/* Main stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Danas"
-                        value={stats.summary?.today?.views || 0}
-                        color="blue"
-                        highlight
-                      />
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Jučer"
-                        value={stats.summary?.yesterday?.views || 0}
-                        color="blue"
-                      />
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Period"
-                        value={stats.summary?.period?.views || 0}
-                        trend={stats.summary?.trends?.views_vs_yesterday}
-                        color="blue"
-                      />
-                      <StatCard
-                        icon={IoEyeOutline}
-                        label="Prosječno/dan"
-                        value={stats.summary?.period?.avg_views_per_day || 0}
-                        color="blue"
-                      />
-                    </div>
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0}>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Danas"
+                          value={stats.summary?.today?.views || 0}
+                          color="blue"
+                          highlight
+                        />
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Jučer"
+                          value={stats.summary?.yesterday?.views || 0}
+                          color="blue"
+                        />
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Period"
+                          value={stats.summary?.period?.views || 0}
+                          trend={stats.summary?.trends?.views_vs_yesterday}
+                          color="blue"
+                        />
+                        <StatCard
+                          icon={IoEyeOutline}
+                          label="Prosječno/dan"
+                          value={stats.summary?.period?.avg_views_per_day || 0}
+                          color="blue"
+                        />
+                      </div>
+                    </motion.div>
 
-                    <ViewsChartSection daily={stats.daily} />
-                    <InteractionsSection summary={stats.summary} />
-                    <PromotionSection summary={stats.summary} />
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.05}>
+                      <ViewsChartSection daily={stats.daily} />
+                    </motion.div>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
-                      <EngagementRatesSection summary={stats.summary} />
-                      <HighlightsSection sources={stats.sources} devices={stats.devices} daily={stats.daily} />
-                    </div>
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.1}>
+                      <InteractionsSection summary={stats.summary} />
+                    </motion.div>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
-                      <TrafficSourcesSection sources={stats.sources} />
-                      <PlatformsSection devices={stats.devices} />
-                    </div>
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.15}>
+                      <TrafficOverviewSection sources={stats.sources} />
+                    </motion.div>
+
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.2}>
+                      <PromotionSection summary={stats.summary} />
+                    </motion.div>
+
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.25}>
+                      <div className="grid lg:grid-cols-2 gap-4">
+                        <EngagementRatesSection summary={stats.summary} />
+                        <HighlightsSection sources={stats.sources} devices={stats.devices} daily={stats.daily} />
+                      </div>
+                    </motion.div>
+
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.3}>
+                      <div className="grid lg:grid-cols-2 gap-4">
+                        <TrafficSourcesSection sources={stats.sources} />
+                        <PlatformsSection devices={stats.devices} />
+                      </div>
+                    </motion.div>
+
+                    <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.35}>
+                      <div className="grid lg:grid-cols-2 gap-4">
+                        <div className="bg-white rounded-2xl border border-slate-100 p-4">
+                          <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+                            <IoTimeOutline className="text-blue-500" />
+                            Prosječno vrijeme na stranici
+                          </h4>
+                          <div className="flex items-center justify-between">
+                            <p className="text-2xl font-bold text-slate-800">
+                              {formatDuration(stats.summary?.period?.avg_time_on_page || 0)}
+                            </p>
+                            <p className="text-xs text-slate-500 text-right">
+                              Vrijeme provedeno
+                              <br />
+                              po korisniku
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-slate-100 p-4">
+                          <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+                            <IoSparkles className="text-emerald-500" />
+                            Pregledi i jedinstveni
+                          </h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-slate-50 rounded-xl p-3">
+                              <p className="text-[10px] text-slate-500 uppercase tracking-wide">Jedinstveni</p>
+                              <p className="text-sm font-bold text-slate-800">
+                                {formatNumber(stats.summary?.period?.unique_views || 0)}
+                              </p>
+                            </div>
+                            <div className="bg-slate-50 rounded-xl p-3">
+                              <p className="text-[10px] text-slate-500 uppercase tracking-wide">Ukupno</p>
+                              <p className="text-sm font-bold text-slate-800">
+                                {formatNumber(stats.summary?.period?.views || 0)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
                   </div>
 
                   {/* PRO TIER */}
@@ -1144,10 +1583,14 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                     <div className="relative">
                       {!isPremium && <LockOverlay tier="pro" feature="Pro statistika" />}
                       <div className={`space-y-4 ${!isPremium ? "blur-sm pointer-events-none select-none" : ""}`}>
-                        <ContactBreakdownSection summary={stats.summary} />
+                        <ContactBreakdownSection summary={stats.summary} breakdown={stats.contact_breakdown} />
                         <div className="grid lg:grid-cols-2 gap-4">
                           <SearchTermsSection searchTerms={stats.search_terms} />
                           <SearchPositionSection searchPositions={stats.search_positions} />
+                        </div>
+                        <div className="grid lg:grid-cols-2 gap-4">
+                          <SourcesDetailSection sources={stats.sources} />
+                          <ShareBreakdownSection shares={stats.share_breakdown} />
                         </div>
                       </div>
                     </div>
@@ -1168,6 +1611,12 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                       <div className={`space-y-4 ${!isShop ? "blur-sm pointer-events-none select-none" : ""}`}>
                         <ViewsByTimeSection hourlyData={stats.hourly} />
                         <ConversionSection funnel={stats.funnel} />
+                        <DetailedConversionSection data={stats.conversion_detailed} />
+                        <BestTimesSection daily={stats.daily} hourly={stats.hourly} />
+                        <div className="grid lg:grid-cols-2 gap-4">
+                          <GeoInsightsSection geo={stats.geo} />
+                          <CompetitionSection competition={stats.competition} />
+                        </div>
                       </div>
                     </div>
                   </div>

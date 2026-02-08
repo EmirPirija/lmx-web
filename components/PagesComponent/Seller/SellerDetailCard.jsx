@@ -56,6 +56,7 @@ import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
 import { itemConversationApi, sendMessageApi } from "@/utils/api";
 import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
+import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 
 
 
@@ -168,20 +169,15 @@ const shimmerCss = `
 const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
 
 const reelRingCss = `
-@keyframes reel-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
 @keyframes reel-glow {
   0%, 100% { opacity: 0.35; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.05); }
 }
 .reel-ring {
   position: relative;
-  padding: 2px;
+  padding: 3px;
   border-radius: 16px;
   background: conic-gradient(from 0deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
-  animation: reel-spin 8s linear infinite;
 }
 .reel-ring::after {
   content: "";
@@ -991,10 +987,12 @@ export const SellerPreviewCard = ({
   uiPrefs,
   onChatClick,
   onPhoneClick,
+  onRingClick,
+  onAddReelClick,
+  showAddReel = false,
   shareUrl,
   isVerifiedOverride,
   showReelRing = false,
-  onReelClick,
 }) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -1032,8 +1030,21 @@ export const SellerPreviewCard = ({
 
   // Use user_id if available, fallback to id
   const sellerId = seller?.user_id ?? seller?.id;
-  const canOpenReel = Boolean(onReelClick);
+  const canOpenReel = Boolean(onRingClick);
   const showReelPrompt = canOpenReel && !showReelRing;
+  const ringMotion = showReelRing
+    ? {
+        scale: [1, 1.04, 1],
+        boxShadow: [
+          "0 0 0 0 rgba(17,183,176,0)",
+          "0 0 0 6px rgba(249,115,22,0.25)",
+          "0 0 0 0 rgba(17,183,176,0)",
+        ],
+      }
+    : undefined;
+  const ringTransition = showReelRing
+    ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
+    : undefined;
 
   const computedShareUrl = shareUrl || (sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -1113,11 +1124,13 @@ export const SellerPreviewCard = ({
                     showReelRing && "cursor-pointer"
                   )}
                 >
-                  <div
+                  <motion.div
                     className={cn(
                       "rounded-[14px] p-[2px]",
                       showReelRing ? "reel-ring" : "bg-transparent"
                     )}
+                    animate={ringMotion}
+                    transition={ringTransition}
                   >
                     <div
                       className={cn(
@@ -1135,7 +1148,7 @@ export const SellerPreviewCard = ({
                         className="w-full h-full object-cover"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {showReelRing && (
                     <motion.span
@@ -1159,8 +1172,24 @@ export const SellerPreviewCard = ({
                       animate={{ opacity: 1, y: 0 }}
                       className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-white text-[10px] font-semibold text-slate-700 shadow-sm"
                     >
-                      Dodaj reel
+                      Reelovi
                     </motion.span>
+                  )}
+
+                  {showAddReel && (
+                    <motion.button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddReelClick?.();
+                      }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-200"
+                      aria-label="Dodaj video"
+                    >
+                      <span className="text-lg leading-none text-[#1e3a8a]">+</span>
+                    </motion.button>
                   )}
                 </div>
               );
@@ -1169,9 +1198,9 @@ export const SellerPreviewCard = ({
                 return (
                   <button
                     type="button"
-                    onClick={onReelClick}
+                    onClick={onRingClick}
                     className="flex-shrink-0 focus:outline-none"
-                    aria-label="Dodaj video za Home Reels"
+                    aria-label="Otvori reelove"
                   >
                     {avatar}
                   </button>
@@ -1557,6 +1586,7 @@ const SellerDetailCard = ({
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
+  const [isReelViewerOpen, setIsReelViewerOpen] = useState(false);
   const [hasReel, setHasReel] = useState(
     Boolean(seller?.has_reel || seller?.reel_video || seller?.video)
   );
@@ -1628,6 +1658,12 @@ const SellerDetailCard = ({
         onUploaded={() => setHasReel(true)}
       />
 
+      <ReelViewerModal
+        open={isReelViewerOpen}
+        onOpenChange={setIsReelViewerOpen}
+        userId={mainSellerId}
+      />
+
       {/* GLAVNA KARTICA */}
       <SellerPreviewCard
         seller={seller}
@@ -1642,7 +1678,9 @@ const SellerDetailCard = ({
         onPhoneClick={() => setIsContactSheetOpen(true)}
         uiPrefs={{ contactStyle: "sheet" }}
         showReelRing={hasReel}
-        onReelClick={isOwnProfile ? () => setIsReelModalOpen(true) : undefined}
+        onRingClick={() => setIsReelViewerOpen(true)}
+        showAddReel={isOwnProfile}
+        onAddReelClick={() => setIsReelModalOpen(true)}
         // Ako je isVerified TRUE, šaljemo true. Ako je FALSE, šaljemo undefined 
         // kako bi SellerPreviewCard koristio svoj fallback izračun.
         isVerifiedOverride={isVerified || undefined} 

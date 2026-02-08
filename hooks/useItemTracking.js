@@ -27,17 +27,33 @@ const getAuthToken = () => {
   return null;
 };
  
-const getVisitorId = () => {
+const getAnonymousId = () => {
   if (typeof window === 'undefined') return null;
   
-  let visitorId = localStorage.getItem('visitor_id');
-  if (!visitorId) {
-    visitorId = 'v_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-    localStorage.setItem('visitor_id', visitorId);
+  let anonId = localStorage.getItem('anonymous_id');
+  if (!anonId) {
+    anonId = 'anon_' + Math.random().toString(36).slice(2, 10) + '_' + Date.now();
+    localStorage.setItem('anonymous_id', anonId);
   }
-  return visitorId;
+  return anonId;
 };
- 
+
+const getSessionId = () => {
+  if (typeof window === 'undefined') return null;
+
+  const now = Date.now();
+  const lastSeen = Number(localStorage.getItem('session_last_seen') || 0);
+  let sessionId = localStorage.getItem('session_id');
+
+  if (!sessionId || now - lastSeen > 30 * 60 * 1000) {
+    sessionId = 'sess_' + Math.random().toString(36).slice(2, 10) + '_' + now;
+    localStorage.setItem('session_id', sessionId);
+  }
+
+  localStorage.setItem('session_last_seen', String(now));
+  return sessionId;
+};
+
 const getDeviceType = () => {
   if (typeof window === 'undefined') return 'unknown';
   
@@ -58,12 +74,74 @@ const getUTMParams = () => {
     utm_content: params.get('utm_content'),
   };
 };
- 
+
 const getReferrer = () => {
   if (typeof window === 'undefined') return null;
   return document.referrer || null;
 };
- 
+
+const getUserId = () => {
+  try {
+    const state = store.getState();
+    return state?.UserSignup?.data?.user_id || state?.UserSignup?.data?.id || null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const getLandingUrl = () => {
+  if (typeof window === 'undefined') return null;
+  return window.location.href;
+};
+
+const getAttributionSource = ({ searchId, explicitSource, explicitDetail } = {}) => {
+  if (explicitSource) {
+    return { source: explicitSource, source_detail: explicitDetail || null };
+  }
+
+  if (typeof window === 'undefined') return { source: 'direct', source_detail: null };
+
+  const params = new URLSearchParams(window.location.search);
+  const utmSource = params.get('utm_source');
+  const utmMedium = params.get('utm_medium');
+  const utmCampaign = params.get('utm_campaign');
+  const referrer = getReferrer();
+  const currentHost = window.location.host;
+
+  if (searchId) {
+    return { source: 'search', source_detail: `search:${searchId}`.slice(0, 100) };
+  }
+
+  if (utmSource || utmMedium || utmCampaign) {
+    const detail = [`utm:${utmSource || ''}`, utmMedium, utmCampaign].filter(Boolean).join('|');
+    const normalizedSource = (utmSource || '').toLowerCase();
+    const sourceMap = ['google', 'facebook', 'instagram', 'tiktok', 'twitter', 'youtube', 'linkedin'];
+    const matched = sourceMap.find((src) => normalizedSource.includes(src));
+    return { source: matched || 'other', source_detail: detail.slice(0, 100) };
+  }
+
+  if (referrer) {
+    try {
+      const refHost = new URL(referrer).host;
+      if (refHost && refHost !== currentHost) {
+        return { source: 'other', source_detail: refHost.slice(0, 100) };
+      }
+    } catch (e) {
+      return { source: 'other', source_detail: referrer.slice(0, 100) };
+    }
+  }
+
+  if (window.location.pathname.startsWith('/ads') && params.get('category')) {
+    return { source: 'category', source_detail: params.get('category')?.slice(0, 100) || null };
+  }
+
+  if (window.location.pathname.startsWith('/ads')) {
+    return { source: 'search', source_detail: params.get('query')?.slice(0, 100) || null };
+  }
+
+  return { source: 'direct', source_detail: null };
+};
+
 const trackingRequest = async (endpoint, data) => {
   try {
     const token = getAuthToken();
@@ -71,13 +149,17 @@ const trackingRequest = async (endpoint, data) => {
     if (token) headers['Authorization'] = `Bearer ${token}`;
  
     const form = new FormData();
- 
+
     const base = {
       ...data,
-      visitor_id: getVisitorId(),
+      visitor_id: getAnonymousId(),
+      anonymous_id: getAnonymousId(),
+      session_id: getSessionId(),
+      user_id: getUserId(),
       device_type: getDeviceType(),
       ...getUTMParams(),
       referrer_url: getReferrer(),
+      landing_url: getLandingUrl(),
       timestamp: new Date().toISOString(),
     };
  
@@ -148,48 +230,64 @@ export const useItemTracking = (itemId, options = {}) => {
     const currentItemId = itemIdRef.current;
     if (!currentItemId || hasTrackedView.current) return;
     
+    const sessionId = getSessionId();
+    if (sessionId && typeof window !== 'undefined') {
+      const dedupeKey = `viewed_${sessionId}_${currentItemId}`;
+      if (sessionStorage.getItem(dedupeKey)) return;
+      sessionStorage.setItem(dedupeKey, '1');
+    }
+
     hasTrackedView.current = true;
     startTimeRef.current = Date.now();
 
-    console.log('📊 Tracking view:', { item_id: currentItemId, source, sourceDetail });
+    const explicitSource = typeof source === 'object' ? source?.source : source;
+    const explicitDetail = typeof source === 'object' ? source?.source_detail || source?.sourceDetail : sourceDetail;
+    const searchId = typeof source === 'object' ? source?.searchId : null;
+    const attribution = getAttributionSource({ searchId, explicitSource, explicitDetail });
+
+    console.log('📊 Tracking view:', { item_id: currentItemId, ...attribution });
 
     await trackingRequest('item-statistics/track-view', {
       item_id: currentItemId,
-      source,
-      source_detail: sourceDetail,
+      source: attribution.source,
+      source_detail: attribution.source_detail,
     });
   }, []);
 
   // Track Contact
-  const trackContact = useCallback(async (contactType) => {
+  const trackContact = useCallback(async (contactType, context = {}) => {
     const currentItemId = itemIdRef.current;
     if (!currentItemId) return;
     
-    console.log('📊 Tracking contact:', { item_id: currentItemId, contact_type: contactType });
+    const attribution = getAttributionSource({ explicitSource: context?.source, explicitDetail: context?.source_detail });
+    console.log('📊 Tracking contact:', { item_id: currentItemId, contact_type: contactType, ...attribution });
 
     await trackingRequest('item-statistics/track-contact', {
       item_id: currentItemId,
       contact_type: contactType,
+      source: attribution.source,
     });
   }, []);
 
   // Track Share
-  const trackShare = useCallback(async (platform) => {
+  const trackShare = useCallback(async (platform, context = {}) => {
     const currentItemId = itemIdRef.current;
     if (!currentItemId) return;
     
-    console.log('📊 Tracking share:', { item_id: currentItemId, platform });
+    const attribution = getAttributionSource({ explicitSource: context?.source, explicitDetail: context?.source_detail });
+    console.log('📊 Tracking share:', { item_id: currentItemId, platform, ...attribution });
 
     const result = await trackingRequest('item-statistics/track-share', {
       item_id: currentItemId,
       platform,
+      source: attribution.source,
     });
 
     return result;
   }, []);
 
   // Track Engagement
-  const trackEngagement = useCallback(async (engagementType, extraData = {}) => {
+  const trackEngagement = useCallback(async (engagementType, extraData = {}, context = {}) => {
     const currentItemId = itemIdRef.current;
     if (!currentItemId) return;
     
@@ -200,7 +298,8 @@ export const useItemTracking = (itemId, options = {}) => {
       engagementTracked.current.add(engagementType);
     }
 
-    console.log('📊 Tracking engagement:', { item_id: currentItemId, engagement_type: engagementType, extraData });
+    const attribution = getAttributionSource({ explicitSource: context?.source, explicitDetail: context?.source_detail });
+    console.log('📊 Tracking engagement:', { item_id: currentItemId, engagement_type: engagementType, extraData, ...attribution });
 
     await trackingRequest('item-statistics/track-engagement', {
       item_id: currentItemId,
@@ -211,15 +310,17 @@ export const useItemTracking = (itemId, options = {}) => {
   }, []);
 
   // Track Favorite
-  const trackFavorite = useCallback(async (added) => {
+  const trackFavorite = useCallback(async (added, context = {}) => {
     const currentItemId = itemIdRef.current;
     if (!currentItemId) return;
     
-    console.log('📊 Tracking favorite:', { item_id: currentItemId, added });
+    const attribution = getAttributionSource({ explicitSource: context?.source, explicitDetail: context?.source_detail });
+    console.log('📊 Tracking favorite:', { item_id: currentItemId, added, ...attribution });
 
     await trackingRequest('item-statistics/track-favorite', {
       item_id: currentItemId,
       added,
+      source: attribution.source,
     });
   }, []);
 
@@ -337,42 +438,87 @@ export const useEngagementTracking = (itemId) => {
 // Hook za praćenje search impressions
 export const useSearchTracking = () => {
   const impressionIdRef = useRef(null);
+  const searchIdRef = useRef(null);
+
+  const hashString = (value = "") => {
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = (hash << 5) - hash + value.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
+  };
+
+  const getSearchId = useCallback((context = {}) => {
+    if (typeof window === 'undefined') return null;
+    const key = JSON.stringify({
+      query: context.search_query || null,
+      category: context.category_slug || null,
+      sort: context.sort_by || null,
+      filters: context.filters || null,
+      featured: context.featured_section || null,
+    });
+    const hash = hashString(key);
+    const storageKey = `search_id_${hash}`;
+    let searchId = sessionStorage.getItem(storageKey);
+    if (!searchId) {
+      searchId = `search_${hash}_${Date.now()}`;
+      sessionStorage.setItem(storageKey, searchId);
+    }
+    searchIdRef.current = searchId;
+    return searchId;
+  }, []);
 
   const trackSearchImpressions = useCallback(async (itemIds, searchData) => {
     if (!itemIds?.length) return null;
-    
-    // Generate unique impression ID for this search
-    const impressionId = 'imp_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-    impressionIdRef.current = impressionId;
 
-    console.log('📊 Tracking search impressions:', { 
-      impression_id: impressionId,
-      item_count: itemIds.length, 
-      search_query: searchData.search_query 
-    });
-    
-    await trackingRequest('item-statistics/track-search-impressions', {
-      impression_id: impressionId,
-      item_ids: JSON.stringify(Array.isArray(itemIds) ? itemIds : []),
+    const searchId = getSearchId(searchData || {});
+    const sessionId = getSessionId();
+    const page = searchData?.page || 1;
+    const impressionKey = `imp_${sessionId}_${searchId}_${page}`;
+
+    if (typeof window !== 'undefined' && sessionStorage.getItem(impressionKey)) {
+      return searchId;
+    }
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(impressionKey, '1');
+    }
+
+    console.log('📊 Tracking search impressions:', {
+      search_id: searchId,
+      item_count: itemIds.length,
       search_query: searchData?.search_query || null,
+      page,
     });
-    
 
-    return impressionId;
+    const ok = await trackingRequest('track/search-impressions', {
+      item_ids: Array.isArray(itemIds) ? itemIds : [],
+      search_query: searchData?.search_query || null,
+      page,
+      results_total: searchData?.results_count || null,
+      filters: searchData?.filters || null,
+      search_id: searchId,
+    });
+
+    if (!ok) {
+      impressionIdRef.current = null;
+    }
+
+    return searchId;
   }, []);
 
   const trackSearchClick = useCallback(async (itemId, position, impressionId = null) => {
     const impId = impressionId || impressionIdRef.current;
-    
+    if (!impId) return;
+
     console.log('📊 Tracking search click:', { 
       item_id: itemId, 
       position, 
       impression_id: impId 
     });
     
-    await trackingRequest('item-statistics/track-search-click', {
-      item_id: itemId,
-      position,
+    await trackingRequest('track/search-click', {
       impression_id: impId,
     });
   }, []);
@@ -381,6 +527,8 @@ export const useSearchTracking = () => {
     trackSearchImpressions,
     trackSearchClick,
     getLastImpressionId: () => impressionIdRef.current,
+    getSearchId,
+    getLastSearchId: () => searchIdRef.current,
   };
 };
 

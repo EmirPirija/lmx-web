@@ -108,7 +108,7 @@ const formatPriceOrInquiry = (price) => {
   return formatPriceAbbreviated(Number(price));
 };
 
-const ProductHorizontalCard = ({ item, handleLike, onClick }) => {
+const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) => {
   const userData = useSelector(userSignUpData);
   const translated_item = item?.translated_item;
 
@@ -124,10 +124,13 @@ const ProductHorizontalCard = ({ item, handleLike, onClick }) => {
       )
     : false;
 
-  const productLink =
+  const productLinkBase =
     userData?.id === item?.user_id
       ? `/my-listing/${item?.slug}`
       : `/ad-details/${item?.slug}`;
+  const productLink = trackingParams
+    ? `${productLinkBase}?${new URLSearchParams(trackingParams).toString()}`
+    : productLinkBase;
 
   const keyAttributes = getKeyAttributes(item);
 

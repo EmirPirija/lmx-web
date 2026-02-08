@@ -38,6 +38,7 @@ import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
+import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -46,20 +47,15 @@ import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal"
 const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
 
 const reelRingCss = `
-@keyframes reel-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
 @keyframes reel-glow {
   0%, 100% { opacity: 0.35; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.05); }
 }
 .reel-ring {
   position: relative;
-  padding: 2px;
+  padding: 3px;
   border-radius: 16px;
   background: conic-gradient(from 0deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
-  animation: reel-spin 8s linear infinite;
 }
 .reel-ring::after {
   content: "";
@@ -667,6 +663,19 @@ const ProductSellerDetailCard = ({
       seller?.has_reel ||
       seller?.reel_video
   );
+  const ringMotion = showReelRing
+    ? {
+        scale: [1, 1.04, 1],
+        boxShadow: [
+          "0 0 0 0 rgba(17,183,176,0)",
+          "0 0 0 6px rgba(249,115,22,0.25)",
+          "0 0 0 0 rgba(17,183,176,0)",
+        ],
+      }
+    : undefined;
+  const ringTransition = showReelRing
+    ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
+    : undefined;
     
     
   
@@ -686,10 +695,10 @@ const ProductSellerDetailCard = ({
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [isOfferOpen, setIsOfferOpen] = useState(false);
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
+  const [isReelViewerOpen, setIsReelViewerOpen] = useState(false);
+  const currentUser = useSelector(userSignUpData);
 
   if (!seller) return <ProductSellerCardSkeleton />;
-
-  const currentUser = useSelector(userSignUpData);
 
   // Use user_id if available, fallback to id, then to productDetails.user_id
   const sellerId = seller?.user_id ?? seller?.id ?? productDetails?.user_id;
@@ -788,6 +797,12 @@ const ProductSellerDetailCard = ({
         onOpenChange={setIsReelModalOpen}
       />
 
+      <ReelViewerModal
+        open={isReelViewerOpen}
+        onOpenChange={setIsReelViewerOpen}
+        userId={sellerId}
+      />
+
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
         {/* Main Card */}
         <div className="p-4 space-y-3">
@@ -795,48 +810,72 @@ const ProductSellerDetailCard = ({
           <div className="flex items-start gap-3">
             {/* Avatar */}
             {sellerId ? (
-              <CustomLink href={`/seller/${sellerId}`} className="relative flex-shrink-0 group cursor-pointer">
-                <div
-                  className={cn(
-                    "rounded-[14px] p-[2px]",
-                    showReelRing ? "reel-ring" : "bg-transparent"
-                  )}
+              <div className="relative flex-shrink-0 group cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => setIsReelViewerOpen(true)}
+                  className="focus:outline-none"
+                  aria-label="Otvori reelove"
                 >
-                  <div
+                  <motion.div
                     className={cn(
-                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
-                      showReelRing
-                        ? "border border-white/70"
-                        : "border border-slate-200/60 group-hover:border-slate-300 transition-colors"
+                      "rounded-[14px] p-[2px]",
+                      showReelRing ? "reel-ring" : "bg-transparent"
                     )}
+                    animate={ringMotion}
+                    transition={ringTransition}
                   >
-                    <CustomImage
-                      src={seller?.profile || seller?.profile_image}
-                      alt={seller?.name || "Prodavač"}
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-                {showReelRing && (
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
-                    <Play className="w-3 h-3 text-[#1e3a8a]" />
-                  </div>
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
+                        showReelRing
+                          ? "border border-white/70"
+                          : "border border-slate-200/60 group-hover:border-slate-300 transition-colors"
+                      )}
+                    >
+                      <CustomImage
+                        src={seller?.profile || seller?.profile_image}
+                        alt={seller?.name || "Prodavač"}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </motion.div>
+                  {showReelRing && (
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
+                      <Play className="w-3 h-3 text-[#1e3a8a]" />
+                    </div>
+                  )}
+                </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsReelModalOpen(true);
+                    }}
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-200"
+                    aria-label="Dodaj video"
+                  >
+                    <span className="text-lg leading-none text-[#1e3a8a]">+</span>
+                  </button>
                 )}
                 {isVerified && (
                   <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                     <BadgeCheck className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
-              </CustomLink>
+              </div>
             ) : (
               <div className="relative flex-shrink-0">
-                <div
+                <motion.div
                   className={cn(
                     "rounded-[14px] p-[2px]",
                     showReelRing ? "reel-ring" : "bg-transparent"
                   )}
+                  animate={ringMotion}
+                  transition={ringTransition}
                 >
                   <div
                     className={cn(
@@ -854,7 +893,7 @@ const ProductSellerDetailCard = ({
                       className="w-full h-full object-cover"
                     />
                   </div>
-                </div>
+                </motion.div>
                 {showReelRing && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
                     <Play className="w-3 h-3 text-[#1e3a8a]" />
@@ -925,13 +964,9 @@ const ProductSellerDetailCard = ({
               </div>
 
               {isOwner && !hasVideo && (
-                <button
-                  type="button"
-                  onClick={() => setIsReelModalOpen(true)}
-                  className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#11b7b0]/40 bg-[#11b7b0]/10 px-3 py-1 text-xs font-semibold text-[#0f766e] hover:bg-[#11b7b0]/20 transition-colors"
-                >
-                  Dodaj video za ovaj oglas
-                </button>
+                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#11b7b0]/40 bg-[#11b7b0]/10 px-3 py-1 text-xs font-semibold text-[#0f766e]">
+                  Dodaj video preko + ikone na avataru
+                </div>
               )}
 
               {/* Gamification badges */}
