@@ -197,7 +197,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
       if (response?.data?.error === false) {
         setProductDetails((prev) => ({ ...prev, is_liked: !productDetails?.is_liked }));
         toast.success(productDetails?.is_liked ? "Uklonjeno iz omiljenih" : "Dodano u omiljene");
-        if(onFavoriteToggle) onFavoriteToggle();
+        if (onFavoriteToggle) onFavoriteToggle(!productDetails?.is_liked);
       }
     } catch (error) {
       console.log(error);

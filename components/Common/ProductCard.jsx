@@ -11,7 +11,7 @@ import { IoLocationOutline, IoTimeOutline } from "react-icons/io5";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { HiOutlineArrowRight } from "react-icons/hi";
 import { MdLocalOffer } from "react-icons/md";
-import { manageFavouriteApi } from "@/utils/api";
+import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { useSelector, useDispatch } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import CustomLink from "@/components/Common/CustomLink";
@@ -220,6 +220,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
       if (response?.data?.error === false) {
         toast.success(response?.data?.message);
         handleLike?.(item?.id);
+        await itemStatisticsApi.trackFavorite({ item_id: item?.id, added: !item?.is_liked });
       } else {
         toast.error("Greška pri dodavanju u favorite");
       }

@@ -8,7 +8,7 @@ import { FaHeart, FaRegHeart, FaYoutube } from "react-icons/fa";
 import { IoLocationOutline, IoTimeOutline } from "react-icons/io5";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { HiOutlineArrowRight } from "react-icons/hi";
-import { manageFavouriteApi } from "@/utils/api";
+import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { toast } from "sonner";
@@ -189,6 +189,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
       if (response?.data?.error === false) {
         toast.success(response?.data?.message);
         handleLike(item?.id);
+        await itemStatisticsApi.trackFavorite({ item_id: item?.id, added: !item?.is_liked });
       } else {
         toast.error(t("failedToLike"));
       }

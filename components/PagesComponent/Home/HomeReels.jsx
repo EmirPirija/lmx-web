@@ -6,9 +6,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { allItemApi, manageFavouriteApi, itemConversationApi } from "@/utils/api";
+import { allItemApi, itemStatisticsApi, manageFavouriteApi, itemOfferApi } from "@/utils/api";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
+import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 
 import {
   MdFavorite,
@@ -100,7 +100,6 @@ const formatCount = (num) => {
 const HomeReels = () => {
   const dispatch = useDispatch();
   const isLoggedIn = useSelector(getIsLoggedIn);
-  const currentUser = useSelector(userSignUpData);
 
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -160,6 +159,9 @@ const HomeReels = () => {
       return;
     }
 
+    const currentItem = items.find((it) => it.id === itemId);
+    const nextLiked = !currentItem?.is_liked;
+
     setItems((prev) =>
       prev.map((it) =>
         it.id === itemId
@@ -180,6 +182,7 @@ const HomeReels = () => {
       if (response?.data?.error !== false) {
         throw new Error("Like failed");
       }
+      await itemStatisticsApi.trackFavorite({ item_id: itemId, added: nextLiked });
     } catch (e) {
       setItems((prev) =>
         prev.map((it) =>
@@ -354,7 +357,6 @@ export default HomeReels;
 const ReelCard = ({ item, index, isLoggedIn, onLike }) => {
   const router = useRouter();
   const dispatch = useDispatch();
-  const currentUser = useSelector(userSignUpData);
 
   const videoRef = useRef(null);
   const wrapperRef = useRef(null);
@@ -515,48 +517,14 @@ const ReelCard = ({ item, index, isLoggedIn, onLike }) => {
       return;
     }
 
-    if (!item?.id) {
-      toast.error("Oglas nije dostupan.");
-      return;
-    }
-
-    const sellerId = item?.user_id || item?.user?.id;
-    if (!sellerId) {
-      toast.error("Prodavač nije dostupan.");
-      return;
-    }
-
-    if (currentUser?.id && String(currentUser.id) === String(sellerId)) {
-      toast.error("Ne možete poslati poruku na svoj oglas.");
-      return;
-    }
-
     try {
-      const checkRes = await itemConversationApi.checkConversation({ item_id: item?.id });
-      const existingId =
-        checkRes?.data?.data?.conversation_id ||
-        checkRes?.data?.data?.item_offer_id ||
-        checkRes?.data?.data?.id ||
-        null;
-
-      if (checkRes?.data?.error === false && existingId) {
-        router.push(`/chat?activeTab=buying&chatid=${existingId}`);
-        return;
+      const res = await itemOfferApi.offer({ item_id: item?.id });
+      if (res?.data?.error === false) {
+        const offerId = res?.data?.data?.id;
+        router.push(offerId ? `/chat?activeTab=buying&chatid=${offerId}` : `/chat?activeTab=buying`);
+      } else {
+        toast.error(res?.data?.message || "Ne mogu otvoriti chat");
       }
-
-      const startRes = await itemConversationApi.startItemConversation({ item_id: item?.id });
-      const convoId =
-        startRes?.data?.data?.conversation_id ||
-        startRes?.data?.data?.item_offer_id ||
-        startRes?.data?.data?.id ||
-        null;
-
-      if (startRes?.data?.error === false && convoId) {
-        router.push(`/chat?activeTab=buying&chatid=${convoId}`);
-        return;
-      }
-
-      toast.error(startRes?.data?.message || "Ne mogu otvoriti chat");
     } catch (err) {
       console.error(err);
       toast.error("Ne mogu otvoriti chat");
