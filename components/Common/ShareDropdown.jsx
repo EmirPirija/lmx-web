@@ -22,7 +22,7 @@ import { useSearchParams } from "next/navigation";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 
-const ShareDropdown = ({ url, title, headline, companyName, className }) => {
+const ShareDropdown = ({ url, title, headline, companyName, className, onShare }) => {
   const [open, setOpen] = useState(false);
   const searchParams = useSearchParams();
   const langCode = searchParams.get("lang");
@@ -32,14 +32,16 @@ const ShareDropdown = ({ url, title, headline, companyName, className }) => {
     try {
       await navigator.clipboard.writeText(url + "?share=true&lang=" + langCode);
       toast.success(t("copyToClipboard"));
+      onShare?.("copy_link");
       setOpen(false);
     } catch (error) {
       console.error("Error copying to clipboard:", error);
     }
   };
 
-  const handleShare = () => {
+  const handleShare = (platform) => {
     setOpen(false);
+    onShare?.(platform);
   };
 
   return (
@@ -55,7 +57,7 @@ const ShareDropdown = ({ url, title, headline, companyName, className }) => {
             className="w-full"
             url={url}
             hashtag={title}
-            onClick={handleShare}
+            onClick={() => handleShare("facebook")}
           >
             <div className="flex items-center gap-2">
               <FacebookIcon className="!size-6" round />
@@ -68,7 +70,7 @@ const ShareDropdown = ({ url, title, headline, companyName, className }) => {
             className="w-full"
             url={url}
             title={headline}
-            onClick={handleShare}
+            onClick={() => handleShare("x")}
           >
             <div className="flex items-center gap-2">
               <XIcon className="!size-6" round />
@@ -82,7 +84,7 @@ const ShareDropdown = ({ url, title, headline, companyName, className }) => {
             url={url}
             title={headline}
             hashtag={companyName}
-            onClick={handleShare}
+            onClick={() => handleShare("whatsapp")}
           >
             <div className="flex items-center gap-2">
               <WhatsappIcon className="!size-6" round />

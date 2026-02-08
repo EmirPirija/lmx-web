@@ -189,7 +189,12 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
       if (response?.data?.error === false) {
         toast.success(response?.data?.message);
         handleLike(item?.id);
-        await itemStatisticsApi.trackFavorite({ item_id: item?.id, added: !item?.is_liked });
+        const nextLiked = !item?.is_liked;
+        try {
+          await itemStatisticsApi.trackFavorite({ item_id: item?.id, added: nextLiked });
+        } catch (trackingError) {
+          console.warn("Praćenje favorita nije uspjelo.", trackingError);
+        }
       } else {
         toast.error(t("failedToLike"));
       }

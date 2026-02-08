@@ -139,6 +139,7 @@ const AllItems = ({ cityData, KmRange }) => {
               key={item?.id}
               item={item}
               handleLike={handleLikeAllData}
+              trackingParams={{ ref: "featured", source_detail: "home" }}
             />
           ))
         ) : (

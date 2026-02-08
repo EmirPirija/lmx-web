@@ -258,14 +258,18 @@ const SellerLsitings = ({ id, filterStatus, emptyLabel }) => {
             sellerItems.map((item, index) =>
               view === "list" ? (
                 <div className="col-span-12" key={item.id || index}>
-                  <ProductHorizontalCard item={item} handleLike={handleLike} />
+                  <ProductHorizontalCard
+                    item={item}
+                    handleLike={handleLike}
+                    trackingParams={{ ref: "seller" }}
+                  />
                 </div>
               ) : (
                 <div
                   className="col-span-6 sm:col-span-4 xl:col-span-3"
                   key={item.id || index}
                 >
-                  <ProductCard item={item} handleLike={handleLike} />
+                  <ProductCard item={item} handleLike={handleLike} trackingParams={{ ref: "seller" }} />
                 </div>
               )
             )

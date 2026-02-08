@@ -182,7 +182,11 @@ const HomeReels = () => {
       if (response?.data?.error !== false) {
         throw new Error("Like failed");
       }
-      await itemStatisticsApi.trackFavorite({ item_id: itemId, added: nextLiked });
+      try {
+        await itemStatisticsApi.trackFavorite({ item_id: itemId, added: nextLiked });
+      } catch (trackingError) {
+        console.warn("Praćenje favorita nije uspjelo.", trackingError);
+      }
     } catch (e) {
       setItems((prev) =>
         prev.map((it) =>

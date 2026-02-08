@@ -48,6 +48,7 @@ const FeaturedSections = ({ featuredData, setFeaturedData, allEmpty }) => {
                       key={data?.id}
                       item={data}
                       handleLike={handleLike}
+                      trackingParams={{ ref: "featured", source_detail: ele?.slug || ele?.id }}
                     />
                   ))}
                 </div>

@@ -120,7 +120,7 @@ const Favorites = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.03 }}
           >
-            <ProductCard item={fav} handleLike={handleLike} />
+            <ProductCard item={fav} handleLike={handleLike} trackingParams={{ ref: "favorites" }} />
           </motion.div>
         ))}
       </div>
