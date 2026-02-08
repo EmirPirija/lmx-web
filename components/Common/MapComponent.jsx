@@ -4,7 +4,7 @@ import {
   getDefaultLongitude,
 } from "@/redux/reducer/settingSlice";
 import { useEffect, useRef } from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -37,6 +37,9 @@ const MapComponent = ({ getLocationWithMap, location }) => {
     lat: Number(location?.lat) || latitude,
     lng: Number(location?.long) || longitude,
   };
+  const isPreciseLocation =
+    Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.long));
+  const label = location?.label || location?.name || "Odabrana lokacija";
 
   useEffect(() => {
     if (mapRef.current && position.lat && position.lng) {
@@ -79,7 +82,34 @@ const MapComponent = ({ getLocationWithMap, location }) => {
         />
         <MapClickHandler onMapClick={handleMapClick} />
         {position?.lat && position?.lng && (
-          <Marker position={[position?.lat, position?.lng]}></Marker>
+          <Marker position={[position?.lat, position?.lng]}>
+            <Popup>
+              <div className="min-w-[200px]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-9 w-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-bold">
+                    📍
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{label}</p>
+                    <p className="text-xs text-slate-500">Klikni na mapu da promijeniš lokaciju</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                  <span className="px-2 py-1 rounded-full bg-slate-100 border border-slate-200">
+                    Lat: {Number(position.lat).toFixed(5)}
+                  </span>
+                  <span className="px-2 py-1 rounded-full bg-slate-100 border border-slate-200">
+                    Lng: {Number(position.lng).toFixed(5)}
+                  </span>
+                  {isPreciseLocation && (
+                    <span className="px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
+                      Precizna tačka
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Popup>
+          </Marker>
         )}
       </MapContainer>
     </>

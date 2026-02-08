@@ -222,16 +222,16 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                 <MdStar className="text-sm" /> Istaknuto
               </span>
             )}
-            {productDetails?.category?.name && (
+            {/* {productDetails?.category?.name && (
               <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700">
                 {productDetails.category.name}
               </span>
-            )}
+            )} */}
           </div>
 
           {/* TITLE & ACTIONS ROW */}
           <div className="flex justify-between items-start gap-4 mb-6">
-            <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight break-words">
+            <h1 className="text-1xl lg:text-1xl font-extrabold text-slate-900 dark:text-white leading-tight break-words">
               {productName}
             </h1>
             
@@ -277,31 +277,30 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                   </div>
                 </div>
               ) : (
-                <span className="text-3xl font-black text-primary tracking-tight">
-                  {isJobCategory 
-                    ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
-                    : formatBosnianPrice(productDetails?.price)
-                  }
-                </span>
+              <span className="flex items-center gap-3 text-3xl font-black text-primary tracking-tight">
+                {isJobCategory 
+                  ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
+                  : formatBosnianPrice(productDetails?.price)
+                }
+                {hasHistory && (
+                  <button
+                    onClick={() => setShowHistoryModal(true)}
+                    className="flex items-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
+                  >
+                    <MdHistory className="text-lg text-slate-400 dark:text-slate-400" />
+                  </button>
+                )}
+              </span>
               )}
             </div>
 
-            {hasHistory && (
-              <button
-                onClick={() => setShowHistoryModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
-              >
-                <MdHistory className="text-lg text-slate-400 dark:text-slate-400" />
-                Historija cijene
-              </button>
-            )}
           </div>
 
           {/* DATE INFO */}
-          <div className="mt-4 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 px-1">
+          {/* <div className="mt-4 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 px-1">
             <span>Objavljeno: {formatShortDate(productDetails?.created_at)}</span>
             <span>ID: #{productDetails?.id}</span>
-          </div>
+          </div> */}
 
         </div>
       </div>
