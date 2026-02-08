@@ -79,7 +79,11 @@ const SimilarProducts = ({ productDetails }) => {
               key={item.id}
               className="md:basis-1/3 lg:basis-[25%] basis-2/3 sm:basis-1/2"
             >
-              <ProductCard item={item} handleLike={handleLikeAllData} />
+              <ProductCard
+                item={item}
+                handleLike={handleLikeAllData}
+                trackingParams={{ ref: "similar" }}
+              />
             </CarouselItem>
           ))}
         </CarouselContent>
