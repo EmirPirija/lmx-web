@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { allItemApi, manageFavouriteApi, itemOfferApi } from "@/utils/api";
+import { allItemApi, itemStatisticsApi, manageFavouriteApi, itemOfferApi } from "@/utils/api";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 
@@ -159,6 +159,9 @@ const HomeReels = () => {
       return;
     }
 
+    const currentItem = items.find((it) => it.id === itemId);
+    const nextLiked = !currentItem?.is_liked;
+
     setItems((prev) =>
       prev.map((it) =>
         it.id === itemId
@@ -179,6 +182,7 @@ const HomeReels = () => {
       if (response?.data?.error !== false) {
         throw new Error("Like failed");
       }
+      await itemStatisticsApi.trackFavorite({ item_id: itemId, added: nextLiked });
     } catch (e) {
       setItems((prev) =>
         prev.map((it) =>
