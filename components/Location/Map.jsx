@@ -89,9 +89,23 @@ const ProductMarker = ({ position, productData }) => {
       map.removeLayer(markerRef.current);
     }
 
-    const { title, price, image, area, rooms, roomType, createdAt } = productData || {};
+    const {
+      title,
+      price,
+      image,
+      area,
+      rooms,
+      roomType,
+      createdAt,
+      address,
+      location,
+      category,
+      featured,
+      status,
+    } = productData || {};
     const displayRoomType = getRoomType(rooms, roomType);
     const timeAgo = formatTimeAgo(createdAt);
+    const locationLabel = address || location;
 
     // Create marker with custom icon
     const marker = L.marker(position, {
@@ -129,9 +143,13 @@ const ProductMarker = ({ position, productData }) => {
           <div class="popup-info">
             <h3 class="popup-title">${title || 'Bez naziva'}</h3>
             <div class="popup-tags">
+              ${featured ? `<span class="popup-tag popup-tag-featured">Istaknuto</span>` : ""}
+              ${status ? `<span class="popup-tag popup-tag-status">${status}</span>` : ""}
+              ${category ? `<span class="popup-tag">${category}</span>` : ""}
               ${area ? `<span class="popup-tag">${area}m²</span>` : ""}
               ${displayRoomType ? `<span class="popup-tag">${displayRoomType}</span>` : ""}
             </div>
+            ${locationLabel ? `<p class="popup-location">📍 ${locationLabel}</p>` : ""}
             <p class="popup-price">${formatPrice(price)}</p>
             ${timeAgo ? `<p class="popup-time">${timeAgo}</p>` : ""}
           </div>
@@ -352,12 +370,32 @@ const Map = ({ latitude, longitude, productData }) => {
           color: #475569;
           white-space: nowrap;
         }
+
+        .popup-tag-featured {
+          background: #fff7ed;
+          border-color: #fed7aa;
+          color: #c2410c;
+          font-weight: 600;
+        }
+
+        .popup-tag-status {
+          background: #eef2ff;
+          border-color: #c7d2fe;
+          color: #3730a3;
+          font-weight: 600;
+        }
         
         .popup-price {
           font-weight: 700;
           font-size: 15px;
           color: #1e293b;
           margin: 0;
+        }
+
+        .popup-location {
+          font-size: 11px;
+          color: #64748b;
+          margin: 0 0 4px 0;
         }
         
         .popup-time {

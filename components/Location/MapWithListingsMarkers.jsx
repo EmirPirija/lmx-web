@@ -186,6 +186,9 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
       const roomType = getRoomType(ad.rooms, ad.room_type);
       const timeAgo = formatTimeAgo(ad.created_at);
       const imageUrl = ad.image || ad.images?.[0];
+      const locationLabel = ad.location || ad.address || ad.city || ad.state || ad.country;
+      const hasViews = typeof ad.views === "number" && ad.views >= 0;
+      const statusLabel = ad.status ? String(ad.status) : null;
 
       // Popup content - horizontalni card dizajn kao na slici
       const popupContent = `
@@ -216,13 +219,23 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
               </div>
             `}
             <div class="popup-info">
-              <h3 class="popup-title">${ad.title || ad.name}</h3>
+              <div class="popup-header-row">
+                <h3 class="popup-title">${ad.title || ad.name}</h3>
+                ${ad.featured ? `<span class="popup-pill popup-pill-featured">Istaknuto</span>` : ""}
+              </div>
               <div class="popup-tags">
+                ${ad.category ? `<span class="popup-tag popup-tag-category">${ad.category}</span>` : ""}
+                ${statusLabel ? `<span class="popup-tag popup-tag-status">${statusLabel}</span>` : ""}
                 ${ad.area ? `<span class="popup-tag">${ad.area}m²</span>` : ""}
                 ${roomType ? `<span class="popup-tag">${roomType}</span>` : ""}
               </div>
-              <p class="popup-price">${formatPopupPrice(ad.price)}</p>
+              ${locationLabel ? `<p class="popup-location">📍 ${locationLabel}</p>` : ""}
+              <div class="popup-meta-row">
+                <p class="popup-price">${formatPopupPrice(ad.price)}</p>
+                ${hasViews ? `<span class="popup-views">👀 ${ad.views} pregleda</span>` : ""}
+              </div>
               ${timeAgo ? `<p class="popup-time">${timeAgo}</p>` : ""}
+              <div class="popup-hint">Klikni marker za detalje u listi</div>
             </div>
           </div>
         </div>
@@ -491,6 +504,13 @@ const MapWithListingsMarkers = ({
           flex-direction: column;
           min-width: 0;
         }
+
+        .popup-header-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+        }
         
         .popup-title {
           font-weight: 700;
@@ -522,6 +542,39 @@ const MapWithListingsMarkers = ({
           color: #475569;
           white-space: nowrap;
         }
+
+        .popup-tag-category {
+          background: #eff6ff;
+          border-color: #bfdbfe;
+          color: #1d4ed8;
+          font-weight: 600;
+        }
+
+        .popup-tag-status {
+          background: #f5f3ff;
+          border-color: #ddd6fe;
+          color: #6d28d9;
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+
+        .popup-pill {
+          font-size: 10px;
+          padding: 3px 8px;
+          border-radius: 999px;
+          background: #fef3c7;
+          color: #92400e;
+          font-weight: 700;
+          border: 1px solid #fde68a;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+        }
+
+        .popup-pill-featured {
+          background: #ffedd5;
+          border-color: #fed7aa;
+          color: #c2410c;
+        }
         
         .popup-price {
           font-weight: 700;
@@ -529,11 +582,40 @@ const MapWithListingsMarkers = ({
           color: #1e293b;
           margin: 0;
         }
+
+        .popup-location {
+          font-size: 11px;
+          color: #64748b;
+          margin: 0 0 6px 0;
+        }
+
+        .popup-meta-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .popup-views {
+          font-size: 11px;
+          color: #475569;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 2px 6px;
+          border-radius: 999px;
+          white-space: nowrap;
+        }
         
         .popup-time {
           font-size: 11px;
           color: #94a3b8;
           margin: 4px 0 0 0;
+        }
+
+        .popup-hint {
+          margin-top: 6px;
+          font-size: 10px;
+          color: #94a3b8;
         }
 
         .marker-default:hover {

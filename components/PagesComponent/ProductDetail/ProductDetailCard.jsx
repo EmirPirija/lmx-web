@@ -231,9 +231,52 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
 
           {/* TITLE & ACTIONS ROW */}
           <div className="flex justify-between items-start gap-4 mb-6">
-            <h1 className="text-1xl lg:text-1xl font-extrabold text-slate-900 dark:text-white leading-tight break-words">
-              {productName}
-            </h1>
+
+            {/* Parent Container: Flex kolona sa razmakom */}
+<div className="flex flex-col gap-4 w-full">
+  
+  {/* NASLOV */}
+  <h1 className="text-xl lg:text-2xl font-extrabold text-slate-900 dark:text-white leading-tight break-words">
+    {productName}
+  </h1>
+
+  {/* PRICE SECTION */}
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-br from-slate-50/50 dark:from-slate-900/50 to-white dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+    <div>
+      {isOnSale && oldPrice && Number(oldPrice) > Number(currentPrice) ? (
+        <div className="flex flex-col">
+          <span className="text-slate-400 dark:text-slate-500 line-through text-sm font-medium">
+            {formatBosnianPrice(oldPrice)}
+          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl font-black text-red-600 dark:text-red-500 tracking-tight">
+              {formatBosnianPrice(currentPrice)}
+            </span>
+            <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold rounded-md">
+              Akcija
+            </span>
+          </div>
+        </div>
+      ) : (
+        <span className="flex items-center gap-3 text-3xl font-black text-primary tracking-tight">
+          {isJobCategory
+            ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
+            : formatBosnianPrice(productDetails?.price)}
+          {hasHistory && (
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="flex items-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
+            >
+              <MdHistory className="text-lg text-slate-400 dark:text-slate-400" />
+            </button>
+          )}
+        </span>
+      )}
+    </div>
+  </div>
+  
+</div>
+            
             
             <div className="flex items-center gap-2 flex-shrink-0">
               <ShareDropdown
@@ -257,43 +300,6 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                 {productDetails?.is_liked ? <MdFavorite size={20} /> : <MdFavoriteBorder size={20} />}
               </button>
             </div>
-          </div>
-
-          {/* PRICE SECTION */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-br from-slate-50/50 dark:from-slate-900/50 to-white dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-            <div>
-              {isOnSale && oldPrice && Number(oldPrice) > Number(currentPrice) ? (
-                <div className="flex flex-col">
-                  <span className="text-slate-400 dark:text-slate-500 line-through text-sm font-medium">
-                    {formatBosnianPrice(oldPrice)}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl font-black text-red-600 dark:text-red-500 tracking-tight">
-                      {formatBosnianPrice(currentPrice)}
-                    </span>
-                    <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold rounded-md">
-                      Akcija
-                    </span>
-                  </div>
-                </div>
-              ) : (
-              <span className="flex items-center gap-3 text-3xl font-black text-primary tracking-tight">
-                {isJobCategory 
-                  ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
-                  : formatBosnianPrice(productDetails?.price)
-                }
-                {hasHistory && (
-                  <button
-                    onClick={() => setShowHistoryModal(true)}
-                    className="flex items-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
-                  >
-                    <MdHistory className="text-lg text-slate-400 dark:text-slate-400" />
-                  </button>
-                )}
-              </span>
-              )}
-            </div>
-
           </div>
 
           {/* DATE INFO */}

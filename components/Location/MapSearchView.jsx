@@ -386,19 +386,27 @@ const AdCard = ({
         </div>
 
         {/* Additional info */}
-        {(ad.rooms || ad.bedrooms) && (
-          <div className="flex items-center gap-2 text-xs text-slate-600">
+        {(ad.rooms || ad.bedrooms || typeof ad.views === "number") && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
             {ad.rooms && <span>{ad.rooms} sobe</span>}
             {ad.bedrooms && <span>{ad.bedrooms} spavaće</span>}
+            {typeof ad.views === "number" && <span>👀 {ad.views} pregleda</span>}
           </div>
         )}
 
         {/* Category */}
-        {ad.category && (
-          <div className="mt-2">
-            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-              {ad.category}
-            </span>
+        {(ad.category || ad.status) && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {ad.category && (
+              <span className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                {ad.category}
+              </span>
+            )}
+            {ad.status && (
+              <span className="text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded border border-purple-100">
+                {ad.status}
+              </span>
+            )}
           </div>
         )}
       </div>

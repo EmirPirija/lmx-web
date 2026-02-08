@@ -4,7 +4,7 @@ import {
   getDefaultLongitude,
 } from "@/redux/reducer/settingSlice";
 import { getCityData } from "@/redux/reducer/locationSlice";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   Circle,
   MapContainer,
@@ -48,6 +48,16 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
 
   const markerLatLong =
     position?.lat && position?.lng ? position : placeHolderPos;
+  const displayLat = markerLatLong?.lat || latitude;
+  const displayLng = markerLatLong?.lng || longitude;
+  const hasPrecisePoint =
+    Number.isFinite(Number(markerLatLong?.lat)) &&
+    Number.isFinite(Number(markerLatLong?.lng));
+  const radiusLabel = KmRange ? `${KmRange} km` : "Bez radijusa";
+  const formattedCoords = useMemo(() => {
+    if (!displayLat || !displayLng) return null;
+    return `${Number(displayLat).toFixed(4)}, ${Number(displayLng).toFixed(4)}`;
+  }, [displayLat, displayLng]);
 
   useEffect(() => {
     if (mapRef.current && markerLatLong.lat && markerLatLong.lng) {
@@ -74,43 +84,57 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
   };
 
   return (
-    <MapContainer
-      style={containerStyle}
-      center={[markerLatLong?.lat || latitude, markerLatLong?.lng || longitude]}
-      zoom={6}
-      ref={mapRef}
-      whenCreated={(mapInstance) => {
-        mapRef.current = mapInstance;
-      }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <MapClickHandler onMapClick={handleMapClick} />
-      <Marker
-        position={[
-          markerLatLong?.lat || latitude,
-          markerLatLong?.lng || longitude,
-        ]}
-      ></Marker>
-      <Circle
-        center={[
-          markerLatLong?.lat || latitude,
-          markerLatLong?.lng || longitude,
-        ]}
-        radius={KmRange * 1000} // radius in meters
-        pathOptions={{
-          color: getComputedStyle(document.documentElement)
-            .getPropertyValue("--primary-color")
-            .trim(),
-          fillColor: getComputedStyle(document.documentElement)
-            .getPropertyValue("--primary-color")
-            .trim(),
-          fillOpacity: 0.2,
+    <div className="relative">
+      <MapContainer
+        style={containerStyle}
+        center={[displayLat, displayLng]}
+        zoom={6}
+        ref={mapRef}
+        whenCreated={(mapInstance) => {
+          mapRef.current = mapInstance;
         }}
-      />
-    </MapContainer>
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <MapClickHandler onMapClick={handleMapClick} />
+        <Marker position={[displayLat, displayLng]}></Marker>
+        <Circle
+          center={[displayLat, displayLng]}
+          radius={KmRange * 1000} // radius in meters
+          pathOptions={{
+            color: getComputedStyle(document.documentElement)
+              .getPropertyValue("--primary-color")
+              .trim(),
+            fillColor: getComputedStyle(document.documentElement)
+              .getPropertyValue("--primary-color")
+              .trim(),
+            fillOpacity: 0.2,
+          }}
+        />
+      </MapContainer>
+      <div className="pointer-events-none absolute top-4 left-4 right-4 flex flex-wrap gap-2">
+        <div className="bg-white/95 border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+          <p className="text-xs text-slate-500">Odabrana tačka</p>
+          <p className="text-sm font-semibold text-slate-800">
+            {formattedCoords || "Nije postavljeno"}
+          </p>
+        </div>
+        <div className="bg-white/95 border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+          <p className="text-xs text-slate-500">Radijus pretrage</p>
+          <p className="text-sm font-semibold text-slate-800">{radiusLabel}</p>
+        </div>
+        {hasPrecisePoint && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 shadow-sm text-emerald-700 text-xs font-semibold">
+            Precizna lokacija
+          </div>
+        )}
+        <div className="bg-slate-900/90 text-white rounded-xl px-3 py-2 text-xs font-medium shadow-sm">
+          Klikni na mapu da pomjeriš marker
+        </div>
+      </div>
+    </div>
   );
 };
 
