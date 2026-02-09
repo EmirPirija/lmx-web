@@ -44,11 +44,11 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const [videoLink, setVideoLink] = useState("");
   const [linkPreview, setLinkPreview] = useState(null);
   const [isLinkValid, setIsLinkValid] = useState(false);
+  const [existingAction, setExistingAction] = useState("keep");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingMore, setIsSubmittingMore] = useState(false);
-  const [confirmReplace, setConfirmReplace] = useState(false);
   const uploadedRef = useRef(null);
   const queuedRef = useRef([]);
 
@@ -69,6 +69,31 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   );
   const isUsingLink = videoLink.trim().length > 0;
 
+  const existingVideos = useMemo(() => {
+    if (!selectedItem) return [];
+    const list = [];
+    if (selectedItem?.video) {
+      list.push({
+        id: "existing-upload",
+        type: "upload",
+        label: "Postojeći upload",
+        src: selectedItem.video,
+        preview: selectedItem?.image || null,
+      });
+    }
+    if (selectedItem?.video_link) {
+      const id = getYouTubeVideoId(selectedItem.video_link);
+      list.push({
+        id: "existing-yt",
+        type: "youtube",
+        label: "YouTube link",
+        src: selectedItem.video_link,
+        preview: id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null,
+      });
+    }
+    return list;
+  }, [selectedItem]);
+
   const resetState = useCallback(() => {
     setSelectedItemId("");
     setUploadedVideo(null);
@@ -77,10 +102,10 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     setVideoLink("");
     setLinkPreview(null);
     setIsLinkValid(false);
+    setExistingAction("keep");
     setIsUploading(false);
     setUploadProgress(0);
     setIsSubmitting(false);
-    setConfirmReplace(false);
   }, []);
 
   const deleteTemp = useCallback(async (id) => {
@@ -153,7 +178,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   }, [videoLink]);
 
   useEffect(() => {
-    setConfirmReplace(false);
+    setExistingAction("keep");
   }, [selectedItemId]);
 
   const uploadFile = async (file, onProgress) => {
@@ -286,32 +311,43 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
       toast.error("Odaberite oglas za koji dodajete reel.");
       return;
     }
-    if (hasExistingVideo && !confirmReplace) {
-      toast.error("Ovaj oglas već ima video. Potvrdite zamjenu.");
-      return;
-    }
     if (isUsingLink && !isLinkValid) {
       toast.error("Unesite validan YouTube link.");
       return;
     }
     if (!isUsingLink && !uploadedVideo?.id) {
-      toast.error("Prvo otpremite video ili dodajte YouTube link.");
-      return;
+      if (existingAction === "delete" && hasExistingVideo) {
+        // delete only
+      } else {
+        toast.error("Prvo otpremite video ili dodajte YouTube link.");
+        return;
+      }
+    }
+
+    if (hasExistingVideo && (isUsingLink || uploadedVideo?.id)) {
+      if (existingAction === "keep") {
+        toast.error("Odaberite da li želite zamijeniti ili obrisati postojeći video.");
+        return;
+      }
     }
 
     try {
       if (keepOpen) setIsSubmittingMore(true);
       else setIsSubmitting(true);
+      const shouldDelete = hasExistingVideo && existingAction === "delete";
       const res = await editItemApi.editItem({
         id: selectedItemId,
-        ...(isUsingLink ? { video_link: videoLink.trim() } : { temp_video_id: uploadedVideo.id }),
+        ...(shouldDelete ? { delete_video: 1 } : {}),
+        ...(isUsingLink ? { video_link: videoLink.trim() } : uploadedVideo?.id ? { temp_video_id: uploadedVideo.id } : {}),
       });
 
       if (res?.data?.error === false) {
         toast.success(
           keepOpen
             ? "Reel je dodan. Možete postaviti još jedan."
-            : "Reel je spreman za Home Reels."
+            : shouldDelete
+              ? "Video je obrisan."
+              : "Reel je spreman za Home Reels."
         );
         onUploaded?.(selectedItem);
         if (keepOpen || queuedVideos.length > 0 || isUsingLink) {
@@ -319,6 +355,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             setVideoLink("");
             setLinkPreview(null);
             setIsLinkValid(false);
+            setExistingAction("keep");
           } else if (queuedVideos.length > 0) {
             const [next, ...rest] = queuedVideos;
             setUploadedVideo(next);
@@ -327,7 +364,6 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             setUploadedVideo(null);
           }
           setVideoPreviewUrl(null);
-          setConfirmReplace(false);
           return;
         }
         onOpenChange(false);
@@ -397,30 +433,72 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   )}
                 </SelectContent>
               </Select>
-              {hasExistingVideo && (
-                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  <p className="font-semibold">Ovaj oglas već ima video.</p>
-                  <p className="mt-1 text-amber-600">
-                    Ako nastavite, trenutni video će biti zamijenjen novim reel
-                    videom.
-                  </p>
-                  <label className="mt-2 flex items-center gap-2 text-amber-700">
-                    <input
-                      type="checkbox"
-                      checked={confirmReplace}
-                      onChange={(e) => setConfirmReplace(e.target.checked)}
-                      className="h-4 w-4 rounded border-amber-300 text-amber-500 focus:ring-amber-400"
-                    />
-                    Svjestan/na sam da mijenjam postojeći video.
-                  </label>
-                </div>
-              )}
             </div>
 
             <div className="space-y-3">
               <label className="text-sm font-semibold text-slate-700">
                 Video za reel
               </label>
+
+              {hasExistingVideo && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-900">Postojeći video</p>
+                    <span className="text-xs text-slate-400">{existingVideos.length} video(a)</span>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {existingVideos.map((vid) => (
+                      <div
+                        key={vid.id}
+                        className={cn(
+                          "rounded-xl border p-3 flex items-center gap-3",
+                          existingAction === "delete" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-slate-50"
+                        )}
+                      >
+                        <div className="w-12 h-16 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+                          {vid.preview ? (
+                            <img src={vid.preview} alt={vid.label} className="w-full h-full object-cover" />
+                          ) : (
+                            <Video className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-700">{vid.label}</p>
+                          <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600 mt-1">
+                            {vid.type === "youtube" ? "YouTube" : "Upload"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: "keep", label: "Zadrži postojeći", tone: "bg-slate-100 text-slate-700" },
+                      { id: "replace", label: "Zamijeni novim", tone: "bg-amber-100 text-amber-700" },
+                      { id: "delete", label: "Obriši postojeći", tone: "bg-rose-100 text-rose-700" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setExistingAction(opt.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+                          existingAction === opt.id
+                            ? "border-transparent shadow-sm"
+                            : "border-slate-200 hover:border-slate-300",
+                          opt.tone
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Odaberite šta radite sa postojećim videom prije objave novog.
+                  </p>
+                </div>
+              )}
 
               {!uploadedVideo ? (
                 <motion.label
@@ -582,8 +660,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   onClick={() => handleSubmit({ keepOpen: true })}
                   disabled={
                     isSubmitting ||
-                    isSubmittingMore ||
-                    (hasExistingVideo && !confirmReplace)
+                    isSubmittingMore
                   }
                   className="border-slate-200 text-slate-700 hover:bg-slate-50"
                 >
@@ -600,8 +677,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   onClick={() => handleSubmit({ keepOpen: false })}
                   disabled={
                     isSubmitting ||
-                    isSubmittingMore ||
-                    (hasExistingVideo && !confirmReplace)
+                    isSubmittingMore
                   }
                   className="min-w-[160px] bg-slate-900 hover:bg-slate-800 text-white"
                 >
