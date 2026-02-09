@@ -292,21 +292,18 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-slate-950 text-white">
-        <div className="p-6 border-b border-white/10">
+      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-white rounded-2xl">
+        <div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#11b7b0] via-[#f97316] to-[#1e3a8a] p-[2px]">
-              <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center">
-                <Play className="w-5 h-5 text-[#11b7b0]" />
-              </div>
+            <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Play className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">
-                Objavi Reelove
+              <h3 className="text-lg font-semibold text-slate-900">
+                Objavi video priče
               </h3>
-              <p className="text-sm text-slate-300">
-                Dodajte više videa i objavite ih jedan za drugim, kao na
-                Instagramu.
+              <p className="text-sm text-slate-500">
+                Dodajte više videa za svoje oglase - svaki video postaje dio vaše priče.
               </p>
             </div>
           </div>
@@ -315,7 +312,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
         <div className="p-6 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
           <div className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-200">
+              <label className="text-sm font-semibold text-slate-700">
                 Odaberite oglas
               </label>
               <Select
@@ -323,7 +320,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                 onValueChange={setSelectedItemId}
                 disabled={isLoadingItems}
               >
-                <SelectTrigger className="w-full bg-slate-900 border-white/10 text-white">
+                <SelectTrigger className="w-full bg-slate-50 border-slate-200">
                   <SelectValue
                     placeholder={
                       isLoadingItems
@@ -347,13 +344,13 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                 </SelectContent>
               </Select>
               {hasExistingVideo && (
-                <div className="mt-3 rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
                   <p className="font-semibold">Ovaj oglas već ima video.</p>
-                  <p className="mt-1">
+                  <p className="mt-1 text-amber-600">
                     Ako nastavite, trenutni video će biti zamijenjen novim reel
                     videom.
                   </p>
-                  <label className="mt-2 flex items-center gap-2 text-amber-100">
+                  <label className="mt-2 flex items-center gap-2 text-amber-700">
                     <input
                       type="checkbox"
                       checked={confirmReplace}
@@ -367,7 +364,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-slate-200">
+              <label className="text-sm font-semibold text-slate-700">
                 Video za reel
               </label>
 
@@ -376,9 +373,9 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   whileHover={{ scale: 1.01 }}
                   className={cn(
                     "flex flex-col items-center justify-center gap-3",
-                    "border border-dashed border-white/15 rounded-2xl",
-                    "bg-slate-900/60 px-6 py-10 text-center cursor-pointer",
-                    "transition-colors hover:border-[#11b7b0]/60 hover:bg-[#11b7b0]/10"
+                    "border border-dashed border-slate-200 rounded-2xl",
+                    "bg-slate-50/70 px-6 py-10 text-center cursor-pointer",
+                    "transition-colors hover:border-primary/60 hover:bg-primary/5"
                   )}
                 >
                   <input
@@ -388,15 +385,15 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     className="hidden"
                     onChange={(e) => handleVideoUpload(Array.from(e.target.files || []))}
                   />
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 shadow-sm flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 shadow-sm flex items-center justify-center">
                     {isUploading ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-[#11b7b0]" />
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
                     ) : (
-                      <UploadCloud className="w-6 h-6 text-[#11b7b0]" />
+                      <UploadCloud className="w-6 h-6 text-primary" />
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-slate-900">
                       Otpremite video
                     </p>
                     <p className="text-xs text-slate-400">
@@ -412,13 +409,13 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                         exit={{ opacity: 0 }}
                         className="w-full max-w-xs"
                       >
-                        <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                        <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                           <span>Upload u toku</span>
                           <span>{uploadProgress}%</span>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                        <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
                           <div
-                            className="h-full bg-[#11b7b0] transition-all"
+                            className="h-full bg-primary transition-all"
                             style={{ width: `${uploadProgress}%` }}
                           />
                         </div>
@@ -427,14 +424,14 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   </AnimatePresence>
                 </motion.label>
               ) : (
-                <div className="rounded-2xl border border-white/10 bg-slate-900/60 shadow-sm p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 shadow-sm p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
-                        <Video className="w-6 h-6 text-slate-300" />
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
+                        <Video className="w-6 h-6 text-slate-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-slate-900">
                           Video je spreman
                         </p>
                         <p className="text-xs text-slate-400">
@@ -445,7 +442,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     <button
                       type="button"
                       onClick={() => handleRemoveVideo(0)}
-                      className="p-2 rounded-full hover:bg-red-500/20 text-red-300 transition-colors"
+                      className="p-2 rounded-full hover:bg-red-50 text-red-500 transition-colors"
                       aria-label="Ukloni video"
                     >
                       <Trash2 className="w-5 h-5" />
@@ -453,7 +450,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   </div>
 
                   {videoPreviewUrl && (
-                    <div className="mt-4 rounded-2xl overflow-hidden bg-black">
+                    <div className="mt-4 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
                       <video
                         className="w-full h-56 object-contain"
                         src={videoPreviewUrl}
@@ -469,8 +466,8 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-slate-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 {queuedVideos.length > 0
                   ? `Spremno još ${queuedVideos.length} videa.`
                   : "Reel se prikazuje nakon što oglas ostane aktivan."}
@@ -484,6 +481,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     isSubmittingMore ||
                     (hasExistingVideo && !confirmReplace)
                   }
+                  className="border-slate-200 text-slate-700 hover:bg-slate-50"
                 >
                   {isSubmittingMore ? (
                     <>
@@ -501,7 +499,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     isSubmittingMore ||
                     (hasExistingVideo && !confirmReplace)
                   }
-                  className="min-w-[160px] bg-[#11b7b0] hover:bg-[#0fa29c]"
+                  className="min-w-[160px] bg-slate-900 hover:bg-slate-800 text-white"
                 >
                   {isSubmitting ? (
                     <>
@@ -518,7 +516,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-white">
+              <h4 className="text-sm font-semibold text-slate-900">
                 Spremni reelovi
               </h4>
               <span className="text-xs text-slate-400">
@@ -527,7 +525,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             </div>
 
             {allUploads.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 text-center text-sm text-slate-400">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 text-center text-sm text-slate-400">
                 Dodajte video kako biste ga vidjeli ovdje.
               </div>
             ) : (
@@ -541,15 +539,15 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     className={cn(
                       "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
                       index === 0
-                        ? "border-[#11b7b0] bg-[#11b7b0]/15"
-                        : "border-white/10 bg-slate-900/40 hover:bg-slate-900/60"
+                        ? "border-primary bg-primary/5"
+                        : "border-slate-200 bg-slate-50/50 hover:bg-slate-50"
                     )}
                   >
-                    <div className="w-12 h-16 rounded-lg bg-black flex items-center justify-center">
-                      <Play className="w-4 h-4 text-white/70" />
+                    <div className="w-12 h-16 rounded-lg bg-slate-100 flex items-center justify-center">
+                      <Play className="w-4 h-4 text-slate-400" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-slate-900">
                         Reel #{index + 1}
                       </p>
                       <p className="text-xs text-slate-400">
@@ -562,7 +560,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                         e.stopPropagation();
                         handleRemoveVideo(index);
                       }}
-                      className="p-2 rounded-full hover:bg-red-500/20 text-red-300"
+                      className="p-2 rounded-full hover:bg-red-50 text-red-500"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

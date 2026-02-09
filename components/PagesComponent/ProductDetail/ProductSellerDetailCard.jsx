@@ -47,30 +47,30 @@ import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal"
 const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
 
 const reelRingCss = `
-@keyframes reel-glow {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
+@keyframes reel-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 .reel-ring {
   position: relative;
   padding: 3px;
   border-radius: 16px;
-  background: conic-gradient(from 0deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
+  isolation: isolate;
 }
-.reel-ring::after {
+.reel-ring::before {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: 0;
   border-radius: inherit;
-  background: conic-gradient(from 180deg, #11b7b0, #f97316, #1e3a8a, #11b7b0);
-  filter: blur(8px);
-  opacity: 0.45;
-  animation: reel-glow 3.2s ease-in-out infinite;
+  background: conic-gradient(from 0deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
+  animation: reel-rotate 3s linear infinite;
   z-index: 0;
 }
 .reel-ring-inner {
   position: relative;
   z-index: 1;
+  border-radius: 14px;
+  overflow: hidden;
 }
 `;
 
@@ -663,19 +663,8 @@ const ProductSellerDetailCard = ({
       seller?.has_reel ||
       seller?.reel_video
   );
-  const ringMotion = showReelRing
-    ? {
-        scale: [1, 1.04, 1],
-        boxShadow: [
-          "0 0 0 0 rgba(17,183,176,0)",
-          "0 0 0 6px rgba(249,115,22,0.25)",
-          "0 0 0 0 rgba(17,183,176,0)",
-        ],
-      }
-    : undefined;
-  const ringTransition = showReelRing
-    ? { duration: 2.8, repeat: Infinity, ease: "easeInOut" }
-    : undefined;
+  const ringMotion = undefined;
+  const ringTransition = undefined;
     
     
   
