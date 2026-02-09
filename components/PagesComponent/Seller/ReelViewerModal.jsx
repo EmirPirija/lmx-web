@@ -217,6 +217,31 @@ const ReelViewerModal = ({
     if (!isYouTube && vidRef.current) vidRef.current.muted = muted;
   }, [muted, isYouTube]);
 
+  /* navigation helpers */
+  const goNext = useCallback(() => {
+    if (iIdx < nItems - 1) {
+      setDir(1); setIIdx((p) => p + 1); setProgress(0);
+    } else if (sIdx < nSellers - 1) {
+      setDir(1); setSIdx((p) => p + 1); setIIdx(0); setProgress(0);
+    } else {
+      onOpenChange?.(false);
+    }
+  }, [iIdx, nItems, sIdx, nSellers, onOpenChange]);
+
+  const goPrev = useCallback(() => {
+    const el = vidRef.current;
+    if (el && el.currentTime > 3) { el.currentTime = 0; setProgress(0); return; }
+    if (iIdx > 0) {
+      setDir(-1); setIIdx((p) => p - 1); setProgress(0);
+    } else if (sIdx > 0) {
+      setDir(-1);
+      const prev = allSellers[sIdx - 1];
+      setSIdx((p) => p - 1);
+      setIIdx((prev?.items?.length || 1) - 1);
+      setProgress(0);
+    }
+  }, [iIdx, sIdx, allSellers]);
+
   /* progress */
   useEffect(() => {
     if (!open || isYouTube) return;
@@ -251,31 +276,6 @@ const ReelViewerModal = ({
       if (ytProgressRef.current) clearInterval(ytProgressRef.current);
     };
   }, [open, isYouTube, sIdx, iIdx, autoAdvance, goNext]);
-
-  /* navigation helpers */
-  const goNext = useCallback(() => {
-    if (iIdx < nItems - 1) {
-      setDir(1); setIIdx((p) => p + 1); setProgress(0);
-    } else if (sIdx < nSellers - 1) {
-      setDir(1); setSIdx((p) => p + 1); setIIdx(0); setProgress(0);
-    } else {
-      onOpenChange?.(false);
-    }
-  }, [iIdx, nItems, sIdx, nSellers, onOpenChange]);
-
-  const goPrev = useCallback(() => {
-    const el = vidRef.current;
-    if (el && el.currentTime > 3) { el.currentTime = 0; setProgress(0); return; }
-    if (iIdx > 0) {
-      setDir(-1); setIIdx((p) => p - 1); setProgress(0);
-    } else if (sIdx > 0) {
-      setDir(-1);
-      const prev = allSellers[sIdx - 1];
-      setSIdx((p) => p - 1);
-      setIIdx((prev?.items?.length || 1) - 1);
-      setProgress(0);
-    }
-  }, [iIdx, sIdx, allSellers]);
 
   /* auto-advance */
   useEffect(() => {
