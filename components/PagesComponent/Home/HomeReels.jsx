@@ -16,6 +16,7 @@ import {
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
+import { getYouTubeVideoId } from "@/utils";
 
 import {
   MdFavorite,
@@ -73,14 +74,33 @@ const pickArr = (r) => {
   return d?.data?.data || d?.data || d?.items || d?.result || [];
 };
 
-const pickVid = (item) => {
-  const url = item?.video || null;
-  if (!url) return null;
-  if (typeof url === "string" && url.startsWith("/")) {
-    const b = process.env.NEXT_PUBLIC_ADMIN_URL || "";
-    return b ? `${b}${url}` : url;
+const buildVideoMeta = (item) => {
+  const raw = item?.video || item?.video_link || null;
+  if (!raw) return null;
+
+  if (typeof raw === "string" && raw.startsWith("/")) {
+    const base = process.env.NEXT_PUBLIC_ADMIN_URL || "";
+    return {
+      type: "direct",
+      src: base ? `${base}${raw}` : raw,
+      poster: item?.image || "",
+      raw,
+    };
   }
-  return url;
+
+  if (typeof raw === "string" && raw.includes("youtu")) {
+    const id = getYouTubeVideoId(raw);
+    if (id) {
+      return {
+        type: "youtube",
+        src: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1`,
+        poster: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+        raw,
+      };
+    }
+  }
+
+  return { type: "direct", src: raw, poster: item?.image || "", raw };
 };
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -110,6 +130,7 @@ const HomeReels = () => {
 
   /* fun options */
   const [autoPlay, setAutoPlay] = useState(true);
+  const [autoStory, setAutoStory] = useState(true);
   const [playSpeed, setPlaySpeed] = useState(1);
   const [shuffled, setShuffled] = useState(false);
 
@@ -125,7 +146,7 @@ const HomeReels = () => {
       });
       if (res?.data?.error === true) throw new Error(res?.data?.message || "API error");
       const arr = pickArr(res) || [];
-      setItems(arr.filter((x) => !!pickVid(x)));
+      setItems(arr.filter((x) => !!buildVideoMeta(x)));
     } catch (e) {
       console.error("HomeReels fetch:", e);
       toast.error(e?.message || "Ne mogu učitati videe");
@@ -262,6 +283,7 @@ const HomeReels = () => {
         sellers={sellerGroups}
         initialSellerIndex={viewerSellerIdx}
         initialItemIndex={viewerItemIdx}
+        autoAdvance={autoStory}
       />
 
       {/* ── header ── */}
@@ -307,6 +329,28 @@ const HomeReels = () => {
                   <motion.div
                     className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md"
                     animate={{ left: autoPlay ? 18 : 2 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                </button>
+              </div>
+
+              {/* story auto switch */}
+              <div className="hidden sm:flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-full px-3 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
+                <MdPlayArrow size={14} className={autoStory ? "text-pink-500" : "text-slate-400"} />
+                <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">Auto priče</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAutoStory((p) => !p);
+                    toast.success(autoStory ? "Auto priče isključene" : "Auto priče uključene");
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors duration-300 ${
+                    autoStory ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-600"
+                  }`}
+                >
+                  <motion.div
+                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md"
+                    animate={{ left: autoStory ? 18 : 2 }}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 </button>
@@ -390,6 +434,12 @@ const HomeReels = () => {
                   className="flex flex-col items-center gap-1.5 shrink-0 group"
                 >
                   <div className="relative">
+                    {vCount > 1 && (
+                      <>
+                        <span className="absolute inset-0 rounded-full bg-gradient-to-br from-[#F7941D]/40 via-[#E1306C]/40 to-[#833AB4]/40 blur-[6px] scale-[1.05] -z-10" />
+                        <span className="absolute inset-0 rounded-full border-2 border-white/40 dark:border-slate-800/60 scale-[1.08] -z-10" />
+                      </>
+                    )}
                     {/* gradient ring */}
                     <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-[#F7941D] via-[#E1306C] to-[#833AB4] group-hover:shadow-lg group-hover:shadow-pink-500/20 transition-shadow duration-300">
                       <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 p-[2px]">
@@ -429,11 +479,11 @@ const HomeReels = () => {
       {/* ── mobile controls row ── */}
       {!isLoading && hasAny && (
         <div className="sm:hidden container mb-3">
-          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
             {/* auto-play */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
-              <MdAutorenew size={13} className={autoPlay ? "text-emerald-500" : "text-slate-400"} />
-              <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Auto</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
+                <MdAutorenew size={13} className={autoPlay ? "text-emerald-500" : "text-slate-400"} />
+                <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Auto</span>
               <button
                 type="button"
                 onClick={() => {
@@ -449,8 +499,29 @@ const HomeReels = () => {
                   animate={{ left: autoPlay ? 15 : 2 }}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
-              </button>
-            </div>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
+                <MdPlayArrow size={12} className={autoStory ? "text-pink-500" : "text-slate-400"} />
+                <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Auto priče</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAutoStory((p) => !p);
+                    toast.success(autoStory ? "Auto priče isključene" : "Auto priče uključene");
+                  }}
+                  className={`relative w-8 h-[18px] rounded-full transition-colors duration-300 ${
+                    autoStory ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-600"
+                  }`}
+                >
+                  <motion.div
+                    className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-md"
+                    animate={{ left: autoStory ? 15 : 2 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                </button>
+              </div>
 
             {/* speed */}
             <button
@@ -565,8 +636,10 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
 
   const holdTimerRef = useRef(null);
 
-  const videoUrl = useMemo(() => pickVid(item), [item]);
-  const poster = item?.image || "";
+  const videoMeta = useMemo(() => buildVideoMeta(item), [item]);
+  const videoUrl = videoMeta?.src;
+  const poster = videoMeta?.poster || "";
+  const isYouTube = videoMeta?.type === "youtube";
   const views = num(item?.total_video_plays) || num(item?.clicks);
   const likes = num(item?.total_likes);
 
@@ -592,7 +665,7 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
 
   /* autoplay via intersection observer */
   useEffect(() => {
-    if (!videoUrl || !autoPlay) return;
+    if (!videoUrl || !autoPlay || isYouTube) return;
     const el = videoRef.current;
     const wr = wrapperRef.current;
     if (!el || !wr) return;
@@ -614,24 +687,26 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
     );
     io.observe(wr);
     return () => io.disconnect();
-  }, [videoUrl, isMuted, autoPlay, playSpeed]);
+  }, [videoUrl, isMuted, autoPlay, playSpeed, isYouTube]);
 
   /* progress */
   useEffect(() => {
+    if (isYouTube) return;
     const el = videoRef.current;
     if (!el) return;
     const up = () => { if (el.duration) setProgress((el.currentTime / el.duration) * 100); };
     el.addEventListener("timeupdate", up);
     return () => el.removeEventListener("timeupdate", up);
-  }, []);
+  }, [isYouTube]);
 
   /* speed update */
   useEffect(() => {
-    if (videoRef.current) videoRef.current.playbackRate = playSpeed;
-  }, [playSpeed]);
+    if (!isYouTube && videoRef.current) videoRef.current.playbackRate = playSpeed;
+  }, [playSpeed, isYouTube]);
 
   const toggleMute = (e) => {
     e?.stopPropagation();
+    if (isYouTube) return;
     const el = videoRef.current;
     if (!el) return;
     const next = !isMuted;
@@ -648,6 +723,7 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
 
   const handleHoldStart = (e) => {
     if (e.target.closest("button,input,a")) return;
+    if (isYouTube) return;
     holdTimerRef.current = setTimeout(() => {
       const el = videoRef.current;
       if (el && !el.paused) { el.pause(); setIsHolding(true); }
@@ -753,16 +829,33 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
         transition: "box-shadow 0.3s ease",
       }}
     >
-      <video
-        ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover"
-        src={videoUrl}
-        poster={poster}
-        playsInline
-        muted
-        loop
-        preload="metadata"
-      />
+      {isYouTube ? (
+        <div className="absolute inset-0">
+          <img
+            src={poster}
+            alt={item?.name || "Video"}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/25" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+              <MdPlayArrow className="w-7 h-7 text-white ml-0.5" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover"
+          src={videoUrl}
+          poster={poster}
+          playsInline
+          muted
+          loop
+          preload="metadata"
+        />
+      )}
 
       {/* progress bar */}
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/20 z-10">
@@ -831,11 +924,17 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
             <span className="text-white text-[11px] font-semibold truncate max-w-[60px]">{sellerName}</span>
             {isVerified && <MdVerified className="w-3 h-3 text-[#3897F0] shrink-0" />}
             {isShop && <span className="px-1.5 py-0.5 rounded bg-[#F7941D]/90 text-[8px] font-bold text-white uppercase tracking-wide">Shop</span>}
+            {isYouTube && <span className="px-1.5 py-0.5 rounded bg-white/20 text-[8px] font-bold text-white uppercase tracking-wide">YT</span>}
           </div>
         </button>
 
-        <button type="button" onClick={toggleMute}
-          className="w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center transition-transform hover:scale-110"
+        <button
+          type="button"
+          onClick={toggleMute}
+          disabled={isYouTube}
+          className={`w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center transition-transform ${
+            isYouTube ? "opacity-50 cursor-not-allowed" : "hover:scale-110"
+          }`}
         >
           {isMuted ? <MdVolumeOff size={14} /> : <MdVolumeUp size={14} />}
         </button>

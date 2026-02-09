@@ -1062,6 +1062,7 @@ export const editItemApi = {
     state,
     city,
     delete_item_image_id,
+    delete_video,
     min_salary,
     max_salary,
     translations,
@@ -1098,6 +1099,9 @@ export const editItemApi = {
 
     if (delete_item_image_id) {
       formData.append("delete_item_image_id", delete_item_image_id);
+    }
+    if (delete_video) {
+      formData.append("delete_video", delete_video);
     }
 
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
