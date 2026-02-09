@@ -382,8 +382,8 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-white rounded-2xl">
-        <div className="p-6 border-b border-slate-100">
+      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-white rounded-2xl max-h-[92vh]">
+        <div className="p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
               <Play className="w-5 h-5 text-primary" />
@@ -399,7 +399,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
           </div>
         </div>
 
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 overflow-y-auto max-h-[calc(92vh-88px)]">
           <div className="space-y-5">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
@@ -446,12 +446,12 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     <p className="text-sm font-semibold text-slate-900">Postojeći video</p>
                     <span className="text-xs text-slate-400">{existingVideos.length} video(a)</span>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {existingVideos.map((vid) => (
                       <div
                         key={vid.id}
                         className={cn(
-                          "rounded-xl border p-3 flex items-center gap-3",
+                          "rounded-xl border p-3 flex items-center gap-3 bg-slate-50",
                           existingAction === "delete" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-slate-50"
                         )}
                       >
@@ -462,12 +462,27 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                             <Video className="w-5 h-5 text-slate-400" />
                           )}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-semibold text-slate-700">{vid.label}</p>
-                          <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600 mt-1">
-                            {vid.type === "youtube" ? "YouTube" : "Upload"}
-                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                              {vid.type === "youtube" ? "YouTube" : "Upload"}
+                            </span>
+                            {vid.type === "youtube" && vid.src && (
+                              <span className="text-[10px] text-slate-400 truncate max-w-[140px]">
+                                {vid.src}
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setExistingAction("delete")}
+                          className="p-2 rounded-full text-rose-500 hover:bg-rose-100 transition"
+                          aria-label="Obriši postojeći video"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -494,9 +509,21 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Odaberite šta radite sa postojećim videom prije objave novog.
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2 justify-between">
+                    <p className="text-[11px] text-slate-500">
+                      Odaberite šta radite sa postojećim videom prije objave novog.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExistingAction("delete");
+                        handleSubmit({ keepOpen: false });
+                      }}
+                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
+                    >
+                      Obriši odmah
+                    </button>
+                  </div>
                 </div>
               )}
 
