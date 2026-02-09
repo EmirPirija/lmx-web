@@ -42,8 +42,9 @@ import {
 
 import { Loader2 } from "lucide-react";
 import { IoIosAddCircleOutline } from "react-icons/io";
-import { MapPin, MessageSquareMore } from "lucide-react";
+import { MapPin } from "lucide-react";
 
+import { MessagesSquare, MessageSquareMore } from "lucide-react";
 
 import { IconUserCircle, IconListDetails } from "@tabler/icons-react";
 
@@ -351,38 +352,49 @@ const HomeHeader = () => {
                     </div>
                   )}
 
-                  {/* PORUKE */}
-                  <button
-                    onClick={handleChatClick}
-                    className="relative w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 grid place-items-center transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]"
-                    title="Poruke"
-                    type="button"
-                    aria-label="Poruke"
-                  >
-                    <MessageSquareMore
-                      size={20}
-                      className="text-slate-700 dark:text-slate-300"
-                    />
-                    {IsLoggedin && totalUnreadMessages > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-                        {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
-                      </span>
-                    )}
-                  </button>
+{/* DESKTOP PORUKE DUGME */}
+<button
+  onClick={handleChatClick}
+  className="relative w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 grid place-items-center transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]"
+  title="Poruke"
+  type="button"
+  aria-label="Poruke"
+>
+  {/* Logika: Ako je više od jedne poruke MessagesSquare, inače MessageSquareMore */}
+  {totalUnreadMessages > 1 ? (
+    <MessagesSquare 
+      size={20} 
+      strokeWidth={isChatActive ? 2.5 : 1.5} 
+      className={isChatActive ? "text-primary" : "text-slate-700 dark:text-slate-300"} 
+    />
+  ) : (
+    <MessageSquareMore 
+      size={20} 
+      strokeWidth={isChatActive ? 2.5 : 1.5} 
+      className={isChatActive ? "text-primary" : "text-slate-700 dark:text-slate-300"} 
+    />
+  )}
+
+  {IsLoggedin && totalUnreadMessages > 0 && (
+    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+      {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
+    </span>
+  )}
+</button>
 
                   {/* MOJI OGLASI (ikonica) */}
                   <button
-  onClick={handleMyAdsClick}
-  className={`relative h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 flex items-center gap-2 px-3 transition-all duration-200 hover:scale-[1.04] active:scale-[0.98] ${
-    isMyAdsActive ? "text-primary" : "text-slate-700 dark:text-slate-300"
-  }`}
-  title="Moji oglasi"
-  type="button"
-  aria-label="Moji oglasi"
->
-  <IconListDetails size={20} strokeWidth={isMyAdsActive ? 2.5 : 1.8} />
-  <span className="text-sm font-medium whitespace-nowrap">Moji oglasi</span>
-</button>
+                    onClick={handleMyAdsClick}
+                    className={`relative h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 flex items-center gap-2 px-3 transition-all duration-200 hover:scale-[1.04] active:scale-[0.98] ${
+                      isMyAdsActive ? "text-primary" : "text-slate-700 dark:text-slate-300"
+                    }`}
+                    title="Moji oglasi"
+                    type="button"
+                    aria-label="Moji oglasi"
+                  >
+                    <IconListDetails size={20} strokeWidth={isMyAdsActive ? 2.5 : 1.8} />
+                    <span className="text-sm font-medium whitespace-nowrap">Moji oglasi</span>
+                  </button>
 
 
                 </div>
@@ -468,93 +480,134 @@ const HomeHeader = () => {
       )}
 
       {/* ========== MOBILE BOTTOM NAVIGATION ========== */}
-      {!isLargeScreen && !hideMobileBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
-          {/* Gradient shadow */}
-          <div className="absolute inset-x-0 -top-4 h-4 bg-gradient-to-t from-white/80 dark:from-slate-900/80 to-transparent pointer-events-none" />
+{!isLargeScreen && !hideMobileBottomNav && (
+  <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+    {/* Gradient shadow */}
+    <div className="absolute inset-x-0 -top-4 h-4 bg-gradient-to-t from-white/80 dark:from-slate-900/80 to-transparent pointer-events-none" />
 
-          <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 safe-area-pb">
-            <div className="grid grid-cols-4 h-16">
-              {/* Moji oglasi */}
-              <button
-                type="button"
-                onClick={handleMyAdsClick}
-                className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                  isMyAdsActive ? "text-primary" : "text-slate-600 dark:text-slate-400"
-                }`}
-                aria-label="Moji oglasi"
-              >
-                <IconListDetails size={22} strokeWidth={isMyAdsActive ? 2.5 : 1.5} />
-                <span className={`text-[10px] ${isMyAdsActive ? "font-semibold" : ""}`}>
-                  Moji oglasi
-                </span>
-              </button>
+    <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 safe-area-pb">
+      <div className="grid grid-cols-5 h-16">
+        {/* Početna */}
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
+            isOnHome ? "text-primary" : "text-slate-600 dark:text-slate-400"
+          }`}
+          aria-label="Početna"
+        >
+          {/* Dodaj ikonu za početnu - možda koristi Home iz lucide-react */}
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-5 w-5"
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+            strokeWidth={isOnHome ? 2.5 : 1.5}
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" 
+            />
+          </svg>
+          <span className={`text-[10px] ${isOnHome ? "font-semibold" : ""}`}>
+            Početna
+          </span>
+        </button>
 
-              {/* Objavi oglas - centralni, istaknut */}
-              <button
-                type="button"
-                onClick={handleAdListing}
-                disabled={IsAdListingClicked}
-                className="flex flex-col items-center justify-center gap-0.5 -mt-3"
-                aria-label="Objavi oglas"
-              >
-                <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-95">
-                  {IsAdListingClicked ? (
-                    <Loader2 size={24} className="animate-spin" />
-                  ) : (
-                    <IoIosAddCircleOutline size={26} />
-                  )}
-                </div>
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
-                  Objavi
-                </span>
-              </button>
+        {/* Moji oglasi */}
+        <button
+          type="button"
+          onClick={handleMyAdsClick}
+          className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
+            isMyAdsActive ? "text-primary" : "text-slate-600 dark:text-slate-400"
+          }`}
+          aria-label="Moji oglasi"
+        >
+          <IconListDetails size={20} strokeWidth={isMyAdsActive ? 2.5 : 1.5} />
+          <span className={`text-[10px] ${isMyAdsActive ? "font-semibold" : ""}`}>
+            Moji oglasi
+          </span>
+        </button>
 
-              {/* Poruke */}
-              <button
-                type="button"
-                onClick={handleChatClick}
-                className={`relative flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                  isChatActive ? "text-primary" : "text-slate-600 dark:text-slate-400"
-                }`}
-                aria-label="Poruke"
-              >
-                <div className="relative">
-                  <MessageSquareMore size={22} strokeWidth={isChatActive ? 0.5 : 0} />
-                  {IsLoggedin && totalUnreadMessages > 0 && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-                      {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
-                    </span>
-                  )}
-                </div>
-                <span className={`text-[10px] ${isChatActive ? "font-semibold" : ""}`}>
-                  Poruke
-                </span>
-              </button>
+        {/* Objavi oglas - centralni, istaknut */}
+        <button
+          type="button"
+          onClick={handleAdListing}
+          disabled={IsAdListingClicked}
+          className="flex flex-col items-center justify-center gap-0.5 -mt-3"
+          aria-label="Objavi oglas"
+        >
+          <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-95">
+            {IsAdListingClicked ? (
+              <Loader2 size={24} className="animate-spin" />
+            ) : (
+              <IoIosAddCircleOutline size={26} />
+            )}
+          </div>
+          <span className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
+            Objavi
+          </span>
+        </button>
 
-              {/* Profil */}
-              <div className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400">
-                {IsLoggedin ? (
-                  <>
-                    <ProfileDropdown setIsLogout={setIsLogout} IsLogout={IsLogout} />
-                    <span className="text-[10px]">Profil</span>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsLoginOpen(true)}
-                    className="flex flex-col items-center justify-center gap-0.5"
-                    aria-label="Prijava"
-                  >
-                    <IconUserCircle size={22} className="text-slate-600 dark:text-slate-400" />
-                    <span className="text-[10px]">Profil</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </nav>
+{/* MOBILNI PORUKE DUGME */}
+<button
+  type="button"
+  onClick={handleChatClick}
+  className={`relative flex flex-col items-center justify-center gap-0.5 transition-colors ${
+    isChatActive ? "text-primary" : "text-slate-600 dark:text-slate-400"
+  }`}
+  aria-label="Poruke"
+>
+  <div className="relative">
+    {/* Logika: Ako je više od jedne poruke MessagesSquare, inače MessageSquareMore */}
+    {totalUnreadMessages > 1 ? (
+      <MessagesSquare 
+        size={20} 
+        strokeWidth={isChatActive ? 2.5 : 1.5} 
+      />
+    ) : (
+      <MessageSquareMore 
+        size={20} 
+        strokeWidth={isChatActive ? 2.5 : 1.5} 
+      />
+    )}
+
+    {IsLoggedin && totalUnreadMessages > 0 && (
+      <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+        {totalUnreadMessages > 99 ? "99+" : totalUnreadMessages}
+      </span>
+    )}
+  </div>
+  <span className={`text-[10px] ${isChatActive ? "font-semibold" : ""}`}>
+    Poruke
+  </span>
+</button>
+
+        {/* Profil */}
+        <div className="flex flex-col items-center justify-center gap-0.5 text-slate-600 dark:text-slate-400">
+          {IsLoggedin ? (
+            <>
+              <ProfileDropdown setIsLogout={setIsLogout} IsLogout={IsLogout} />
+              <span className="text-[10px]">Profil</span>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsLoginOpen(true)}
+              className="flex flex-col items-center justify-center gap-0.5"
+              aria-label="Prijava"
+            >
+              <IconUserCircle size={20} className="text-slate-600 dark:text-slate-400" />
+              <span className="text-[10px]">Profil</span>
+            </button>
+          )}
         </div>
-      )}
+      </div>
+    </nav>
+  </div>
+)}
 
       {/* Spacer za mobile bottom nav - da content ne bude prekriven */}
       {!isLargeScreen && !hideMobileBottomNav && <div className="h-16 lg:hidden" />}
