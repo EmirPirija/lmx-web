@@ -37,6 +37,7 @@ import {
 } from "@/utils/api";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
+import { getYouTubeVideoId } from "@/utils";
 
 /* ── helpers ────────────────────────────────────── */
 
@@ -45,14 +46,25 @@ const pickItemsArray = (r) => {
   return d?.data?.data || d?.data || d?.items || d?.result || [];
 };
 
-const pickVideoUrl = (item) => {
-  const url = item?.video || null;
-  if (!url) return null;
-  if (typeof url === "string" && url.startsWith("/")) {
+const pickVideoMeta = (item) => {
+  const raw = item?.video || item?.video_link || null;
+  if (!raw) return null;
+  if (typeof raw === "string" && raw.startsWith("/")) {
     const base = process.env.NEXT_PUBLIC_ADMIN_URL || "";
-    return base ? `${base}${url}` : url;
+    return { type: "direct", src: base ? `${base}${raw}` : raw, raw };
   }
-  return url;
+  if (typeof raw === "string" && raw.includes("youtu")) {
+    const id = getYouTubeVideoId(raw);
+    if (id) {
+      return {
+        type: "youtube",
+        src: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1`,
+        thumb: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+        raw,
+      };
+    }
+  }
+  return { type: "direct", src: raw, raw };
 };
 
 const fmtPrice = (p) => {
@@ -85,6 +97,8 @@ const fmtCount = (v) => {
   return String(n);
 };
 
+const YT_STORY_SECONDS = 12;
+
 /* ── component ──────────────────────────────────── */
 
 const ReelViewerModal = ({
@@ -94,6 +108,7 @@ const ReelViewerModal = ({
   sellers: sellersProp,
   initialSellerIndex = 0,
   initialItemIndex = 0,
+  autoAdvance = true,
 }) => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -120,12 +135,16 @@ const ReelViewerModal = ({
   const holdRef = useRef(null);
   const sxRef = useRef(null);
   const syRef = useRef(null);
+  const ytTimerRef = useRef(null);
+  const ytProgressRef = useRef(null);
 
   /* derived */
   const cur = allSellers[sIdx];
   const items = cur?.items || [];
   const item = items[iIdx];
-  const vUrl = item ? pickVideoUrl(item) : null;
+  const vMeta = item ? pickVideoMeta(item) : null;
+  const vUrl = vMeta?.src || null;
+  const isYouTube = vMeta?.type === "youtube";
 
   const seller = cur?.seller || {};
   const sName = seller?.name || seller?.shop_name || "Prodavač";
@@ -143,7 +162,7 @@ const ReelViewerModal = ({
       const res = await allItemApi.getItems({
         user_id: userId, has_video: 1, status: "approved", limit: 30, sort_by: "new-to-old",
       });
-      const list = pickItemsArray(res).filter((x) => !!pickVideoUrl(x));
+      const list = pickItemsArray(res).filter((x) => !!pickVideoMeta(x));
       if (list.length) {
         const s = list[0]?.user || list[0]?.seller || {};
         setAllSellers([{ seller: s, items: list }]);
@@ -183,7 +202,7 @@ const ReelViewerModal = ({
 
   /* play video when item changes */
   useEffect(() => {
-    if (!open || !vUrl) return;
+    if (!open || !vUrl || isYouTube) return;
     const el = vidRef.current;
     if (!el) return;
     el.muted = muted;
@@ -192,19 +211,46 @@ const ReelViewerModal = ({
     setPaused(false);
     const t = setTimeout(() => { el.play().catch(() => {}); }, 80);
     return () => clearTimeout(t);
-  }, [open, vUrl, sIdx, iIdx]);
+  }, [open, vUrl, sIdx, iIdx, isYouTube, muted]);
 
-  useEffect(() => { if (vidRef.current) vidRef.current.muted = muted; }, [muted]);
+  useEffect(() => {
+    if (!isYouTube && vidRef.current) vidRef.current.muted = muted;
+  }, [muted, isYouTube]);
 
   /* progress */
   useEffect(() => {
-    if (!open) return;
+    if (!open || isYouTube) return;
     const el = vidRef.current;
     if (!el) return;
     const up = () => { if (el.duration) setProgress((el.currentTime / el.duration) * 100); };
     el.addEventListener("timeupdate", up);
     return () => el.removeEventListener("timeupdate", up);
-  }, [open, sIdx, iIdx]);
+  }, [open, sIdx, iIdx, isYouTube]);
+
+  useEffect(() => {
+    if (!open || !isYouTube) return;
+    if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
+    if (ytProgressRef.current) clearInterval(ytProgressRef.current);
+    setProgress(0);
+
+    const start = Date.now();
+    ytProgressRef.current = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const next = Math.min((elapsed / YT_STORY_SECONDS) * 100, 100);
+      setProgress(next);
+    }, 120);
+
+    if (autoAdvance) {
+      ytTimerRef.current = setTimeout(() => {
+        goNext();
+      }, YT_STORY_SECONDS * 1000);
+    }
+
+    return () => {
+      if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
+      if (ytProgressRef.current) clearInterval(ytProgressRef.current);
+    };
+  }, [open, isYouTube, sIdx, iIdx, autoAdvance, goNext]);
 
   /* navigation helpers */
   const goNext = useCallback(() => {
@@ -233,13 +279,13 @@ const ReelViewerModal = ({
 
   /* auto-advance */
   useEffect(() => {
-    if (!open) return;
+    if (!open || !autoAdvance || isYouTube) return;
     const el = vidRef.current;
     if (!el) return;
     const end = () => goNext();
     el.addEventListener("ended", end);
     return () => el.removeEventListener("ended", end);
-  }, [open, goNext]);
+  }, [open, goNext, autoAdvance, isYouTube]);
 
   /* keyboard */
   useEffect(() => {
@@ -256,6 +302,7 @@ const ReelViewerModal = ({
   }, [open, goNext, goPrev]);
 
   const togglePause = () => {
+    if (isYouTube) return;
     const el = vidRef.current;
     if (!el) return;
     if (el.paused) { el.play().catch(() => {}); setPaused(false); }
@@ -267,10 +314,12 @@ const ReelViewerModal = ({
     if (e.target.closest("button,input,textarea,a")) return;
     sxRef.current = e.clientX ?? e.touches?.[0]?.clientX;
     syRef.current = e.clientY ?? e.touches?.[0]?.clientY;
-    holdRef.current = setTimeout(() => {
-      const el = vidRef.current;
-      if (el && !el.paused) { el.pause(); setHolding(true); }
-    }, 200);
+    if (!isYouTube) {
+      holdRef.current = setTimeout(() => {
+        const el = vidRef.current;
+        if (el && !el.paused) { el.pause(); setHolding(true); }
+      }, 200);
+    }
   };
 
   const pUp = (e) => {
@@ -410,7 +459,7 @@ const ReelViewerModal = ({
             initial={{ opacity: 0, scale: 0.92, x: dir * 50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-            className="relative w-full h-full max-w-[420px] sm:max-h-[92vh] sm:rounded-3xl overflow-hidden mx-auto bg-black"
+            className="relative w-full h-full max-w-[430px] sm:max-h-[92vh] sm:rounded-[32px] overflow-hidden mx-auto bg-[#0b0b0f] sm:border sm:border-white/10 sm:shadow-2xl"
             onMouseDown={pDown}
             onMouseUp={pUp}
             onMouseLeave={pLeave}
@@ -420,15 +469,29 @@ const ReelViewerModal = ({
           >
             {/* video */}
             {vUrl ? (
-              <video
-                ref={vidRef}
-                key={`v-${sIdx}-${iIdx}`}
-                src={vUrl}
-                poster={item?.image}
-                className="absolute inset-0 w-full h-full object-cover"
-                playsInline
-                muted={muted}
-              />
+              isYouTube ? (
+                <div className="absolute inset-0">
+                  <iframe
+                    key={`yt-${sIdx}-${iIdx}`}
+                    src={vUrl}
+                    title={item?.name || "YouTube video"}
+                    className="absolute inset-0 w-full h-full"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/40 pointer-events-none" />
+                </div>
+              ) : (
+                <video
+                  ref={vidRef}
+                  key={`v-${sIdx}-${iIdx}`}
+                  src={vUrl}
+                  poster={item?.image}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  playsInline
+                  muted={muted}
+                />
+              )
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
                 {loading ? "Učitavam..." : "Nema videa"}
@@ -477,7 +540,10 @@ const ReelViewerModal = ({
                     {verified && <MdVerified className="w-3.5 h-3.5 text-[#3897F0] shrink-0" />}
                     {shop && <span className="px-1.5 py-0.5 rounded bg-[#F7941D]/90 text-[7px] font-bold text-white uppercase">Shop</span>}
                   </div>
-                  {created && <span className="text-white/45 text-[11px]">{timeAgo(created)}</span>}
+                  <div className="flex items-center gap-2 text-[11px] text-white/45">
+                    {created && <span>{timeAgo(created)}</span>}
+                    {isYouTube && <span className="px-1.5 py-0.5 rounded-full bg-white/15 text-white/70 text-[10px]">YouTube</span>}
+                  </div>
                 </div>
               </button>
 
@@ -485,8 +551,14 @@ const ReelViewerModal = ({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); setMuted((p) => !p); }}
-                  className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/50 transition"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isYouTube) setMuted((p) => !p);
+                  }}
+                  disabled={isYouTube}
+                  className={`w-8 h-8 rounded-full bg-black/35 backdrop-blur-md text-white flex items-center justify-center transition ${
+                    isYouTube ? "opacity-50 cursor-not-allowed" : "hover:bg-black/50"
+                  }`}
                 >
                   {muted ? <MdVolumeOff size={16} /> : <MdVolumeUp size={16} />}
                 </button>
