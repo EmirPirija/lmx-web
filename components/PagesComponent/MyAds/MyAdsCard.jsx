@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import {
   ArrowRight,
@@ -27,29 +28,16 @@ import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 
 import SoldOutModal from "../../PagesComponent/ProductDetail/SoldOutModal";
-import GetMyAdStatus from "./GetMyAdStatus";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
-import { formatPriceAbbreviated, formatSalaryRange, t } from "@/utils";
+import { formatPriceAbbreviated, formatSalaryRange } from "@/utils";
+import { useMediaQuery } from "usehooks-ts";
 
 // ============================================
-// HELPERS
+// POMOĆNE FUNKCIJE
 // ============================================
 
 const formatRelativeTime = (dateString) => {
@@ -65,7 +53,7 @@ const formatRelativeTime = (dateString) => {
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60)
-    return diffInMinutes === 1 ? "Prije 1 min" : `Prije ${diffInMinutes} min`;
+    return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
 
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24)
@@ -77,10 +65,10 @@ const formatRelativeTime = (dateString) => {
 
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12)
-    return diffInMonths === 1 ? "Prije 1 mj" : `Prije ${diffInMonths} mj`;
+    return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
 
   const diffInYears = Math.floor(diffInMonths / 12);
-  return diffInYears === 1 ? "Prije 1 god" : `Prije ${diffInYears} god`;
+  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
 };
 
 const getSmartTagsFallback = (item) => {
@@ -137,8 +125,25 @@ const getKeyAttributes = (item) => {
   return attributes;
 };
 
+// Funkcija koja vraća najviše 3 tačke za indikaciju
+const getThreeDots = (total, current) => {
+  if (total <= 3) {
+    return Array.from({ length: total }, (_, i) => i);
+  }
+
+  if (current === 0) {
+    return [0, 1, 2];
+  }
+
+  if (current === total - 1) {
+    return [total - 3, total - 2, total - 1];
+  }
+
+  return [current - 1, current, current + 1];
+};
+
 // ============================================
-// UI
+// UI KOMPONENTE
 // ============================================
 
 const OverlayPill = ({ icon: Icon, children, className }) => (
@@ -156,24 +161,230 @@ const OverlayPill = ({ icon: Icon, children, className }) => (
   </div>
 );
 
-const StatChip = ({ icon: Icon, value, className, title }) => (
-  <div
-    className={cn(
-      "inline-flex items-center gap-1.5",
-      "px-2 py-1 rounded-lg border",
-      "bg-slate-50 text-slate-700 border-slate-100",
-      "text-[11px] font-semibold",
-      className
-    )}
-    title={title}
-  >
-    <Icon className="w-3.5 h-3.5" />
-    <span>{value}</span>
-  </div>
-);
+// ============================================
+// QUICK ACTIONS OVERLAY KOMPONENTA
+// ============================================
+
+const QuickActionsOverlay = ({ 
+  isVisible, 
+  onClose, 
+  onEdit, 
+  onDelete, 
+  onHide, 
+  onSold,
+  onActivate,
+  onRenew,
+  isApproved,
+  isEditable,
+  isSoldOut,
+  isInactive,
+  isExpired
+}) => {
+  if (!isVisible) return null;
+
+  const actions = [
+    {
+      icon: Edit,
+      label: "Uredi",
+      onClick: onEdit,
+      show: isEditable,
+      className: "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700",
+      exitDirection: { x: -100, y: -100 } // Gore lijevo
+    },
+    {
+      icon: Trash2,
+      label: "Izbriši",
+      onClick: onDelete,
+      show: true,
+      className: "bg-red-50 hover:bg-red-100 border-red-200 text-red-700",
+      exitDirection: { x: 100, y: -100 } // Gore desno
+    },
+    {
+      icon: isInactive ? Eye : EyeOff,
+      label: isInactive ? "Otkrij" : "Sakrij",
+      onClick: isInactive ? onActivate : onHide,
+      show: isApproved || isInactive,
+      className: isInactive 
+        ? "bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+        : "bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-700",
+      exitDirection: { x: -100, y: 100 } // Dolje lijevo
+    },
+    {
+      icon: isExpired ? RotateCcw : CheckCircle,
+      label: isExpired ? "Obnovi" : "Prodaj",
+      onClick: isExpired ? onRenew : onSold,
+      show: isExpired || (isApproved && !isSoldOut),
+      className: isExpired
+        ? "bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700"
+        : "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700",
+      exitDirection: { x: 100, y: 100 } // Dolje desno
+    }
+  ].filter(action => action.show);
+
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-40 flex items-center justify-center p-6 rounded-xl"
+          onClick={onClose}
+        >
+          {/* Blur backdrop */}
+          <motion.div 
+            className="absolute inset-0 bg-white/60 backdrop-blur-xl rounded-xl"
+            initial={{ backdropFilter: "blur(0px)" }}
+            animate={{ backdropFilter: "blur(24px)" }}
+            exit={{ backdropFilter: "blur(0px)" }}
+          />
+          
+          {/* Actions grid */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative grid grid-cols-2 gap-3 w-full max-w-[280px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {actions.map((action, index) => (
+              <motion.button
+                key={action.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0, x: 0 }}
+                exit={{ 
+                  opacity: 0, 
+                  x: action.exitDirection.x, 
+                  y: action.exitDirection.y,
+                  scale: 0.5,
+                  rotate: index % 2 === 0 ? -45 : 45
+                }}
+                transition={{ 
+                  delay: index * 0.06,
+                  exit: { duration: 0.3, ease: "easeInOut" }
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  action.onClick();
+                  onClose();
+                }}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-2",
+                  "p-6 rounded-2xl border-2",
+                  "transition-all duration-200",
+                  "shadow-sm",
+                  action.className
+                )}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-white/60 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                  <action.icon className="w-6 h-6" />
+                </div>
+                <span className="text-sm font-bold">{action.label}</span>
+              </motion.button>
+            ))}
+          </motion.div>
+
+          {/* Close hint */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ delay: 0.3 }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2"
+          >
+            <div className="px-3 py-1.5 rounded-full bg-black/20 backdrop-blur-sm">
+              <p className="text-xs text-white font-medium">Klikni van za zatvaranje</p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 // ============================================
-// CARD
+// CUSTOM CONTEXT MENU KOMPONENTA
+// ============================================
+
+const CustomContextMenu = ({ children, onSelect, onRenew, onDelete, isSelected, disabled }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (disabled) return children;
+
+  return (
+    <div
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setIsOpen(true);
+      }}
+    >
+      {children}
+      
+      {/* Simple context menu overlay for expired items */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+            onClick={() => setIsOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 min-w-[200px]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => {
+                  onSelect?.();
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                <CheckSquare className="w-5 h-5 text-slate-600" />
+                <span className="text-sm font-medium">{isSelected ? "Poništi odabir" : "Odaberi"}</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  onRenew?.();
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                <RotateCcw className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium">Obnovi</span>
+              </button>
+              
+              <div className="h-px bg-slate-200 my-2" />
+              
+              <button
+                onClick={() => {
+                  onDelete?.();
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 transition-colors text-red-600"
+              >
+                <Trash2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Izbriši</span>
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ============================================
+// KARTICA
 // ============================================
 
 const MyAdsCard = ({
@@ -192,14 +403,21 @@ const MyAdsCard = ({
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  
+  // NOVI STATE ZA QUICK ACTIONS
+  const [showQuickActions, setShowQuickActions] = useState(false);
 
-  // SOLD OUT MODAL
+  // MODAL ZA PRODANO
   const [isSoldOutDialogOpen, setIsSoldOutDialogOpen] = useState(false);
   const [selectedBuyerId, setSelectedBuyerId] = useState(null);
 
-  // Touch/Swipe refs
+  // Refovi za dodir/klizanje
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  
+  // Long press za mobilne
+  const longPressTimer = useRef(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
 
   const status = data?.status;
   const isExpired = status === "expired";
@@ -221,7 +439,7 @@ const MyAdsCard = ({
       data?.price === undefined ||
       (typeof data?.price === "string" && data?.price.trim() === "");
 
-  // Sale logic
+  // Logika za sniženje
   const isOnSale = data?.is_on_sale === true || data?.is_on_sale === 1;
   const oldPrice = data?.old_price;
   const currentPrice = data?.price;
@@ -240,7 +458,7 @@ const MyAdsCard = ({
     return Math.round(((oldN - curN) / oldN) * 100);
   }, [data?.discount_percentage, isOnSale, oldPrice, currentPrice]);
 
-  // Build slider slides (images + "view more")
+  // Priprema slajdova (slike + "pogledaj više")
   const slides = useMemo(() => {
     const s = [];
     const seen = new Set();
@@ -270,17 +488,26 @@ const MyAdsCard = ({
 
   const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
 
-  // Slider controls
+  const threeDots = useMemo(
+    () => getThreeDots(totalSlides, currentSlide),
+    [totalSlides, currentSlide]
+  );
+
+  // Kontrole za slajder
   const handlePrevSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
+    if (currentSlide > 0) {
+      setCurrentSlide((prev) => prev - 1);
+    }
   };
 
   const handleNextSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
+    if (currentSlide < totalSlides - 1) {
+      setCurrentSlide((prev) => prev + 1);
+    }
   };
 
   const goToSlide = (e, index) => {
@@ -289,20 +516,52 @@ const MyAdsCard = ({
     setCurrentSlide(index);
   };
 
-  // Touch logic
-  const handleTouchStart = (e) => (touchStartX.current = e.touches?.[0]?.clientX || 0);
-  const handleTouchMove = (e) => (touchEndX.current = e.touches?.[0]?.clientX || 0);
+  // Logika za dodir
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches?.[0]?.clientX || 0;
+    
+    // Long press logic
+    if (!isSelectable) {
+      setIsLongPressing(true);
+      longPressTimer.current = setTimeout(() => {
+        setShowQuickActions(true);
+        setIsLongPressing(false);
+      }, 500); // 500ms za long press
+    }
+  };
+  
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches?.[0]?.clientX || 0;
+    
+    // Otkaži long press ako korisnik pomjera prst
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      setIsLongPressing(false);
+    }
+  };
+  
   const handleTouchEnd = () => {
+    // Otkaži long press
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      setIsLongPressing(false);
+    }
+    
     if (isSelectable) return;
 
     const swipeDistance = touchStartX.current - touchEndX.current;
     if (Math.abs(swipeDistance) <= 50) return;
 
-    if (swipeDistance > 0) setCurrentSlide((prev) => (prev === totalSlides - 1 ? 0 : prev + 1));
-    else setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1));
+    if (swipeDistance > 0 && currentSlide < totalSlides - 1) {
+      setCurrentSlide((prev) => prev + 1);
+    } else if (swipeDistance < 0 && currentSlide > 0) {
+      setCurrentSlide((prev) => prev - 1);
+    }
   };
 
-  const handleSoldOutClick = () => setIsSoldOutDialogOpen(true);
+  const handleSoldOutClick = () => {
+    setIsSoldOutDialogOpen(true);
+  };
 
   const handleSoldOutAction = (shouldProcess) => {
     if (!shouldProcess) return;
@@ -313,8 +572,7 @@ const MyAdsCard = ({
   const title = translatedItem?.name || data?.name;
 
   const cardContent = (
-    <CustomLink
-      href={`/my-listing/${data?.slug}`}
+    <div
       className={cn(
         "group relative flex flex-col h-full overflow-hidden",
         "bg-white rounded-xl border border-slate-100",
@@ -325,12 +583,47 @@ const MyAdsCard = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
-        if (!isSelectable) return;
-        e.preventDefault();
-        onSelectionToggle?.();
+        if (isSelectable) {
+          e.preventDefault();
+          onSelectionToggle?.();
+        } else if (showQuickActions) {
+          e.preventDefault();
+        } else {
+          // Normalan klik - idi na link
+          window.location.href = `/my-listing/${data?.slug}`;
+        }
+      }}
+      onDoubleClick={(e) => {
+        if (!isSelectable) {
+          e.preventDefault();
+          setShowQuickActions(true);
+        }
+      }}
+      onContextMenu={(e) => {
+        if (!isSelectable) {
+          e.preventDefault();
+          setShowQuickActions(true);
+        }
       }}
     >
-      {/* MEDIA */}
+      {/* Quick Actions Overlay */}
+      <QuickActionsOverlay
+        isVisible={showQuickActions}
+        onClose={() => setShowQuickActions(false)}
+        onEdit={() => onContextMenuAction?.("edit", data?.id)}
+        onDelete={() => onContextMenuAction?.("delete", data?.id)}
+        onHide={() => onContextMenuAction?.("deactivate", data?.id)}
+        onActivate={() => onContextMenuAction?.("activate", data?.id)}
+        onSold={handleSoldOutClick}
+        onRenew={() => onContextMenuAction?.("renew", data?.id)}
+        isApproved={isApproved}
+        isEditable={isEditable}
+        isSoldOut={isSoldOut}
+        isInactive={isInactive}
+        isExpired={isExpired}
+      />
+
+      {/* MEDIJ */}
       <div
         className={cn("relative overflow-hidden", "rounded-t-xl", "touch-pan-y")}
         onTouchStart={handleTouchStart}
@@ -338,17 +631,18 @@ const MyAdsCard = ({
         onTouchEnd={handleTouchEnd}
       >
         <div className="relative aspect-square bg-slate-50">
-          {slides.map((slide, index) => (
-            <div
-              key={`${slide.type}-${index}`}
-              className={cn(
-                "absolute inset-0 transition-all duration-500 ease-out",
-                index === currentSlide ? "opacity-100 z-[1] scale-100" : "opacity-0 z-0 scale-105"
-              )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="absolute inset-0 w-full h-full"
             >
-              {slide.type === "image" ? (
+              {slides[currentSlide].type === "image" ? (
                 <CustomImage
-                  src={slide.src}
+                  src={slides[currentSlide].src}
                   width={420}
                   height={420}
                   className="w-full h-full object-cover"
@@ -356,19 +650,27 @@ const MyAdsCard = ({
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-50">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15">
+                  <motion.div
+                    initial={{ scale: 0.8, rotate: -10 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.3, type: "spring" }}
+                    className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15"
+                  >
                     <ArrowRight className="w-6 h-6" />
-                  </div>
+                  </motion.div>
                   <p className="text-sm font-semibold text-slate-900 text-center">Detalji</p>
                   <p className="text-xs text-slate-500 text-center mt-1">Otvori oglas</p>
                 </div>
               )}
-            </div>
-          ))}
+            </motion.div>
+          </AnimatePresence>
 
-          {/* Selection */}
+          {/* Odabir */}
           {isSelectable && (
-            <div
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 300 }}
               className="absolute top-2 left-2 z-30"
               onClick={(e) => {
                 e.stopPropagation();
@@ -383,15 +685,20 @@ const MyAdsCard = ({
                   "data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 )}
               />
-            </div>
+            </motion.div>
           )}
 
-          {/* Top-left badges (premium / sale) */}
+          {/* Badževi gore-lijevo (premium / sniženje) */}
           {!isViewMoreSlide && (
-            <div className={cn("absolute top-2 z-20 flex items-center gap-2", isSelectable ? "left-9" : "left-2")}>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className={cn("absolute top-2 z-20 flex items-center gap-2", isSelectable ? "left-9" : "left-2")}
+            >
               {data?.is_feature ? (
                 <OverlayPill icon={Rocket} className="text-amber-700 bg-amber-100/90 border-amber-200">
-                  
+                  {/* Premium */}
                 </OverlayPill>
               ) : null}
 
@@ -400,10 +707,10 @@ const MyAdsCard = ({
                   
                 </OverlayPill>
               ) : null}
-            </div>
+            </motion.div>
           )}
 
-          {/* Top-right menu */}
+          {/* Dugme za quick actions gore-desno */}
           <div
             className="absolute top-2 right-2 z-30"
             onClick={(e) => {
@@ -411,94 +718,38 @@ const MyAdsCard = ({
               e.stopPropagation();
             }}
           >
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={cn(
-                    "h-8 w-8 rounded-full",
-                    "bg-white/90 backdrop-blur-sm",
-                    "border-slate-200 shadow-sm",
-                    "hover:bg-white"
-                  )}
-                >
-                  <MoreVertical className="w-4 h-4 text-slate-700" />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end" className="w-52">
-                {isEditable ? (
-                  <DropdownMenuItem
-                    onClick={() => onContextMenuAction?.("edit", data?.id)}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>Uredi oglas</span>
-                  </DropdownMenuItem>
-                ) : null}
-
-                {isApproved ? (
-                  <DropdownMenuItem
-                    onClick={() => onContextMenuAction?.("deactivate", data?.id)}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <EyeOff className="w-4 h-4" />
-                    <span>Sakrij oglas</span>
-                  </DropdownMenuItem>
-                ) : null}
-
-                {isInactive ? (
-                  <DropdownMenuItem
-                    onClick={() => onContextMenuAction?.("activate", data?.id)}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span className="text-green-600">Otkrij</span>
-                  </DropdownMenuItem>
-                ) : null}
-
-                {isApproved && !isSoldOut ? (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSoldOutClick();
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <CheckCircle className="w-4 h-4 text-blue-600" />
-                    <span className="text-blue-600">Označi kao prodano</span>
-                  </DropdownMenuItem>
-                ) : null}
-
-                {isExpired || isEditable ? <DropdownMenuSeparator /> : null}
-
-                {isExpired ? (
-                  <DropdownMenuItem
-                    onClick={() => onContextMenuAction?.("renew", data?.id)}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4 text-primary" />
-                    <span className="text-primary">{t("renew")}</span>
-                  </DropdownMenuItem>
-                ) : null}
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  onClick={() => onContextMenuAction?.("delete", data?.id)}
-                  className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Izbriši</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowQuickActions(true);
+                }}
+                className={cn(
+                  "h-8 w-8 rounded-full",
+                  "bg-white/90 backdrop-blur-sm",
+                  "border-slate-200 shadow-sm",
+                  "hover:bg-white hover:border-primary/30"
+                )}
+              >
+                <MoreVertical className="w-4 h-4 text-slate-700" />
+              </Button>
+            </motion.div>
           </div>
 
-          {/* Bottom-left meta pills */}
+          {/* Meta informacije dolje-lijevo */}
           {!isViewMoreSlide && (
-            <div className="absolute bottom-2 left-2 z-20 flex items-center gap-2">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="absolute bottom-2 left-2 z-20 flex items-center gap-2"
+            >
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
                   Video
@@ -510,108 +761,133 @@ const MyAdsCard = ({
                   {totalImages}
                 </OverlayPill>
               ) : null}
-            </div>
+            </motion.div>
           )}
 
-          {/* Dots */}
+          {/* Tačkice */}
           {totalSlides > 1 ? (
-            <div className="absolute bottom-2 right-2 z-20 hidden sm:flex items-center gap-1.5">
-              {slides.map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={(e) => goToSlide(e, index)}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all",
-                    index === currentSlide ? "w-6 bg-white shadow-sm" : "w-1.5 bg-white/70"
-                  )}
-                  aria-label={`Slide ${index + 1}`}
-                />
-              ))}
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="absolute bottom-2 right-2 z-20 hidden sm:flex items-center gap-1.5"
+            >
+              <div
+                className={cn(
+                  "flex items-center gap-1.5",
+                  "px-2 py-1 rounded-full",
+                  "bg-black/20 backdrop-blur-sm",
+                  "border border-white/15"
+                )}
+              >
+                {threeDots.map((index) => {
+                  const isActive = index === currentSlide;
+                  return (
+                    <motion.button
+                      key={index}
+                      type="button"
+                      onClick={(e) => goToSlide(e, index)}
+                      className={cn(
+                        "h-1.5 rounded-full",
+                        isActive ? "bg-white" : "bg-white/70"
+                      )}
+                      aria-label={`Slide ${index + 1}`}
+                      initial={false}
+                      animate={{
+                        width: isActive ? 24 : 6
+                      }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  );
+                })}
+              </div>
+            </motion.div>
           ) : null}
 
-          {/* Prev/Next */}
-          {totalSlides > 1 ? (
+          {/* Strelice za prethodnu/sljedeću sliku */}
+          {totalSlides > 1 && (
             <>
-              <button
-                type="button"
-                onClick={handlePrevSlide}
-                className={cn(
-                  "absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 z-20",
-                  "hidden sm:flex items-center justify-center",
-                  "w-8 h-8 rounded-full",
-                  "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
-                  "transition-all duration-200",
-                  isHovered
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 ltr:-translate-x-3 rtl:translate-x-3 pointer-events-none",
-                  isSelectable ? "pointer-events-none opacity-0" : ""
-                )}
-                aria-label="Prethodna slika"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-700 rtl:rotate-180" />
-              </button>
+              {currentSlide > 0 && (
+                <motion.button
+                  type="button"
+                  onClick={handlePrevSlide}
+                  className={cn(
+                    "absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 z-20",
+                    "hidden sm:flex items-center justify-center",
+                    "w-8 h-8 rounded-full",
+                    "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                    "transition-all duration-200",
+                    isHovered
+                      ? "opacity-100 translate-x-0"
+                      : "opacity-0 ltr:-translate-x-3 rtl:translate-x-3",
+                    isSelectable ? "pointer-events-none opacity-0" : ""
+                  )}
+                  aria-label="Prethodna slika"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{
+                    opacity: isHovered ? 1 : 0,
+                    x: isHovered ? 0 : -20
+                  }}
+                  transition={{ duration: 0.2 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <ChevronLeft className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+                </motion.button>
+              )}
 
-              <button
-                type="button"
-                onClick={handleNextSlide}
-                className={cn(
-                  "absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 z-20",
-                  "hidden sm:flex items-center justify-center",
-                  "w-8 h-8 rounded-full",
-                  "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
-                  "transition-all duration-200",
-                  isHovered
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 ltr:translate-x-3 rtl:-translate-x-3 pointer-events-none",
-                  isSelectable ? "pointer-events-none opacity-0" : ""
-                )}
-                aria-label="Sljedeća slika"
-              >
-                <ChevronRight className="w-4 h-4 text-slate-700 rtl:rotate-180" />
-              </button>
+              {currentSlide < totalSlides - 1 && (
+                <motion.button
+                  type="button"
+                  onClick={handleNextSlide}
+                  className={cn(
+                    "absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 z-20",
+                    "hidden sm:flex items-center justify-center",
+                    "w-8 h-8 rounded-full",
+                    "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                    "transition-all duration-200",
+                    isHovered
+                      ? "opacity-100 translate-x-0"
+                      : "opacity-0 ltr:translate-x-3 rtl:-translate-x-3",
+                    isSelectable ? "pointer-events-none opacity-0" : ""
+                  )}
+                  aria-label="Sljedeća slika"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{
+                    opacity: isHovered ? 1 : 0,
+                    x: isHovered ? 0 : 20
+                  }}
+                  transition={{ duration: 0.2 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <ChevronRight className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+                </motion.button>
+              )}
             </>
-          ) : null}
+          )}
         </div>
       </div>
 
-      {/* CONTENT */}
+      {/* SADRŽAJ */}
       <div className="flex flex-col gap-2 p-3 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+          <motion.h3 
+            whileHover={{ color: "hsl(var(--primary))" }}
+            className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
+          >
             {title}
-          </h3>
-
-          {status ? (
-            <div className="shrink-0">
-              <GetMyAdStatus
-                status={status}
-                isApprovedSort={isApprovedSort}
-                isFeature={data?.is_feature}
-                isJobCategory={isJobCategory}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <div className="flex items-center gap-1 min-w-0">
-            <MapPin className="w-3.5 h-3.5" />
-            <span className="truncate max-w-[160px]">{displayCity}</span>
-          </div>
-          <span className="text-slate-300">•</span>
-          <div className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{formatRelativeTime(data?.created_at)}</span>
-          </div>
+          </motion.h3>
         </div>
 
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
           <div className="flex flex-wrap gap-1">
             {keyAttributes.map((attr, index) => (
-              <span
+              <motion.span
                 key={`${attr}-${index}`}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
                 className={cn(
                   "inline-flex items-center",
                   "px-2 py-0.5 rounded-md border",
@@ -620,33 +896,55 @@ const MyAdsCard = ({
                 )}
               >
                 {attr}
-              </span>
+              </motion.span>
             ))}
           </div>
         ) : null}
 
         <div className="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <StatChip icon={Eye} value={data?.clicks || 0} title="Ukupan broj pregleda" />
-            <StatChip
-              icon={Heart}
-              value={data?.total_likes || 0}
-              title="Ukupan broj sviđanja"
-              className="bg-rose-50 text-rose-700 border-rose-100"
-            />
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{formatRelativeTime(data?.created_at)}</span>
+            </div>
           </div>
 
           {!isHidePrice ? (
-            <span className="text-sm font-bold text-slate-900">
-              {isJobCategory
-                ? formatSalaryRange(data?.min_salary, data?.max_salary)
-                : formatPriceAbbreviated(data?.price)}
-            </span>
+            isJobCategory ? (
+              <motion.span 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sm font-bold text-slate-900"
+              >
+                {formatSalaryRange(data?.min_salary, data?.max_salary)}
+              </motion.span>
+            ) : isOnSale && oldPrice && currentPrice && Number(oldPrice) > Number(currentPrice) ? (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-end leading-none"
+              >
+                <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
+                  {formatPriceAbbreviated(oldPrice)}
+                </span>
+                <span className="text-sm font-bold text-rose-600 tabular-nums">
+                  {formatPriceAbbreviated(currentPrice)}
+                </span>
+              </motion.div>
+            ) : (
+              <motion.span 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sm font-bold text-slate-900 tabular-nums"
+              >
+                {formatPriceAbbreviated(data?.price)}
+              </motion.span>
+            )
           ) : null}
         </div>
       </div>
 
-      {/* SOLD OUT MODAL */}
+      {/* MODAL ZA PRODANO */}
       <SoldOutModal
         productDetails={data}
         showSoldOut={isSoldOutDialogOpen}
@@ -655,41 +953,19 @@ const MyAdsCard = ({
         setSelectedRadioValue={setSelectedBuyerId}
         setShowConfirmModal={handleSoldOutAction}
       />
-    </CustomLink>
+    </div>
   );
 
   return (
-    <ContextMenu modal={false}>
-      <ContextMenuTrigger asChild disabled={!isExpired}>
-        {cardContent}
-      </ContextMenuTrigger>
-
-      <ContextMenuContent>
-        <ContextMenuItem
-          onClick={() => onContextMenuAction?.("select", data?.id)}
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          <CheckSquare className="w-4 h-4" />
-          <span>{isSelected ? "Poništi odabir" : "Odaberi"}</span>
-        </ContextMenuItem>
-
-        <ContextMenuItem
-          onClick={() => onContextMenuAction?.("renew", data?.id)}
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          <RotateCcw className="w-4 h-4 text-primary" />
-          <span className="text-primary">{t("renew")}</span>
-        </ContextMenuItem>
-
-        <ContextMenuItem
-          onClick={() => onContextMenuAction?.("delete", data?.id)}
-          className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
-        >
-          <Trash2 className="w-4 h-4" />
-          <span>{t("remove") || "Izbriši"}</span>
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+    <CustomContextMenu
+      onSelect={() => onContextMenuAction?.("select", data?.id)}
+      onRenew={() => onContextMenuAction?.("renew", data?.id)}
+      onDelete={() => onContextMenuAction?.("delete", data?.id)}
+      isSelected={isSelected}
+      disabled={!isExpired}
+    >
+      {cardContent}
+    </CustomContextMenu>
   );
 };
 

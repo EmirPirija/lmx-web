@@ -173,6 +173,10 @@ const reelRingCss = `
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+@keyframes reel-glow {
+  0%, 100% { opacity: 0.35; transform: scale(0.98); }
+  50% { opacity: 0.65; transform: scale(1.03); }
+}
 .reel-ring {
   position: relative;
   padding: 3px;
@@ -182,10 +186,21 @@ const reelRingCss = `
 .reel-ring::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -1px;
   border-radius: inherit;
-  background: conic-gradient(from 0deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
-  animation: reel-rotate 3s linear infinite;
+  background: conic-gradient(from 120deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
+  animation: reel-rotate 6s linear infinite;
+  filter: saturate(1.1);
+  z-index: 0;
+}
+.reel-ring::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 55%),
+    radial-gradient(circle at 70% 70%, rgba(225,48,108,0.35), transparent 60%);
+  animation: reel-glow 2.8s ease-in-out infinite;
   z-index: 0;
 }
 .reel-ring-inner {
@@ -193,6 +208,7 @@ const reelRingCss = `
   z-index: 1;
   border-radius: 14px;
   overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
 }
 `;
 

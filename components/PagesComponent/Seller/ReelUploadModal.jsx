@@ -10,6 +10,7 @@ import {
   Trash2,
   UploadCloud,
   Video,
+  Link2,
 } from "lucide-react";
 
 import Api from "@/api/AxiosInterceptors";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getYouTubeVideoId } from "@/utils";
 
 const MAX_VIDEO_MB = 50;
 
@@ -39,18 +41,24 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const [uploadedVideo, setUploadedVideo] = useState(null);
   const [queuedVideos, setQueuedVideos] = useState([]);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
+  const [videoLink, setVideoLink] = useState("");
+  const [linkPreview, setLinkPreview] = useState(null);
+  const [isLinkValid, setIsLinkValid] = useState(false);
+  const [existingAction, setExistingAction] = useState("keep");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingMore, setIsSubmittingMore] = useState(false);
-  const [confirmReplace, setConfirmReplace] = useState(false);
   const uploadedRef = useRef(null);
   const queuedRef = useRef([]);
 
-  const allUploads = useMemo(
-    () => (uploadedVideo ? [uploadedVideo, ...queuedVideos] : [...queuedVideos]),
-    [uploadedVideo, queuedVideos]
-  );
+  const allUploads = useMemo(() => {
+    const uploads = uploadedVideo ? [uploadedVideo, ...queuedVideos] : [...queuedVideos];
+    if (videoLink.trim() && isLinkValid) {
+      uploads.unshift({ id: "link", type: "youtube", url: videoLink.trim(), preview: linkPreview });
+    }
+    return uploads;
+  }, [uploadedVideo, queuedVideos, videoLink, linkPreview, isLinkValid]);
 
   const selectedItem = useMemo(
     () => items.find((item) => String(item?.id) === String(selectedItemId)),
@@ -59,16 +67,45 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const hasExistingVideo = Boolean(
     selectedItem?.video || selectedItem?.video_link
   );
+  const isUsingLink = videoLink.trim().length > 0;
+
+  const existingVideos = useMemo(() => {
+    if (!selectedItem) return [];
+    const list = [];
+    if (selectedItem?.video) {
+      list.push({
+        id: "existing-upload",
+        type: "upload",
+        label: "Postojeći upload",
+        src: selectedItem.video,
+        preview: selectedItem?.image || null,
+      });
+    }
+    if (selectedItem?.video_link) {
+      const id = getYouTubeVideoId(selectedItem.video_link);
+      list.push({
+        id: "existing-yt",
+        type: "youtube",
+        label: "YouTube link",
+        src: selectedItem.video_link,
+        preview: id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null,
+      });
+    }
+    return list;
+  }, [selectedItem]);
 
   const resetState = useCallback(() => {
     setSelectedItemId("");
     setUploadedVideo(null);
     setQueuedVideos([]);
     setVideoPreviewUrl(null);
+    setVideoLink("");
+    setLinkPreview(null);
+    setIsLinkValid(false);
+    setExistingAction("keep");
     setIsUploading(false);
     setUploadProgress(0);
     setIsSubmitting(false);
-    setConfirmReplace(false);
   }, []);
 
   const deleteTemp = useCallback(async (id) => {
@@ -130,7 +167,18 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   }, [uploadedVideo]);
 
   useEffect(() => {
-    setConfirmReplace(false);
+    if (!videoLink.trim()) {
+      setIsLinkValid(false);
+      setLinkPreview(null);
+      return;
+    }
+    const id = getYouTubeVideoId(videoLink.trim());
+    setIsLinkValid(Boolean(id));
+    setLinkPreview(id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null);
+  }, [videoLink]);
+
+  useEffect(() => {
+    setExistingAction("keep");
   }, [selectedItemId]);
 
   const uploadFile = async (file, onProgress) => {
@@ -154,6 +202,11 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   const handleVideoUpload = async (input) => {
     const files = Array.isArray(input) ? input : input ? [input] : [];
     if (!files.length) return;
+    if (videoLink.trim()) {
+      setVideoLink("");
+      setLinkPreview(null);
+      setIsLinkValid(false);
+    }
 
     const validFiles = files.filter((file) => {
       if (!file?.type?.startsWith("video/")) {
@@ -200,8 +253,17 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     }
   };
 
-  const handleRemoveVideo = async (index = 0) => {
-    if (index === 0) {
+  const handleRemoveVideo = async (index = 0, isLink = false) => {
+    if (isLink) {
+      setVideoLink("");
+      setLinkPreview(null);
+      setIsLinkValid(false);
+      return;
+    }
+
+    const offset = videoLink.trim() ? 1 : 0;
+    const adjustedIndex = index - offset;
+    if (adjustedIndex <= 0) {
       if (uploadedVideo?.id) await deleteTemp(uploadedVideo.id);
       if (queuedVideos.length > 0) {
         const [next, ...rest] = queuedVideos;
@@ -214,15 +276,24 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
       return;
     }
 
-    const queueIndex = index - 1;
+    const queueIndex = adjustedIndex - 1;
     const videoToRemove = queuedVideos[queueIndex];
     if (videoToRemove?.id) await deleteTemp(videoToRemove.id);
     setQueuedVideos((prev) => prev.filter((_, idx) => idx !== queueIndex));
   };
 
-  const handleSelectUpload = (index) => {
-    if (index === 0) return;
-    const queueIndex = index - 1;
+  const handleSelectUpload = (index, isLink = false) => {
+    if (isLink) {
+      if (!videoLink.trim()) return;
+      setUploadedVideo(null);
+      setQueuedVideos([]);
+      return;
+    }
+
+    const offset = videoLink.trim() ? 1 : 0;
+    const adjustedIndex = index - offset;
+    if (adjustedIndex === 0) return;
+    const queueIndex = adjustedIndex - 1;
     const nextVideo = queuedVideos[queueIndex];
     if (!nextVideo) return;
 
@@ -240,32 +311,52 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
       toast.error("Odaberite oglas za koji dodajete reel.");
       return;
     }
-    if (hasExistingVideo && !confirmReplace) {
-      toast.error("Ovaj oglas već ima video. Potvrdite zamjenu.");
+    if (isUsingLink && !isLinkValid) {
+      toast.error("Unesite validan YouTube link.");
       return;
     }
-    if (!uploadedVideo?.id) {
-      toast.error("Prvo otpremite video.");
-      return;
+    if (!isUsingLink && !uploadedVideo?.id) {
+      if (existingAction === "delete" && hasExistingVideo) {
+        // delete only
+      } else {
+        toast.error("Prvo otpremite video ili dodajte YouTube link.");
+        return;
+      }
+    }
+
+    if (hasExistingVideo && (isUsingLink || uploadedVideo?.id)) {
+      if (existingAction === "keep") {
+        toast.error("Odaberite da li želite zamijeniti ili obrisati postojeći video.");
+        return;
+      }
     }
 
     try {
       if (keepOpen) setIsSubmittingMore(true);
       else setIsSubmitting(true);
+      const shouldDelete = hasExistingVideo && existingAction === "delete";
       const res = await editItemApi.editItem({
         id: selectedItemId,
-        temp_video_id: uploadedVideo.id,
+        ...(shouldDelete ? { delete_video: 1 } : {}),
+        ...(isUsingLink ? { video_link: videoLink.trim() } : uploadedVideo?.id ? { temp_video_id: uploadedVideo.id } : {}),
       });
 
       if (res?.data?.error === false) {
         toast.success(
           keepOpen
             ? "Reel je dodan. Možete postaviti još jedan."
-            : "Reel je spreman za Home Reels."
+            : shouldDelete
+              ? "Video je obrisan."
+              : "Reel je spreman za Home Reels."
         );
         onUploaded?.(selectedItem);
-        if (keepOpen || queuedVideos.length > 0) {
-          if (queuedVideos.length > 0) {
+        if (keepOpen || queuedVideos.length > 0 || isUsingLink) {
+          if (isUsingLink) {
+            setVideoLink("");
+            setLinkPreview(null);
+            setIsLinkValid(false);
+            setExistingAction("keep");
+          } else if (queuedVideos.length > 0) {
             const [next, ...rest] = queuedVideos;
             setUploadedVideo(next);
             setQueuedVideos(rest);
@@ -273,7 +364,6 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             setUploadedVideo(null);
           }
           setVideoPreviewUrl(null);
-          setConfirmReplace(false);
           return;
         }
         onOpenChange(false);
@@ -292,8 +382,8 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-white rounded-2xl">
-        <div className="p-6 border-b border-slate-100">
+      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-white rounded-2xl max-h-[92vh]">
+        <div className="p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
               <Play className="w-5 h-5 text-primary" />
@@ -309,7 +399,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
           </div>
         </div>
 
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 overflow-y-auto max-h-[calc(92vh-88px)]">
           <div className="space-y-5">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">
@@ -343,30 +433,99 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   )}
                 </SelectContent>
               </Select>
-              {hasExistingVideo && (
-                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  <p className="font-semibold">Ovaj oglas već ima video.</p>
-                  <p className="mt-1 text-amber-600">
-                    Ako nastavite, trenutni video će biti zamijenjen novim reel
-                    videom.
-                  </p>
-                  <label className="mt-2 flex items-center gap-2 text-amber-700">
-                    <input
-                      type="checkbox"
-                      checked={confirmReplace}
-                      onChange={(e) => setConfirmReplace(e.target.checked)}
-                      className="h-4 w-4 rounded border-amber-300 text-amber-500 focus:ring-amber-400"
-                    />
-                    Svjestan/na sam da mijenjam postojeći video.
-                  </label>
-                </div>
-              )}
             </div>
 
             <div className="space-y-3">
               <label className="text-sm font-semibold text-slate-700">
                 Video za reel
               </label>
+
+              {hasExistingVideo && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-900">Postojeći video</p>
+                    <span className="text-xs text-slate-400">{existingVideos.length} video(a)</span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {existingVideos.map((vid) => (
+                      <div
+                        key={vid.id}
+                        className={cn(
+                          "rounded-xl border p-3 flex items-center gap-3 bg-slate-50",
+                          existingAction === "delete" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-slate-50"
+                        )}
+                      >
+                        <div className="w-12 h-16 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+                          {vid.preview ? (
+                            <img src={vid.preview} alt={vid.label} className="w-full h-full object-cover" />
+                          ) : (
+                            <Video className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-slate-700">{vid.label}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                              {vid.type === "youtube" ? "YouTube" : "Upload"}
+                            </span>
+                            {vid.type === "youtube" && vid.src && (
+                              <span className="text-[10px] text-slate-400 truncate max-w-[140px]">
+                                {vid.src}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setExistingAction("delete")}
+                          className="p-2 rounded-full text-rose-500 hover:bg-rose-100 transition"
+                          aria-label="Obriši postojeći video"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: "keep", label: "Zadrži postojeći", tone: "bg-slate-100 text-slate-700" },
+                      { id: "replace", label: "Zamijeni novim", tone: "bg-amber-100 text-amber-700" },
+                      { id: "delete", label: "Obriši postojeći", tone: "bg-rose-100 text-rose-700" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setExistingAction(opt.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+                          existingAction === opt.id
+                            ? "border-transparent shadow-sm"
+                            : "border-slate-200 hover:border-slate-300",
+                          opt.tone
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 justify-between">
+                    <p className="text-[11px] text-slate-500">
+                      Odaberite šta radite sa postojećim videom prije objave novog.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExistingAction("delete");
+                        handleSubmit({ keepOpen: false });
+                      }}
+                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
+                    >
+                      Obriši odmah
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {!uploadedVideo ? (
                 <motion.label
@@ -375,7 +534,8 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     "flex flex-col items-center justify-center gap-3",
                     "border border-dashed border-slate-200 rounded-2xl",
                     "bg-slate-50/70 px-6 py-10 text-center cursor-pointer",
-                    "transition-colors hover:border-primary/60 hover:bg-primary/5"
+                    "transition-colors hover:border-primary/60 hover:bg-primary/5",
+                    isUsingLink && "opacity-60 cursor-not-allowed"
                   )}
                 >
                   <input
@@ -383,6 +543,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     accept="video/*"
                     multiple
                     className="hidden"
+                    disabled={isUsingLink}
                     onChange={(e) => handleVideoUpload(Array.from(e.target.files || []))}
                   />
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 shadow-sm flex items-center justify-center">
@@ -463,14 +624,62 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   )}
                 </div>
               )}
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-[11px] text-slate-400 font-medium">ili</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <Link2 className="w-4 h-4 text-slate-500" />
+                  </div>
+                  YouTube link
+                </div>
+                <input
+                  type="url"
+                  value={videoLink}
+                  onChange={(e) => {
+                    setVideoLink(e.target.value);
+                    if (uploadedVideo || queuedVideos.length > 0) {
+                      setUploadedVideo(null);
+                      setQueuedVideos([]);
+                      setVideoPreviewUrl(null);
+                    }
+                  }}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className={cn(
+                    "w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition",
+                    isUsingLink
+                      ? isLinkValid
+                        ? "border-emerald-300 focus:border-emerald-500"
+                        : "border-amber-300 focus:border-amber-400"
+                      : "border-slate-200 focus:border-slate-400"
+                  )}
+                />
+                {isUsingLink && (
+                  <p className={cn("text-xs", isLinkValid ? "text-emerald-600" : "text-amber-600")}>
+                    {isLinkValid ? "YouTube link je spreman za objavu." : "Link mora biti YouTube video."}
+                  </p>
+                )}
+                {linkPreview && (
+                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                    <img src={linkPreview} alt="YouTube preview" className="w-full h-44 object-cover" />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                {queuedVideos.length > 0
-                  ? `Spremno još ${queuedVideos.length} videa.`
-                  : "Reel se prikazuje nakon što oglas ostane aktivan."}
+                {isUsingLink
+                  ? "YouTube link će se prikazivati kao priča."
+                  : queuedVideos.length > 0
+                    ? `Spremno još ${queuedVideos.length} videa.`
+                    : "Reel se prikazuje nakon što oglas ostane aktivan."}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -478,8 +687,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   onClick={() => handleSubmit({ keepOpen: true })}
                   disabled={
                     isSubmitting ||
-                    isSubmittingMore ||
-                    (hasExistingVideo && !confirmReplace)
+                    isSubmittingMore
                   }
                   className="border-slate-200 text-slate-700 hover:bg-slate-50"
                 >
@@ -496,8 +704,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                   onClick={() => handleSubmit({ keepOpen: false })}
                   disabled={
                     isSubmitting ||
-                    isSubmittingMore ||
-                    (hasExistingVideo && !confirmReplace)
+                    isSubmittingMore
                   }
                   className="min-w-[160px] bg-slate-900 hover:bg-slate-800 text-white"
                 >
@@ -530,12 +737,14 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
               </div>
             ) : (
               <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                {allUploads.map((vid, index) => (
+                {allUploads.map((vid, index) => {
+                  const isLinkItem = vid?.type === "youtube";
+                  return (
                   <motion.button
                     key={vid?.id || index}
                     type="button"
                     whileHover={{ scale: 1.01 }}
-                    onClick={() => handleSelectUpload(index)}
+                    onClick={() => handleSelectUpload(index, isLinkItem)}
                     className={cn(
                       "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
                       index === 0
@@ -544,11 +753,11 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                     )}
                   >
                     <div className="w-12 h-16 rounded-lg bg-slate-100 flex items-center justify-center">
-                      <Play className="w-4 h-4 text-slate-400" />
+                      {isLinkItem ? <Link2 className="w-4 h-4 text-slate-400" /> : <Play className="w-4 h-4 text-slate-400" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900">
-                        Reel #{index + 1}
+                        {isLinkItem ? "YouTube reel" : `Reel #${index + 1}`}
                       </p>
                       <p className="text-xs text-slate-400">
                         {index === 0 ? "Spreman za objavu" : "Na čekanju"}
@@ -558,14 +767,15 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRemoveVideo(index);
+                        handleRemoveVideo(index, isLinkItem);
                       }}
                       className="p-2 rounded-full hover:bg-red-50 text-red-500"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </motion.button>
-                ))}
+                );
+                })}
               </div>
             )}
           </div>
