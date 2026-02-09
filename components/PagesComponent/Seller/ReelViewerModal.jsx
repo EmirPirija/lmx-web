@@ -515,7 +515,7 @@ const ReelViewerModal = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-35"
+                    className="absolute inset-0 z-[35]"
                     onClick={(e) => { e.stopPropagation(); setMoreMenu(false); }}
                   />
                   <motion.div
@@ -523,7 +523,7 @@ const ReelViewerModal = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-[calc(env(safe-area-inset-top,8px)+50px)] right-3 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden min-w-[210px] border border-white/20"
+                    className="absolute top-[calc(env(safe-area-inset-top,8px)+50px)] right-3 z-40 bg-white backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden min-w-[210px] border border-slate-200"
                   >
                     {[
                       { icon: MdOpenInNew, label: "Pogledaj oglas", fn: goToDetails },
@@ -535,7 +535,7 @@ const ReelViewerModal = ({
                         key={i}
                         type="button"
                         onClick={(e) => { e.stopPropagation(); o.fn(); setMoreMenu(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         <o.icon size={18} className="text-slate-400" />
                         {o.label}

@@ -173,34 +173,20 @@ const reelRingCss = `
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-@keyframes reel-glow-pulse {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 0.65; }
-}
 .reel-ring {
   position: relative;
   padding: 3px;
   border-radius: 16px;
+  isolation: isolate;
 }
 .reel-ring::before {
   content: "";
   position: absolute;
-  inset: -1px;
+  inset: 0;
   border-radius: inherit;
   background: conic-gradient(from 0deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
   animation: reel-rotate 3s linear infinite;
   z-index: 0;
-}
-.reel-ring::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  background: conic-gradient(from 180deg, #F7941D, #E1306C, #833AB4, #405DE6, #F7941D);
-  filter: blur(10px);
-  opacity: 0.45;
-  animation: reel-rotate 3s linear infinite, reel-glow-pulse 2.5s ease-in-out infinite;
-  z-index: -1;
 }
 .reel-ring-inner {
   position: relative;
