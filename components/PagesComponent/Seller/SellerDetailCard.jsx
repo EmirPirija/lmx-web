@@ -175,7 +175,7 @@ const reelRingCss = `
 }
 @keyframes reel-glow {
   0%, 100% { opacity: 0.35; transform: scale(0.98); }
-  50% { opacity: 0.65; transform: scale(1.03); }
+  50% { opacity: 0.52; transform: scale(1.01); }
 }
 .reel-ring {
   position: relative;
@@ -189,7 +189,7 @@ const reelRingCss = `
   inset: -1px;
   border-radius: inherit;
   background: conic-gradient(from 120deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
-  animation: reel-rotate 6s linear infinite;
+  animation: reel-rotate 10s linear infinite;
   filter: saturate(1.1);
   z-index: 0;
 }
@@ -200,7 +200,7 @@ const reelRingCss = `
   border-radius: inherit;
   background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 55%),
     radial-gradient(circle at 70% 70%, rgba(225,48,108,0.35), transparent 60%);
-  animation: reel-glow 2.8s ease-in-out infinite;
+  animation: reel-glow 4.5s ease-in-out infinite;
   z-index: 0;
 }
 .reel-ring-inner {

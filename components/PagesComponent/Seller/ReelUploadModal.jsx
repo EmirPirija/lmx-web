@@ -1,28 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import {
-  CheckCircle2,
-  Loader2,
-  Play,
-  Trash2,
-  UploadCloud,
-  Video,
-  Link2,
-} from "lucide-react";
+import { CheckCircle2, Loader2, Link2, Trash2, UploadCloud, Video } from "lucide-react";
 
 import Api from "@/api/AxiosInterceptors";
 import { editItemApi, getMyItemsApi } from "@/utils/api";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getYouTubeVideoId } from "@/utils";
@@ -35,77 +19,47 @@ const pickMyItems = (res) => {
 };
 
 const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
-  const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [items, setItems] = useState([]);
-  const [selectedItemId, setSelectedItemId] = useState("");
-  const [uploadedVideo, setUploadedVideo] = useState(null);
-  const [queuedVideos, setQueuedVideos] = useState([]);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
-  const [videoLink, setVideoLink] = useState("");
-  const [linkPreview, setLinkPreview] = useState(null);
-  const [isLinkValid, setIsLinkValid] = useState(false);
-  const [existingAction, setExistingAction] = useState("keep");
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
+
+  const [uploadedVideos, setUploadedVideos] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const [videoLink, setVideoLink] = useState("");
+  const [isLinkValid, setIsLinkValid] = useState(false);
+  const [linkPreview, setLinkPreview] = useState("");
+
+  const [existingAction, setExistingAction] = useState("replace");
+  const [reuseLastVideo, setReuseLastVideo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmittingMore, setIsSubmittingMore] = useState(false);
-  const uploadedRef = useRef(null);
-  const queuedRef = useRef([]);
 
-  const allUploads = useMemo(() => {
-    const uploads = uploadedVideo ? [uploadedVideo, ...queuedVideos] : [...queuedVideos];
-    if (videoLink.trim() && isLinkValid) {
-      uploads.unshift({ id: "link", type: "youtube", url: videoLink.trim(), preview: linkPreview });
-    }
-    return uploads;
-  }, [uploadedVideo, queuedVideos, videoLink, linkPreview, isLinkValid]);
+  const uploadedRef = useRef([]);
 
-  const selectedItem = useMemo(
-    () => items.find((item) => String(item?.id) === String(selectedItemId)),
-    [items, selectedItemId]
+  const selectedItems = useMemo(
+    () => items.filter((item) => selectedItemIds.includes(String(item?.id))),
+    [items, selectedItemIds]
   );
-  const hasExistingVideo = Boolean(
-    selectedItem?.video || selectedItem?.video_link
+
+  const hasExistingVideo = useMemo(
+    () => selectedItems.some((item) => item?.video || item?.video_link),
+    [selectedItems]
   );
+
   const isUsingLink = videoLink.trim().length > 0;
 
-  const existingVideos = useMemo(() => {
-    if (!selectedItem) return [];
-    const list = [];
-    if (selectedItem?.video) {
-      list.push({
-        id: "existing-upload",
-        type: "upload",
-        label: "Postojeći upload",
-        src: selectedItem.video,
-        preview: selectedItem?.image || null,
-      });
-    }
-    if (selectedItem?.video_link) {
-      const id = getYouTubeVideoId(selectedItem.video_link);
-      list.push({
-        id: "existing-yt",
-        type: "youtube",
-        label: "YouTube link",
-        src: selectedItem.video_link,
-        preview: id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null,
-      });
-    }
-    return list;
-  }, [selectedItem]);
-
   const resetState = useCallback(() => {
-    setSelectedItemId("");
-    setUploadedVideo(null);
-    setQueuedVideos([]);
-    setVideoPreviewUrl(null);
+    setSelectedItemIds([]);
+    setUploadedVideos([]);
     setVideoLink("");
-    setLinkPreview(null);
     setIsLinkValid(false);
-    setExistingAction("keep");
-    setIsUploading(false);
+    setLinkPreview("");
     setUploadProgress(0);
+    setIsUploading(false);
     setIsSubmitting(false);
+    setExistingAction("replace");
+    setReuseLastVideo(false);
   }, []);
 
   const deleteTemp = useCallback(async (id) => {
@@ -113,24 +67,17 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     try {
       await Api.delete(`/upload-temp/${id}`);
     } catch (e) {
-      console.error("Temp video delete error:", e);
+      console.error("Greška brisanja temp videa:", e);
     }
   }, []);
 
   useEffect(() => {
-    uploadedRef.current = uploadedVideo;
-  }, [uploadedVideo]);
-
-  useEffect(() => {
-    queuedRef.current = queuedVideos;
-  }, [queuedVideos]);
+    uploadedRef.current = uploadedVideos;
+  }, [uploadedVideos]);
 
   useEffect(() => {
     if (!open) {
-      const prevUploaded = uploadedRef.current;
-      const prevQueued = queuedRef.current;
-      if (prevUploaded?.id) deleteTemp(prevUploaded.id);
-      prevQueued.forEach((video) => deleteTemp(video?.id));
+      uploadedRef.current.forEach((video) => deleteTemp(video?.id));
       resetState();
       return;
     }
@@ -147,7 +94,6 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
       } catch (e) {
         console.error("Reel items fetch error:", e);
         toast.error("Ne mogu učitati vaše oglase.");
-        setItems([]);
       } finally {
         setIsLoadingItems(false);
       }
@@ -157,29 +103,15 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
   }, [open, deleteTemp, resetState]);
 
   useEffect(() => {
-    if (!uploadedVideo) {
-      setVideoPreviewUrl(null);
-      return;
-    }
-
-    const url = uploadedVideo?.url || uploadedVideo?.path || null;
-    setVideoPreviewUrl(url);
-  }, [uploadedVideo]);
-
-  useEffect(() => {
     if (!videoLink.trim()) {
       setIsLinkValid(false);
-      setLinkPreview(null);
+      setLinkPreview("");
       return;
     }
     const id = getYouTubeVideoId(videoLink.trim());
     setIsLinkValid(Boolean(id));
-    setLinkPreview(id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null);
+    setLinkPreview(id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "");
   }, [videoLink]);
-
-  useEffect(() => {
-    setExistingAction("keep");
-  }, [selectedItemId]);
 
   const uploadFile = async (file, onProgress) => {
     const fd = new FormData();
@@ -187,25 +119,23 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
     const res = await Api.post("/upload-temp/video", fd, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
-        const percent = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
+        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
         onProgress?.(percent);
       },
     });
-    if (res?.data?.error !== false) {
-      throw new Error(res?.data?.message || "Upload nije uspio");
-    }
-    return res.data.data;
+
+    if (res?.data?.error !== false) throw new Error(res?.data?.message || "Upload nije uspio.");
+    return res?.data?.data;
   };
 
-  const handleVideoUpload = async (input) => {
-    const files = Array.isArray(input) ? input : input ? [input] : [];
+  const handleVideoUpload = async (filesInput) => {
+    const files = Array.isArray(filesInput) ? filesInput : Array.from(filesInput || []);
     if (!files.length) return;
+
     if (videoLink.trim()) {
       setVideoLink("");
-      setLinkPreview(null);
       setIsLinkValid(false);
+      setLinkPreview("");
     }
 
     const validFiles = files.filter((file) => {
@@ -224,560 +154,221 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
 
     try {
       setIsUploading(true);
-      const uploads = [];
+      const nextUploads = [];
 
       for (let i = 0; i < validFiles.length; i += 1) {
         setUploadProgress(0);
         // eslint-disable-next-line no-await-in-loop
-        const data = await uploadFile(validFiles[i], (p) => setUploadProgress(p));
-        uploads.push(data);
+        const up = await uploadFile(validFiles[i], (p) => setUploadProgress(p));
+        nextUploads.push(up);
       }
 
-      if (!uploadedVideo && uploads.length > 0) {
-        setUploadedVideo(uploads[0]);
-        setQueuedVideos(uploads.slice(1));
-      } else {
-        setQueuedVideos((prev) => [...prev, ...uploads]);
-      }
-
-      toast.success(
-        uploads.length > 1
-          ? `Otpremljeno ${uploads.length} videa.`
-          : "Video je uspješno otpremljen."
-      );
+      setUploadedVideos((prev) => [...prev, ...nextUploads]);
+      toast.success(`Dodano ${nextUploads.length} video zapisa u seriju.`);
     } catch (e) {
       console.error(e);
-      toast.error(e?.message || "Video nije moguće otpremiti.");
+      toast.error(e?.message || "Ne mogu otpremiti video.");
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleRemoveVideo = async (index = 0, isLink = false) => {
-    if (isLink) {
-      setVideoLink("");
-      setLinkPreview(null);
-      setIsLinkValid(false);
-      return;
-    }
-
-    const offset = videoLink.trim() ? 1 : 0;
-    const adjustedIndex = index - offset;
-    if (adjustedIndex <= 0) {
-      if (uploadedVideo?.id) await deleteTemp(uploadedVideo.id);
-      if (queuedVideos.length > 0) {
-        const [next, ...rest] = queuedVideos;
-        setUploadedVideo(next);
-        setQueuedVideos(rest);
-        return;
-      }
-      setUploadedVideo(null);
-      setVideoPreviewUrl(null);
-      return;
-    }
-
-    const queueIndex = adjustedIndex - 1;
-    const videoToRemove = queuedVideos[queueIndex];
-    if (videoToRemove?.id) await deleteTemp(videoToRemove.id);
-    setQueuedVideos((prev) => prev.filter((_, idx) => idx !== queueIndex));
+  const removeQueuedVideo = async (idx) => {
+    const target = uploadedVideos[idx];
+    if (target?.id) await deleteTemp(target.id);
+    setUploadedVideos((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSelectUpload = (index, isLink = false) => {
-    if (isLink) {
-      if (!videoLink.trim()) return;
-      setUploadedVideo(null);
-      setQueuedVideos([]);
-      return;
-    }
-
-    const offset = videoLink.trim() ? 1 : 0;
-    const adjustedIndex = index - offset;
-    if (adjustedIndex === 0) return;
-    const queueIndex = adjustedIndex - 1;
-    const nextVideo = queuedVideos[queueIndex];
-    if (!nextVideo) return;
-
-    setQueuedVideos((prev) => {
-      const updated = [...prev];
-      updated.splice(queueIndex, 1);
-      if (uploadedVideo) updated.unshift(uploadedVideo);
-      return updated;
-    });
-    setUploadedVideo(nextVideo);
+  const toggleItem = (id) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
-  const handleSubmit = async ({ keepOpen } = {}) => {
-    if (!selectedItemId) {
-      toast.error("Odaberite oglas za koji dodajete reel.");
+  const handleSubmit = async ({ keepOpen }) => {
+    if (selectedItemIds.length === 0) {
+      toast.error("Odaberite barem jedan oglas.");
       return;
     }
+
     if (isUsingLink && !isLinkValid) {
-      toast.error("Unesite validan YouTube link.");
+      toast.error("Unesite ispravan YouTube link.");
       return;
     }
-    if (!isUsingLink && !uploadedVideo?.id) {
-      if (existingAction === "delete" && hasExistingVideo) {
-        // delete only
-      } else {
-        toast.error("Prvo otpremite video ili dodajte YouTube link.");
-        return;
-      }
+
+    if (!isUsingLink && uploadedVideos.length === 0 && existingAction !== "delete") {
+      toast.error("Dodajte video ili YouTube link.");
+      return;
     }
 
-    if (hasExistingVideo && (isUsingLink || uploadedVideo?.id)) {
-      if (existingAction === "keep") {
-        toast.error("Odaberite da li želite zamijeniti ili obrisati postojeći video.");
-        return;
-      }
+    if (!isUsingLink && uploadedVideos.length < selectedItemIds.length && !reuseLastVideo && existingAction !== "delete") {
+      toast.error("Za svaki oglas treba video. Uključite opciju ponavljanja zadnjeg videa ili smanjite broj oglasa.");
+      return;
     }
 
     try {
-      if (keepOpen) setIsSubmittingMore(true);
-      else setIsSubmitting(true);
-      const shouldDelete = hasExistingVideo && existingAction === "delete";
-      const res = await editItemApi.editItem({
-        id: selectedItemId,
-        ...(shouldDelete ? { delete_video: 1 } : {}),
-        ...(isUsingLink ? { video_link: videoLink.trim() } : uploadedVideo?.id ? { temp_video_id: uploadedVideo.id } : {}),
-      });
+      setIsSubmitting(true);
+      let usedVideos = 0;
 
-      if (res?.data?.error === false) {
-        toast.success(
-          keepOpen
-            ? "Reel je dodan. Možete postaviti još jedan."
-            : shouldDelete
-              ? "Video je obrisan."
-              : "Reel je spreman za Home Reels."
-        );
-        onUploaded?.(selectedItem);
-        if (keepOpen || queuedVideos.length > 0 || isUsingLink) {
-          if (isUsingLink) {
-            setVideoLink("");
-            setLinkPreview(null);
-            setIsLinkValid(false);
-            setExistingAction("keep");
-          } else if (queuedVideos.length > 0) {
-            const [next, ...rest] = queuedVideos;
-            setUploadedVideo(next);
-            setQueuedVideos(rest);
-          } else {
-            setUploadedVideo(null);
-          }
-          setVideoPreviewUrl(null);
-          return;
-        }
-        onOpenChange(false);
+      for (let i = 0; i < selectedItemIds.length; i += 1) {
+        const targetId = selectedItemIds[i];
+        const assignedVideo = uploadedVideos[i] || (reuseLastVideo ? uploadedVideos[uploadedVideos.length - 1] : null);
+        const payload = {
+          id: targetId,
+          ...(hasExistingVideo && existingAction === "delete" ? { delete_video: 1 } : {}),
+          ...(isUsingLink ? { video_link: videoLink.trim() } : assignedVideo?.id ? { temp_video_id: assignedVideo.id } : {}),
+        };
+
+        // eslint-disable-next-line no-await-in-loop
+        const res = await editItemApi.editItem(payload);
+        if (res?.data?.error !== false) throw new Error(res?.data?.message || "Ne mogu spremiti reel.");
+        if (!isUsingLink && assignedVideo?.id && i < uploadedVideos.length) usedVideos += 1;
+      }
+
+      const restVideos = uploadedVideos.slice(usedVideos);
+      if (usedVideos > 0) {
+        uploadedVideos.slice(0, usedVideos).forEach((v) => deleteTemp(v?.id));
+      }
+
+      toast.success(
+        isUsingLink
+          ? "YouTube priče su objavljene za odabrane oglase."
+          : `Objavljeno ${Math.max(usedVideos, selectedItemIds.length)} reel objava.`
+      );
+
+      onUploaded?.();
+
+      if (keepOpen) {
+        setUploadedVideos(restVideos);
+        setVideoLink("");
+        setIsLinkValid(false);
+        setLinkPreview("");
         return;
       }
 
-      throw new Error(res?.data?.message || "Ne mogu sačuvati video.");
+      onOpenChange(false);
     } catch (e) {
       console.error(e);
-      toast.error(e?.message || "Nešto je pošlo po zlu.");
+      toast.error(e?.message || "Greška pri objavi.");
     } finally {
       setIsSubmitting(false);
-      setIsSubmittingMore(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-white rounded-2xl max-h-[92vh]">
-        <div className="p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Play className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                Objavi video priče
-              </h3>
-              <p className="text-sm text-slate-500">
-                Dodajte više videa za svoje oglase - svaki video postaje dio vaše priče.
-              </p>
-            </div>
-          </div>
+      <DialogContent className="max-w-5xl p-0 overflow-hidden max-h-[92vh] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Novi reel studio</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Odaberite više oglasa i objavite seriju videa kao Instagram priče.</p>
         </div>
 
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 overflow-y-auto max-h-[calc(92vh-88px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6 p-6 overflow-y-auto max-h-[calc(92vh-100px)]">
           <div className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">
-                Odaberite oglas
-              </label>
-              <Select
-                value={selectedItemId}
-                onValueChange={setSelectedItemId}
-                disabled={isLoadingItems}
-              >
-                <SelectTrigger className="w-full bg-slate-50 border-slate-200">
-                  <SelectValue
-                    placeholder={
-                      isLoadingItems
-                        ? "Učitavam oglase..."
-                        : "Izaberite oglas"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {items.length === 0 ? (
-                    <SelectItem value="no-items" disabled>
-                      Nema aktivnih oglasa
-                    </SelectItem>
-                  ) : (
-                    items.map((item) => (
-                      <SelectItem key={item.id} value={String(item.id)}>
-                        {item?.name || `Oglas #${item.id}`}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-slate-700">
-                Video za reel
-              </label>
-
-              {hasExistingVideo && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-900">Postojeći video</p>
-                    <span className="text-xs text-slate-400">{existingVideos.length} video(a)</span>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {existingVideos.map((vid) => (
-                      <div
-                        key={vid.id}
-                        className={cn(
-                          "rounded-xl border p-3 flex items-center gap-3 bg-slate-50",
-                          existingAction === "delete" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-slate-50"
-                        )}
-                      >
-                        <div className="w-12 h-16 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
-                          {vid.preview ? (
-                            <img src={vid.preview} alt={vid.label} className="w-full h-full object-cover" />
-                          ) : (
-                            <Video className="w-5 h-5 text-slate-400" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-slate-700">{vid.label}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                              {vid.type === "youtube" ? "YouTube" : "Upload"}
-                            </span>
-                            {vid.type === "youtube" && vid.src && (
-                              <span className="text-[10px] text-slate-400 truncate max-w-[140px]">
-                                {vid.src}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setExistingAction("delete")}
-                          className="p-2 rounded-full text-rose-500 hover:bg-rose-100 transition"
-                          aria-label="Obriši postojeći video"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { id: "keep", label: "Zadrži postojeći", tone: "bg-slate-100 text-slate-700" },
-                      { id: "replace", label: "Zamijeni novim", tone: "bg-amber-100 text-amber-700" },
-                      { id: "delete", label: "Obriši postojeći", tone: "bg-rose-100 text-rose-700" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setExistingAction(opt.id)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
-                          existingAction === opt.id
-                            ? "border-transparent shadow-sm"
-                            : "border-slate-200 hover:border-slate-300",
-                          opt.tone
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 justify-between">
-                    <p className="text-[11px] text-slate-500">
-                      Odaberite šta radite sa postojećim videom prije objave novog.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExistingAction("delete");
-                        handleSubmit({ keepOpen: false });
-                      }}
-                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
-                    >
-                      Obriši odmah
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!uploadedVideo ? (
-                <motion.label
-                  whileHover={{ scale: 1.01 }}
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-3",
-                    "border border-dashed border-slate-200 rounded-2xl",
-                    "bg-slate-50/70 px-6 py-10 text-center cursor-pointer",
-                    "transition-colors hover:border-primary/60 hover:bg-primary/5",
-                    isUsingLink && "opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  <input
-                    type="file"
-                    accept="video/*"
-                    multiple
-                    className="hidden"
-                    disabled={isUsingLink}
-                    onChange={(e) => handleVideoUpload(Array.from(e.target.files || []))}
-                  />
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 shadow-sm flex items-center justify-center">
-                    {isUploading ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    ) : (
-                      <UploadCloud className="w-6 h-6 text-primary" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      Otpremite video
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      MP4, MOV ili WEBM do {MAX_VIDEO_MB}MB
-                    </p>
-                  </div>
-
-                  <AnimatePresence>
-                    {isUploading && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="w-full max-w-xs"
-                      >
-                        <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                          <span>Upload u toku</span>
-                          <span>{uploadProgress}%</span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${uploadProgress}%` }}
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.label>
-              ) : (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 shadow-sm p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
-                        <Video className="w-6 h-6 text-slate-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          Video je spreman
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          Možete dodati više videa i objaviti ih redom.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveVideo(0)}
-                      className="p-2 rounded-full hover:bg-red-50 text-red-500 transition-colors"
-                      aria-label="Ukloni video"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {videoPreviewUrl && (
-                    <div className="mt-4 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
-                      <video
-                        className="w-full h-56 object-contain"
-                        src={videoPreviewUrl}
-                        playsInline
-                        muted
-                        loop
-                        controls
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-[11px] text-slate-400 font-medium">ili</span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <Link2 className="w-4 h-4 text-slate-500" />
-                  </div>
-                  YouTube link
-                </div>
-                <input
-                  type="url"
-                  value={videoLink}
-                  onChange={(e) => {
-                    setVideoLink(e.target.value);
-                    if (uploadedVideo || queuedVideos.length > 0) {
-                      setUploadedVideo(null);
-                      setQueuedVideos([]);
-                      setVideoPreviewUrl(null);
-                    }
-                  }}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className={cn(
-                    "w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition",
-                    isUsingLink
-                      ? isLinkValid
-                        ? "border-emerald-300 focus:border-emerald-500"
-                        : "border-amber-300 focus:border-amber-400"
-                      : "border-slate-200 focus:border-slate-400"
-                  )}
-                />
-                {isUsingLink && (
-                  <p className={cn("text-xs", isLinkValid ? "text-emerald-600" : "text-amber-600")}>
-                    {isLinkValid ? "YouTube link je spreman za objavu." : "Link mora biti YouTube video."}
-                  </p>
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Odaberite oglase za seriju</p>
+              <div className="max-h-52 overflow-y-auto space-y-2 pr-1">
+                {isLoadingItems && <p className="text-sm text-slate-500 dark:text-slate-400">Učitavam oglase...</p>}
+                {!isLoadingItems && items.length === 0 && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Nemate aktivnih oglasa.</p>
                 )}
-                {linkPreview && (
-                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                    <img src={linkPreview} alt="YouTube preview" className="w-full h-44 object-cover" />
-                  </div>
-                )}
+                {items.map((item) => {
+                  const id = String(item?.id);
+                  const checked = selectedItemIds.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => toggleItem(id)}
+                      className={cn(
+                        "w-full flex items-center justify-between rounded-xl border px-3 py-2 text-left transition",
+                        checked
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      <span className="text-sm font-medium truncate">{item?.name || `Oglas #${id}`}</span>
+                      {checked && <CheckCircle2 className="w-4 h-4" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                {isUsingLink
-                  ? "YouTube link će se prikazivati kao priča."
-                  : queuedVideos.length > 0
-                    ? `Spremno još ${queuedVideos.length} videa.`
-                    : "Reel se prikazuje nakon što oglas ostane aktivan."}
+            <label className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900 p-5 flex flex-col items-center text-center gap-3 cursor-pointer hover:border-primary/70 transition">
+              <input type="file" accept="video/*" multiple className="hidden" onChange={(e) => handleVideoUpload(e.target.files)} />
+              {isUploading ? <Loader2 className="w-7 h-7 animate-spin text-primary" /> : <UploadCloud className="w-7 h-7 text-primary" />}
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Dodajte više videa odjednom</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">MP4/MOV/WEBM do {MAX_VIDEO_MB}MB po videu</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleSubmit({ keepOpen: true })}
-                  disabled={
-                    isSubmitting ||
-                    isSubmittingMore
-                  }
-                  className="border-slate-200 text-slate-700 hover:bg-slate-50"
-                >
-                  {isSubmittingMore ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Spremam...
-                    </>
-                  ) : (
-                    "Objavi i dodaj još"
-                  )}
-                </Button>
-                <Button
-                  onClick={() => handleSubmit({ keepOpen: false })}
-                  disabled={
-                    isSubmitting ||
-                    isSubmittingMore
-                  }
-                  className="min-w-[160px] bg-slate-900 hover:bg-slate-800 text-white"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Spremam...
-                    </>
-                  ) : (
-                    "Objavi reel"
-                  )}
-                </Button>
-              </div>
+              {isUploading && <p className="text-xs text-slate-500 dark:text-slate-400">Upload: {uploadProgress}%</p>}
+            </label>
+
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100"><Link2 className="w-4 h-4" /> YouTube alternativa</div>
+              <input
+                value={videoLink}
+                onChange={(e) => {
+                  setVideoLink(e.target.value);
+                  if (uploadedVideos.length > 0) setUploadedVideos([]);
+                }}
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
+              />
+              {videoLink.trim() && (
+                <p className={cn("text-xs", isLinkValid ? "text-emerald-600" : "text-amber-600")}>
+                  {isLinkValid ? "Link je spreman za objavu." : "Unesite validan YouTube link."}
+                </p>
+              )}
+              {linkPreview && <img src={linkPreview} alt="YouTube preview" className="rounded-xl border border-slate-200 dark:border-slate-700 w-full h-40 object-cover" />}
+            </div>
+
+            <div className="flex flex-wrap gap-2 items-center text-xs">
+              <button type="button" onClick={() => setExistingAction("replace")} className={cn("px-3 py-1.5 rounded-full", existingAction === "replace" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300")}>Zamijeni postojeće</button>
+              <button type="button" onClick={() => setExistingAction("delete")} className={cn("px-3 py-1.5 rounded-full", existingAction === "delete" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300")}>Prvo obriši pa objavi</button>
+              <label className="ml-auto flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                <input type="checkbox" checked={reuseLastVideo} onChange={(e) => setReuseLastVideo(e.target.checked)} />
+                Ponavljaj zadnji video
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => handleSubmit({ keepOpen: true })} disabled={isSubmitting}>
+                {isSubmitting ? "Spremam..." : "Objavi i ostani"}
+              </Button>
+              <Button onClick={() => handleSubmit({ keepOpen: false })} disabled={isSubmitting} className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
+                {isSubmitting ? "Spremam..." : "Objavi seriju"}
+              </Button>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-slate-900">
-                Spremni reelovi
-              </h4>
-              <span className="text-xs text-slate-400">
-                {allUploads.length} video(a)
-              </span>
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3">Red objave</p>
+              {uploadedVideos.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">Niste dodali video zapise.</p>
+              ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {uploadedVideos.map((video, idx) => (
+                    <div key={`${video?.id}-${idx}`} className="flex items-center gap-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5">
+                      <div className="w-10 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><Video className="w-4 h-4 text-slate-500" /></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">Video #{idx + 1}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">ID: {video?.id}</p>
+                      </div>
+                      <button type="button" onClick={() => removeQueuedVideo(idx)} className="p-1.5 rounded-full hover:bg-rose-50 text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {allUploads.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 text-center text-sm text-slate-400">
-                Dodajte video kako biste ga vidjeli ovdje.
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                {allUploads.map((vid, index) => {
-                  const isLinkItem = vid?.type === "youtube";
-                  return (
-                  <motion.button
-                    key={vid?.id || index}
-                    type="button"
-                    whileHover={{ scale: 1.01 }}
-                    onClick={() => handleSelectUpload(index, isLinkItem)}
-                    className={cn(
-                      "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
-                      index === 0
-                        ? "border-primary bg-primary/5"
-                        : "border-slate-200 bg-slate-50/50 hover:bg-slate-50"
-                    )}
-                  >
-                    <div className="w-12 h-16 rounded-lg bg-slate-100 flex items-center justify-center">
-                      {isLinkItem ? <Link2 className="w-4 h-4 text-slate-400" /> : <Play className="w-4 h-4 text-slate-400" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {isLinkItem ? "YouTube reel" : `Reel #${index + 1}`}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {index === 0 ? "Spreman za objavu" : "Na čekanju"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveVideo(index, isLinkItem);
-                      }}
-                      className="p-2 rounded-full hover:bg-red-50 text-red-500"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </motion.button>
-                );
-                })}
-              </div>
-            )}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900">
+              <p className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Pametni savjet</p>
+              <p>Najbolje radi kada za svaki odabrani oglas imate poseban video. Tako seller dobija "story" niz bez ponavljanja.</p>
+            </div>
           </div>
         </div>
       </DialogContent>

@@ -517,6 +517,18 @@ const ReelViewerModal = ({
               ))}
             </div>
 
+            {/* ── story dots ── */}
+            {nItems > 1 && (
+              <div className="absolute top-[calc(env(safe-area-inset-top,8px)+24px)] left-0 right-0 z-30 flex items-center justify-center gap-1.5 pointer-events-none">
+                {items.map((_, idx) => (
+                  <span
+                    key={`story-dot-${idx}`}
+                    className={`h-1.5 rounded-full transition-all ${idx === iIdx ? "w-4 bg-white" : "w-1.5 bg-white/45"}`}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* ── top bar ── */}
             <div className="absolute top-[calc(env(safe-area-inset-top,8px)+10px)] left-0 right-0 z-30 px-3 flex items-center justify-between">
               {/* seller info */}
