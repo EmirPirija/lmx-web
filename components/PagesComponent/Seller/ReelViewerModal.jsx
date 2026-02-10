@@ -451,7 +451,7 @@ const ReelViewerModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
+          className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-[2px] flex items-center justify-center"
         >
           {/* ── story container ── */}
           <motion.div
@@ -516,6 +516,18 @@ const ReelViewerModal = ({
                 </div>
               ))}
             </div>
+
+            {/* ── story dots ── */}
+            {nItems > 1 && (
+              <div className="absolute top-[calc(env(safe-area-inset-top,8px)+24px)] left-0 right-0 z-30 flex items-center justify-center gap-1.5 pointer-events-none">
+                {items.map((_, idx) => (
+                  <span
+                    key={`story-dot-${idx}`}
+                    className={`h-1.5 rounded-full transition-all ${idx === iIdx ? "w-4 bg-white" : "w-1.5 bg-white/45"}`}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* ── top bar ── */}
             <div className="absolute top-[calc(env(safe-area-inset-top,8px)+10px)] left-0 right-0 z-30 px-3 flex items-center justify-between">
@@ -587,7 +599,7 @@ const ReelViewerModal = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-[35]"
+                    className="absolute inset-0 z-[120]"
                     onClick={(e) => { e.stopPropagation(); setMoreMenu(false); }}
                   />
                   <motion.div
@@ -595,7 +607,7 @@ const ReelViewerModal = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-[calc(env(safe-area-inset-top,8px)+50px)] right-3 z-40 bg-white backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden min-w-[210px] border border-slate-200"
+                    className="absolute top-[calc(env(safe-area-inset-top,8px)+50px)] right-3 z-[130] bg-white dark:bg-slate-900 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden min-w-[210px] border border-slate-200 dark:border-slate-700"
                   >
                     {[
                       { icon: MdOpenInNew, label: "Pogledaj oglas", fn: goToDetails },

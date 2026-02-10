@@ -17,6 +17,7 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 import { getYouTubeVideoId } from "@/utils";
+import { cn } from "@/lib/utils";
 
 import {
   MdFavorite,
@@ -663,6 +664,18 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
     return group?.items?.length || 1;
   }, [seller?.id, sellerGroups]);
 
+  const sellerStoryIndex = useMemo(() => {
+    const sid = seller?.id;
+    if (!sid) return 0;
+    const group = sellerGroups?.find((g) => {
+      const gid = g.seller?.id || g.seller?.user_id;
+      return String(gid) === String(sid);
+    });
+    if (!group?.items?.length) return 0;
+    const idx = group.items.findIndex((gItem) => String(gItem?.id) === String(item?.id));
+    return idx >= 0 ? idx : 0;
+  }, [seller?.id, sellerGroups, item?.id]);
+
   /* autoplay via intersection observer */
   useEffect(() => {
     if (!videoUrl || !autoPlay || isYouTube) return;
@@ -861,6 +874,20 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/20 z-10">
         <motion.div className="h-full bg-white" style={{ width: `${progress}%` }} transition={{ duration: 0.1 }} />
       </div>
+
+      {sellerStoryCount > 1 && (
+        <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-center gap-1.5">
+          {Array.from({ length: sellerStoryCount }).map((_, idx) => (
+            <span
+              key={`dot-${idx}`}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                idx === sellerStoryIndex ? "w-4 bg-white" : "w-1.5 bg-white/50"
+              )}
+            />
+          ))}
+        </div>
+      )}
 
       {/* gradients */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
