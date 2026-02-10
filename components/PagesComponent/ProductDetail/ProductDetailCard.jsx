@@ -207,7 +207,8 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
 
   return (
     <>
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-fuchsia-500 to-sky-500" />
         <div className="p-6">
           
           {/* BADGES ROW */}
@@ -240,8 +241,19 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
     {productName}
   </h1>
 
+  <div className="flex flex-wrap items-center gap-2">
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+      ID oglasa: #{productDetails?.id}
+    </span>
+    {productDetails?.translated_city && (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+        {productDetails.translated_city}
+      </span>
+    )}
+  </div>
+
   {/* PRICE SECTION */}
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-br from-slate-50/50 dark:from-slate-900/50 to-white dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-br from-slate-50/80 via-white to-blue-50/70 dark:from-slate-900/70 dark:via-slate-900 dark:to-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
     <div>
       {isOnSale && oldPrice && Number(oldPrice) > Number(currentPrice) ? (
         <div className="flex flex-col">

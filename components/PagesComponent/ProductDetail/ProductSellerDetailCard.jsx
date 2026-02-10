@@ -53,7 +53,7 @@ const reelRingCss = `
 }
 @keyframes reel-glow {
   0%, 100% { opacity: 0.35; transform: scale(0.98); }
-  50% { opacity: 0.65; transform: scale(1.03); }
+  50% { opacity: 0.52; transform: scale(1.01); }
 }
 .reel-ring {
   position: relative;
@@ -67,7 +67,7 @@ const reelRingCss = `
   inset: -1px;
   border-radius: inherit;
   background: conic-gradient(from 120deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
-  animation: reel-rotate 6s linear infinite;
+  animation: none;
   filter: saturate(1.1);
   z-index: 0;
 }
@@ -78,7 +78,8 @@ const reelRingCss = `
   border-radius: inherit;
   background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 55%),
     radial-gradient(circle at 70% 70%, rgba(225,48,108,0.35), transparent 60%);
-  animation: reel-glow 2.8s ease-in-out infinite;
+  animation: none;
+  opacity: 0.35;
   z-index: 0;
 }
 .reel-ring-inner {
@@ -673,12 +674,21 @@ const ProductSellerDetailCard = ({
       // || hasVerifiedBadge(seller)
     }, [seller, settings]);
 
-  const showReelRing = Boolean(
+  const [hasReel, setHasReel] = useState(Boolean(
     productDetails?.video ||
       productDetails?.video_link ||
       seller?.has_reel ||
       seller?.reel_video
-  );
+  ));
+
+  useEffect(() => {
+    setHasReel(Boolean(
+      productDetails?.video ||
+      productDetails?.video_link ||
+      seller?.has_reel ||
+      seller?.reel_video
+    ));
+  }, [productDetails?.video, productDetails?.video_link, seller?.has_reel, seller?.reel_video]);
   const ringMotion = undefined;
   const ringTransition = undefined;
     
@@ -800,6 +810,7 @@ const ProductSellerDetailCard = ({
       <ReelUploadModal
         open={isReelModalOpen}
         onOpenChange={setIsReelModalOpen}
+        onUploaded={(payload) => setHasReel(Boolean(payload?.hasAnyVideo))}
       />
 
       <ReelViewerModal
@@ -825,7 +836,7 @@ const ProductSellerDetailCard = ({
                   <motion.div
                     className={cn(
                       "rounded-[14px] p-[2px]",
-                      showReelRing ? "reel-ring" : "bg-transparent"
+                      hasReel ? "reel-ring" : "bg-transparent"
                     )}
                     animate={ringMotion}
                     transition={ringTransition}
@@ -833,7 +844,7 @@ const ProductSellerDetailCard = ({
                     <div
                       className={cn(
                         "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
-                        showReelRing
+                        hasReel
                           ? "border border-white/70"
                           : "border border-slate-200/60 group-hover:border-slate-300 transition-colors"
                       )}
@@ -847,7 +858,7 @@ const ProductSellerDetailCard = ({
                       />
                     </div>
                   </motion.div>
-                  {showReelRing && (
+                  {hasReel && (
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
                       <Play className="w-3 h-3 text-[#1e3a8a]" />
                     </div>
@@ -877,7 +888,7 @@ const ProductSellerDetailCard = ({
                 <motion.div
                   className={cn(
                     "rounded-[14px] p-[2px]",
-                    showReelRing ? "reel-ring" : "bg-transparent"
+                    hasReel ? "reel-ring" : "bg-transparent"
                   )}
                   animate={ringMotion}
                   transition={ringTransition}
@@ -885,7 +896,7 @@ const ProductSellerDetailCard = ({
                   <div
                     className={cn(
                       "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
-                      showReelRing
+                      hasReel
                         ? "border border-white/70"
                         : "border border-slate-200/60"
                     )}
@@ -899,7 +910,7 @@ const ProductSellerDetailCard = ({
                     />
                   </div>
                 </motion.div>
-                {showReelRing && (
+                {hasReel && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
                     <Play className="w-3 h-3 text-[#1e3a8a]" />
                   </div>
@@ -919,13 +930,25 @@ const ProductSellerDetailCard = ({
                 {sellerId ? (
                   <CustomLink 
                     href={`/seller/${sellerId}`}
-                    className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors cursor-pointer"
+                    className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    {seller?.name}
+                    <span className="truncate">{seller?.name}</span>
+                    {isShop && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Shop</span>
+                    )}
+                    {!isShop && isPro && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pro</span>
+                    )}
                   </CustomLink>
                 ) : (
-                  <span className="text-sm font-semibold text-slate-900 truncate">
-                    {seller?.name}
+                  <span className="text-sm font-semibold text-slate-900 truncate flex items-center gap-1.5">
+                    <span className="truncate">{seller?.name}</span>
+                    {isShop && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Shop</span>
+                    )}
+                    {!isShop && isPro && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pro</span>
+                    )}
                   </span>
                 )}
                 
