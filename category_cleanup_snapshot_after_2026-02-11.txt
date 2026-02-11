@@ -1,0 +1,50 @@
+After cleanup snapshot: 2026-02-11T11:38:59.707Z
+
+Tehnika > Bluetooth i bežični zvučnici (id=43) - aktivno: 5
+- 2298 | Bluetooth zvučnici | bluetooth-zvucnici-prenosni
+- 2296 | Party zvučnici | party-zvucnici
+- 2295 | Pametni zvučnici sa glasovnim asistentom | pametni-zvucnici-sa-glasovnim-asistentom
+- 2301 | Soundbar zvučnici | soundbar-zvucnici-bluetooth
+- 2294 | Oprema za bluetooth zvučnike | oprema-za-bluetooth-zvucnike
+
+Tehnika > Kućna kina i sound sistemi (id=46) - aktivno: 7
+- 2243 | Kompletni sistemi kućnog kina | kompletni-sistemi-kucnog-kina
+- 2248 | Soundbar sistemi | soundbar-sistemi-kucno-kino
+- 2247 | Sistemi 2.1/5.1/7.1 | zvucnicki-sistemi-21-51-71
+- 2250 | Subwooferi | subwooferi-kucno-kino
+- 2235 | AV receiveri i procesori | av-receiveri-i-procesori
+- 2239 | Dolby Atmos i Surround zvučnici | dolby-atmos-i-surround-zvucnici
+- 2242 | Oprema i kablovi za kućna kina | oprema-i-kablovi-za-kucna-kina
+
+Muzika i audio oprema > Hi-Fi > Zvučnici i soundbarovi (id=535) - aktivno: 2
+- 573 | Hi-Fi zvučnici | hi-fi-zvucnici-main
+- 575 | Hi-Fi soundbar sistemi | hi-fi-soundbar-sistemi
+
+Mobiteli > Bluetooth uređaji i dodaci (id=80) - aktivno: 10
+- 1727 | Bluetooth adapteri i predajnici | bluetooth-adapteri-i-predajnici
+- 1728 | Bluetooth audio prijemnici | bluetooth-audio-prijemnici
+- 1729 | Bluetooth slušalice (Bubice) | bluetooth-slusalice-bubice
+- 1730 | Bluetooth slušalice (Naglavne) | bluetooth-slusalice-naglavne
+- 1731 | Bluetooth tastature i miševi | bluetooth-tastature-i-misevi
+- 1733 | Handsfree uređaji za automobile | handsfree-uredaji-za-automobile
+- 1734 | Ostali bluetooth dodaci | ostali-bluetooth-dodaci
+- 1735 | Pametni privjesci za praćenje | pametni-privjesci-za-pracenje
+- 1736 | Pametni satovi i narukvice | pametni-satovi-i-narukvice
+- 1737 | Sportske bluetooth slušalice | sportske-bluetooth-slusalice
+
+Mobiteli > Ostalo (id=84) - aktivno: 15
+- 3195 | Alati za popravku mobitela | alati-za-popravku-mobitela
+- 3196 | Baterije za mobitele | baterije-za-mobitele
+- 3197 | Bluetooth adapteri i transmiteri | bluetooth-adapteri-i-transmiteri
+- 3198 | Čitači memorijskih kartica | citaci-memorijskih-kartica
+- 3199 | Držači i stalci za mobitele | drzaci-i-stalci-za-mobitele
+- 3200 | Gimbali i stabilizatori za snimanje | gimbali-i-stabilizatori-za-snimanje
+- 3201 | Memorijske kartice (MicroSD) | memorijske-kartice-microsd
+- 3202 | Olovke za ekrane (Stylus pen) | olovke-za-ekrane-stylus-pen
+- 3203 | Ostali nepomenuti dodaci | ostali-nepomenuti-dodaci
+- 3204 | Polovni i oštećeni mobiteli za dijelove | polovni-i-osteceni-mobiteli-za-dijelove
+- 3205 | Pomoćni objektivi za kamere mobitela | pomocni-objektivi-za-kamere-mobitela
+- 3206 | Rezervni dijelovi (Ekrani, flet kablovi, kućišta) | rezervni-dijelovi-ekrani-flet-kablovi-kucista
+- 3207 | SIM kartice i dopune (Top-up) | sim-kartice-i-dopune-top-up
+- 3208 | Sredstva za čišćenje ekrana | sredstva-za-ciscenje-ekrana-1
+- 3209 | VR naočale za mobitele | vr-naocale-za-mobitele

@@ -1,0 +1,281 @@
+{
+  "generated_at": "2026-02-11T13:26:16.979Z",
+  "icons": {
+    "AcornIcon": {
+      "file": "acorn.svg"
+    },
+    "AirplaneIcon": {
+      "file": "airplane.svg"
+    },
+    "BankIcon": {
+      "file": "bank.svg"
+    },
+    "BarbellIcon": {
+      "file": "barbell.svg"
+    },
+    "BathtubIcon": {
+      "file": "bathtub.svg"
+    },
+    "BedIcon": {
+      "file": "bed.svg"
+    },
+    "BellIcon": {
+      "file": "bell.svg"
+    },
+    "BicycleIcon": {
+      "file": "bicycle.svg"
+    },
+    "BirdIcon": {
+      "file": "bird.svg"
+    },
+    "BoatIcon": {
+      "file": "boat.svg"
+    },
+    "BooksIcon": {
+      "file": "books.svg"
+    },
+    "BriefcaseIcon": {
+      "file": "briefcase.svg"
+    },
+    "BuildingApartmentIcon": {
+      "file": "buildingapartment.svg"
+    },
+    "BusIcon": {
+      "file": "bus.svg"
+    },
+    "CameraIcon": {
+      "file": "camera.svg"
+    },
+    "CarProfileIcon": {
+      "file": "carprofile.svg"
+    },
+    "CatIcon": {
+      "file": "cat.svg"
+    },
+    "ChairIcon": {
+      "file": "chair.svg"
+    },
+    "ChartLineIcon": {
+      "file": "chartline.svg"
+    },
+    "ChatCircleIcon": {
+      "file": "chatcircle.svg"
+    },
+    "ChefHatIcon": {
+      "file": "chefhat.svg"
+    },
+    "CoinsIcon": {
+      "file": "coins.svg"
+    },
+    "CompassIcon": {
+      "file": "compass.svg"
+    },
+    "CookingPotIcon": {
+      "file": "cookingpot.svg"
+    },
+    "CouchIcon": {
+      "file": "couch.svg"
+    },
+    "CpuIcon": {
+      "file": "cpu.svg"
+    },
+    "CreditCardIcon": {
+      "file": "creditcard.svg"
+    },
+    "DesktopTowerIcon": {
+      "file": "desktoptower.svg"
+    },
+    "DeviceMobileIcon": {
+      "file": "devicemobile.svg"
+    },
+    "DogIcon": {
+      "file": "dog.svg"
+    },
+    "DressIcon": {
+      "file": "dress.svg"
+    },
+    "DresserIcon": {
+      "file": "dresser.svg"
+    },
+    "DroneIcon": {
+      "file": "drone.svg"
+    },
+    "EnvelopeSimpleIcon": {
+      "file": "envelopesimple.svg"
+    },
+    "FactoryIcon": {
+      "file": "factory.svg"
+    },
+    "FanIcon": {
+      "file": "fan.svg"
+    },
+    "FarmIcon": {
+      "file": "farm.svg"
+    },
+    "FilmSlateIcon": {
+      "file": "filmslate.svg"
+    },
+    "FirstAidKitIcon": {
+      "file": "firstaidkit.svg"
+    },
+    "FishIcon": {
+      "file": "fish.svg"
+    },
+    "ForkKnifeIcon": {
+      "file": "forkknife.svg"
+    },
+    "GameControllerIcon": {
+      "file": "gamecontroller.svg"
+    },
+    "GiftIcon": {
+      "file": "gift.svg"
+    },
+    "GlobeIcon": {
+      "file": "globe.svg"
+    },
+    "GraduationCapIcon": {
+      "file": "graduationcap.svg"
+    },
+    "HandbagIcon": {
+      "file": "handbag.svg"
+    },
+    "HardDriveIcon": {
+      "file": "harddrive.svg"
+    },
+    "HeadphonesIcon": {
+      "file": "headphones.svg"
+    },
+    "HorseIcon": {
+      "file": "horse.svg"
+    },
+    "HospitalIcon": {
+      "file": "hospital.svg"
+    },
+    "HouseSimpleIcon": {
+      "file": "housesimple.svg"
+    },
+    "JoystickIcon": {
+      "file": "joystick.svg"
+    },
+    "KeyboardIcon": {
+      "file": "keyboard.svg"
+    },
+    "LampIcon": {
+      "file": "lamp.svg"
+    },
+    "LaptopIcon": {
+      "file": "laptop.svg"
+    },
+    "LeafIcon": {
+      "file": "leaf.svg"
+    },
+    "LightningIcon": {
+      "file": "lightning.svg"
+    },
+    "MapPinIcon": {
+      "file": "mappin.svg"
+    },
+    "MegaphoneIcon": {
+      "file": "megaphone.svg"
+    },
+    "MemoryIcon": {
+      "file": "memory.svg"
+    },
+    "MicrophoneStageIcon": {
+      "file": "microphonestage.svg"
+    },
+    "MoneyIcon": {
+      "file": "money.svg"
+    },
+    "MotorcycleIcon": {
+      "file": "motorcycle.svg"
+    },
+    "NeedleIcon": {
+      "file": "needle.svg"
+    },
+    "PackageIcon": {
+      "file": "package.svg"
+    },
+    "PaintRollerIcon": {
+      "file": "paintroller.svg"
+    },
+    "PantsIcon": {
+      "file": "pants.svg"
+    },
+    "PawPrintIcon": {
+      "file": "pawprint.svg"
+    },
+    "PhoneCallIcon": {
+      "file": "phonecall.svg"
+    },
+    "PillIcon": {
+      "file": "pill.svg"
+    },
+    "PlugsConnectedIcon": {
+      "file": "plugsconnected.svg"
+    },
+    "PottedPlantIcon": {
+      "file": "pottedplant.svg"
+    },
+    "PrinterIcon": {
+      "file": "printer.svg"
+    },
+    "PuzzlePieceIcon": {
+      "file": "puzzlepiece.svg"
+    },
+    "RobotIcon": {
+      "file": "robot.svg"
+    },
+    "ScissorsIcon": {
+      "file": "scissors.svg"
+    },
+    "ShirtFoldedIcon": {
+      "file": "shirtfolded.svg"
+    },
+    "SneakerIcon": {
+      "file": "sneaker.svg"
+    },
+    "SnowflakeIcon": {
+      "file": "snowflake.svg"
+    },
+    "SpeakerHighIcon": {
+      "file": "speakerhigh.svg"
+    },
+    "StethoscopeIcon": {
+      "file": "stethoscope.svg"
+    },
+    "StorefrontIcon": {
+      "file": "storefront.svg"
+    },
+    "TelevisionSimpleIcon": {
+      "file": "televisionsimple.svg"
+    },
+    "TicketIcon": {
+      "file": "ticket.svg"
+    },
+    "ToiletIcon": {
+      "file": "toilet.svg"
+    },
+    "ToolboxIcon": {
+      "file": "toolbox.svg"
+    },
+    "TractorIcon": {
+      "file": "tractor.svg"
+    },
+    "TruckIcon": {
+      "file": "truck.svg"
+    },
+    "WatchIcon": {
+      "file": "watch.svg"
+    },
+    "WrenchIcon": {
+      "file": "wrench.svg"
+    },
+    "DiamondIcon": {
+      "file": "diamond.svg"
+    },
+    "EyeglassesIcon": {
+      "file": "eyeglasses.svg"
+    }
+  }
+}

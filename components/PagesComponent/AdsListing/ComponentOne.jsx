@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Star,
   User,
-  Clock,
   Layers,
   ArrowRight,
   Loader2,
@@ -19,6 +18,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import CustomImage from "@/components/Common/CustomImage";
+import CategorySemanticIcon from "@/components/Common/CategorySemanticIcon";
 
 // ═══════════════════════════════════════════════════════════════════
 // ANIMATION VARIANTS
@@ -80,7 +80,7 @@ const RecentPill = memo(({ category, onClick, index }) => (
       flex items-center justify-center overflow-hidden shrink-0
       group-hover:scale-110 transition-transform duration-300
     ">
-      {category?.image ? (
+      {isRootCategory(category) && category?.image ? (
         <CustomImage
           src={category.image}
           alt=""
@@ -89,7 +89,7 @@ const RecentPill = memo(({ category, onClick, index }) => (
           className="w-full h-full object-cover"
         />
       ) : (
-        <Clock size={14} className="text-gray-400" />
+        <CategorySemanticIcon category={category} className="w-4 h-4" />
       )}
     </div>
     <span className="text-xs font-semibold text-gray-700 group-hover:text-blue-700 whitespace-nowrap max-w-[120px] truncate">
@@ -127,13 +127,20 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
         flex items-center justify-center 
         group-hover:bg-white group-hover:border-blue-100 transition-colors
       ">
-        <CustomImage
-          src={category?.image}
-          alt={category?.search_name || category?.name}
-          height={32}
-          width={32}
-          className="w-6 h-6 md:w-7 md:h-7 object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-transform"
-        />
+        {isRootCategory(category) && category?.image ? (
+          <CustomImage
+            src={category?.image}
+            alt={category?.search_name || category?.name}
+            height={32}
+            width={32}
+            className="w-6 h-6 md:w-7 md:h-7 object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-transform"
+          />
+        ) : (
+          <CategorySemanticIcon
+            category={category}
+            className="w-6 h-6 md:w-7 md:h-7 opacity-90 group-hover:scale-110 transition-transform"
+          />
+        )}
       </div>
 
       {/* Content */}
@@ -293,6 +300,14 @@ const flattenCategories = (categories = [], parentPath = [], parentId = null) =>
     }
   });
   return result;
+};
+
+const isRootCategory = (category) => {
+  const parentId = category?.parent_id;
+  const hasParentId = parentId !== null && parentId !== undefined && Number(parentId) !== 0;
+  const fullPath = String(category?.full_path || "");
+  const hasNestedPath = fullPath.includes(" > ");
+  return !hasParentId && !hasNestedPath;
 };
 
 const extractAds = (resultJson) => {

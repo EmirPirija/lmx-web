@@ -1,0 +1,839 @@
+
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="https://admin.lmx.ba/storage/settings/694fc6651ec6e5.638769251766835813.png" type="image/x-icon">
+    <title>    Categories
+ || Local Market Exchange</title>
+    <meta name="csrf-token" content="4BhG7MJqPTvvim3SQHrqfh8ypgOkJmh4WHUMu660"/>
+    <link rel="stylesheet" href="https://admin.lmx.ba/assets/css/main/app.css">
+    <link rel="stylesheet" href="https://admin.lmx.ba/assets/css/pages/otherpages.css"/>
+    <link rel="stylesheet" href="https://admin.lmx.ba/assets/css/custom.css"/>
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/css/bootstrap-switch-button.min.css">
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/toastify-js/toastify.css">
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/bootstrap-table/bootstrap-table.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/bootstrap-table/fixed-columns/bootstrap-table-fixed-columns.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/bootstrap-table/bootstrap-table-reorder-rows.css">
+
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/@fortawesome/fontawesome-free/css/all.min.css" type="text/css"/>
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/magnific-popup/magnific-popup.css">
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/select2/select2.min.css"/>
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/select2/select2-bootstrap-5-theme.min.css"/>
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/sweetalert2/sweetalert2.min.css"/>
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/filepond/filepond.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/filepond/filepond-plugin-image-preview.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/filepond/filepond-plugin-pdf-preview.min.css" type="text/css"/>
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/css/pages/jquery-jvectormap-2.0.5.css" type="text/css"/>
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/extensions/jstree/jstree.min.css"/>
+
+
+
+
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/css/leaflet.css">
+<link rel="stylesheet" href="https://admin.lmx.ba/assets/css/map.css">
+
+<script>
+    // Function to handle image errors
+    function handleImageError(image) {
+        image.classList.contains('custom-default-image')
+        if (image.getAttribute('data-custom-image') != null) {
+            image.src = image.getAttribute('data-custom-image');
+        } else {
+            image.src = "https://admin.lmx.ba/assets/images/no_image_available.png";
+        }
+        // console.log('Image failed to load: ' + image.src);
+    }
+
+    // Create a MutationObserver to watch for DOM changes
+    const observer = new MutationObserver((mutationsList) => {
+        mutationsList.forEach((mutation) => {
+            if (mutation.addedNodes) {
+                mutation.addedNodes.forEach((node) => {
+                    // Check if the added node is an image element
+                    if (node instanceof HTMLImageElement) {
+                        node.addEventListener('error', () => {
+                            handleImageError(node);
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Start observing changes in the DOM
+    observer.observe(document, {childList: true, subtree: true});
+
+    const onErrorImage = (e) => {
+        if (!e.target.src.includes('no_image_available.png')) {
+            e.target.src = "https://admin.lmx.ba/assets/images/no_image_available.png";
+        }
+    };
+
+    
+    
+    
+    
+    
+</script>
+    </head>
+<body>
+<div id="app">
+    <div id="sidebar" class="active">
+    <div class="sidebar-wrapper active">
+        <div class="sidebar-header position-relative">
+            <div class="d-block">
+                <div class="logo text-center">
+                    <a href="https://admin.lmx.ba/home">
+                        <img src="https://admin.lmx.ba/storage/settings/694fc66526d7b0.540760261766835813.png" data-custom-image="https://admin.lmx.ba/assets/images/logo/sidebar_logo.png" alt="Logo" srcset="">
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-menu">
+            <ul class="menu">
+                <li class="sidebar-item">
+                    <a href="https://admin.lmx.ba/home" class='sidebar-link'>
+                        <i class="bi  bi-house"></i>
+                        <span class="menu-item">Dashboard</span>
+                    </a>
+                </li>
+                                    <div class="sidebar-new-title">Ads Listing</div>
+                                            <li class="sidebar-item sidebar-submenus">
+                            <a href="https://admin.lmx.ba/category" class='sidebar-link'>
+                                <i class="bi bi-list-task"></i>
+                                <span class="menu-item">Categories</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item sidebar-submenus">
+                            <a href="https://admin.lmx.ba/custom-fields " class='sidebar-link'>
+                                <i class="bi bi-columns-gap"></i>
+                                <span class="menu-item">Custom Fields</span>
+                            </a>
+                        </li>
+                                    
+                
+                    <div class="sidebar-new-title">Advertisement Management</div>
+                                        <li class="sidebar-item">
+                        <a href="https://admin.lmx.ba/advertisement" class='sidebar-link'>
+                            <i class="bi bi-ui-radios-grid"></i>
+                            <span class="menu-item">Advertisement</span>
+                        </a>
+                    </li>
+                    
+                                            <li class="sidebar-item sidebar-submenus">
+                            <a href="https://admin.lmx.ba/tips" class='sidebar-link'>
+                                <i class="bi bi-info-circle"></i>
+                                <span class="menu-item">Tips</span>
+                            </a>
+                        </li>
+                                    
+                
+                <div class="sidebar-new-title">Package Management</div>
+                                            <li class="sidebar-item sidebar-submenus">
+                            <a href="https://admin.lmx.ba/package" class='sidebar-link'>
+                                <i class="bi bi-list"></i>
+                                <span class="menu-item">Advertisement Listing Package</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item sidebar-submenus">
+                            <a href="https://admin.lmx.ba/package/advertisement" class='sidebar-link'>
+                                <i class="bi bi-badge-ad"></i>
+                                <span class="menu-item">Feature Advertisement Package</span>
+                            </a>
+                        </li>
+
+                                                                <li class="sidebar-item sidebar-submenus">
+                            <a href="https://admin.lmx.ba/package/users" class='sidebar-link'>
+                                <i class="bi bi-person-badge-fill"></i>
+                                <span class="menu-item">User Packages</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item sidebar-submenus">
+                            <a href="https://admin.lmx.ba/package/payment-transactions" class='sidebar-link'>
+                                <i class="bi bi-cash-coin"></i>
+                                <span class="menu-item">Payment Transactions</span>
+                            </a>
+                        </li>
+                                                            <li class="sidebar-item sidebar-submenus">
+                        <a href="https://admin.lmx.ba/package/bank-transfer" class='sidebar-link'>
+                            <i class="bi bi-bank"></i>
+                            <span class="menu-item">Bank Transfer</span>
+                        </a>
+                    </li>
+                                
+                                    <div class="sidebar-new-title">Seller Management</div>
+                                             <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/seller-verification/verification-field/index" class='sidebar-link'>
+                                <i class="bi bi-grid-1x2"></i>
+                                <span class="menu-item">Verification Fields</span>
+                            </a>
+                        </li>
+                                        
+                        <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/seller-verification" class='sidebar-link'>
+                                <i class="bi bi-person-check"></i>
+                                <span class="menu-item">Seller Verification</span>
+                            </a>
+                        </li>
+                                                                <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/seller-review" class='sidebar-link'>
+                                <i class="bi bi-star-half"></i>
+                                <span class="menu-item">Seller Review</span>
+                            </a>
+                        </li>
+                                                                <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/seller-review/create" class='sidebar-link'>
+                                <i class="bi bi-list-stars"></i>
+                                <span class="menu-item">Seller Review Report</span>
+                            </a>
+                        </li>
+                                                                        <div class="sidebar-new-title">Home Screen Management</div>
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/slider" class='sidebar-link'>
+                                <i class="bi bi-sliders2"></i>
+                                <span class="menu-item">Slider</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/feature-section" class='sidebar-link'>
+                                <i class="bi bi-grid-1x2"></i>
+                                <span class="menu-item">Feature Section</span>
+                            </a>
+                        </li>
+                                    
+                                    <div class="sidebar-new-title">Place/Location Management</div>
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/countries" class='sidebar-link'>
+                                <i class="bi bi-globe"></i>
+                                <span class="menu-item">Countries</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/states" class='sidebar-link'>
+                                <i class="fa fa-map-marked-alt"></i>
+                                <span class="menu-item">States</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/cities" class='sidebar-link'>
+                                <i class="fa fa-map-marker-alt"></i>
+                                <span class="menu-item">Cities</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/area" class='sidebar-link'>
+                                <i class="fa fa-map-marker"></i>
+                                <span class="menu-item">Areas</span>
+                            </a>
+                        </li>
+                                    
+                                    <div class="sidebar-new-title">Reports Management</div>
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/report-reasons" class='sidebar-link'>
+                                <i class="bi bi-flag"></i>
+                                <span class="menu-item">Report Reasons</span>
+                            </a>
+                        </li>
+                    
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/report-reasons/user-report" class='sidebar-link'>
+                                <i class="bi bi-person"></i>
+                                <span class="menu-item">User Reports</span>
+                            </a>
+                        </li>
+                                    
+
+                    <div class="sidebar-new-title">Promotional Management</div>
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/notification" class='sidebar-link'>
+                                <i class="bi bi-bell"></i>
+                                <span class="menu-item">Send Notification</span>
+                            </a>
+                        </li>
+                    
+                                            <div class="sidebar-new-title">Customers</div>
+                        <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/customer" class='sidebar-link'>
+                                <i class="bi bi-people"></i>
+                                <span class="menu-item">Customers</span>
+                            </a>
+                        </li>
+                    
+                                    <div class="sidebar-new-title">Staff Management</div>
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/roles" class='sidebar-link'>
+                                <i class="bi bi-person-bounding-box"></i>
+                                <span class="menu-item">Role</span>
+                            </a>
+                        </li>
+                                                                <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/staff" class='sidebar-link'>
+                                <i class="bi bi-person-badge"></i>
+                                <span class="menu-item">Staff Management</span>
+                            </a>
+                        </li>
+                                                                        <div class="sidebar-new-title">Blog Management</div>
+                    <li class="sidebar-item">
+                        <a href="https://admin.lmx.ba/blog" class='sidebar-link'>
+                            <i class="bi bi-pencil"></i>
+                            <span class="menu-item">Blogs</span>
+                        </a>
+                    </li>
+                
+                                    <div class="sidebar-new-title">FAQ</div>
+                    <li class="sidebar-item">
+                        <a href="https://admin.lmx.ba/faq" class='sidebar-link'>
+                            <i class="bi bi-question-square-fill"></i>
+                            <span class="menu-item">FAQs</span>
+                        </a>
+                    </li>
+
+                
+                                <div class="sidebar-new-title">Web</div>
+                <li class="sidebar-item">
+                    <a href="https://admin.lmx.ba/contact-us" class='sidebar-link'>
+                        <i class="bi bi-person-bounding-box"></i>
+                        <span class="menu-item">User Queries</span>
+                    </a>
+                </li>
+                                                    <div class="sidebar-new-title">System Settings</div>
+                                            <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/settings" class='sidebar-link'>
+                                <i class="bi bi-gear"></i>
+                                <span class="menu-item">Settings</span>
+                            </a>
+                        </li>
+                                                                <li class="sidebar-item">
+                            <a href="https://admin.lmx.ba/system-update" class='sidebar-link'>
+                                <i class="bi bi-laptop"></i>
+                                <span class="menu-item">System Update</span>
+                            </a>
+                        </li>
+                                                </ul>
+        </div>
+    </div>
+</div>
+    <div id="main" class='layout-navbar'>
+        <header>
+    <nav class="navbar navbar-expand navbar-light" style="background-color: white;">
+        <div class="container-fluid">
+
+            <div class="col-6 row d-flex align-items-center">
+                <div class="col-1 me-3 me-md-2">
+                    <a href="#" class="burger-btn d-block"><i class="bi bi-justify fs-3"></i></a>
+
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+
+                            </div>
+            <div class="col-6 justify-content-end d-flex">
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+                    <div class="dropdown">
+    <a href="#" id="topbarUserDropdown" class="user-dropdown d-flex align-items-center dropend dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <div class="avatar avatar-md2">
+            <button class="dropdown-btn">
+                                    <img src="https://admin.lmx.ba/assets/images/language/en.svg" alt="English" id="current-flag" class="flag">
+                    <span id="current-language">en</span>
+                                <span class="arrow">&#9662;</span>
+            </button>
+        </div>
+        <div class="text"></div>
+    </a>
+   <ul class="dropdown-menu dropdown-menu-end topbarUserDropdown" aria-labelledby="topbarUserDropdown">
+                <li class="d-flex justify-content-between align-items-center px-2 py-1">
+            <a class="dropdown-item d-flex align-items-center flex-grow-1" href="https://admin.lmx.ba/language/set-language/en">
+                <img src="https://admin.lmx.ba/assets/images/language/en.svg" alt="English" class="flag me-2">
+                English
+            </a>
+                <form action="https://admin.lmx.ba/language/set-default" method="POST" class="ms-2 m-0 p-0">
+                    <input type="hidden" name="_token" value="4BhG7MJqPTvvim3SQHrqfh8ypgOkJmh4WHUMu660" autocomplete="off">                    <input type="hidden" name="default_language" value="en">
+                    <button type="submit" class="btn btn-sm btn-primary py-0 px-2"
+                         disabled >
+                        Default
+                    </button>
+                </form>
+        </li>
+    </ul>
+
+</div>
+
+                    &nbsp;&nbsp;
+                    <div class="dropdown">
+                        <a href="#" id="topbarUserDropdown"
+                           class="user-dropdown d-flex align-items-center dropend dropdown-toggle"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar avatar-md2">
+                                <img src="https://admin.lmx.ba/storage/admin_profile/0BgDqFlFLnazEPMfehI1CqHT8f077xdCWh5be4H1.png " alt="">
+                            </div>
+                            <div class="text">
+                                <h6 class="user-dropdown-name">lmx</h6>
+                                <p class="user-dropdown-status text-sm text-muted"></p>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end topbarUserDropdown" aria-labelledby="topbarUserDropdown">
+                            <li><a class="dropdown-item" href="https://admin.lmx.ba/change-password"><i class="icon-mid bi bi-gear me-2"></i>Change Password</a></li>
+                            <li><a class="dropdown-item" href="https://admin.lmx.ba/change-profile"><i class="icon-mid bi bi-person me-2"></i>Change Profile</a></li>
+                            <li><a class="dropdown-item" href="https://admin.lmx.ba/logout " onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="icon-mid bi bi-box-arrow-left me-2"></i> Logout</a></li>
+                            <form id="logout-form" action="https://admin.lmx.ba/logout" method="POST" class="d-none">
+                                <input type="hidden" name="_token" value="4BhG7MJqPTvvim3SQHrqfh8ypgOkJmh4WHUMu660" autocomplete="off">
+                            </form>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+        <div id="main-content">
+            <div class="page-heading">
+                    <div class="page-title">
+        <div class="row align-items-center">
+            <div class="col-12 col-md-6">
+                <h4 class="mb-0">    Categories
+</h4>
+            </div>
+            <div class="col-12 col-md-6 d-flex justify-content-end">
+                                    <button type="button" id="bulkEditCategoriesBtn" class="btn btn-outline-primary me-2">
+                        Bulk Edit Selected
+                    </button>
+                
+                    <a class="btn btn-outline-secondary me-2" href="https://admin.lmx.ba/category/port/export">
+        Export JSON
+    </a>
+
+    <button type="button" class="btn btn-outline-secondary me-2"
+            data-bs-toggle="modal" data-bs-target="#categoryImportModal">
+        Import JSON
+    </button>
+
+
+                                                            <a class="btn btn-primary" href="https://admin.lmx.ba/category/create">
+                            + Add Category
+                        </a>
+                                                </div>
+        </div>
+    </div>
+            </div>
+                <section class="section">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="text-right col-md-12">
+                                <a href="https://admin.lmx.ba/category/categories/order">+ Set Order of Categories</a>
+                            </div>
+                        </div>
+
+                        <table class="table table-borderless table-striped" aria-describedby="mydesc"
+                               id="table_list"
+                               data-toggle="table"
+                               data-url="https://admin.lmx.ba/category/0"
+                               data-click-to-select="true"
+                               data-side-pagination="server"
+                               data-pagination="true"
+                               data-page-list="[5, 10, 20, 50, 100, 200,500,2000]"
+                               data-search="true"
+                               data-search-align="right"
+                               data-toolbar="#toolbar"
+                               data-show-columns="true"
+                               data-show-refresh="true"
+                               data-trim-on-search="false"
+                               data-responsive="true"
+                               data-sort-name="sequence"
+                               data-sort-order="asc"
+                               data-pagination-successively-size="3"
+                               data-query-params="queryParams"
+                               data-escape="true"
+                               data-table="categories"
+                               data-use-row-attr-func="true"
+                               data-mobile-responsive="false"
+                               data-show-export="true"
+                               data-export-options='{"fileName": "category-list","ignoreColumn": ["operate"]}'
+                               data-export-types="['pdf','json', 'xml', 'csv', 'txt', 'sql', 'doc', 'excel']">
+                            <thead class="thead-dark">
+                            <tr>
+                                                                    <th scope="col" data-field="state" data-checkbox="true"></th>
+                                                                <th scope="col" data-field="id" data-align="center" data-sortable="true">ID</th>
+                                <th scope="col" data-field="name" data-sortable="true" data-formatter="categoryNameFormatter">Name</th>
+                                <th scope="col" data-field="image" data-align="center" data-formatter="imageFormatter">Image</th>
+                                <th scope="col" data-field="subcategories_count" data-align="center" data-sortable="false">Subcategories</th>
+                                <th scope="col" data-field="custom_fields_count" data-align="center" data-sortable="false">Custom Fields</th>
+                                <th scope="col" data-field="advertisements_count" data-sortable="true" data-align="center">Advertisement Count</th>
+                                                                    <th scope="col" data-field="status" data-width="5" data-sortable="true" data-formatter="statusSwitchFormatter">Active</th>
+                                                                                                    <th scope="col" data-field="operate" data-escape="false" data-sortable="false">Action</th>
+                                                            </tr>
+                            </thead>
+                        </table>
+
+                        <!-- Import Modal -->
+<div class="modal fade" id="categoryImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="https://admin.lmx.ba/category/port/import" enctype="multipart/form-data" class="modal-content">
+            <input type="hidden" name="_token" value="4BhG7MJqPTvvim3SQHrqfh8ypgOkJmh4WHUMu660" autocomplete="off">            <div class="modal-header">
+                <h5 class="modal-title">Import Categories JSON</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">JSON file</label>
+                    <input type="file" name="file" class="form-control" accept=".json,application/json" required>
+                    <small class="text-muted d-block mt-2">
+                        File format: categories-port/v1. Import radi update/create po <code>slug</code> i povezuje hijerarhiju preko <code>parent_slug</code>.
+                        Za nove kategorije <code>image</code> mora biti validan storage path (npr. <code>category/xxx.jpg</code>).
+                    </small>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+        </div>
+    </div>
+    <div class="wrapper mt-5">
+        <div class="content">
+            <!----- THIS FORM USE FOR DELETE  ---->
+<footer class="footer mt-3">
+    <div class="container-fluid">
+        <div class="foot_text text-end">
+            ©
+            <script>
+                document.write(new Date().getFullYear())
+            </script>
+            |Local Market Exchange
+        </div>
+
+    </div>
+</footer>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/apexcharts.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/jquery.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/popper.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/app.js"></script>
+
+
+
+
+
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/sweetalert2/sweetalert2.min.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/tinymce/tinymce.min.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/jquery-vector-map/jquery-jvectormap-2.0.5.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/jquery-vector-map/jquery-jvectormap-asia-merc.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/jquery-vector-map/jquery-jvectormap-world-mill-en.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/jquery-vector-map/jquery-jvectormap-world-mill.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/toastify-js/toastify.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/parsley.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/pages/parsley.js"></script>
+
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/magnific-popup/jquery.magnific-popup.min.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/select2/select2.min.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/jquery-ui/jquery-ui.min.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/clipboard.min.js"></script>
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/filepond/filepond.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/filepond/filepond.jquery.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/filepond/filepond-plugin-image-preview.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/filepond/filepond-plugin-pdf-preview.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/filepond/filepond-plugin-file-validate-size.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/filepond/filepond-plugin-file-validate-type.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/filepond/filepond-plugin-image-validate-size.min.js"></script>
+
+
+<script src="https://admin.lmx.ba/assets/extensions/jstree/jstree.min.js"></script>
+
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/custom/common.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/custom/custom.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/custom/function.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/custom/bootstrap-table/formatter.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/custom/bootstrap-table/queryParams.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/js/custom/bootstrap-table/actionEvents.js"></script>
+
+
+
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/fixed-columns/bootstrap-table-fixed-columns.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/mobile/bootstrap-table-mobile.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/jquery.tablednd.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/bootstrap-table-reorder-rows.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/export/bootstrap-table-export.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/export/tableExport.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/export/jspdf.umd.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/mobile/bootstrap-table-mobile.min.js"></script>
+<script type="text/javascript" src="https://admin.lmx.ba/assets/extensions/bootstrap-table/filter/bootstrap-table-filter-control.min.js"></script>
+
+
+<script src="https://admin.lmx.ba/common/js/lang"></script>
+
+<script src="https://admin.lmx.ba/assets/js/leaflet.js"></script>
+<script src="https://admin.lmx.ba/assets/js/map.js"></script>
+<script src="https://admin.lmx.ba/assets/js/bundle.min.js"></script>
+
+
+
+<script type="text/javascript">
+    window.baseurl = "https://admin.lmx.ba/";
+        showSuccessToast("Categories imported successfully")
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+        
+</script>
+<script>
+    // Dynamic translation loading function
+    function loadTableTranslations() {
+        
+        window.tableTranslations = {"Search...":"Search...","Refresh":"Refresh","Toggle":"Toggle","Columns":"Columns","Detail":"Detail","Detail Formatter":"Detail Formatter","Previous":"Previous","Next":"Next","First":"First","Last":"Last","Showing {ctx.start} to {ctx.end} of {ctx.total} entries":"Showing {ctx.start} to {ctx.end} of {ctx.total} entries","Export Data":"Export Data","Toggle Columns":"Toggle Columns","No description":"No description","No image":"No image","No date":"No date","No price":"No price","Active":"Active","Inactive":"Inactive","Pending":"Pending","Approved":"Approved","Rejected":"Rejected","Published":"Published","Draft":"Draft","No matching records found":"No matching records found","rows per page":"rows per page"};
+
+        // Force update all translatable tables
+        $('.translatable-table').each(function() {
+            const $table = $(this);
+            const tableId = $table.attr('id');
+
+            // Update table attributes with new translations
+            $table.attr({
+                'data-search-placeholder': window.trans('Search...'),
+                'data-refresh-text': window.trans('Refresh'),
+                'data-toggle-text': window.trans('Toggle'),
+                'data-columns-text': window.trans('Columns'),
+                'data-detail-view-text': window.trans('Detail'),
+                'data-detail-formatter-text': window.trans('Detail Formatter'),
+                'data-pagination-pre-text': window.trans('Previous'),
+                'data-pagination-next-text': window.trans('Next'),
+                'data-pagination-first-text': window.trans('First'),
+                'data-pagination-last-text': window.trans('Last'),
+                'data-pagination-info-text': window.trans('Showing {ctx.start} to {ctx.end} of {ctx.total} entries'),
+                'data-pagination-info-formatted': window.trans('Showing {ctx.start} to {ctx.end} of {ctx.total} entries')
+            });
+
+            // Force complete table refresh
+            if ($table.hasClass('bootstrap-table')) {
+                // Get current table options
+                const tableOptions = $table.bootstrapTable('getOptions');
+
+                // Destroy the table
+                $table.bootstrapTable('destroy');
+
+                // Re-initialize with new translations
+                $table.bootstrapTable(tableOptions);
+            }
+        });
+
+        // Manually update search placeholder, pagination text, and no records message
+        setTimeout(function() {
+            updateSearchAndPagination();
+            updateNoRecordsMessage();
+            updateRowsPerPageText(); // Add this new function call
+        }, 500);
+    }
+
+    // Function to manually update search and pagination
+    function updateSearchAndPagination() {
+        // Update search placeholder
+        $('.search-input').attr('placeholder', window.trans('Search...'));
+
+        // Update pagination info text
+        $('.pagination-info').each(function() {
+            const $info = $(this);
+            const currentText = $info.text();
+
+            // Extract numbers from current text (e.g., "Showing 1 to 4 of 4 rows")
+            const match = currentText.match(/Showing (\d+) to (\d+) of (\d+) rows/);
+            if (match) {
+                const start = match[1];
+                const end = match[2];
+                const total = match[3];
+
+                // Replace with translated text
+                const translatedText = window.trans('Showing {ctx.start} to {ctx.end} of {ctx.total} entries')
+                    .replace('{ctx.start}', start)
+                    .replace('{ctx.end}', end)
+                    .replace('{ctx.total}', total);
+
+                $info.text(translatedText);
+            }
+        });
+
+        // Update refresh button title
+        $('button[name="refresh"]').attr('title', window.trans('Refresh'));
+
+        // Update columns button title
+        $('button[aria-label="Columns"]').attr('title', window.trans('Columns'));
+
+        // Update export button title
+        $('button[aria-label="Export data"]').attr('title', window.trans('Export Data'));
+    }
+
+    // Function to update "No matching records found" message
+    function updateNoRecordsMessage() {
+        $('.no-records-found td').each(function() {
+            const $cell = $(this);
+            const currentText = $cell.text();
+
+            if (currentText === 'No matching records found') {
+                $cell.text(window.trans('No matching records found'));
+            }
+        });
+    }
+
+    // Add this new function to handle "rows per page" text
+    // function updateRowsPerPageText() {
+    //     $('.page-list').each(function() {
+    //         const $pageList = $(this);
+    //         const currentText = $pageList.text();
+
+    //         if (currentText.includes('rows per page')) {
+    //             const translatedText = currentText.replace('rows per page', window.trans('rows per page'));
+    //             $pageList.text(translatedText);
+    //         }
+    //     });
+    // }
+      function updateRowsPerPageText() {
+        $('.page-list').each(function() {
+            const $pageList = $(this);
+
+            // Use a more specific selector to find the text after the dropdown
+            const $dropdown = $pageList.find('.btn-group');
+            if ($dropdown.length) {
+                // Get all text nodes after the dropdown
+                let found = false;
+                $pageList.contents().each(function() {
+                    if (this.nodeType === 3 && !found) { // Text node
+                        const text = this.textContent.trim();
+                        if (text === 'rows per page') {
+                            this.textContent = window.trans('rows per page');
+                            found = true;
+                        }
+                    }
+                });
+            }
+        });
+    }
+    // Translation helper
+    window.trans = function(key) {
+        return window.tableTranslations && window.tableTranslations[key] ? window.tableTranslations[key] : key;
+    };
+
+    // Load translations on page load
+    loadTableTranslations();
+
+    // Also update when table is refreshed
+    $(document).on('post-body.bs.table', function() {
+        setTimeout(function() {
+            updateSearchAndPagination();
+            updateNoRecordsMessage();
+            updateRowsPerPageText(); // Add this new function call
+        }, 100);
+    });
+
+    // Also update when table data is loaded
+    $(document).on('load-success.bs.table', function() {
+        setTimeout(function() {
+            updateSearchAndPagination();
+            updateNoRecordsMessage();
+            updateRowsPerPageText(); // Add this new function call
+        }, 100);
+    });
+</script>
+<script src="https://admin.lmx.ba/assets/js/custom/table-translations.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const btn = document.getElementById('bulkEditCategoriesBtn');
+            if (!btn) return;
+
+            btn.addEventListener('click', function () {
+                const rows = $('#table_list').bootstrapTable('getSelections') || [];
+                const ids = rows.map(r => r.id).filter(Boolean);
+
+                if (!ids.length) {
+                    alert("Select at least one category.");
+                    return;
+                }
+
+                window.location.href = "https://admin.lmx.ba/category/bulk-edit" + "?ids=" + ids.join(',');
+            });
+        });
+    </script>
+</body>
+</html>

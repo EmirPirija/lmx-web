@@ -1,0 +1,315 @@
+{
+  "added_count": 47,
+  "skipped_count": 5,
+  "added": [
+    {
+      "name": "Karte za festivale",
+      "slug": "karte-za-festivale",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 1
+    },
+    {
+      "name": "Karte za stand-up i komediju",
+      "slug": "karte-za-stand-up-i-komediju",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 2
+    },
+    {
+      "name": "Karte za konferencije i seminare",
+      "slug": "karte-za-konferencije-i-seminare",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 3
+    },
+    {
+      "name": "Karte za sajmove i izložbe",
+      "slug": "karte-za-sajmove-i-izlozbe",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 4
+    },
+    {
+      "name": "Karte za dječije događaje",
+      "slug": "karte-za-djecije-dogadjaje",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 5
+    },
+    {
+      "name": "Karte za zabavne parkove",
+      "slug": "karte-za-zabavne-parkove",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 6
+    },
+    {
+      "name": "Putne karte autobus i voz",
+      "slug": "putne-karte-autobus-i-voz",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 7
+    },
+    {
+      "name": "Vaučeri i poklon karte",
+      "slug": "vauceri-i-poklon-karte",
+      "parent_slug": "karte-i-ulaznice",
+      "sequence": 8
+    },
+    {
+      "name": "Glodari i mali ljubimci",
+      "slug": "glodari-i-mali-ljubimci",
+      "parent_slug": "zivotinje",
+      "sequence": 1
+    },
+    {
+      "name": "Veterinarski i higijenski proizvodi",
+      "slug": "veterinarski-i-higijenski-proizvodi",
+      "parent_slug": "zivotinje",
+      "sequence": 2
+    },
+    {
+      "name": "Udomljavanje i poklanjanje",
+      "slug": "udomljavanje-i-poklanjanje",
+      "parent_slug": "zivotinje",
+      "sequence": 3
+    },
+    {
+      "name": "Egzotične životinje",
+      "slug": "egzoticne-zivotinje",
+      "parent_slug": "zivotinje",
+      "sequence": 4
+    },
+    {
+      "name": "Igre za PlayStation",
+      "slug": "igre-za-playstation",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 6
+    },
+    {
+      "name": "Igre za Xbox",
+      "slug": "igre-za-xbox",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 7
+    },
+    {
+      "name": "Igre za Nintendo",
+      "slug": "igre-za-nintendo",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 8
+    },
+    {
+      "name": "PC igre i digitalni ključevi",
+      "slug": "pc-igre-i-digitalni-kljucevi",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 9
+    },
+    {
+      "name": "Kontroleri i gamepadi",
+      "slug": "kontroleri-i-gamepadi",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 10
+    },
+    {
+      "name": "Gaming slušalice i mikrofoni",
+      "slug": "gaming-slusalice-i-mikrofoni",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 11
+    },
+    {
+      "name": "Gift kartice i pretplate",
+      "slug": "gift-kartice-i-pretplate",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 12
+    },
+    {
+      "name": "Retro konzole i igre",
+      "slug": "retro-konzole-i-igre",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 13
+    },
+    {
+      "name": "VR igre i VR dodaci",
+      "slug": "vr-igre-i-vr-dodaci",
+      "parent_slug": "video-igre-i-konzole",
+      "sequence": 14
+    },
+    {
+      "name": "Usluge i servisi",
+      "slug": "usluge-i-servisi",
+      "parent_slug": null,
+      "sequence": 24
+    },
+    {
+      "name": "Majstorske usluge",
+      "slug": "majstorske-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 1
+    },
+    {
+      "name": "Auto usluge",
+      "slug": "auto-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 2
+    },
+    {
+      "name": "Građevinske usluge",
+      "slug": "gradjevinske-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 3
+    },
+    {
+      "name": "Čišćenje i održavanje",
+      "slug": "ciscenje-i-odrzavanje",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 4
+    },
+    {
+      "name": "Selidbe i transport usluge",
+      "slug": "selidbe-i-transport-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 5
+    },
+    {
+      "name": "Kurirske i dostavne usluge",
+      "slug": "kurirske-i-dostavne-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 6
+    },
+    {
+      "name": "Računari i IT usluge",
+      "slug": "racunari-i-it-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 7
+    },
+    {
+      "name": "Marketing i dizajn usluge",
+      "slug": "marketing-i-dizajn-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 8
+    },
+    {
+      "name": "Edukacija i instrukcije",
+      "slug": "edukacija-i-instrukcije",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 9
+    },
+    {
+      "name": "Fotografija i video usluge",
+      "slug": "fotografija-i-video-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 10
+    },
+    {
+      "name": "Muzika i DJ usluge",
+      "slug": "muzika-i-dj-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 11
+    },
+    {
+      "name": "Event usluge",
+      "slug": "event-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 12
+    },
+    {
+      "name": "Knjigovodstvo i pravne usluge",
+      "slug": "knjigovodstvo-i-pravne-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 13
+    },
+    {
+      "name": "Zdravstvene i wellness usluge",
+      "slug": "zdravstvene-i-wellness-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 14
+    },
+    {
+      "name": "Ljepota i frizerske usluge",
+      "slug": "ljepota-i-frizerske-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 15
+    },
+    {
+      "name": "Usluge za kućne ljubimce",
+      "slug": "usluge-za-kucne-ljubimce",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 16
+    },
+    {
+      "name": "Sigurnosne usluge",
+      "slug": "sigurnosne-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 17
+    },
+    {
+      "name": "Ostale usluge",
+      "slug": "ostale-usluge",
+      "parent_slug": "usluge-i-servisi",
+      "sequence": 18
+    },
+    {
+      "name": "Muzička produkcija i snimanje",
+      "slug": "muzicka-produkcija-i-snimanje",
+      "parent_slug": "muzika-i-audio-oprema",
+      "sequence": 1
+    },
+    {
+      "name": "Podcast i streaming oprema",
+      "slug": "podcast-i-streaming-oprema",
+      "parent_slug": "muzika-i-audio-oprema",
+      "sequence": 2
+    },
+    {
+      "name": "Profesionalni razglas PA",
+      "slug": "profesionalni-razglas-pa",
+      "parent_slug": "muzika-i-audio-oprema",
+      "sequence": 3
+    },
+    {
+      "name": "Bicikli i oprema",
+      "slug": "bicikli-i-oprema",
+      "parent_slug": "sport-i-rekreacija",
+      "sequence": 1
+    },
+    {
+      "name": "Ribolov i lov",
+      "slug": "ribolov-i-lov",
+      "parent_slug": "sport-i-rekreacija",
+      "sequence": 2
+    },
+    {
+      "name": "Kućni tekstil",
+      "slug": "kucni-tekstil",
+      "parent_slug": "moj-dom",
+      "sequence": 24
+    },
+    {
+      "name": "Vrt i dvorište",
+      "slug": "vrt-i-dvoriste",
+      "parent_slug": "moj-dom",
+      "sequence": 25
+    }
+  ],
+  "skipped": [
+    {
+      "name": "Psi",
+      "parent_slug": "zivotinje",
+      "reason": "slug already exists"
+    },
+    {
+      "name": "Mačke",
+      "parent_slug": "zivotinje",
+      "reason": "slug already exists"
+    },
+    {
+      "name": "Ptice",
+      "parent_slug": "zivotinje",
+      "reason": "slug already exists"
+    },
+    {
+      "name": "Ribe i akvaristika",
+      "parent_slug": "zivotinje",
+      "reason": "slug already exists"
+    },
+    {
+      "name": "Hrana za životinje",
+      "parent_slug": "zivotinje",
+      "reason": "slug already exists"
+    }
+  ]
+}

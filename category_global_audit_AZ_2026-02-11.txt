@@ -1,0 +1,177 @@
+GLOBAL CATEGORY AUDIT (A-Z)
+Generated: 2026-02-11T12:02:42.635Z
+Total categories: 2587
+Active: 2558
+Inactive: 29
+Roots: 23
+
+ROOT OVERVIEW (A-Z):
+- Antikviteti [id=209] -> aktivnih podkategorija: 13, ukupno potomaka: 13, dubina: 2
+- Bebe [id=122] -> aktivnih podkategorija: 25, ukupno potomaka: 25, dubina: 2
+- Biznis i industrija [id=10] -> aktivnih podkategorija: 16, ukupno potomaka: 143, dubina: 3
+- Hrana i piće [id=243] -> aktivnih podkategorija: 9, ukupno potomaka: 148, dubina: 3
+- Igre i igračke [id=149] -> aktivnih podkategorija: 10, ukupno potomaka: 165, dubina: 3
+- Karte i ulaznice [id=271] -> aktivnih podkategorija: 5, ukupno potomaka: 5, dubina: 2
+- Kolekcionarstvo [id=189] -> aktivnih podkategorija: 19, ukupno potomaka: 19, dubina: 2
+- Literatura [id=172] -> aktivnih podkategorija: 8, ukupno potomaka: 127, dubina: 4
+- Mobiteli [id=8] -> aktivnih podkategorija: 8, ukupno potomaka: 75, dubina: 3
+- Moda i ljepota [id=9] -> aktivnih podkategorija: 11, ukupno potomaka: 185, dubina: 3
+- Moj dom [id=223] -> aktivnih podkategorija: 23, ukupno potomaka: 188, dubina: 4
+- Muzika i audio oprema [id=166] -> aktivnih podkategorija: 5, ukupno potomaka: 118, dubina: 4
+- Nakit i satovi [id=253] -> aktivnih podkategorija: 17, ukupno potomaka: 17, dubina: 2
+- Nekretnine [id=3] -> aktivnih podkategorija: 9, ukupno potomaka: 9, dubina: 2
+- Odjeća i obuća [id=5] -> aktivnih podkategorija: 6, ukupno potomaka: 257, dubina: 4
+- Ostalo [id=12] -> aktivnih podkategorija: 23, ukupno potomaka: 39, dubina: 3
+- Računari [id=7] -> aktivnih podkategorija: 10, ukupno potomaka: 58, dubina: 3
+- Sport i rekreacija [id=11] -> aktivnih podkategorija: 10, ukupno potomaka: 94, dubina: 3
+- Tehnika [id=6] -> aktivnih podkategorija: 28, ukupno potomaka: 609, dubina: 5
+- Umjetnost i dekoracija [id=181] -> aktivnih podkategorija: 10, ukupno potomaka: 178, dubina: 4
+- Video igre i konzole [id=160] -> aktivnih podkategorija: 5, ukupno potomaka: 37, dubina: 3
+- Vozila [id=2] -> aktivnih podkategorija: 13, ukupno potomaka: 13, dubina: 2
+- Životinje [id=4] -> aktivnih podkategorija: 4, ukupno potomaka: 42, dubina: 3
+
+DUPLIKATI U ISTOM PARENTU: 2
+- parent=186 | naziv="metalne skulpture" | ids=678,679
+- parent=115 | naziv="elektromaterijal" | ids=861,862
+
+KATEGORIJE 'OSTALO': 52
+- id=12 parent=null status=1 Ostalo
+- id=31 parent=4 status=1 Ostalo
+- id=64 parent=6 status=1 Ostalo
+- id=76 parent=7 status=1 Ostalo
+- id=84 parent=8 status=1 Ostalo
+- id=94 parent=11 status=1 Oprema za ostalo
+- id=105 parent=9 status=1 Ostalo
+- id=121 parent=10 status=1 Ostalo
+- id=148 parent=122 status=1 Ostalo
+- id=165 parent=160 status=1 Ostalo
+- id=171 parent=166 status=1 Ostalo
+- id=188 parent=181 status=1 Ostalo
+- id=208 parent=189 status=1 Ostalo kolekcionarstvo
+- id=222 parent=209 status=1 Ostalo
+- id=242 parent=223 status=1 Ostalo
+- id=252 parent=243 status=1 Ostalo
+- id=270 parent=253 status=1 Ostalo
+- id=390 parent=37 status=1 Ostalo
+- id=435 parent=224 status=1 Ostalo
+- id=447 parent=226 status=1 Ostalo
+- id=458 parent=228 status=1 Ostalo
+- id=542 parent=170 status=1 Ostalo
+- id=606 parent=603 status=1 Ostalo
+- id=607 parent=599 status=1 Ostalo
+- id=608 parent=593 status=1 Ostalo
+- id=609 parent=588 status=1 Ostalo
+- id=642 parent=179 status=1 Ostalo
+- id=802 parent=106 status=1 Ostalo iz mašine i alati
+- id=811 parent=107 status=1 Ostalo iz poljoprivredna oprema i mehanizacija
+- id=820 parent=108 status=1 Ostalo iz građevinska oprema i alati
+- id=827 parent=109 status=1 Ostalo iz poslovna oprema i biznis rješenja
+- id=840 parent=111 status=1 Ostalo iz aparati i varilice za pakovanje
+- id=846 parent=112 status=1 Ostalo iz rashladne i toplotne vitrine
+- id=852 parent=113 status=1 Ostalo iz industrijske grijalice i toplotni topovi
+- id=859 parent=114 status=1 Ostalo iz kancelarijski materijal i namještaj
+- id=867 parent=115 status=1 Ostalo
+- id=894 parent=119 status=1 Ostalo
+- id=901 parent=120 status=1 Ostalo
+- id=908 parent=85 status=1 Ostalo
+- id=921 parent=87 status=1 Ostalo
+- id=929 parent=88 status=1 Ostalo
+- id=936 parent=89 status=1 Ostalo
+- id=944 parent=90 status=1 Ostalo
+- id=958 parent=92 status=1 Ostalo
+- id=959 parent=86 status=1 Ostalo
+- id=966 parent=93 status=1 Ostalo
+- id=2572 parent=611 status=1 Ostalo iz umjetnosti i dizajna
+- id=2630 parent=695 status=1 Ostalo iz digitalne umjetnosti
+- id=2798 parent=95 status=1 Ostalo iz njege kože i tijela
+- id=2813 parent=96 status=1 Ostalo iz njege kose i brade
+- id=2831 parent=97 status=1 Ostalo iz njege noktiju
+- id=2846 parent=98 status=1 Ostalo iz oralne higijene
+
+FIELD-LIKE KATEGORIJE (kandidati za custom fields): 73
+- id=251 parent=243 status=1 Paketi proizvoda i poklon setovi
+- id=486 parent=234 status=1 Sezonski ukrasi i tematski setovi
+- id=561 parent=528 status=1 Aktivni i pasivni zvučnici
+- id=570 parent=534 status=1 Hi-Fi setovi
+- id=574 parent=535 status=0 Pasivni zvučnici
+- id=581 parent=538 status=1 Mini Hi-Fi setovi
+- id=587 parent=541 status=1 Mixer + pojačalo setovi
+- id=629 parent=177 status=1 Edukativni materijali i setovi
+- id=844 parent=112 status=1 Mini vitrine
+- id=1043 parent=973 status=1 Zimski setovi
+- id=1103 parent=979 status=1 Zimski setovi
+- id=1947 parent=63 status=1 IPTV prijemnici i set-top boxovi
+- id=1950 parent=63 status=1 Mini PC uređaji za TV
+- id=1994 parent=61 status=1 Stetoskopi i osnovni pregledni setovi
+- id=2130 parent=53 status=1 DIY setovi i razvojne ploče
+- id=2247 parent=46 status=1 Sistemi 2.1/5.1/7.1
+- id=2292 parent=43 status=0 Mini BT zvučnici
+- id=2304 parent=43 status=0 Vodootporni BT zvučnici
+- id=2329 parent=41 status=1 Dječiji dronovi i mini dronovi
+- id=2442 parent=164 status=1 Platforme za mini-igre
+- id=2534 parent=12 status=1 Kreativni setovi i DIY materijali
+- id=2762 parent=251 status=1 Higijenski setovi i setovi za brijanje
+- id=2764 parent=251 status=1 Korporativni i poslovni poklon setovi
+- id=2765 parent=251 status=1 Kozmetički setovi za njegu lica i tijela
+- id=2766 parent=251 status=1 Limitirane edicije i kolekcionarski setovi
+- id=2767 parent=251 status=1 Ostali paketi i setovi
+- id=2768 parent=251 status=1 Parfemski setovi
+- id=2771 parent=251 status=1 Poklon setovi pića
+- id=2772 parent=251 status=1 Setovi za aromaterapiju i opuštanje
+- id=2773 parent=251 status=1 Setovi za kreativce i DIY projekte
+- id=2812 parent=96 status=1 Njega brkova i setovi za oblikovanje
+- id=2864 parent=99 status=1 Palete sjenila i setovi šminke
+- id=2877 parent=100 status=1 Mirisni setovi
+- id=2882 parent=100 status=1 Parfemski testeri i mini pakovanja
+- id=2933 parent=103 status=1 Wellness poklon setovi
+- id=2971 parent=150 status=1 Kreativne igre i setovi za pravljenje
+- id=2989 parent=151 status=1 Setovi figura sa dodacima
+- id=2995 parent=152 status=1 Arhitektonski setovi i makete zgrada
+- id=2998 parent=152 status=1 Kocke sa velikim dijelovima
+- id=2999 parent=152 status=1 Konstrukcioni setovi alatima
+- id=3001 parent=152 status=1 Mehanički i inžinjerski setovi
+- id=3002 parent=152 status=1 Metalni konstrukcioni setovi
+- id=3003 parent=152 status=1 Osnovni setovi kockica
+- id=3007 parent=152 status=1 Setovi kockica po temama
+- id=3008 parent=152 status=1 Setovi za pravljenje staza i mermernih lavirinta
+- id=3026 parent=154 status=1 Abakusi i setovi za rano učenje matematike
+- id=3030 parent=154 status=1 Igračke za učenje boja i oblika
+- id=3038 parent=154 status=1 Setovi za eksperimente i učenje o prirodi
+- id=3051 parent=155 status=1 Plišani privjesci i mini plišanci
+- id=3053 parent=155 status=1 Plišani setovi sa dodacima
+- id=3075 parent=157 status=1 Dječija šminka i setovi za uljepšavanje
+- id=3076 parent=157 status=1 Dječije kuhinje i setovi za kuhanje
+- id=3082 parent=157 status=1 Nakit za djevojčice i setovi za izradu
+- id=3085 parent=157 status=1 Setovi za igru trgovine i blagajne
+- id=3091 parent=158 status=1 Garaže, parkinzi i setovi sa stazama
+- id=3098 parent=158 status=1 Setovi za igru sa farmom i životinjama
+- id=3099 parent=158 status=1 Svemirski setovi i istraživanje Marsa
+- id=3100 parent=158 status=1 Viteški setovi
+- id=3112 parent=159 status=1 Mađioničarski setovi i trikovi
+- id=3222 parent=83 status=1 Vodootporni eBook čitači
+- id=3312 parent=686 status=1 Setovi za početnike
+- id=3332 parent=688 status=1 Grey Wash setovi
+- id=3333 parent=688 status=1 Mix setovi boja
+- id=3375 parent=691 status=1 Sterilni setovi za jednokratnu upotrebu
+- id=3380 parent=389 status=1 Monoblok WC setovi
+- id=3401 parent=390 status=1 Ugradbeni setovi za montažu sanitarija
+- id=3408 parent=391 status=1 Nosači i setovi za montažu konzolnih šolja
+- id=3420 parent=390 status=1 Mini-bar frižideri i rashladne vitrine
+- id=3421 parent=390 status=1 Nosači i stalci za velike uređaje
+- id=3823 parent=3773 status=1 Zimski setovi
+- id=3862 parent=3779 status=1 Zimski setovi
+- id=3885 parent=3783 status=1 Zimski setovi
+- id=3916 parent=3789 status=1 Zimski setovi
+
+SPARSE ROOTS (kandidati za DODATI grane):
+- Životinje [id=4] aktivne podkategorije=4
+- Video igre i konzole [id=160] aktivne podkategorije=5
+- Muzika i audio oprema [id=166] aktivne podkategorije=5
+- Karte i ulaznice [id=271] aktivne podkategorije=5
+- Odjeća i obuća [id=5] aktivne podkategorije=6
+
+HEAVY ROOTS (kandidati za PREUREDITI):
+- Tehnika [id=6] aktivne podkategorije=28
+- Bebe [id=122] aktivne podkategorije=25
+- Moj dom [id=223] aktivne podkategorije=23
+- Ostalo [id=12] aktivne podkategorije=23

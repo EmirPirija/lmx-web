@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1730,
+    "parent_category_id": 80,
+    "old_name": "Bluetooth slušalice (Naglavne)",
+    "new_name": "Bluetooth slušalice",
+    "slug": "bluetooth-slusalice-naglavne",
+    "status": 1,
+    "sequence": null
+  },
+  {
+    "id": 2112,
+    "parent_category_id": 54,
+    "old_name": "Fotonaponski solarni paneli (Polikristalni)",
+    "new_name": "Fotonaponski solarni paneli",
+    "slug": "fotonaponski-solarni-paneli-polikristalni",
+    "status": 1,
+    "sequence": 3
+  },
+  {
+    "id": 3319,
+    "parent_category_id": 687,
+    "old_name": "Klasične igle na šipki - Round Shader (RS)",
+    "new_name": "Klasične igle na šipki- Round",
+    "slug": "klasicne-igle-na-sipki-round-shader-rs",
+    "status": 1,
+    "sequence": 7
+  }
+]

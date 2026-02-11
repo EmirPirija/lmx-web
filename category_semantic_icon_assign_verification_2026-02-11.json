@@ -1,0 +1,159 @@
+{
+  "generated_at": "2026-02-11T13:28:37.328Z",
+  "total": 2634,
+  "changed_image_count": 2634,
+  "image_from_uploaded_set_count": 2634,
+  "missing_image_count": 0,
+  "sample": [
+    {
+      "slug": "vozila",
+      "image": "custom-fields/698c839ba8ae83.204213941770816411.svg",
+      "name": "Vozila"
+    },
+    {
+      "slug": "nekretnine",
+      "image": "custom-fields/698c839b123b55.817394671770816411.svg",
+      "name": "Nekretnine"
+    },
+    {
+      "slug": "mobiteli-i-oprema",
+      "image": "custom-fields/698c839e4f6b24.381289741770816414.svg",
+      "name": "Mobiteli"
+    },
+    {
+      "slug": "racunari-i-oprema",
+      "image": "custom-fields/698c83a3bd84b9.014512181770816419.svg",
+      "name": "Računari"
+    },
+    {
+      "slug": "tehnika",
+      "image": "custom-fields/698c8398ba09d6.743426151770816408.svg",
+      "name": "Tehnika"
+    },
+    {
+      "slug": "video-igre-i-konzole",
+      "image": "custom-fields/698c83a116e917.177679531770816417.svg",
+      "name": "Video igre i konzole"
+    },
+    {
+      "slug": "moj-dom",
+      "image": "custom-fields/698c83a2d54566.415445021770816418.svg",
+      "name": "Moj dom"
+    },
+    {
+      "slug": "muzika-i-audio-oprema",
+      "image": "custom-fields/698c83a8a69ff2.053369661770816424.svg",
+      "name": "Muzika i audio oprema"
+    },
+    {
+      "slug": "literatura",
+      "image": "custom-fields/698c839a9da3d5.074777951770816410.svg",
+      "name": "Literatura"
+    },
+    {
+      "slug": "umjetnost-i-dekoracija",
+      "image": "custom-fields/698c8398ba09d6.743426151770816408.svg",
+      "name": "Umjetnost i dekoracija"
+    },
+    {
+      "slug": "kolekcionarstvo",
+      "image": "custom-fields/698c83a9372a07.777994921770816425.svg",
+      "name": "Kolekcionarstvo"
+    },
+    {
+      "slug": "antikviteti",
+      "image": "custom-fields/698c8398ba09d6.743426151770816408.svg",
+      "name": "Antikviteti"
+    },
+    {
+      "slug": "karte-i-ulaznice",
+      "image": "custom-fields/698c83a9624906.779636821770816425.svg",
+      "name": "Karte i ulaznice"
+    },
+    {
+      "slug": "hrana-i-pice",
+      "image": "custom-fields/698c83a0d8b680.690066621770816416.svg",
+      "name": "Hrana i piće"
+    },
+    {
+      "slug": "bebe",
+      "image": "custom-fields/698c8398ba09d6.743426151770816408.svg",
+      "name": "Bebe"
+    },
+    {
+      "slug": "igre-i-igracke",
+      "image": "custom-fields/698c83a780a743.722690261770816423.svg",
+      "name": "Igre i igračke"
+    },
+    {
+      "slug": "moda-i-ljepota",
+      "image": "custom-fields/698c8398ba09d6.743426151770816408.svg",
+      "name": "Moda i ljepota"
+    },
+    {
+      "slug": "nakit-i-satovi",
+      "image": "custom-fields/698c83aa53bc32.368448701770816426.svg",
+      "name": "Nakit i satovi"
+    },
+    {
+      "slug": "odjeca-i-obuca",
+      "image": "custom-fields/698c83a84b56b3.933140141770816424.svg",
+      "name": "Odjeća i obuća"
+    },
+    {
+      "slug": "sport-i-rekreacija",
+      "image": "custom-fields/698c8399460f11.143935301770816409.svg",
+      "name": "Sport i rekreacija"
+    },
+    {
+      "slug": "biznis-i-industrija",
+      "image": "custom-fields/698c8398ba09d6.743426151770816408.svg",
+      "name": "Biznis i industrija"
+    },
+    {
+      "slug": "zivotinje",
+      "image": "custom-fields/698c83a62fb364.460435871770816422.svg",
+      "name": "Životinje"
+    },
+    {
+      "slug": "ostalo",
+      "image": "custom-fields/698c8398ba09d6.743426151770816408.svg",
+      "name": "Ostalo"
+    },
+    {
+      "slug": "usluge-i-servisi",
+      "image": "custom-fields/698c83a9c060d0.558928811770816425.svg",
+      "name": "Usluge i servisi"
+    },
+    {
+      "slug": "autobusi-i-minibusi",
+      "image": "custom-fields/698c839b4729e2.740224921770816411.svg",
+      "name": "Autobusi i minibusi"
+    },
+    {
+      "slug": "radne-masine",
+      "image": "custom-fields/698c839ba8ae83.204213941770816411.svg",
+      "name": "Radne mašine"
+    },
+    {
+      "slug": "atv-utv-quad-1",
+      "image": "custom-fields/698c839ba8ae83.204213941770816411.svg",
+      "name": "ATV / UTV / Quad"
+    },
+    {
+      "slug": "automobili",
+      "image": "custom-fields/698c839ba8ae83.204213941770816411.svg",
+      "name": "Automobili"
+    },
+    {
+      "slug": "motocikli",
+      "image": "custom-fields/698c83a539e5d8.738773361770816421.svg",
+      "name": "Motocikli"
+    },
+    {
+      "slug": "vozila-za-snijeg",
+      "image": "custom-fields/698c839ba8ae83.204213941770816411.svg",
+      "name": "Vozila za snijeg"
+    }
+  ]
+}

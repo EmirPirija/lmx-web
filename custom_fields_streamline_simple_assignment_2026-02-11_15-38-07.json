@@ -1,0 +1,7478 @@
+{
+  "generated_at": "2026-02-11T15:38:09.036731",
+  "total_fields": 1055,
+  "unique_icons": 84,
+  "icon_usage": {
+    "simple-icons:simpleicons": 74,
+    "simple-icons:modrinth": 23,
+    "simple-icons:homeassistant": 13,
+    "simple-icons:youtube": 60,
+    "simple-icons:github": 59,
+    "simple-icons:steam": 70,
+    "simple-icons:apple": 44,
+    "simple-icons:theconversation": 1,
+    "simple-icons:amazon": 68,
+    "simple-icons:figma": 58,
+    "simple-icons:tesla": 4,
+    "simple-icons:cloudflare": 55,
+    "simple-icons:spotify": 69,
+    "simple-icons:yamahamotorcorporation": 1,
+    "simple-icons:android": 70,
+    "simple-icons:microsoft": 58,
+    "simple-icons:notion": 64,
+    "simple-icons:adobe": 49,
+    "simple-icons:strava": 3,
+    "simple-icons:google": 54,
+    "simple-icons:castorama": 3,
+    "simple-icons:digitalocean": 48,
+    "simple-icons:ram": 7,
+    "simple-icons:rotaryinternational": 4,
+    "simple-icons:nfc": 1,
+    "simple-icons:pelican": 1,
+    "simple-icons:apachepulsar": 1,
+    "simple-icons:sonos": 5,
+    "simple-icons:bluetooth": 3,
+    "simple-icons:gradio": 1,
+    "simple-icons:dolby": 2,
+    "simple-icons:dts": 1,
+    "simple-icons:arc": 1,
+    "simple-icons:wireshark": 3,
+    "simple-icons:airplayaudio": 1,
+    "streamline-logos:streaming-logo": 1,
+    "simple-icons:googledisplayandvideo360": 1,
+    "simple-icons:apacheairflow": 1,
+    "simple-icons:cratedb": 1,
+    "simple-icons:labview": 1,
+    "simple-icons:handm": 1,
+    "streamline-logos:youtube-clip-logo": 1,
+    "simple-icons:intercom": 1,
+    "simple-icons:handshake": 1,
+    "simple-icons:poe": 2,
+    "simple-icons:glassdoor": 1,
+    "simple-icons:vox": 1,
+    "simple-icons:setapp": 2,
+    "simple-icons:radar": 1,
+    "simple-icons:nike": 6,
+    "simple-icons:zara": 1,
+    "simple-icons:iata": 1,
+    "simple-icons:bosch": 4,
+    "simple-icons:johndeere": 1,
+    "simple-icons:motorola": 2,
+    "streamline-logos:campaign-monitor-logo": 1,
+    "simple-icons:instapaper": 2,
+    "simple-icons:mattermost": 1,
+    "simple-icons:uv": 1,
+    "simple-icons:windsurf": 1,
+    "simple-icons:setuptools": 1,
+    "streamline-logos:google-fit-logo": 1,
+    "simple-icons:googlecast": 1,
+    "simple-icons:smart": 3,
+    "simple-icons:minutemailer": 2,
+    "simple-icons:ubereats": 2,
+    "simple-icons:studio3t": 2,
+    "simple-icons:nintendogamecube": 1,
+    "simple-icons:amazonalexa": 1,
+    "simple-icons:informatica": 5,
+    "simple-icons:red": 1,
+    "simple-icons:nvidia": 2,
+    "simple-icons:stopstalk": 1,
+    "simple-icons:instatus": 1,
+    "simple-icons:goodreads": 2,
+    "simple-icons:davinciresolve": 3,
+    "simple-icons:fiverr": 1,
+    "simple-icons:googletasks": 2,
+    "simple-icons:shutterstock": 1,
+    "simple-icons:mg": 1,
+    "simple-icons:socket": 1,
+    "simple-icons:sennheiser": 1,
+    "simple-icons:ups": 2,
+    "simple-icons:freebsd": 1
+  },
+  "assignments": [
+    {
+      "id": 19,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 20,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 21,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 22,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 23,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 24,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 25,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 26,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 27,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 28,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 29,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 30,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 31,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 32,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 33,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 34,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 35,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 36,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 37,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 38,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 39,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 40,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 41,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 42,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 43,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 44,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 45,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 46,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 47,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 48,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 49,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 50,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 51,
+      "name": "Proizvodjac",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "kw:proizvodjac"
+    },
+    {
+      "id": 52,
+      "name": "Model",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 11599,
+      "name": "Stanje oglasa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 11600,
+      "name": "Garancija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11601,
+      "name": "Godište",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11602,
+      "name": "Gorivo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11603,
+      "name": "Kilometraža (km)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11604,
+      "name": "Radni sati (h)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "theconversation",
+      "reason": "simple-sub:sati"
+    },
+    {
+      "id": 11605,
+      "name": "Kubikaža (ccm)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11606,
+      "name": "Snaga motora (kW)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11607,
+      "name": "Snaga motora (KS)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11608,
+      "name": "Mjenjač",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11609,
+      "name": "Pogon",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11610,
+      "name": "Karoserija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11611,
+      "name": "Broj vrata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11612,
+      "name": "Broj sjedišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11613,
+      "name": "Boja vozila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "tesla",
+      "reason": "kw:vozila"
+    },
+    {
+      "id": 11614,
+      "name": "Vrsta boje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11615,
+      "name": "Emisioni standard",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 11616,
+      "name": "Registrovan do",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11617,
+      "name": "Porijeklo vozila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "tesla",
+      "reason": "kw:vozila"
+    },
+    {
+      "id": 11618,
+      "name": "Klima uređaj",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11619,
+      "name": "Tip motocikla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "yamahamotorcorporation",
+      "reason": "kw:motocikl"
+    },
+    {
+      "id": 11620,
+      "name": "Takt motora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11621,
+      "name": "Vrsta teretnog vozila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "tesla",
+      "reason": "kw:vozila"
+    },
+    {
+      "id": 11622,
+      "name": "Tip nadogradnje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11623,
+      "name": "Nosivost (kg)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11624,
+      "name": "Broj osovina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11625,
+      "name": "Vrsta radne mašine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11626,
+      "name": "Vrsta poljoprivredne mašine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11627,
+      "name": "Vrsta plovila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11628,
+      "name": "Dužina plovila (m)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11629,
+      "name": "Vrsta bicikla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "strava",
+      "reason": "kw:bicikl"
+    },
+    {
+      "id": 11630,
+      "name": "Veličina točka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11631,
+      "name": "Veličina rama",
+      "icon_prefix": "simple-icons",
+      "icon_key": "castorama",
+      "reason": "simple-sub:rama"
+    },
+    {
+      "id": 11632,
+      "name": "Vrsta kočnica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11633,
+      "name": "Broj kreveta (Kamper)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11634,
+      "name": "Oprema kampera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11635,
+      "name": "Sigurnosna oprema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11636,
+      "name": "Dodatna oprema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11637,
+      "name": "Stanje guma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 11638,
+      "name": "Servisna historija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11639,
+      "name": "Tip oglasa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11640,
+      "name": "Kvadratura (m2)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11641,
+      "name": "Broj soba",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11642,
+      "name": "Sprat",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11643,
+      "name": "Vrsta grijanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11644,
+      "name": "Vrsta objekta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11645,
+      "name": "Namještenost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11646,
+      "name": "Visina stropa (m)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11647,
+      "name": "Vrsta zemljišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11648,
+      "name": "Parking / Garaža",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11649,
+      "name": "Lift",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11650,
+      "name": "Prilaz za teretna vozila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "tesla",
+      "reason": "kw:vozila"
+    },
+    {
+      "id": 11651,
+      "name": "Godina izgradnje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11652,
+      "name": "Orijentacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11653,
+      "name": "Period iznajmljivanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11654,
+      "name": "Infrastruktura",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11655,
+      "name": "Dodatne prostorije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11656,
+      "name": "Dokumentacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11657,
+      "name": "Vrsta kuće",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11658,
+      "name": "Vrsta poslovnog prostora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11659,
+      "name": "RAM memorija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ram",
+      "reason": "token-exact:ram"
+    },
+    {
+      "id": 11660,
+      "name": "Interna memorija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "rotaryinternational",
+      "reason": "simple-sub:interna"
+    },
+    {
+      "id": 11661,
+      "name": "Veličina ekrana mobitela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:mobitel"
+    },
+    {
+      "id": 11662,
+      "name": "Operativni sistem",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11663,
+      "name": "Kapacitet baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11664,
+      "name": "Broj kamera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11665,
+      "name": "Glavna kamera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11666,
+      "name": "Prednja kamera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11667,
+      "name": "Boja mobitela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:mobitel"
+    },
+    {
+      "id": 11668,
+      "name": "SIM Slot",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11669,
+      "name": "5G mreža",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11670,
+      "name": "NFC",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nfc",
+      "reason": "direct"
+    },
+    {
+      "id": 11671,
+      "name": "Brzo punjenje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11672,
+      "name": "Bežično punjenje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11673,
+      "name": "Čitač otiska prsta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11674,
+      "name": "Prepoznavanje lica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "pelican",
+      "reason": "simple-sub:lica"
+    },
+    {
+      "id": 11675,
+      "name": "Vodootpornost mobitela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:mobitel"
+    },
+    {
+      "id": 11676,
+      "name": "Stanje ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 11677,
+      "name": "Zdravlje baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11678,
+      "name": "Kompletan paket",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11679,
+      "name": "IMEI registrovan",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11680,
+      "name": "Veličina sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11681,
+      "name": "OS sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11682,
+      "name": "Materijal kućišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11683,
+      "name": "Materijal narukvice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11684,
+      "name": "Tip ekrana sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11685,
+      "name": "Rezolucija sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11686,
+      "name": "Trajanje baterije sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11687,
+      "name": "GPS",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11688,
+      "name": "eSIM podrška",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11689,
+      "name": "Mjerenje pulsa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apachepulsar",
+      "reason": "simple-sub:pulsa"
+    },
+    {
+      "id": 11690,
+      "name": "SpO2 Kiseonik",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11691,
+      "name": "EKG",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11692,
+      "name": "Mjerenje pritiska",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11693,
+      "name": "Praćenje sna",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11694,
+      "name": "Vodootpornost sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11695,
+      "name": "Mogućnost poziva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11696,
+      "name": "Mogućnost zamjene",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11697,
+      "name": "Snaga zvučnika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "sonos",
+      "reason": "kw:zvucnik"
+    },
+    {
+      "id": 11698,
+      "name": "Bluetooth verzija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "bluetooth",
+      "reason": "kw:bluetooth"
+    },
+    {
+      "id": 11699,
+      "name": "Trajanje baterije (h)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11700,
+      "name": "Vodootpornost zvučnika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "sonos",
+      "reason": "kw:zvucnik"
+    },
+    {
+      "id": 11701,
+      "name": "Priključci",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11702,
+      "name": "Broj zvučnika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "sonos",
+      "reason": "kw:zvucnik"
+    },
+    {
+      "id": 11703,
+      "name": "Stereo zvuk",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11704,
+      "name": "Mikrofon",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11705,
+      "name": "TWS funkcija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11706,
+      "name": "Glasovni asistent",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11707,
+      "name": "LED osvjetljenje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11708,
+      "name": "Radio FM",
+      "icon_prefix": "simple-icons",
+      "icon_key": "gradio",
+      "reason": "simple-sub:radio"
+    },
+    {
+      "id": 11709,
+      "name": "Powerbank funkcija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11710,
+      "name": "Karaoke mikrofon",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11711,
+      "name": "Multiroom podrška",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11712,
+      "name": "Audio Kodeci",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "kw:audio"
+    },
+    {
+      "id": 11713,
+      "name": "Tip punjača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11714,
+      "name": "Broj kanala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11715,
+      "name": "Ukupna snaga (W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11716,
+      "name": "Dolby Atmos",
+      "icon_prefix": "simple-icons",
+      "icon_key": "dolby",
+      "reason": "token-exact:dolby"
+    },
+    {
+      "id": 11717,
+      "name": "DTS:X",
+      "icon_prefix": "simple-icons",
+      "icon_key": "dts",
+      "reason": "token-exact:dts"
+    },
+    {
+      "id": 11718,
+      "name": "4K passthrough",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11719,
+      "name": "HDR podrška",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11720,
+      "name": "HDMI ulazi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11721,
+      "name": "HDMI ARC/eARC",
+      "icon_prefix": "simple-icons",
+      "icon_key": "arc",
+      "reason": "token-exact:arc"
+    },
+    {
+      "id": 11722,
+      "name": "Bluetooth",
+      "icon_prefix": "simple-icons",
+      "icon_key": "bluetooth",
+      "reason": "direct"
+    },
+    {
+      "id": 11723,
+      "name": "WiFi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "wireshark",
+      "reason": "kw:wifi"
+    },
+    {
+      "id": 11724,
+      "name": "Airplay",
+      "icon_prefix": "simple-icons",
+      "icon_key": "airplayaudio",
+      "reason": "simple-sub:airplay"
+    },
+    {
+      "id": 11725,
+      "name": "Chromecast",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11726,
+      "name": "Snaga subwoofera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11727,
+      "name": "Veličina subwoofera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11728,
+      "name": "Aktivni/Pasivni sub",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11729,
+      "name": "Tip zvučnika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "sonos",
+      "reason": "kw:zvucnik"
+    },
+    {
+      "id": 11730,
+      "name": "Impedansa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11731,
+      "name": "RMS snaga",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11732,
+      "name": "Bežični subwoofer",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11733,
+      "name": "Bežični zadnji zvučnici",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11734,
+      "name": "Potreban receiver",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11735,
+      "name": "Tip montaže",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11736,
+      "name": "TV OS",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11737,
+      "name": "TV Procesor",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11738,
+      "name": "TV RAM",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ram",
+      "reason": "token-exact:ram"
+    },
+    {
+      "id": 11739,
+      "name": "TV Interna memorija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "rotaryinternational",
+      "reason": "simple-sub:interna"
+    },
+    {
+      "id": 11740,
+      "name": "TV Rezolucija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11741,
+      "name": "HDR Podrška",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11742,
+      "name": "TV Dolby Atmos",
+      "icon_prefix": "simple-icons",
+      "icon_key": "dolby",
+      "reason": "token-exact:dolby"
+    },
+    {
+      "id": 11743,
+      "name": "TV WiFi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "wireshark",
+      "reason": "kw:wifi"
+    },
+    {
+      "id": 11744,
+      "name": "TV Bluetooth",
+      "icon_prefix": "simple-icons",
+      "icon_key": "bluetooth",
+      "reason": "kw:bluetooth"
+    },
+    {
+      "id": 11745,
+      "name": "TV Ethernet",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11746,
+      "name": "Broj USB portova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11747,
+      "name": "Broj HDMI portova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11748,
+      "name": "HDMI verzija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11749,
+      "name": "Optički izlaz",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11750,
+      "name": "SD kartica slot",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11751,
+      "name": "TV Glasovni asistent",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11752,
+      "name": "Daljinski upravljač",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11753,
+      "name": "Streaming servisi",
+      "icon_prefix": "streamline-logos",
+      "icon_key": "streaming-logo",
+      "reason": "streamline-token:streaming"
+    },
+    {
+      "id": 11754,
+      "name": "IPTV podrška",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11755,
+      "name": "Google Play Store",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "token-exact:google"
+    },
+    {
+      "id": 11756,
+      "name": "Snaga motora romobil",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11757,
+      "name": "Kapacitet baterije (Ah)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11758,
+      "name": "Napon baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11759,
+      "name": "Domet romobila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11760,
+      "name": "Maks brzina romobila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11761,
+      "name": "Nosivost romobila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11762,
+      "name": "Veličina točkova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11763,
+      "name": "Tip guma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11764,
+      "name": "Amortizeri",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11765,
+      "name": "Kočnice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11766,
+      "name": "Sjedalo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11767,
+      "name": "Sklopiv",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11768,
+      "name": "Display romobil",
+      "icon_prefix": "simple-icons",
+      "icon_key": "googledisplayandvideo360",
+      "reason": "simple-sub:display"
+    },
+    {
+      "id": 11769,
+      "name": "Aplikacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11770,
+      "name": "Vodootpornost romobil",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11771,
+      "name": "Broj motora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11772,
+      "name": "Pogon romobil",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11773,
+      "name": "Vrijeme punjenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11774,
+      "name": "Tip uređaja vape",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11775,
+      "name": "Kapacitet rezervoara vape",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11776,
+      "name": "Otpor grijača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11777,
+      "name": "Tip punjenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11778,
+      "name": "Airflow kontrola",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apacheairflow",
+      "reason": "simple-sub:airflow"
+    },
+    {
+      "id": 11779,
+      "name": "Materijal tijela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11780,
+      "name": "Tip grijača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11781,
+      "name": "Zamjenljive glave",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11782,
+      "name": "Broj povlačenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11783,
+      "name": "Nikotinska jačina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11784,
+      "name": "Tip baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11785,
+      "name": "Napon baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11786,
+      "name": "Veličina baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11787,
+      "name": "Punjiva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11788,
+      "name": "Broj slotova punjača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11789,
+      "name": "Kompatibilne baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11790,
+      "name": "Struja punjenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11791,
+      "name": "LCD/LED ekran",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11792,
+      "name": "USB izlaz",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11793,
+      "name": "Ulazi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11794,
+      "name": "Izlazi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11795,
+      "name": "Solarna snaga",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11796,
+      "name": "Maksimalna izlazna snaga",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11797,
+      "name": "Tip VR uređaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11798,
+      "name": "Rezolucija VR",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11799,
+      "name": "Refresh rate VR",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cratedb",
+      "reason": "simple-sub:rate"
+    },
+    {
+      "id": 11800,
+      "name": "Field of view (FOV)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "labview",
+      "reason": "simple-sub:view"
+    },
+    {
+      "id": 11801,
+      "name": "Tip ekrana VR",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11802,
+      "name": "Procesor VR",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11803,
+      "name": "RAM VR",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ram",
+      "reason": "token-exact:ram"
+    },
+    {
+      "id": 11804,
+      "name": "Interna memorija VR",
+      "icon_prefix": "simple-icons",
+      "icon_key": "rotaryinternational",
+      "reason": "simple-sub:interna"
+    },
+    {
+      "id": 11805,
+      "name": "Tracking sistem",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11806,
+      "name": "Hand tracking",
+      "icon_prefix": "simple-icons",
+      "icon_key": "handm",
+      "reason": "simple-sub:hand"
+    },
+    {
+      "id": 11807,
+      "name": "Eye tracking",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11808,
+      "name": "IPD podešavanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11809,
+      "name": "Audio VR",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "kw:audio"
+    },
+    {
+      "id": 11810,
+      "name": "Mikrofon",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11811,
+      "name": "Kontroleri uključeni",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11812,
+      "name": "Passthrough funkcija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11813,
+      "name": "Proširenje memorije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11814,
+      "name": "Audio formati",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "kw:audio"
+    },
+    {
+      "id": 11815,
+      "name": "Video formati",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "kw:video"
+    },
+    {
+      "id": 11816,
+      "name": "Hi-Res Audio sertifikat",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "kw:audio"
+    },
+    {
+      "id": 11817,
+      "name": "USB tip",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11818,
+      "name": "Clip za pričvršćivanje",
+      "icon_prefix": "streamline-logos",
+      "icon_key": "youtube-clip-logo",
+      "reason": "streamline-token:clip"
+    },
+    {
+      "id": 11819,
+      "name": "Kontrole na dodir",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11820,
+      "name": "Tip telefona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:telefon"
+    },
+    {
+      "id": 11821,
+      "name": "Broj slušalica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11822,
+      "name": "Domet telefona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:telefon"
+    },
+    {
+      "id": 11823,
+      "name": "Ekran na telefonu",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:telefon"
+    },
+    {
+      "id": 11824,
+      "name": "Imenik",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11825,
+      "name": "Intercom funkcija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "intercom",
+      "reason": "token-exact:intercom"
+    },
+    {
+      "id": 11826,
+      "name": "Hands-free",
+      "icon_prefix": "simple-icons",
+      "icon_key": "handshake",
+      "reason": "simple-sub:hands"
+    },
+    {
+      "id": 11827,
+      "name": "Broj linija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11828,
+      "name": "PoE napajanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "poe",
+      "reason": "token-exact:poe"
+    },
+    {
+      "id": 11829,
+      "name": "HD glas",
+      "icon_prefix": "simple-icons",
+      "icon_key": "glassdoor",
+      "reason": "simple-sub:glas"
+    },
+    {
+      "id": 11830,
+      "name": "Video pozivi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "kw:video"
+    },
+    {
+      "id": 11831,
+      "name": "Tip interfona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11832,
+      "name": "Frekvencija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11833,
+      "name": "Broj kanala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11834,
+      "name": "Snaga predajnika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11835,
+      "name": "Licenca potrebna",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11836,
+      "name": "VOX funkcija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "vox",
+      "reason": "token-exact:vox"
+    },
+    {
+      "id": 11837,
+      "name": "Poništavanje buke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11838,
+      "name": "Snaga panela (W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11839,
+      "name": "Efikasnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11840,
+      "name": "Tip ćelija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11841,
+      "name": "Napon panela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11842,
+      "name": "Snaga invertera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11843,
+      "name": "Tip invertera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11844,
+      "name": "Broj faza",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11845,
+      "name": "Maksimalni MPPT ulaz",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11846,
+      "name": "Efikasnost invertera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11847,
+      "name": "WiFi monitoring",
+      "icon_prefix": "simple-icons",
+      "icon_key": "wireshark",
+      "reason": "kw:wifi"
+    },
+    {
+      "id": 11848,
+      "name": "Tip baterije solar",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11849,
+      "name": "Kapacitet baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11850,
+      "name": "Napon baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11851,
+      "name": "Dubina pražnjenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11852,
+      "name": "Ciklusi punjenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11853,
+      "name": "Tip kontrolera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11854,
+      "name": "Maksimalna struja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11855,
+      "name": "Tip kolektora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11856,
+      "name": "Prenosiva snaga",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11857,
+      "name": "Sklopiv",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11858,
+      "name": "USB izlazi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11859,
+      "name": "Težina (kg)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11860,
+      "name": "Tip poklona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11861,
+      "name": "Materijal izrade",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11862,
+      "name": "Pogodno za",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11863,
+      "name": "Način preuzimanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11864,
+      "name": "Veličina kostima",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11865,
+      "name": "Tip kostima",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11866,
+      "name": "Pol",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11867,
+      "name": "Dobna grupa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11868,
+      "name": "Tip sigurnosne opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11869,
+      "name": "Napajanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11870,
+      "name": "Povezivost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11871,
+      "name": "Tip zabavne opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11872,
+      "name": "Broj igrača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11873,
+      "name": "Tip opreme za pušače",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11874,
+      "name": "Sistem punjenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11875,
+      "name": "Tip pirotehnike",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11876,
+      "name": "Trajanje efekta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11877,
+      "name": "Nivo buke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11878,
+      "name": "Sigurnosna oznaka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11879,
+      "name": "Period nastanka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 11880,
+      "name": "Tip antikviteta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11881,
+      "name": "Autentičnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11882,
+      "name": "Potvrda o autentičnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11883,
+      "name": "Tip bizarnog artikla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11884,
+      "name": "Nivo bizarnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11885,
+      "name": "Tip dijela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11886,
+      "name": "Originalni ili zamjenski",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11887,
+      "name": "Tip kolekcionarskog predmeta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11888,
+      "name": "Stanje očuvanosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 11889,
+      "name": "Tip kreativnog seta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "setapp",
+      "reason": "simple-sub:seta"
+    },
+    {
+      "id": 11890,
+      "name": "Nivo vještine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11891,
+      "name": "Uputstva uključena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11892,
+      "name": "Tip muzičkog instrumenta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11893,
+      "name": "Priložena futrola",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11894,
+      "name": "Tip magioničarske opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11895,
+      "name": "Video tutorial dostupan",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "kw:video"
+    },
+    {
+      "id": 11896,
+      "name": "Sertifikati",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11897,
+      "name": "Tip poljoprivrednog proizvoda",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11898,
+      "name": "Pakovanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11899,
+      "name": "Tip vjerskog predmeta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11900,
+      "name": "Religija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11901,
+      "name": "Blagoslovljen",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11902,
+      "name": "Tip rekvizita",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11903,
+      "name": "Tip ručnog rada",
+      "icon_prefix": "simple-icons",
+      "icon_key": "radar",
+      "reason": "simple-sub:rada"
+    },
+    {
+      "id": 11904,
+      "name": "Ručno rađeno",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11905,
+      "name": "Personalizacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11906,
+      "name": "Tip sirovine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11907,
+      "name": "Oblik dostave",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11908,
+      "name": "Tip šaljivog artikla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11909,
+      "name": "Tip suvenira",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11910,
+      "name": "Tip umjetničkog djela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11911,
+      "name": "Potpisano",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11912,
+      "name": "Uramljeno",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11913,
+      "name": "Stil umjetnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11914,
+      "name": "Vrsta životinje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11915,
+      "name": "Spol",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11916,
+      "name": "Zdravstveno stanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 11917,
+      "name": "Vakcinacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11918,
+      "name": "Veterinarski pregled",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11919,
+      "name": "Dokumentacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11920,
+      "name": "Namjena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11921,
+      "name": "Gravidna",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11922,
+      "name": "Tip goveda",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11923,
+      "name": "Vrsta ovca/koza",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11924,
+      "name": "Vrsta vune",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11925,
+      "name": "Vrsta konja/magarca",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11926,
+      "name": "Obučenost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11927,
+      "name": "Temperament",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11928,
+      "name": "Vrsta svinje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11929,
+      "name": "Vrsta peradi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11930,
+      "name": "Tip jaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11931,
+      "name": "Vrsta kunića",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11932,
+      "name": "Kvaliteta krzna",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11933,
+      "name": "Tip košnice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11934,
+      "name": "Jačina pčelinjeg društva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11935,
+      "name": "Uključuje pčele",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11936,
+      "name": "Tip matice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11937,
+      "name": "Tip rasploda",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11938,
+      "name": "Rodovnik priznat",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11939,
+      "name": "Veličina psa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11940,
+      "name": "Prikladan za",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11941,
+      "name": "Socijalizacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11942,
+      "name": "Sterilizovan/Kastriran",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 11943,
+      "name": "Veličina mačke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11944,
+      "name": "Tip dlake mačke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11945,
+      "name": "Tip ptice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11946,
+      "name": "Govornost ptice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 11947,
+      "name": "Tip ribe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11948,
+      "name": "Kompatibilnost riba",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11949,
+      "name": "Tip male životinje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11950,
+      "name": "Tip reptila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11951,
+      "name": "Otrovnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11952,
+      "name": "Tip adopcije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 11953,
+      "name": "Tip hrane",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11954,
+      "name": "Vrsta životinje za hranu",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11955,
+      "name": "Dobna grupa hrane",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11956,
+      "name": "Bez sastojaka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11957,
+      "name": "Tip opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11958,
+      "name": "Veličina opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11959,
+      "name": "Tip transportera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nike",
+      "reason": "kw:sport"
+    },
+    {
+      "id": 11960,
+      "name": "Ventilacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11961,
+      "name": "Odobren za letenje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11962,
+      "name": "Tip akvarijuma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11963,
+      "name": "Oblik akvarijuma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11964,
+      "name": "Uključeno",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11965,
+      "name": "Tip vode",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11966,
+      "name": "Tip terarijuma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11967,
+      "name": "Uključuje terarijum",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11968,
+      "name": "Tip klime",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11969,
+      "name": "Tip posude",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 11970,
+      "name": "Montaža posude",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11971,
+      "name": "Materijal posude",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11972,
+      "name": "Tip igračke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11973,
+      "name": "Nivo aktivnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11974,
+      "name": "Zvučni efekti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11975,
+      "name": "Izdržljivost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11976,
+      "name": "Tip proizvoda za njegu",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11977,
+      "name": "Za tip životinje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11978,
+      "name": "Tip kože/dlake",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 11979,
+      "name": "Hipoalergeno",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 11980,
+      "name": "Tip opreme akvaristika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 11981,
+      "name": "Podesiva temperatura",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11982,
+      "name": "Tip inkubatora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11983,
+      "name": "Automatsko okretanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11984,
+      "name": "Digitalni displej",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11985,
+      "name": "Kontrola vlažnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11986,
+      "name": "Tip kaveza glodari",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11987,
+      "name": "Dodatna oprema kavez",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11988,
+      "name": "Tip kaveza za ptice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11989,
+      "name": "Veličina ptice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 11990,
+      "name": "Oprema košnice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 11991,
+      "name": "Materijal ramova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 11992,
+      "name": "Zaštitna odjeća",
+      "icon_prefix": "simple-icons",
+      "icon_key": "zara",
+      "reason": "kw:odjeca"
+    },
+    {
+      "id": 11993,
+      "name": "Tip mašine za šišanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11994,
+      "name": "Napajanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 11995,
+      "name": "Tip opreme dresura",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 11996,
+      "name": "Nivo treninga",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 11997,
+      "name": "Tip ograde",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 11998,
+      "name": "Tip opreme konjički",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 11999,
+      "name": "Veličina sedla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12000,
+      "name": "Stil jahanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12001,
+      "name": "Disciplina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12002,
+      "name": "Tip opreme teraristika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12003,
+      "name": "UVA/UVB",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12004,
+      "name": "Vrsta supstrata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12005,
+      "name": "Tip dodatka ljubimci",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12006,
+      "name": "Povezivost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12007,
+      "name": "Tip pribora stoka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12008,
+      "name": "Materijal pribor",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12009,
+      "name": "Tip egzotične hrane",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12010,
+      "name": "Način čuvanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12011,
+      "name": "Tip transportera profi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nike",
+      "reason": "kw:sport"
+    },
+    {
+      "id": 12012,
+      "name": "IATA odobren",
+      "icon_prefix": "simple-icons",
+      "icon_key": "iata",
+      "reason": "token-exact:iata"
+    },
+    {
+      "id": 12013,
+      "name": "Sigurnosna brava",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12014,
+      "name": "Točkići",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12015,
+      "name": "Tip suplementa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12016,
+      "name": "Oblik suplementa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12017,
+      "name": "Za tip životinje suplement",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12018,
+      "name": "Napajanje mašine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12019,
+      "name": "Tip alata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "bosch",
+      "reason": "kw:alat"
+    },
+    {
+      "id": 12020,
+      "name": "Tip poljoprivredne opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12021,
+      "name": "Tip traktora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "johndeere",
+      "reason": "kw:traktor"
+    },
+    {
+      "id": 12022,
+      "name": "Pogon mašine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12023,
+      "name": "Hidraulika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12024,
+      "name": "Priključna točka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12025,
+      "name": "Tip građevinske opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12026,
+      "name": "Tip pogona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12027,
+      "name": "Tip poslovne opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12028,
+      "name": "Tip štampe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12029,
+      "name": "Boja štampe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12030,
+      "name": "Konektivnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12031,
+      "name": "Tip ulja/maziva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12032,
+      "name": "Tip završne obrade",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12033,
+      "name": "Tip aparata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12034,
+      "name": "Tip vitrine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12035,
+      "name": "Tip hlađenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12036,
+      "name": "Rasvjeta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12037,
+      "name": "Tip stakla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12038,
+      "name": "Tip grijalice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12039,
+      "name": "Termostat",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12040,
+      "name": "Pokretnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12041,
+      "name": "Tip kancelarijskog materijala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12042,
+      "name": "Materijal namještaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12043,
+      "name": "Podesivost visine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12044,
+      "name": "Ergonomski dizajn",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12045,
+      "name": "Montaža potrebna",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12046,
+      "name": "Tip dijela industrija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12047,
+      "name": "Tip opreme za pakovanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12048,
+      "name": "Transparentna",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12049,
+      "name": "Ljepljivost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12050,
+      "name": "Otpornost na kidanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12051,
+      "name": "Tip zaštitne opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12052,
+      "name": "Veličina zaštitne opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12053,
+      "name": "Certifikati zaštite",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12054,
+      "name": "Otpornost na",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12055,
+      "name": "Jednokratno/Višekratno",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12056,
+      "name": "Tip trake",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12057,
+      "name": "Tip ljepila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12058,
+      "name": "Tip trgovačke opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12059,
+      "name": "Materijal police",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12060,
+      "name": "Tip postavljanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12061,
+      "name": "Točkići",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12062,
+      "name": "Tip ugostiteljske opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12063,
+      "name": "Tip goriva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12064,
+      "name": "Materijal površine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12065,
+      "name": "Profesionalna namjena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12066,
+      "name": "Tip robe ostalo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12067,
+      "name": "Broj faza",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12068,
+      "name": "Dokumentacija priložena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12069,
+      "name": "Veličina sport",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nike",
+      "reason": "kw:sport"
+    },
+    {
+      "id": 12070,
+      "name": "Tip rukavica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12071,
+      "name": "Težina rukavica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12072,
+      "name": "Tip zatvaranja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12073,
+      "name": "Namjena rukavica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12074,
+      "name": "Tip štitnika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12075,
+      "name": "Nivo zaštite",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12076,
+      "name": "Tip sporta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nike",
+      "reason": "kw:sport"
+    },
+    {
+      "id": 12077,
+      "name": "Veličina kimona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12078,
+      "name": "Boja pojasa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12079,
+      "name": "Tip džaka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12080,
+      "name": "Punjenje džaka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12081,
+      "name": "Montaža uključena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12082,
+      "name": "Tvrdoća tatamija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12083,
+      "name": "Protivklizna površina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12084,
+      "name": "Tip rekvizita borilački",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12085,
+      "name": "Tip skateboarda",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12086,
+      "name": "Tip bicikla BMX",
+      "icon_prefix": "simple-icons",
+      "icon_key": "strava",
+      "reason": "kw:bicikl"
+    },
+    {
+      "id": 12087,
+      "name": "Materijal rama",
+      "icon_prefix": "simple-icons",
+      "icon_key": "castorama",
+      "reason": "simple-sub:rama"
+    },
+    {
+      "id": 12088,
+      "name": "Tip kočnica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12089,
+      "name": "Tip rola",
+      "icon_prefix": "simple-icons",
+      "icon_key": "motorola",
+      "reason": "simple-sub:rola"
+    },
+    {
+      "id": 12090,
+      "name": "Veličina rola",
+      "icon_prefix": "simple-icons",
+      "icon_key": "motorola",
+      "reason": "simple-sub:rola"
+    },
+    {
+      "id": 12091,
+      "name": "Zaštitna oprema uključena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12092,
+      "name": "Tip opreme za penjanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12093,
+      "name": "Tip padobrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12094,
+      "name": "Revizija obavljena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12095,
+      "name": "Certifikat",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12096,
+      "name": "Tip tegova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12097,
+      "name": "Materijal tegova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12098,
+      "name": "Tip girje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12099,
+      "name": "Tip trake",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12100,
+      "name": "Nivo otpora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12101,
+      "name": "Tip kardio opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12102,
+      "name": "Monitor srca",
+      "icon_prefix": "streamline-logos",
+      "icon_key": "campaign-monitor-logo",
+      "reason": "streamline-token:monitor"
+    },
+    {
+      "id": 12103,
+      "name": "Tip prostirke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12104,
+      "name": "Tip odjeće sport",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nike",
+      "reason": "kw:sport"
+    },
+    {
+      "id": 12105,
+      "name": "Tehnologija materijala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12106,
+      "name": "Tip suplementa sport",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nike",
+      "reason": "kw:sport"
+    },
+    {
+      "id": 12107,
+      "name": "Tip ruksaka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12108,
+      "name": "Sistem hidratacije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12109,
+      "name": "Podesivi kaiševi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12110,
+      "name": "Vodootporan",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12111,
+      "name": "Tip obuće planinarenje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12112,
+      "name": "Visina obuće",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12113,
+      "name": "Membrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12114,
+      "name": "Veličina obuće",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12115,
+      "name": "Tip odjeće planinarske",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12116,
+      "name": "Izolacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12117,
+      "name": "Ventilacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12118,
+      "name": "Tip štapa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "instapaper",
+      "reason": "simple-sub:stapa"
+    },
+    {
+      "id": 12119,
+      "name": "Materijal štapa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "instapaper",
+      "reason": "simple-sub:stapa"
+    },
+    {
+      "id": 12120,
+      "name": "Antishock sistem",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12121,
+      "name": "Tip šatora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12122,
+      "name": "Sezonalnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12123,
+      "name": "Tip navigacije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12124,
+      "name": "Vodootpornost navigacije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12125,
+      "name": "Tip reketa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12126,
+      "name": "Balans reketa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12127,
+      "name": "Nivo igrača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12128,
+      "name": "Tip lopte",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12129,
+      "name": "Tip mreže",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12130,
+      "name": "Tip stola",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12131,
+      "name": "Tip futrole",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12132,
+      "name": "Termo zaštita",
+      "icon_prefix": "simple-icons",
+      "icon_key": "mattermost",
+      "reason": "simple-sub:termo"
+    },
+    {
+      "id": 12133,
+      "name": "Tip lopte fudbal",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12134,
+      "name": "Veličina lopte",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12135,
+      "name": "Tip opreme fudbal",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12136,
+      "name": "Tip opreme košarka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12137,
+      "name": "Materijal lopte",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12138,
+      "name": "Tip opreme rukomet",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12139,
+      "name": "Tip opreme odbojka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12140,
+      "name": "Tip opreme ragbi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12141,
+      "name": "Veličina dresa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12142,
+      "name": "Tip dresa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12143,
+      "name": "Personalizacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12144,
+      "name": "Tip rekvizita trening",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12145,
+      "name": "Tip šatora kamp",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12146,
+      "name": "Tip vreće za spavanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12147,
+      "name": "Tip opreme trčanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12148,
+      "name": "Tip terena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12149,
+      "name": "Tip bicikla oprema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "strava",
+      "reason": "kw:bicikl"
+    },
+    {
+      "id": 12150,
+      "name": "LED svjetla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12151,
+      "name": "Tip rolanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12152,
+      "name": "Tip opreme piknik",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12153,
+      "name": "Sklopivo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12154,
+      "name": "Tip opreme priroda",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12155,
+      "name": "Tip rekvizita rekreacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12156,
+      "name": "Tip opreme plivanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12157,
+      "name": "UV zaštita",
+      "icon_prefix": "simple-icons",
+      "icon_key": "uv",
+      "reason": "token-exact:uv"
+    },
+    {
+      "id": 12158,
+      "name": "Tip ronilačke opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12159,
+      "name": "Tip odijela ronjenje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12160,
+      "name": "Tip daske veslanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12161,
+      "name": "Veslo uključeno",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12162,
+      "name": "Pumpa uključena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12163,
+      "name": "Tip kajaka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12164,
+      "name": "Tip daske surf",
+      "icon_prefix": "simple-icons",
+      "icon_key": "windsurf",
+      "reason": "simple-sub:surf"
+    },
+    {
+      "id": 12165,
+      "name": "Fin setup",
+      "icon_prefix": "simple-icons",
+      "icon_key": "setuptools",
+      "reason": "simple-sub:setup"
+    },
+    {
+      "id": 12166,
+      "name": "Tip rekvizita plivanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12167,
+      "name": "Tip skija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12168,
+      "name": "Vezovi uključeni",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12169,
+      "name": "Tip snowboarda",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12170,
+      "name": "Camber tip",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12171,
+      "name": "Tip klizaljki",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12172,
+      "name": "Tip sječiva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12173,
+      "name": "Podesive klizaljke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12174,
+      "name": "Tip naočala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12175,
+      "name": "Tip sočiva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12176,
+      "name": "Zamjenljiva sočiva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12177,
+      "name": "Tip kacige zimske",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12178,
+      "name": "MIPS tehnologija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12179,
+      "name": "Podesivost veličine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12180,
+      "name": "Tip rekvizita zimski",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12181,
+      "name": "Veličina odjeće",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12182,
+      "name": "Veličina obuće",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12183,
+      "name": "Dječija veličina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12184,
+      "name": "Materijal odjeće",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12185,
+      "name": "Boja odjeće",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12186,
+      "name": "Sezona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12187,
+      "name": "Kroj (Fit)",
+      "icon_prefix": "streamline-logos",
+      "icon_key": "google-fit-logo",
+      "reason": "streamline-token:fit"
+    },
+    {
+      "id": 12188,
+      "name": "Vrsta mehanizma sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12189,
+      "name": "Materijal nakita",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12190,
+      "name": "Tip potpetice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12191,
+      "name": "Broj točkova kofer",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12192,
+      "name": "Grupa autosjedalice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12193,
+      "name": "Dodatne pogodnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12194,
+      "name": "Spol nakit",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12195,
+      "name": "Materijal detaljan",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12196,
+      "name": "Finoća materijala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12197,
+      "name": "Vrsta dragog kamena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12198,
+      "name": "Boja kamena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12199,
+      "name": "Oblik kamena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12200,
+      "name": "Tip pletenja lanca",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12201,
+      "name": "Tip kopče naušnice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12202,
+      "name": "Mehanizam sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12203,
+      "name": "Promjer kućišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12204,
+      "name": "Materijal kućišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12205,
+      "name": "Boja brojčanika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12206,
+      "name": "Vrsta stakla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12207,
+      "name": "Materijal narukvice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12208,
+      "name": "Funkcije sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12209,
+      "name": "Vodootpornost sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12210,
+      "name": "Porijeklo mehanizma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12211,
+      "name": "Namjena alata nakit",
+      "icon_prefix": "simple-icons",
+      "icon_key": "bosch",
+      "reason": "kw:alat"
+    },
+    {
+      "id": 12212,
+      "name": "Spol kozmetika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12213,
+      "name": "Tip kože",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12214,
+      "name": "Glavna namjena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12215,
+      "name": "Tekstura",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12216,
+      "name": "SPF Faktor",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12217,
+      "name": "Tip kose",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12218,
+      "name": "Problem vlasišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12219,
+      "name": "Vrsta boje za kosu",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12220,
+      "name": "Koncentracija parfema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12221,
+      "name": "Mirisna porodica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12222,
+      "name": "Godišnje doba",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12223,
+      "name": "Efekat šminke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12224,
+      "name": "Pokrivna moć",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12225,
+      "name": "Vodootporna",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12226,
+      "name": "Četkica maskare",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12227,
+      "name": "Vrsta trepavica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12228,
+      "name": "Metoda nokti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12229,
+      "name": "Vrsta četkice zubi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12230,
+      "name": "Napajanje uređaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12231,
+      "name": "Oblik okvira",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12232,
+      "name": "Vrsta stakala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12233,
+      "name": "Period zamjene leća",
+      "icon_prefix": "simple-icons",
+      "icon_key": "googlecast",
+      "reason": "simple-sub:leca"
+    },
+    {
+      "id": 12234,
+      "name": "Namjena suplementa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12235,
+      "name": "Oblik preparata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12236,
+      "name": "Dijetetske oznake",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12237,
+      "name": "Funkcije sata smart",
+      "icon_prefix": "simple-icons",
+      "icon_key": "smart",
+      "reason": "token-exact:smart"
+    },
+    {
+      "id": 12238,
+      "name": "Tip maske",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12239,
+      "name": "Veličina rukavica med",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12240,
+      "name": "Materijal rukavica med",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12241,
+      "name": "Preporučeni uzrast",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12242,
+      "name": "Materijal igračke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12243,
+      "name": "Spol igračke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12244,
+      "name": "Broj igrača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12245,
+      "name": "Vrijeme trajanja igre",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "kw:igre"
+    },
+    {
+      "id": 12246,
+      "name": "Jezik igre",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "kw:igre"
+    },
+    {
+      "id": 12247,
+      "name": "Tip društvene igre",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "kw:igre"
+    },
+    {
+      "id": 12248,
+      "name": "Tema kockica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "minutemailer",
+      "reason": "simple-sub:tema"
+    },
+    {
+      "id": 12249,
+      "name": "Kompatibilnost kockica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12250,
+      "name": "Pokretljivost zglobova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12251,
+      "name": "Napajanje igračke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12252,
+      "name": "Vrsta upravljanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12253,
+      "name": "Mjerilo modela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 12254,
+      "name": "Montessori fokus",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12255,
+      "name": "Vrsta lutke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12256,
+      "name": "Dodaci uz lutku",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12257,
+      "name": "Lokacija korištenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12258,
+      "name": "Veličina kostima dječiji",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12259,
+      "name": "Očuvanost kutije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12260,
+      "name": "Vrsta dječijih kolica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12261,
+      "name": "Broj točkova kolica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12262,
+      "name": "Oprema uz kolica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12263,
+      "name": "Grupa autosjedalice bebe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12264,
+      "name": "Sistem montaže",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12265,
+      "name": "Smjer vožnje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12266,
+      "name": "Vrsta krevetića",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12267,
+      "name": "Dimenzije madraca",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12268,
+      "name": "Tip hranilice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12269,
+      "name": "Materijal flašice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12270,
+      "name": "Veličina cucle",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12271,
+      "name": "Veličina pelena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12272,
+      "name": "Vrsta izdajalice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12273,
+      "name": "Tip nosiljke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12274,
+      "name": "Položaj nošenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12275,
+      "name": "Tehnologija monitora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12276,
+      "name": "Funkcije ležaljke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12277,
+      "name": "Tip kadice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12278,
+      "name": "Materijal posteljine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12279,
+      "name": "Vrsta uređaja bebe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12280,
+      "name": "Kapacitet sterilizatora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12281,
+      "name": "Tip torbe bebe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12282,
+      "name": "Spol bebe oprema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12283,
+      "name": "Tip proizvodnje hrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ubereats",
+      "reason": "kw:hrana"
+    },
+    {
+      "id": 12284,
+      "name": "Porijeklo mlijeka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12285,
+      "name": "Ishrana oznake",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ubereats",
+      "reason": "kw:hrana"
+    },
+    {
+      "id": 12286,
+      "name": "Stanje sira",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 12287,
+      "name": "Vrsta mesa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12288,
+      "name": "Način konzerviranja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12289,
+      "name": "Vrsta meda",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12290,
+      "name": "Neto težina (g/kg)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12291,
+      "name": "Zapremina (ml/l)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12292,
+      "name": "Udio alkohola (%)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "studio3t",
+      "reason": "simple-sub:udio"
+    },
+    {
+      "id": 12293,
+      "name": "Vrsta vina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12294,
+      "name": "Vrsta rakije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12295,
+      "name": "Godina berbe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12296,
+      "name": "Vrsta piva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12297,
+      "name": "Vrsta kafe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12298,
+      "name": "Prženje kafe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12299,
+      "name": "Oblik čaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12300,
+      "name": "Dobijanje ulja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12301,
+      "name": "Ljutina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12302,
+      "name": "Vrsta začina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12303,
+      "name": "Udio kakaa (%)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "studio3t",
+      "reason": "simple-sub:udio"
+    },
+    {
+      "id": 12304,
+      "name": "Vrsta čokolade",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12305,
+      "name": "Ambalaža",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12306,
+      "name": "Namjena poklona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12307,
+      "name": "Napomene za čuvanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12308,
+      "name": "Porijeklo sirovine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12309,
+      "name": "Broj ulaznica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12310,
+      "name": "Datum događaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nintendogamecube",
+      "reason": "simple-sub:doga"
+    },
+    {
+      "id": 12311,
+      "name": "Vrsta ulaznice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12312,
+      "name": "Zona / Sektor",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazonalexa",
+      "reason": "simple-sub:zona"
+    },
+    {
+      "id": 12313,
+      "name": "Format projekcije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "informatica",
+      "reason": "simple-sub:format"
+    },
+    {
+      "id": 12314,
+      "name": "Lokacija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12315,
+      "name": "Sjedišta spojena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12316,
+      "name": "Red i broj sjedišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "red",
+      "reason": "token-exact:red"
+    },
+    {
+      "id": 12317,
+      "name": "Način preuzimanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12318,
+      "name": "VIP Pogodnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12319,
+      "name": "Naziv takmičenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12320,
+      "name": "Starost predmeta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12321,
+      "name": "Stil namještaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12322,
+      "name": "Materijal namještaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12323,
+      "name": "Tehnika umjetnine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nvidia",
+      "reason": "kw:tehnika"
+    },
+    {
+      "id": 12324,
+      "name": "Potpis autora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12325,
+      "name": "Vrsta keramike/stakla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12326,
+      "name": "Materijal predmeta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12327,
+      "name": "Ispravnost uređaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12328,
+      "name": "Pogon gramofona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12329,
+      "name": "Brzina ploče",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12330,
+      "name": "Pismo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12331,
+      "name": "Vrsta uveza",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12332,
+      "name": "Porijeklo motiva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12333,
+      "name": "Način izrade",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12334,
+      "name": "Raspored tastature",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12335,
+      "name": "Certifikat",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12336,
+      "name": "Geografsko porijeklo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12337,
+      "name": "Dimenzije (cm)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12338,
+      "name": "Očuvanost (Numizmatika)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12339,
+      "name": "Očuvanost (Filatelija)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12340,
+      "name": "Očuvanost (Opšta)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "stopstalk",
+      "reason": "simple-sub:opsta"
+    },
+    {
+      "id": 12341,
+      "name": "Originalnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12342,
+      "name": "Historijski period",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12343,
+      "name": "Vrsta materijala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12344,
+      "name": "Mjerilo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12345,
+      "name": "Stanje makete",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 12346,
+      "name": "Tema kolekcije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "minutemailer",
+      "reason": "simple-sub:tema"
+    },
+    {
+      "id": 12347,
+      "name": "Popunjenost albuma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12348,
+      "name": "Izdavač",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12349,
+      "name": "Status razglednice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "instatus",
+      "reason": "simple-sub:status"
+    },
+    {
+      "id": 12350,
+      "name": "Nominalna vrijednost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12351,
+      "name": "Država porijekla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12352,
+      "name": "Godina izdanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12353,
+      "name": "Vrsta uveza (Stripovi)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12354,
+      "name": "Certifikat autentičnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12355,
+      "name": "Tehnika slikanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "nvidia",
+      "reason": "kw:tehnika"
+    },
+    {
+      "id": 12356,
+      "name": "Format",
+      "icon_prefix": "simple-icons",
+      "icon_key": "informatica",
+      "reason": "simple-sub:format"
+    },
+    {
+      "id": 12357,
+      "name": "Uramljeno",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12358,
+      "name": "Originalnost djela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12359,
+      "name": "Materijal skulpture",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12360,
+      "name": "Motiv",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12361,
+      "name": "Dimenzije (cm)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12362,
+      "name": "Godina nastanka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 12363,
+      "name": "Vrsta digitalnog fajla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12364,
+      "name": "Rezolucija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12365,
+      "name": "Licenca",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12366,
+      "name": "Materijal rama",
+      "icon_prefix": "simple-icons",
+      "icon_key": "castorama",
+      "reason": "simple-sub:rama"
+    },
+    {
+      "id": 12367,
+      "name": "Vrsta stakla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12368,
+      "name": "Tip tattoo mašinice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12369,
+      "name": "Namjena mašinice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12370,
+      "name": "Hod igle",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12371,
+      "name": "Priključak",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12372,
+      "name": "Tip igle",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12373,
+      "name": "Konfiguracija igle",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12374,
+      "name": "Debljina igle",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12375,
+      "name": "Broj igala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12376,
+      "name": "Sterilno pakovanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12377,
+      "name": "Boja tinte",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12378,
+      "name": "Zapremina (ml)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12379,
+      "name": "REACH Certifikat",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12380,
+      "name": "Materijal nakita",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12381,
+      "name": "Debljina pirsinga",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12382,
+      "name": "Tip navoja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12383,
+      "name": "Potpis autora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12384,
+      "name": "Vrsta uveza knjige",
+      "icon_prefix": "simple-icons",
+      "icon_key": "goodreads",
+      "reason": "kw:knjige"
+    },
+    {
+      "id": 12385,
+      "name": "Pismo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12386,
+      "name": "Jezik izdanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12387,
+      "name": "Autor",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12388,
+      "name": "Broj stranica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12389,
+      "name": "Obrazovni nivo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12390,
+      "name": "Vrsta stripa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12391,
+      "name": "Boja stripa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12392,
+      "name": "Format fajla (E-knjige)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "goodreads",
+      "reason": "kw:knjige"
+    },
+    {
+      "id": 12393,
+      "name": "Format audio knjige",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "kw:audio"
+    },
+    {
+      "id": 12394,
+      "name": "Posebne karakteristike",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12395,
+      "name": "Periodika izlaženja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12396,
+      "name": "Vrsta kuharice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12397,
+      "name": "Stanje pribora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 12398,
+      "name": "Vrsta priručnika",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12399,
+      "name": "Žanr književnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12400,
+      "name": "Originalni naziv",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12401,
+      "name": "ISBN",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12402,
+      "name": "Konfiguracija magneta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12403,
+      "name": "Broj žica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12404,
+      "name": "Oblik gitare",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12405,
+      "name": "Materijal tijela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12406,
+      "name": "Broj tipki",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12407,
+      "name": "Tip mehanike",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12408,
+      "name": "Broj dijelova seta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "setapp",
+      "reason": "simple-sub:seta"
+    },
+    {
+      "id": 12409,
+      "name": "Promjer (Inči)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "davinciresolve",
+      "reason": "simple-sub:inci"
+    },
+    {
+      "id": 12410,
+      "name": "Tip mikrofona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12411,
+      "name": "Snaga (RMS W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12412,
+      "name": "Veličina zvučnika (Inči)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "sonos",
+      "reason": "kw:zvucnik"
+    },
+    {
+      "id": 12413,
+      "name": "Impedansa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12414,
+      "name": "Vrsta efekta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12415,
+      "name": "Broj kanala",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12416,
+      "name": "Konekcija interfejsa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12417,
+      "name": "Tip konektora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12418,
+      "name": "Dužina kabla (m)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12419,
+      "name": "Pogon gramofona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12420,
+      "name": "Vrsta sistema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12421,
+      "name": "Debljina trzalice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12422,
+      "name": "Debljina žica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12423,
+      "name": "Materijal izrade",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12424,
+      "name": "Vrsta presvlake",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12425,
+      "name": "Oblik namještaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12426,
+      "name": "Funkcije namještaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12427,
+      "name": "Dimenzije (ŠxDxV)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12428,
+      "name": "Energetski razred",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12429,
+      "name": "Vrsta grijanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12430,
+      "name": "Kapacitet grijanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12431,
+      "name": "Inverter",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12432,
+      "name": "Površina djelovanja (m2)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12433,
+      "name": "Montaža sanitarija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12434,
+      "name": "Vrsta tuš sistema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12435,
+      "name": "Vrsta alata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "bosch",
+      "reason": "kw:alat"
+    },
+    {
+      "id": 12436,
+      "name": "Napon baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12437,
+      "name": "Tip motora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12438,
+      "name": "Prihvat alata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "bosch",
+      "reason": "kw:alat"
+    },
+    {
+      "id": 12439,
+      "name": "Promjer ploče (mm)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12440,
+      "name": "Građevinski materijal",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12441,
+      "name": "Debljina izolacije (cm)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12442,
+      "name": "Vrsta stolarije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12443,
+      "name": "Broj komora (PVC)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12444,
+      "name": "Vrsta stakla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12445,
+      "name": "Grlo sijalice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12446,
+      "name": "Boja svjetlosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12447,
+      "name": "IP Zaštita",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12448,
+      "name": "Oblik tepiha",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12449,
+      "name": "Visina flora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12450,
+      "name": "Klasa laminata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12451,
+      "name": "Smart Home protokol",
+      "icon_prefix": "simple-icons",
+      "icon_key": "smart",
+      "reason": "token-exact:smart"
+    },
+    {
+      "id": 12452,
+      "name": "Glasovni asistent",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12453,
+      "name": "Snaga panela (W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12454,
+      "name": "Tip solarnog sistema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12455,
+      "name": "Kapacitet baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12456,
+      "name": "Rezolucija kamere",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12457,
+      "name": "Povezivanje kamere",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12458,
+      "name": "Vrsta boje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12459,
+      "name": "Baza boje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12460,
+      "name": "Namjena ljepila",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12461,
+      "name": "Tip bazena",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12462,
+      "name": "Kapacitet pumpe (l/h)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12463,
+      "name": "Životni ciklus biljke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12464,
+      "name": "Svjetlost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12465,
+      "name": "Pakovanje količina",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12466,
+      "name": "Vrsta tkanine",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12467,
+      "name": "Vrsta zavjese",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12468,
+      "name": "Platforma",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12469,
+      "name": "Model PlayStation",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 12470,
+      "name": "Model Xbox",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 12471,
+      "name": "Model Nintendo",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 12472,
+      "name": "Kapacitet pohrane",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12473,
+      "name": "Format igre",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "kw:igre"
+    },
+    {
+      "id": 12474,
+      "name": "Žanr igre",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "kw:igre"
+    },
+    {
+      "id": 12475,
+      "name": "Regija aktivacije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12476,
+      "name": "Tip kontrolera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12477,
+      "name": "Proizvođač opreme",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12478,
+      "name": "Vrsta memorije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12479,
+      "name": "Povezivanje slušalica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12480,
+      "name": "Stanje konzole",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 12481,
+      "name": "Broj kontrolera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12482,
+      "name": "PEGI Oznaka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12483,
+      "name": "Način isporuke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12484,
+      "name": "Vrijednost dopune",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12485,
+      "name": "Valuta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12486,
+      "name": "Vrsta usluge",
+      "icon_prefix": "simple-icons",
+      "icon_key": "fiverr",
+      "reason": "kw:usluge"
+    },
+    {
+      "id": 12487,
+      "name": "VR Kompatibilnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12488,
+      "name": "Podržana rezolucija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12489,
+      "name": "Posebna izdanja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12490,
+      "name": "Rezolucija ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12491,
+      "name": "Tehnologija ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12492,
+      "name": "Dijagonala (inči)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "davinciresolve",
+      "reason": "simple-sub:inci"
+    },
+    {
+      "id": 12493,
+      "name": "Smart TV OS",
+      "icon_prefix": "simple-icons",
+      "icon_key": "smart",
+      "reason": "token-exact:smart"
+    },
+    {
+      "id": 12494,
+      "name": "Osvježavanje ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12495,
+      "name": "Energetski razred",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12496,
+      "name": "Zapremina (L)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12497,
+      "name": "Vrsta frižidera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12498,
+      "name": "Kapacitet (kg)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12499,
+      "name": "Centrifuga (RPM)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12500,
+      "name": "Vrsta ploče",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12501,
+      "name": "Broj kompleta posuđa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12502,
+      "name": "Vrsta WC šolje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12503,
+      "name": "Vrsta vodokotlića",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12504,
+      "name": "Tip drona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12505,
+      "name": "Težina drona",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12506,
+      "name": "Domet leta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "googletasks",
+      "reason": "simple-sub:leta"
+    },
+    {
+      "id": 12507,
+      "name": "Vrijeme leta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "googletasks",
+      "reason": "simple-sub:leta"
+    },
+    {
+      "id": 12508,
+      "name": "Broj okidanja (Shutter)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "shutterstock",
+      "reason": "simple-sub:shutter"
+    },
+    {
+      "id": 12509,
+      "name": "Veličina senzora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12510,
+      "name": "Tip objektiva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12511,
+      "name": "Efektivni pikseli (MP)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12512,
+      "name": "Optički zum",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12513,
+      "name": "Tip audio sistema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "kw:audio"
+    },
+    {
+      "id": 12514,
+      "name": "Snaga (RMS W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12515,
+      "name": "Impedansa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12516,
+      "name": "Povezivanje zvuka",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12517,
+      "name": "Vrsta slušalica",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12518,
+      "name": "Tip e-cigarete",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12519,
+      "name": "Kapacitet tanka (ml)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12520,
+      "name": "Otpor grijača",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12521,
+      "name": "Tip baterije (Vape)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12522,
+      "name": "Nikotin (mg/ml)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "mg",
+      "reason": "token-exact:mg"
+    },
+    {
+      "id": 12523,
+      "name": "Napon sistema",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12524,
+      "name": "Tip akumulatora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12525,
+      "name": "Tip invertora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12526,
+      "name": "Kapacitet (mAh/Ah)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12527,
+      "name": "Veličina baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12528,
+      "name": "Mjerni opseg",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12529,
+      "name": "Tip teleskopa",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12530,
+      "name": "Uvećanje (x)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12531,
+      "name": "Promjer objektiva (mm)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12532,
+      "name": "Frekvencijski opseg",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12533,
+      "name": "Snaga predajnika (W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12534,
+      "name": "Tip licence",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12535,
+      "name": "Vrsta kabla",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12536,
+      "name": "Maksimalna brzina (km/h)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12537,
+      "name": "Snaga motora (W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12538,
+      "name": "Nosivost (kg)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12539,
+      "name": "Veličina točkova (inči)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "davinciresolve",
+      "reason": "simple-sub:inci"
+    },
+    {
+      "id": 12540,
+      "name": "Rezolucija VR (po oku)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12541,
+      "name": "Vrsta VR praćenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12542,
+      "name": "Proizvođač procesora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12543,
+      "name": "Serija procesora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12544,
+      "name": "Generacija procesora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12545,
+      "name": "Broj jezgri",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12546,
+      "name": "Podnožje (Socket)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "socket",
+      "reason": "token-exact:socket"
+    },
+    {
+      "id": 12547,
+      "name": "Format matične ploče",
+      "icon_prefix": "simple-icons",
+      "icon_key": "informatica",
+      "reason": "simple-sub:format"
+    },
+    {
+      "id": 12548,
+      "name": "Čipset",
+      "icon_prefix": "simple-icons",
+      "icon_key": "github",
+      "reason": "fallback"
+    },
+    {
+      "id": 12549,
+      "name": "Tip RAM-a",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ram",
+      "reason": "token-exact:ram"
+    },
+    {
+      "id": 12550,
+      "name": "Kapacitet RAM-a",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ram",
+      "reason": "token-exact:ram"
+    },
+    {
+      "id": 12551,
+      "name": "Brzina RAM-a (MHz)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ram",
+      "reason": "token-exact:ram"
+    },
+    {
+      "id": 12552,
+      "name": "Broj RAM modula",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ram",
+      "reason": "token-exact:ram"
+    },
+    {
+      "id": 12553,
+      "name": "Tip grafike",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12554,
+      "name": "Model grafike",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 12555,
+      "name": "VRAM memorija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12556,
+      "name": "Tip pohrane",
+      "icon_prefix": "simple-icons",
+      "icon_key": "youtube",
+      "reason": "fallback"
+    },
+    {
+      "id": 12557,
+      "name": "Kapacitet diska",
+      "icon_prefix": "simple-icons",
+      "icon_key": "notion",
+      "reason": "fallback"
+    },
+    {
+      "id": 12558,
+      "name": "Interfejs diska",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12559,
+      "name": "Dijagonala ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12560,
+      "name": "Rezolucija monitora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12561,
+      "name": "Osvježavanje (Hz)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12562,
+      "name": "Tip panela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12563,
+      "name": "Operativni sistem",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12564,
+      "name": "Snaga napajanja (W)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12565,
+      "name": "Certifikat efikasnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12566,
+      "name": "Modularnost",
+      "icon_prefix": "simple-icons",
+      "icon_key": "simpleicons",
+      "reason": "fallback"
+    },
+    {
+      "id": 12567,
+      "name": "Format kućišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "informatica",
+      "reason": "simple-sub:format"
+    },
+    {
+      "id": 12568,
+      "name": "Hlađenje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12569,
+      "name": "Radijator / Ventilator",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12570,
+      "name": "Slova na tastaturi",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12571,
+      "name": "Tip tastature",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12572,
+      "name": "Veličina tastature",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12573,
+      "name": "Vrsta svičeva",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12574,
+      "name": "Povezivanje periferije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12575,
+      "name": "DPI miša",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12576,
+      "name": "Senzor miša",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12577,
+      "name": "Tip zvuka slušalice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "sennheiser",
+      "reason": "kw:slusalice"
+    },
+    {
+      "id": 12578,
+      "name": "Mikrofon",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12579,
+      "name": "Tip mrežnog uređaja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12580,
+      "name": "Wi-Fi Standard",
+      "icon_prefix": "simple-icons",
+      "icon_key": "homeassistant",
+      "reason": "kw:stan"
+    },
+    {
+      "id": 12581,
+      "name": "Brzina LAN-a",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12582,
+      "name": "Broj portova",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12583,
+      "name": "PoE podrška",
+      "icon_prefix": "simple-icons",
+      "icon_key": "poe",
+      "reason": "token-exact:poe"
+    },
+    {
+      "id": 12584,
+      "name": "Licenca softvera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12585,
+      "name": "Isporuka softvera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12586,
+      "name": "Namjena servera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12587,
+      "name": "Forma servera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "informatica",
+      "reason": "simple-sub:forma"
+    },
+    {
+      "id": 12588,
+      "name": "Broj procesora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12589,
+      "name": "Redundantno napajanje",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12590,
+      "name": "Kapacitet UPS-a",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ups",
+      "reason": "token-exact:ups"
+    },
+    {
+      "id": 12591,
+      "name": "Topologija UPS-a",
+      "icon_prefix": "simple-icons",
+      "icon_key": "ups",
+      "reason": "token-exact:ups"
+    },
+    {
+      "id": 12592,
+      "name": "Rezolucija webcam",
+      "icon_prefix": "simple-icons",
+      "icon_key": "apple",
+      "reason": "fallback"
+    },
+    {
+      "id": 12593,
+      "name": "Veličina torbe",
+      "icon_prefix": "simple-icons",
+      "icon_key": "figma",
+      "reason": "fallback"
+    },
+    {
+      "id": 12594,
+      "name": "Operativni sistem mobitela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:mobitel"
+    },
+    {
+      "id": 12595,
+      "name": "Veličina ekrana mobitela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:mobitel"
+    },
+    {
+      "id": 12596,
+      "name": "Interna memorija",
+      "icon_prefix": "simple-icons",
+      "icon_key": "rotaryinternational",
+      "reason": "simple-sub:interna"
+    },
+    {
+      "id": 12597,
+      "name": "RAM memorija mobitela",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "kw:mobitel"
+    },
+    {
+      "id": 12598,
+      "name": "SIM Slot",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12599,
+      "name": "Mreža",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12600,
+      "name": "Kapacitet baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12601,
+      "name": "Zdravlje baterije",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12602,
+      "name": "Tip ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12603,
+      "name": "Osvježavanje ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "android",
+      "reason": "fallback"
+    },
+    {
+      "id": 12604,
+      "name": "Glavna kamera",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12605,
+      "name": "Otključan (Sim Free)",
+      "icon_prefix": "simple-icons",
+      "icon_key": "freebsd",
+      "reason": "simple-sub:free"
+    },
+    {
+      "id": 12606,
+      "name": "Boja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12607,
+      "name": "Kompatibilnost sata",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12608,
+      "name": "Tip narukvice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12609,
+      "name": "Veličina kućišta",
+      "icon_prefix": "simple-icons",
+      "icon_key": "adobe",
+      "reason": "fallback"
+    },
+    {
+      "id": 12610,
+      "name": "Tip konektora",
+      "icon_prefix": "simple-icons",
+      "icon_key": "steam",
+      "reason": "fallback"
+    },
+    {
+      "id": 12611,
+      "name": "Snaga punjenja",
+      "icon_prefix": "simple-icons",
+      "icon_key": "cloudflare",
+      "reason": "fallback"
+    },
+    {
+      "id": 12612,
+      "name": "Kapacitet Powerbank",
+      "icon_prefix": "simple-icons",
+      "icon_key": "amazon",
+      "reason": "fallback"
+    },
+    {
+      "id": 12613,
+      "name": "Tip memorijske kartice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "digitalocean",
+      "reason": "fallback"
+    },
+    {
+      "id": 12614,
+      "name": "Brzina kartice",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12615,
+      "name": "Tip zaštite ekrana",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    },
+    {
+      "id": 12616,
+      "name": "Model kompatibilnosti",
+      "icon_prefix": "simple-icons",
+      "icon_key": "modrinth",
+      "reason": "kw:model"
+    },
+    {
+      "id": 12617,
+      "name": "Vrsta futrole",
+      "icon_prefix": "simple-icons",
+      "icon_key": "spotify",
+      "reason": "fallback"
+    },
+    {
+      "id": 12618,
+      "name": "ANC Poništavanje buke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "microsoft",
+      "reason": "fallback"
+    },
+    {
+      "id": 12619,
+      "name": "Tip olovke",
+      "icon_prefix": "simple-icons",
+      "icon_key": "google",
+      "reason": "fallback"
+    }
+  ]
+}

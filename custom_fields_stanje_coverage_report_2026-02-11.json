@@ -1,0 +1,742 @@
+{
+  "generated_at": "2026-02-11T13:17:28.279Z",
+  "totals": {
+    "categories": 2634,
+    "active_categories": 2603,
+    "leaves": 2378,
+    "active_leaves": 2347
+  },
+  "stanje_oglasa": {
+    "id": 11599,
+    "name": "Stanje oglasa",
+    "mapped_categories": 988,
+    "missing_all_count": 1646,
+    "missing_active_count": 1639,
+    "missing_leaves_count": 1480,
+    "missing_active_leaves_count": 1473,
+    "sample_missing_all": [
+      {
+        "id": 11,
+        "name": "Sport i rekreacija",
+        "parent_category_id": null,
+        "status": 1
+      },
+      {
+        "id": 12,
+        "name": "Ostalo",
+        "parent_category_id": null,
+        "status": 1
+      },
+      {
+        "id": 77,
+        "name": "Mobiteli",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 78,
+        "name": "Tableti",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 79,
+        "name": "Pametni satovi",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 80,
+        "name": "Bluetooth uređaji i dodaci",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 81,
+        "name": "Dijelovi i oprema za telefone i tablete",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 82,
+        "name": "PDA i Pocket PC uređaji",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 83,
+        "name": "eBook readeri",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 84,
+        "name": "Ostalo",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 85,
+        "name": "Borilački sportovi",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 86,
+        "name": "Ekstremni sportovi",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 87,
+        "name": "Fitness i trening",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 88,
+        "name": "Planinarenje i alpinizam",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 89,
+        "name": "Tenis i raketni sportovi",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 90,
+        "name": "Timski sportovi",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 91,
+        "name": "Vanjski sportovi",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 92,
+        "name": "Vodeni sportovi",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 93,
+        "name": "Zimski sportovi",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 94,
+        "name": "Oprema za ostalo",
+        "parent_category_id": 11,
+        "status": 1
+      },
+      {
+        "id": 95,
+        "name": "Njega kože i tijela",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 96,
+        "name": "Njega kose i brade",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 97,
+        "name": "Njega noktiju i manikura",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 98,
+        "name": "Oralna higijena",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 99,
+        "name": "Šminka i kozmetika",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 100,
+        "name": "Parfemi i mirisi",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 101,
+        "name": "Naočale i optička oprema",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 102,
+        "name": "Umjetne trepavice i dodatna kozmetika",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 103,
+        "name": "Zdravlje i wellness proizvodi",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 104,
+        "name": "Zaštitne maske i rukavice",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 105,
+        "name": "Ostalo",
+        "parent_category_id": 9,
+        "status": 1
+      },
+      {
+        "id": 106,
+        "name": "Mašine i alati",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 107,
+        "name": "Poljoprivredna oprema i mehanizacija",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 108,
+        "name": "Građevinska oprema i alati",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 109,
+        "name": "Poslovna oprema i biznis rješenja",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 110,
+        "name": "Ulja, maziva i boje",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 111,
+        "name": "Aparati i varilice za pakovanje",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 112,
+        "name": "Rashladne i toplotne vitrine",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 113,
+        "name": "Industrijske grijalice i toplotni topovi",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 114,
+        "name": "Kancelarijski materijal i namještaj",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 115,
+        "name": "Materijali, dijelovi i industrijska oprema",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 116,
+        "name": "Oprema za pakovanje",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 117,
+        "name": "Zaštitna oprema i sigurnost na radu",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 118,
+        "name": "Selotejp i industrijske trake",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 119,
+        "name": "Trgovačka i prodajna oprema",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 120,
+        "name": "Ugostiteljska oprema",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 121,
+        "name": "Ostalo",
+        "parent_category_id": 10,
+        "status": 1
+      },
+      {
+        "id": 122,
+        "name": "Bebe",
+        "parent_category_id": null,
+        "status": 1
+      },
+      {
+        "id": 124,
+        "name": "Autosjedalice za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 125,
+        "name": "Flašice i cucle",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 126,
+        "name": "Gnijezda i jastučići za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 127,
+        "name": "Hodalice i guralice za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 128,
+        "name": "Hranilice i pribor za hranjenje",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 129,
+        "name": "Igračke za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 130,
+        "name": "Igraonice i podloge za igru",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 131,
+        "name": "Izdajalice i oprema za dojenje",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 132,
+        "name": "Dekice i pokrivači za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 133,
+        "name": "Kadice i kupaonska oprema",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 134,
+        "name": "Kolica za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 135,
+        "name": "Krevetići i ogradice za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      }
+    ],
+    "sample_missing_active_leaves": [
+      {
+        "id": 77,
+        "name": "Mobiteli",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 78,
+        "name": "Tableti",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 79,
+        "name": "Pametni satovi",
+        "parent_category_id": 8,
+        "status": 1
+      },
+      {
+        "id": 124,
+        "name": "Autosjedalice za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 125,
+        "name": "Flašice i cucle",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 126,
+        "name": "Gnijezda i jastučići za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 127,
+        "name": "Hodalice i guralice za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 128,
+        "name": "Hranilice i pribor za hranjenje",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 129,
+        "name": "Igračke za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 130,
+        "name": "Igraonice i podloge za igru",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 131,
+        "name": "Izdajalice i oprema za dojenje",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 132,
+        "name": "Dekice i pokrivači za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 133,
+        "name": "Kadice i kupaonska oprema",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 134,
+        "name": "Kolica za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 135,
+        "name": "Krevetići i ogradice za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 136,
+        "name": "Ležaljke i sjedalice za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 137,
+        "name": "Ljulje i viseće kolijevke",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 138,
+        "name": "Monitori i baby kamere",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 139,
+        "name": "Nosiljke i marame za nošenje",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 140,
+        "name": "Noše i potty oprema",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 141,
+        "name": "Njega i higijena za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 142,
+        "name": "Pelene i potrošni materijal",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 143,
+        "name": "Podloge i prostirke za presvlačenje",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 144,
+        "name": "Posteljina i ogradice za krevet",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 145,
+        "name": "Siperci i podbradnici",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 146,
+        "name": "Torbe za mame i bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 147,
+        "name": "Uređaji i pribor za bebe",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 148,
+        "name": "Ostalo",
+        "parent_category_id": 122,
+        "status": 1
+      },
+      {
+        "id": 165,
+        "name": "Ostalo",
+        "parent_category_id": 160,
+        "status": 1
+      },
+      {
+        "id": 190,
+        "name": "Filatelija",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 191,
+        "name": "Maketarstvo i modelarstvo",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 192,
+        "name": "Militarija i vojni predmeti",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 193,
+        "name": "Numizmatika",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 194,
+        "name": "Figurice i statue",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 195,
+        "name": "Plakete i medalje",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 196,
+        "name": "Razglednice i čestitke",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 197,
+        "name": "Religijski predmeti i ikonografija",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 198,
+        "name": "Salvete i suvenir papirni materijal",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 199,
+        "name": "Sličice i albumi",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 200,
+        "name": "Sportski pehari i oznake",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 201,
+        "name": "Stare ulaznice i memorabilije",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 202,
+        "name": "Suveniri",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 203,
+        "name": "Tablice za vozila",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 204,
+        "name": "Telefonske kartice",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 205,
+        "name": "Zastave i zastavice",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 206,
+        "name": "Značke i bedževi",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 207,
+        "name": "Žetoni i tokeni",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 208,
+        "name": "Ostalo kolekcionarstvo",
+        "parent_category_id": 189,
+        "status": 1
+      },
+      {
+        "id": 210,
+        "name": "Gramofoni i ploče",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 211,
+        "name": "Antik keramika i staklo",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 212,
+        "name": "Knjige i dokumenti",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 213,
+        "name": "Antik predmeti, pribor i oprema",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 214,
+        "name": "Antik nakit i satovi",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 215,
+        "name": "Antik namještaj",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 216,
+        "name": "Pisaće mašine",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 217,
+        "name": "Narodna nošnja i tekstil",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 218,
+        "name": "Ponjave i dekorativni tkanini predmeti",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 219,
+        "name": "Antik predmeti od metala",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 220,
+        "name": "Antik slike, gobleni i umjetnički predmeti",
+        "parent_category_id": 209,
+        "status": 1
+      },
+      {
+        "id": 221,
+        "name": "Antik uređaji i aparati",
+        "parent_category_id": 209,
+        "status": 1
+      }
+    ]
+  }
+}

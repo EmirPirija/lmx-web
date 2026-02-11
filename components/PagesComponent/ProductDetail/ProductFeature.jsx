@@ -4,10 +4,13 @@ import { MdOpenInNew, MdOutlineAttachFile, MdVisibility, MdTag, MdSettings } fro
 import { isPdf } from "@/utils/index";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
+import CustomFieldSemanticIcon from "@/components/Common/CustomFieldSemanticIcon";
 import { cn } from "@/lib/utils";
 
 const ProductFeature = ({ filteredFields, productDetails }) => {
   if (!filteredFields || filteredFields.length === 0) return null;
+
+  const getFieldLabel = (field) => field?.translated_name || field?.name || "Polje";
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -120,9 +123,15 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
               {filteredFields.map((feature, index) => {
                 const isCheckbox = feature.type === 'checkbox';
+                const fieldLabel = getFieldLabel(feature);
                 return (
                   <div key={index} className={`flex ${isCheckbox ? 'flex-col gap-2 pt-2 pb-4' : 'items-center justify-between py-3.5'} border-b border-slate-100 dark:border-slate-800 last:border-b-0 ${isCheckbox ? 'md:col-span-2' : ''}`}>
-                    <span className="text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">{feature?.translated_name || feature?.name}</span>
+                    <span className="inline-flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#0ab6af]/25 bg-[#dadad5]/35 p-1 dark:border-[#0ab6af]/30 dark:bg-[#dadad5]/15">
+                        <CustomFieldSemanticIcon fieldLabel={fieldLabel} className="w-[17px] h-[17px]" />
+                      </span>
+                      <span>{fieldLabel}</span>
+                    </span>
                     <div className={cn(isCheckbox ? 'w-full mt-1' : 'text-right')}>{renderValue(feature)}</div>
                   </div>
                 );

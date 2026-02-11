@@ -1,0 +1,186 @@
+{
+  "generated_at": "2026-02-11T13:28:01.199Z",
+  "categories_total": 2634,
+  "missing_icon_path_count": 0,
+  "usage": {
+    "carprofile": 36,
+    "buildingapartment": 49,
+    "devicemobile": 61,
+    "laptop": 64,
+    "acorn": 483,
+    "gamecontroller": 46,
+    "housesimple": 76,
+    "speakerhigh": 162,
+    "books": 85,
+    "televisionsimple": 154,
+    "ticket": 12,
+    "forkknife": 203,
+    "puzzlepiece": 92,
+    "watch": 29,
+    "sneaker": 235,
+    "barbell": 81,
+    "pawprint": 28,
+    "toolbox": 19,
+    "bus": 5,
+    "motorcycle": 28,
+    "truck": 2,
+    "bicycle": 4,
+    "cat": 11,
+    "airplane": 93,
+    "camera": 36,
+    "plugsconnected": 79,
+    "stethoscope": 22,
+    "bird": 23,
+    "drone": 17,
+    "eyeglasses": 19,
+    "factory": 24,
+    "wrench": 33,
+    "tractor": 8,
+    "package": 15,
+    "couch": 23,
+    "storefront": 10,
+    "gift": 2,
+    "dog": 2,
+    "fish": 4,
+    "cookingpot": 34,
+    "horse": 2,
+    "phonecall": 1,
+    "handbag": 13,
+    "microphonestage": 4,
+    "lightning": 15,
+    "headphones": 9,
+    "cpu": 2,
+    "printer": 3,
+    "memory": 39,
+    "desktoptower": 2,
+    "lamp": 13,
+    "shirtfolded": 8,
+    "snowflake": 8,
+    "compass": 1,
+    "leaf": 6,
+    "diamond": 12,
+    "globe": 1,
+    "megaphone": 1,
+    "paintroller": 3,
+    "bed": 5,
+    "bathtub": 6,
+    "filmslate": 4,
+    "robot": 2,
+    "farm": 1,
+    "boat": 4,
+    "chefhat": 9,
+    "needle": 12,
+    "bell": 6,
+    "pottedplant": 3,
+    "fan": 1,
+    "dresser": 2,
+    "toilet": 5,
+    "firstaidkit": 2,
+    "coins": 1,
+    "dress": 3,
+    "pants": 15,
+    "chair": 1
+  },
+  "top_usage": [
+    {
+      "icon": "acorn",
+      "count": 483
+    },
+    {
+      "icon": "sneaker",
+      "count": 235
+    },
+    {
+      "icon": "forkknife",
+      "count": 203
+    },
+    {
+      "icon": "speakerhigh",
+      "count": 162
+    },
+    {
+      "icon": "televisionsimple",
+      "count": 154
+    },
+    {
+      "icon": "airplane",
+      "count": 93
+    },
+    {
+      "icon": "puzzlepiece",
+      "count": 92
+    },
+    {
+      "icon": "books",
+      "count": 85
+    },
+    {
+      "icon": "barbell",
+      "count": 81
+    },
+    {
+      "icon": "plugsconnected",
+      "count": 79
+    },
+    {
+      "icon": "housesimple",
+      "count": 76
+    },
+    {
+      "icon": "laptop",
+      "count": 64
+    },
+    {
+      "icon": "devicemobile",
+      "count": 61
+    },
+    {
+      "icon": "buildingapartment",
+      "count": 49
+    },
+    {
+      "icon": "gamecontroller",
+      "count": 46
+    },
+    {
+      "icon": "memory",
+      "count": 39
+    },
+    {
+      "icon": "carprofile",
+      "count": 36
+    },
+    {
+      "icon": "camera",
+      "count": 36
+    },
+    {
+      "icon": "cookingpot",
+      "count": 34
+    },
+    {
+      "icon": "wrench",
+      "count": 33
+    },
+    {
+      "icon": "watch",
+      "count": 29
+    },
+    {
+      "icon": "pawprint",
+      "count": 28
+    },
+    {
+      "icon": "motorcycle",
+      "count": 28
+    },
+    {
+      "icon": "factory",
+      "count": 24
+    },
+    {
+      "icon": "bird",
+      "count": 23
+    }
+  ]
+}

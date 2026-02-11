@@ -1,0 +1,45 @@
+Category cleanup run: 2026-02-11
+Scope: audio/speaker category simplification (no deletes)
+Backup: /Users/emirpirija/Desktop/lmx-web-local/category_backup_before_cleanup_2026-02-11.json
+
+Branch: Tehnika > Bluetooth i bežični zvučnici (id=43)
+Active now:
+- 2298 Bluetooth zvučnici (slug: bluetooth-zvucnici-prenosni)
+- 2296 Party zvučnici (slug: party-zvucnici)
+- 2295 Pametni zvučnici sa glasovnim asistentom
+- 2301 Soundbar zvučnici (slug: soundbar-zvucnici-bluetooth)
+- 2294 Oprema za bluetooth zvučnike
+Set inactive:
+- 2288, 2289, 2290, 2291, 2292, 2293, 2297, 2299, 2300, 2302, 2303, 2304, 2305
+
+Branch: Tehnika > Kućna kina i sound sistemi (id=46)
+Active now:
+- 2243 Kompletni sistemi kućnog kina
+- 2248 Soundbar sistemi
+- 2247 Sistemi 2.1/5.1/7.1
+- 2250 Subwooferi
+- 2235 AV receiveri i procesori
+- 2239 Dolby Atmos i Surround zvučnici
+- 2242 Oprema i kablovi za kućna kina
+Set inactive:
+- 2236, 2237, 2238, 2240, 2241, 2244, 2245, 2246, 2249, 2251, 2252
+
+Branch: Muzika i audio oprema > Hi-Fi > Zvučnici i soundbarovi (id=535)
+Active now:
+- 573 Hi-Fi zvučnici (slug: hi-fi-zvucnici-main)
+- 575 Hi-Fi soundbar sistemi
+Set inactive:
+- 574 Pasivni zvučnici
+
+Duplicates removed from mobile context:
+Set inactive:
+- 1732 Bluetooth zvučnici (parent 80)
+- 3210 Zvučnik/mikrofon za mobitele (parent 84)
+
+Ordering updated for:
+- id=43 branch
+- id=46 branch
+- id=535 branch
+
+Validation note:
+Backend enforces category name max length 30 chars, so several long names were shortened to complete status updates successfully.

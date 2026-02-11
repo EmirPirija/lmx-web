@@ -1,0 +1,84 @@
+Live categories audit
+Roots: 23
+Total nodes (with loaded subcategories): 2585
+Inactive: 0
+Empty slug: 0
+
+Duplicate names: 75
+- baletanke => ids: 1018, 3845
+- bebe => ids: 122, 3766
+- bluetooth zvučnici => ids: 1732, 584
+- cipele => ids: 1073, 1014, 3804, 3841, 3898
+- dječiji fotoaparati i kamere => ids: 2345, 3015
+- donje rublje => ids: 3800, 3837
+- donji veš => ids: 1061, 1008
+- dukserice => ids: 1047, 3791, 3826, 3888
+- džemperi => ids: 1051, 3792, 3889
+- edukativni posteri i karte => ids: 685, 676
+- elektromaterijal => ids: 861, 862
+- farmerke => ids: 1053, 1003, 3796, 3831, 3892
+- haljine => ids: 1000, 3834, 3868
+- hlače => ids: 3795, 3830, 3891
+- igračke i dodatna oprema => ids: 476, 718
+- igračke za bebe => ids: 129, 3884
+- jakne => ids: 1049, 3869
+- jakne i kaputi => ids: 998, 3793, 3828, 3890
+- kape => ids: 1087, 1024, 3809, 3847, 3903
+- kombinezoni => ids: 1006, 3865
+- košulje => ids: 1046, 3794
+- košulje i bluze => ids: 996, 3829
+- kupaći kostimi => ids: 1010, 3801, 3838, 3896
+- ljetni dodaci => ids: 1104, 1044, 3824, 3863, 3886, 3917
+- majice => ids: 1045, 3790, 3866, 3887
+- majice i topovi => ids: 995, 3825
+- memorijske kartice => ids: 1744, 3934
+- metalne skulpture => ids: 678, 679
+- metronomi i štimeri (tuneri) => ids: 3288, 3258
+- mobiteli => ids: 8, 77
+- modni dodaci => ids: 976, 969, 3770, 3776, 3786
+- multimetri i ispitivači napona => ids: 1967, 2423
+- nakit => ids: 1092, 1021, 3852
+- naočale => ids: 1086, 1023, 3812, 3850, 3906
+- nintendo => ids: 418, 411
+- obuća => ids: 975, 968, 3769, 3775, 3781, 3785
+- odjeća => ids: 974, 967, 3768, 3774, 3780, 3784
+- ostala oprema i dodaci => ids: 2025, 2007
+- ostala solarna oprema => ids: 2119, 3691
+- ostala zaštitna oprema => ids: 2940, 881
+- ostali dijelovi => ids: 391, 428
+- ostalo => ids: 84, 76, 390, 64, 165, 435, 447, 458, 242, 542, 171, 609, 608, 607, 606, 642, 188, 222, 252, 148, 105, 270, 908, 959, 921, 929, 936, 944, 958, 966, 894, 901, 121, 867, 31, 12
+- pantalone => ids: 1052, 1002
+- papuče => ids: 1079, 1017, 3807, 3844, 3901
+- patike => ids: 1072, 1013, 3803, 3840, 3897
+- patike za trening => ids: 1102, 1042, 3822, 3861, 3915
+- pidžame => ids: 1063, 3799, 3836, 3870, 3895
+- playstation => ids: 416, 409
+- retro => ids: 420, 412
+- rukavice => ids: 1090, 1026, 3811, 3849, 3905
+- ruksaci => ids: 1093, 1032, 3815, 3853, 3908
+- sandale => ids: 1077, 1016, 3806, 3843, 3900
+- satovi => ids: 3813, 3907
+- sezonska oprema => ids: 979, 973, 3773, 3779, 3783, 3789
+- sportska obuća => ids: 1083, 1020, 3808, 3846, 3902
+- sportska odjeća => ids: 972, 3772, 3778, 3788
+- sportske jakne => ids: 1100, 1041, 3821, 3860, 3914
+- sportske majice => ids: 1098, 1035, 3818, 3857, 3911
+- sportske torbe => ids: 1094, 1033, 3817, 3855, 3910
+- sportske trenerke => ids: 1037, 3819, 3858, 3912
+- sportski šorcevi => ids: 1101, 1038, 3820, 3859, 3913
+- sredstva za čišćenje ekrana => ids: 3208, 2373
+- suknje => ids: 1001, 3833
+- svečana odjeća => ids: 3802, 3839
+- torbe i ruksaci => ids: 970, 3771, 3777, 3787
+- tradicionalna odjeća => ids: 1068, 1012
+- trenerke => ids: 1056, 1099, 1005, 3798, 3835, 3894
+- usb flash memorije => ids: 3933, 1772
+- xbox => ids: 417, 410
+- zimski setovi => ids: 1103, 1043, 3823, 3862, 3885, 3916
+- čepići za uši i zaštita sluha za muzičare => ids: 3286, 3256
+- čizme => ids: 1075, 1015, 3805, 3842, 3899
+- šalovi => ids: 1089, 1025, 3810, 3848, 3904
+- školske torbe => ids: 3816, 3854, 3909
+- šorcevi => ids: 1054, 1004, 3797, 3832, 3893
+
+Duplicate slugs: 0

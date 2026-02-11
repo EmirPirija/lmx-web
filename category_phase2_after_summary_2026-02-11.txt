@@ -1,0 +1,32 @@
+CATEGORY STATUS AFTER PHASE2
+Generated: 2026-02-11T12:29:52.459Z
+Total categories: 2634
+Active: 2603
+Inactive: 31
+Roots: 24
+
+ROOTS:
+- Vozila [vozila] aktivne podkategorije: 13
+- Nekretnine [nekretnine] aktivne podkategorije: 9
+- Mobiteli [mobiteli-i-oprema] aktivne podkategorije: 8
+- Računari [racunari-i-oprema] aktivne podkategorije: 10
+- Tehnika [tehnika] aktivne podkategorije: 28
+- Video igre i konzole [video-igre-i-konzole] aktivne podkategorije: 14
+- Moj dom [moj-dom] aktivne podkategorije: 25
+- Muzika i audio oprema [muzika-i-audio-oprema] aktivne podkategorije: 8
+- Literatura [literatura] aktivne podkategorije: 8
+- Umjetnost i dekoracija [umjetnost-i-dekoracija] aktivne podkategorije: 10
+- Kolekcionarstvo [kolekcionarstvo] aktivne podkategorije: 19
+- Antikviteti [antikviteti] aktivne podkategorije: 13
+- Karte i ulaznice [karte-i-ulaznice] aktivne podkategorije: 13
+- Hrana i piće [hrana-i-pice] aktivne podkategorije: 9
+- Bebe [bebe] aktivne podkategorije: 25
+- Igre i igračke [igre-i-igracke] aktivne podkategorije: 10
+- Moda i ljepota [moda-i-ljepota] aktivne podkategorije: 11
+- Nakit i satovi [nakit-i-satovi] aktivne podkategorije: 17
+- Odjeća i obuća [odjeca-i-obuca] aktivne podkategorije: 6
+- Sport i rekreacija [sport-i-rekreacija] aktivne podkategorije: 12
+- Biznis i industrija [biznis-i-industrija] aktivne podkategorije: 16
+- Životinje [zivotinje] aktivne podkategorije: 8
+- Ostalo [ostalo] aktivne podkategorije: 23
+- Usluge i servisi [usluge-i-servisi] aktivne podkategorije: 18

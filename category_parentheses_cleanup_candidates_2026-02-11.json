@@ -1,0 +1,3802 @@
+[
+  {
+    "id": 48,
+    "parent": 6,
+    "name": "Virtuelna realnost (VR uređaji)",
+    "new_name": "Virtuelna realnost",
+    "status": 1,
+    "slug": "virtuelna-realnost-vr-uredjaji"
+  },
+  {
+    "id": 79,
+    "parent": 8,
+    "name": "Pametni satovi (Smartwatch)",
+    "new_name": "Pametni satovi",
+    "status": 1,
+    "slug": "pametni-satovi-smartwatch"
+  },
+  {
+    "id": 83,
+    "parent": 8,
+    "name": "eBook readeri (čitači elektronskih knjiga)",
+    "new_name": "eBook readeri",
+    "status": 1,
+    "slug": "ebook-readeri-citai-elektronskih-knjiga"
+  },
+  {
+    "id": 175,
+    "parent": 172,
+    "name": "E-knjige (elektronske knjige)",
+    "new_name": "E-knjige",
+    "status": 1,
+    "slug": "e-knjige-elektronske-knjige"
+  },
+  {
+    "id": 190,
+    "parent": 189,
+    "name": "Filatelija (poštanske marke i zbirke)",
+    "new_name": "Filatelija",
+    "status": 1,
+    "slug": "filatelija-postanske-marke-i-zbirke"
+  },
+  {
+    "id": 193,
+    "parent": 189,
+    "name": "Numizmatika (kovanice i novčanice)",
+    "new_name": "Numizmatika",
+    "status": 1,
+    "slug": "numizmatika-kovanice-i-novanice"
+  },
+  {
+    "id": 240,
+    "parent": 223,
+    "name": "Tekstilni proizvodi (posteljina, zavjese, jastuci)",
+    "new_name": "Tekstilni proizvodi",
+    "status": 1,
+    "slug": "tekstilni-proizvodi-posteljina-zavjese-jastuci"
+  },
+  {
+    "id": 614,
+    "parent": 174,
+    "name": "Beletristika / Romani (audio)",
+    "new_name": "Beletristika/ Romani",
+    "status": 1,
+    "slug": "beletristika-romani-audio"
+  },
+  {
+    "id": 615,
+    "parent": 174,
+    "name": "Stručna literatura (audio)",
+    "new_name": "Stručna literatura",
+    "status": 1,
+    "slug": "strucna-literatura-audio"
+  },
+  {
+    "id": 617,
+    "parent": 174,
+    "name": "Biografije i eseji (audio)",
+    "new_name": "Biografije i eseji",
+    "status": 1,
+    "slug": "biografije-i-eseji-audio"
+  },
+  {
+    "id": 618,
+    "parent": 174,
+    "name": "Self-help i motivacija (audio)",
+    "new_name": "Self-help i motivacija",
+    "status": 1,
+    "slug": "self-help-i-motivacija-audio"
+  },
+  {
+    "id": 709,
+    "parent": 30,
+    "name": "Male životinje (hrčci, zamorci, činčile)",
+    "new_name": "Male životinje",
+    "status": 1,
+    "slug": "male-zivotinje-hrcci-zamorci-cincile"
+  },
+  {
+    "id": 735,
+    "parent": 281,
+    "name": "Detektori (dim, gas, CO2)",
+    "new_name": "Detektori",
+    "status": 1,
+    "slug": "detektori-dim-gas-co2"
+  },
+  {
+    "id": 915,
+    "parent": 87,
+    "name": "Grije (kettlebell) oprema",
+    "new_name": "Grije oprema",
+    "status": 1,
+    "slug": "grije-kettlebell-oprema"
+  },
+  {
+    "id": 1729,
+    "parent": 80,
+    "name": "Bluetooth slušalice (Bubice)",
+    "new_name": "Bluetooth slušalice",
+    "status": 1,
+    "slug": "bluetooth-slusalice-bubice"
+  },
+  {
+    "id": 1730,
+    "parent": 80,
+    "name": "Bluetooth slušalice (Naglavne)",
+    "new_name": "Bluetooth slušalice",
+    "status": 1,
+    "slug": "bluetooth-slusalice-naglavne"
+  },
+  {
+    "id": 1740,
+    "parent": 81,
+    "name": "Držači i stalci (Car & Desk)",
+    "new_name": "Držači i stalci",
+    "status": 1,
+    "slug": "drzaci-i-stalci-car-desk"
+  },
+  {
+    "id": 1741,
+    "parent": 81,
+    "name": "Ekran i staklo (LCD, Touchscreen)",
+    "new_name": "Ekran i staklo",
+    "status": 1,
+    "slug": "ekran-i-staklo-lcd-touchscreen"
+  },
+  {
+    "id": 1745,
+    "parent": 81,
+    "name": "Olovke za tablete (Stylus)",
+    "new_name": "Olovke za tablete",
+    "status": 1,
+    "slug": "olovke-za-tablete-stylus"
+  },
+  {
+    "id": 1747,
+    "parent": 81,
+    "name": "Punjači (Kućni i auto)",
+    "new_name": "Punjači",
+    "status": 1,
+    "slug": "punjaci-kucni-i-auto"
+  },
+  {
+    "id": 1750,
+    "parent": 81,
+    "name": "Vanjske baterije (Power bank)",
+    "new_name": "Vanjske baterije",
+    "status": 1,
+    "slug": "vanjske-baterije-power-bank"
+  },
+  {
+    "id": 1753,
+    "parent": 67,
+    "name": "Čitači kartica (Card readers)",
+    "new_name": "Čitači kartica",
+    "status": 1,
+    "slug": "citaci-kartica-card-readers"
+  },
+  {
+    "id": 1754,
+    "parent": 67,
+    "name": "Čišćenje i održavanje (Sprejevi, krpe)",
+    "new_name": "Čišćenje i održavanje",
+    "status": 1,
+    "slug": "ciscenje-i-odrzavanje-sprejevi-krpe"
+  },
+  {
+    "id": 1755,
+    "parent": 67,
+    "name": "Džojstici i kontroleri (Gaming)",
+    "new_name": "Džojstici i kontroleri",
+    "status": 1,
+    "slug": "dzojstici-i-kontroleri-gaming"
+  },
+  {
+    "id": 1756,
+    "parent": 67,
+    "name": "Eksterni optički uređaji (DVD/Blu-ray)",
+    "new_name": "Eksterni optički uređaji",
+    "status": 1,
+    "slug": "eksterni-opticki-uredaji-dvdblu-ray"
+  },
+  {
+    "id": 1760,
+    "parent": 67,
+    "name": "Kablovi (HDMI, DisplayPort, USB, LAN)",
+    "new_name": "Kablovi",
+    "status": 1,
+    "slug": "kablovi-hdmi-displayport-usb-lan"
+  },
+  {
+    "id": 1767,
+    "parent": 67,
+    "name": "Slušalice (Headsets)",
+    "new_name": "Slušalice",
+    "status": 1,
+    "slug": "slusalice-headsets"
+  },
+  {
+    "id": 1769,
+    "parent": 67,
+    "name": "Tastature i miševi (Setovi)",
+    "new_name": "Tastature i miševi",
+    "status": 1,
+    "slug": "tastature-i-misevi-setovi"
+  },
+  {
+    "id": 1930,
+    "parent": 51,
+    "name": "Inženjerski i naučni (Scientific) kalkulatori",
+    "new_name": "Inženjerski i naučni kalkulatori",
+    "status": 1,
+    "slug": "inzenjerski-i-naucni-scientific-kalkulatori"
+  },
+  {
+    "id": 1931,
+    "parent": 51,
+    "name": "Kalkulatori sa trakom (Stoni printeri)",
+    "new_name": "Kalkulatori sa trakom",
+    "status": 1,
+    "slug": "kalkulatori-sa-trakom-stoni-printeri"
+  },
+  {
+    "id": 1933,
+    "parent": 51,
+    "name": "Kombinovani digitroni (Satovi, lenjiri i sl.)",
+    "new_name": "Kombinovani digitroni",
+    "status": 1,
+    "slug": "kombinovani-digitroni-satovi-lenjiri-i-sl"
+  },
+  {
+    "id": 1938,
+    "parent": 51,
+    "name": "Standardni stoni kalkulatori (Veliki tasteri)",
+    "new_name": "Standardni stoni kalkulatori",
+    "status": 1,
+    "slug": "standardni-stoni-kalkulatori-veliki-tasteri"
+  },
+  {
+    "id": 1948,
+    "parent": 63,
+    "name": "Kablovi i adapteri (HDMI, napajanje)",
+    "new_name": "Kablovi i adapteri",
+    "status": 1,
+    "slug": "kablovi-i-adapteri-hdmi-napajanje"
+  },
+  {
+    "id": 1953,
+    "parent": 63,
+    "name": "Sistemi za bežični prenos slike (Casting)",
+    "new_name": "Sistemi za bežični prenos slike",
+    "status": 1,
+    "slug": "sistemi-za-bezicni-prenos-slike-casting"
+  },
+  {
+    "id": 1954,
+    "parent": 62,
+    "name": "Anemometri (Mjerači brzine vjetra)",
+    "new_name": "Anemometri",
+    "status": 1,
+    "slug": "anemometri-mjeraci-brzine-vjetra"
+  },
+  {
+    "id": 1955,
+    "parent": 62,
+    "name": "Barometri i hidrometri (Vlažnost i pritisak)",
+    "new_name": "Barometri i hidrometri",
+    "status": 1,
+    "slug": "barometri-i-hidrometri-vlaznost-i-pritisak"
+  },
+  {
+    "id": 1957,
+    "parent": 62,
+    "name": "Daljinomeri (Laserski mjerači razdaljine)",
+    "new_name": "Daljinomeri",
+    "status": 1,
+    "slug": "daljinomeri-laserski-mjeraci-razdaljine"
+  },
+  {
+    "id": 1960,
+    "parent": 62,
+    "name": "Higrometri (Mjerači vlažnosti vazduha)",
+    "new_name": "Higrometri",
+    "status": 1,
+    "slug": "higrometri-mjeraci-vlaznosti-vazduha"
+  },
+  {
+    "id": 1964,
+    "parent": 62,
+    "name": "Luxmetri (Mjerači intenziteta svjetlosti)",
+    "new_name": "Luxmetri",
+    "status": 1,
+    "slug": "luxmetri-mjeraci-intenziteta-svjetlosti"
+  },
+  {
+    "id": 1965,
+    "parent": 62,
+    "name": "Medicinski termometri (Toplomjeri)",
+    "new_name": "Medicinski termometri",
+    "status": 1,
+    "slug": "medicinski-termometri-toplomjeri"
+  },
+  {
+    "id": 1966,
+    "parent": 62,
+    "name": "Mjerači kvalitete zraka (CO2, PM čestice)",
+    "new_name": "Mjerači kvalitete zraka",
+    "status": 1,
+    "slug": "mjeraci-kvalitete-zraka-co2-pm-cestice"
+  },
+  {
+    "id": 1970,
+    "parent": 62,
+    "name": "Pribor i oprema (Baterije, sonde, stalci)",
+    "new_name": "Pribor i oprema",
+    "status": 1,
+    "slug": "pribor-i-oprema-baterije-sonde-stalci"
+  },
+  {
+    "id": 1975,
+    "parent": 61,
+    "name": "Diagnostički uređaji (EKG, EEG, Ultrazvuk)",
+    "new_name": "Diagnostički uređaji",
+    "status": 1,
+    "slug": "diagnosticki-uredaji-ekg-eeg-ultrazvuk"
+  },
+  {
+    "id": 1977,
+    "parent": 61,
+    "name": "Inkubatori i sterilizatori (Autoklavi)",
+    "new_name": "Inkubatori i sterilizatori",
+    "status": 1,
+    "slug": "inkubatori-i-sterilizatori-autoklavi"
+  },
+  {
+    "id": 1979,
+    "parent": 61,
+    "name": "Laboratorijsko posuđe (Staklo i plastika)",
+    "new_name": "Laboratorijsko posuđe",
+    "status": 1,
+    "slug": "laboratorijsko-posude-staklo-i-plastika"
+  },
+  {
+    "id": 1982,
+    "parent": 61,
+    "name": "Mjerači krvnog pritiska (Tlakomjeri)",
+    "new_name": "Mjerači krvnog pritiska",
+    "status": 1,
+    "slug": "mjeraci-krvnog-pritiska-tlakomjeri"
+  },
+  {
+    "id": 1983,
+    "parent": 61,
+    "name": "Mjerači šećera u krvi (Glukometri)",
+    "new_name": "Mjerači šećera u krvi",
+    "status": 1,
+    "slug": "mjeraci-secera-u-krvi-glukometri"
+  },
+  {
+    "id": 1984,
+    "parent": 61,
+    "name": "Odjeća i zaštitna oprema (Uniforme, maske)",
+    "new_name": "Odjeća i zaštitna oprema",
+    "status": 1,
+    "slug": "odjeca-i-zastitna-oprema-uniforme-maske"
+  },
+  {
+    "id": 1989,
+    "parent": 61,
+    "name": "Oksimetri (Mjerači zasićenosti kisikom)",
+    "new_name": "Oksimetri",
+    "status": 1,
+    "slug": "oksimetri-mjeraci-zasicenosti-kisikom"
+  },
+  {
+    "id": 1991,
+    "parent": 61,
+    "name": "Potrošni medicinski materijal (Igle, šprice)",
+    "new_name": "Potrošni medicinski materijal",
+    "status": 1,
+    "slug": "potrosni-medicinski-materijal-igle-sprice"
+  },
+  {
+    "id": 1995,
+    "parent": 61,
+    "name": "Terapijska oprema (Fizikalna i masaža)",
+    "new_name": "Terapijska oprema",
+    "status": 1,
+    "slug": "terapijska-oprema-fizikalna-i-masaza"
+  },
+  {
+    "id": 1996,
+    "parent": 61,
+    "name": "Vage (Medicinske i laboratorijske precizne)",
+    "new_name": "Vage",
+    "status": 1,
+    "slug": "vage-medicinske-i-laboratorijske-precizne"
+  },
+  {
+    "id": 1997,
+    "parent": 60,
+    "name": "Alati za reparaciju (Pincete, motalice, makaze)",
+    "new_name": "Alati za reparaciju",
+    "status": 1,
+    "slug": "alati-za-reparaciju-pincete-motalice-makaze"
+  },
+  {
+    "id": 1998,
+    "parent": 60,
+    "name": "Baterije za modove (18650, 21700 i dr.)",
+    "new_name": "Baterije za modove",
+    "status": 1,
+    "slug": "baterije-za-modove-18650-21700-i-dr"
+  },
+  {
+    "id": 1999,
+    "parent": 60,
+    "name": "DIY oprema (Baze, arome i bočice)",
+    "new_name": "DIY oprema",
+    "status": 1,
+    "slug": "diy-oprema-baze-arome-i-bocice"
+  },
+  {
+    "id": 2000,
+    "parent": 60,
+    "name": "Drip tips (Nastavci za usta)",
+    "new_name": "Drip tips",
+    "status": 1,
+    "slug": "drip-tips-nastavci-za-usta"
+  },
+  {
+    "id": 2001,
+    "parent": 60,
+    "name": "Elektronske cigarete (Pod sistemi)",
+    "new_name": "Elektronske cigarete",
+    "status": 1,
+    "slug": "elektronske-cigarete-pod-sistemi"
+  },
+  {
+    "id": 2002,
+    "parent": 60,
+    "name": "Elektronske nargile (Vape)",
+    "new_name": "Elektronske nargile",
+    "status": 1,
+    "slug": "elektronske-nargile-vape"
+  },
+  {
+    "id": 2003,
+    "parent": 60,
+    "name": "Grijači za elektronske cigarete (Coils)",
+    "new_name": "Grijači za elektronske cigarete",
+    "status": 1,
+    "slug": "grijaci-za-elektronske-cigarete-coils"
+  },
+  {
+    "id": 2004,
+    "parent": 60,
+    "name": "Grijači duhana (HNB - Heat Not Burn uređaji)",
+    "new_name": "Grijači duhana",
+    "status": 1,
+    "slug": "grijaci-duhana-hnb-heat-not-burn-uredaji"
+  },
+  {
+    "id": 2005,
+    "parent": 60,
+    "name": "Jednokratne elektronske cigarete (Disposable)",
+    "new_name": "Jednokratne elektronske cigarete",
+    "status": 1,
+    "slug": "jednokratne-elektronske-cigarete-disposable"
+  },
+  {
+    "id": 2006,
+    "parent": 60,
+    "name": "Modovi (Regulisani i mehanički)",
+    "new_name": "Modovi",
+    "status": 1,
+    "slug": "modovi-regulisani-i-mehanicki"
+  },
+  {
+    "id": 2009,
+    "parent": 60,
+    "name": "Rezervoari i atomizeri (RTA, RDA, RDTA)",
+    "new_name": "Rezervoari i atomizeri",
+    "status": 1,
+    "slug": "rezervoari-i-atomizeri-rta-rda-rdta"
+  },
+  {
+    "id": 2013,
+    "parent": 60,
+    "name": "Zamjenski dijelovi za grijače duhana (Čistači, poklopci)",
+    "new_name": "Zamjenski dijelovi za grijače duhana",
+    "status": 1,
+    "slug": "zamjenski-dijelovi-za-grijace-duhana-cistaci-poklopci"
+  },
+  {
+    "id": 2015,
+    "parent": 59,
+    "name": "Električni bicikli (e-Bikes)",
+    "new_name": "Električni bicikli",
+    "status": 1,
+    "slug": "elektricni-bicikli-e-bikes"
+  },
+  {
+    "id": 2018,
+    "parent": 59,
+    "name": "Električni unocikli (Monowheels)",
+    "new_name": "Električni unocikli",
+    "status": 1,
+    "slug": "elektricni-unocikli-monowheels"
+  },
+  {
+    "id": 2028,
+    "parent": 59,
+    "name": "Rezervni dijelovi (Blatobrani, nogare, ručke)",
+    "new_name": "Rezervni dijelovi",
+    "status": 1,
+    "slug": "rezervni-dijelovi-blatobrani-nogare-rucke"
+  },
+  {
+    "id": 2033,
+    "parent": 58,
+    "name": "Alkalne baterije (Jednokratne)",
+    "new_name": "Alkalne baterije",
+    "status": 1,
+    "slug": "alkalne-baterije-jednokratne"
+  },
+  {
+    "id": 2039,
+    "parent": 58,
+    "name": "Dugmaste baterije (CR, LR, AG serije)",
+    "new_name": "Dugmaste baterije",
+    "status": 1,
+    "slug": "dugmaste-baterije-cr-lr-ag-serije"
+  },
+  {
+    "id": 2040,
+    "parent": 58,
+    "name": "Eksterne baterije (Powerbank)",
+    "new_name": "Eksterne baterije",
+    "status": 1,
+    "slug": "eksterne-baterije-powerbank"
+  },
+  {
+    "id": 2042,
+    "parent": 58,
+    "name": "Li-ion punjive baterije (18650, 21700 i dr.)",
+    "new_name": "Li-ion punjive baterije",
+    "status": 1,
+    "slug": "li-ion-punjive-baterije-18650-21700-i-dr"
+  },
+  {
+    "id": 2044,
+    "parent": 58,
+    "name": "Ni-MH i Ni-Cd punjive baterije (AA, AAA)",
+    "new_name": "Ni-MH i Ni-Cd punjive baterije",
+    "status": 1,
+    "slug": "ni-mh-i-ni-cd-punjive-baterije-aa-aaa"
+  },
+  {
+    "id": 2045,
+    "parent": 58,
+    "name": "Olovni akumulatori (VRLA, AGM, Gel)",
+    "new_name": "Olovni akumulatori",
+    "status": 1,
+    "slug": "olovni-akumulatori-vrla-agm-gel"
+  },
+  {
+    "id": 2054,
+    "parent": 57,
+    "name": "Bežični telefoni (DECT)",
+    "new_name": "Bežični telefoni",
+    "status": 1,
+    "slug": "bezicni-telefoni-dect"
+  },
+  {
+    "id": 2058,
+    "parent": 57,
+    "name": "GSM i LTE pojačivači signala (Repeateri)",
+    "new_name": "GSM i LTE pojačivači signala",
+    "status": 1,
+    "slug": "gsm-i-lte-pojacivaci-signala-repeateri"
+  },
+  {
+    "id": 2061,
+    "parent": 57,
+    "name": "IP i SIP telefoni (VoIP)",
+    "new_name": "IP i SIP telefoni",
+    "status": 1,
+    "slug": "ip-i-sip-telefoni-voip"
+  },
+  {
+    "id": 2062,
+    "parent": 57,
+    "name": "Kablovski materijal (Telefonski i koaksijalni)",
+    "new_name": "Kablovski materijal",
+    "status": 1,
+    "slug": "kablovski-materijal-telefonski-i-koaksijalni"
+  },
+  {
+    "id": 2071,
+    "parent": 56,
+    "name": "Antene (HF, VHF, UHF, Dual-band)",
+    "new_name": "Antene",
+    "status": 1,
+    "slug": "antene-hf-vhf-uhf-dual-band"
+  },
+  {
+    "id": 2073,
+    "parent": 56,
+    "name": "Antenski tjuneri (Usklađivači)",
+    "new_name": "Antenski tjuneri",
+    "status": 1,
+    "slug": "antenski-tjuneri-uskladivaci"
+  },
+  {
+    "id": 2075,
+    "parent": 56,
+    "name": "CB (Citizens Band) radio stanice",
+    "new_name": "CB radio stanice",
+    "status": 1,
+    "slug": "cb-citizens-band-radio-stanice"
+  },
+  {
+    "id": 2076,
+    "parent": 56,
+    "name": "Digitalni modemski interfejsi (FT8, DMR)",
+    "new_name": "Digitalni modemski interfejsi",
+    "status": 1,
+    "slug": "digitalni-modemski-interfejsi-ft8-dmr"
+  },
+  {
+    "id": 2079,
+    "parent": 56,
+    "name": "Kablovi (Koaksijalni) i konektori (PL-259, N, SMA)",
+    "new_name": "Kablovi i konektori",
+    "status": 1,
+    "slug": "kablovi-koaksijalni-i-konektori-pl-259-n-sma"
+  },
+  {
+    "id": 2081,
+    "parent": 56,
+    "name": "Mikrofoni i tasteri za Morzeovu abecedu (CW)",
+    "new_name": "Mikrofoni i tasteri za Morzeovu abecedu",
+    "status": 1,
+    "slug": "mikrofoni-i-tasteri-za-morzeovu-abecedu-cw"
+  },
+  {
+    "id": 2085,
+    "parent": 56,
+    "name": "PMR (Voki-toki) uređaji slobodnog opsega",
+    "new_name": "PMR uređaji slobodnog opsega",
+    "status": 1,
+    "slug": "pmr-voki-toki-uredaji-slobodnog-opsega"
+  },
+  {
+    "id": 2086,
+    "parent": 56,
+    "name": "Ručne radio stanice (Handheld)",
+    "new_name": "Ručne radio stanice",
+    "status": 1,
+    "slug": "rucne-radio-stanice-handheld"
+  },
+  {
+    "id": 2087,
+    "parent": 56,
+    "name": "SDR (Software Defined Radio) prijemnici",
+    "new_name": "SDR prijemnici",
+    "status": 1,
+    "slug": "sdr-software-defined-radio-prijemnici"
+  },
+  {
+    "id": 2089,
+    "parent": 56,
+    "name": "Stacionarne (Base) radio stanice",
+    "new_name": "Stacionarne radio stanice",
+    "status": 1,
+    "slug": "stacionarne-base-radio-stanice"
+  },
+  {
+    "id": 2090,
+    "parent": 56,
+    "name": "Stabilisana napajanja (Ispravljači)",
+    "new_name": "Stabilisana napajanja",
+    "status": 1,
+    "slug": "stabilisana-napajanja-ispravljaci"
+  },
+  {
+    "id": 2092,
+    "parent": 55,
+    "name": "CD Playeri (Prenosni - Discman)",
+    "new_name": "CD Playeri",
+    "status": 1,
+    "slug": "cd-playeri-prenosni-discman"
+  },
+  {
+    "id": 2093,
+    "parent": 55,
+    "name": "Digitalni radio prijemnici (DAB/DAB+)",
+    "new_name": "Digitalni radio prijemnici",
+    "status": 1,
+    "slug": "digitalni-radio-prijemnici-dabdab"
+  },
+  {
+    "id": 2095,
+    "parent": 55,
+    "name": "Kasetofoni i diktafoni (Prenosni)",
+    "new_name": "Kasetofoni i diktafoni",
+    "status": 1,
+    "slug": "kasetofoni-i-diktafoni-prenosni"
+  },
+  {
+    "id": 2101,
+    "parent": 55,
+    "name": "Radio kasetofoni (Boombox)",
+    "new_name": "Radio kasetofoni",
+    "status": 1,
+    "slug": "radio-kasetofoni-boombox"
+  },
+  {
+    "id": 2105,
+    "parent": 55,
+    "name": "Standardni stoni radio prijemnici (AM/FM)",
+    "new_name": "Standardni stoni radio prijemnici",
+    "status": 1,
+    "slug": "standardni-stoni-radio-prijemnici-amfm"
+  },
+  {
+    "id": 2107,
+    "parent": 55,
+    "name": "Uređaji sa solarnim i mehaničkim punjenjem (Dynamo)",
+    "new_name": "Uređaji sa solarnim i mehaničkim punjenjem",
+    "status": 1,
+    "slug": "uredaji-sa-solarnim-i-mehanickim-punjenjem-dynamo"
+  },
+  {
+    "id": 2108,
+    "parent": 55,
+    "name": "Walkman (Prenosni kasetofoni)",
+    "new_name": "Walkman",
+    "status": 1,
+    "slug": "walkman-prenosni-kasetofoni"
+  },
+  {
+    "id": 2110,
+    "parent": 54,
+    "name": "Akumulatori i baterije (Solar/Gel/LiFePO4)",
+    "new_name": "Akumulatori i baterije",
+    "status": 1,
+    "slug": "akumulatori-i-baterije-solargellifepo4"
+  },
+  {
+    "id": 2111,
+    "parent": 54,
+    "name": "Fotonaponski solarni paneli (Monokristalni)",
+    "new_name": "Fotonaponski solarni paneli",
+    "status": 1,
+    "slug": "fotonaponski-solarni-paneli-monokristalni"
+  },
+  {
+    "id": 2112,
+    "parent": 54,
+    "name": "Fotonaponski solarni paneli (Polikristalni)",
+    "new_name": "Fotonaponski solarni paneli",
+    "status": 1,
+    "slug": "fotonaponski-solarni-paneli-polikristalni"
+  },
+  {
+    "id": 2113,
+    "parent": 54,
+    "name": "Invertori (Pretvarači napona) - Off-Grid",
+    "new_name": "Invertori- Off-Grid",
+    "status": 1,
+    "slug": "invertori-pretvaraci-napona-off-grid"
+  },
+  {
+    "id": 2114,
+    "parent": 54,
+    "name": "Invertori (Pretvarači napona) - On-Grid/Hibridni",
+    "new_name": "Invertori- On-Grid/Hibridni",
+    "status": 1,
+    "slug": "invertori-pretvaraci-napona-on-gridhibridni"
+  },
+  {
+    "id": 2115,
+    "parent": 54,
+    "name": "Kablovi i konektori (MC4, solarni kablovi)",
+    "new_name": "Kablovi i konektori",
+    "status": 1,
+    "slug": "kablovi-i-konektori-mc4-solarni-kablovi"
+  },
+  {
+    "id": 2116,
+    "parent": 54,
+    "name": "Kolektori za toplu vodu (Termalni sistemi)",
+    "new_name": "Kolektori za toplu vodu",
+    "status": 1,
+    "slug": "kolektori-za-toplu-vodu-termalni-sistemi"
+  },
+  {
+    "id": 2117,
+    "parent": 54,
+    "name": "Kontroleri punjenja (MPPT i PWM)",
+    "new_name": "Kontroleri punjenja",
+    "status": 1,
+    "slug": "kontroleri-punjenja-mppt-i-pwm"
+  },
+  {
+    "id": 2123,
+    "parent": 54,
+    "name": "Savitljivi (Fleksibilni) solarni paneli",
+    "new_name": "Savitljivi solarni paneli",
+    "status": 1,
+    "slug": "savitljivi-fleksibilni-solarni-paneli"
+  },
+  {
+    "id": 2130,
+    "parent": 53,
+    "name": "DIY setovi i razvojne ploče (Arduino, ESP)",
+    "new_name": "DIY setovi i razvojne ploče",
+    "status": 1,
+    "slug": "diy-setovi-i-razvojne-ploce-arduino-esp"
+  },
+  {
+    "id": 2132,
+    "parent": 53,
+    "name": "Elektronske komponente (Otpornici, kondenzatori, diode)",
+    "new_name": "Elektronske komponente",
+    "status": 1,
+    "slug": "elektronske-komponente-otpornici-kondenzatori-diode"
+  },
+  {
+    "id": 2136,
+    "parent": 53,
+    "name": "Integrisana kola (IC) i tranzistori",
+    "new_name": "Integrisana kola i tranzistori",
+    "status": 1,
+    "slug": "integrisana-kola-ic-i-tranzistori"
+  },
+  {
+    "id": 2138,
+    "parent": 53,
+    "name": "Izolacioni materijali (Trake, termoskupljajući bužiri)",
+    "new_name": "Izolacioni materijali",
+    "status": 1,
+    "slug": "izolacioni-materijali-trake-termoskupljajuci-buziri"
+  },
+  {
+    "id": 2140,
+    "parent": 53,
+    "name": "Modulni programi (Sklopke i utičnice)",
+    "new_name": "Modulni programi",
+    "status": 1,
+    "slug": "modulni-programi-sklopke-i-uticnice"
+  },
+  {
+    "id": 2144,
+    "parent": 53,
+    "name": "Relatni moduli i senzori (Pokret, sumrak)",
+    "new_name": "Relatni moduli i senzori",
+    "status": 1,
+    "slug": "relatni-moduli-i-senzori-pokret-sumrak"
+  },
+  {
+    "id": 2149,
+    "parent": 52,
+    "name": "Brojila električne energije (Jednofazna i trofazna)",
+    "new_name": "Brojila električne energije",
+    "status": 1,
+    "slug": "brojila-elektricne-energije-jednofazna-i-trofazna"
+  },
+  {
+    "id": 2151,
+    "parent": 52,
+    "name": "Digitalni multimetri (Unimeri)",
+    "new_name": "Digitalni multimetri",
+    "status": 1,
+    "slug": "digitalni-multimetri-unimeri"
+  },
+  {
+    "id": 2154,
+    "parent": 52,
+    "name": "Instrumenti za mjerenje pritiska (Manometri)",
+    "new_name": "Instrumenti za mjerenje pritiska",
+    "status": 1,
+    "slug": "instrumenti-za-mjerenje-pritiska-manometri"
+  },
+  {
+    "id": 2162,
+    "parent": 52,
+    "name": "Pomična mjerila (Šubleri) i mikrometri",
+    "new_name": "Pomična mjerila i mikrometri",
+    "status": 1,
+    "slug": "pomicna-mjerila-subleri-i-mikrometri"
+  },
+  {
+    "id": 2163,
+    "parent": 52,
+    "name": "Strujna kliješta (Ampermetar kliješta)",
+    "new_name": "Strujna kliješta",
+    "status": 1,
+    "slug": "strujna-klijesta-ampermetar-klijesta"
+  },
+  {
+    "id": 2164,
+    "parent": 52,
+    "name": "Tahometri (Mjerači broja obrtaja)",
+    "new_name": "Tahometri",
+    "status": 1,
+    "slug": "tahometri-mjeraci-broja-obrtaja"
+  },
+  {
+    "id": 2167,
+    "parent": 52,
+    "name": "Testeri mrežnih kablova (LAN testeri)",
+    "new_name": "Testeri mrežnih kablova",
+    "status": 1,
+    "slug": "testeri-mreznih-kablova-lan-testeri"
+  },
+  {
+    "id": 2172,
+    "parent": 50,
+    "name": "Lupe naočale (Hands-free)",
+    "new_name": "Lupe naočale",
+    "status": 1,
+    "slug": "lupe-naocale-hands-free"
+  },
+  {
+    "id": 2173,
+    "parent": 50,
+    "name": "Lupe sa drškom (Klasične)",
+    "new_name": "Lupe sa drškom",
+    "status": 1,
+    "slug": "lupe-sa-drskom-klasicne"
+  },
+  {
+    "id": 2175,
+    "parent": 50,
+    "name": "Lupe za čitanje (Stolne i u obliku trake)",
+    "new_name": "Lupe za čitanje",
+    "status": 1,
+    "slug": "lupe-za-citanje-stolne-i-u-obliku-trake"
+  },
+  {
+    "id": 2176,
+    "parent": 50,
+    "name": "Lupe za elektroniku i lemljenje (Treća ruka)",
+    "new_name": "Lupe za elektroniku i lemljenje",
+    "status": 1,
+    "slug": "lupe-za-elektroniku-i-lemljenje-treca-ruka"
+  },
+  {
+    "id": 2181,
+    "parent": 50,
+    "name": "Uređajne i urarske lupe (Okulari)",
+    "new_name": "Uređajne i urarske lupe",
+    "status": 1,
+    "slug": "uredajne-i-urarske-lupe-okulari"
+  },
+  {
+    "id": 2185,
+    "parent": 49,
+    "name": "Binokularni teleskopi (Veliki dvogledi)",
+    "new_name": "Binokularni teleskopi",
+    "status": 1,
+    "slug": "binokularni-teleskopi-veliki-dvogledi"
+  },
+  {
+    "id": 2186,
+    "parent": 49,
+    "name": "Dvogledi (Dalekozori) za osmatranje",
+    "new_name": "Dvogledi za osmatranje",
+    "status": 1,
+    "slug": "dvogledi-dalekozori-za-osmatranje"
+  },
+  {
+    "id": 2187,
+    "parent": 49,
+    "name": "Filteri za teleskope (Mesečevi, solarni, magličasti)",
+    "new_name": "Filteri za teleskope",
+    "status": 1,
+    "slug": "filteri-za-teleskope-mesecevi-solarni-maglicasti"
+  },
+  {
+    "id": 2188,
+    "parent": 49,
+    "name": "Katadioptrični teleskopi (Maksutov, Schmidt-Cassegrain)",
+    "new_name": "Katadioptrični teleskopi",
+    "status": 1,
+    "slug": "katadioptricni-teleskopi-maksutov-schmidt-cassegrain"
+  },
+  {
+    "id": 2190,
+    "parent": 49,
+    "name": "Laserski pokazivači i tražioci (Finderscopes)",
+    "new_name": "Laserski pokazivači i tražioci",
+    "status": 1,
+    "slug": "laserski-pokazivaci-i-trazioci-finderscopes"
+  },
+  {
+    "id": 2191,
+    "parent": 49,
+    "name": "Mikroskopi (Biološki i digitalni)",
+    "new_name": "Mikroskopi",
+    "status": 1,
+    "slug": "mikroskopi-bioloski-i-digitalni"
+  },
+  {
+    "id": 2193,
+    "parent": 49,
+    "name": "Montaže i tronošci (AZ, EQ, GoTo sistemi)",
+    "new_name": "Montaže i tronošci",
+    "status": 1,
+    "slug": "montaze-i-tronosci-az-eq-goto-sistemi"
+  },
+  {
+    "id": 2196,
+    "parent": 49,
+    "name": "Reflektorski teleskopi (Newtonian/Dobson)",
+    "new_name": "Reflektorski teleskopi",
+    "status": 1,
+    "slug": "reflektorski-teleskopi-newtoniandobson"
+  },
+  {
+    "id": 2197,
+    "parent": 49,
+    "name": "Refraktorski teleskopi (Sa sočivima)",
+    "new_name": "Refraktorski teleskopi",
+    "status": 1,
+    "slug": "refraktorski-teleskopi-sa-socivima"
+  },
+  {
+    "id": 2205,
+    "parent": 48,
+    "name": "Mješovita realnost (MR) i AR naočale",
+    "new_name": "Mješovita realnost i AR naočale",
+    "status": 1,
+    "slug": "mjesovita-realnost-mr-i-ar-naocale"
+  },
+  {
+    "id": 2206,
+    "parent": 48,
+    "name": "Naočale za proširenu stvarnost (Smart Glasses)",
+    "new_name": "Naočale za proširenu stvarnost",
+    "status": 1,
+    "slug": "naocale-za-prosirenu-stvarnost-smart-glasses"
+  },
+  {
+    "id": 2208,
+    "parent": 48,
+    "name": "PC VR Headsetovi (Žični)",
+    "new_name": "PC VR Headsetovi",
+    "status": 1,
+    "slug": "pc-vr-headsetovi-zicni"
+  },
+  {
+    "id": 2210,
+    "parent": 48,
+    "name": "Pomoćni nosači i trake za glavu (Elite Strap)",
+    "new_name": "Pomoćni nosači i trake za glavu",
+    "status": 1,
+    "slug": "pomocni-nosaci-i-trake-za-glavu-elite-strap"
+  },
+  {
+    "id": 2212,
+    "parent": 48,
+    "name": "Samostalni VR Headsetovi (Standalone)",
+    "new_name": "Samostalni VR Headsetovi",
+    "status": 1,
+    "slug": "samostalni-vr-headsetovi-standalone"
+  },
+  {
+    "id": 2214,
+    "parent": 48,
+    "name": "VR dodaci za simulacije (Volani, kundaci, palice)",
+    "new_name": "VR dodaci za simulacije",
+    "status": 1,
+    "slug": "vr-dodaci-za-simulacije-volani-kundaci-palice"
+  },
+  {
+    "id": 2218,
+    "parent": 47,
+    "name": "Centralni hubovi i kontroleri (Gateway)",
+    "new_name": "Centralni hubovi i kontroleri",
+    "status": 1,
+    "slug": "centralni-hubovi-i-kontroleri-gateway"
+  },
+  {
+    "id": 2221,
+    "parent": 47,
+    "name": "Pametna rješenja za kućne ljubimce (Hranilice)",
+    "new_name": "Pametna rješenja za kućne ljubimce",
+    "status": 1,
+    "slug": "pametna-rjesenja-za-kucne-ljubimce-hranilice"
+  },
+  {
+    "id": 2231,
+    "parent": 47,
+    "name": "Smart Home kontrolni paneli (Zidni)",
+    "new_name": "Smart Home kontrolni paneli",
+    "status": 1,
+    "slug": "smart-home-kontrolni-paneli-zidni"
+  },
+  {
+    "id": 2237,
+    "parent": 46,
+    "name": "Bookshelf zvučnici (Regalski)",
+    "new_name": "Bookshelf zvučnici",
+    "status": 0,
+    "slug": "bookshelf-zvucnici-regalski"
+  },
+  {
+    "id": 2255,
+    "parent": 45,
+    "name": "Blu-ray playeri (Standardni)",
+    "new_name": "Blu-ray playeri",
+    "status": 1,
+    "slug": "blu-ray-playeri-standardni"
+  },
+  {
+    "id": 2259,
+    "parent": 45,
+    "name": "DVD snimači (Recorders)",
+    "new_name": "DVD snimači",
+    "status": 1,
+    "slug": "dvd-snimaci-recorders"
+  },
+  {
+    "id": 2261,
+    "parent": 45,
+    "name": "Kombinovani uređaji (npr. VHS/DVD)",
+    "new_name": "Kombinovani uređaji",
+    "status": 1,
+    "slug": "kombinovani-uredaji-npr-vhsdvd"
+  },
+  {
+    "id": 2265,
+    "parent": 45,
+    "name": "Prazni mediji (DVD, Blu-ray diskovi)",
+    "new_name": "Prazni mediji",
+    "status": 1,
+    "slug": "prazni-mediji-dvd-blu-ray-diskovi"
+  },
+  {
+    "id": 2266,
+    "parent": 45,
+    "name": "Prenosni (Portable) DVD playeri",
+    "new_name": "Prenosni DVD playeri",
+    "status": 1,
+    "slug": "prenosni-portable-dvd-playeri"
+  },
+  {
+    "id": 2267,
+    "parent": 45,
+    "name": "Regioni-free (Multizone) uređaji",
+    "new_name": "Regioni-free uređaji",
+    "status": 1,
+    "slug": "regioni-free-multizone-uredaji"
+  },
+  {
+    "id": 2268,
+    "parent": 45,
+    "name": "Rezervni dijelovi (Laseri, motori)",
+    "new_name": "Rezervni dijelovi",
+    "status": 1,
+    "slug": "rezervni-dijelovi-laseri-motori"
+  },
+  {
+    "id": 2271,
+    "parent": 44,
+    "name": "Armband (Trake za ruku) za trčanje",
+    "new_name": "Armband za trčanje",
+    "status": 1,
+    "slug": "armband-trake-za-ruku-za-trcanje"
+  },
+  {
+    "id": 2275,
+    "parent": 44,
+    "name": "Hi-Res Audio playeri (Lossless)",
+    "new_name": "Hi-Res Audio playeri",
+    "status": 1,
+    "slug": "hi-res-audio-playeri-lossless"
+  },
+  {
+    "id": 2278,
+    "parent": 44,
+    "name": "Kablovi (3.5mm, Lightning, 30-pin)",
+    "new_name": "Kablovi",
+    "status": 1,
+    "slug": "kablovi-35mm-lightning-30-pin"
+  },
+  {
+    "id": 2279,
+    "parent": 44,
+    "name": "MP3 playeri za sport i plivanje (Vodootporni)",
+    "new_name": "MP3 playeri za sport i plivanje",
+    "status": 1,
+    "slug": "mp3-playeri-za-sport-i-plivanje-vodootporni"
+  },
+  {
+    "id": 2284,
+    "parent": 44,
+    "name": "Standardni MP3 playeri (Flash memorija)",
+    "new_name": "Standardni MP3 playeri",
+    "status": 1,
+    "slug": "standardni-mp3-playeri-flash-memorija"
+  },
+  {
+    "id": 2286,
+    "parent": 44,
+    "name": "Ugradbeni MP3 moduli (DIY)",
+    "new_name": "Ugradbeni MP3 moduli",
+    "status": 1,
+    "slug": "ugradbeni-mp3-moduli-diy"
+  },
+  {
+    "id": 2307,
+    "parent": 42,
+    "name": "Baterije (Li-Po) za dronove",
+    "new_name": "Baterije za dronove",
+    "status": 1,
+    "slug": "baterije-li-po-za-dronove"
+  },
+  {
+    "id": 2308,
+    "parent": 42,
+    "name": "Bespilotne letjelice (Dronovi) - Dijelovi tijela",
+    "new_name": "Bespilotne letjelice- Dijelovi tijela",
+    "status": 1,
+    "slug": "bespilotne-letjelice-dronovi-dijelovi-tijela"
+  },
+  {
+    "id": 2310,
+    "parent": 42,
+    "name": "Elis (Propeleri) i štitnici propelera",
+    "new_name": "Elis i štitnici propelera",
+    "status": 1,
+    "slug": "elis-propeleri-i-stitnici-propelera"
+  },
+  {
+    "id": 2316,
+    "parent": 42,
+    "name": "Kontrolori leta (Flight Controllers)",
+    "new_name": "Kontrolori leta",
+    "status": 1,
+    "slug": "kontrolori-leta-flight-controllers"
+  },
+  {
+    "id": 2317,
+    "parent": 42,
+    "name": "Motori (Brushless i Coreless)",
+    "new_name": "Motori",
+    "status": 1,
+    "slug": "motori-brushless-i-coreless"
+  },
+  {
+    "id": 2324,
+    "parent": 42,
+    "name": "Vreće za sigurno punjenje baterija (Li-Po Guard)",
+    "new_name": "Vreće za sigurno punjenje baterija",
+    "status": 1,
+    "slug": "vrece-za-sigurno-punjenje-baterija-li-po-guard"
+  },
+  {
+    "id": 2330,
+    "parent": 41,
+    "name": "FPV (First Person View) dronovi",
+    "new_name": "FPV dronovi",
+    "status": 1,
+    "slug": "fpv-first-person-view-dronovi"
+  },
+  {
+    "id": 2337,
+    "parent": 41,
+    "name": "RC Avioni (Akrobatski i treneri)",
+    "new_name": "RC Avioni",
+    "status": 1,
+    "slug": "rc-avioni-akrobatski-i-treneri"
+  },
+  {
+    "id": 2338,
+    "parent": 41,
+    "name": "RTF (Ready-to-Fly) kompleti",
+    "new_name": "RTF kompleti",
+    "status": 1,
+    "slug": "rtf-ready-to-fly-kompleti"
+  },
+  {
+    "id": 2339,
+    "parent": 41,
+    "name": "Trkaći (Racing) dronovi",
+    "new_name": "Trkaći dronovi",
+    "status": 1,
+    "slug": "trkaci-racing-dronovi"
+  },
+  {
+    "id": 2340,
+    "parent": 40,
+    "name": "Akcione kamere (Sportski modeli)",
+    "new_name": "Akcione kamere",
+    "status": 1,
+    "slug": "akcione-kamere-sportski-modeli"
+  },
+  {
+    "id": 2341,
+    "parent": 40,
+    "name": "Analogni fotoaparati (Na film)",
+    "new_name": "Analogni fotoaparati",
+    "status": 1,
+    "slug": "analogni-fotoaparati-na-film"
+  },
+  {
+    "id": 2342,
+    "parent": 40,
+    "name": "Besogledalni fotoaparati (Mirrorless)",
+    "new_name": "Besogledalni fotoaparati",
+    "status": 1,
+    "slug": "besogledalni-fotoaparati-mirrorless"
+  },
+  {
+    "id": 2343,
+    "parent": 40,
+    "name": "Digitalni kompaktni fotoaparati (Idiot)",
+    "new_name": "Digitalni kompaktni fotoaparati",
+    "status": 1,
+    "slug": "digitalni-kompaktni-fotoaparati-idiot"
+  },
+  {
+    "id": 2346,
+    "parent": 40,
+    "name": "Fotoaparati sa trenutnim ispisom (Instant)",
+    "new_name": "Fotoaparati sa trenutnim ispisom",
+    "status": 1,
+    "slug": "fotoaparati-sa-trenutnim-ispisom-instant"
+  },
+  {
+    "id": 2347,
+    "parent": 40,
+    "name": "Inspekcijske kamere (Endoskopi)",
+    "new_name": "Inspekcijske kamere",
+    "status": 1,
+    "slug": "inspekcijske-kamere-endoskopi"
+  },
+  {
+    "id": 2348,
+    "parent": 40,
+    "name": "Kamere za snimanje iz vazduha (Namjenske)",
+    "new_name": "Kamere za snimanje iz vazduha",
+    "status": 1,
+    "slug": "kamere-za-snimanje-iz-vazduha-namjenske"
+  },
+  {
+    "id": 2349,
+    "parent": 40,
+    "name": "Lovačke kamere (Trail cameras)",
+    "new_name": "Lovačke kamere",
+    "status": 1,
+    "slug": "lovacke-kamere-trail-cameras"
+  },
+  {
+    "id": 2353,
+    "parent": 40,
+    "name": "Profesionalne video kamere (Camcorders)",
+    "new_name": "Profesionalne video kamere",
+    "status": 1,
+    "slug": "profesionalne-video-kamere-camcorders"
+  },
+  {
+    "id": 2360,
+    "parent": 39,
+    "name": "Antene (Sobne i vanjske)",
+    "new_name": "Antene",
+    "status": 1,
+    "slug": "antene-sobne-i-vanjske"
+  },
+  {
+    "id": 2361,
+    "parent": 39,
+    "name": "Daljinski upravljači (Namjenski i univerzalni)",
+    "new_name": "Daljinski upravljači",
+    "status": 1,
+    "slug": "daljinski-upravljaci-namjenski-i-univerzalni"
+  },
+  {
+    "id": 2362,
+    "parent": 39,
+    "name": "Digitalni TV prijemnici (DVB-T2/S2)",
+    "new_name": "Digitalni TV prijemnici",
+    "status": 1,
+    "slug": "digitalni-tv-prijemnici-dvb-t2s2"
+  },
+  {
+    "id": 2364,
+    "parent": 39,
+    "name": "LED i LCD televizori (Standardni)",
+    "new_name": "LED i LCD televizori",
+    "status": 1,
+    "slug": "led-i-lcd-televizori-standardni"
+  },
+  {
+    "id": 2366,
+    "parent": 39,
+    "name": "Nosači za TV (Zidni, podni i plafonski)",
+    "new_name": "Nosači za TV",
+    "status": 1,
+    "slug": "nosaci-za-tv-zidni-podni-i-plafonski"
+  },
+  {
+    "id": 2371,
+    "parent": 39,
+    "name": "Prenosni (Portable) televizori",
+    "new_name": "Prenosni televizori",
+    "status": 1,
+    "slug": "prenosni-portable-televizori"
+  },
+  {
+    "id": 2372,
+    "parent": 39,
+    "name": "Satelitski kompleti (Tanjiri, LNB konvertori)",
+    "new_name": "Satelitski kompleti",
+    "status": 1,
+    "slug": "satelitski-kompleti-tanjiri-lnb-konvertori"
+  },
+  {
+    "id": 2378,
+    "parent": 38,
+    "name": "DAC (Digitalno-analogni konvertori)",
+    "new_name": "DAC",
+    "status": 1,
+    "slug": "dac-digitalno-analogni-konvertori"
+  },
+  {
+    "id": 2380,
+    "parent": 38,
+    "name": "DJ oprema (Kontroleri i playeri)",
+    "new_name": "DJ oprema",
+    "status": 1,
+    "slug": "dj-oprema-kontroleri-i-playeri"
+  },
+  {
+    "id": 2381,
+    "parent": 38,
+    "name": "Gramofoni i oprema (Igle, remenovi)",
+    "new_name": "Gramofoni i oprema",
+    "status": 1,
+    "slug": "gramofoni-i-oprema-igle-remenovi"
+  },
+  {
+    "id": 2382,
+    "parent": 38,
+    "name": "Hi-Fi komponente (Pojačala, tuneri)",
+    "new_name": "Hi-Fi komponente",
+    "status": 1,
+    "slug": "hi-fi-komponente-pojacala-tuneri"
+  },
+  {
+    "id": 2383,
+    "parent": 38,
+    "name": "Kablovi, adapteri i konektori (XLR, Jack, RCA)",
+    "new_name": "Kablovi, adapteri i konektori",
+    "status": 1,
+    "slug": "kablovi-adapteri-i-konektori-xlr-jack-rca"
+  },
+  {
+    "id": 2385,
+    "parent": 38,
+    "name": "Mikrofoni (Bežični, vokalni, studijski)",
+    "new_name": "Mikrofoni",
+    "status": 1,
+    "slug": "mikrofoni-bezicni-vokalni-studijski"
+  },
+  {
+    "id": 2389,
+    "parent": 38,
+    "name": "Slušalice (Bežične, studijske, bubice)",
+    "new_name": "Slušalice",
+    "status": 1,
+    "slug": "slusalice-bezicne-studijske-bubice"
+  },
+  {
+    "id": 2393,
+    "parent": 38,
+    "name": "Zvučne kartice (Eksterne i interne)",
+    "new_name": "Zvučne kartice",
+    "status": 1,
+    "slug": "zvucne-kartice-eksterne-i-interne"
+  },
+  {
+    "id": 2394,
+    "parent": 38,
+    "name": "Zvučnici (Podnostojeći, regalski, ugradbeni)",
+    "new_name": "Zvučnici",
+    "status": 1,
+    "slug": "zvucnici-podnostojeci-regalski-ugradbeni"
+  },
+  {
+    "id": 2397,
+    "parent": 64,
+    "name": "Brtve (Gume) za frižidere i zamrzivače",
+    "new_name": "Brtve za frižidere i zamrzivače",
+    "status": 1,
+    "slug": "brtve-gume-za-frizidere-i-zamrzivace"
+  },
+  {
+    "id": 2400,
+    "parent": 64,
+    "name": "Filteri za napu (Ugljeni i metalni)",
+    "new_name": "Filteri za napu",
+    "status": 1,
+    "slug": "filteri-za-napu-ugljeni-i-metalni"
+  },
+  {
+    "id": 2408,
+    "parent": 64,
+    "name": "Ploče za slaganje (Vezni elementi za sušilice)",
+    "new_name": "Ploče za slaganje",
+    "status": 1,
+    "slug": "ploce-za-slaganje-vezni-elementi-za-susilice"
+  },
+  {
+    "id": 2416,
+    "parent": 64,
+    "name": "Baterije (Dugmaste, alkalne, specijalne)",
+    "new_name": "Baterije",
+    "status": 1,
+    "slug": "baterije-dugmaste-alkalne-specijalne"
+  },
+  {
+    "id": 2420,
+    "parent": 64,
+    "name": "Kablovi i adapteri (Univerzalni)",
+    "new_name": "Kablovi i adapteri",
+    "status": 1,
+    "slug": "kablovi-i-adapteri-univerzalni"
+  },
+  {
+    "id": 2422,
+    "parent": 64,
+    "name": "Metal detektori (Hobi i profesionalni)",
+    "new_name": "Metal detektori",
+    "status": 1,
+    "slug": "metal-detektori-hobi-i-profesionalni"
+  },
+  {
+    "id": 2425,
+    "parent": 64,
+    "name": "Pametni privjesci i lokatori (Tags)",
+    "new_name": "Pametni privjesci i lokatori",
+    "status": 1,
+    "slug": "pametni-privjesci-i-lokatori-tags"
+  },
+  {
+    "id": 2426,
+    "parent": 64,
+    "name": "Punjači za baterije (Univerzalni)",
+    "new_name": "Punjači za baterije",
+    "status": 1,
+    "slug": "punjaci-za-baterije-univerzalni"
+  },
+  {
+    "id": 2428,
+    "parent": 64,
+    "name": "Sušači i sterilizatori (Tehnički)",
+    "new_name": "Sušači i sterilizatori",
+    "status": 1,
+    "slug": "susaci-i-sterilizatori-tehnicki"
+  },
+  {
+    "id": 2437,
+    "parent": 164,
+    "name": "Digitalne dopune i vaučeri (Gift cards)",
+    "new_name": "Digitalne dopune i vaučeri",
+    "status": 1,
+    "slug": "digitalne-dopune-i-vauceri-gift-cards"
+  },
+  {
+    "id": 2442,
+    "parent": 164,
+    "name": "Platforme za mini-igre (Hubovi)",
+    "new_name": "Platforme za mini-igre",
+    "status": 1,
+    "slug": "platforme-za-mini-igre-hubovi"
+  },
+  {
+    "id": 2445,
+    "parent": 164,
+    "name": "Unutar-igračke valute (Virtualni krediti)",
+    "new_name": "Unutar-igračke valute",
+    "status": 1,
+    "slug": "unutar-igracke-valute-virtualni-krediti"
+  },
+  {
+    "id": 2482,
+    "parent": 94,
+    "name": "Mjerne sprave (Štoperice, daljinomjeri)",
+    "new_name": "Mjerne sprave",
+    "status": 1,
+    "slug": "mjerne-sprave-stoperice-daljinomjeri"
+  },
+  {
+    "id": 2492,
+    "parent": 94,
+    "name": "Stoni tenis (Reket, mrežice, loptice)",
+    "new_name": "Stoni tenis",
+    "status": 1,
+    "slug": "stoni-tenis-reket-mrezice-loptice"
+  },
+  {
+    "id": 2500,
+    "parent": 121,
+    "name": "HTZ oprema (Zaštitna odijela, maske, kacige)",
+    "new_name": "HTZ oprema",
+    "status": 1,
+    "slug": "htz-oprema-zastitna-odijela-maske-kacige"
+  },
+  {
+    "id": 2512,
+    "parent": 121,
+    "name": "Vage (Industrijske, trgovačke, precizne)",
+    "new_name": "Vage",
+    "status": 1,
+    "slug": "vage-industrijske-trgovacke-precizne"
+  },
+  {
+    "id": 2515,
+    "parent": 31,
+    "name": "Akvaristika (Pumpe, grijači, dekoracija)",
+    "new_name": "Akvaristika",
+    "status": 1,
+    "slug": "akvaristika-pumpe-grijaci-dekoracija"
+  },
+  {
+    "id": 2517,
+    "parent": 31,
+    "name": "Kavezi i oprema za glodare (Hrčci, kunići)",
+    "new_name": "Kavezi i oprema za glodare",
+    "status": 1,
+    "slug": "kavezi-i-oprema-za-glodare-hrcci-kunici"
+  },
+  {
+    "id": 2522,
+    "parent": 31,
+    "name": "Oprema za kaveze i ograđivanje (Električni pastiri)",
+    "new_name": "Oprema za kaveze i ograđivanje",
+    "status": 1,
+    "slug": "oprema-za-kaveze-i-ogradivanje-elektricni-pastiri"
+  },
+  {
+    "id": 2524,
+    "parent": 31,
+    "name": "Oprema za teraristiku (Gmizavci i pauci)",
+    "new_name": "Oprema za teraristiku",
+    "status": 1,
+    "slug": "oprema-za-teraristiku-gmizavci-i-pauci"
+  },
+  {
+    "id": 2533,
+    "parent": 12,
+    "name": "Kolekcionarstvo (Markice, kovanice, memorabilije)",
+    "new_name": "Kolekcionarstvo",
+    "status": 1,
+    "slug": "kolekcionarstvo-markice-kovanice-memorabilije"
+  },
+  {
+    "id": 2535,
+    "parent": 12,
+    "name": "Muzički instrumenti i oprema (Ostalo)",
+    "new_name": "Muzički instrumenti i oprema",
+    "status": 1,
+    "slug": "muzicki-instrumenti-i-oprema-ostalo"
+  },
+  {
+    "id": 2542,
+    "parent": 12,
+    "name": "Sirovine i poluproizvodi (Metal, plastika, drvo)",
+    "new_name": "Sirovine i poluproizvodi",
+    "status": 1,
+    "slug": "sirovine-i-poluproizvodi-metal-plastika-drvo"
+  },
+  {
+    "id": 2545,
+    "parent": 12,
+    "name": "Umjetnička djela (Slike, skulpture)",
+    "new_name": "Umjetnička djela",
+    "status": 1,
+    "slug": "umjetnicka-djela-slike-skulpture"
+  },
+  {
+    "id": 2550,
+    "parent": 610,
+    "name": "Kućne popravke i DIY (Uradi sam) vodiči",
+    "new_name": "Kućne popravke i DIY vodiči",
+    "status": 1,
+    "slug": "kucne-popravke-i-diy-uradi-sam-vodici"
+  },
+  {
+    "id": 2551,
+    "parent": 610,
+    "name": "Njega biljaka i vrtlarenje (Baštovanstvo)",
+    "new_name": "Njega biljaka i vrtlarenje",
+    "status": 1,
+    "slug": "njega-biljaka-i-vrtlarenje-bastovanstvo"
+  },
+  {
+    "id": 2562,
+    "parent": 611,
+    "name": "Crtanje, slikanje i grafika (Priručnici)",
+    "new_name": "Crtanje, slikanje i grafika",
+    "status": 1,
+    "slug": "crtanje-slikanje-i-grafika-prirucnici"
+  },
+  {
+    "id": 2566,
+    "parent": 611,
+    "name": "Historija umjetnosti (Opšta i regionalna)",
+    "new_name": "Historija umjetnosti",
+    "status": 1,
+    "slug": "historija-umjetnosti-opsta-i-regionalna"
+  },
+  {
+    "id": 2573,
+    "parent": 611,
+    "name": "Primijenjena umjetnost (Keramika, tekstil, nakit)",
+    "new_name": "Primijenjena umjetnost",
+    "status": 1,
+    "slug": "primijenjena-umjetnost-keramika-tekstil-nakit"
+  },
+  {
+    "id": 2576,
+    "parent": 612,
+    "name": "Antikvarne knjige (Prije 1900. godine)",
+    "new_name": "Antikvarne knjige",
+    "status": 1,
+    "slug": "antikvarne-knjige-prije-1900-godine"
+  },
+  {
+    "id": 2579,
+    "parent": 612,
+    "name": "Knjige sa specifičnim uvezom (Kožni, zlatotisak)",
+    "new_name": "Knjige sa specifičnim uvezom",
+    "status": 1,
+    "slug": "knjige-sa-specificnim-uvezom-kozni-zlatotisak"
+  },
+  {
+    "id": 2583,
+    "parent": 612,
+    "name": "Prva izdanja (First Editions)",
+    "new_name": "Prva izdanja",
+    "status": 1,
+    "slug": "prva-izdanja-first-editions"
+  },
+  {
+    "id": 2587,
+    "parent": 612,
+    "name": "Zabranjene ili povučene knjige (Cenzura)",
+    "new_name": "Zabranjene ili povučene knjige",
+    "status": 1,
+    "slug": "zabranjene-ili-povucene-knjige-cenzura"
+  },
+  {
+    "id": 2588,
+    "parent": 612,
+    "name": "Zaslužne knjige (Dobitnici velikih nagrada - stara izdanja)",
+    "new_name": "Zaslužne knjige",
+    "status": 1,
+    "slug": "zasluzne-knjige-dobitnici-velikih-nagrada-stara-izdanja"
+  },
+  {
+    "id": 2591,
+    "parent": 613,
+    "name": "Enciklopedije i leksikoni (Opšta namjena)",
+    "new_name": "Enciklopedije i leksikoni",
+    "status": 1,
+    "slug": "enciklopedije-i-leksikoni-opsta-namjena"
+  },
+  {
+    "id": 2594,
+    "parent": 613,
+    "name": "Hobi i slobodno vrijeme (Filatelija, numizmatika)",
+    "new_name": "Hobi i slobodno vrijeme",
+    "status": 1,
+    "slug": "hobi-i-slobodno-vrijeme-filatelija-numizmatika"
+  },
+  {
+    "id": 2604,
+    "parent": 613,
+    "name": "Zabavne činjenice i rekordi (Ginisova knjiga i slično)",
+    "new_name": "Zabavne činjenice i rekordi",
+    "status": 1,
+    "slug": "zabavne-cinjenice-i-rekordi-ginisova-knjiga-i-slicno"
+  },
+  {
+    "id": 2605,
+    "parent": 694,
+    "name": "Alat za uokviravanje (Klamerice, rezači)",
+    "new_name": "Alat za uokviravanje",
+    "status": 1,
+    "slug": "alat-za-uokviravanje-klamerice-rezaci"
+  },
+  {
+    "id": 2608,
+    "parent": 694,
+    "name": "Drveni ramovi (Puno drvo)",
+    "new_name": "Drveni ramovi",
+    "status": 1,
+    "slug": "drveni-ramovi-puno-drvo"
+  },
+  {
+    "id": 2610,
+    "parent": 694,
+    "name": "Gotovi ramovi za fotografije (Standardni)",
+    "new_name": "Gotovi ramovi za fotografije",
+    "status": 1,
+    "slug": "gotovi-ramovi-za-fotografije-standardni"
+  },
+  {
+    "id": 2611,
+    "parent": 694,
+    "name": "Lajsne za ramove (Na metar)",
+    "new_name": "Lajsne za ramove",
+    "status": 1,
+    "slug": "lajsne-za-ramove-na-metar"
+  },
+  {
+    "id": 2615,
+    "parent": 694,
+    "name": "Paspartu kartoni (Razne boje i teksture)",
+    "new_name": "Paspartu kartoni",
+    "status": 1,
+    "slug": "paspartu-kartoni-razne-boje-i-teksture"
+  },
+  {
+    "id": 2618,
+    "parent": 694,
+    "name": "Ramovi za više fotografija (Kolaž ramovi)",
+    "new_name": "Ramovi za više fotografija",
+    "status": 1,
+    "slug": "ramovi-za-vise-fotografija-kolaz-ramovi"
+  },
+  {
+    "id": 2624,
+    "parent": 695,
+    "name": "Digitalni kistovi (Brushes) i teksture",
+    "new_name": "Digitalni kistovi i teksture",
+    "status": 1,
+    "slug": "digitalni-kistovi-brushes-i-teksture"
+  },
+  {
+    "id": 2625,
+    "parent": 695,
+    "name": "Digitalni printovi (Art Prints)",
+    "new_name": "Digitalni printovi",
+    "status": 1,
+    "slug": "digitalni-printovi-art-prints"
+  },
+  {
+    "id": 2629,
+    "parent": 695,
+    "name": "Oprema za digitalno crtanje (Tableti i olovke)",
+    "new_name": "Oprema za digitalno crtanje",
+    "status": 1,
+    "slug": "oprema-za-digitalno-crtanje-tableti-i-olovke"
+  },
+  {
+    "id": 2639,
+    "parent": 696,
+    "name": "Figurice i statue (Dekorativne)",
+    "new_name": "Figurice i statue",
+    "status": 1,
+    "slug": "figurice-i-statue-dekorativne"
+  },
+  {
+    "id": 2649,
+    "parent": 696,
+    "name": "Ukrasna ogledala (Zidna i stona)",
+    "new_name": "Ukrasna ogledala",
+    "status": 1,
+    "slug": "ukrasna-ogledala-zidna-i-stona"
+  },
+  {
+    "id": 2650,
+    "parent": 696,
+    "name": "Zidni satovi (Analogni i dekorativni)",
+    "new_name": "Zidni satovi",
+    "status": 1,
+    "slug": "zidni-satovi-analogni-i-dekorativni"
+  },
+  {
+    "id": 2659,
+    "parent": 244,
+    "name": "Ljekovito bilje (Osušeno i rezano)",
+    "new_name": "Ljekovito bilje",
+    "status": 1,
+    "slug": "ljekovito-bilje-osuseno-i-rezano"
+  },
+  {
+    "id": 2668,
+    "parent": 245,
+    "name": "Jaja (Konzumna i rasplodna)",
+    "new_name": "Jaja",
+    "status": 1,
+    "slug": "jaja-konzumna-i-rasplodna"
+  },
+  {
+    "id": 2671,
+    "parent": 245,
+    "name": "Mliječni proizvodi (Sir, kajmak, maslac)",
+    "new_name": "Mliječni proizvodi",
+    "status": 1,
+    "slug": "mlijecni-proizvodi-sir-kajmak-maslac"
+  },
+  {
+    "id": 2672,
+    "parent": 245,
+    "name": "Mlijeko (Svježe i dugotrajno)",
+    "new_name": "Mlijeko",
+    "status": 1,
+    "slug": "mlijeko-svjeze-i-dugotrajno"
+  },
+  {
+    "id": 2684,
+    "parent": 246,
+    "name": "Kajmak (Mladi i zreli)",
+    "new_name": "Kajmak",
+    "status": 1,
+    "slug": "kajmak-mladi-i-zreli"
+  },
+  {
+    "id": 2687,
+    "parent": 246,
+    "name": "Maslac i ghee (Prečišćeni maslac)",
+    "new_name": "Maslac i ghee",
+    "status": 1,
+    "slug": "maslac-i-ghee-precisceni-maslac"
+  },
+  {
+    "id": 2696,
+    "parent": 246,
+    "name": "Tvrdi i polutvrdi sirevi (Trapist, Livanjski, Edamer)",
+    "new_name": "Tvrdi i polutvrdi sirevi",
+    "status": 1,
+    "slug": "tvrdi-i-polutvrdi-sirevi-trapist-livanjski-edamer"
+  },
+  {
+    "id": 2710,
+    "parent": 247,
+    "name": "Torte (Cijele i na parče)",
+    "new_name": "Torte",
+    "status": 1,
+    "slug": "torte-cijele-i-na-parce"
+  },
+  {
+    "id": 2711,
+    "parent": 247,
+    "name": "Tradicionalne agdinske slastice (Baklava, hurmašice)",
+    "new_name": "Tradicionalne agdinske slastice",
+    "status": 1,
+    "slug": "tradicionalne-agdinske-slastice-baklava-hurmasice"
+  },
+  {
+    "id": 2712,
+    "parent": 247,
+    "name": "Zdravi slatkiši (Bez šećera i sirovi)",
+    "new_name": "Zdravi slatkiši",
+    "status": 1,
+    "slug": "zdravi-slatkisi-bez-secera-i-sirovi"
+  },
+  {
+    "id": 2716,
+    "parent": 248,
+    "name": "Domaći i industrijski sokovi (100% voće)",
+    "new_name": "Domaći i industrijski sokovi",
+    "status": 1,
+    "slug": "domaci-i-industrijski-sokovi-100-voce"
+  },
+  {
+    "id": 2720,
+    "parent": 248,
+    "name": "Kafa (Mljevena, u zrnu i kapsule)",
+    "new_name": "Kafa",
+    "status": 1,
+    "slug": "kafa-mljevena-u-zrnu-i-kapsule"
+  },
+  {
+    "id": 2723,
+    "parent": 248,
+    "name": "Piva (Svijetla, tamna i bezalkoholna)",
+    "new_name": "Piva",
+    "status": 1,
+    "slug": "piva-svijetla-tamna-i-bezalkoholna"
+  },
+  {
+    "id": 2727,
+    "parent": 248,
+    "name": "Vina (Crna, bijela i rose)",
+    "new_name": "Vina",
+    "status": 1,
+    "slug": "vina-crna-bijela-i-rose"
+  },
+  {
+    "id": 2728,
+    "parent": 248,
+    "name": "Žestoka alkoholna pića (Viski, džin, votka)",
+    "new_name": "Žestoka alkoholna pića",
+    "status": 1,
+    "slug": "zestoka-alkoholna-pica-viski-dzin-votka"
+  },
+  {
+    "id": 2733,
+    "parent": 249,
+    "name": "Konzervirano voće (Kompot)",
+    "new_name": "Konzervirano voće",
+    "status": 1,
+    "slug": "konzervirano-voce-kompot"
+  },
+  {
+    "id": 2740,
+    "parent": 249,
+    "name": "Povrće u tegli (Krastavci, paprike, cvekla)",
+    "new_name": "Povrće u tegli",
+    "status": 1,
+    "slug": "povrce-u-tegli-krastavci-paprike-cvekla"
+  },
+  {
+    "id": 2741,
+    "parent": 249,
+    "name": "Sirovine za konzerviranje (Konzervansi, soli)",
+    "new_name": "Sirovine za konzerviranje",
+    "status": 1,
+    "slug": "sirovine-za-konzerviranje-konzervansi-soli"
+  },
+  {
+    "id": 2742,
+    "parent": 249,
+    "name": "Slatka zimnica (Džemovi i marmelade)",
+    "new_name": "Slatka zimnica",
+    "status": 1,
+    "slug": "slatka-zimnica-dzemovi-i-marmelade"
+  },
+  {
+    "id": 2749,
+    "parent": 250,
+    "name": "Maslinovo ulje (Ekstra djevansko i rafinisano)",
+    "new_name": "Maslinovo ulje",
+    "status": 1,
+    "slug": "maslinovo-ulje-ekstra-djevansko-i-rafinisano"
+  },
+  {
+    "id": 2752,
+    "parent": 250,
+    "name": "Octovi i kiselinski dodaci (Jabuka, kvasina, balzamični)",
+    "new_name": "Octovi i kiselinski dodaci",
+    "status": 1,
+    "slug": "octovi-i-kiselinski-dodaci-jabuka-kvasina-balzamicni"
+  },
+  {
+    "id": 2754,
+    "parent": 250,
+    "name": "Paprika (Slatka, ljuta, dimljena, tucana)",
+    "new_name": "Paprika",
+    "status": 1,
+    "slug": "paprika-slatka-ljuta-dimljena-tucana"
+  },
+  {
+    "id": 2756,
+    "parent": 250,
+    "name": "Soli (Morska, himalajska, začinjena)",
+    "new_name": "Soli",
+    "status": 1,
+    "slug": "soli-morska-himalajska-zacinjena"
+  },
+  {
+    "id": 2758,
+    "parent": 250,
+    "name": "Umacu i sosovi kao dodaci jelima (Senf, majoneza, kečap)",
+    "new_name": "Umacu i sosovi kao dodaci jelima",
+    "status": 1,
+    "slug": "umacu-i-sosovi-kao-dodaci-jelima-senf-majoneza-kecap"
+  },
+  {
+    "id": 2759,
+    "parent": 250,
+    "name": "Začini za kolače i slastice (Cimet, vanilija, karanfilić)",
+    "new_name": "Začini za kolače i slastice",
+    "status": 1,
+    "slug": "zacini-za-kolace-i-slastice-cimet-vanilija-karanfilic"
+  },
+  {
+    "id": 2761,
+    "parent": 251,
+    "name": "Gastronomski (Gourmet) paketi hrane",
+    "new_name": "Gastronomski paketi hrane",
+    "status": 1,
+    "slug": "gastronomski-gourmet-paketi-hrane"
+  },
+  {
+    "id": 2768,
+    "parent": 251,
+    "name": "Parfemski setovi (Miris + losion)",
+    "new_name": "Parfemski setovi",
+    "status": 1,
+    "slug": "parfemski-setovi-miris-losion"
+  },
+  {
+    "id": 2771,
+    "parent": 251,
+    "name": "Poklon setovi pića (Vino, viski, rakija)",
+    "new_name": "Poklon setovi pića",
+    "status": 1,
+    "slug": "poklon-setovi-pica-vino-viski-rakija"
+  },
+  {
+    "id": 2776,
+    "parent": 252,
+    "name": "Dekoracije za torte i kolače (Jestive)",
+    "new_name": "Dekoracije za torte i kolače",
+    "status": 1,
+    "slug": "dekoracije-za-torte-i-kolace-jestive"
+  },
+  {
+    "id": 2778,
+    "parent": 252,
+    "name": "Dodaci za pečenje (Prašak za pecivo, kvasac)",
+    "new_name": "Dodaci za pečenje",
+    "status": 1,
+    "slug": "dodaci-za-pecenje-prasak-za-pecivo-kvasac"
+  },
+  {
+    "id": 2788,
+    "parent": 252,
+    "name": "Sve za roštilj (Ugalj, potpaljivači)",
+    "new_name": "Sve za roštilj",
+    "status": 1,
+    "slug": "sve-za-rostilj-ugalj-potpaljivaci"
+  },
+  {
+    "id": 2796,
+    "parent": 95,
+    "name": "Njega lica (Kreme, serumi, tonici)",
+    "new_name": "Njega lica",
+    "status": 1,
+    "slug": "njega-lica-kreme-serumi-tonici"
+  },
+  {
+    "id": 2801,
+    "parent": 95,
+    "name": "Sapun (Tečni i tvrdi)",
+    "new_name": "Sapun",
+    "status": 1,
+    "slug": "sapun-tecni-i-tvrdi"
+  },
+  {
+    "id": 2811,
+    "parent": 96,
+    "name": "Njega brade (Ulja, balzami i vosak)",
+    "new_name": "Njega brade",
+    "status": 1,
+    "slug": "njega-brade-ulja-balzami-i-vosak"
+  },
+  {
+    "id": 2814,
+    "parent": 96,
+    "name": "Pribor za šišanje i brijanje (Makaze, britve)",
+    "new_name": "Pribor za šišanje i brijanje",
+    "status": 1,
+    "slug": "pribor-za-sisanje-i-brijanje-makaze-britve"
+  },
+  {
+    "id": 2816,
+    "parent": 96,
+    "name": "Stilizovanje brade (Pjene i sapuni)",
+    "new_name": "Stilizovanje brade",
+    "status": 1,
+    "slug": "stilizovanje-brade-pjene-i-sapuni"
+  },
+  {
+    "id": 2817,
+    "parent": 96,
+    "name": "Stilizovanje kose (Gelovi, lakovi, vosak)",
+    "new_name": "Stilizovanje kose",
+    "status": 1,
+    "slug": "stilizovanje-kose-gelovi-lakovi-vosak"
+  },
+  {
+    "id": 2825,
+    "parent": 97,
+    "name": "Gel lakovi (Trajni lakovi)",
+    "new_name": "Gel lakovi",
+    "status": 1,
+    "slug": "gel-lakovi-trajni-lakovi"
+  },
+  {
+    "id": 2832,
+    "parent": 97,
+    "name": "Pribor za manikuru (Makazice, grickalice, potiskivači)",
+    "new_name": "Pribor za manikuru",
+    "status": 1,
+    "slug": "pribor-za-manikuru-makazice-grickalice-potiskivaci"
+  },
+  {
+    "id": 2838,
+    "parent": 98,
+    "name": "Četkice za zube (Manualne)",
+    "new_name": "Četkice za zube",
+    "status": 1,
+    "slug": "cetkice-za-zube-manualne"
+  },
+  {
+    "id": 2841,
+    "parent": 98,
+    "name": "Konac za zube (Floss)",
+    "new_name": "Konac za zube",
+    "status": 1,
+    "slug": "konac-za-zube-floss"
+  },
+  {
+    "id": 2845,
+    "parent": 98,
+    "name": "Oralni tuševi (Irigatori)",
+    "new_name": "Oralni tuševi",
+    "status": 1,
+    "slug": "oralni-tusevi-irigatori"
+  },
+  {
+    "id": 2849,
+    "parent": 98,
+    "name": "Paste za zube (Standardne)",
+    "new_name": "Paste za zube",
+    "status": 1,
+    "slug": "paste-za-zube-standardne"
+  },
+  {
+    "id": 2850,
+    "parent": 98,
+    "name": "Sredstva za ispiranje usta (Vodice)",
+    "new_name": "Sredstva za ispiranje usta",
+    "status": 1,
+    "slug": "sredstva-za-ispiranje-usta-vodice"
+  },
+  {
+    "id": 2852,
+    "parent": 98,
+    "name": "Sredstva za profesionalno izbjeljivanje (Setovi)",
+    "new_name": "Sredstva za profesionalno izbjeljivanje",
+    "status": 1,
+    "slug": "sredstva-za-profesionalno-izbjeljivanje-setovi"
+  },
+  {
+    "id": 2857,
+    "parent": 99,
+    "name": "Fiksatori šminke (Sprejevi i puderi)",
+    "new_name": "Fiksatori šminke",
+    "status": 1,
+    "slug": "fiksatori-sminke-sprejevi-i-puderi"
+  },
+  {
+    "id": 2865,
+    "parent": 99,
+    "name": "Pribor za šminkanje (Spužvice, uvijači)",
+    "new_name": "Pribor za šminkanje",
+    "status": 1,
+    "slug": "pribor-za-sminkanje-spuzvice-uvijaci"
+  },
+  {
+    "id": 2873,
+    "parent": 100,
+    "name": "Eau de Cologne (Kolonjske vode)",
+    "new_name": "Eau de Cologne",
+    "status": 1,
+    "slug": "eau-de-cologne-kolonjske-vode"
+  },
+  {
+    "id": 2874,
+    "parent": 100,
+    "name": "Eau de Parfum (Parfemske vode)",
+    "new_name": "Eau de Parfum",
+    "status": 1,
+    "slug": "eau-de-parfum-parfemske-vode"
+  },
+  {
+    "id": 2875,
+    "parent": 100,
+    "name": "Eau de Toilette (Toaletne vode)",
+    "new_name": "Eau de Toilette",
+    "status": 1,
+    "slug": "eau-de-toilette-toaletne-vode"
+  },
+  {
+    "id": 2877,
+    "parent": 100,
+    "name": "Mirisni setovi (Parfem + kozmetika)",
+    "new_name": "Mirisni setovi",
+    "status": 1,
+    "slug": "mirisni-setovi-parfem-kozmetika"
+  },
+  {
+    "id": 2883,
+    "parent": 100,
+    "name": "Solid parfemi (Čvrsti parfemi)",
+    "new_name": "Solid parfemi",
+    "status": 1,
+    "slug": "solid-parfemi-cvrsti-parfemi"
+  },
+  {
+    "id": 2887,
+    "parent": 101,
+    "name": "Dioptrijski okviri (Muški, ženski, dječiji)",
+    "new_name": "Dioptrijski okviri",
+    "status": 1,
+    "slug": "dioptrijski-okviri-muski-zenski-djeciji"
+  },
+  {
+    "id": 2888,
+    "parent": 101,
+    "name": "Dodaci za naočale (Lančići, vezice, krpice)",
+    "new_name": "Dodaci za naočale",
+    "status": 1,
+    "slug": "dodaci-za-naocale-lancici-vezice-krpice"
+  },
+  {
+    "id": 2890,
+    "parent": 101,
+    "name": "Kontaktne leće (Dnevne, mjesečne, u boji)",
+    "new_name": "Kontaktne leće",
+    "status": 1,
+    "slug": "kontaktne-lece-dnevne-mjesecne-u-boji"
+  },
+  {
+    "id": 2893,
+    "parent": 101,
+    "name": "Naočale za čitanje (Gotove dioptrije)",
+    "new_name": "Naočale za čitanje",
+    "status": 1,
+    "slug": "naocale-za-citanje-gotove-dioptrije"
+  },
+  {
+    "id": 2894,
+    "parent": 101,
+    "name": "Naočale za rad na računaru (Blue light)",
+    "new_name": "Naočale za rad na računaru",
+    "status": 1,
+    "slug": "naocale-za-rad-na-racunaru-blue-light"
+  },
+  {
+    "id": 2895,
+    "parent": 101,
+    "name": "Naočale za sunce (Polarizovane i modne)",
+    "new_name": "Naočale za sunce",
+    "status": 1,
+    "slug": "naocale-za-sunce-polarizovane-i-modne"
+  },
+  {
+    "id": 2899,
+    "parent": 101,
+    "name": "Stakla za naočale (Leće za okvire)",
+    "new_name": "Stakla za naočale",
+    "status": 1,
+    "slug": "stakla-za-naocale-lece-za-okvire"
+  },
+  {
+    "id": 2901,
+    "parent": 101,
+    "name": "Zaštitne naočale (Radne)",
+    "new_name": "Zaštitne naočale",
+    "status": 1,
+    "slug": "zastitne-naocale-radne"
+  },
+  {
+    "id": 2903,
+    "parent": 102,
+    "name": "Boje za obrve i trepavice (Trajne)",
+    "new_name": "Boje za obrve i trepavice",
+    "status": 1,
+    "slug": "boje-za-obrve-i-trepavice-trajne"
+  },
+  {
+    "id": 2905,
+    "parent": 102,
+    "name": "Kozmetička ogledala (Sa LED svjetlom)",
+    "new_name": "Kozmetička ogledala",
+    "status": 1,
+    "slug": "kozmeticka-ogledala-sa-led-svjetlom"
+  },
+  {
+    "id": 2909,
+    "parent": 102,
+    "name": "Materijal za nadogradnju (Lash Lift)",
+    "new_name": "Materijal za nadogradnju",
+    "status": 1,
+    "slug": "materijal-za-nadogradnju-lash-lift"
+  },
+  {
+    "id": 2912,
+    "parent": 102,
+    "name": "Pribor za oblikovanje obrva (Britvice, makazice)",
+    "new_name": "Pribor za oblikovanje obrva",
+    "status": 1,
+    "slug": "pribor-za-oblikovanje-obrva-britvice-makazice"
+  },
+  {
+    "id": 2913,
+    "parent": 102,
+    "name": "Sredstva za skidanje ljepila (Removers)",
+    "new_name": "Sredstva za skidanje ljepila",
+    "status": 1,
+    "slug": "sredstva-za-skidanje-ljepila-removers"
+  },
+  {
+    "id": 2914,
+    "parent": 102,
+    "name": "Trepavice na traci (Strip lashes)",
+    "new_name": "Trepavice na traci",
+    "status": 1,
+    "slug": "trepavice-na-traci-strip-lashes"
+  },
+  {
+    "id": 2915,
+    "parent": 102,
+    "name": "Uvijači za trepavice (Mehanički i grijani)",
+    "new_name": "Uvijači za trepavice",
+    "status": 1,
+    "slug": "uvijaci-za-trepavice-mehanicki-i-grijani"
+  },
+  {
+    "id": 2920,
+    "parent": 103,
+    "name": "Dijagnostički uređaji (Toplomjeri, tlakomjeri)",
+    "new_name": "Dijagnostički uređaji",
+    "status": 1,
+    "slug": "dijagnosticki-uredaji-toplomjeri-tlakomjeri"
+  },
+  {
+    "id": 2921,
+    "parent": 103,
+    "name": "Dodaci ishrani (Vitamini i minerali)",
+    "new_name": "Dodaci ishrani",
+    "status": 1,
+    "slug": "dodaci-ishrani-vitamini-i-minerali"
+  },
+  {
+    "id": 2931,
+    "parent": 103,
+    "name": "Superhrana (Chia, kvinoja, goji bobice)",
+    "new_name": "Superhrana",
+    "status": 1,
+    "slug": "superhrana-chia-kvinoja-goji-bobice"
+  },
+  {
+    "id": 2934,
+    "parent": 104,
+    "name": "Dječije zaštitne maske (Sa motivima)",
+    "new_name": "Dječije zaštitne maske",
+    "status": 1,
+    "slug": "djecije-zastitne-maske-sa-motivima"
+  },
+  {
+    "id": 2935,
+    "parent": 104,
+    "name": "Hirurške maske (Jednokratne)",
+    "new_name": "Hirurške maske",
+    "status": 1,
+    "slug": "hirurske-maske-jednokratne"
+  },
+  {
+    "id": 2936,
+    "parent": 104,
+    "name": "Latex rukavice (Sa puderom i bez)",
+    "new_name": "Latex rukavice",
+    "status": 1,
+    "slug": "latex-rukavice-sa-puderom-i-bez"
+  },
+  {
+    "id": 2939,
+    "parent": 104,
+    "name": "Nitrile rukavice (Bez lateksa)",
+    "new_name": "Nitrile rukavice",
+    "status": 1,
+    "slug": "nitrile-rukavice-bez-lateksa"
+  },
+  {
+    "id": 2943,
+    "parent": 104,
+    "name": "Respiratorne maske (FFP2 / KN95)",
+    "new_name": "Respiratorne maske",
+    "status": 1,
+    "slug": "respiratorne-maske-ffp2-kn95"
+  },
+  {
+    "id": 2944,
+    "parent": 104,
+    "name": "Respiratorne maske sa ventilom (FFP3)",
+    "new_name": "Respiratorne maske sa ventilom",
+    "status": 1,
+    "slug": "respiratorne-maske-sa-ventilom-ffp3"
+  },
+  {
+    "id": 2946,
+    "parent": 104,
+    "name": "Sredstva za dezinfekciju ruku (Travel pack)",
+    "new_name": "Sredstva za dezinfekciju ruku",
+    "status": 1,
+    "slug": "sredstva-za-dezinfekciju-ruku-travel-pack"
+  },
+  {
+    "id": 2948,
+    "parent": 104,
+    "name": "Zaštitna odijela i mantili (Jednokratni)",
+    "new_name": "Zaštitna odijela i mantili",
+    "status": 1,
+    "slug": "zastitna-odijela-i-mantili-jednokratni"
+  },
+  {
+    "id": 2949,
+    "parent": 105,
+    "name": "Aksesoari za putovanja (Putne bočice)",
+    "new_name": "Aksesoari za putovanja",
+    "status": 1,
+    "slug": "aksesoari-za-putovanja-putne-bocice"
+  },
+  {
+    "id": 2951,
+    "parent": 105,
+    "name": "Flasteri i zavoji (Standardni i dekorativni)",
+    "new_name": "Flasteri i zavoji",
+    "status": 1,
+    "slug": "flasteri-i-zavoji-standardni-i-dekorativni"
+  },
+  {
+    "id": 2957,
+    "parent": 105,
+    "name": "Oprema za prvu pomoć (Setovi)",
+    "new_name": "Oprema za prvu pomoć",
+    "status": 1,
+    "slug": "oprema-za-prvu-pomoc-setovi"
+  },
+  {
+    "id": 2959,
+    "parent": 105,
+    "name": "Pincete, makazice i turpije (Univerzalne)",
+    "new_name": "Pincete, makazice i turpije",
+    "status": 1,
+    "slug": "pincete-makazice-i-turpije-univerzalne"
+  },
+  {
+    "id": 2960,
+    "parent": 105,
+    "name": "Sredstva za odbijanje insekata (Repelenti)",
+    "new_name": "Sredstva za odbijanje insekata",
+    "status": 1,
+    "slug": "sredstva-za-odbijanje-insekata-repelenti"
+  },
+  {
+    "id": 2962,
+    "parent": 105,
+    "name": "Ulošci za cipele (Gel i mirisni)",
+    "new_name": "Ulošci za cipele",
+    "status": 1,
+    "slug": "ulosci-za-cipele-gel-i-mirisni"
+  },
+  {
+    "id": 2963,
+    "parent": 105,
+    "name": "Vlažne maramice (Dezinfekcione i osvježavajuće)",
+    "new_name": "Vlažne maramice",
+    "status": 1,
+    "slug": "vlazne-maramice-dezinfekcione-i-osvjezavajuce"
+  },
+  {
+    "id": 2969,
+    "parent": 150,
+    "name": "Igre kartama (Standardne i kolekcionarske)",
+    "new_name": "Igre kartama",
+    "status": 1,
+    "slug": "igre-kartama-standardne-i-kolekcionarske"
+  },
+  {
+    "id": 2976,
+    "parent": 150,
+    "name": "Puzzle za djecu (Laki nivo)",
+    "new_name": "Puzzle za djecu",
+    "status": 1,
+    "slug": "puzzle-za-djecu-laki-nivo"
+  },
+  {
+    "id": 2977,
+    "parent": 150,
+    "name": "Puzzle za odrasle (Preko 1000 dijelova)",
+    "new_name": "Puzzle za odrasle",
+    "status": 1,
+    "slug": "puzzle-za-odrasle-preko-1000-dijelova"
+  },
+  {
+    "id": 2978,
+    "parent": 150,
+    "name": "Strateške i RPG igre (Tabletop)",
+    "new_name": "Strateške i RPG igre",
+    "status": 1,
+    "slug": "strateske-i-rpg-igre-tabletop"
+  },
+  {
+    "id": 2979,
+    "parent": 150,
+    "name": "Tradicionalne igre na tabli (Čovječe ne ljuti se, Monopol)",
+    "new_name": "Tradicionalne igre na tabli",
+    "status": 1,
+    "slug": "tradicionalne-igre-na-tabli-covjece-ne-ljuti-se-monopol"
+  },
+  {
+    "id": 2984,
+    "parent": 151,
+    "name": "Dodaci i oprema za figure (Oružje, vozila)",
+    "new_name": "Dodaci i oprema za figure",
+    "status": 1,
+    "slug": "dodaci-i-oprema-za-figure-oruzje-vozila"
+  },
+  {
+    "id": 2986,
+    "parent": 151,
+    "name": "Kolekcionarske figure (Statue i bista)",
+    "new_name": "Kolekcionarske figure",
+    "status": 1,
+    "slug": "kolekcionarske-figure-statue-i-bista"
+  },
+  {
+    "id": 2990,
+    "parent": 151,
+    "name": "Superheroji (Marvel, DC i ostali)",
+    "new_name": "Superheroji",
+    "status": 1,
+    "slug": "superheroji-marvel-dc-i-ostali"
+  },
+  {
+    "id": 2992,
+    "parent": 151,
+    "name": "Vinilne figure (Funko Pop i slično)",
+    "new_name": "Vinilne figure",
+    "status": 1,
+    "slug": "vinilne-figure-funko-pop-i-slicno"
+  },
+  {
+    "id": 2994,
+    "parent": 151,
+    "name": "Životinjske figure (Domaće i divlje)",
+    "new_name": "Životinjske figure",
+    "status": 1,
+    "slug": "zivotinjske-figure-domace-i-divlje"
+  },
+  {
+    "id": 2998,
+    "parent": 152,
+    "name": "Kocke sa velikim dijelovima (za bebe i mališane)",
+    "new_name": "Kocke sa velikim dijelovima",
+    "status": 1,
+    "slug": "kocke-sa-velikim-dijelovima-za-bebe-i-malisane"
+  },
+  {
+    "id": 2999,
+    "parent": 152,
+    "name": "Konstrukcioni setovi sa alatima (šarafi i matice)",
+    "new_name": "Konstrukcioni setovi sa alatima",
+    "status": 1,
+    "slug": "konstrukcioni-setovi-sa-alatima-sarafi-i-matice"
+  },
+  {
+    "id": 3001,
+    "parent": 152,
+    "name": "Mehanički i inžinjerski setovi (zupčanici i motori)",
+    "new_name": "Mehanički i inžinjerski setovi",
+    "status": 1,
+    "slug": "mehanicki-i-inzinjerski-setovi-zupcanici-i-motori"
+  },
+  {
+    "id": 3003,
+    "parent": 152,
+    "name": "Osnovni setovi kockica (klasične kocke)",
+    "new_name": "Osnovni setovi kockica",
+    "status": 1,
+    "slug": "osnovni-setovi-kockica-klasicne-kocke"
+  },
+  {
+    "id": 3007,
+    "parent": 152,
+    "name": "Setovi kockica po temama (Grad, Svemir, Farma)",
+    "new_name": "Setovi kockica po temama",
+    "status": 1,
+    "slug": "setovi-kockica-po-temama-grad-svemir-farma"
+  },
+  {
+    "id": 3009,
+    "parent": 152,
+    "name": "Specijalni dodaci (točkovi, prozori, vrata)",
+    "new_name": "Specijalni dodaci",
+    "status": 1,
+    "slug": "specijalni-dodaci-tockovi-prozori-vrata"
+  },
+  {
+    "id": 3011,
+    "parent": 153,
+    "name": "Automobili na daljinsko upravljanje (RC)",
+    "new_name": "Automobili na daljinsko upravljanje",
+    "status": 1,
+    "slug": "automobili-na-daljinsko-upravljanje-rc"
+  },
+  {
+    "id": 3019,
+    "parent": 153,
+    "name": "Kamioni, bageri i radne mašine (RC)",
+    "new_name": "Kamioni, bageri i radne mašine",
+    "status": 1,
+    "slug": "kamioni-bageri-i-radne-masine-rc"
+  },
+  {
+    "id": 3027,
+    "parent": 154,
+    "name": "Drvene daske za učenje (Activity boards)",
+    "new_name": "Drvene daske za učenje",
+    "status": 1,
+    "slug": "drvene-daske-za-ucenje-activity-boards"
+  },
+  {
+    "id": 3036,
+    "parent": 154,
+    "name": "Pribor za vježbe svakodnevnog života (Zakopčavanje, vezivanje)",
+    "new_name": "Pribor za vježbe svakodnevnog života",
+    "status": 1,
+    "slug": "pribor-za-vjezbe-svakodnevnog-zivota-zakopcavanje-vezivanje"
+  },
+  {
+    "id": 3045,
+    "parent": 155,
+    "name": "Interaktivni plišanci (Govor, pokret, zvuk)",
+    "new_name": "Interaktivni plišanci",
+    "status": 1,
+    "slug": "interaktivni-plisanci-govor-pokret-zvuk"
+  },
+  {
+    "id": 3053,
+    "parent": 155,
+    "name": "Plišani setovi sa dodacima (Kućice, kreveti)",
+    "new_name": "Plišani setovi sa dodacima",
+    "status": 1,
+    "slug": "plisani-setovi-sa-dodacima-kucice-kreveti"
+  },
+  {
+    "id": 3058,
+    "parent": 156,
+    "name": "Dječije kućice (Plastične i platnene)",
+    "new_name": "Dječije kućice",
+    "status": 1,
+    "slug": "djecije-kucice-plasticne-i-platnene"
+  },
+  {
+    "id": 3064,
+    "parent": 156,
+    "name": "Modularne podne prostirke (Puzle od pjene)",
+    "new_name": "Modularne podne prostirke",
+    "status": 1,
+    "slug": "modularne-podne-prostirke-puzle-od-pjene"
+  },
+  {
+    "id": 3069,
+    "parent": 156,
+    "name": "Sportske sprave za djecu (Ljestve, karike)",
+    "new_name": "Sportske sprave za djecu",
+    "status": 1,
+    "slug": "sportske-sprave-za-djecu-ljestve-karike"
+  },
+  {
+    "id": 3070,
+    "parent": 156,
+    "name": "Trampoline (Unutrašnje i vanjske)",
+    "new_name": "Trampoline",
+    "status": 1,
+    "slug": "trampoline-unutrasnje-i-vanjske"
+  },
+  {
+    "id": 3074,
+    "parent": 157,
+    "name": "Dodaci za lutke (Odjeća, obuća, nakit)",
+    "new_name": "Dodaci za lutke",
+    "status": 1,
+    "slug": "dodaci-za-lutke-odjeca-obuca-nakit"
+  },
+  {
+    "id": 3088,
+    "parent": 158,
+    "name": "Automobili, kamioni i motori (Bez daljinskog)",
+    "new_name": "Automobili, kamioni i motori",
+    "status": 1,
+    "slug": "automobili-kamioni-i-motori-bez-daljinskog"
+  },
+  {
+    "id": 3094,
+    "parent": 158,
+    "name": "Metalni autići (Kolekcionarski modeli)",
+    "new_name": "Metalni autići",
+    "status": 1,
+    "slug": "metalni-autici-kolekcionarski-modeli"
+  },
+  {
+    "id": 3100,
+    "parent": 158,
+    "name": "Viteški setovi (Mačevi, štitovi, dvorci)",
+    "new_name": "Viteški setovi",
+    "status": 1,
+    "slug": "viteski-setovi-macevi-stitovi-dvorci"
+  },
+  {
+    "id": 3103,
+    "parent": 159,
+    "name": "Antistres igračke (Fidget, Squishy, Pop-it)",
+    "new_name": "Antistres igračke",
+    "status": 1,
+    "slug": "antistres-igracke-fidget-squishy-pop-it"
+  },
+  {
+    "id": 3106,
+    "parent": 159,
+    "name": "Igračke za kupanje (Gume, patkice, prskalice)",
+    "new_name": "Igračke za kupanje",
+    "status": 1,
+    "slug": "igracke-za-kupanje-gume-patkice-prskalice"
+  },
+  {
+    "id": 3108,
+    "parent": 159,
+    "name": "Igračke za putovanja (Magnetne i mini igre)",
+    "new_name": "Igračke za putovanja",
+    "status": 1,
+    "slug": "igracke-za-putovanja-magnetne-i-mini-igre"
+  },
+  {
+    "id": 3113,
+    "parent": 159,
+    "name": "Mjehurići od sapunice (Setovi i tečnosti)",
+    "new_name": "Mjehurići od sapunice",
+    "status": 1,
+    "slug": "mjehurici-od-sapunice-setovi-i-tecnosti"
+  },
+  {
+    "id": 3116,
+    "parent": 159,
+    "name": "Sakupljačke karte i albumi (Sličice)",
+    "new_name": "Sakupljačke karte i albumi",
+    "status": 1,
+    "slug": "sakupljacke-karte-i-albumi-slicice"
+  },
+  {
+    "id": 3201,
+    "parent": 84,
+    "name": "Memorijske kartice (MicroSD)",
+    "new_name": "Memorijske kartice",
+    "status": 1,
+    "slug": "memorijske-kartice-microsd"
+  },
+  {
+    "id": 3202,
+    "parent": 84,
+    "name": "Olovke za ekrane (Stylus pen)",
+    "new_name": "Olovke za ekrane",
+    "status": 1,
+    "slug": "olovke-za-ekrane-stylus-pen"
+  },
+  {
+    "id": 3206,
+    "parent": 84,
+    "name": "Rezervni dijelovi (Ekrani, flet kablovi, kućišta)",
+    "new_name": "Rezervni dijelovi",
+    "status": 1,
+    "slug": "rezervni-dijelovi-ekrani-flet-kablovi-kucista"
+  },
+  {
+    "id": 3207,
+    "parent": 84,
+    "name": "SIM kartice i dopune (Top-up)",
+    "new_name": "SIM kartice i dopune",
+    "status": 1,
+    "slug": "sim-kartice-i-dopune-top-up"
+  },
+  {
+    "id": 3212,
+    "parent": 83,
+    "name": "Boox (Onyx) Android čitači",
+    "new_name": "Boox Android čitači",
+    "status": 1,
+    "slug": "boox-onyx-android-citaci"
+  },
+  {
+    "id": 3213,
+    "parent": 83,
+    "name": "Čitači sa ekranom u boji (Color E-ink)",
+    "new_name": "Čitači sa ekranom u boji",
+    "status": 1,
+    "slug": "citaci-sa-ekranom-u-boji-color-e-ink"
+  },
+  {
+    "id": 3214,
+    "parent": 83,
+    "name": "Dodaci za čitače (Futrole, lampe, olovke)",
+    "new_name": "Dodaci za čitače",
+    "status": 1,
+    "slug": "dodaci-za-citace-futrole-lampe-olovke"
+  },
+  {
+    "id": 3216,
+    "parent": 83,
+    "name": "Large-format čitači (Ekran 10\" i veći)",
+    "new_name": "Large-format čitači",
+    "status": 1,
+    "slug": "large-format-citaci-ekran-10-i-veci"
+  },
+  {
+    "id": 3227,
+    "parent": 82,
+    "name": "Industrijski PDA uređaji (Barkod skeneri)",
+    "new_name": "Industrijski PDA uređaji",
+    "status": 1,
+    "slug": "industrijski-pda-uredaji-barkod-skeneri"
+  },
+  {
+    "id": 3228,
+    "parent": 82,
+    "name": "Memorijske kartice (CF, SD, MMC)",
+    "new_name": "Memorijske kartice",
+    "status": 1,
+    "slug": "memorijske-kartice-cf-sd-mmc"
+  },
+  {
+    "id": 3229,
+    "parent": 82,
+    "name": "Olovke (Stylus) za ekrane",
+    "new_name": "Olovke za ekrane",
+    "status": 1,
+    "slug": "olovke-stylus-za-ekrane"
+  },
+  {
+    "id": 3232,
+    "parent": 82,
+    "name": "Pocket PC (Windows Mobile) uređaji",
+    "new_name": "Pocket PC uređaji",
+    "status": 1,
+    "slug": "pocket-pc-windows-mobile-uredaji"
+  },
+  {
+    "id": 3235,
+    "parent": 82,
+    "name": "Rezervni dijelovi (Ekrani, kućišta, tipke)",
+    "new_name": "Rezervni dijelovi",
+    "status": 1,
+    "slug": "rezervni-dijelovi-ekrani-kucista-tipke"
+  },
+  {
+    "id": 3246,
+    "parent": 242,
+    "name": "Osvježivači i odvlaživači vazduha (pasivni)",
+    "new_name": "Osvježivači i odvlaživači vazduha",
+    "status": 1,
+    "slug": "osvjezivaci-i-odvlazivaci-vazduha-pasivni"
+  },
+  {
+    "id": 3249,
+    "parent": 242,
+    "name": "Satovi (Zidni i stoni)",
+    "new_name": "Satovi",
+    "status": 1,
+    "slug": "satovi-zidni-i-stoni"
+  },
+  {
+    "id": 3254,
+    "parent": 171,
+    "name": "Akustični paneli i izolacija (Apsorberi, difuzori)",
+    "new_name": "Akustični paneli i izolacija",
+    "status": 1,
+    "slug": "akusticni-paneli-i-izolacija-apsorberi-difuzori"
+  },
+  {
+    "id": 3255,
+    "parent": 171,
+    "name": "Alati za održavanje instrumenata (Setovi za čišćenje)",
+    "new_name": "Alati za održavanje instrumenata",
+    "status": 1,
+    "slug": "alati-za-odrzavanje-instrumenata-setovi-za-ciscenje"
+  },
+  {
+    "id": 3257,
+    "parent": 171,
+    "name": "Koferi, torbe i rek (Rack) kućišta",
+    "new_name": "Koferi, torbe i rek kućišta",
+    "status": 1,
+    "slug": "koferi-torbe-i-rek-rack-kucista"
+  },
+  {
+    "id": 3258,
+    "parent": 171,
+    "name": "Metronomi i štimeri (Tuneri)",
+    "new_name": "Metronomi i štimeri",
+    "status": 1,
+    "slug": "metronomi-i-stimeri-tuneri"
+  },
+  {
+    "id": 3259,
+    "parent": 171,
+    "name": "Muzički stalci (Za note, mikrofone, instrumente)",
+    "new_name": "Muzički stalci",
+    "status": 1,
+    "slug": "muzicki-stalci-za-note-mikrofone-instrumente"
+  },
+  {
+    "id": 3263,
+    "parent": 171,
+    "name": "Pribor za muzičare (Trzalice, kapodasteri, remenovi)",
+    "new_name": "Pribor za muzičare",
+    "status": 1,
+    "slug": "pribor-za-muzicare-trzalice-kapodasteri-remenovi"
+  },
+  {
+    "id": 3265,
+    "parent": 171,
+    "name": "Rezervni dijelovi za instrumente (Pragovi, čivije, potenciometri)",
+    "new_name": "Rezervni dijelovi za instrumente",
+    "status": 1,
+    "slug": "rezervni-dijelovi-za-instrumente-pragovi-civije-potenciometri"
+  },
+  {
+    "id": 3266,
+    "parent": 171,
+    "name": "Stolice i klupe za muzičare (Pianino klupe, bubnjarske stolice)",
+    "new_name": "Stolice i klupe za muzičare",
+    "status": 1,
+    "slug": "stolice-i-klupe-za-muzicare-pianino-klupe-bubnjarske-stolice"
+  },
+  {
+    "id": 3267,
+    "parent": 171,
+    "name": "Svjetla za note i scenska rasvjeta (Manja)",
+    "new_name": "Svjetla za note i scenska rasvjeta",
+    "status": 1,
+    "slug": "svjetla-za-note-i-scenska-rasvjeta-manja"
+  },
+  {
+    "id": 3269,
+    "parent": 532,
+    "name": "Adapteri i pretvarači (Reduciri)",
+    "new_name": "Adapteri i pretvarači",
+    "status": 1,
+    "slug": "adapteri-i-pretvaraci-reduciri"
+  },
+  {
+    "id": 3270,
+    "parent": 532,
+    "name": "Digitalni audio kablovi (Optički, S/PDIF, AES/EBU)",
+    "new_name": "Digitalni audio kablovi",
+    "status": 1,
+    "slug": "digitalni-audio-kablovi-opticki-spdif-aesebu"
+  },
+  {
+    "id": 3272,
+    "parent": 532,
+    "name": "Instrument kablovi (TS Jack - za gitare i klavijature)",
+    "new_name": "Instrument kablovi",
+    "status": 1,
+    "slug": "instrument-kablovi-ts-jack-za-gitare-i-klavijature"
+  },
+  {
+    "id": 3274,
+    "parent": 532,
+    "name": "Mrežni kablovi za audio (Ethercon, Cat6)",
+    "new_name": "Mrežni kablovi za audio",
+    "status": 1,
+    "slug": "mrezni-kablovi-za-audio-ethercon-cat6"
+  },
+  {
+    "id": 3276,
+    "parent": 532,
+    "name": "Multicore kablovi (Stagebox zmije)",
+    "new_name": "Multicore kablovi",
+    "status": 1,
+    "slug": "multicore-kablovi-stagebox-zmije"
+  },
+  {
+    "id": 3277,
+    "parent": 532,
+    "name": "Napojni kablovi i razdjelnici za pedale (Daisy chain)",
+    "new_name": "Napojni kablovi i razdjelnici za pedale",
+    "status": 1,
+    "slug": "napojni-kablovi-i-razdjelnici-za-pedale-daisy-chain"
+  },
+  {
+    "id": 3280,
+    "parent": 532,
+    "name": "RCA (Chinch) kablovi",
+    "new_name": "RCA kablovi",
+    "status": 1,
+    "slug": "rca-chinch-kablovi"
+  },
+  {
+    "id": 3282,
+    "parent": 532,
+    "name": "Stereo i balansirani kablovi (TRS Jack)",
+    "new_name": "Stereo i balansirani kablovi",
+    "status": 1,
+    "slug": "stereo-i-balansirani-kablovi-trs-jack"
+  },
+  {
+    "id": 3284,
+    "parent": 532,
+    "name": "XLR (Mikrofonski) kablovi",
+    "new_name": "XLR kablovi",
+    "status": 1,
+    "slug": "xlr-mikrofonski-kablovi"
+  },
+  {
+    "id": 3288,
+    "parent": 533,
+    "name": "Metronomi i štimeri (Tuneri)",
+    "new_name": "Metronomi i štimeri",
+    "status": 1,
+    "slug": "metronomi-i-stimeri-tuneri-1"
+  },
+  {
+    "id": 3289,
+    "parent": 533,
+    "name": "Muzički stalci (Za note i mikrofone)",
+    "new_name": "Muzički stalci",
+    "status": 1,
+    "slug": "muzicki-stalci-za-note-i-mikrofone"
+  },
+  {
+    "id": 3295,
+    "parent": 533,
+    "name": "Rezervni dijelovi (Potenciometri, prekidači, pragovi)",
+    "new_name": "Rezervni dijelovi",
+    "status": 1,
+    "slug": "rezervni-dijelovi-potenciometri-prekidaci-pragovi"
+  },
+  {
+    "id": 3298,
+    "parent": 533,
+    "name": "Vlažni regulatori za drvene instrumente (Humidifieri)",
+    "new_name": "Vlažni regulatori za drvene instrumente",
+    "status": 1,
+    "slug": "vlazni-regulatori-za-drvene-instrumente-humidifieri"
+  },
+  {
+    "id": 3300,
+    "parent": 686,
+    "name": "Bežične (Wireless) tattoo mašinice",
+    "new_name": "Bežične tattoo mašinice",
+    "status": 1,
+    "slug": "bezicne-wireless-tattoo-masinice"
+  },
+  {
+    "id": 3301,
+    "parent": 686,
+    "name": "Coil (Zavojne) mašinice za liner",
+    "new_name": "Coil mašinice za liner",
+    "status": 1,
+    "slug": "coil-zavojne-masinice-za-liner"
+  },
+  {
+    "id": 3302,
+    "parent": 686,
+    "name": "Coil (Zavojne) mašinice za shader",
+    "new_name": "Coil mašinice za shader",
+    "status": 1,
+    "slug": "coil-zavojne-masinice-za-shader"
+  },
+  {
+    "id": 3303,
+    "parent": 686,
+    "name": "Dijelovi za mašinice (Opruge, kondenzatori, vijci)",
+    "new_name": "Dijelovi za mašinice",
+    "status": 1,
+    "slug": "dijelovi-za-masinice-opruge-kondenzatori-vijci"
+  },
+  {
+    "id": 3305,
+    "parent": 686,
+    "name": "Mašinice za trajnu šminku (PMU)",
+    "new_name": "Mašinice za trajnu šminku",
+    "status": 1,
+    "slug": "masinice-za-trajnu-sminku-pmu"
+  },
+  {
+    "id": 3307,
+    "parent": 686,
+    "name": "Pen (Olovka) rotacione mašinice",
+    "new_name": "Pen rotacione mašinice",
+    "status": 1,
+    "slug": "pen-olovka-rotacione-masinice"
+  },
+  {
+    "id": 3312,
+    "parent": 686,
+    "name": "Setovi za početnike (Mašinica sa priborom)",
+    "new_name": "Setovi za početnike",
+    "status": 1,
+    "slug": "setovi-za-pocetnike-masinica-sa-priborom"
+  },
+  {
+    "id": 3313,
+    "parent": 687,
+    "name": "Flat (Ravne) igle i patroni",
+    "new_name": "Flat igle i patroni",
+    "status": 1,
+    "slug": "flat-ravne-igle-i-patroni"
+  },
+  {
+    "id": 3314,
+    "parent": 687,
+    "name": "Kertridži (Patroni) - Round Liner (RL)",
+    "new_name": "Kertridži- Round Liner",
+    "status": 1,
+    "slug": "kertridzi-patroni-round-liner-rl"
+  },
+  {
+    "id": 3315,
+    "parent": 687,
+    "name": "Kertridži (Patroni) - Round Shader (RS)",
+    "new_name": "Kertridži- Round Shader",
+    "status": 1,
+    "slug": "kertridzi-patroni-round-shader-rs"
+  },
+  {
+    "id": 3316,
+    "parent": 687,
+    "name": "Kertridži (Patroni) - Magnum (M1/M2)",
+    "new_name": "Kertridži- Magnum",
+    "status": 1,
+    "slug": "kertridzi-patroni-magnum-m1m2"
+  },
+  {
+    "id": 3317,
+    "parent": 687,
+    "name": "Kertridži (Patroni) - Soft Edge Magnum (SEM/RM)",
+    "new_name": "Kertridži- Soft Edge Magnum",
+    "status": 1,
+    "slug": "kertridzi-patroni-soft-edge-magnum-semrm"
+  },
+  {
+    "id": 3318,
+    "parent": 687,
+    "name": "Klasične igle na šipki - Round Liner (RL)",
+    "new_name": "Klasične igle na šipki- Round Liner",
+    "status": 1,
+    "slug": "klasicne-igle-na-sipki-round-liner-rl"
+  },
+  {
+    "id": 3319,
+    "parent": 687,
+    "name": "Klasične igle na šipki - Round Shader (RS)",
+    "new_name": "Klasične igle na šipki- Round Shader",
+    "status": 1,
+    "slug": "klasicne-igle-na-sipki-round-shader-rs"
+  },
+  {
+    "id": 3321,
+    "parent": 687,
+    "name": "Igle za trajnu šminku (PMU)",
+    "new_name": "Igle za trajnu šminku",
+    "status": 1,
+    "slug": "igle-za-trajnu-sminku-pmu"
+  },
+  {
+    "id": 3322,
+    "parent": 687,
+    "name": "Igle za piercing (Kanile)",
+    "new_name": "Igle za piercing",
+    "status": 1,
+    "slug": "igle-za-piercing-kanile"
+  },
+  {
+    "id": 3325,
+    "parent": 687,
+    "name": "Pribor za igle (Grommeti, gumice)",
+    "new_name": "Pribor za igle",
+    "status": 1,
+    "slug": "pribor-za-igle-grommeti-gumice"
+  },
+  {
+    "id": 3327,
+    "parent": 688,
+    "name": "Boje za trajnu šminku (PMU pigmenti)",
+    "new_name": "Boje za trajnu šminku",
+    "status": 1,
+    "slug": "boje-za-trajnu-sminku-pmu-pigmenti"
+  },
+  {
+    "id": 3328,
+    "parent": 688,
+    "name": "Crne boje za linije (Lining Black)",
+    "new_name": "Crne boje za linije",
+    "status": 1,
+    "slug": "crne-boje-za-linije-lining-black"
+  },
+  {
+    "id": 3329,
+    "parent": 688,
+    "name": "Crne boje za popunjavanje (Filling Black)",
+    "new_name": "Crne boje za popunjavanje",
+    "status": 1,
+    "slug": "crne-boje-za-popunjavanje-filling-black"
+  },
+  {
+    "id": 3330,
+    "parent": 688,
+    "name": "Čašice za boju (Ink caps) i držači",
+    "new_name": "Čašice za boju i držači",
+    "status": 1,
+    "slug": "casice-za-boju-ink-caps-i-drzaci"
+  },
+  {
+    "id": 3331,
+    "parent": 688,
+    "name": "Diluents (Tečnosti za razrijeđivanje boje)",
+    "new_name": "Diluents",
+    "status": 1,
+    "slug": "diluents-tecnosti-za-razrijedivanje-boje"
+  },
+  {
+    "id": 3332,
+    "parent": 688,
+    "name": "Grey Wash setovi (Sjenčenje)",
+    "new_name": "Grey Wash setovi",
+    "status": 1,
+    "slug": "grey-wash-setovi-sjencenje"
+  },
+  {
+    "id": 3333,
+    "parent": 688,
+    "name": "Mix setovi boja (Primary i Secondary)",
+    "new_name": "Mix setovi boja",
+    "status": 1,
+    "slug": "mix-setovi-boja-primary-i-secondary"
+  },
+  {
+    "id": 3336,
+    "parent": 688,
+    "name": "Sredstva za miješanje i miješalice (Mixers)",
+    "new_name": "Sredstva za miješanje i miješalice",
+    "status": 1,
+    "slug": "sredstva-za-mijesanje-i-mijesalice-mixers"
+  },
+  {
+    "id": 3337,
+    "parent": 688,
+    "name": "Svijetleće (UV/Neon) boje za tetoviranje",
+    "new_name": "Svijetleće boje za tetoviranje",
+    "status": 1,
+    "slug": "svijetlece-uvneon-boje-za-tetoviranje"
+  },
+  {
+    "id": 3340,
+    "parent": 689,
+    "name": "Dezinfekciona sredstva za kožu (Antiseptici)",
+    "new_name": "Dezinfekciona sredstva za kožu",
+    "status": 1,
+    "slug": "dezinfekciona-sredstva-za-kozu-antiseptici"
+  },
+  {
+    "id": 3342,
+    "parent": 689,
+    "name": "Kreme i masti za njegu tetovaže (Aftercare)",
+    "new_name": "Kreme i masti za njegu tetovaže",
+    "status": 1,
+    "slug": "kreme-i-masti-za-njegu-tetovaze-aftercare"
+  },
+  {
+    "id": 3345,
+    "parent": 689,
+    "name": "Posude za odlaganje medicinskog otpada (Sharps)",
+    "new_name": "Posude za odlaganje medicinskog otpada",
+    "status": 1,
+    "slug": "posude-za-odlaganje-medicinskog-otpada-sharps"
+  },
+  {
+    "id": 3347,
+    "parent": 689,
+    "name": "Sredstva za transfer (Stancil gelovi i tečnosti)",
+    "new_name": "Sredstva za transfer",
+    "status": 1,
+    "slug": "sredstva-za-transfer-stancil-gelovi-i-tecnosti"
+  },
+  {
+    "id": 3349,
+    "parent": 689,
+    "name": "Vazelin i vitaminske masti (Tokom rada)",
+    "new_name": "Vazelin i vitaminske masti",
+    "status": 1,
+    "slug": "vazelin-i-vitaminske-masti-tokom-rada"
+  },
+  {
+    "id": 3351,
+    "parent": 689,
+    "name": "Zeleni sapun (Green soap) i koncentrati",
+    "new_name": "Zeleni sapun i koncentrati",
+    "status": 1,
+    "slug": "zeleni-sapun-green-soap-i-koncentrati"
+  },
+  {
+    "id": 3352,
+    "parent": 690,
+    "name": "Hektografski papir (Za ručno crtanje)",
+    "new_name": "Hektografski papir",
+    "status": 1,
+    "slug": "hektografski-papir-za-rucno-crtanje"
+  },
+  {
+    "id": 3353,
+    "parent": 690,
+    "name": "Markeri i olovke za crtanje na koži (Freehand)",
+    "new_name": "Markeri i olovke za crtanje na koži",
+    "status": 1,
+    "slug": "markeri-i-olovke-za-crtanje-na-kozi-freehand"
+  },
+  {
+    "id": 3360,
+    "parent": 690,
+    "name": "Termalni transfer papir (Spirit/Hectograph)",
+    "new_name": "Termalni transfer papir",
+    "status": 1,
+    "slug": "termalni-transfer-papir-spirithectograph"
+  },
+  {
+    "id": 3361,
+    "parent": 690,
+    "name": "Tracing papir (Pauziranje)",
+    "new_name": "Tracing papir",
+    "status": 1,
+    "slug": "tracing-papir-pauziranje"
+  },
+  {
+    "id": 3362,
+    "parent": 691,
+    "name": "Alati i kliješta za pirsing (Forceps)",
+    "new_name": "Alati i kliješta za pirsing",
+    "status": 1,
+    "slug": "alati-i-klijesta-za-pirsing-forceps"
+  },
+  {
+    "id": 3367,
+    "parent": 691,
+    "name": "Nakit - Labreti i šipke (Barbells)",
+    "new_name": "Nakit- Labreti i šipke",
+    "status": 1,
+    "slug": "nakit-labreti-i-sipke-barbells"
+  },
+  {
+    "id": 3376,
+    "parent": 691,
+    "name": "Širenje (Tuneli, plugovi i taperi)",
+    "new_name": "Širenje",
+    "status": 1,
+    "slug": "sirenje-tuneli-plugovi-i-taperi"
+  },
+  {
+    "id": 3377,
+    "parent": 389,
+    "name": "Bidei (Stojeći i zidni)",
+    "new_name": "Bidei",
+    "status": 1,
+    "slug": "bidei-stojeci-i-zidni"
+  },
+  {
+    "id": 3378,
+    "parent": 389,
+    "name": "Daske za WC šolju (Klasične i Soft-close)",
+    "new_name": "Daske za WC šolju",
+    "status": 1,
+    "slug": "daske-za-wc-solju-klasicne-i-soft-close"
+  },
+  {
+    "id": 3382,
+    "parent": 389,
+    "name": "Pametne (Smart) WC daske sa funkcijama",
+    "new_name": "Pametne WC daske sa funkcijama",
+    "status": 1,
+    "slug": "pametne-smart-wc-daske-sa-funkcijama"
+  },
+  {
+    "id": 3384,
+    "parent": 389,
+    "name": "Podgradni (Ugradbeni) vodokotlići",
+    "new_name": "Podgradni vodokotlići",
+    "status": 1,
+    "slug": "podgradni-ugradbeni-vodokotlici"
+  },
+  {
+    "id": 3385,
+    "parent": 389,
+    "name": "Rezervni dijelovi za vodokotliće (Ventili, plovci)",
+    "new_name": "Rezervni dijelovi za vodokotliće",
+    "status": 1,
+    "slug": "rezervni-dijelovi-za-vodokotlice-ventili-plovci"
+  },
+  {
+    "id": 3387,
+    "parent": 389,
+    "name": "Vanjski vodokotlići (Visokomontažni i niskomontažni)",
+    "new_name": "Vanjski vodokotlići",
+    "status": 1,
+    "slug": "vanjski-vodokotlici-visokomontazni-i-niskomontazni"
+  },
+  {
+    "id": 3388,
+    "parent": 389,
+    "name": "WC šolje - Podne (Simplon/Baltik)",
+    "new_name": "WC šolje- Podne",
+    "status": 1,
+    "slug": "wc-solje-podne-simplonbaltik"
+  },
+  {
+    "id": 3389,
+    "parent": 389,
+    "name": "WC šolje - Viseće (Konzolne)",
+    "new_name": "WC šolje- Viseće",
+    "status": 1,
+    "slug": "wc-solje-visece-konzolne"
+  },
+  {
+    "id": 3403,
+    "parent": 391,
+    "name": "Brinox (fleksibilna) crijeva za vodokotlić",
+    "new_name": "Brinox crijeva za vodokotlić",
+    "status": 1,
+    "slug": "brinox-fleksibilna-crijeva-za-vodokotlic"
+  },
+  {
+    "id": 3406,
+    "parent": 391,
+    "name": "Ispirne cijevi (Unutrašnje i vanjske)",
+    "new_name": "Ispirne cijevi",
+    "status": 1,
+    "slug": "ispirne-cijevi-unutrasnje-i-vanjske"
+  },
+  {
+    "id": 3410,
+    "parent": 391,
+    "name": "Plovci za vodokotlić (Bočni i donji priključak)",
+    "new_name": "Plovci za vodokotlić",
+    "status": 1,
+    "slug": "plovci-za-vodokotlic-bocni-i-donji-prikljucak"
+  },
+  {
+    "id": 3419,
+    "parent": 390,
+    "name": "Filteri za vodu (za frižidere i aparate)",
+    "new_name": "Filteri za vodu",
+    "status": 1,
+    "slug": "filteri-za-vodu-za-frizidere-i-aparate"
+  },
+  {
+    "id": 3422,
+    "parent": 390,
+    "name": "Oprema za pametnu kuću (Smart home senzori)",
+    "new_name": "Oprema za pametnu kuću",
+    "status": 1,
+    "slug": "oprema-za-pametnu-kucu-smart-home-senzori"
+  },
+  {
+    "id": 3424,
+    "parent": 390,
+    "name": "Podloške protiv vibracija (za veš mašine)",
+    "new_name": "Podloške protiv vibracija",
+    "status": 1,
+    "slug": "podloske-protiv-vibracija-za-ves-masine"
+  },
+  {
+    "id": 3425,
+    "parent": 390,
+    "name": "Prenosivi (Portable) rashladni uređaji",
+    "new_name": "Prenosivi rashladni uređaji",
+    "status": 1,
+    "slug": "prenosivi-portable-rashladni-uredaji"
+  },
+  {
+    "id": 3626,
+    "parent": 223,
+    "name": "Alati (ručni i električni)",
+    "new_name": "Alati",
+    "status": 1,
+    "slug": "alati-rucni-i-elektricni"
+  },
+  {
+    "id": 3632,
+    "parent": 3626,
+    "name": "Akumulatorski alati (setovi)",
+    "new_name": "Akumulatorski alati",
+    "status": 1,
+    "slug": "akumulatorski-alati-setovi"
+  },
+  {
+    "id": 3635,
+    "parent": 3626,
+    "name": "Pile i testere (stacionarne i ručne)",
+    "new_name": "Pile i testere",
+    "status": 1,
+    "slug": "pile-i-testere-stacionarne-i-rucne"
+  },
+  {
+    "id": 3637,
+    "parent": 3626,
+    "name": "Ručni alat (ključevi, kliješta, čekić)",
+    "new_name": "Ručni alat",
+    "status": 1,
+    "slug": "rucni-alat-kljucevi-klijesta-cekic"
+  },
+  {
+    "id": 3642,
+    "parent": 3626,
+    "name": "Pribor i potrošni materijal (burgije, ploče)",
+    "new_name": "Pribor i potrošni materijal",
+    "status": 1,
+    "slug": "pribor-i-potrosni-materijal-burgije-ploce"
+  },
+  {
+    "id": 3646,
+    "parent": 3627,
+    "name": "Unutrašnje boje za zidove (Disperzije)",
+    "new_name": "Unutrašnje boje za zidove",
+    "status": 1,
+    "slug": "unutrasnje-boje-za-zidove-disperzije"
+  },
+  {
+    "id": 3649,
+    "parent": 3627,
+    "name": "Boje i premazi za metal (Antikorozivni)",
+    "new_name": "Boje i premazi za metal",
+    "status": 1,
+    "slug": "boje-i-premazi-za-metal-antikorozivni"
+  },
+  {
+    "id": 3656,
+    "parent": 3627,
+    "name": "Pribor za krečenje i lakiranje (Valjci, četke)",
+    "new_name": "Pribor za krečenje i lakiranje",
+    "status": 1,
+    "slug": "pribor-za-krecenje-i-lakiranje-valjci-cetke"
+  },
+  {
+    "id": 3660,
+    "parent": 3628,
+    "name": "Izolacioni materijali (Stiropor, vuna)",
+    "new_name": "Izolacioni materijali",
+    "status": 1,
+    "slug": "izolacioni-materijali-stiropor-vuna"
+  },
+  {
+    "id": 3661,
+    "parent": 3628,
+    "name": "Krovni materijali (Crijep, lim, tegola)",
+    "new_name": "Krovni materijali",
+    "status": 1,
+    "slug": "krovni-materijali-crijep-lim-tegola"
+  },
+  {
+    "id": 3662,
+    "parent": 3628,
+    "name": "Hidroizolacija (Bitumen, folije, premazi)",
+    "new_name": "Hidroizolacija",
+    "status": 1,
+    "slug": "hidroizolacija-bitumen-folije-premazi"
+  },
+  {
+    "id": 3663,
+    "parent": 3628,
+    "name": "Gipsane ploče i suva gradnja (Rigips)",
+    "new_name": "Gipsane ploče i suva gradnja",
+    "status": 1,
+    "slug": "gipsane-ploce-i-suva-gradnja-rigips"
+  },
+  {
+    "id": 3670,
+    "parent": 3630,
+    "name": "Pametna rasvjeta (Sijalice, trake, kontroleri)",
+    "new_name": "Pametna rasvjeta",
+    "status": 1,
+    "slug": "pametna-rasvjeta-sijalice-trake-kontroleri"
+  },
+  {
+    "id": 3673,
+    "parent": 3630,
+    "name": "Senzori (Pokret, curenje vode, dim, gas)",
+    "new_name": "Senzori",
+    "status": 1,
+    "slug": "senzori-pokret-curenje-vode-dim-gas"
+  },
+  {
+    "id": 3678,
+    "parent": 3630,
+    "name": "Glasovni asistenti i zvučnici (Alexa, Google Home)",
+    "new_name": "Glasovni asistenti i zvučnici",
+    "status": 1,
+    "slug": "glasovni-asistenti-i-zvucnici-alexa-google-home"
+  },
+  {
+    "id": 3679,
+    "parent": 3630,
+    "name": "Pametne kamere (Unutrašnje i Baby monitori)",
+    "new_name": "Pametne kamere",
+    "status": 1,
+    "slug": "pametne-kamere-unutrasnje-i-baby-monitori"
+  },
+  {
+    "id": 3681,
+    "parent": 3631,
+    "name": "Solarni paneli (Fotonaponski)",
+    "new_name": "Solarni paneli",
+    "status": 1,
+    "slug": "solarni-paneli-fotonaponski"
+  },
+  {
+    "id": 3682,
+    "parent": 3631,
+    "name": "Inverteri (Pretvarači napona)",
+    "new_name": "Inverteri",
+    "status": 1,
+    "slug": "inverteri-pretvaraci-napona"
+  },
+  {
+    "id": 3686,
+    "parent": 3631,
+    "name": "Solarni kolektori (Grijanje vode/Bojleri)",
+    "new_name": "Solarni kolektori",
+    "status": 1,
+    "slug": "solarni-kolektori-grijanje-vodebojleri"
+  },
+  {
+    "id": 3688,
+    "parent": 3631,
+    "name": "Vjetrogeneratori (Male vjetrenjače)",
+    "new_name": "Vjetrogeneratori",
+    "status": 1,
+    "slug": "vjetrogeneratori-male-vjetrenjace"
+  },
+  {
+    "id": 3935,
+    "parent": 3929,
+    "name": "Procesori (CPU)",
+    "new_name": "Procesori",
+    "status": 1,
+    "slug": "procesori-cpu-695d4455ae6e2"
+  },
+  {
+    "id": 3936,
+    "parent": 3929,
+    "name": "Grafičke kartice (GPU)",
+    "new_name": "Grafičke kartice",
+    "status": 1,
+    "slug": "graficke-kartice-gpu-695d4455b0114"
+  },
+  {
+    "id": 3939,
+    "parent": 3929,
+    "name": "Napojne jedinice (PSU)",
+    "new_name": "Napojne jedinice",
+    "status": 1,
+    "slug": "napojne-jedinice-psu-695d4455b424e"
+  },
+  {
+    "id": 3943,
+    "parent": 3929,
+    "name": "Optički uređaji (DVD/Blu-ray)",
+    "new_name": "Optički uređaji",
+    "status": 1,
+    "slug": "opticki-uredaji-dvdblu-ray-695d4455ba87b"
+  },
+  {
+    "id": 3950,
+    "parent": 3944,
+    "name": "Serveri (Rack i Tower)",
+    "new_name": "Serveri",
+    "status": 1,
+    "slug": "serveri-rack-i-tower-695d55111a57d"
+  },
+  {
+    "id": 3951,
+    "parent": 3944,
+    "name": "Serverske komponente (CPU, RAM)",
+    "new_name": "Serverske komponente",
+    "status": 1,
+    "slug": "serverske-komponente-cpu-ram-695d55111bee0"
+  }
+]

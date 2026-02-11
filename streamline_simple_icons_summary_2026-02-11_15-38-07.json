@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-02-11T15:45:21.184041",
+  "custom_fields_total": 1055,
+  "custom_fields_updated_ok": 1055,
+  "custom_fields_failed": 0,
+  "custom_fields_with_image_after": 1055,
+  "unique_uploaded_icon_paths": 84,
+  "categories_total": 2634,
+  "categories_root_untouched_expected": 24,
+  "categories_non_root": 2610,
+  "category_non_root_updated_in_payload": 2610,
+  "category_import_return_code": 0,
+  "category_import_preview": "\n    <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <link rel=\"shortcut icon\" href=\"https://admin.lmx.ba/storage/settings/694fc6651ec6e5.638769251766835813.png\" type=\"image/x-icon\">\n    <title>    Categories\n || Local Market Exchange</title>\n    <meta name=\"csrf-token\" content=\"4BhG7MJqPTvvim3SQHrqfh",
+  "files": {
+    "custom_field_assignment_report": "/Users/emirpirija/Desktop/lmx-web-local/custom_fields_streamline_simple_assignment_2026-02-11_15-38-07.json",
+    "custom_field_update_report": "/Users/emirpirija/Desktop/lmx-web-local/custom_fields_streamline_simple_update_report_2026-02-11_15-38-07.json",
+    "custom_field_rows_after": "/Users/emirpirija/Desktop/lmx-web-local/custom_fields_rows_after_streamline_simple_2026-02-11_15-38-07.json",
+    "category_export_before": "/Users/emirpirija/Desktop/lmx-web-local/category_export_before_streamline_simple_icons_2026-02-11_15-38-07.json",
+    "category_port_payload": "/Users/emirpirija/Desktop/lmx-web-local/category_port_streamline_simple_icons_2026-02-11_15-38-07.json",
+    "category_import_response": "/Users/emirpirija/Desktop/lmx-web-local/category_port_streamline_simple_icons_import_response_2026-02-11_15-38-07.html",
+    "category_export_after": "/Users/emirpirija/Desktop/lmx-web-local/category_export_after_streamline_simple_icons_2026-02-11_15-38-07.json",
+    "category_assignment_report": "/Users/emirpirija/Desktop/lmx-web-local/categories_streamline_simple_assignment_2026-02-11_15-38-07.json",
+    "cache_dir": "/Users/emirpirija/Desktop/lmx-web-local/icon_cache_streamline_simple_2026-02-11_15-38-07"
+  }
+}
