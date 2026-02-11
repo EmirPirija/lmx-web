@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import Api from "@/api/AxiosInterceptors";
 import { 
   Upload, X, Play, Pause, Image as ImageIcon, 
-  Star, Trash2, Loader2, GripVertical, Plus, CheckCircle2, MousePointerClick
+  Star, Trash2, Loader2, GripVertical, Plus, CheckCircle2, MousePointerClick, Link2, ExternalLink, Instagram
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +53,58 @@ const loadImageElement = (src) =>
 
 const toCanvasBlob = (canvas, type = "image/jpeg", quality = 0.8) =>
   new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
+
+const getYouTubeEmbedUrl = (input) => {
+  if (!input) return "";
+
+  try {
+    const url = new URL(input);
+    const host = url.hostname.replace("www.", "");
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const id = url.searchParams.get("v");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+
+    if (host === "youtu.be") {
+      const id = url.pathname.replace("/", "").trim();
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+  } catch {}
+
+  return "";
+};
+
+const isInstagramUrl = (input) => {
+  if (!input) return false;
+  try {
+    const parsed = new URL(input);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    return host === "instagram.com" || host === "m.instagram.com";
+  } catch {
+    return false;
+  }
+};
+
+const getInstagramEmbedUrl = (input) => {
+  if (!isInstagramUrl(input)) return "";
+
+  try {
+    const parsed = new URL(input);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (!parts.length) return "";
+
+    const type = parts[0];
+    const id = parts[1];
+    const validType = ["p", "reel", "reels", "tv"].includes(type);
+    if (!validType || !id) return "";
+
+    const canonicalType = type === "reels" ? "reel" : type;
+    return `https://www.instagram.com/${canonicalType}/${id}/embed`;
+  } catch {
+    return "";
+  }
+};
 
 const compressAndWatermarkImage = async (file) => {
   if (!isFileLike(file)) return file;
@@ -154,6 +206,17 @@ const EditComponentThree = ({
   setOtherImages,
   video: uploadedVideo,
   setVideo: setUploadedVideo,
+  addVideoToStory,
+  setAddVideoToStory,
+  publishToInstagram,
+  setPublishToInstagram,
+  instagramSourceUrl = "",
+  onInstagramSourceUrlChange,
+  onUseInstagramAsVideoLink,
+  videoLink = "",
+  onVideoLinkChange,
+  onVideoSelected,
+  onVideoDeleted,
   handleGoBack,
   handleImageSubmit,
   setDeleteImagesId,
@@ -173,6 +236,9 @@ const EditComponentThree = ({
 
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(videoLink);
+  const instagramEmbedUrl =
+    getInstagramEmbedUrl(videoLink) || getInstagramEmbedUrl(instagramSourceUrl);
 
   useEffect(() => {
     // ✅ FIX: Robusnije rukovanje videom
@@ -383,6 +449,7 @@ const EditComponentThree = ({
       });
       
       setUploadedVideo(data);
+      onVideoSelected?.();
       toast.success("Video postavljen");
     } catch (e) {
       toast.error("Upload videa nije uspio");
@@ -396,6 +463,7 @@ const EditComponentThree = ({
     // Ukloni temp video sa servera, a za postojeći (string / DB) samo očisti state
     if (isTempUpload(uploadedVideo) && uploadedVideo?.id) await deleteTemp(uploadedVideo.id);
     setUploadedVideo(null);
+    onVideoDeleted?.();
     setVideoPreviewUrl(null);
   };
 
@@ -408,7 +476,15 @@ const EditComponentThree = ({
         if (type === 'image') handleImagesUpload(files);
         else handleVideoUpload(files[0]);
     }
-  }, [allImages]); 
+  }, [allImages]);
+
+  const handleStoryToggle = (checked) => {
+    setAddVideoToStory?.(checked);
+  };
+
+  const handleInstagramToggle = (checked) => {
+    setPublishToInstagram?.(checked);
+  };
 
   const toggleImageFocus = (e, id) => {
     e.stopPropagation();
@@ -578,6 +654,125 @@ const EditComponentThree = ({
             Video Prezentacija
         </h3>
 
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-800 flex items-center gap-2 dark:text-slate-100">
+              <Link2 className="w-4 h-4 text-primary" />
+              Video URL (YouTube ili direktni link)
+            </p>
+            {videoLink ? (
+              <a
+                href={videoLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                Otvori link
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            ) : null}
+          </div>
+
+          <input
+            type="url"
+            value={videoLink}
+            onChange={(e) => onVideoLinkChange?.(e.target.value)}
+            placeholder="https://youtube.com/watch?v=... ili https://..."
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200"
+          />
+
+          {youtubeEmbedUrl ? (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-black/90 aspect-video dark:border-slate-700">
+              <iframe
+                src={youtubeEmbedUrl}
+                title="YouTube preview"
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </div>
+          ) : instagramEmbedUrl ? (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white aspect-video dark:border-slate-700 dark:bg-slate-950">
+              <iframe
+                src={instagramEmbedUrl}
+                title="Instagram preview"
+                className="h-full w-full"
+                allow="encrypted-media; clipboard-write"
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </div>
+          ) : videoLink ? (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Link će biti prikazan na oglasu nakon izmjene.
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Opciono: dodajte video URL za bolju konverziju oglasa.
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-800 flex items-center gap-2 dark:text-slate-100">
+              <Instagram className="w-4 h-4 text-pink-500" />
+              Instagram objava kao izvor
+            </p>
+            {instagramSourceUrl ? (
+              <button
+                type="button"
+                onClick={() => onUseInstagramAsVideoLink?.()}
+                className="inline-flex items-center gap-1 rounded-lg border border-pink-200 px-2.5 py-1 text-xs font-semibold text-pink-600 hover:bg-pink-50 dark:border-pink-400/30 dark:text-pink-300 dark:hover:bg-pink-500/10"
+              >
+                Koristi kao video link
+              </button>
+            ) : null}
+          </div>
+
+          <input
+            type="url"
+            value={instagramSourceUrl}
+            onChange={(e) => onInstagramSourceUrlChange?.(e.target.value)}
+            placeholder="https://www.instagram.com/reel/... ili /p/..."
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200"
+          />
+
+          <label className="flex items-start gap-3 cursor-pointer select-none rounded-xl border border-pink-100 bg-pink-50/70 px-3 py-2.5 dark:border-pink-400/20 dark:bg-pink-500/10">
+            <input
+              type="checkbox"
+              checked={Boolean(publishToInstagram)}
+              onChange={(e) => handleInstagramToggle(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-pink-500 focus:ring-pink-400"
+            />
+            <span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Objavi i na Instagram
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
+                Nakon izmjene oglasa, sadržaj će ići u red za Instagram objavu.
+              </p>
+            </span>
+          </label>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={Boolean(addVideoToStory)}
+              onChange={(e) => handleStoryToggle(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+            />
+            <span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Dodaj video na story</span>
+              <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
+                Video na oglas ide automatski. Ovdje birate da li isti video ide i na story.
+              </p>
+            </span>
+          </label>
+        </div>
+
         {!uploadedVideo ? (
             <label
                 onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
@@ -627,6 +822,30 @@ const EditComponentThree = ({
                 </button>
             </div>
         )}
+
+        <p
+          className={cn(
+            "text-xs",
+            addVideoToStory ? "text-primary" : "text-slate-500"
+          )}
+        >
+          {addVideoToStory
+            ? "Video će biti objavljen i na story."
+            : "Video će biti objavljen na oglasu, ali ne i na story."}
+        </p>
+
+        <p
+          className={cn(
+            "text-xs",
+            publishToInstagram
+              ? "text-pink-600 dark:text-pink-300"
+              : "text-slate-500 dark:text-slate-400"
+          )}
+        >
+          {publishToInstagram
+            ? "Objava je uključena za Instagram."
+            : "Instagram objava trenutno nije uključena."}
+        </p>
       </div>
 
       {/* FOOTER */}

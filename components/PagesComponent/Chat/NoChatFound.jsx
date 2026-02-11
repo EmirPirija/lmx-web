@@ -4,12 +4,15 @@ import { MdArrowBack } from "react-icons/md";
 
 const NoChatFound = ({ handleBack, isLargeScreen }) => {
   return (
-    <div className="flex flex-col gap-3 text-center items-center justify-center">
-      <h5 className="text-primary text-2xl font-medium">{t("noChatFound")}</h5>
-      <p>{t("startConversation")}</p>
+    <div className="flex flex-col gap-3 text-center items-center justify-center px-6">
+      <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-3xl">
+        💬
+      </div>
+      <h5 className="text-primary text-2xl font-semibold">{t("noChatFound")}</h5>
+      <p className="text-slate-500 dark:text-slate-400">{t("startConversation")}</p>
 
       {!isLargeScreen && (
-        <Button className="w-fit" onClick={handleBack}>
+        <Button className="w-fit rounded-full px-5" onClick={handleBack}>
           <MdArrowBack size={20} className="rtl:scale-x-[-1]" />
           {t("back")}
         </Button>

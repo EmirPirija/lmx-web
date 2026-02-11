@@ -18,7 +18,6 @@ import { useRouter } from "next/navigation";
 import {
   MdOutlineTitle,
   MdAttachMoney,
-  MdLink,
   MdPhoneIphone,
   MdChevronRight,
   MdInventory,
@@ -303,7 +302,6 @@ const EditComponentOne = ({
   const [saleOpen, setSaleOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [mediaOpen, setMediaOpen] = useState(false);
 
   const handleField = useCallback(
     (field) => (e) => {
@@ -696,33 +694,6 @@ const EditComponentOne = ({
                 dropdownClass="!bg-white !text-gray-900 !border-gray-200 !shadow-md"
               />
             </div>
-          </div>
-        </AccordionSection>
-      )}
-
-      {/* VIDEO (default lang) */}
-      {isDefaultLang && (
-        <AccordionSection
-          title="Multimedija"
-          subtitle="Opcionalno: dodajte video link"
-          badge="optional"
-          isOpen={mediaOpen}
-          onToggle={() => setMediaOpen((v) => !v)}
-        >
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="videoLink" className="flex items-center gap-2">
-              <MdLink className="text-gray-500" size={18} />
-              Video link
-            </Label>
-            <Input
-              type="text"
-              name="videoLink"
-              id="videoLink"
-              placeholder="Unesite YouTube ili drugi video link"
-              value={current?.video_link || ""}
-              onChange={handleField("video_link")}
-              className={baseInput}
-            />
           </div>
         </AccordionSection>
       )}

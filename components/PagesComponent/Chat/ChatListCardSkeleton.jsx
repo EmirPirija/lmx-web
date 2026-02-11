@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 const ChatListCardSkeleton = () => {
   return (
-    <div className="p-4 border-b animate-pulse">
+    <div className="p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 animate-pulse">
       <div className="flex items-center gap-4">
         {/* Avatar skeleton with online indicator placeholder */}
         <div className="relative flex-shrink-0">

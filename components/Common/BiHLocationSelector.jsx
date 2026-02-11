@@ -491,14 +491,14 @@ const BiHLocationSelector = ({
         </div>
       </div>
 
-      {/* Adresa (opcionalno) */}
+      {/* Detaljnija lokacija (opcionalno) */}
       {showAddress && value?.municipalityId && (
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">
-            Dodatna adresa (opcionalno)
+            Detaljnija lokacija (opcionalno)
           </Label>
           <Input
-            placeholder="Npr. Ulica i broj, naselje..."
+            placeholder="Npr. naselje, ulica ili prepoznatljiv orijentir..."
             value={value?.address || ""}
             onChange={handleAddressChange}
             disabled={disabled}

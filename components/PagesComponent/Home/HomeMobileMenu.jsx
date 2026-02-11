@@ -114,9 +114,20 @@ const HomeMobileMenu = ({
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
 
+    const handleRealtimeRefresh = (event) => {
+      const detail = event?.detail;
+      if (!detail) return;
+      if (detail?.category === "chat" || detail?.type === "chat" || detail?.type === "new_message") {
+        fetchUnreadCount();
+      }
+    };
+
+    window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
     };
   }, [IsLoggedin, pathname]);
 

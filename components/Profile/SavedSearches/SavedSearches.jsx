@@ -94,11 +94,11 @@ export default function SavedSearches() {
   };
 
   return (
-    <div className="container max-w-5xl mx-auto px-4 py-6">
-      <div className="flex items-start justify-between gap-3 mb-4">
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/70">
         <div>
-          <h1 className="text-2xl font-semibold">Spašene pretrage</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Spašene pretrage</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Ovdje su tvoje prečice do omiljenih filtera. Pretrage možeš sačuvati direktno na stranici “Oglasi”.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function SavedSearches() {
       </div>
 
       {!hasAny ? (
-        <Card>
+        <Card className="border-slate-200/80 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/70">
           <CardHeader>
             <CardTitle>Nemaš spašenih pretraga</CardTitle>
             <CardDescription>
@@ -125,7 +125,7 @@ export default function SavedSearches() {
       ) : (
         <div className="grid gap-3">
           {list.map((s) => (
-            <Card key={s.id}>
+            <Card key={s.id} className="border-slate-200/80 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/70">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

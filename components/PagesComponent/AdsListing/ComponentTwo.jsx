@@ -280,7 +280,6 @@ const ComponentTwo = ({
   const [priceOpen, setPriceOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [mediaOpen, setMediaOpen] = useState(false);
 
   const isDefaultLang = langId === defaultLangId;
 
@@ -635,30 +634,6 @@ const ComponentTwo = ({
               }}
               enableLongNumbers
               inputClass="!border-2 !border-gray-200 !rounded-xl focus:!ring-2 focus:!ring-blue-500"
-            />
-          </div>
-        </AccordionSection>
-      )}
-
-      {/* MEDIA */}
-      {isDefaultLang && (
-        <AccordionSection
-          title="Multimedija"
-          subtitle="Opcionalno: video link"
-          isOpen={mediaOpen}
-          onToggle={() => setMediaOpen((v) => !v)}
-          badge="optional"
-        >
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="videoLink">Video link</Label>
-            <Input
-              type="text"
-              name="videoLink"
-              id="videoLink"
-              placeholder="Dodajte YouTube ili drugi video link"
-              value={current.video_link || ""}
-              onChange={handleField("video_link")}
-              className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </AccordionSection>

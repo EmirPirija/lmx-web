@@ -40,6 +40,17 @@ const formatTimeAgo = (dateString) => {
   return `prije ${diffMonths} ${diffMonths === 1 ? "mjesec" : "mjeseci"}`;
 };
 
+const toApproximateLocationLabel = (locationValue) => {
+  if (!locationValue) return "";
+  const parts = String(locationValue)
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length) return "";
+  if (parts.length === 1) return parts[0];
+  return parts.slice(-2).join(", ");
+};
+
 // Custom marker sa cijenom - novi dizajn
 const createPriceMarker = (price, isSelected, isHovered) => {
   const hasPrice = price && price > 0;
@@ -186,9 +197,14 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
       const roomType = getRoomType(ad.rooms, ad.room_type);
       const timeAgo = formatTimeAgo(ad.created_at);
       const imageUrl = ad.image || ad.images?.[0];
-      const locationLabel = ad.location || ad.address || ad.city || ad.state || ad.country;
+      const rawLocationLabel = ad.location || ad.address || ad.city || ad.state || ad.country;
+      const locationLabel = toApproximateLocationLabel(rawLocationLabel);
       const hasViews = typeof ad.views === "number" && ad.views >= 0;
       const statusLabel = ad.status ? String(ad.status) : null;
+      const locationPrivacyHint = locationLabel ? "Lokacija je prikazana okvirno." : "";
+      const popupHint = locationPrivacyHint
+        ? `${locationPrivacyHint} Klikni marker za detalje u listi.`
+        : "Klikni marker za detalje u listi.";
 
       // Popup content - horizontalni card dizajn kao na slici
       const popupContent = `
@@ -229,13 +245,13 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
                 ${ad.area ? `<span class="popup-tag">${ad.area}m²</span>` : ""}
                 ${roomType ? `<span class="popup-tag">${roomType}</span>` : ""}
               </div>
-              ${locationLabel ? `<p class="popup-location">📍 ${locationLabel}</p>` : ""}
+              ${locationLabel ? `<p class="popup-location"><span class="popup-location-label">Lokacija:</span> ${locationLabel}</p>` : ""}
               <div class="popup-meta-row">
                 <p class="popup-price">${formatPopupPrice(ad.price)}</p>
                 ${hasViews ? `<span class="popup-views">👀 ${ad.views} pregleda</span>` : ""}
               </div>
               ${timeAgo ? `<p class="popup-time">${timeAgo}</p>` : ""}
-              <div class="popup-hint">Klikni marker za detalje u listi</div>
+              <div class="popup-hint">${popupHint}</div>
             </div>
           </div>
         </div>
@@ -587,6 +603,11 @@ const MapWithListingsMarkers = ({
           font-size: 11px;
           color: #64748b;
           margin: 0 0 6px 0;
+        }
+
+        .popup-location-label {
+          font-weight: 700;
+          color: #334155;
         }
 
         .popup-meta-row {

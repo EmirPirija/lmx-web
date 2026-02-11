@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import CustomImage from "@/components/Common/CustomImage";
@@ -39,59 +41,13 @@ import { formatResponseTimeBs } from "@/utils/index";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
+import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
 
 /* =====================================================
    HELPER FUNKCIJE
 ===================================================== */
 
 const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
-
-const reelRingCss = `
-@keyframes reel-rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-@keyframes reel-glow {
-  0%, 100% { opacity: 0.35; transform: scale(0.98); }
-  50% { opacity: 0.65; transform: scale(1.03); }
-}
-.reel-ring {
-  position: relative;
-  padding: 3px;
-  border-radius: 16px;
-  isolation: isolate;
-}
-.reel-ring::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: conic-gradient(from 120deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
-  animation: reel-rotate 6s linear infinite;
-  filter: saturate(1.1);
-  z-index: 0;
-}
-.reel-ring::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: inherit;
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 55%),
-    radial-gradient(circle at 70% 70%, rgba(225,48,108,0.35), transparent 60%);
-  animation: reel-glow 2.8s ease-in-out infinite;
-  z-index: 0;
-}
-.reel-ring-inner {
-  position: relative;
-  z-index: 1;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
-}
-`;
-
-const ReelRingStyles = () => <style jsx global>{reelRingCss}</style>;
-
 
 const toBool = (v) => {
   if (v === true) return true;
@@ -113,105 +69,8 @@ const toBool = (v) => {
   return Boolean(v);
 };
 
-const hasVerifiedBadge = (seller) => {
-  const list = Array.isArray(seller?.badges) ? seller.badges : [];
-  return list.some((b) => {
-    const id = String(b?.id || "").toLowerCase();
-    // SAMO ako imate badge koji znači "profil verified"
-    return id === "seller_verified" || id === "kyc_verified" || id === "account_verified";
-  });
-};
-
-
-
-
-const normalize = (v) => String(v ?? "").trim().toLowerCase();
-const looksLikeVerifiedKey = (k) => {
-  const key = String(k || "").toLowerCase();
-  return (
-    key.includes("verif") ||
-    key.includes("verified") ||
-    key.includes("kyc") ||
-    key.includes("approve") ||
-    key.includes("approval")
-  );
-};
-
-const scanForVerified = (obj) => {
-  if (!obj || typeof obj !== "object") return false;
-
-  // 1 nivo
-  for (const [k, v] of Object.entries(obj)) {
-    if (looksLikeVerifiedKey(k) && toBool(v)) return true;
-
-    // 2 nivo (ako je nested)
-    if (v && typeof v === "object") {
-      for (const [k2, v2] of Object.entries(v)) {
-        if (looksLikeVerifiedKey(k2) && toBool(v2)) return true;
-        if (looksLikeVerifiedKey(`${k}.${k2}`) && toBool(v2)) return true;
-      }
-    }
-  }
-  return false;
-};
-
 const getVerifiedStatus = (seller, settings) => {
-  const status = normalize(
-    settings?.verification_status ??
-      settings?.verificationStatus ??
-      settings?.verified_status ??
-      settings?.verifiedStatus ??
-      settings?.kyc_status ??
-      seller?.verification_status ??
-      seller?.verificationStatus ??
-      seller?.verified_status ??
-      seller?.verifiedStatus ??
-      seller?.kyc_status ??
-      seller?.status ??
-      settings?.status
-  );
-
-  // NEGATIVNI statusi - prvo!
-if (
-  status.includes("not") ||
-  status.includes("unver") ||
-  status.includes("reject") ||
-  status.includes("declin") ||
-  status.includes("pend") ||
-  status.includes("wait")
-) {
-  return false;
-}
-
-// POZITIVNI statusi - strogo
-if (
-  status === "approved" ||
-  status === "verified" ||
-  status === "active" ||
-  status === "kyc_approved" ||
-  status === "approved_kyc"
-) {
-  return true;
-}
-
-
-  // prvo tvoji standardni flagovi
-  const direct =
-    toBool(seller?.is_verified) ||
-    toBool(seller?.verified) ||
-    toBool(seller?.isVerified) ||
-    toBool(seller?.is_verified_status) ||
-    toBool(seller?.is_kyc_verified) ||
-    toBool(seller?.kyc_verified) ||
-    toBool(settings?.is_verified) ||
-    toBool(settings?.verified) ||
-    toBool(settings?.isVerified);
-
-  if (direct) return true;
-
-  // catch-all: skeniraj sve moguće key-eve
-  return false;
-
+  return isSellerVerified(seller, settings);
 };
 
 
@@ -317,7 +176,7 @@ const isCurrentlyOpen = (businessHours) => {
    CONTACT MODAL
 ===================================================== */
 
-const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) => {
+const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick, onPhoneCall }) => {
   const [copiedKey, setCopiedKey] = useState("");
 
   const copy = async (key, value) => {
@@ -363,7 +222,11 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
 
           {showPhone && (
             <div className="flex items-center gap-1.5">
-              <a href={`tel:${phone}`} className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm">
+              <a
+                href={`tel:${phone}`}
+                onClick={() => onPhoneCall?.()}
+                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+              >
                 <Phone className="w-4 h-4 text-emerald-500" />
                 <span className="text-slate-700">{phone}</span>
               </a>
@@ -637,9 +500,11 @@ const ProductSellerDetailCard = ({
   isShop: isShopProp = false,
   onChatClick,
   onPhoneReveal,
+  onPhoneClick,
   itemId: itemIdProp,
   itemPrice: itemPriceProp,
   acceptsOffers: acceptsOffersProp = false,
+  enableOwnerReelControls = true,
 }) => {
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
@@ -667,18 +532,16 @@ const ProductSellerDetailCard = ({
 
 
   const isVerified = useMemo(() => {
-      // plava kvačica = samo pravi verified account/kyc
-      return toBool(seller?.is_verified) || getVerifiedStatus(seller, settings);
-      // ako imate baš badge koji znači account verified, onda dodaj:
-      // || hasVerifiedBadge(seller)
+      return getVerifiedStatus(seller, settings);
     }, [seller, settings]);
 
-  const showReelRing = Boolean(
-    productDetails?.video ||
-      productDetails?.video_link ||
-      seller?.has_reel ||
-      seller?.reel_video
+  const [hasReel, setHasReel] = useState(
+    Boolean(hasItemVideo(productDetails) || hasSellerActiveReel(seller))
   );
+
+  useEffect(() => {
+    setHasReel(Boolean(hasItemVideo(productDetails) || hasSellerActiveReel(seller)));
+  }, [productDetails, seller]);
   const ringMotion = undefined;
   const ringTransition = undefined;
     
@@ -710,7 +573,8 @@ const ProductSellerDetailCard = ({
   const isOwner = Boolean(
     currentUser?.id && String(currentUser.id) === String(sellerId)
   );
-  const hasVideo = Boolean(productDetails?.video || productDetails?.video_link);
+  const hasVideo = Boolean(hasItemVideo(productDetails));
+  const canManageReels = Boolean(enableOwnerReelControls && isOwner);
 
   const shareUrl = sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -763,11 +627,8 @@ const ProductSellerDetailCard = ({
   };
 
   const handleContactClick = () => {
-    if (onPhoneReveal) {
-      onPhoneReveal();
-    } else {
-      setIsContactOpen(true);
-    }
+    onPhoneReveal?.();
+    setIsContactOpen(true);
   };
 
   return (
@@ -780,6 +641,7 @@ const ProductSellerDetailCard = ({
         seller={seller}
         settings={settings}
         onMessageClick={handleChatClick}
+        onPhoneCall={onPhoneClick}
       />
 
       <SendMessageModal
@@ -800,6 +662,7 @@ const ProductSellerDetailCard = ({
       <ReelUploadModal
         open={isReelModalOpen}
         onOpenChange={setIsReelModalOpen}
+        onUploaded={(payload) => setHasReel(Boolean(payload?.hasAnyVideo))}
       />
 
       <ReelViewerModal
@@ -808,14 +671,14 @@ const ProductSellerDetailCard = ({
         userId={sellerId}
       />
 
-      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
         {/* Main Card */}
         <div className="p-4 space-y-3">
           {/* Header: Avatar + Info — identical layout to MinimalSellerCard */}
           <div className="flex items-start gap-3">
             {/* Avatar */}
             {sellerId ? (
-              <div className="relative flex-shrink-0 group cursor-pointer">
+              <div className="relative isolate flex-shrink-0 group cursor-pointer">
                 <button
                   type="button"
                   onClick={() => setIsReelViewerOpen(true)}
@@ -825,17 +688,17 @@ const ProductSellerDetailCard = ({
                   <motion.div
                     className={cn(
                       "rounded-[14px] p-[2px]",
-                      showReelRing ? "reel-ring" : "bg-transparent"
+                      hasReel ? "reel-ring" : "bg-transparent"
                     )}
                     animate={ringMotion}
                     transition={ringTransition}
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
-                        showReelRing
-                          ? "border border-white/70"
-                          : "border border-slate-200/60 group-hover:border-slate-300 transition-colors"
+                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
+                        hasReel
+                          ? "border border-white/70 dark:border-slate-700/80"
+                          : "border border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors"
                       )}
                     >
                       <CustomImage
@@ -847,47 +710,47 @@ const ProductSellerDetailCard = ({
                       />
                     </div>
                   </motion.div>
-                  {showReelRing && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
+                  {hasReel && (
+                    <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center">
                       <Play className="w-3 h-3 text-[#1e3a8a]" />
                     </div>
                   )}
                 </button>
-                {isOwner && (
+                {canManageReels && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsReelModalOpen(true);
                     }}
-                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-200"
+                    className="absolute -top-1 -right-1 z-30 w-6 h-6 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center border border-slate-200 dark:border-slate-700"
                     aria-label="Dodaj video"
                   >
                     <span className="text-lg leading-none text-[#1e3a8a]">+</span>
                   </button>
                 )}
                 {isVerified && (
-                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                  <div className="absolute -bottom-0.5 -left-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white dark:border-slate-900">
                     <BadgeCheck className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
               </div>
             ) : (
-              <div className="relative flex-shrink-0">
+              <div className="relative isolate flex-shrink-0">
                 <motion.div
                   className={cn(
                     "rounded-[14px] p-[2px]",
-                    showReelRing ? "reel-ring" : "bg-transparent"
+                    hasReel ? "reel-ring" : "bg-transparent"
                   )}
                   animate={ringMotion}
                   transition={ringTransition}
                 >
                   <div
                     className={cn(
-                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
-                      showReelRing
-                        ? "border border-white/70"
-                        : "border border-slate-200/60"
+                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
+                      hasReel
+                        ? "border border-white/70 dark:border-slate-700/80"
+                        : "border border-slate-200/60 dark:border-slate-700/60"
                     )}
                   >
                     <CustomImage
@@ -899,13 +762,13 @@ const ProductSellerDetailCard = ({
                     />
                   </div>
                 </motion.div>
-                {showReelRing && (
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center">
+                {hasReel && (
+                  <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center">
                     <Play className="w-3 h-3 text-[#1e3a8a]" />
                   </div>
                 )}
                 {isVerified && (
-                  <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                  <div className="absolute -bottom-0.5 -left-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white dark:border-slate-900">
                     <BadgeCheck className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
@@ -919,18 +782,30 @@ const ProductSellerDetailCard = ({
                 {sellerId ? (
                   <CustomLink 
                     href={`/seller/${sellerId}`}
-                    className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors cursor-pointer"
+                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    {seller?.name}
+                    <span className="truncate">{seller?.name}</span>
+                    {isShop && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Shop</span>
+                    )}
+                    {!isShop && isPro && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pro</span>
+                    )}
                   </CustomLink>
                 ) : (
-                  <span className="text-sm font-semibold text-slate-900 truncate">
-                    {seller?.name}
+                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
+                    <span className="truncate">{seller?.name}</span>
+                    {isShop && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Shop</span>
+                    )}
+                    {!isShop && isPro && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pro</span>
+                    )}
                   </span>
                 )}
                 
                 <ShareDropdown url={shareUrl} title={title} headline={title} companyName={CompanyName}>
-                  <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                  <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                     <Share2 className="w-4 h-4" />
                   </button>
                 </ShareDropdown>
@@ -942,33 +817,33 @@ const ProductSellerDetailCard = ({
                   <span className="inline-flex items-center gap-1 text-xs text-amber-600">
                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                     <span className="font-medium">{ratingValue}</span>
-                    <span className="text-slate-400">({ratingCount})</span>
+                    <span className="text-slate-400 dark:text-slate-500">({ratingCount})</span>
                   </span>
                 )}
 
                 {responseLabel && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
                     <Zap className="w-3 h-3 text-amber-500" />
                     {responseLabel}
                   </span>
                 )}
 
                 {memberSince && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
                     <Calendar className="w-3 h-3" />
                     {memberSince}
                   </span>
                 )}
 
                 {isPro && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">PRO</span>
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded">PRO</span>
                 )}
                 {isShop && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 rounded">SHOP</span>
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded">SHOP</span>
                 )}
               </div>
 
-              {isOwner && !hasVideo && (
+              {canManageReels && !hasVideo && (
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#11b7b0]/40 bg-[#11b7b0]/10 px-3 py-1 text-xs font-semibold text-[#0f766e]">
                   Dodaj video preko + ikone na avataru
                 </div>
@@ -997,17 +872,19 @@ const ProductSellerDetailCard = ({
 
           {/* Business hours */}
           {showExtendedSections && hasBusinessHours && todayHoursText && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span>Danas: <strong className="text-slate-900">{todayHoursText}</strong></span>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <span>Danas: <strong className="text-slate-900 dark:text-slate-100">{todayHoursText}</strong></span>
               </div>
               {openNow !== null && (
                 <span className={cn(
                   "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                  openNow ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
+                  openNow
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                 )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
+                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500")} />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
@@ -1019,7 +896,7 @@ const ProductSellerDetailCard = ({
             <button
               type="button"
               onClick={handleChatClick}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-xl transition-colors"
             >
               <MessageCircle className="w-4 h-4" />
               Pošalji poruku
@@ -1039,7 +916,7 @@ const ProductSellerDetailCard = ({
               <button
                 type="button"
                 onClick={handleContactClick}
-                className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
+                className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
               >
                 <Phone className="w-4 h-4" />
               </button>
@@ -1050,7 +927,7 @@ const ProductSellerDetailCard = ({
           {sellerId && (
             <CustomLink
               href={`/seller/${sellerId}`}
-              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group cursor-pointer"
             >
               Pogledaj kompletan profil
               <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
@@ -1060,14 +937,14 @@ const ProductSellerDetailCard = ({
 
         {/* Info sections */}
         {showExtendedSections && (shippingInfo || returnPolicy) && (
-          <div className="border-t border-slate-100">
+          <div className="border-t border-slate-100 dark:border-slate-800">
             {shippingInfo && (
-              <div className="px-4 py-3 border-b border-slate-50">
+              <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800">
                 <div className="flex items-start gap-2.5">
                   <Truck className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-xs font-medium text-slate-700 mb-0.5">Dostava</div>
-                    <p className="text-xs text-slate-500 line-clamp-2">{shippingInfo}</p>
+                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">Dostava</div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{shippingInfo}</p>
                   </div>
                 </div>
               </div>
@@ -1078,8 +955,8 @@ const ProductSellerDetailCard = ({
                 <div className="flex items-start gap-2.5">
                   <RotateCcw className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-xs font-medium text-slate-700 mb-0.5">Povrat</div>
-                    <p className="text-xs text-slate-500 line-clamp-2">{returnPolicy}</p>
+                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">Povrat</div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{returnPolicy}</p>
                   </div>
                 </div>
               </div>

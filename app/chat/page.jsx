@@ -7,7 +7,7 @@ import Checkauth from "@/HOC/Checkauth";
 function ChatPageContent() {
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="mx-auto w-full max-w-[1720px] px-3 py-5 sm:px-4 sm:py-6 lg:px-6">
         <Chat />
       </div>
     </Layout>

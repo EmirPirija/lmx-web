@@ -46,6 +46,7 @@ import {
   IoRibbonOutline,
   IoSparklesOutline,
   IoSearchOutline,
+  IoChatbubbleOutline,
   IoChatbubbleEllipsesOutline,
 } from "react-icons/io5";
 import { Crown, Store, Sparkles, TrendingUp } from "lucide-react";
@@ -200,8 +201,8 @@ const MenuItem = ({
     <div
       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group ${
         danger
-          ? "text-red-600 hover:bg-red-50"
-          : "text-slate-700 hover:bg-slate-50/80 hover:text-slate-900"
+          ? "text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
+          : "text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white"
       }`}
       onClick={onClick}
       role="button"
@@ -212,28 +213,30 @@ const MenuItem = ({
     >
       <div
         className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-          danger ? "bg-red-50 group-hover:bg-red-100" : "bg-slate-100 group-hover:bg-slate-200/70"
+          danger
+            ? "bg-red-50 group-hover:bg-red-100 dark:bg-red-500/10 dark:group-hover:bg-red-500/20"
+            : "bg-slate-100 group-hover:bg-slate-200/70 dark:bg-slate-800 dark:group-hover:bg-slate-700"
         }`}
       >
         <Icon
           size={18}
-          className={danger ? "text-red-500" : "text-slate-500 group-hover:text-slate-700"}
+          className={danger ? "text-red-500 dark:text-red-300" : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"}
         />
       </div>
 
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium block">{label}</span>
-        {description && <span className="text-[11px] text-slate-400 block truncate">{description}</span>}
+        {description && <span className="text-[11px] text-slate-400 dark:text-slate-500 block truncate">{description}</span>}
       </div>
 
       {typeof badge === "number" && badge > 0 && (
-        <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] text-center animate-pulse">
+        <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] text-center">
           {badge > 99 ? "99+" : badge}
         </span>
       )}
 
       {isNew && (
-        <span className="px-1.5 py-0.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[9px] font-bold rounded uppercase tracking-wide">
+        <span className="px-1.5 py-0.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[9px] font-bold rounded uppercase tracking-wide shadow-sm shadow-emerald-500/30">
           Novo
         </span>
       )}
@@ -256,7 +259,7 @@ const MenuItem = ({
 const MenuSection = ({ title, children }) => (
   <div className="py-1.5">
     {title && (
-      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2">
         {title}
       </p>
     )}
@@ -264,17 +267,17 @@ const MenuSection = ({ title, children }) => (
   </div>
 );
 
-const MenuDivider = () => <div className="h-px bg-slate-100 mx-3 my-1" />;
+const MenuDivider = () => <div className="h-px bg-slate-100 dark:bg-slate-800 mx-3 my-1" />;
 
 // ============================================
 // QUICK STAT ITEM
 // ============================================
 const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
   const colors = {
-    blue: "text-blue-500 bg-blue-50",
-    green: "text-green-500 bg-green-50",
-    amber: "text-amber-500 bg-amber-50",
-    purple: "text-purple-500 bg-purple-50",
+    blue: "text-blue-500 bg-blue-50 dark:text-blue-300 dark:bg-blue-500/15",
+    green: "text-green-500 bg-green-50 dark:text-green-300 dark:bg-green-500/15",
+    amber: "text-amber-500 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15",
+    purple: "text-purple-500 bg-purple-50 dark:text-purple-300 dark:bg-purple-500/15",
   };
 
   return (
@@ -282,8 +285,8 @@ const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
         <Icon size={16} />
       </div>
-      <span className="text-sm font-bold text-slate-800">{value}</span>
-      <span className="text-[10px] text-slate-400 font-medium">{label}</span>
+      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{value}</span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{label}</span>
     </div>
   );
 };
@@ -294,7 +297,7 @@ const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
 const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { navigate } = useNavigate();
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = useMediaQuery("(max-width: 1024px)");
 
   const userData = useSelector(userSignUpData);
   const settings = useSelector(settingsData);
@@ -369,14 +372,6 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
 
       const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] = results;
 
-      // DODAJ OVE LOGOVE OVDJE:
-      console.log("DROPDOWN DEBUG - User Data:", userData);
-      if (verificationRes.status === "fulfilled") {
-        console.log("DROPDOWN DEBUG - Verification API Raw:", verificationRes.value?.data);
-      } else {
-        console.log("DROPDOWN DEBUG - Verification API Failed:", verificationRes.reason);
-      }
-
       let membershipTier = userData?.membership_tier || "free";
       if (membershipRes.status === "fulfilled") {
         const membershipData = getApiData(membershipRes.value);
@@ -448,9 +443,24 @@ if (verificationRes?.status === "fulfilled") {
     getSellerSettings();
   }, [isOpen, fetchAllData, getSellerSettings]);
 
+  useEffect(() => {
+    if (!userData) return;
+
+    const handleRealtimeRefresh = (event) => {
+      const detail = event?.detail;
+      if (!detail) return;
+      if (detail?.category === "notification" || detail?.category === "system" || detail?.category === "chat") {
+        fetchAllData();
+      }
+    };
+
+    window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
+    return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
+  }, [userData, fetchAllData]);
+
   const TriggerButton = (
     <button
-      className="relative flex items-center justify-center rounded-full hover:bg-slate-100 transition-all duration-200 p-1 hover:scale-105"
+      className="relative flex items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/75 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 p-1 hover:scale-105"
       aria-haspopup={isMobile ? "dialog" : "menu"}
       aria-expanded={isOpen}
       aria-label="Otvori korisnički meni"
@@ -470,25 +480,40 @@ if (verificationRes?.status === "fulfilled") {
   );
 
   const MenuPanel = (
-    <div className="bg-white overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
       {/* HEADER */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-        <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-10 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/90">
+        <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            Moj racun
+          </p>
+          {isMobile && (
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              aria-label="Zatvori meni"
+            >
+              <IoClose size={18} />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-3 px-4 pb-3">
           <UserAvatar
             customAvatarUrl={customAvatarUrl}
             avatarId={sellerAvatarId}
             size={48}
-            ringClassName="border-2 border-white"
+            ringClassName="border-2 border-white dark:border-slate-700"
             showVerified={userStats.isVerified}
             verifiedSize={12}
             showNotifBadge={false}
           />
 
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate max-w-[220px]">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[220px]">
               {userData?.name || "Korisnik"}
             </p>
-            <p className="text-xs text-slate-500 truncate max-w-[220px]">{userData?.email}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px]">{userData?.email}</p>
             <div className="mt-1">
               <MembershipBadge tier={userStats.membershipTier} size="xs" />
             </div>
@@ -499,13 +524,13 @@ if (verificationRes?.status === "fulfilled") {
       {/* CONTENT */}
       <div
         className={[
-          "overflow-y-auto overscroll-contain",
-          isMobile ? "max-h-[calc(90vh-80px)]" : "max-h-[min(520px,70vh)]",
+          "overflow-y-auto overscroll-contain scrollbar-lmx pb-[max(env(safe-area-inset-bottom),0.75rem)]",
+          isMobile ? "max-h-[calc(92dvh-86px)]" : "max-h-[min(520px,70vh)]",
         ].join(" ")}
       >
         {/* QUICK STATS */}
-        <div className="px-4 py-3 bg-gradient-to-br from-slate-50/50 to-white border-b border-slate-100">
-          <div className="grid grid-cols-3 gap-1 bg-white rounded-xl p-2 border border-slate-100">
+        <div className="px-4 py-3 bg-gradient-to-br from-slate-50/70 to-white dark:from-slate-900/70 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-3 gap-1 bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-700">
             <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="blue" />
             <QuickStat icon={IoNotificationsOutline} value={userStats.unreadNotifications} label="Obavijesti" color="amber" />
             <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="purple" />
@@ -517,7 +542,7 @@ if (verificationRes?.status === "fulfilled") {
           <Link
             href="/ad-listing"
             onClick={() => setIsOpen(false)}
-            className="flex items-center justify-center gap-2 py-3 bg-primary from-primary to-primary/90 text-white rounded-xl font-semibold hover:scale-[1.02] transition-all duration-200 w-full group"
+            className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl font-semibold hover:scale-[1.01] transition-all duration-200 w-full group shadow-sm shadow-primary/20"
           >
             <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
             {"Dodaj oglas"}
@@ -525,7 +550,7 @@ if (verificationRes?.status === "fulfilled") {
         </div>
 
         {/* MENU SECTIONS */}
-        <div className="px-2 pb-2">
+        <div className="px-2 pb-3">
           <MenuSection title="Račun">
             <MenuItem
               icon={IoPersonOutline}
@@ -589,6 +614,12 @@ if (verificationRes?.status === "fulfilled") {
 
           <MenuSection title="Komunikacija">
             <MenuItem
+              icon={IoChatbubbleOutline}
+              label="Poruke"
+              description="Chat sa kupcima i prodavačima"
+              onClick={() => handleNavigate("/chat")}
+            />
+            <MenuItem
               icon={IoNotificationsOutline}
               label={"Notifikacije"}
               description="Sve obavijesti na jednom mjestu"
@@ -643,21 +674,21 @@ if (verificationRes?.status === "fulfilled") {
 
         {/* UPGRADE BANNER */}
         {userStats.membershipTier === "free" && (
-          <div className="p-4 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-t border-amber-100/50">
+          <div className="p-4 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-t border-amber-100/50 dark:from-amber-500/10 dark:via-amber-400/10 dark:to-orange-500/10 dark:border-amber-500/20">
             <Link
               href="/membership/upgrade"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-4 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-amber-200/50 hover:border-amber-300 transition-all duration-200 group"
+              className="flex items-center gap-4 p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border border-amber-200/60 dark:border-amber-400/30 hover:border-amber-300 dark:hover:border-amber-300/50 transition-all duration-200 group"
             >
               <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                 <Sparkles className="text-white" size={24} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                   Nadogradi na Pro
                   <TrendingUp size={14} className="text-amber-500" />
                 </h5>
-                <p className="text-xs text-slate-600">Otključaj sve mogućnosti i prednosti</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">Otključaj sve mogućnosti i prednosti</p>
               </div>
               <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={20} />
             </Link>
@@ -666,16 +697,16 @@ if (verificationRes?.status === "fulfilled") {
 
         {/* PRO USER BANNER */}
         {isPremium && (
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100/50">
-            <div className="flex items-center gap-3 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200/50">
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100/50 dark:from-blue-500/10 dark:to-indigo-500/10 dark:border-blue-500/20">
+            <div className="flex items-center gap-3 p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border border-blue-200/50 dark:border-blue-400/30">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                 <IoSparklesOutline className="text-white" size={20} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-semibold text-slate-800">
+                <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {isShop ? "Shop" : "Pro"} član
                 </h5>
-                <p className="text-xs text-slate-500">Uživaj u svim premium pogodnostima</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Uživaj u svim premium pogodnostima</p>
               </div>
             </div>
           </div>
@@ -692,7 +723,7 @@ if (verificationRes?.status === "fulfilled") {
       <div className="relative">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>{TriggerButton}</SheetTrigger>
-          <SheetContent side="bottom" className="p-0 overflow-hidden rounded-t-3xl border border-slate-200 max-h-[90vh]">
+          <SheetContent side="bottom" className="p-0 overflow-hidden rounded-t-3xl border border-slate-200 dark:border-slate-700 bg-transparent max-h-[92dvh]">
             {MenuPanel}
           </SheetContent>
         </Sheet>
@@ -704,7 +735,7 @@ if (verificationRes?.status === "fulfilled") {
     <div className="relative">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>{TriggerButton}</PopoverTrigger>
-        <PopoverContent align="end" sideOffset={10} className="w-[420px] p-0 overflow-hidden rounded-2xl border border-slate-200">
+        <PopoverContent align="end" sideOffset={10} className="w-[420px] sm:w-[440px] p-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent shadow-2xl shadow-slate-900/15 dark:shadow-black/40">
           {MenuPanel}
         </PopoverContent>
       </Popover>

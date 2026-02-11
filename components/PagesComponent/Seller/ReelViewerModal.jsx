@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { createPortal } from "react-dom";
 
 import {
   MdClose,
@@ -130,6 +131,7 @@ const ReelViewerModal = ({
   const [moreMenu, setMoreMenu] = useState(false);
   const [msgInput, setMsgInput] = useState(false);
   const [dir, setDir] = useState(0);
+  const [portalReady, setPortalReady] = useState(false);
 
   const vidRef = useRef(null);
   const holdRef = useRef(null);
@@ -137,6 +139,10 @@ const ReelViewerModal = ({
   const syRef = useRef(null);
   const ytTimerRef = useRef(null);
   const ytProgressRef = useRef(null);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   /* derived */
   const cur = allSellers[sIdx];
@@ -434,7 +440,7 @@ const ReelViewerModal = ({
     router.push(`/seller/${sid}`);
   };
 
-  if (!open) return null;
+  if (!open || !portalReady) return null;
 
   const city = item?.translated_city || item?.city || null;
   const created = item?.created_at || null;
@@ -442,7 +448,7 @@ const ReelViewerModal = ({
   const views = num(item?.total_video_plays) || num(item?.clicks);
   const likes = num(item?.total_likes);
 
-  return (
+  const modalContent = (
     <AnimatePresence mode="wait">
       {open && (
         <motion.div
@@ -451,7 +457,7 @@ const ReelViewerModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
+          className="fixed inset-0 z-[2147483000] bg-black/95 backdrop-blur-[2px] flex items-center justify-center"
         >
           {/* ── story container ── */}
           <motion.div
@@ -516,6 +522,18 @@ const ReelViewerModal = ({
                 </div>
               ))}
             </div>
+
+            {/* ── story dots ── */}
+            {nItems > 1 && (
+              <div className="absolute top-[calc(env(safe-area-inset-top,8px)+24px)] left-0 right-0 z-30 flex items-center justify-center gap-1.5 pointer-events-none">
+                {items.map((_, idx) => (
+                  <span
+                    key={`story-dot-${idx}`}
+                    className={`h-1.5 rounded-full transition-all ${idx === iIdx ? "w-4 bg-white" : "w-1.5 bg-white/45"}`}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* ── top bar ── */}
             <div className="absolute top-[calc(env(safe-area-inset-top,8px)+10px)] left-0 right-0 z-30 px-3 flex items-center justify-between">
@@ -587,7 +605,7 @@ const ReelViewerModal = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-[35]"
+                    className="absolute inset-0 z-[120]"
                     onClick={(e) => { e.stopPropagation(); setMoreMenu(false); }}
                   />
                   <motion.div
@@ -595,7 +613,7 @@ const ReelViewerModal = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-[calc(env(safe-area-inset-top,8px)+50px)] right-3 z-40 bg-white backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden min-w-[210px] border border-slate-200"
+                    className="absolute top-[calc(env(safe-area-inset-top,8px)+50px)] right-3 z-[130] bg-white dark:bg-slate-900 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden min-w-[210px] border border-slate-200 dark:border-slate-700"
                   >
                     {[
                       { icon: MdOpenInNew, label: "Pogledaj oglas", fn: goToDetails },
@@ -607,7 +625,7 @@ const ReelViewerModal = ({
                         key={i}
                         type="button"
                         onClick={(e) => { e.stopPropagation(); o.fn(); setMoreMenu(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                       >
                         <o.icon size={18} className="text-slate-400" />
                         {o.label}
@@ -827,6 +845,8 @@ const ReelViewerModal = ({
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 const SwipeHint = () => {

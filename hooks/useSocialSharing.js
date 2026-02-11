@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
+import { instagramApi, socialMediaApi } from "@/utils/api";
 
 /**
  * Social Media Integration Hook
@@ -237,57 +238,90 @@ export const AutoPostService = {
   /**
    * Check if auto-post is configured for a platform
    */
-  isConfigured: async (platform, userId) => {
-    // TODO: Implement API call to check connected accounts
-    // This would check if user has connected their Facebook/Instagram account
-    return false;
+  isConfigured: async (platform) => {
+    try {
+      const res = await socialMediaApi.getConnectedAccounts();
+      const accounts = res?.data?.data || [];
+      return accounts.some(
+        (row) => row?.platform === platform && Boolean(row?.is_active)
+      );
+    } catch {
+      return false;
+    }
   },
 
   /**
    * Schedule auto-post for a new listing
    */
-  schedulePost: async ({ item, platforms, scheduledTime, userId }) => {
-    // TODO: Implement API call to schedule post
-    // This would send the post data to backend which handles:
-    // 1. Image processing for each platform's requirements
-    // 2. Caption generation with hashtags
-    // 3. Scheduled posting via platform APIs
-    console.log("Auto-post scheduled:", { item, platforms, scheduledTime });
-    return { success: false, message: "Auto-post nije još implementiran" };
+  schedulePost: async ({ item, platforms, scheduledTime }) => {
+    try {
+      if (!item?.id) {
+        return { success: false, message: "Nedostaje ID oglasa." };
+      }
+
+      const payload = {
+        item_id: item.id,
+        platforms: platforms || [],
+        scheduled_at: scheduledTime || undefined,
+        caption: `${item?.name || "Lmx oglas"}${item?.description ? `\n\n${item.description}` : ""}`.trim(),
+      };
+
+      const res = await socialMediaApi.schedulePost(payload);
+      return {
+        success: res?.data?.error === false,
+        message: res?.data?.message || "Objava je zakazana.",
+        data: res?.data?.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error?.response?.data?.message ||
+          "Auto-post nije uspio. Pokušajte ponovo.",
+      };
+    }
   },
 
   /**
    * Get connected social accounts for user
    */
-  getConnectedAccounts: async (userId) => {
-    // TODO: Implement API call to get connected accounts
-    return [];
+  getConnectedAccounts: async () => {
+    try {
+      const res = await socialMediaApi.getConnectedAccounts();
+      return res?.data?.data || [];
+    } catch {
+      return [];
+    }
   },
 
   /**
    * Connect a social account (initiates OAuth flow)
    */
   connectAccount: async (platform) => {
-    // TODO: Implement OAuth flow initiation
-    // This would redirect to platform's OAuth page
-    const oauthUrls = {
-      facebook: "/api/auth/facebook",
-      instagram: "/api/auth/instagram",
-    };
-    
-    if (oauthUrls[platform]) {
-      // window.location.href = oauthUrls[platform];
-      toast.info(`Povezivanje sa ${platform} dolazi uskoro!`);
+    try {
+      const res = await socialMediaApi.connectAccount({ platform });
+      if (res?.data?.error === false) {
+        toast.success(res?.data?.message || `Povezivanje: ${platform}`);
+        return true;
+      }
+      toast.error(res?.data?.message || "Povezivanje nije uspjelo.");
+      return false;
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Povezivanje nije uspjelo.");
+      return false;
     }
-    return false;
   },
 
   /**
    * Disconnect a social account
    */
-  disconnectAccount: async (platform, userId) => {
-    // TODO: Implement account disconnection
-    return false;
+  disconnectAccount: async (platform) => {
+    try {
+      const res = await socialMediaApi.disconnectAccount({ platform });
+      return res?.data?.error === false;
+    } catch {
+      return false;
+    }
   },
 };
 
@@ -304,39 +338,78 @@ export const InstagramShopService = {
   /**
    * Check if Instagram Shop is connected
    */
-  isConnected: async (userId) => {
-    // TODO: Check if user has Instagram Business account connected
-    return false;
+  isConnected: async () => {
+    try {
+      const accounts = await AutoPostService.getConnectedAccounts();
+      return accounts.some(
+        (row) => row?.platform === "instagram" && Boolean(row?.is_active)
+      );
+    } catch {
+      return false;
+    }
   },
 
   /**
    * Get products from Instagram Shop
    */
-  getProducts: async (userId, { page = 1, limit = 20 } = {}) => {
-    // TODO: Implement Instagram Graph API call to fetch products
-    // Requires: instagram_basic, instagram_shopping permissions
-    return { products: [], total: 0, hasMore: false };
+  getProducts: async ({ page = 1, limit = 20, search } = {}) => {
+    try {
+      const res = await instagramApi.getProducts({
+        page,
+        per_page: limit,
+        search,
+      });
+      const payload = res?.data?.data;
+      const products = payload?.data || [];
+      const total = payload?.total || products.length;
+      const hasMore =
+        Number(payload?.current_page || 1) < Number(payload?.last_page || 1);
+      return { products, total, hasMore };
+    } catch {
+      return { products: [], total: 0, hasMore: false };
+    }
   },
 
   /**
    * Import selected products as listings
    */
-  importProducts: async (productIds, userId) => {
-    // TODO: Implement product import
-    // This would:
-    // 1. Fetch full product details from Instagram
-    // 2. Map Instagram product fields to listing fields
-    // 3. Download and process images
-    // 4. Create draft listings for user review
-    return { success: false, imported: 0, message: "Instagram import dolazi uskoro!" };
+  importProducts: async (sourceUrls = []) => {
+    try {
+      const res = await instagramApi.importProducts({
+        source_urls: sourceUrls,
+      });
+      const data = res?.data?.data || {};
+      return {
+        success: res?.data?.error === false,
+        imported: Number(data?.products_imported || 0),
+        failed: Number(data?.products_failed || 0),
+        message: res?.data?.message || "Instagram import završen.",
+        data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        imported: 0,
+        failed: 0,
+        message:
+          error?.response?.data?.message || "Instagram import nije uspio.",
+      };
+    }
   },
 
   /**
    * Sync existing listing with Instagram product
    */
   syncProduct: async (listingId, instagramProductId) => {
-    // TODO: Implement bi-directional sync
-    return false;
+    try {
+      const res = await instagramApi.syncProduct({
+        item_id: listingId,
+        instagram_product_id: instagramProductId,
+      });
+      return res?.data?.error === false;
+    } catch {
+      return false;
+    }
   },
 };
 

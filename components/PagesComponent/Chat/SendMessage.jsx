@@ -60,6 +60,12 @@ const SendMessage = ({
  
   const isRecording = status === "recording";
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const QUICK_REPLIES = [
+    "Da, oglas je još dostupan.",
+    "Može dogovor oko cijene.",
+    "Pošaljite kontakt i javim se odmah.",
+    "Može pregled danas.",
+  ];
  
   // Format recording duration
   const formatDuration = (seconds) => {
@@ -110,8 +116,7 @@ const SendMessage = ({
   // --- TYPING INDICATOR LOGIC ---
   const sendTypingStatus = async (isTyping) => {
     if (!id) return;
-    
-    console.log('📤 Sending typing status:', isTyping);
+
     try {
       await chatListApi.sendTyping({
         chat_id: id,
@@ -141,17 +146,31 @@ const SendMessage = ({
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    applySelectedFile(file, "upload");
+  };
+
+  const applySelectedFile = (file, source = "upload") => {
  
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
  
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Only image files (JPEG, PNG, JPG) are allowed");
-      return;
+      toast.error("Dozvoljeni su samo formati JPEG i PNG");
+      return false;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
     }
  
     const fileUrl = URL.createObjectURL(file);
     setPreviewUrl(fileUrl);
     setSelectedFile(file);
+
+    if (source === "paste") {
+      toast.success("Slika dodana iz clipboard-a");
+    }
+
+    return true;
   };
  
   const removeSelectedFile = () => {
@@ -191,6 +210,23 @@ const SendMessage = ({
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       sendTypingStatus(false);
     }
+  };
+
+  const handlePaste = (e) => {
+    if (selectedFile) return;
+
+    const clipboardItems = Array.from(e.clipboardData?.items || []);
+    const imageItem = clipboardItems.find((item) =>
+      item.type?.startsWith("image/")
+    );
+
+    if (!imageItem) return;
+
+    const file = imageItem.getAsFile();
+    if (!file) return;
+
+    e.preventDefault();
+    applySelectedFile(file, "paste");
   };
  
   // --- SEND MESSAGE LOGIC ---
@@ -242,18 +278,9 @@ const SendMessage = ({
       params.audio = audioFile;
     }
  
-    console.log('📤 Sending message with params:', {
-      item_offer_id: params.item_offer_id,
-      message: params.message,
-      hasFile: !!params.file,
-      hasAudio: !!params.audio
-    });
- 
     try {
       setIsSending(true);
       const response = await sendMessageApi.sendMessage(params);
- 
-      console.log('📥 Send message response:', response?.data);
  
       if (response?.data?.error === false) {
         // Replace optimistic message with real message from server
@@ -328,17 +355,17 @@ const SendMessage = ({
   // Ako chat nije dozvoljen, prikaži poruku
   if (!isAllowToChat) {
     return (
-      <div className="p-4 border-t text-center text-muted-foreground bg-gray-50">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-700 text-center text-muted-foreground bg-gray-50 dark:bg-slate-900">
         <p className="text-sm">{getBlockedMessage()}</p>
       </div>
     );
   }
  
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95">
       {/* Other user typing indicator */}
       {isOtherUserTyping && (
-        <div className="px-4 py-2 text-sm text-cyan-600 flex items-center gap-2 bg-cyan-50 animate-in fade-in slide-in-from-bottom-1 transition-all">
+        <div className="px-4 py-2 text-sm text-cyan-600 dark:text-cyan-300 flex items-center gap-2 bg-cyan-50 dark:bg-cyan-500/10 animate-in fade-in slide-in-from-bottom-1 transition-all">
           <span className="font-medium">piše</span>
           <span className="flex gap-0.5 pb-1">
             <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
@@ -351,7 +378,7 @@ const SendMessage = ({
       {/* File Preview */}
       {previewUrl && (
         <div className="px-4 pt-2 pb-1">
-          <div className="relative w-32 h-32 border rounded-md overflow-hidden group">
+          <div className="relative w-32 h-32 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden group">
             <CustomImage
               src={previewUrl}
               alt="File preview"
@@ -360,16 +387,34 @@ const SendMessage = ({
             />
             <button
               onClick={removeSelectedFile}
-              className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full opacity-70 hover:opacity-100 transition-opacity"
+              className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition-opacity"
             >
               <X size={14} />
             </button>
           </div>
         </div>
       )}
+
+      {!isRecording && !selectedFile && !message.trim() && (
+        <div className="px-4 pt-2 flex flex-wrap gap-2">
+          {QUICK_REPLIES.map((reply) => (
+            <button
+              key={reply}
+              type="button"
+              onClick={() => {
+                setMessage(reply);
+                inputRef.current?.focus();
+              }}
+              className="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 transition hover:border-primary/30 hover:text-primary"
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
+      )}
  
       {/* Input Area */}
-      <div className="p-4 border-t flex items-center gap-2">
+      <div className="p-4 flex items-end gap-2">
         {!isRecording && (
           <>
             <input
@@ -382,40 +427,47 @@ const SendMessage = ({
             <button
               onClick={() => fileInputRef.current.click()}
               aria-label="Attach file"
-              className="hover:text-primary transition-colors"
+              className="mb-1 h-10 w-10 inline-flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:text-primary transition-colors"
             >
-              <IoMdAttach size={20} className="text-muted-foreground" />
+              <IoMdAttach size={20} className="text-muted-foreground dark:text-slate-300" />
             </button>
           </>
         )}
  
         {isRecording ? (
-          <div className="flex-1 py-2 px-3 bg-red-50 text-red-500 rounded-md flex items-center justify-center font-medium">
+          <div className="flex-1 min-h-[42px] py-2 px-3 bg-red-50 dark:bg-red-500/15 text-red-500 rounded-xl flex items-center justify-center font-medium">
             🔴 {t("recording")} {formatDuration(recordingDuration)}
           </div>
         ) : (
-          <textarea
-            ref={inputRef}
-            placeholder="Poruka..."
-            className="flex-1 outline-none border px-3 py-1 rounded-md resize-none focus:ring-2 focus:ring-primary/20 transition-all"
-            value={message}
-            rows={2}
-            onChange={handleMessageChange}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (message.trim() || selectedFile) {
-                  sendMessage();
+          <div className="flex-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 shadow-sm">
+            <textarea
+              ref={inputRef}
+              placeholder="Napišite poruku..."
+              className="w-full outline-none border-0 bg-transparent px-0 py-0 text-sm resize-none min-h-[40px] max-h-[140px] focus:ring-0 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              value={message}
+              rows={2}
+              onChange={handleMessageChange}
+              onPaste={handlePaste}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (message.trim() || selectedFile) {
+                    sendMessage();
+                  }
                 }
-              }
-            }}
-          />
+              }}
+            />
+            <div className="mt-1 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+              <span>Enter za slanje, Shift+Enter za novi red</span>
+              <span>{message.length}/1200</span>
+            </div>
+          </div>
         )}
  
         <button
           className={cn(
-            "p-2 rounded-md transition-all",
-            "bg-primary text-white hover:bg-primary/90",
+            "mb-1 h-10 w-10 inline-flex items-center justify-center rounded-full transition-all",
+            "bg-primary text-white hover:bg-primary/90 shadow-sm",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
           disabled={isSending}

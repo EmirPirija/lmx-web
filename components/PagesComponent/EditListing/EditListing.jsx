@@ -6,6 +6,7 @@ import {
   getCustomFieldsApi,
   getMyItemsApi,
   getParentCategoriesApi,
+  socialMediaApi,
 } from "@/utils/api";
 import {
   filterNonDefaultTranslations,
@@ -187,6 +188,59 @@ const processImagesArray = async (files, opts) => {
 
 const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
 
+const parseJsonSafe = (value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const normalizeAvailabilityValue = (value) =>
+  value === true || value === 1 || value === "1" || value === "true";
+
+const readAvailableNowFromListingData = (listingData = {}) => {
+  const directCandidates = [
+    listingData?.available_now,
+    listingData?.is_available,
+    listingData?.is_avaible,
+    listingData?.isAvailable,
+    listingData?.availableNow,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (candidate !== undefined && candidate !== null) {
+      return normalizeAvailabilityValue(candidate);
+    }
+  }
+
+  const keys = ["available_now", "is_available", "is_avaible", "isAvailable", "availableNow"];
+  const customFields = parseJsonSafe(listingData?.custom_fields);
+
+  const pickFromObject = (obj) => {
+    if (!obj || typeof obj !== "object") return undefined;
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        return normalizeAvailabilityValue(obj[key]);
+      }
+    }
+    return undefined;
+  };
+
+  const topLevel = pickFromObject(customFields);
+  if (topLevel !== undefined) return topLevel;
+
+  if (customFields && typeof customFields === "object") {
+    for (const nested of Object.values(customFields)) {
+      const nestedValue = pickFromObject(nested);
+      if (nestedValue !== undefined) return nestedValue;
+    }
+  }
+
+  return false;
+};
+
 const EditListing = ({ id }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const [step, setStep] = useState(1);
@@ -206,8 +260,13 @@ const EditListing = ({ id }) => {
   const [isAdPlaced, setIsAdPlaced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [video, setVideo] = useState(null);
+  const [addVideoToStory, setAddVideoToStory] = useState(false);
+  const [publishToInstagram, setPublishToInstagram] = useState(false);
+  const [instagramSourceUrl, setInstagramSourceUrl] = useState("");
+  const [deleteVideo, setDeleteVideo] = useState(false);
   const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [scheduledAt, setScheduledAt] = useState(null);
+  const [availableNow, setAvailableNow] = useState(false);
   
   const [isFeatured, setIsFeatured] = useState(false);
 
@@ -328,7 +387,24 @@ const EditListing = ({ id }) => {
       setUploadedImages(listingData?.image ? [listingData.image] : []);
       setOtherImages(listingData?.gallery_images || []);
       setVideo(listingData?.video || null);
+      setAddVideoToStory(
+        Boolean(listingData?.add_video_to_story || listingData?.publish_to_story)
+      );
+      setPublishToInstagram(
+        Boolean(
+          listingData?.publish_to_instagram || listingData?.instagram_auto_post
+        )
+      );
+      const existingVideoLink = String(listingData?.video_link || "");
+      const fallbackInstagramLink = existingVideoLink.includes("instagram.com/")
+        ? existingVideoLink
+        : "";
+      setInstagramSourceUrl(
+        listingData?.instagram_source_url || fallbackInstagramLink
+      );
+      setDeleteVideo(false);
       setIsFeatured(Number(listingData?.is_feature) === 1);
+      setAvailableNow(readAvailableNowFromListingData(listingData));
 
       const mainDetailsTranslation = getMainDetailsTranslations(
         listingData,
@@ -370,16 +446,27 @@ const EditListing = ({ id }) => {
   };
 
   const handleGoBack = () => {
-    if (step == 4 && customFields?.length == 0) {
-      setStep((prev) => prev - 2);
-    } else {
-      setStep((prev) => prev - 1);
+    if (step === 4) {
+      setStep(3);
+      return;
     }
+
+    if (step === 3) {
+      setStep(customFields?.length > 0 ? 2 : 1);
+      return;
+    }
+
+    if (step === 2) {
+      setStep(1);
+      return;
+    }
+
+    setStep(1);
   };
 
   const handleTabClick = (tab) => {
     if (tab === 1) setStep(1);
-    else if (tab === 2) setStep(2);
+    else if (tab === 2 && customFields?.length > 0) setStep(2);
     else if (tab === 3) setStep(3);
     else if (tab === 4) setStep(4);
   };
@@ -387,6 +474,28 @@ const EditListing = ({ id }) => {
   const submitExtraDetails = () => {
     setStep(3);
   };
+
+  const handleVideoLinkChange = useCallback(
+    (value) => {
+      setTranslations((prev) => ({
+        ...prev,
+        [defaultLangId]: {
+          ...(prev?.[defaultLangId] || {}),
+          video_link: value,
+        },
+      }));
+      if ((value || "").trim()) {
+        setDeleteVideo(false);
+      }
+    },
+    [defaultLangId]
+  );
+
+  const handleUseInstagramAsVideoLink = useCallback(() => {
+    const igLink = (instagramSourceUrl || "").trim();
+    if (!igLink) return;
+    handleVideoLinkChange(igLink);
+  }, [handleVideoLinkChange, instagramSourceUrl]);
 
   const SLUG_RE = /^[a-z0-9-]+$/i;
   const isEmpty = (x) => !x || !x.toString().trim();
@@ -460,7 +569,13 @@ const EditListing = ({ id }) => {
 
     if (!isEmpty(video_link) && !isValidURL(video_link)) {
       toast.error(t("enterValidUrl"));
-      setStep(1);
+      setStep(3);
+      return;
+    }
+
+    if (!isEmpty(instagramSourceUrl) && !isValidURL(instagramSourceUrl)) {
+      toast.error("Unesite ispravan Instagram link.");
+      setStep(3);
       return;
     }
 
@@ -520,6 +635,7 @@ const EditListing = ({ id }) => {
   
   const videoTempId =
     video && typeof video === "object" ? video.id : null;
+  const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
   
   const allData = {
     id: id,
@@ -528,8 +644,11 @@ const EditListing = ({ id }) => {
     description: defaultDetails?.description,
     price: defaultDetails.price,
     contact: defaultDetails.contact,
+    available_now: Boolean(availableNow),
     region_code: defaultDetails?.region_code?.toUpperCase() || "",
-    video_link: defaultDetails?.video_link,
+    video_link: trimmedVideoLink,
+    instagram_source_url: (instagramSourceUrl || "").trim(),
+    publish_to_instagram: Boolean(publishToInstagram),
   
     // ✅ OLD mode (fallback): šalji fajl samo ako je File/Blob
     image:
@@ -540,12 +659,14 @@ const EditListing = ({ id }) => {
     gallery_images:
       OtherImages?.filter((x) => x instanceof File || x instanceof Blob) || [],
   
-    video: video instanceof File ? video : null,
+    ...(video instanceof File ? { video } : {}),
   
     // ✅ NEW mode: temp upload IDs (kad su objekti {id,url})
     ...(mainTempId ? { temp_main_image_id: mainTempId } : {}),
     ...(galleryTempIds.length ? { temp_gallery_image_ids: galleryTempIds } : {}),
-    ...(videoTempId ? { temp_video_id: videoTempId } : {}),
+    ...(videoTempId && !trimmedVideoLink ? { temp_video_id: videoTempId } : {}),
+    add_video_to_story: Boolean(addVideoToStory),
+    ...(deleteVideo ? { delete_video: 1 } : {}),
   
     address: Location?.address,
     latitude: Location?.lat,
@@ -585,6 +706,24 @@ const EditListing = ({ id }) => {
       setIsAdPlaced(true);
       const res = await editItemApi.editItem(allData);
       if (res?.data?.error === false) {
+        if (publishToInstagram) {
+          try {
+            await socialMediaApi.schedulePost({
+              item_id: id,
+              platforms: ["instagram"],
+              caption: `${defaultDetails?.name || "Lmx oglas"}\n\n${(
+                defaultDetails?.description || ""
+              ).slice(0, 260)}`.trim(),
+            });
+            toast.success("Izmjena je spremljena i dodana u red za Instagram objavu.");
+          } catch (scheduleError) {
+            const apiMessage = scheduleError?.response?.data?.message;
+            toast.warning(
+              apiMessage || "Izmjena je spremljena, ali Instagram objava nije zakazana."
+            );
+          }
+        }
+
         setOpenSuccessModal(true);
         setCreatedAdSlug(res?.data?.data[0]?.slug);
       } else {
@@ -600,7 +739,7 @@ const EditListing = ({ id }) => {
   const steps = [
     { id: 1, label: t("details"), icon: Circle, disabled: false },
     ...(customFields?.length > 0 ? [{ id: 2, label: t("extraDetails"), icon: Circle, disabled: false }] : []),
-    { id: 3, label: t("images"), icon: Circle, disabled: false },
+    { id: 3, label: "Media", icon: Circle, disabled: false },
     { id: 4, label: t("location"), icon: Circle, disabled: false },
   ];
 
@@ -774,6 +913,7 @@ const EditListing = ({ id }) => {
           toast.error(`Video je prevelik (${bytesToMB(file.size)}MB). Maks: ${maxMb}MB.`);
         }
       }
+      setDeleteVideo(false);
       setVideo(file);
     },
     [setVideo]
@@ -922,6 +1062,8 @@ const EditListing = ({ id }) => {
                         currentExtraDetails={currentExtraDetails}
                         langId={langId}
                         defaultLangId={defaultLangId}
+                        isAvailable={availableNow}
+                        setIsAvailable={setAvailableNow}
                       />
                     )}
 
@@ -936,6 +1078,17 @@ const EditListing = ({ id }) => {
                         setDeleteImagesId={setDeleteImagesId}
                         video={video}
                         setVideo={setVideoValidated}
+                        onVideoDeleted={() => setDeleteVideo(true)}
+                        onVideoSelected={() => setDeleteVideo(false)}
+                        addVideoToStory={addVideoToStory}
+                        setAddVideoToStory={setAddVideoToStory}
+                        publishToInstagram={publishToInstagram}
+                        setPublishToInstagram={setPublishToInstagram}
+                        instagramSourceUrl={instagramSourceUrl}
+                        onInstagramSourceUrlChange={setInstagramSourceUrl}
+                        onUseInstagramAsVideoLink={handleUseInstagramAsVideoLink}
+                        videoLink={defaultDetails?.video_link || ""}
+                        onVideoLinkChange={handleVideoLinkChange}
                       />
                     )}
 

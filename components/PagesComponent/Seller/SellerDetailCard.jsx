@@ -45,6 +45,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { hasSellerActiveReel } from "@/lib/seller-reel";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import ShareDropdown from "@/components/Common/ShareDropdown";
@@ -57,6 +59,7 @@ import SavedToListButton from "@/components/Profile/SavedToListButton";
 import { itemConversationApi, sendMessageApi } from "@/utils/api";
 import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
+import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
 
 
 
@@ -86,8 +89,6 @@ const staggerContainer = {
    HELPER FUNKCIJE (POPRAVLJENO)
 ===================================================== */
 
-const normalize = (v) => String(v ?? "").trim().toLowerCase();
-
 // Popravljen toBool da hvata i string "true"
 const toBool = (v) => {
   if (v === true || v === 1 || v === "1") return true;
@@ -95,50 +96,8 @@ const toBool = (v) => {
   return false;
 };
 
-const isNegativeStatus = (status) => {
-  const s = normalize(status);
-  return (
-    s.includes("not") ||
-    s.includes("unver") ||
-    s.includes("reject") ||
-    s.includes("declin") ||
-    s.includes("pend") ||
-    s.includes("wait")
-  );
-};
-
-const isApprovedStatus = (status) => {
-  const s = normalize(status);
-  return s === "approved" || s === "verified" || s === "kyc_approved" || s === "approved_kyc";
-};
-
 const getVerifiedStatus = (seller, settings) => {
-  if (!seller && !settings) return false;
-
-  const statusCandidates = [
-    settings?.verification_status,
-    settings?.verificationStatus,
-    settings?.status,
-    seller?.verification_status,
-    seller?.verificationStatus,
-    seller?.verification?.status,
-    seller?.status,
-  ];
-
-  if (statusCandidates.some(isNegativeStatus)) return false;
-  if (statusCandidates.some(isApprovedStatus)) return true;
-
-  const flagCandidates = [
-    seller?.is_verified,
-    seller?.verified,
-    seller?.is_verified_status,
-    seller?.isVerified,
-    settings?.is_verified,
-    settings?.verified,
-    settings?.isVerified,
-  ];
-
-  return flagCandidates.some((v) => toBool(v));
+  return isSellerVerified(seller, settings);
 };
 const shimmerCss = `
 @keyframes shimmer {
@@ -167,52 +126,6 @@ const shimmerCss = `
 `;
 
 const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
-
-const reelRingCss = `
-@keyframes reel-rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-@keyframes reel-glow {
-  0%, 100% { opacity: 0.35; transform: scale(0.98); }
-  50% { opacity: 0.65; transform: scale(1.03); }
-}
-.reel-ring {
-  position: relative;
-  padding: 3px;
-  border-radius: 16px;
-  isolation: isolate;
-}
-.reel-ring::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: conic-gradient(from 120deg, #F7941D, #E1306C, #833AB4, #5B51D8, #405DE6, #F7941D);
-  animation: reel-rotate 6s linear infinite;
-  filter: saturate(1.1);
-  z-index: 0;
-}
-.reel-ring::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: inherit;
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), transparent 55%),
-    radial-gradient(circle at 70% 70%, rgba(225,48,108,0.35), transparent 60%);
-  animation: reel-glow 2.8s ease-in-out infinite;
-  z-index: 0;
-}
-.reel-ring-inner {
-  position: relative;
-  z-index: 1;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
-}
-`;
-
-const ReelRingStyles = () => <style jsx global>{reelRingCss}</style>;
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -1047,7 +960,7 @@ export const SellerPreviewCard = ({
   // Use user_id if available, fallback to id
   const sellerId = seller?.user_id ?? seller?.id;
   const canOpenReel = Boolean(onRingClick);
-  const showReelPrompt = canOpenReel && !showReelRing;
+  const showReelPrompt = false;
   const ringMotion = undefined;
   const ringTransition = undefined;
 
@@ -1116,7 +1029,7 @@ export const SellerPreviewCard = ({
         onChatClick={handleChatClick}
       />
 
-      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900">
         <div className="p-4 space-y-3">
           {/* Header: Avatar + Info — matching MinimalSellerCard */}
           <div className="flex items-start gap-3">
@@ -1125,7 +1038,7 @@ export const SellerPreviewCard = ({
               const avatar = (
                 <div
                   className={cn(
-                    "relative flex-shrink-0 group",
+                    "relative isolate flex-shrink-0 group",
                     showReelRing && "cursor-pointer"
                   )}
                 >
@@ -1139,10 +1052,10 @@ export const SellerPreviewCard = ({
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 reel-ring-inner",
+                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
                         showReelRing
-                          ? "border border-white/70"
-                          : "border border-slate-200/60"
+                          ? "border border-white/70 dark:border-slate-700/80"
+                          : "border border-slate-200/60 dark:border-slate-700/60"
                       )}
                     >
                       <CustomImage
@@ -1159,14 +1072,14 @@ export const SellerPreviewCard = ({
                     <motion.span
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center"
+                      className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center"
                     >
                       <Play className="w-3 h-3 text-[#1e3a8a]" />
                     </motion.span>
                   )}
 
                   {isVerified && (
-                    <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+                    <div className="absolute -bottom-0.5 -left-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white dark:border-slate-900">
                       <Verified className="w-2.5 h-2.5 text-white" />
                     </div>
                   )}
@@ -1175,7 +1088,7 @@ export const SellerPreviewCard = ({
                     <motion.span
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-white text-[10px] font-semibold text-slate-700 shadow-sm"
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 z-20 px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-100 shadow-sm pointer-events-none"
                     >
                       Reelovi
                     </motion.span>
@@ -1190,7 +1103,7 @@ export const SellerPreviewCard = ({
                       }}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-200"
+                      className="absolute -top-1 -right-1 z-30 w-6 h-6 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center border border-slate-200 dark:border-slate-700"
                       aria-label="Dodaj video"
                     >
                       <span className="text-lg leading-none text-[#1e3a8a]">+</span>
@@ -1230,19 +1143,19 @@ export const SellerPreviewCard = ({
                 {sellerId ? (
                   <CustomLink
                     href={`/seller/${sellerId}`}
-                    className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors"
+                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors"
                   >
                     {seller?.name}
                   </CustomLink>
                 ) : (
-                  <span className="text-sm font-semibold text-slate-900 truncate">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                     {seller?.name}
                   </span>
                 )}
 
                 {showShare && (
                   <ShareDropdown url={computedShareUrl} title={title} headline={title} companyName={CompanyName}>
-                    <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                    <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                       <Share className="w-4 h-4" />
                     </button>
                   </ShareDropdown>
@@ -1255,29 +1168,29 @@ export const SellerPreviewCard = ({
                   <span className="inline-flex items-center gap-1 text-xs text-amber-600">
                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                     <span className="font-medium">{ratingValue}</span>
-                    <span className="text-slate-400">({ratingCount})</span>
+                    <span className="text-slate-400 dark:text-slate-500">({ratingCount})</span>
                   </span>
                 )}
 
                 {responseLabel && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
                     <Lightning className="w-3 h-3 text-amber-500" />
                     {responseLabel}
                   </span>
                 )}
 
                 {memberSince && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
                     <Calendar className="w-3 h-3" />
                     {memberSince}
                   </span>
                 )}
 
                 {isPro && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">PRO</span>
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded">PRO</span>
                 )}
                 {isShop && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 rounded">SHOP</span>
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded">SHOP</span>
                 )}
               </div>
 
@@ -1301,17 +1214,19 @@ export const SellerPreviewCard = ({
 
           {/* Business hours */}
           {showHours && todayHoursText && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span>Danas: <strong className="text-slate-900">{todayHoursText}</strong></span>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <span>Danas: <strong className="text-slate-900 dark:text-slate-100">{todayHoursText}</strong></span>
               </div>
               {openNow !== null && (
                 <span className={cn(
                   "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                  openNow ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
+                  openNow
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                 )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
+                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500")} />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
@@ -1324,7 +1239,7 @@ export const SellerPreviewCard = ({
               type="button"
               onClick={handleChatClick}
               disabled={actionsDisabled}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white disabled:opacity-50 text-white dark:text-slate-900 text-sm font-medium rounded-xl transition-colors"
             >
               <ChatRound className="w-4 h-4" />
               Pošalji poruku
@@ -1341,7 +1256,7 @@ export const SellerPreviewCard = ({
                 type="button"
                 onClick={handlePhoneClick}
                 disabled={actionsDisabled}
-                className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-50"
+                className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50"
               >
                 <Phone className="w-4 h-4" />
               </button>
@@ -1351,7 +1266,7 @@ export const SellerPreviewCard = ({
                   <a
                     href={`tel:${seller.mobile}`}
                     onClick={handlePhoneClick}
-                    className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-emerald-600 transition-colors"
+                    className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-600 transition-colors"
                   >
                     <Phone className="w-4 h-4" />
                   </a>
@@ -1361,7 +1276,7 @@ export const SellerPreviewCard = ({
                     href={`https://wa.me/${String(settings?.whatsapp_number || seller?.mobile).replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-50 text-green-600 transition-colors"
+                    className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-green-600 transition-colors"
                   >
                     <ChatRound className="w-4 h-4" />
                   </a>
@@ -1374,7 +1289,7 @@ export const SellerPreviewCard = ({
           {mode === "compact" && showProfileLink && sellerId && (
             <CustomLink
               href={`/seller/${sellerId}`}
-              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group"
+              className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group"
             >
               Pogledaj kompletan profil
               <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
@@ -1418,28 +1333,28 @@ const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-slate-100 bg-white overflow-hidden"
+      className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden"
     >
       <button
         type="button"
         onClick={() => setOpenId(isOpen ? "" : id)}
         className={cn(
           "w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
-          "hover:bg-slate-50/80",
+          "hover:bg-slate-50/80 dark:hover:bg-slate-800/70",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
         )}
       >
         <span className="inline-flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary border border-primary/10">
+          <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary border border-primary/10 dark:border-primary/30">
             <Icon size={18} />
           </span>
-          <span className="text-sm font-semibold text-slate-900">{title}</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</span>
         </span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.25 }}
         >
-          <ArrowRight size={18} className="rotate-90 text-slate-400" />
+          <ArrowRight size={18} className="rotate-90 text-slate-400 dark:text-slate-500" />
         </motion.div>
       </button>
 
@@ -1484,12 +1399,12 @@ const SocialPill = ({ icon: Icon, label, href }) => {
       rel="noreferrer"
       className={cn(
         "group relative inline-flex items-center gap-2.5 rounded-xl",
-        "border border-slate-100 bg-slate-50/80",
-        "px-4 py-2.5 text-sm font-medium text-slate-700",
-        "hover:border-primary/30 hover:bg-white transition-all duration-250"
+        "border border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70",
+        "px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200",
+        "hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all duration-250"
       )}
     >
-      <Icon size={18} className="text-slate-500" />
+      <Icon size={18} className="text-slate-500 dark:text-slate-400" />
       <span className="truncate max-w-[8rem]">{label}</span>
 
       <motion.button
@@ -1499,7 +1414,7 @@ const SocialPill = ({ icon: Icon, label, href }) => {
         onClick={copy}
         className={cn(
           "ml-1 p-1.5 rounded-lg",
-          "hover:bg-white",
+          "hover:bg-white dark:hover:bg-slate-700",
           "opacity-0 group-hover:opacity-100 transition-opacity"
         )}
       >
@@ -1551,26 +1466,23 @@ const SellerDetailCard = ({
   );
 
   useEffect(() => {
-    // Ako je već lokalno verifikovan preko propsa, ne zovi API
-    if (localVerified || !sellerId) return;
+    setVerifiedRemote(false);
+  }, [sellerId]);
+
+  useEffect(() => {
+    // Endpoint vraća status trenutnog auth korisnika, pa ga koristimo samo na vlastitom profilu.
+    if (localVerified || !sellerId || !isOwnProfile) return;
   
     let alive = true;
   
     const fetchRemote = async () => {
       try {
-        // Koristimo istu API funkciju kao u ProfileDropdown
-        const res = await getVerificationStatusApi.getVerificationStatus(sellerId);
+        const res = await getVerificationStatusApi.getVerificationStatus();
         
-        // ProfileDropdown čita: res.value?.data?.data
         const statusData = res?.data?.data || res?.data; 
   
         if (alive && statusData) {
-          // Provjera identična onoj u Dropdownu: status === "approved"
-          const verifiedByStatus = String(statusData?.status || "").toLowerCase() === "approved";
-          
-          // Ili opšta provjera preko našeg helpera
-          const isRemoteValid = verifiedByStatus || getVerifiedStatus(statusData, statusData);
-          
+          const isRemoteValid = getVerifiedStatus(statusData, statusData);
           if (isRemoteValid) {
             setVerifiedRemote(true);
           }
@@ -1582,7 +1494,7 @@ const SellerDetailCard = ({
   
     fetchRemote();
     return () => { alive = false; };
-  }, [sellerId, localVerified]);
+  }, [sellerId, localVerified, isOwnProfile]);
 
   // FINALNI STATUS
   const isVerified = localVerified || verifiedRemote;
@@ -1592,12 +1504,10 @@ const SellerDetailCard = ({
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
   const [isReelViewerOpen, setIsReelViewerOpen] = useState(false);
-  const [hasReel, setHasReel] = useState(
-    Boolean(seller?.has_reel || seller?.reel_video || seller?.video)
-  );
+  const [hasReel, setHasReel] = useState(Boolean(hasSellerActiveReel(seller)));
 
   useEffect(() => {
-    setHasReel(Boolean(seller?.has_reel || seller?.reel_video || seller?.video));
+    setHasReel(Boolean(hasSellerActiveReel(seller)));
   }, [seller]);
 
   // Parsiranje postavki
@@ -1660,7 +1570,7 @@ const SellerDetailCard = ({
       <ReelUploadModal
         open={isReelModalOpen}
         onOpenChange={setIsReelModalOpen}
-        onUploaded={() => setHasReel(true)}
+        onUploaded={(payload) => setHasReel(Boolean(payload?.hasAnyVideo))}
       />
 
       <ReelViewerModal
@@ -1701,7 +1611,7 @@ const SellerDetailCard = ({
           setOpenId={setOpenId}
         >
           <div className="space-y-3">
-            <div className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
               Društvene mreže
             </div>
             <div className="flex flex-wrap gap-2.5">
@@ -1725,29 +1635,31 @@ const SellerDetailCard = ({
           setOpenId={setOpenId}
         >
           <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span>Danas: <strong className="text-slate-900">{todayHoursText}</strong></span>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <span>Danas: <strong className="text-slate-900 dark:text-slate-100">{todayHoursText}</strong></span>
               </div>
               {openNow !== null && (
                 <span className={cn(
                   "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                  openNow ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
+                  openNow
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                 )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400")} />
+                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500")} />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
             </div>
 
             {tomorrowHoursText && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 border border-slate-100/60">
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Calendar className="w-4 h-4 text-slate-300" />
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 dark:bg-slate-800/50 border border-slate-100/60 dark:border-slate-700/60">
+                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                  <Calendar className="w-4 h-4 text-slate-300 dark:text-slate-500" />
                   <span>Sutra</span>
                 </div>
-                <span className="text-sm font-medium text-slate-700">{tomorrowHoursText}</span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{tomorrowHoursText}</span>
               </div>
             )}
           </div>
@@ -1765,31 +1677,31 @@ const SellerDetailCard = ({
         >
           <div className="space-y-3">
             {shippingInfo && (
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-50/80 border border-sky-100/60">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-50/80 dark:bg-sky-950/20 border border-sky-100/60 dark:border-sky-800/50">
                 <Lightning className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-medium text-sky-800 mb-0.5">Dostava</div>
-                  <p className="text-xs text-sky-600 whitespace-pre-line">{shippingInfo}</p>
+                  <div className="text-xs font-medium text-sky-800 dark:text-sky-300 mb-0.5">Dostava</div>
+                  <p className="text-xs text-sky-600 dark:text-sky-400 whitespace-pre-line">{shippingInfo}</p>
                 </div>
               </div>
             )}
 
             {returnPolicy && (
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-100/60">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/60 dark:border-amber-800/50">
                 <Shield className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-medium text-amber-800 mb-0.5">Povrat</div>
-                  <p className="text-xs text-amber-600 whitespace-pre-line">{returnPolicy}</p>
+                  <div className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-0.5">Povrat</div>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 whitespace-pre-line">{returnPolicy}</p>
                 </div>
               </div>
             )}
 
             {businessDescription && (
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <InfoCircle className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
+                <InfoCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-medium text-slate-700 mb-0.5">O prodavaču</div>
-                  <p className="text-xs text-slate-500 whitespace-pre-line">{businessDescription}</p>
+                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">O prodavaču</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 whitespace-pre-line">{businessDescription}</p>
                 </div>
               </div>
             )}
@@ -1801,7 +1713,7 @@ const SellerDetailCard = ({
       <CustomLink
         href={`/seller/${mainSellerId}`}
         onClick={onProfileClick}
-        className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group"
+        className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group"
       >
         Pogledaj kompletan profil
         <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />

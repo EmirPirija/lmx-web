@@ -160,9 +160,20 @@ const HomeHeader = () => {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
 
+    const handleRealtimeRefresh = (event) => {
+      const detail = event?.detail;
+      if (!detail) return;
+      if (detail?.category === "chat" || detail?.type === "chat" || detail?.type === "new_message") {
+        fetchUnreadCount();
+      }
+    };
+
+    window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
     };
   }, [IsLoggedin, pathname]);
 
@@ -280,18 +291,20 @@ const HomeHeader = () => {
 
   return (
     <>
-      {/* ✅ Clean 2-row header (desktop) + mobile quick actions dole */}
-      <header className="top-0 z-50 border-b bg-white/75 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 dark:bg-slate-900/75 dark:supports-[backdrop-filter]:bg-slate-900/60">
-        <nav className="mx-4">
+      {/* ✅ Refined 2-row header (desktop) + mobile quick actions dole */}
+      <header className="top-0 z-50 border-b border-slate-200/70 bg-gradient-to-b from-white/95 to-white/80 backdrop-blur-xl supports-[backdrop-filter]:from-white/90 supports-[backdrop-filter]:to-white/70 dark:border-slate-800 dark:from-slate-950/95 dark:to-slate-900/85">
+        <nav className="mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6">
           {/* container */}
           {isLargeScreen ? (
             <>
+              <div className="py-3 lg:py-4">
+              <div className="rounded-3xl border border-slate-200/80 bg-white/85 p-3 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.65)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/75 lg:p-4">
               {/* DESKTOP: GORE quick actions */}
-              <div className="flex items-center justify-between gap-3 pt-3 pb-2 lg:pt-4">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
                 <div className="flex items-center gap-2">
                 {/* left: lokacija */}
                 <button
-                  className="group flex items-center gap-2 px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200"
+                  className="group flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
                   onClick={() => setIsLocationModalOpen(true)}
                   type="button"
                   aria-label="Lokacija"
@@ -299,9 +312,9 @@ const HomeHeader = () => {
                 >
                   <MapPin
                     size={18}
-                    className="text-slate-600 dark:text-slate-400"
+                    className="text-primary"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300 max-w-[220px] truncate">
+                  <span className="max-w-[220px] truncate text-sm font-medium">
                     {locationText || "Dodaj lokaciju"}
                   </span>
                 </button>
@@ -309,7 +322,7 @@ const HomeHeader = () => {
                   <ThemeToggle />
                   <CustomLink
                     href="/svi-korisnici"
-                    className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
                   >
                     Svi korisnici
                   </CustomLink>
@@ -355,7 +368,7 @@ const HomeHeader = () => {
 {/* DESKTOP PORUKE DUGME */}
 <button
   onClick={handleChatClick}
-  className="relative w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 grid place-items-center transition-all duration-200 hover:scale-[1.04] active:scale-[0.98]"
+  className="relative grid h-10 w-10 place-items-center rounded-full border border-slate-200/90 bg-white text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
   title="Poruke"
   type="button"
   aria-label="Poruke"
@@ -385,7 +398,7 @@ const HomeHeader = () => {
                   {/* MOJI OGLASI (ikonica) */}
                   <button
                     onClick={handleMyAdsClick}
-                    className={`relative h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 flex items-center gap-2 px-3 transition-all duration-200 hover:scale-[1.04] active:scale-[0.98] ${
+                    className={`relative flex h-10 items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${
                       isMyAdsActive ? "text-primary" : "text-slate-700 dark:text-slate-300"
                     }`}
                     title="Moji oglasi"
@@ -401,17 +414,17 @@ const HomeHeader = () => {
               </div>
 
               {/* DESKTOP: DOLE brand + search + CTA */}
-              <div className="flex items-center gap-3 pb-3 lg:pb-4">
+              <div className="mt-3 flex items-center gap-3">
                 {/* search */}
                 <div className="flex-1">
-                  <div className="mx-auto transition-transform duration-300 hover:scale-[1.01]">
+                  <div className="mx-auto">
                     <Search />
                   </div>
                 </div>
 
                 {/* extra: CTA */}
                 <button
-                  className="ml-1 flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-white font-semibold shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  className="ml-1 inline-flex h-12 items-center gap-2 rounded-2xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_40px_-24px_rgba(13,148,136,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0"
                   disabled={IsAdListingClicked}
                   onClick={handleAdListing}
                   title="Objavi oglas"
@@ -425,43 +438,41 @@ const HomeHeader = () => {
                   <span className="hidden md:inline">Objavi oglas</span>
                 </button>
               </div>
+              </div>
+              </div>
             </>
           ) : (
             <>
-              {/* MOBILE: GORE (brand + right actions) */}
-              <div className="flex items-center justify-between gap-2 pt-3 pb-2">
-                <div className="flex items-center gap-2">
-                  {/* Theme Toggle (desno) */}
-                  <ThemeToggle />
-                  <CustomLink
-                    href="/svi-korisnici"
-                    className="flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all duration-200 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
-                  >
-                    Svi korisnici
-                  </CustomLink>
-                </div>
+              <div className="py-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2.5 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.5)] backdrop-blur dark:border-slate-700 dark:bg-slate-900/80">
+                  {/* MOBILE: GORE quick actions */}
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-2 dark:border-slate-700">
+                    <div className="flex items-center gap-2">
+                      <ThemeToggle />
+                      <CustomLink
+                        href="/svi-korisnici"
+                        className="inline-flex items-center rounded-full border border-slate-200/90 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-all dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                      >
+                        Svi korisnici
+                      </CustomLink>
+                    </div>
 
-                {/* Right side: Lokacija */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 grid place-items-center transition-all"
-                    onClick={() => setIsLocationModalOpen(true)}
-                    type="button"
-                    aria-label="Lokacija"
-                    title={locationText || "Dodaj lokaciju"}
-                  >
-                    <MapPin
-                      size={16}
-                      className="text-slate-600 dark:text-slate-400"
-                    />
-                  </button>
-                </div>
-              </div>
+                    <button
+                      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-3 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                      onClick={() => setIsLocationModalOpen(true)}
+                      type="button"
+                      aria-label="Lokacija"
+                      title={locationText || "Dodaj lokaciju"}
+                    >
+                      <MapPin size={15} className="text-primary" />
+                      <span className="max-w-[110px] truncate">{locationText || "Lokacija"}</span>
+                    </button>
+                  </div>
 
-              {/* MOBILE: Search */}
-              <div className="pb-3">
-                <div className="transition-transform duration-300 hover:scale-[1.01]">
-                  <Search />
+                  {/* MOBILE: Search */}
+                  <div className="pt-2">
+                    <Search />
+                  </div>
                 </div>
               </div>
             </>

@@ -17,6 +17,7 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 import { getYouTubeVideoId } from "@/utils";
+import { cn } from "@/lib/utils";
 
 import {
   MdFavorite,
@@ -103,6 +104,18 @@ const buildVideoMeta = (item) => {
   return { type: "direct", src: raw, poster: item?.image || "", raw };
 };
 
+const getSellerIdFromItem = (item) => {
+  const raw = item?.user?.id
+    ?? item?.seller?.id
+    ?? item?.user_id
+    ?? item?.seller_id
+    ?? item?.user?.user_id
+    ?? item?.seller?.user_id;
+
+  if (raw == null || raw === "") return null;
+  return String(raw);
+};
+
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const fmtCount = (v) => {
   const n = num(v);
@@ -163,22 +176,18 @@ const HomeReels = () => {
     const map = {};
     const src = shuffled ? [...items].sort(() => Math.random() - 0.5) : items;
     src.forEach((item) => {
-      const sid = item?.user?.id || item?.seller?.id;
-      if (!sid) return;
-      if (!map[sid]) {
-        map[sid] = {
+      const sellerId = getSellerIdFromItem(item);
+      if (!sellerId) return;
+      if (!map[sellerId]) {
+        map[sellerId] = {
+          sellerId,
           seller: item?.user || item?.seller || {},
           items: [],
         };
       }
-      map[sid].items.push(item);
+      map[sellerId].items.push(item);
     });
     return Object.values(map);
-  }, [items, shuffled]);
-
-  /* all items flat (for card list) */
-  const flatItems = useMemo(() => {
-    return shuffled ? [...items].sort(() => Math.random() - 0.5) : items;
   }, [items, shuffled]);
 
   /* scroll */
@@ -195,7 +204,7 @@ const HomeReels = () => {
     el.addEventListener("scroll", checkScroll, { passive: true });
     checkScroll();
     return () => el.removeEventListener("scroll", checkScroll);
-  }, [flatItems, checkScroll]);
+  }, [sellerGroups, checkScroll]);
 
   const scrollBy = (dir = 1) => {
     const el = scrollerRef.current;
@@ -239,24 +248,6 @@ const HomeReels = () => {
     setViewerOpen(true);
   };
 
-  /* open story viewer from reel card */
-  const openStoryForItem = (item) => {
-    const sid = item?.user?.id || item?.seller?.id;
-    const sIdx = sellerGroups.findIndex((g) => {
-      const gid = g.seller?.id || g.seller?.user_id;
-      return String(gid) === String(sid);
-    });
-    if (sIdx >= 0) {
-      const iIdx = sellerGroups[sIdx].items.findIndex((i) => i.id === item.id);
-      setViewerSellerIdx(sIdx);
-      setViewerItemIdx(Math.max(0, iIdx));
-    } else {
-      setViewerSellerIdx(0);
-      setViewerItemIdx(0);
-    }
-    setViewerOpen(true);
-  };
-
   /* shuffle */
   const toggleShuffle = () => {
     setShuffled((p) => !p);
@@ -272,7 +263,7 @@ const HomeReels = () => {
     toast.success(`Brzina: ${next}x`);
   };
 
-  const hasAny = flatItems.length > 0;
+  const hasAny = sellerGroups.length > 0;
 
   return (
     <section className="relative py-6 lg:py-8">
@@ -423,7 +414,7 @@ const HomeReels = () => {
 
               return (
                 <motion.button
-                  key={s?.id || idx}
+                  key={group.sellerId || s?.id || idx}
                   type="button"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -589,20 +580,25 @@ const HomeReels = () => {
             className="flex gap-3 overflow-x-auto pb-2 pl-4 pr-4 sm:pl-[max(1rem,calc((100vw-1280px)/2+1rem))] sm:pr-[max(1rem,calc((100vw-1280px)/2+1rem))] snap-x snap-mandatory scrollbar-hide scroll-smooth"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            {flatItems.map((item, index) => (
-              <ReelCard
-                key={item.id}
-                item={item}
-                index={index}
-                isLoggedIn={isLoggedIn}
-                currentUser={currentUser}
-                onLike={() => onToggleLike(item.id)}
-                onOpenStory={() => openStoryForItem(item)}
-                autoPlay={autoPlay}
-                playSpeed={playSpeed}
-                sellerGroups={sellerGroups}
-              />
-            ))}
+            {sellerGroups.map((group, index) => {
+              const previewItem = group?.items?.[0];
+              if (!previewItem) return null;
+
+              return (
+                <ReelCard
+                  key={`${group.sellerId || "seller"}-${previewItem.id || index}`}
+                  item={previewItem}
+                  sellerGroup={group}
+                  index={index}
+                  isLoggedIn={isLoggedIn}
+                  currentUser={currentUser}
+                  onLike={() => onToggleLike(previewItem.id)}
+                  onOpenStory={() => openStory(index)}
+                  autoPlay={autoPlay}
+                  playSpeed={playSpeed}
+                />
+              );
+            })}
           </div>
         </div>
       )}
@@ -616,7 +612,7 @@ export default HomeReels;
    REEL CARD
 ══════════════════════════════════════ */
 
-const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, autoPlay, playSpeed, sellerGroups }) => {
+const ReelCard = ({ item, sellerGroup, index, isLoggedIn, currentUser, onLike, onOpenStory, autoPlay, playSpeed }) => {
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -643,7 +639,7 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
   const views = num(item?.total_video_plays) || num(item?.clicks);
   const likes = num(item?.total_likes);
 
-  const seller = item?.user || item?.seller || {};
+  const seller = sellerGroup?.seller || item?.user || item?.seller || {};
   const sellerName = seller?.name || seller?.shop_name || "Prodavač";
   const sellerImage = seller?.profile || seller?.image || null;
   const isVerified = seller?.is_verified || seller?.verified || false;
@@ -652,16 +648,13 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
   const createdAt = item?.created_at || null;
   const negotiable = isNeg(item?.price);
 
-  /* how many stories this seller has */
-  const sellerStoryCount = useMemo(() => {
-    const sid = seller?.id;
-    if (!sid) return 1;
-    const group = sellerGroups?.find((g) => {
-      const gid = g.seller?.id || g.seller?.user_id;
-      return String(gid) === String(sid);
-    });
-    return group?.items?.length || 1;
-  }, [seller?.id, sellerGroups]);
+  const sellerStoryCount = Math.max(1, sellerGroup?.items?.length || 0);
+
+  const sellerStoryIndex = useMemo(() => {
+    if (!sellerGroup?.items?.length) return 0;
+    const idx = sellerGroup.items.findIndex((groupItem) => String(groupItem?.id) === String(item?.id));
+    return idx >= 0 ? idx : 0;
+  }, [sellerGroup, item?.id]);
 
   /* autoplay via intersection observer */
   useEffect(() => {
@@ -861,6 +854,20 @@ const ReelCard = ({ item, index, isLoggedIn, currentUser, onLike, onOpenStory, a
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/20 z-10">
         <motion.div className="h-full bg-white" style={{ width: `${progress}%` }} transition={{ duration: 0.1 }} />
       </div>
+
+      {sellerStoryCount > 1 && (
+        <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-center gap-1.5">
+          {Array.from({ length: sellerStoryCount }).map((_, idx) => (
+            <span
+              key={`dot-${idx}`}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                idx === sellerStoryIndex ? "w-4 bg-white" : "w-1.5 bg-white/50"
+              )}
+            />
+          ))}
+        </div>
+      )}
 
       {/* gradients */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />

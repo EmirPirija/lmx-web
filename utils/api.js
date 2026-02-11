@@ -75,6 +75,8 @@ export const GET_MAP_ITEMS = "get-items";
 export const GET_USER_BADGES = "gamification/user-badges";
 export const GET_USER_POINTS = "gamification/user-points";
 export const GET_LEADERBOARD = "gamification/leaderboard";
+export const GET_GAMIFICATION_OVERVIEW = "gamification/overview";
+export const GET_GAMIFICATION_AVATARS = "gamification/avatar-options";
 export const GET_ALL_BADGES = "gamification/badges";
 export const GET_POINTS_HISTORY = "gamification/points-history";
 
@@ -85,6 +87,18 @@ export const CANCEL_MEMBERSHIP = "membership/cancel";
 
 export const GET_SELLER_SETTINGS = "get-seller-settings";
 export const UPDATE_SELLER_SETTINGS = "update-seller-settings";
+
+export const SOCIAL_CONNECTED_ACCOUNTS = "social/connected-accounts";
+export const SOCIAL_CONNECT = "social/connect";
+export const SOCIAL_DISCONNECT = "social/disconnect";
+export const SOCIAL_SCHEDULE_POST = "social/schedule-post";
+export const SOCIAL_SCHEDULED_POSTS = "social/scheduled-posts";
+
+export const INSTAGRAM_PRODUCTS = "instagram/products";
+export const INSTAGRAM_IMPORT = "instagram/import";
+export const INSTAGRAM_IMPORT_HISTORY = "instagram/import-history";
+export const INSTAGRAM_SYNC = "instagram/sync";
+export const INSTAGRAM_SYNC_STATUS = "instagram/sync-status";
 
 export const MANAGE_SAVED_USER = "manage-saved-user";
 export const CHECK_SAVED_USER = "check-saved-user";
@@ -607,12 +621,14 @@ export const chanegItemStatusApi = {
   },
 };
 export const createFeaturedItemApi = {
-  createFeaturedItem: ({ item_id, positions } = {}) => {
+  createFeaturedItem: ({ item_id, positions, placement, duration_days } = {}) => {
     const formData = new FormData();
 
     // Append only if the value is defined and not an empty string
     if (item_id) formData.append("item_id", item_id);
     if (positions) formData.append("positions", positions);
+    if (placement) formData.append("placement", placement);
+    if (duration_days) formData.append("duration_days", String(duration_days));
 
     return Api.post(CREATE_FEATURED_ITEM, formData, {
       headers: {
@@ -928,6 +944,9 @@ export const addItemApi = {
     is_avaible,
     inventory_count,
     show_only_to_premium,
+    add_video_to_story,
+    publish_to_instagram,
+    instagram_source_url,
   } = {}) => {
     const formData = new FormData();
 
@@ -939,6 +958,9 @@ export const addItemApi = {
     if (price) formData.append("price", price);
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
+    if (instagram_source_url) {
+      formData.append("instagram_source_url", instagram_source_url);
+    }
 
     // ✅ schedule
     if (scheduled_at) {
@@ -1023,6 +1045,12 @@ export const addItemApi = {
     // ✅ always send 0/1
     formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
     formData.append("available_now", availableNow01 ?? 0);
+    if (add_video_to_story !== undefined) {
+      formData.append("add_video_to_story", add_video_to_story ? 1 : 0);
+    }
+    if (publish_to_instagram !== undefined) {
+      formData.append("publish_to_instagram", publish_to_instagram ? 1 : 0);
+    }
 
     // debug (ako želiš)
     // for (const [k, v] of formData.entries()) console.log("FORMDATA:", k, v);
@@ -1077,6 +1105,9 @@ export const editItemApi = {
     is_available,
     is_avaible,
     show_only_to_premium,
+    add_video_to_story,
+    publish_to_instagram,
+    instagram_source_url,
 
     // ✅ TEMP IDS (dodaj i u edit!)
     temp_main_image_id,
@@ -1094,6 +1125,9 @@ export const editItemApi = {
     if (price) formData.append("price", price);
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
+    if (instagram_source_url) {
+      formData.append("instagram_source_url", instagram_source_url);
+    }
     if (latitude) formData.append("latitude", latitude);
     if (longitude) formData.append("longitude", longitude);
 
@@ -1182,6 +1216,12 @@ export const editItemApi = {
 
     if (show_only_to_premium !== undefined) {
       formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
+    }
+    if (add_video_to_story !== undefined) {
+      formData.append("add_video_to_story", add_video_to_story ? 1 : 0);
+    }
+    if (publish_to_instagram !== undefined) {
+      formData.append("publish_to_instagram", publish_to_instagram ? 1 : 0);
     }
 
     custom_field_files.forEach(({ key, files }) => {
@@ -1478,6 +1518,90 @@ export const setItemTotalClickApi = {
 };
 
 // ============================================
+// SOCIAL / INSTAGRAM API
+// ============================================
+export const socialMediaApi = {
+  getConnectedAccounts: () => Api.get(SOCIAL_CONNECTED_ACCOUNTS),
+
+  connectAccount: ({ platform } = {}) => {
+    return Api.get(`${SOCIAL_CONNECT}/${platform}`);
+  },
+
+  disconnectAccount: ({ platform } = {}) => {
+    return Api.post(`${SOCIAL_DISCONNECT}/${platform}`);
+  },
+
+  schedulePost: ({
+    item_id,
+    platforms = [],
+    caption,
+    hashtags,
+    scheduled_at,
+  } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (Array.isArray(platforms) && platforms.length > 0) {
+      formData.append("platforms", JSON.stringify(platforms));
+    }
+    if (caption) formData.append("caption", caption);
+    if (hashtags) formData.append("hashtags", hashtags);
+    if (scheduled_at) formData.append("scheduled_at", scheduled_at);
+
+    return Api.post(SOCIAL_SCHEDULE_POST, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  getScheduledPosts: ({ status, page } = {}) => {
+    return Api.get(SOCIAL_SCHEDULED_POSTS, { params: { status, page } });
+  },
+
+  cancelScheduledPost: ({ id } = {}) => {
+    return Api.post(`${SOCIAL_SCHEDULED_POSTS}/${id}/cancel`);
+  },
+};
+
+export const instagramApi = {
+  getProducts: ({ page, per_page, search } = {}) => {
+    return Api.get(INSTAGRAM_PRODUCTS, { params: { page, per_page, search } });
+  },
+
+  importProducts: ({ source_url, source_urls = [], category_id } = {}) => {
+    const formData = new FormData();
+    if (source_url) formData.append("source_url", source_url);
+    if (Array.isArray(source_urls) && source_urls.length > 0) {
+      formData.append("source_urls", JSON.stringify(source_urls));
+    }
+    if (category_id) formData.append("category_id", category_id);
+
+    return Api.post(INSTAGRAM_IMPORT, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  getImportHistory: ({ page } = {}) => {
+    return Api.get(INSTAGRAM_IMPORT_HISTORY, { params: { page } });
+  },
+
+  syncProduct: ({ item_id, instagram_product_id, source_url } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (instagram_product_id) {
+      formData.append("instagram_product_id", instagram_product_id);
+    }
+    if (source_url) formData.append("source_url", source_url);
+
+    return Api.post(INSTAGRAM_SYNC, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  getSyncStatus: ({ itemId } = {}) => {
+    return Api.get(`${INSTAGRAM_SYNC_STATUS}/${itemId}`);
+  },
+};
+
+// ============================================
 // ITEM STATISTICS API
 // ============================================
 export const GET_ITEM_STATISTICS = "item-statistics";
@@ -1487,6 +1611,13 @@ export const itemStatisticsApi = {
   getStatistics: ({ itemId, period = 30 } = {}) => {
     return Api.get(`${GET_ITEM_STATISTICS}/${itemId}`, {
       params: { period },
+    });
+  },
+
+  // Dohvati agregiranu seller statistiku (svi oglasi)
+  getSellerOverview: ({ period = 30, top = 8 } = {}) => {
+    return Api.get(`${GET_ITEM_STATISTICS}/seller/overview`, {
+      params: { period, top },
     });
   },
 
@@ -1668,10 +1799,22 @@ export const gamificationApi = {
   },
 
   // Dohvati leaderboard
-  getLeaderboard: ({ period = "weekly", page = 1 } = {}) => {
+  getLeaderboard: ({ period = "weekly", page = 1, per_page = 20 } = {}) => {
     return Api.get(GET_LEADERBOARD, {
-      params: { period, page },
+      params: { period, page, per_page },
     });
+  },
+
+  // Dashboard overview (rank, streak, misije, avatar opcije)
+  getOverview: ({ user_id } = {}) => {
+    return Api.get(GET_GAMIFICATION_OVERVIEW, {
+      params: { user_id },
+    });
+  },
+
+  // Avatar opcije za gamification/seller profile
+  getAvatarOptions: () => {
+    return Api.get(GET_GAMIFICATION_AVATARS);
   },
 
   // Dohvati sve dostupne bedževe (katalog)

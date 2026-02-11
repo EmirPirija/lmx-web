@@ -15,35 +15,24 @@ import {
   sellerSettingsApi,
 } from "@/utils/api";
 
-import { useNavigate } from "@/components/Common/useNavigate";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { cn } from "@/lib/utils";
-
-// Ikone iz react-icons/io5 (kao u ProfileDropdown)
 import {
-  IoPersonOutline,
+  getProfileNavigationSections,
+  isProfileNavItemActive,
+} from "@/components/Profile/profileNavConfig";
+
+import {
   IoLayersOutline,
-  IoHeartOutline,
-  IoBookmarkOutline,
-  IoCardOutline,
-  IoReceiptOutline,
   IoNotificationsOutline,
-  IoHelpCircleOutline,
   IoLogOutOutline,
   IoChevronForward,
   IoAddCircleOutline,
   IoStarOutline,
-  IoTrophyOutline,
-  IoShieldCheckmarkOutline,
-  IoStorefrontOutline,
-  IoBagHandleOutline,
-  IoRibbonOutline,
   IoSearchOutline,
   IoMenuOutline,
   IoCloseOutline,
-  IoChatbubbleOutline,
-  IoChatbubbleEllipsesOutline,
 } from "react-icons/io5";
 import { Crown, Store } from "lucide-react";
 import { MdVerified } from "react-icons/md";
@@ -191,12 +180,12 @@ const MenuItem = ({
   const content = (
     <div
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group",
+        "group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
         danger
-          ? "text-red-600 hover:bg-red-50"
+          ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
           : isActive
-          ? "bg-primary/10 text-primary"
-          : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+          ? "bg-primary/10 text-primary dark:bg-primary/20"
+          : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
       )}
       onClick={onClick}
       role="button"
@@ -207,22 +196,22 @@ const MenuItem = ({
     >
       <div
         className={cn(
-          "w-9 h-9 rounded-lg flex items-center justify-center transition-colors",
+          "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
           danger
-            ? "bg-red-50 group-hover:bg-red-100"
+            ? "bg-red-50 group-hover:bg-red-100 dark:bg-red-500/10 dark:group-hover:bg-red-500/20"
             : isActive
-            ? "bg-primary/10"
-            : "bg-slate-100 group-hover:bg-slate-200/70"
+            ? "bg-primary/10 dark:bg-primary/20"
+            : "bg-slate-100 group-hover:bg-slate-200/70 dark:bg-slate-800 dark:group-hover:bg-slate-700"
         )}
       >
         <Icon
           size={18}
           className={cn(
             danger
-              ? "text-red-500"
+              ? "text-red-500 dark:text-red-400"
               : isActive
               ? "text-primary"
-              : "text-slate-500 group-hover:text-slate-700"
+              : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
           )}
         />
       </div>
@@ -230,7 +219,7 @@ const MenuItem = ({
       <div className="flex-1 min-w-0">
         <span className={cn("text-sm font-medium block", isActive && "font-semibold")}>{label}</span>
         {description && (
-          <span className="text-[11px] text-slate-400 block truncate">{description}</span>
+          <span className="block truncate text-[11px] text-slate-400 dark:text-slate-500">{description}</span>
         )}
       </div>
 
@@ -262,7 +251,7 @@ const MenuItem = ({
 const MenuSection = ({ title, children }) => (
   <div className="py-1.5">
     {title && (
-      <p className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+      <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
         {title}
       </p>
     )}
@@ -270,7 +259,7 @@ const MenuSection = ({ title, children }) => (
   </div>
 );
 
-const MenuDivider = () => <div className="h-px bg-slate-100 mx-3 my-1" />;
+const MenuDivider = () => <div className="mx-3 my-1 h-px bg-slate-100 dark:bg-slate-800" />;
 
 // ============================================
 // QUICK STAT (isti stil kao ProfileDropdown)
@@ -287,176 +276,10 @@ const QuickStat = ({ icon: Icon, value, label, color = "primary" }) => {
       <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", colors[color])}>
         <Icon size={16} />
       </div>
-      <span className="text-sm font-bold text-slate-800">{value}</span>
-      <span className="text-[10px] text-slate-400 font-medium">{label}</span>
+      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{value}</span>
+      <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">{label}</span>
     </div>
   );
-};
-
-// ============================================
-// NAVIGATION CONFIG
-// ============================================
-const getNavigationConfig = (pathname, userStats) => {
-  return {
-    sections: [
-      {
-        title: "Račun",
-        items: [
-          {
-            icon: IoPersonOutline,
-            label: "Moj profil",
-            description: "Uredi podatke i postavke",
-            href: "/profile",
-            isActive: pathname === "/profile",
-          },
-          ...(!userStats.isVerified
-            ? [
-                {
-                  icon: IoShieldCheckmarkOutline,
-                  label: "Verifikacija",
-                  description: "Potvrdi svoj identitet",
-                  href: "/user-verification",
-                  isActive: pathname === "/user-verification",
-                  isNew: true,
-                },
-              ]
-            : []),
-          {
-            icon: IoStorefrontOutline,
-            label: "Postavke prodavača",
-            description: "Prilagodi svoj profil prodavača",
-            href: "/profile/seller-settings",
-            isActive: pathname === "/profile/seller-settings",
-          },
-        ],
-      },
-      {
-        title: "Moji sadržaji",
-        items: [
-          {
-            icon: IoLayersOutline,
-            label: "Moji oglasi",
-            description: userStats.activeAds > 0 ? `${userStats.activeAds} aktivnih oglasa` : "Upravljaj oglasima",
-            href: "/my-ads",
-            isActive: pathname === "/my-ads" || pathname?.startsWith("/my-ads/"),
-          },
-          {
-            icon: IoHeartOutline,
-            label: "Spašeni oglasi",
-            description: "Sačuvani oglasi",
-            href: "/favorites",
-            isActive: pathname === "/favorites",
-          },
-          {
-            icon: IoBookmarkOutline,
-            label: "Sačuvani prodavači",
-            description: "Kolekcije, bilješke i obavijesti",
-            href: "/profile/saved",
-            isActive: pathname === "/profile/saved",
-          },
-          {
-            icon: IoSearchOutline,
-            label: "Spašene pretrage",
-            description: "Brze prečice do tvojih filtera",
-            href: "/profile/saved-searches",
-            isActive: pathname === "/profile/saved-searches",
-          },
-          {
-            icon: IoBagHandleOutline,
-            label: "Moje kupovine",
-            description: "Historija kupovina",
-            href: "/purchases",
-            isActive: pathname === "/purchases",
-          },
-        ],
-      },
-      {
-        title: "Komunikacija",
-        items: [
-          {
-            icon: IoChatbubbleOutline,
-            label: "Poruke",
-            description: "Sve tvoje poruke",
-            href: "/chat",
-            isActive: pathname === "/chat" || pathname?.startsWith("/chat"),
-            badge: userStats.unreadMessages,
-          },
-          {
-            icon: IoNotificationsOutline,
-            label: "Notifikacije",
-            description: "Sve obavijesti na jednom mjestu",
-            href: "/notifications",
-            isActive: pathname === "/notifications",
-            badge: userStats.unreadNotifications,
-          },
-          {
-            icon: IoChatbubbleEllipsesOutline,
-            label: "Javna pitanja",
-            description: "Pitanja na vašim oglasima",
-            href: "/profile/public-questions",
-            isActive: pathname === "/profile/public-questions",
-          },
-        ],
-      },
-      {
-        title: "Finansije",
-        items: [
-          {
-            icon: IoCardOutline,
-            label: "Pretplata",
-            description: "Upravljaj pretplatom",
-            href: "/user-subscription",
-            isActive: pathname === "/user-subscription",
-          },
-          {
-            icon: IoReceiptOutline,
-            label: "Transakcije",
-            description: "Historija transakcija",
-            href: "/transactions",
-            isActive: pathname === "/transactions",
-          },
-        ],
-      },
-      {
-        title: "Zajednica",
-        items: [
-          {
-            icon: IoStarOutline,
-            label: "Ocjene",
-            description: "Recenzije i ocjene",
-            href: "/reviews",
-            isActive: pathname === "/reviews",
-          },
-          {
-            icon: IoRibbonOutline,
-            label: "Bedževi",
-            description: "Tvoja postignuća",
-            href: "/profile/badges",
-            isActive: pathname === "/profile/badges",
-          },
-          {
-            icon: IoTrophyOutline,
-            label: "Ljestvica",
-            description: "Rangiranje korisnika",
-            href: "/leaderboard",
-            isActive: pathname === "/leaderboard",
-          },
-        ],
-      },
-      {
-        title: "Podrška",
-        items: [
-          {
-            icon: IoHelpCircleOutline,
-            label: "Kontaktirajte nas",
-            description: "Kontaktiraj podršku",
-            href: "/contact-us",
-            isActive: pathname === "/contact-us",
-          },
-        ],
-      },
-    ],
-  };
 };
 
 // ============================================
@@ -467,7 +290,8 @@ const ProfileSidebar = ({
   customAvatarUrl,
   sellerAvatarId,
   userStats,
-  navigationConfig,
+  navigationSections,
+  pathname,
   handleLogout,
   onClose,
   isMobile = false,
@@ -475,47 +299,67 @@ const ProfileSidebar = ({
   const isPro = userStats.membershipTier === "pro";
   const isShop = userStats.membershipTier === "shop";
   const isPremium = isPro || isShop;
+  const [menuQuery, setMenuQuery] = useState("");
+
+  const normalizedQuery = menuQuery.trim().toLowerCase();
+  const filteredSections = useMemo(() => {
+    if (!normalizedQuery) {
+      return navigationSections;
+    }
+
+    return navigationSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          const haystack = `${item.label || ""} ${item.description || ""}`.toLowerCase();
+          return haystack.includes(normalizedQuery);
+        }),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [navigationSections, normalizedQuery]);
 
   return (
-    <div className="bg-white overflow-hidden h-full flex flex-col">
+    <div className="flex h-full flex-col overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur">
       {/* HEADER */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 bg-slate-50/50">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <UserAvatar
-            customAvatarUrl={customAvatarUrl}
-            avatarId={sellerAvatarId}
-            size={48}
-            ringClassName="border-2 border-white shadow-sm"
-            showVerified={userStats.isVerified}
-            verifiedSize={12}
-          />
+      <div className="sticky top-0 z-10 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/90 px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <UserAvatar
+              customAvatarUrl={customAvatarUrl}
+              avatarId={sellerAvatarId}
+              size={48}
+              ringClassName="border-2 border-white shadow-sm dark:border-slate-700"
+              showVerified={userStats.isVerified}
+              verifiedSize={12}
+            />
 
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-slate-900 truncate">
-              {userData?.name || "Korisnik"}
-            </p>
-            <p className="text-xs text-slate-500 truncate">{userData?.email}</p>
-            <div className="mt-1">
-              <MembershipBadge tier={userStats.membershipTier} size="xs" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {userData?.name || "Korisnik"}
+              </p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{userData?.email}</p>
+              <div className="mt-1">
+                <MembershipBadge tier={userStats.membershipTier} size="xs" />
+              </div>
             </div>
           </div>
-        </div>
 
-        {isMobile && onClose && (
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <IoCloseOutline size={20} className="text-slate-600" />
-          </button>
-        )}
+          {isMobile && onClose && (
+            <button
+              onClick={onClose}
+              className="rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <IoCloseOutline size={20} className="text-slate-600 dark:text-slate-300" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* CONTENT */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-lmx">
         {/* QUICK STATS */}
-        <div className="px-4 py-3 bg-slate-50/50 border-b border-slate-100">
-          <div className="grid grid-cols-3 gap-1 bg-white rounded-xl p-2 border border-slate-100">
+        <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-100 bg-white p-2 dark:border-slate-700 dark:bg-slate-900/95">
             <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="primary" />
             <QuickStat
               icon={IoNotificationsOutline}
@@ -525,6 +369,30 @@ const ProfileSidebar = ({
             />
             <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="accent" />
           </div>
+
+          <div className="mt-2.5 relative">
+            <IoSearchOutline
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+            />
+            <input
+              type="text"
+              value={menuQuery}
+              onChange={(e) => setMenuQuery(e.target.value)}
+              placeholder="Pretrazi meni..."
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-700 outline-none transition focus:border-primary/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+            {menuQuery ? (
+              <button
+                type="button"
+                onClick={() => setMenuQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                aria-label="Ocisti pretragu"
+              >
+                <IoCloseOutline size={14} />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {/* PRIMARY ACTION */}
@@ -532,7 +400,7 @@ const ProfileSidebar = ({
           <CustomLink
             href="/ad-listing"
             onClick={onClose}
-            className="flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-all duration-200 w-full group"
+            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-semibold text-white transition-all duration-200 hover:bg-primary/90"
           >
             <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
             Dodaj oglas
@@ -541,7 +409,7 @@ const ProfileSidebar = ({
 
         {/* MENU SECTIONS */}
         <div className="px-2 pb-2">
-          {navigationConfig.sections.map((section, index) => (
+          {filteredSections.map((section, index) => (
             <div key={section.title}>
               <MenuSection title={section.title}>
                 {section.items.map((item) => (
@@ -552,16 +420,22 @@ const ProfileSidebar = ({
                     description={item.description}
                     href={item.href}
                     onClick={item.onClick ? () => { item.onClick(); onClose?.(); } : onClose}
-                    isActive={item.isActive}
+                    isActive={isProfileNavItemActive(pathname, item)}
                     badge={item.badge}
                     isNew={item.isNew}
                     danger={item.danger}
                   />
                 ))}
               </MenuSection>
-              {index < navigationConfig.sections.length - 1 && <MenuDivider />}
+              {index < filteredSections.length - 1 && <MenuDivider />}
             </div>
           ))}
+
+          {filteredSections.length === 0 && (
+            <div className="rounded-xl border border-dashed border-slate-300 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              Nema rezultata za "{menuQuery}".
+            </div>
+          )}
 
           <MenuDivider />
 
@@ -581,20 +455,20 @@ const ProfileSidebar = ({
 
         {/* UPGRADE BANNER (za free korisnike) */}
         {userStats.membershipTier === "free" && (
-          <div className="p-4 bg-primary/5 border-t border-primary/10">
+          <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
             <CustomLink
               href="/membership/upgrade"
               onClick={onClose}
-              className="flex items-center gap-4 p-3 bg-white rounded-xl border border-primary/20 hover:border-primary/40 transition-all duration-200 group"
+              className="group flex items-center gap-4 rounded-xl border border-primary/20 bg-white p-3 transition-all duration-200 hover:border-primary/40 dark:border-primary/30 dark:bg-slate-900"
             >
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary transition-transform duration-200 group-hover:scale-110">
                 <Crown className="text-white" size={24} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-bold text-slate-800">
+                <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
                   Nadogradi na Pro
                 </h5>
-                <p className="text-xs text-slate-600">Otključaj sve mogućnosti</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Otključaj sve mogućnosti</p>
               </div>
               <IoChevronForward className="text-primary group-hover:translate-x-1 transition-transform" size={20} />
             </CustomLink>
@@ -603,16 +477,16 @@ const ProfileSidebar = ({
 
         {/* PRO USER BANNER */}
         {isPremium && (
-          <div className="p-4 bg-primary/5 border-t border-primary/10">
-            <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-primary/20">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+          <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
+            <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-white p-3 dark:border-primary/30 dark:bg-slate-900">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                 <Crown className="text-white" size={20} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-semibold text-slate-800">
+                <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {isShop ? "Shop" : "Pro"} član
                 </h5>
-                <p className="text-xs text-slate-500">Uživaj u svim premium pogodnostima</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Uživaj u svim premium pogodnostima</p>
               </div>
             </div>
           </div>
@@ -627,7 +501,6 @@ const ProfileSidebar = ({
 // ============================================
 const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   const pathname = usePathname();
-  const { navigate } = useNavigate();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
   const userData = useSelector(userSignUpData);
@@ -745,40 +618,53 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     getSellerSettings();
   }, [userData, fetchAllData, getSellerSettings]);
 
-  // Navigation config
-  const navigationConfig = useMemo(
-    () => getNavigationConfig(pathname, userStats),
-    [pathname, userStats]
-  );
+  useEffect(() => {
+    if (!userData) return;
 
-  // Get current page title
-  const currentPageTitle = useMemo(() => {
-    for (const section of navigationConfig.sections) {
-      const activeItem = section.items.find((item) => item.isActive);
-      if (activeItem) return activeItem.label;
-    }
-    return "Profil";
-  }, [navigationConfig]);
+    const handleRealtimeRefresh = (event) => {
+      const detail = event?.detail;
+      if (!detail) return;
+      if (detail?.category === "notification" || detail?.category === "chat" || detail?.category === "system") {
+        fetchAllData();
+      }
+    };
+
+    window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
+    return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
+  }, [userData, fetchAllData]);
+
+  // Navigation config
+  const navigationSections = useMemo(
+    () =>
+      getProfileNavigationSections({
+        isVerified: userStats.isVerified,
+        activeAds: userStats.activeAds,
+        unreadNotifications: userStats.unreadNotifications,
+        unreadMessages: userStats.unreadMessages,
+      }),
+    [userStats]
+  );
 
   // Mobile sidebar (Sheet kao ProfileDropdown)
   const MobileSidebar = (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetTrigger asChild>
         <button
-          className="lg:hidden flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 lg:hidden"
           aria-label="Otvori meni"
         >
-          <IoMenuOutline size={20} className="text-slate-600" />
-          <span className="text-sm font-medium text-slate-700">Meni</span>
+          <IoMenuOutline size={20} className="text-slate-600 dark:text-slate-300" />
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Meni</span>
         </button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0 w-[320px] max-w-[85vw]">
+      <SheetContent side="left" className="w-[320px] max-w-[85vw] p-0">
         <ProfileSidebar
           userData={userData}
           customAvatarUrl={customAvatarUrl}
           sellerAvatarId={sellerAvatarId}
           userStats={userStats}
-          navigationConfig={navigationConfig}
+          navigationSections={navigationSections}
+          pathname={pathname}
           handleLogout={handleLogout}
           onClose={() => setMobileMenuOpen(false)}
           isMobile={true}
@@ -788,34 +674,40 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <div className="container mx-auto px-4 lg:px-6 py-6 lg:py-8">
+    <div className="profile-shell min-h-screen bg-[var(--background)]">
+      <div className="container relative mx-auto px-4 py-6 lg:px-6 lg:py-8">
+        <div className="pointer-events-none absolute -top-10 left-2 h-44 w-44 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
+        <div className="pointer-events-none absolute right-2 top-20 h-40 w-40 rounded-full bg-secondary/10 blur-3xl dark:bg-secondary/20" />
+
         {/* Mobile Header */}
-        <div className="lg:hidden mb-6">
-          <div className="flex items-center justify-between gap-4">
-            {MobileSidebar}
-            <CustomLink
-              href="/ad-listing"
-              className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <IoAddCircleOutline size={18} />
-              <span className="hidden sm:inline">Dodaj</span>
-            </CustomLink>
+        <div className="mb-4 lg:hidden">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+            <div className="flex items-center justify-between gap-4">
+              {MobileSidebar}
+              <CustomLink
+                href="/ad-listing"
+                className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+              >
+                <IoAddCircleOutline size={18} />
+                <span className="hidden sm:inline">Dodaj</span>
+              </CustomLink>
+            </div>
           </div>
         </div>
 
         {/* Main Layout */}
-        <div className="flex gap-6">
+        <div className="lg:grid lg:grid-cols-[minmax(300px,336px)_1fr] lg:gap-6">
           {/* Desktop Sidebar */}
           {!isMobile && (
-            <aside className="hidden lg:block w-[320px] flex-shrink-0">
-              <div className="sticky top-24 rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <aside className="hidden lg:block">
+              <div className="sticky top-24 overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
                 <ProfileSidebar
                   userData={userData}
                   customAvatarUrl={customAvatarUrl}
                   sellerAvatarId={sellerAvatarId}
                   userStats={userStats}
-                  navigationConfig={navigationConfig}
+                  navigationSections={navigationSections}
+                  pathname={pathname}
                   handleLogout={handleLogout}
                   isMobile={false}
                 />
@@ -824,9 +716,8 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
           )}
 
           {/* Main Content */}
-          <main className="flex-1 min-w-0">
-            {/* Content Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <main className="min-w-0 flex-1">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/85">
               <div className="p-4 sm:p-6">{children}</div>
             </div>
           </main>

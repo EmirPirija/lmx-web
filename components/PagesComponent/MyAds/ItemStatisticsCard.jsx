@@ -166,6 +166,22 @@ const ItemStatisticsCard = ({ itemId, itemSlug }) => {
         <MiniStatItem icon={IoShareSocialOutline} value={stats.total_shares} label="Dijeli" color="purple" />
       </div>
 
+      {stats?.reel?.has_video && (
+        <div className="mt-2 rounded-lg bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 text-[10px] text-indigo-700 font-semibold">
+          Reel: {formatNumber(stats?.reel?.plays || 0)} play • {(stats?.reel?.completion_rate || 0).toFixed(1)}% completion
+        </div>
+      )}
+
+      {stats?.suggested_action?.title && (
+        <div className="mt-2 rounded-lg bg-amber-50 border border-amber-100 px-2.5 py-1.5">
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-700">
+            <IoSparkles size={10} />
+            Brza akcija
+          </div>
+          <p className="mt-0.5 text-[10px] text-amber-800 leading-snug">{stats.suggested_action.title}</p>
+        </div>
+      )}
+
       {/* Link */}
       <Link
         href={`/my-ads/${itemSlug}/statistics`}

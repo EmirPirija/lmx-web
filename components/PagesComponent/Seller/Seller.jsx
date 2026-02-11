@@ -294,7 +294,14 @@ const Seller = ({ id, searchParams }) => {
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <SellerLsitings id={id} emptyLabel="Ovaj prodavač trenutno nema aktivnih oglasa." />
+                            <SellerLsitings
+                              id={id}
+                              filterStatus="approved"
+                              emptyLabel="Ovaj prodavač trenutno nema aktivnih oglasa."
+                              sellerSettings={sellerSettings}
+                              isProSeller={isPro}
+                              isShopSeller={isShop}
+                            />
                           </motion.div>
                         )}
 
@@ -310,6 +317,9 @@ const Seller = ({ id, searchParams }) => {
                               id={id}
                               filterStatus="sold out"
                               emptyLabel="Ovaj prodavač još nema prodanih oglasa."
+                              sellerSettings={sellerSettings}
+                              isProSeller={isPro}
+                              isShopSeller={isShop}
                             />
                           </motion.div>
                         )}

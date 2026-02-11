@@ -580,9 +580,13 @@ const ComponentThree = ({
   currentExtraDetails,
   langId,
   defaultLangId,
-
+  isAvailable: isAvailableProp,
+  setIsAvailable: setIsAvailableProp,
 }) => {
-  const [isAvailable, setIsAvailable] = useState(false);
+  const [isAvailableLocal, setIsAvailableLocal] = useState(false);
+  const isAvailable =
+    isAvailableProp !== undefined ? isAvailableProp : isAvailableLocal;
+  const setIsAvailable = setIsAvailableProp || setIsAvailableLocal;
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   
   // Accordion states

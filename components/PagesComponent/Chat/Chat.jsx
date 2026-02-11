@@ -26,6 +26,7 @@ const Chat = () => {
 
   // --- TABS & LISTS STATE ---
   const [activeTab, setActiveTab] = useState("inbox"); // 'inbox', 'unread', 'archived'
+  const [roleFilter, setRoleFilter] = useState("all"); // 'all', 'selling', 'buying', 'online'
   
   // --- SEARCH STATES ---
   const [searchQuery, setSearchQuery] = useState(""); // Za pretragu korisnika u listi lijevo
@@ -54,17 +55,39 @@ const Chat = () => {
 
   // === HELPERS ZA FILTRIRANJE ===
 
-  // Filtrira listu na osnovu search inputa (za lijevu stranu)
-  const filterBySearch = (list) => {
-    if (!searchQuery.trim()) return list;
-    const query = searchQuery.toLowerCase();
-    return list.filter(chat => {
-      const otherUser = chat?.buyer?.id === user?.id ? chat?.seller : chat?.buyer;
-      const userName = otherUser?.name?.toLowerCase() || "";
-      const itemName = (chat?.item?.name || chat?.item?.translated_name || "").toLowerCase();
-      return userName.includes(query) || itemName.includes(query);
-    });
-  };
+  const filterChats = useCallback(
+    (list) => {
+      const normalizedList = Array.isArray(list) ? list : [];
+
+      const roleFiltered = normalizedList.filter((chat) => {
+        const otherUser = chat?.buyer?.id === user?.id ? chat?.seller : chat?.buyer;
+        const isSellingChat =
+          chat?.chatType === "selling" || Number(chat?.seller_id) === Number(user?.id);
+
+        switch (roleFilter) {
+          case "selling":
+            return isSellingChat;
+          case "buying":
+            return !isSellingChat;
+          case "online":
+            return Boolean(otherUser?.is_online);
+          default:
+            return true;
+        }
+      });
+
+      if (!searchQuery.trim()) return roleFiltered;
+
+      const query = searchQuery.toLowerCase();
+      return roleFiltered.filter((chat) => {
+        const otherUser = chat?.buyer?.id === user?.id ? chat?.seller : chat?.buyer;
+        const userName = otherUser?.name?.toLowerCase() || "";
+        const itemName = (chat?.item?.name || chat?.item?.translated_name || "").toLowerCase();
+        return userName.includes(query) || itemName.includes(query);
+      });
+    },
+    [roleFilter, searchQuery, user?.id]
+  );
 
   // Računamo liste
   const inboxChats = chats.all.filter(c => !c.is_archived && !c.is_deleted);
@@ -75,11 +98,11 @@ const Chat = () => {
   const getCurrentList = () => {
     switch (activeTab) {
       case "unread":
-        return filterBySearch(unreadChats);
+        return filterChats(unreadChats);
       case "archived":
-        return filterBySearch(archivedChats);
+        return filterChats(archivedChats);
       default:
-        return filterBySearch(inboxChats);
+        return filterChats(inboxChats);
     }
   };
 
@@ -713,91 +736,94 @@ const handleToggleMuteChat = async (targetChatId, isCurrentlyMuted) => {
                     selectedChatDetails?.seller_id === user?.id;
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 h-full bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden">
-      {/* Sidebar List */}
-      <div className="xl:col-span-4 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-        {(isLargeScreen || !chatId || IsLoading) && (
-          <ChatList
-            chatId={chatId}
-            chats={getCurrentList()}
-            IsLoading={IsLoading}
-            currentUserId={user?.id}
-            isLargeScreen={isLargeScreen}
-            // Tabs
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            unreadCount={unreadCount}
-            archivedCount={archivedCount}
-            // Search (Sidebar)
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            // Bulk select
-            bulkSelectMode={bulkSelectMode}
-            setBulkSelectMode={setBulkSelectMode}
-            selectedChats={selectedChats}
-            toggleSelectChat={toggleSelectChat}
-            selectAll={selectAll}
-            deselectAll={deselectAll}
-            bulkArchive={bulkArchive}
-            bulkDelete={bulkDelete}
-            bulkMarkRead={bulkMarkRead}
-            // Actions
-            archiveChat={archiveChat}
-            unarchiveChat={unarchiveChat}
-            deleteChat={deleteChat}
-            onToggleMute={handleToggleMuteChat}
-            markAsUnread={markAsUnread}
-            markAsRead={markAsRead}
-            pinChat={pinChat}
-          />
-        )}
-      </div>
-      
-      {/* Main Chat Area */}
-      {(isLargeScreen || chatId) && (
-        <div className="xl:col-span-8">
-          {selectedChatDetails?.id ? (
-            <div className="h-full min-h-[60vh] lg:min-h-[700px] flex flex-col relative bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-              
-              {/* HEADER SA NOVIM FUNKCIJAMA */}
-              <SelectedChatHeader
-                selectedChat={selectedChatDetails}
-                isSelling={isSelling}
-                setSelectedChat={setSelectedChatDetails}
-                handleBack={handleBack}
-                isLargeScreen={isLargeScreen}
-                // Props za akcije iz dropdowna
-                onSearch={handleMessageSearch}
-                onDelete={handleDeleteCurrentChat}
-                onArchive={handleArchiveCurrentChat}
-                onUnarchive={handleUnarchiveCurrentChat}
-                onMute={() => muteChat(chatId)}
-                onShowMedia={() => toast.info("Galerija stiže uskoro!")}
-              />
-              
-              {/* MESSAGES COMPONENT SA PRETRAGOM */}
-              <ChatMessages
-                selectedChatDetails={selectedChatDetails}
-                setSelectedChatDetails={setSelectedChatDetails}
-                isSelling={isSelling}
-                setChats={setChats}
-                chatId={chatId}
-                isOtherUserTyping={typingUsers[chatId] !== undefined}
-                markChatAsSeen={markChatAsSeen}
-                incomingMessage={incomingMessage}
-                messageStatusUpdate={messageStatusUpdate}
-                // Props za filtriranje poruka
-                searchQuery={messageSearchQuery} 
-              />
-            </div>
-          ) : (
-            <div className="h-full min-h-[60vh] lg:min-h-[700px] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-              <NoChatFound isLargeScreen={isLargeScreen} handleBack={handleBack} />
-            </div>
+    <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-[0_26px_70px_-44px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/90">
+      <div className="pointer-events-none absolute -top-24 left-1/4 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl dark:bg-cyan-500/10" />
+      <div className="pointer-events-none absolute -bottom-24 right-1/4 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 min-h-[70vh] lg:min-h-[760px]">
+        {/* Sidebar List */}
+        <div className="xl:col-span-4 xl:border-r xl:border-slate-200/80 dark:xl:border-slate-700">
+          {(isLargeScreen || !chatId || IsLoading) && (
+            <ChatList
+              chatId={chatId}
+              chats={getCurrentList()}
+              IsLoading={IsLoading}
+              currentUserId={user?.id}
+              isLargeScreen={isLargeScreen}
+              isConnected={isConnected}
+              roleFilter={roleFilter}
+              setRoleFilter={setRoleFilter}
+              // Tabs
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              unreadCount={unreadCount}
+              archivedCount={archivedCount}
+              // Search (Sidebar)
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              // Bulk select
+              bulkSelectMode={bulkSelectMode}
+              setBulkSelectMode={setBulkSelectMode}
+              selectedChats={selectedChats}
+              toggleSelectChat={toggleSelectChat}
+              selectAll={selectAll}
+              deselectAll={deselectAll}
+              bulkArchive={bulkArchive}
+              bulkDelete={bulkDelete}
+              bulkMarkRead={bulkMarkRead}
+              // Actions
+              archiveChat={archiveChat}
+              unarchiveChat={unarchiveChat}
+              deleteChat={deleteChat}
+              onToggleMute={handleToggleMuteChat}
+              markAsUnread={markAsUnread}
+              markAsRead={markAsRead}
+              pinChat={pinChat}
+            />
           )}
         </div>
-      )}
-    </div>
+
+        {/* Main Chat Area */}
+        {(isLargeScreen || chatId) && (
+          <div className="xl:col-span-8">
+            {selectedChatDetails?.id ? (
+              <div className="relative flex h-full min-h-[70vh] flex-col bg-gradient-to-b from-slate-50/70 via-white to-slate-100/80 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 lg:min-h-[760px]">
+                <SelectedChatHeader
+                  selectedChat={selectedChatDetails}
+                  isSelling={isSelling}
+                  setSelectedChat={setSelectedChatDetails}
+                  handleBack={handleBack}
+                  isLargeScreen={isLargeScreen}
+                  onSearch={handleMessageSearch}
+                  onDelete={handleDeleteCurrentChat}
+                  onArchive={handleArchiveCurrentChat}
+                  onUnarchive={handleUnarchiveCurrentChat}
+                  onMute={() => muteChat(chatId)}
+                  onShowMedia={() => toast.info("Galerija stiže uskoro!")}
+                />
+
+                <ChatMessages
+                  selectedChatDetails={selectedChatDetails}
+                  setSelectedChatDetails={setSelectedChatDetails}
+                  isSelling={isSelling}
+                  setChats={setChats}
+                  chatId={chatId}
+                  isOtherUserTyping={typingUsers[chatId] !== undefined}
+                  markChatAsSeen={markChatAsSeen}
+                  incomingMessage={incomingMessage}
+                  messageStatusUpdate={messageStatusUpdate}
+                  searchQuery={messageSearchQuery}
+                />
+              </div>
+            ) : (
+              <div className="flex h-full min-h-[70vh] items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 lg:min-h-[760px]">
+                <NoChatFound isLargeScreen={isLargeScreen} handleBack={handleBack} />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 };
 

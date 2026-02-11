@@ -578,6 +578,7 @@ export function getBadgeDetails(badge, locked = false) {
 ----------------------------- */
 
 const SIZE = {
+  xs: { icon: "w-5 h-5", iconSvg: "w-2.5 h-2.5", title: "text-[10px]", desc: "text-[10px]", pad: "p-0.5" },
   sm: { icon: "w-12 h-12", iconSvg: "w-6 h-6", title: "text-sm", desc: "text-xs", pad: "p-3" },
   md: { icon: "w-14 h-14", iconSvg: "w-7 h-7", title: "text-sm", desc: "text-xs", pad: "p-4" },
   lg: { icon: "w-16 h-16", iconSvg: "w-8 h-8", title: "text-base", desc: "text-xs", pad: "p-4" },
@@ -594,6 +595,7 @@ export default function Badge({
   interactive = false,
 }) {
   const s = SIZE[size] || SIZE.md;
+  const isTiny = size === "xs";
 
   const meta = useMemo(() => resolveBadgeCopy(badge, locked), [badge, locked]);
   const Icon = meta.Icon || Award;
@@ -614,11 +616,12 @@ export default function Badge({
           : undefined
       }
       className={cn(
-        "group relative rounded-3xl border bg-white dark:bg-slate-900/60",
+        "group relative border bg-white dark:bg-slate-900/60",
+        isTiny ? "rounded-xl" : "rounded-3xl",
         interactive
           ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-slate-500/50 dark:focus-visible:ring-offset-slate-950"
           : "",
-        "transition-all hover:-translate-y-[1px] hover:shadow-md",
+        isTiny ? "transition-colors" : "transition-all hover:-translate-y-[1px] hover:shadow-md",
         interactive ? "hover:bg-slate-50/60 dark:hover:bg-slate-900/70" : "",
         "border-slate-200/70 dark:border-slate-800",
         getTierClasses(meta.tier, locked),

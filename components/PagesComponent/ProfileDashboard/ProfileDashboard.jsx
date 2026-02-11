@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { Plus, Bell, Layers, Heart, Star, MessageSquare, Briefcase, CreditCard, Receipt } from "lucide-react";
 
+import Layout from "@/components/Layout/Layout";
 import ProfileLayout from "@/components/Profile/ProfileLayout";
 import CustomLink from "@/components/Common/CustomLink";
 import { Button } from "@/components/ui/button";
@@ -127,23 +128,23 @@ const PageHeader = ({ config }) => {
   const Icon = config.icon;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+    <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/70 sm:flex-row sm:items-center">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
             <Icon className="w-5 h-5" />
           </div>
 
-          <h2 className="text-lg font-bold text-slate-900 truncate">{config.title}</h2>
+          <h2 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">{config.title}</h2>
 
           {!!config.badge && config.badge > 0 && (
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-full">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
               {config.badge} {getUnreadLabel(config.badge)}
             </span>
           )}
         </div>
 
-        <p className="text-sm text-slate-500 mt-1">{config.subtitle}</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">{config.subtitle}</p>
       </div>
 
       {!config.isChat && (
@@ -165,7 +166,7 @@ const PageBody = ({ isChat, children }) => {
     return (
       <div
         className={cn(
-          "mt-5 rounded-2xl border border-slate-200 overflow-hidden",
+          "mt-5 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700",
           "min-h-[520px] h-[calc(100vh-360px)]"
         )}
       >
@@ -190,14 +191,16 @@ const ProfileDashboard = () => {
   const SelectedPage = config.Component;
 
   return (
-    <ProfileLayout>
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-        <PageHeader config={config} />
-        <PageBody isChat={config.isChat}>
-          <SelectedPage />
-        </PageBody>
-      </motion.div>
-    </ProfileLayout>
+    <Layout>
+      <ProfileLayout>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          <PageHeader config={config} />
+          <PageBody isChat={config.isChat}>
+            <SelectedPage />
+          </PageBody>
+        </motion.div>
+      </ProfileLayout>
+    </Layout>
   );
 };
 

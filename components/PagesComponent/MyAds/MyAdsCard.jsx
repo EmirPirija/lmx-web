@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 
 import {
   ArrowRight,
   BadgePercent,
+  CalendarDays,
   CheckCircle,
   CheckSquare,
   ChevronLeft,
@@ -14,17 +16,18 @@ import {
   Edit,
   Eye,
   EyeOff,
-  Heart,
+  Home,
   Images,
-  MapPin,
+  Layers3,
   MoreVertical,
   Rocket,
   RotateCcw,
+  Sparkles,
   Trash2,
+  X,
   Youtube,
 } from "lucide-react";
 
-import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 
 import SoldOutModal from "../../PagesComponent/ProductDetail/SoldOutModal";
@@ -70,6 +73,50 @@ const formatRelativeTime = (dateString) => {
   const diffInYears = Math.floor(diffInMonths / 12);
   return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
 };
+
+const POSITION_RENEW_COOLDOWN_DAYS = 15;
+
+const parseDateSafe = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  if (typeof value === "string" && value.includes(" ")) {
+    const normalized = new Date(value.replace(" ", "T"));
+    if (!Number.isNaN(normalized.getTime())) return normalized;
+  }
+
+  return null;
+};
+
+const formatBosnianDays = (days) => {
+  if (days === 1) return "1 dan";
+  if (days >= 2 && days <= 4) return `${days} dana`;
+  return `${days} dana`;
+};
+
+const featuredPlacementOptions = [
+  {
+    value: "category",
+    label: "Samo kategorija",
+    description: "Istakni oglas unutar njegove kategorije.",
+    icon: Layers3,
+  },
+  {
+    value: "home",
+    label: "Samo naslovna",
+    description: "Istakni oglas na naslovnoj stranici.",
+    icon: Home,
+  },
+  {
+    value: "category_home",
+    label: "Kategorija + naslovna",
+    description: "Maksimalna vidljivost na oba mjesta.",
+    icon: Sparkles,
+  },
+];
+
+const featuredDurationOptions = [7, 15, 30, 45, 60, 90];
 
 const getSmartTagsFallback = (item) => {
   const tags = [];
@@ -162,224 +209,531 @@ const OverlayPill = ({ icon: Icon, children, className }) => (
 );
 
 // ============================================
-// QUICK ACTIONS OVERLAY KOMPONENTA
+// FEATURED PLAN MODAL
 // ============================================
 
-const QuickActionsOverlay = ({ 
-  isVisible, 
-  onClose, 
-  onEdit, 
-  onDelete, 
-  onHide, 
-  onSold,
-  onActivate,
-  onRenew,
-  isApproved,
-  isEditable,
-  isSoldOut,
-  isInactive,
-  isExpired
+const FeaturedPlanModal = ({
+  isOpen,
+  onClose,
+  placement,
+  duration,
+  onPlacementChange,
+  onDurationChange,
+  onConfirm,
+  isSubmitting = false,
 }) => {
-  if (!isVisible) return null;
+  const selectedPlacementMeta = useMemo(
+    () => featuredPlacementOptions.find((option) => option.value === placement),
+    [placement]
+  );
 
-  const actions = [
-    {
-      icon: Edit,
-      label: "Uredi",
-      onClick: onEdit,
-      show: isEditable,
-      className: "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700",
-      exitDirection: { x: -100, y: -100 } // Gore lijevo
-    },
-    {
-      icon: Trash2,
-      label: "Izbriši",
-      onClick: onDelete,
-      show: true,
-      className: "bg-red-50 hover:bg-red-100 border-red-200 text-red-700",
-      exitDirection: { x: 100, y: -100 } // Gore desno
-    },
-    {
-      icon: isInactive ? Eye : EyeOff,
-      label: isInactive ? "Otkrij" : "Sakrij",
-      onClick: isInactive ? onActivate : onHide,
-      show: isApproved || isInactive,
-      className: isInactive 
-        ? "bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
-        : "bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-700",
-      exitDirection: { x: -100, y: 100 } // Dolje lijevo
-    },
-    {
-      icon: isExpired ? RotateCcw : CheckCircle,
-      label: isExpired ? "Obnovi" : "Prodaj",
-      onClick: isExpired ? onRenew : onSold,
-      show: isExpired || (isApproved && !isSoldOut),
-      className: isExpired
-        ? "bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700"
-        : "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700",
-      exitDirection: { x: 100, y: 100 } // Dolje desno
-    }
-  ].filter(action => action.show);
+  useEffect(() => {
+    if (!isOpen) return undefined;
 
-  return (
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 z-40 flex items-center justify-center p-6 rounded-xl"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[110] flex items-end justify-center p-0 sm:items-center sm:p-4"
+      >
+        <button
+          type="button"
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={onClose}
-        >
-          {/* Blur backdrop */}
-          <motion.div 
-            className="absolute inset-0 bg-white/60 backdrop-blur-xl rounded-xl"
-            initial={{ backdropFilter: "blur(0px)" }}
-            animate={{ backdropFilter: "blur(24px)" }}
-            exit={{ backdropFilter: "blur(0px)" }}
-          />
-          
-          {/* Actions grid */}
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative grid grid-cols-2 gap-3 w-full max-w-[280px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {actions.map((action, index) => (
-              <motion.button
-                key={action.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0, x: 0 }}
-                exit={{ 
-                  opacity: 0, 
-                  x: action.exitDirection.x, 
-                  y: action.exitDirection.y,
-                  scale: 0.5,
-                  rotate: index % 2 === 0 ? -45 : 45
-                }}
-                transition={{ 
-                  delay: index * 0.06,
-                  exit: { duration: 0.3, ease: "easeInOut" }
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  action.onClick();
-                  onClose();
-                }}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-2",
-                  "p-6 rounded-2xl border-2",
-                  "transition-all duration-200",
-                  "shadow-sm",
-                  action.className
-                )}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <div className="w-12 h-12 rounded-xl bg-white/60 backdrop-blur-sm flex items-center justify-center shadow-sm">
-                  <action.icon className="w-6 h-6" />
-                </div>
-                <span className="text-sm font-bold">{action.label}</span>
-              </motion.button>
-            ))}
-          </motion.div>
+        />
 
-          {/* Close hint */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ delay: 0.3 }}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2"
-          >
-            <div className="px-3 py-1.5 rounded-full bg-black/20 backdrop-blur-sm">
-              <p className="text-xs text-white font-medium">Klikni van za zatvaranje</p>
+        <motion.div
+          initial={{ opacity: 0, y: 26, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 26, scale: 0.98 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 w-full max-w-xl rounded-t-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:rounded-3xl sm:p-6"
+        >
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Postavke izdvajanja</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Odaberi gdje će oglas biti istaknut i koliko dugo.
+              </p>
             </div>
-          </motion.div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                Pozicija izdvajanja
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {featuredPlacementOptions.map((option) => {
+                  const isActive = option.value === placement;
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => onPlacementChange(option.value)}
+                      className={cn(
+                        "rounded-2xl border p-3 text-left transition-all",
+                        isActive
+                          ? "border-primary bg-primary/10 shadow-sm dark:border-primary dark:bg-primary/20"
+                          : "border-slate-200 bg-slate-50/60 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-slate-600"
+                      )}
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        <Icon
+                          className={cn(
+                            "h-4 w-4",
+                            isActive ? "text-primary" : "text-slate-500 dark:text-slate-400"
+                          )}
+                        />
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {option.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{option.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                Trajanje
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {featuredDurationOptions.map((days) => {
+                  const isActive = days === duration;
+                  return (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => onDurationChange(days)}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-all",
+                        isActive
+                          ? "border-primary bg-primary/10 text-primary dark:border-primary dark:bg-primary/20"
+                          : "border-slate-200 text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-600"
+                      )}
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      {days} dana
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/70">
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
+                Odabrano: {selectedPlacementMeta?.label} • {duration} dana
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Nakon potvrde, oglas će biti aktiviran prema ovom planu (ako imaš aktivan paket).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="h-11 rounded-xl border-slate-300 dark:border-slate-700"
+                disabled={isSubmitting}
+              >
+                Zatvori
+              </Button>
+              <Button
+                type="button"
+                onClick={onConfirm}
+                className="h-11 rounded-xl bg-amber-500 font-semibold text-white hover:bg-amber-600"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Aktiviram..." : "Objavi izdvajanje"}
+              </Button>
+            </div>
+          </div>
         </motion.div>
-      )}
-    </AnimatePresence>
+      </motion.div>
+    </AnimatePresence>,
+    document.body
   );
 };
 
 // ============================================
-// CUSTOM CONTEXT MENU KOMPONENTA
+// SMART QUICK ACTIONS KOMPONENTA
 // ============================================
 
-const CustomContextMenu = ({ children, onSelect, onRenew, onDelete, isSelected, disabled }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const SmartQuickActionsPanel = ({
+  isVisible,
+  isMobile,
+  onClose,
+  onSelect,
+  onFeature,
+  onReserve,
+  onRemoveReservation,
+  onEdit,
+  onDelete,
+  onHide,
+  onSold,
+  onActivate,
+  onRenew,
+  isSelected,
+  isApproved,
+  isEditable,
+  isSoldOut,
+  isInactive,
+  isExpired,
+  isFeatureAd,
+  isReserved,
+  canPositionRenew,
+  renewAvailabilityHint,
+}) => {
+  const actions = useMemo(
+    () =>
+      [
+        {
+          key: "renew",
+          icon: RotateCcw,
+          label: isExpired ? "Obnovi oglas" : "Obnovi poziciju",
+          description: isExpired
+            ? "Vrati oglas među aktivne i produži trajanje."
+            : "Podigni oglas na vrh ne-istaknutih oglasa.",
+          onClick: onRenew,
+          show: isExpired || canPositionRenew,
+          tone: "violet",
+          kind: "normal",
+        },
+        {
+          key: "activate",
+          icon: Eye,
+          label: "Aktiviraj",
+          description: "Ponovo prikaži oglas kupcima.",
+          onClick: onActivate,
+          show: isInactive,
+          tone: "emerald",
+          kind: "normal",
+        },
+        {
+          key: "hide",
+          icon: EyeOff,
+          label: "Sakrij",
+          description: "Privremeno sakrij oglas iz pretrage.",
+          onClick: onHide,
+          show: isApproved && !isInactive,
+          tone: "amber",
+          kind: "normal",
+        },
+        {
+          key: "feature",
+          icon: Rocket,
+          label: "Izdvoji oglas",
+          description: "Povećaj vidljivost na kategoriji i/ili naslovnoj.",
+          onClick: onFeature,
+          show: isApproved && !isSoldOut && !isFeatureAd,
+          tone: "amber",
+          kind: "normal",
+        },
+        {
+          key: "reserve",
+          icon: Clock,
+          label: "Označi rezervisano",
+          description: "Privremeno rezerviši oglas za dogovorenog kupca.",
+          onClick: onReserve,
+          show: isApproved && !isSoldOut && !isInactive && !isReserved,
+          tone: "slate",
+          kind: "normal",
+        },
+        {
+          key: "unreserve",
+          icon: X,
+          label: "Ukloni rezervaciju",
+          description: "Vrati oglas u standardno aktivno stanje.",
+          onClick: onRemoveReservation,
+          show: isReserved,
+          tone: "slate",
+          kind: "normal",
+        },
+        {
+          key: "edit",
+          icon: Edit,
+          label: "Uredi oglas",
+          description: "Promijeni naslov, cijenu i detalje oglasa.",
+          onClick: onEdit,
+          show: isEditable,
+          tone: "blue",
+          kind: "normal",
+        },
+        {
+          key: "sold",
+          icon: CheckCircle,
+          label: "Označi kao prodano",
+          description: "Zaključi oglas i spremi ishod prodaje.",
+          onClick: onSold,
+          show: isApproved && !isSoldOut,
+          tone: "teal",
+          kind: "normal",
+        },
+        {
+          key: "select",
+          icon: CheckSquare,
+          label: isSelected ? "Poništi odabir" : "Odaberi za bulk",
+          description: "Dodaj oglas u grupne akcije.",
+          onClick: onSelect,
+          show: isExpired,
+          tone: "slate",
+          kind: "normal",
+        },
+        {
+          key: "delete",
+          icon: Trash2,
+          label: "Izbriši oglas",
+          description: "Trajno ukloni oglas iz profila.",
+          onClick: onDelete,
+          show: true,
+          tone: "rose",
+          kind: "danger",
+        },
+      ].filter((action) => action.show),
+    [
+      canPositionRenew,
+      isApproved,
+      isEditable,
+      isExpired,
+      isFeatureAd,
+      isInactive,
+      isReserved,
+      isSelected,
+      isSoldOut,
+      onActivate,
+      onDelete,
+      onEdit,
+      onFeature,
+      onHide,
+      onRemoveReservation,
+      onRenew,
+      onReserve,
+      onSelect,
+      onSold,
+    ]
+  );
 
-  if (disabled) return children;
+  const recommendedActionKey = isExpired
+    ? "renew"
+    : isInactive
+      ? "activate"
+      : isReserved
+        ? "unreserve"
+      : isApproved && !isSoldOut && !isFeatureAd
+        ? "feature"
+      : isApproved && !isSoldOut && isEditable
+        ? "edit"
+        : canPositionRenew
+          ? "renew"
+          : "delete";
+
+  const recommendedAction =
+    actions.find((action) => action.key === recommendedActionKey) || actions[0] || null;
+
+  const secondaryActions = actions.filter(
+    (action) => action.key !== recommendedAction?.key && action.kind !== "danger"
+  );
+  const dangerActions = actions.filter((action) => action.kind === "danger");
+
+  const panelHint = isExpired
+    ? "Oglas je istekao, obnova je sada najvažnija."
+    : isInactive
+      ? "Oglas je skriven, aktiviraj ga kad budeš spreman."
+      : "Biraj akcije prema cilju: uređivanje, prodaja ili optimizacija pozicije.";
+
+  const toneClass = {
+    blue: "border-blue-200/80 bg-blue-50/90 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/80 dark:bg-blue-950/45 dark:text-blue-200 dark:hover:bg-blue-900/45",
+    emerald:
+      "border-emerald-200/80 bg-emerald-50/90 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/80 dark:bg-emerald-950/45 dark:text-emerald-200 dark:hover:bg-emerald-900/45",
+    amber:
+      "border-amber-200/80 bg-amber-50/90 text-amber-700 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-900/80 dark:bg-amber-950/45 dark:text-amber-200 dark:hover:bg-amber-900/45",
+    violet:
+      "border-violet-200/80 bg-violet-50/90 text-violet-700 hover:border-violet-300 hover:bg-violet-100 dark:border-violet-900/80 dark:bg-violet-950/45 dark:text-violet-200 dark:hover:bg-violet-900/45",
+    teal: "border-teal-200/80 bg-teal-50/90 text-teal-700 hover:border-teal-300 hover:bg-teal-100 dark:border-teal-900/80 dark:bg-teal-950/45 dark:text-teal-200 dark:hover:bg-teal-900/45",
+    slate:
+      "border-slate-200/90 bg-slate-50/90 text-slate-700 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700/80",
+    rose: "border-rose-200/80 bg-rose-50/90 text-rose-700 hover:border-rose-300 hover:bg-rose-100 dark:border-rose-900/80 dark:bg-rose-950/45 dark:text-rose-200 dark:hover:bg-rose-900/45",
+  };
+
+  const runAction = (event, action) => {
+    event.preventDefault();
+    event.stopPropagation();
+    action.onClick?.();
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isVisible) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isVisible]);
 
   return (
-    <div
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setIsOpen(true);
-      }}
-    >
-      {children}
-      
-      {/* Simple context menu overlay for expired items */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm"
-            onClick={() => setIsOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 min-w-[200px]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => {
-                  onSelect?.();
-                  setIsOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                <CheckSquare className="w-5 h-5 text-slate-600" />
-                <span className="text-sm font-medium">{isSelected ? "Poništi odabir" : "Odaberi"}</span>
-              </button>
-              
-              <button
-                onClick={() => {
-                  onRenew?.();
-                  setIsOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors"
-              >
-                <RotateCcw className="w-5 h-5 text-primary" />
-                <span className="text-sm font-medium">Obnovi</span>
-              </button>
-              
-              <div className="h-px bg-slate-200 my-2" />
-              
-              <button
-                onClick={() => {
-                  onDelete?.();
-                  setIsOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 transition-colors text-red-600"
-              >
-                <Trash2 className="w-5 h-5" />
-                <span className="text-sm font-medium">Izbriši</span>
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    typeof document === "undefined"
+      ? null
+      : createPortal(
+          <AnimatePresence>
+            {isVisible ? (
+              <>
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-[2px]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  aria-label="Zatvori panel akcija"
+                />
+
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, y: isMobile ? 22 : -10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: isMobile ? 22 : -10, scale: 0.98 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className={cn(
+                    "fixed z-[90] overflow-hidden border border-slate-200/90 bg-white/95 p-3 shadow-[0_32px_70px_-40px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-4",
+                    isMobile
+                      ? "inset-x-3 bottom-3 max-h-[82vh] overflow-y-auto rounded-2xl"
+                      : "left-1/2 top-1/2 w-[min(560px,calc(100vw-2.5rem))] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl"
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        Pametne akcije oglasa
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{panelHint}</p>
+                      {renewAvailabilityHint ? (
+                        <p className="mt-1 text-[11px] font-medium text-violet-600 dark:text-violet-300">
+                          {renewAvailabilityHint}
+                        </p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onClose();
+                      }}
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:scale-105 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                      aria-label="Zatvori brze akcije"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {recommendedAction ? (
+                    <button
+                      type="button"
+                      onClick={(e) => runAction(e, recommendedAction)}
+                      className={cn(
+                        "group mb-3 flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                        toneClass[recommendedAction.tone]
+                      )}
+                    >
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/80 shadow-sm dark:bg-slate-900/70">
+                        <recommendedAction.icon className="h-[18px] w-[18px]" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold">Preporučeno: {recommendedAction.label}</span>
+                        <span className="block text-xs opacity-80">{recommendedAction.description}</span>
+                      </span>
+                    </button>
+                  ) : null}
+
+                  {secondaryActions.length ? (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {secondaryActions.map((action) => (
+                        <button
+                          key={action.key}
+                          type="button"
+                          onClick={(e) => runAction(e, action)}
+                          className={cn(
+                            "group flex items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                            toneClass[action.tone]
+                          )}
+                        >
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 shadow-sm dark:bg-slate-900/70">
+                            <action.icon className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold leading-tight">{action.label}</span>
+                            <span className="block text-[11px] opacity-80">{action.description}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {dangerActions.length ? (
+                    <div className="mt-3 border-t border-slate-200/80 pt-3 dark:border-slate-700">
+                      {dangerActions.map((action) => (
+                        <button
+                          key={action.key}
+                          type="button"
+                          onClick={(e) => runAction(e, action)}
+                          className={cn(
+                            "group flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50",
+                            toneClass[action.tone]
+                          )}
+                        >
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 shadow-sm dark:bg-slate-900/70">
+                            <action.icon className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold leading-tight">{action.label}</span>
+                            <span className="block text-[11px] opacity-80">{action.description}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </motion.div>
+              </>
+            ) : null}
+          </AnimatePresence>,
+          document.body
+        )
   );
 };
 
@@ -403,9 +757,14 @@ const MyAdsCard = ({
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const cardShellRef = useRef(null);
+  const isMobile = useMediaQuery("(max-width: 639px)");
   
   // NOVI STATE ZA QUICK ACTIONS
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [isFeaturedPlanOpen, setIsFeaturedPlanOpen] = useState(false);
+  const [selectedFeaturePlacement, setSelectedFeaturePlacement] = useState("category_home");
+  const [selectedFeatureDuration, setSelectedFeatureDuration] = useState(30);
 
   // MODAL ZA PRODANO
   const [isSoldOutDialogOpen, setIsSoldOutDialogOpen] = useState(false);
@@ -417,14 +776,72 @@ const MyAdsCard = ({
   
   // Long press za mobilne
   const longPressTimer = useRef(null);
-  const [isLongPressing, setIsLongPressing] = useState(false);
+  const [, setIsLongPressing] = useState(false);
+
+  useEffect(() => {
+    if (!showQuickActions) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setShowQuickActions(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showQuickActions]);
 
   const status = data?.status;
   const isExpired = status === "expired";
   const isInactive = status === "inactive";
   const isSoldOut = status === "sold out";
-  const isApproved = status === "approved" || status === "featured";
+  const isReserved =
+    status === "reserved" || data?.reservation_status === "reserved";
+  const isApproved =
+    status === "approved" || status === "featured" || status === "reserved";
   const isEditable = isApproved;
+  const isFeatureAd = Boolean(data?.is_feature);
+  const baselineRenewDate = parseDateSafe(data?.last_renewed_at) || parseDateSafe(data?.created_at);
+  const nextPositionRenewAt = baselineRenewDate
+    ? new Date(
+        baselineRenewDate.getTime() +
+          POSITION_RENEW_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+      )
+    : null;
+  const isPositionRenewWindowOpen = nextPositionRenewAt ? Date.now() >= nextPositionRenewAt.getTime() : false;
+  const canPositionRenew =
+    isApproved &&
+    !isSoldOut &&
+    !isExpired &&
+    !isFeatureAd &&
+    !isReserved &&
+    isPositionRenewWindowOpen;
+  const shouldShowPositionRenewHint =
+    isApproved &&
+    !isSoldOut &&
+    !isExpired &&
+    !isFeatureAd &&
+    !isReserved &&
+    Boolean(nextPositionRenewAt) &&
+    !isPositionRenewWindowOpen;
+  const positionRenewDaysLeft = nextPositionRenewAt
+    ? Math.max(1, Math.ceil((nextPositionRenewAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : null;
+  const shouldShowRenewHint =
+    isApproved &&
+    !isSoldOut &&
+    !isExpired &&
+    !isFeatureAd &&
+    !isReserved &&
+    Boolean(nextPositionRenewAt);
+  const renewAvailabilityHint = shouldShowRenewHint
+    ? isPositionRenewWindowOpen
+      ? "Besplatna obnova pozicije je dostupna sada."
+      : `Besplatna obnova pozicije za ${formatBosnianDays(positionRenewDaysLeft)}.`
+    : null;
 
   const hasVideo = !!(data?.video_link && String(data?.video_link).trim() !== "");
 
@@ -569,6 +986,14 @@ const MyAdsCard = ({
     setIsSoldOutDialogOpen(false);
   };
 
+  const handleFeatureSubmit = () => {
+    onContextMenuAction?.("feature", data?.id, {
+      placement: selectedFeaturePlacement,
+      duration_days: selectedFeatureDuration,
+    });
+    setIsFeaturedPlanOpen(false);
+  };
+
   const title = translatedItem?.name || data?.name;
 
   const cardContent = (
@@ -588,6 +1013,7 @@ const MyAdsCard = ({
           onSelectionToggle?.();
         } else if (showQuickActions) {
           e.preventDefault();
+          setShowQuickActions(false);
         } else {
           // Normalan klik - idi na link
           window.location.href = `/my-listing/${data?.slug}`;
@@ -606,23 +1032,6 @@ const MyAdsCard = ({
         }
       }}
     >
-      {/* Quick Actions Overlay */}
-      <QuickActionsOverlay
-        isVisible={showQuickActions}
-        onClose={() => setShowQuickActions(false)}
-        onEdit={() => onContextMenuAction?.("edit", data?.id)}
-        onDelete={() => onContextMenuAction?.("delete", data?.id)}
-        onHide={() => onContextMenuAction?.("deactivate", data?.id)}
-        onActivate={() => onContextMenuAction?.("activate", data?.id)}
-        onSold={handleSoldOutClick}
-        onRenew={() => onContextMenuAction?.("renew", data?.id)}
-        isApproved={isApproved}
-        isEditable={isEditable}
-        isSoldOut={isSoldOut}
-        isInactive={isInactive}
-        isExpired={isExpired}
-      />
-
       {/* MEDIJ */}
       <div
         className={cn("relative overflow-hidden", "rounded-t-xl", "touch-pan-y")}
@@ -702,6 +1111,12 @@ const MyAdsCard = ({
                 </OverlayPill>
               ) : null}
 
+              {isReserved ? (
+                <OverlayPill icon={Clock} className="text-blue-700 bg-blue-100/90 border-blue-200">
+                  Rezervisano
+                </OverlayPill>
+              ) : null}
+
               {isOnSale && discountPercentage > 0 ? (
                 <OverlayPill icon={BadgePercent} className="text-rose-700 bg-rose-100/90 border-rose-200">
                   
@@ -728,16 +1143,33 @@ const MyAdsCard = ({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setShowQuickActions(true);
+                  setShowQuickActions((prev) => !prev);
                 }}
                 className={cn(
                   "h-8 w-8 rounded-full",
-                  "bg-white/90 backdrop-blur-sm",
-                  "border-slate-200 shadow-sm",
-                  "hover:bg-white hover:border-primary/30"
+                  "bg-white/90 backdrop-blur-sm dark:bg-slate-900/90",
+                  "border-slate-200 dark:border-slate-700 shadow-sm",
+                  "hover:bg-white dark:hover:bg-slate-900 hover:border-primary/30",
+                  showQuickActions &&
+                    "border-primary/40 bg-white text-primary dark:bg-slate-900 dark:border-primary/40 dark:text-primary"
                 )}
+                aria-label="Prikaži brze akcije"
+                aria-expanded={showQuickActions}
               >
-                <MoreVertical className="w-4 h-4 text-slate-700" />
+                <motion.span
+                  animate={{ rotate: showQuickActions ? 90 : 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="inline-flex"
+                >
+                  <MoreVertical
+                    className={cn(
+                      "w-4 h-4 transition-colors",
+                      showQuickActions
+                        ? "text-primary"
+                        : "text-slate-700 dark:text-slate-300"
+                    )}
+                  />
+                </motion.span>
               </Button>
             </motion.div>
           </div>
@@ -905,7 +1337,7 @@ const MyAdsCard = ({
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <div className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
-              <span>{formatRelativeTime(data?.created_at)}</span>
+              <span>{formatRelativeTime(data?.last_renewed_at || data?.created_at)}</span>
             </div>
           </div>
 
@@ -957,15 +1389,48 @@ const MyAdsCard = ({
   );
 
   return (
-    <CustomContextMenu
-      onSelect={() => onContextMenuAction?.("select", data?.id)}
-      onRenew={() => onContextMenuAction?.("renew", data?.id)}
-      onDelete={() => onContextMenuAction?.("delete", data?.id)}
-      isSelected={isSelected}
-      disabled={!isExpired}
-    >
+    <motion.div ref={cardShellRef} layout className="relative">
       {cardContent}
-    </CustomContextMenu>
+
+      <SmartQuickActionsPanel
+        isVisible={showQuickActions}
+        isMobile={isMobile}
+        onClose={() => setShowQuickActions(false)}
+        onSelect={() => onContextMenuAction?.("select", data?.id)}
+        onFeature={() => {
+          setShowQuickActions(false);
+          setIsFeaturedPlanOpen(true);
+        }}
+        onReserve={() => onContextMenuAction?.("reserve", data?.id)}
+        onRemoveReservation={() => onContextMenuAction?.("unreserve", data?.id)}
+        onEdit={() => onContextMenuAction?.("edit", data?.id)}
+        onDelete={() => onContextMenuAction?.("delete", data?.id)}
+        onHide={() => onContextMenuAction?.("deactivate", data?.id)}
+        onActivate={() => onContextMenuAction?.("activate", data?.id)}
+        onSold={handleSoldOutClick}
+        onRenew={() => onContextMenuAction?.("renew", data?.id)}
+        isSelected={isSelected}
+        isApproved={isApproved}
+        isEditable={isEditable}
+        isSoldOut={isSoldOut}
+        isInactive={isInactive}
+        isExpired={isExpired}
+        isFeatureAd={isFeatureAd}
+        isReserved={isReserved}
+        canPositionRenew={canPositionRenew}
+        renewAvailabilityHint={renewAvailabilityHint}
+      />
+
+      <FeaturedPlanModal
+        isOpen={isFeaturedPlanOpen}
+        onClose={() => setIsFeaturedPlanOpen(false)}
+        placement={selectedFeaturePlacement}
+        duration={selectedFeatureDuration}
+        onPlacementChange={setSelectedFeaturePlacement}
+        onDurationChange={setSelectedFeatureDuration}
+        onConfirm={handleFeatureSubmit}
+      />
+    </motion.div>
   );
 };
 

@@ -17,11 +17,13 @@ import {
   X,
   Star,
   BadgeCheck,
+  Play,
   ChevronRight,
   MoreHorizontal,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { hasSellerActiveReel } from "@/lib/seller-reel";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import CustomImage from "@/components/Common/CustomImage";
@@ -32,6 +34,7 @@ import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
+import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -646,6 +649,7 @@ export const MinimalSellerCard = ({
   seller?.is_verified === true ||
   seller?.verified === 1 ||
   seller?.verified === true;
+  const hasReel = useMemo(() => hasSellerActiveReel(seller), [seller]);
 
   
   
@@ -716,6 +720,8 @@ export const MinimalSellerCard = ({
 
   return (
     <>
+      <ReelRingStyles />
+
       <ContactModal
         open={isContactOpen}
         onOpenChange={setIsContactOpen}
@@ -746,25 +752,46 @@ export const MinimalSellerCard = ({
         {/* Header: Avatar + Info */}
         <div className="flex items-start gap-3">
           {/* Avatar */}
-          <CustomLink href={`/seller/${seller?.id}`} className="relative flex-shrink-0 group">
-            <div className={cn(
-              "rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60",
-              "group-hover:border-slate-300 transition-colors",
-              variant === "compact" ? "w-10 h-10" : "w-12 h-12"
-            )}>
-              <CustomImage
-                src={seller?.profile || seller?.profile_image}
-                alt={seller?.name || "Prodavač"}
-                width={variant === "compact" ? 40 : 48}
-                height={variant === "compact" ? 40 : 48}
-                className="w-full h-full object-cover"
-              />
+          <CustomLink href={`/seller/${seller?.id}`} className="relative isolate flex-shrink-0 group">
+            <div
+              className={cn(
+                variant === "compact" ? "rounded-[12px]" : "rounded-[14px]",
+                "p-[2px]",
+                hasReel ? "reel-ring" : "bg-transparent"
+              )}
+            >
+              <div
+                className={cn(
+                  "overflow-hidden bg-slate-100 reel-ring-inner",
+                  "border border-slate-200/60 group-hover:border-slate-300 transition-colors",
+                  hasReel && "border-white/70 dark:border-slate-700/80",
+                  variant === "compact" ? "w-10 h-10 rounded-[10px]" : "w-12 h-12 rounded-xl"
+                )}
+              >
+                <CustomImage
+                  src={seller?.profile || seller?.profile_image}
+                  alt={seller?.name || "Prodavač"}
+                  width={variant === "compact" ? 40 : 48}
+                  height={variant === "compact" ? 40 : 48}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
-            
+
+            {hasReel && (
+              <div
+                className={cn(
+                  "absolute -bottom-1 -right-1 z-20 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center",
+                  variant === "compact" ? "w-[18px] h-[18px]" : "w-5 h-5"
+                )}
+              >
+                <Play className={cn("text-[#1e3a8a]", variant === "compact" ? "w-2.5 h-2.5" : "w-3 h-3")} />
+              </div>
+            )}
+
             {/* Verified badge */}
             {isVerified && (
-
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+              <div className="absolute -bottom-0.5 -left-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                 <BadgeCheck className="w-2.5 h-2.5 text-white" />
               </div>
             )}

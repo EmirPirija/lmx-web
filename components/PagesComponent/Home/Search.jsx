@@ -13,6 +13,7 @@ import { useSelector } from "react-redux";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { useSavedSearches } from "@/hooks/useSavedSearches";
 import { useSearchTracking } from "@/hooks/useItemTracking";
+import { Switch } from "@/components/ui/switch";
 
 import {
   IconSearch,
@@ -27,6 +28,7 @@ import {
 } from "@tabler/icons-react";
 
 const SEARCH_HISTORY_KEY = "lmx_search_history";
+const SEARCH_HISTORY_ENABLED_KEY = "lmx_search_history_enabled";
 const MAX_HISTORY_ITEMS = 8;
 
 const levenshteinDistance = (str1, str2) => {
@@ -186,6 +188,7 @@ const Search = () => {
   const [suggestedCategories, setSuggestedCategories] = useState([]);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [isHistoryEnabled, setIsHistoryEnabled] = useState(true);
   const [didYouMean, setDidYouMean] = useState([]);
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -200,14 +203,31 @@ const Search = () => {
 
   useEffect(() => {
     try {
+      const historyEnabledRaw = localStorage.getItem(SEARCH_HISTORY_ENABLED_KEY);
+      const historyEnabled =
+        historyEnabledRaw === null ? true : historyEnabledRaw === "true";
+
+      setIsHistoryEnabled(historyEnabled);
+
+      if (!historyEnabled) {
+        setSearchHistory([]);
+        return;
+      }
+
       const history = localStorage.getItem(SEARCH_HISTORY_KEY);
-      if (history) setSearchHistory(JSON.parse(history));
+      if (!history) return;
+
+      const parsedHistory = JSON.parse(history);
+      if (Array.isArray(parsedHistory)) {
+        setSearchHistory(parsedHistory.filter(Boolean).slice(0, MAX_HISTORY_ITEMS));
+      }
     } catch (e) {
       console.error("Failed to load search history:", e);
     }
   }, []);
 
   const saveToHistory = useCallback((query) => {
+    if (!isHistoryEnabled) return;
     if (!query || query.length < 2) return;
     try {
       const history = JSON.parse(
@@ -222,7 +242,7 @@ const Search = () => {
     } catch (e) {
       console.error("Failed to save search history:", e);
     }
-  }, []);
+  }, [isHistoryEnabled]);
 
   const removeFromHistory = useCallback((query, e) => {
     e.stopPropagation();
@@ -244,6 +264,22 @@ const Search = () => {
       setSearchHistory([]);
     } catch (e) {
       console.error("Failed to clear history:", e);
+    }
+  }, []);
+
+  const handleHistoryToggle = useCallback((checked) => {
+    const enabled = Boolean(checked);
+    setIsHistoryEnabled(enabled);
+
+    try {
+      localStorage.setItem(SEARCH_HISTORY_ENABLED_KEY, String(enabled));
+
+      if (!enabled) {
+        localStorage.removeItem(SEARCH_HISTORY_KEY);
+        setSearchHistory([]);
+      }
+    } catch (e) {
+      console.error("Failed to update history preference:", e);
     }
   }, []);
 
@@ -575,7 +611,7 @@ const Search = () => {
     suggestedCategories.length > 0 ||
     suggestedUsers.length > 0;
 
-  const showHistory = searchQuery.length < 2 && searchHistory.length > 0;
+  const showHistoryPanel = searchQuery.length < 2;
   const showNoResults =
     searchQuery.length >= 2 &&
     !isSearching &&
@@ -589,17 +625,17 @@ const Search = () => {
 
   const shouldShowDropdown =
     showSuggestions &&
-    (showHistory || isSearching || hasResults || showDidYouMean || showNoResults);
+    (showHistoryPanel || isSearching || hasResults || showDidYouMean || showNoResults);
 
   const isSearchActive = isSearchFocused || !!searchQuery || showSuggestions;
 
   return (
-    <div className="w-full flex items-center gap-3 z-[9999]">
+    <div className="relative z-40 flex w-full items-center gap-2.5 sm:gap-3">
       {settings?.header_logo && (
         <div
           className={cn(
             // USPORENO: logo transition kada je search aktivan
-            "flex-shrink-0 transition-all duration-[1800ms] ease-out",
+            "flex-shrink-0 transition-all duration-300 ease-out",
             isSearchActive
               ? "xl:w-[90px] xl:opacity-100 w-0 opacity-0"
               : "w-[40px] sm:w-[90px] opacity-100"
@@ -623,7 +659,7 @@ const Search = () => {
           className={cn(
             // USPORENO: animacija teksta kada input dobije focus / search aktivan
             // Napomena: explicit transition properties da width/opacity/transform budu glatki
-            "text-xs text-slate-500 whitespace-nowrap transition-[width,margin,opacity,transform] duration-[4200ms] ease-out",
+            "text-xs text-slate-500 whitespace-nowrap transition-[width,margin,opacity,transform] duration-300 ease-out dark:text-slate-400",
             isSearchActive
               ? "w-0 ml-0 opacity-0 -translate-x-4"
               : "w-auto ml-3 opacity-100 translate-x-0"
@@ -637,10 +673,10 @@ const Search = () => {
         <form
           onSubmit={handleSearchNav}
           className={cn(
-            "w-full flex items-center gap-2 rounded-full bg-muted/70 px-3 py-1.5 sm:py-2 border-2 transition-all duration-2000",
+            "w-full flex items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-3 py-1.5 shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900/90 sm:py-2",
             isSearchActive
-              ? "border-primary shadow-sm"
-              : "border-primary/40 hover:border-primary"
+              ? "border-primary/50 ring-2 ring-primary/20"
+              : "hover:border-slate-300 dark:hover:border-slate-600"
           )}
           role="search"
         >
@@ -654,7 +690,7 @@ const Search = () => {
             id="lmx-search-input"
             type="text"
             placeholder={t("searchAd")}
-            className="text-sm outline-none border-none w-full bg-transparent"
+            className="w-full border-none bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleInputFocus}
@@ -681,7 +717,7 @@ const Search = () => {
               className="p-1 rounded-full hover:bg-muted transition-colors duration-150"
               aria-label={t("clearSearch") || "Obriši pretragu"}
             >
-              <IconX className="w-4 h-4 text-slate-500" />
+              <IconX className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             </button>
           )}
 
@@ -691,7 +727,7 @@ const Search = () => {
             </div>
           ) : (
             <button
-              className="flex items-center gap-2 bg-primary text-white p-2 rounded-full transition-all duration-200 hover:bg-primary/90 hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 rounded-xl bg-primary p-2 text-white transition-all duration-200 hover:bg-primary/90 hover:scale-[1.03] active:scale-95"
               type="submit"
               aria-label={t("searchAd") || "Pretraži oglase"}
             >
@@ -703,7 +739,7 @@ const Search = () => {
         {shouldShowDropdown && (
           <div
             id={dropdownId}
-            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-[420px] overflow-y-auto animate-in fade-in-0 slide-in-from-top-2 duration-200 z-[9999]"
+            className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-[0_24px_44px_-30px_rgba(15,23,42,0.55)] animate-in fade-in-0 slide-in-from-top-2 duration-200 dark:border-slate-700 dark:bg-slate-900"
             role="listbox"
             aria-label="Prijedlozi pretrage"
           >
@@ -814,42 +850,79 @@ const Search = () => {
               </div>
             )}
 
-            {showHistory && (
+            {showHistoryPanel && (
               <div className="p-3 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
-                    <IconClock className="w-3 h-3" />
-                    Nedavne pretrage
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                      <IconClock className="w-3 h-3" />
+                      Nedavne pretrage
+                    </div>
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      {isHistoryEnabled
+                        ? "Pamćenje pretrage je uključeno"
+                        : "Pamćenje pretrage je isključeno"}
+                    </p>
                   </div>
-                  <button
-                    onClick={clearAllHistory}
-                    className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200"
-                  >
-                    Obriši sve
-                  </button>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50/90 px-2.5 py-1.5">
+                    <span className="text-[11px] font-medium text-gray-500">Pamti</span>
+                    <Switch
+                      checked={isHistoryEnabled}
+                      onCheckedChange={handleHistoryToggle}
+                      aria-label="Pamti historiju pretrage"
+                      className="h-5 w-9 data-[state=checked]:bg-primary data-[state=unchecked]:bg-slate-300"
+                    />
+                  </div>
                 </div>
-                <ul className="space-y-1">
-                  {searchHistory.map((query, index) => (
-                    <li
-                      key={index}
-                      className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
-                      onClick={() => handleHistoryClick(query)}
-                      role="option"
-                    >
-                      <div className="flex items-center gap-2">
-                        <IconClock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-sm text-gray-700">{query}</span>
-                      </div>
+
+                {isHistoryEnabled ? (
+                  <>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] text-gray-400">
+                        {searchHistory.length > 0
+                          ? `${searchHistory.length} spremljenih pojmova`
+                          : "Još nema sačuvane historije"}
+                      </p>
                       <button
-                        onClick={(e) => removeFromHistory(query, e)}
-                        className="p-1 hover:bg-gray-200 rounded transition-all duration-200"
-                        aria-label="Obriši iz historije"
+                        onClick={clearAllHistory}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                        disabled={searchHistory.length === 0}
                       >
-                        <IconX className="w-3 h-3 text-gray-400" />
+                        Obriši sve
                       </button>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+
+                    {searchHistory.length > 0 && (
+                      <ul className="space-y-1">
+                        {searchHistory.map((query, index) => (
+                          <li
+                            key={index}
+                            className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                            onClick={() => handleHistoryClick(query)}
+                            role="option"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <IconClock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 truncate">{query}</span>
+                            </div>
+                            <button
+                              onClick={(e) => removeFromHistory(query, e)}
+                              className="p-1 hover:bg-gray-200 rounded transition-all duration-200"
+                              aria-label="Obriši iz historije"
+                            >
+                              <IconX className="w-3 h-3 text-gray-400" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 p-3 text-xs text-gray-500">
+                    Isključeno. Novi pojmovi se neće spremati u historiju.
+                  </div>
+                )}
               </div>
             )}
 

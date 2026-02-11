@@ -6,6 +6,7 @@ import {
   categoryApi,
   getCustomFieldsApi,
   getParentCategoriesApi,
+  socialMediaApi,
 } from "@/utils/api";
 import ComponentTwo from "./ComponentTwo";
 import {
@@ -14,6 +15,7 @@ import {
   prepareCustomFieldTranslations,
   t,
   formatPriceAbbreviated,
+  isValidURL,
 } from "@/utils";
 import { toast } from "sonner";
 import ComponentThree from "./ComponentThree";
@@ -24,8 +26,8 @@ import AdSuccessModal from "./AdSuccessModal";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import Layout from "@/components/Layout/Layout";
 import Checkauth from "@/HOC/Checkauth";
+import { motion, AnimatePresence } from "framer-motion";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
-import AdLanguageSelector from "./AdLanguageSelector";
 import { getDefaultLanguageCode, getLanguages } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
@@ -42,7 +44,9 @@ import {
   X,
   ChevronRight,
   Clock,
-  Images // Ikona za slike
+  Images,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { IconRosetteDiscount } from "@tabler/icons-react";
 
@@ -184,6 +188,21 @@ const processImagesArray = async (files, opts) => {
 
 const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
 
+const PUBLISH_STAGES = [
+  {
+    title: "Pripremamo oglas",
+    subtitle: "Validiramo detalje i media sadržaj.",
+  },
+  {
+    title: "Optimizujemo prikaz",
+    subtitle: "Podešavamo kvalitet i redoslijed prikaza.",
+  },
+  {
+    title: "Objavljujemo",
+    subtitle: "Finalizujemo objavu i aktiviramo oglas.",
+  },
+];
+
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const userData = useSelector(userSignUpData);
@@ -214,6 +233,9 @@ const AdsListing = () => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [otherImages, setOtherImages] = useState([]);
   const [uploadedVideo, setUploadedVideo] = useState(null);
+  const [addVideoToStory, setAddVideoToStory] = useState(false);
+  const [publishToInstagram, setPublishToInstagram] = useState(false);
+  const [instagramSourceUrl, setInstagramSourceUrl] = useState("");
 
   const uploadedImagesRef = useRef(uploadedImages);
   const otherImagesRef = useRef(otherImages);
@@ -234,6 +256,8 @@ const AdsListing = () => {
   const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [location, setLocation] = useState({});
   const [isAdPlaced, setIsAdPlaced] = useState(false);
+  const [showPublishFx, setShowPublishFx] = useState(false);
+  const [publishStageIndex, setPublishStageIndex] = useState(0);
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
   const [createdAdSlug, setCreatedAdSlug] = useState("");
   const [recentCategories, setRecentCategories] = useState([]);
@@ -261,6 +285,19 @@ const AdsListing = () => {
       region_code: regionCode,
     },
   });
+
+  useEffect(() => {
+    if (!showPublishFx) {
+      setPublishStageIndex(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setPublishStageIndex((prev) => (prev + 1) % PUBLISH_STAGES.length);
+    }, 1400);
+
+    return () => clearInterval(interval);
+  }, [showPublishFx]);
 
   const hasTextbox = customFields.some((field) => field.type === "textbox");
 
@@ -610,6 +647,25 @@ const AdsListing = () => {
 
   const isEmpty = (x) => !x || !x.toString().trim();
 
+  const handleVideoLinkChange = useCallback(
+    (value) => {
+      setTranslations((prev) => ({
+        ...prev,
+        [defaultLangId]: {
+          ...(prev?.[defaultLangId] || {}),
+          video_link: value,
+        },
+      }));
+    },
+    [defaultLangId]
+  );
+
+  const handleUseInstagramAsVideoLink = useCallback(() => {
+    const igLink = (instagramSourceUrl || "").trim();
+    if (!igLink) return;
+    handleVideoLinkChange(igLink);
+  }, [handleVideoLinkChange, instagramSourceUrl]);
+
   const handleFullSubmission = (scheduledDateTime = null) => {
     const { name, description, contact, country_code } = defaultDetails;
     const catId = categoryPath.at(-1)?.id;
@@ -631,6 +687,16 @@ const AdsListing = () => {
       return setStep(2);
     }
 
+    if (!isEmpty(defaultDetails?.video_link) && !isValidURL(defaultDetails?.video_link)) {
+      toast.error(t("enterValidUrl"));
+      return setStep(4);
+    }
+
+    if (!isEmpty(instagramSourceUrl) && !isValidURL(instagramSourceUrl)) {
+      toast.error("Unesite ispravan Instagram link.");
+      return setStep(4);
+    }
+
     if (!location?.country || !location?.state || !location?.city || !location?.address) {
       toast.error(t("pleaseSelectCity"));
       return;
@@ -644,6 +710,7 @@ const AdsListing = () => {
     const customFieldTranslations = prepareCustomFieldTranslations(extraDetails);
     const customFieldFiles = prepareCustomFieldFiles(extraDetails, defaultLangId);
     const nonDefaultTranslations = filterNonDefaultTranslations(translations, defaultLangId);
+    const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
 
     const allData = {
       name: defaultDetails.name,
@@ -653,10 +720,14 @@ const AdsListing = () => {
       all_category_ids: allCategoryIdsString,
       price: defaultDetails.price,
       contact: defaultDetails.contact,
-      video_link: defaultDetails?.video_link,
+      available_now: Boolean(availableNow),
+      video_link: trimmedVideoLink,
       temp_main_image_id: uploadedImages?.[0]?.id ?? null,
       temp_gallery_image_ids: (otherImages || []).map((x) => x?.id).filter(Boolean),
-      temp_video_id: uploadedVideo?.id ?? null,      
+      ...(uploadedVideo?.id && !trimmedVideoLink ? { temp_video_id: uploadedVideo.id } : {}),
+      add_video_to_story: Boolean(addVideoToStory),
+      publish_to_instagram: Boolean(publishToInstagram),
+      instagram_source_url: (instagramSourceUrl || "").trim(),
       gallery_images: otherImages,
       address: location?.address,
       latitude: location?.lat,
@@ -685,9 +756,32 @@ const AdsListing = () => {
 
     try {
       setIsAdPlaced(true);
+      setShowPublishFx(true);
+      setPublishStageIndex(0);
       const res = await addItemApi.addItem(allData);
 
       if (res?.data?.error === false) {
+        const createdItemId = res?.data?.data?.[0]?.id;
+        if (publishToInstagram && createdItemId) {
+          try {
+            await socialMediaApi.schedulePost({
+              item_id: createdItemId,
+              platforms: ["instagram"],
+              caption: `${defaultDetails?.name || "Lmx oglas"}\n\n${(
+                defaultDetails?.description || ""
+              ).slice(0, 260)}`.trim(),
+            });
+            toast.success("Oglas je dodat i u red za Instagram objavu.");
+          } catch (scheduleError) {
+            const apiMessage = scheduleError?.response?.data?.message;
+            toast.warning(
+              apiMessage || "Oglas je objavljen, ali Instagram objava nije zakazana."
+            );
+          }
+        }
+
+        setPublishStageIndex(PUBLISH_STAGES.length - 1);
+        await new Promise((resolve) => setTimeout(resolve, 900));
         setIsScheduledAd(!!scheduledDateTime);
         setScheduledAt(scheduledDateTime);
         setOpenSuccessModal(true);
@@ -699,6 +793,8 @@ const AdsListing = () => {
       console.error(error);
     } finally {
       setIsAdPlaced(false);
+      setShowPublishFx(false);
+      setPublishStageIndex(0);
     }
   };
 
@@ -749,7 +845,7 @@ const AdsListing = () => {
     ...(customFields?.length > 0
       ? [{ id: 3, label: t("extraDetails"), icon: Circle, disabled: disabledTab.extraDetailTabl }]
       : []),
-    { id: 4, label: t("images"), icon: Circle, disabled: disabledTab.images },
+    { id: 4, label: "Media", icon: Circle, disabled: disabledTab.images },
     { id: 5, label: t("location"), icon: Circle, disabled: disabledTab.location },
   ];
 
@@ -776,6 +872,8 @@ const AdsListing = () => {
   const currentPrice = Number(defaultDetails.price);
   const showDiscount = isOnSale && oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice;
   const previewAttributes = getPreviewAttributes(); // Dohvati atribute za prikaz
+  const publishProgressPct = ((publishStageIndex + 1) / PUBLISH_STAGES.length) * 100;
+  const currentPublishStage = PUBLISH_STAGES[publishStageIndex] || PUBLISH_STAGES[0];
 
   // =======================================================
   // MEDIA: kompresija + watermark odmah na selekciju
@@ -856,64 +954,79 @@ const AdsListing = () => {
   return (
     <Layout>
       <BreadCrumb title2={t("adListing")} />
-      <div className="container">
-        <div className="flex flex-col gap-8 mt-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-medium">{t("adListing")}</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-2 rounded-full">
-                <Award className="w-5 h-5 text-primary" />
-                <span className="font-semibold text-primary">{completenessScore}%</span>
-                <span className="text-sm text-muted-foreground">{t("dovršen")}</span>
+      <div className="container relative">
+        <div className="relative mt-8 flex flex-col gap-8 pb-10">
+          <div className="pointer-events-none absolute -top-14 left-0 h-52 w-52 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
+          <div className="pointer-events-none absolute -right-10 top-8 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/30" />
+
+          <div className="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white/90 p-6 shadow-[0_20px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80 md:p-8">
+            <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-primary/10 blur-3xl dark:bg-primary/30" />
+            <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70 dark:text-primary/80">
+                  LMX Studio
+                </p>
+                <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 md:text-3xl">
+                  {t("adListing")}
+                </h1>
+                <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+                  Kreirajte oglas uz live preview, pametan media flow i jasne korake do objave.
+                </p>
+              </div>
+
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/15 to-primary/5 px-4 py-2 dark:border-primary/35 dark:from-primary/20 dark:to-primary/10">
+                <Award className="h-5 w-5 text-primary" />
+                <span className="text-sm font-semibold text-primary">{completenessScore}%</span>
+                <span className="text-xs text-slate-600 dark:text-slate-300">{t("dovršen")}</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
-              
-              {/* FIXED STEPPER */}
-              <div className="border rounded-lg p-6 bg-white shadow-sm">
+            <div className="relative flex flex-col gap-6 lg:col-span-2">
+              <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/75 sm:p-6">
                 <div className="relative">
-                  <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
                   <div
-                    className="absolute top-5 left-0 h-1 bg-primary rounded-full transition-all duration-500"
+                    className="absolute left-0 right-0 top-5 h-1 rounded-full bg-slate-200 dark:bg-slate-700"
+                    style={{ zIndex: 0 }}
+                  />
+                  <div
+                    className="absolute left-0 top-5 h-1 rounded-full bg-gradient-to-r from-primary via-primary/90 to-cyan-500 transition-all duration-500"
                     style={{
                       width: `${(steps.findIndex((s) => s.id === step) / (steps.length - 1)) * 100}%`,
                       zIndex: 1,
                     }}
                   />
-                  <div className="relative flex justify-between" style={{ zIndex: 2 }}>
+                  <div className="relative flex items-start justify-between gap-2 sm:gap-4" style={{ zIndex: 2 }}>
                     {steps.map((s, idx) => {
                       const progress = getStepProgress(s.id);
                       const isActive = s.id === step;
                       const isCompleted = progress === 100 && !isActive;
 
                       return (
-                        <div key={s.id} className="flex flex-col items-center gap-2">
+                        <div key={s.id} className="flex min-w-0 flex-1 flex-col items-center gap-2">
                           <div
-                            className={`
-                              relative w-10 h-10 rounded-full flex items-center justify-center
-                              transition-all duration-300 z-10 cursor-default
-                              ${isActive ? 'scale-110 shadow-lg bg-white border-4 border-primary text-primary' : ''}
-                              ${isCompleted ? 'bg-primary text-white border-2 border-primary' : ''}
-                              ${!isActive && !isCompleted ? 'bg-white border-2 border-gray-300 text-gray-400' : ''}
+                            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 cursor-default
+                              ${isActive ? "scale-110 border-4 border-primary bg-white text-primary shadow-lg shadow-primary/20 dark:bg-slate-950" : ""}
+                              ${isCompleted ? "border-2 border-primary bg-primary text-white" : ""}
+                              ${!isActive && !isCompleted ? "border-2 border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300" : ""}
                             `}
                           >
                             {isCompleted ? (
-                              <CheckCircle2 className="w-5 h-5" />
+                              <CheckCircle2 className="h-5 w-5" />
                             ) : (
                               <span className="text-sm font-bold">{idx + 1}</span>
                             )}
                             {isActive && !isCompleted && (
-                              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20" />
+                              <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
                             )}
                           </div>
-                          <span className={`
-                            text-xs font-medium text-center max-w-[80px] transition-colors duration-300
-                            ${isActive ? 'text-primary font-bold' : 'text-gray-500'}
-                          `}>
+                          <span
+                            className={`line-clamp-2 max-w-[98px] text-center text-[11px] font-medium leading-tight transition-colors duration-300 sm:text-xs
+                              ${isActive ? "font-bold text-primary" : "text-slate-500 dark:text-slate-300"}
+                            `}
+                          >
                             {s.label}
                           </span>
                         </div>
@@ -930,12 +1043,12 @@ const AdsListing = () => {
               )}
 
               {(step == 1 || step == 2) && categoryPath?.length > 0 && (
-                <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm text-gray-500">{t("selectedCategory")}</p>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-300">{t("selectedCategory")}</p>
                     <button 
                       onClick={handleCategoryReset}
-                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
+                      className="flex items-center gap-1 text-xs font-medium text-red-500 transition-colors hover:text-red-600"
                     >
                       <X size={14} />
                       Očisti sve
@@ -945,7 +1058,7 @@ const AdsListing = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={handleCategoryBack}
-                      className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors mr-1"
+                      className="mr-1 rounded-full border border-slate-200 bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                       title="Vrati se korak nazad"
                     >
                       <ArrowLeft size={16} />
@@ -957,8 +1070,8 @@ const AdsListing = () => {
                           className={`
                             text-sm px-3 py-1.5 rounded-lg transition-all duration-200
                             ${index === categoryPath.length - 1 
-                              ? "bg-primary/10 text-primary font-semibold border border-primary/20" 
-                              : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
+                              ? "border border-primary/25 bg-primary/10 font-semibold text-primary dark:border-primary/35 dark:bg-primary/20"
+                              : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                             }
                           `}
                           onClick={() => handleSelectedTabClick(item?.id)}
@@ -967,7 +1080,7 @@ const AdsListing = () => {
                         </button>
                         
                         {index !== categoryPath.length - 1 && (
-                          <ChevronRight size={16} className="text-gray-400 mx-1" />
+                          <ChevronRight size={16} className="mx-1 text-slate-400 dark:text-slate-500" />
                         )}
                       </div>
                     ))}
@@ -975,7 +1088,7 @@ const AdsListing = () => {
                 </div>
               )}
 
-              <div className="border rounded-lg p-6 bg-white shadow-sm">
+              <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
                 {step == 1 && (
                   <ComponentOne
                     categories={categories}
@@ -1028,6 +1141,15 @@ const AdsListing = () => {
                     setOtherImages={setOtherImagesProcessed}
                     uploadedVideo={uploadedVideo}
                     setUploadedVideo={setUploadedVideoValidated}
+                    addVideoToStory={addVideoToStory}
+                    setAddVideoToStory={setAddVideoToStory}
+                    publishToInstagram={publishToInstagram}
+                    setPublishToInstagram={setPublishToInstagram}
+                    instagramSourceUrl={instagramSourceUrl}
+                    onInstagramSourceUrlChange={setInstagramSourceUrl}
+                    onUseInstagramAsVideoLink={handleUseInstagramAsVideoLink}
+                    videoLink={defaultDetails?.video_link || ""}
+                    onVideoLinkChange={handleVideoLinkChange}
                     setStep={setStep}
                     handleGoBack={handleGoBack}
                   />
@@ -1048,38 +1170,45 @@ const AdsListing = () => {
 
             {/* 📱 Right Column - Live Preview */}
             <div className="lg:col-span-1">
-              <div className="sticky top-4 border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-white shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
+              <div className="sticky top-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:from-slate-900/80 dark:to-slate-950/85">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {t("Pregled oglasa")}
+                    </h3>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary dark:border-primary/35 dark:bg-primary/20">
+                    Live
+                  </span>
                 </div>
 
-                <div className="bg-white border border-gray-100 rounded-2xl flex flex-col h-full group overflow-hidden shadow-sm">
+                <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
                   {/* Image Area */}
-                  <div className="relative aspect-square bg-gray-100">
+                  <div className="relative aspect-square bg-slate-100 dark:bg-slate-800">
                     {/* ✅ FIX 2: Provjeravamo da li imamo URL prije renderovanja img taga */}
                     {uploadedImages.length > 0 && getPreviewImage() ? (
                       <img
                         src={getPreviewImage()}
                         alt="Preview"
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <Upload className="w-12 h-12" />
+                      <div className="flex h-full w-full items-center justify-center text-slate-400 dark:text-slate-500">
+                        <Upload className="h-12 w-12" />
                       </div>
                     )}
 
                     {/* SALE BADGE */}
                     {showDiscount && (
-                      <div className="absolute top-2 right-2 flex items-center justify-center bg-red-600 rounded-md w-[28px] h-[28px] shadow-sm backdrop-blur-sm z-10">
+                      <div className="absolute right-2 top-2 z-10 flex h-[28px] w-[28px] items-center justify-center rounded-md bg-red-600 shadow-sm backdrop-blur-sm">
                         <IconRosetteDiscount size={18} stroke={2} className="text-white" />
                       </div>
                     )}
 
                     {/* Image Counter with Icon */}
                     {(uploadedImages.length > 0 || otherImages.length > 0) && (
-                      <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[12px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-black/55 px-1.5 py-0.5 text-[12px] font-medium text-white backdrop-blur-md">
                         <Images size={12} />
                         <span className="text-xs">
                           {uploadedImages.length + otherImages.length}
@@ -1089,12 +1218,12 @@ const AdsListing = () => {
                   </div>
 
                   {/* Content Area */}
-                  <div className="flex flex-col gap-1.5 p-2 flex-grow">
-                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+                  <div className="flex flex-grow flex-col gap-1.5 p-3">
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-slate-900 dark:text-slate-100">
                       {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
                     </h3>
 
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
                       <MapPin size={12} />
                       <span className="truncate max-w-[150px]">{location?.city || t("Lokacija")}</span>
                     </div>
@@ -1105,7 +1234,7 @@ const AdsListing = () => {
                         {previewAttributes.map((attr, index) => (
                           <span
                             key={index}
-                            className="inline-flex px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded text-[10px] font-medium border border-gray-100"
+                            className="inline-flex rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
                           >
                             {attr}
                           </span>
@@ -1113,10 +1242,10 @@ const AdsListing = () => {
                       </div>
                     )}
 
-                    <div className="border-t border-gray-100 mt-1.5" />
+                    <div className="mt-1.5 border-t border-slate-100 dark:border-slate-700" />
 
-                    <div className="flex items-center justify-between gap-2 mt-1">
-                      <div className="flex items-center gap-1 text-gray-400">
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
                         <Clock size={12} />
                         <span className="text-[10px]">{t("Upravo sada")}</span>
                       </div>
@@ -1124,14 +1253,14 @@ const AdsListing = () => {
                       <div className="flex flex-col items-end">
                         {/* Stara cijena (Prekrižena) */}
                         {showDiscount && (
-                          <span className="text-[10px] text-gray-400 line-through decoration-red-400">
+                          <span className="text-[10px] text-slate-400 line-through decoration-red-400 dark:text-slate-500">
                             {formatPriceAbbreviated(oldPrice)}
                           </span>
                         )}
 
                         {/* Nova cijena */}
                         {!is_job_category ? (
-                          <span className={`text-sm font-bold ${showDiscount ? "text-red-600" : "text-gray-900"}`}>
+                          <span className={`text-sm font-bold ${showDiscount ? "text-red-600" : "text-slate-900 dark:text-slate-100"}`}>
                             {defaultDetails.price_on_request 
                               ? "Na upit" 
                               : defaultDetails.price 
@@ -1140,7 +1269,7 @@ const AdsListing = () => {
                             }
                           </span>
                         ) : (
-                          <div className="flex gap-1 text-sm font-bold text-gray-900">
+                          <div className="flex gap-1 text-sm font-bold text-slate-900 dark:text-slate-100">
                             {defaultDetails.min_salary && <span>{defaultDetails.min_salary}</span>}
                             {defaultDetails.max_salary && <span>- {defaultDetails.max_salary} KM</span>}
                           </div>
@@ -1153,10 +1282,10 @@ const AdsListing = () => {
                 <div className="mt-6 space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{t("Ocjena kvaliteta oglasa")}</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-200">{t("Ocjena kvaliteta oglasa")}</span>
                       <span className="text-primary font-semibold">{completenessScore}%</span>
                     </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                       <div
                         className="h-full bg-gradient-to-r from-primary to-green-500 transition-all duration-500"
                         style={{ width: `${completenessScore}%` }}
@@ -1166,25 +1295,25 @@ const AdsListing = () => {
 
                   <div className="space-y-2">
                     {uploadedImages.length === 0 && (
-                      <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <TrendingUp className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-yellow-800">
+                      <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-500/40 dark:bg-yellow-500/10">
+                        <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600 dark:text-yellow-300" />
+                        <p className="text-xs text-yellow-800 dark:text-yellow-100">
                           {t("Dodajte bar jednu sliku!")} (+20% {t("visibility")})
                         </p>
                       </div>
                     )}
                     {uploadedImages.length > 0 && otherImages.length < 3 && (
-                      <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <Star className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-blue-800">
+                      <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
+                        <Star className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-300" />
+                        <p className="text-xs text-blue-800 dark:text-blue-100">
                           {t("Dodajte još fotografija").replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {t("veća vidljivost!")})
                         </p>
                       </div>
                     )}
                     {defaultDetails.description && defaultDetails.description.length < 100 && (
-                      <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                        <Award className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-purple-800">{t("Detaljan opis")} (+10% {t("pouzdanost")})</p>
+                      <div className="flex items-start gap-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50 p-3 dark:border-fuchsia-500/40 dark:bg-fuchsia-500/10">
+                        <Award className="mt-0.5 h-4 w-4 shrink-0 text-fuchsia-600 dark:text-fuchsia-300" />
+                        <p className="text-xs text-fuchsia-800 dark:text-fuchsia-100">{t("Detaljan opis")} (+10% {t("pouzdanost")})</p>
                       </div>
                     )}
                   </div>
@@ -1193,6 +1322,86 @@ const AdsListing = () => {
             </div>
           </div>
         </div>
+
+        <AnimatePresence>
+          {showPublishFx && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md"
+            >
+              <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/35 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-cyan-400/35 blur-3xl" />
+
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                transition={{ duration: 0.25 }}
+                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-6 text-white shadow-[0_24px_90px_-35px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-7"
+              >
+                <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+
+                <div className="relative flex flex-col items-center text-center">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2.1, repeat: Infinity, ease: "linear" }}
+                    className="relative mb-5 h-24 w-24 rounded-full bg-[conic-gradient(from_180deg,#1d4ed8,#06b6d4,#ec4899,#1d4ed8)] p-[3px]"
+                  >
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-950/80">
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    </div>
+                  </motion.div>
+
+                  <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Publishing
+                  </div>
+
+                  <h3 className="text-xl font-semibold sm:text-2xl">{currentPublishStage.title}</h3>
+                  <p className="mt-2 text-sm text-white/80">{currentPublishStage.subtitle}</p>
+
+                  <div className="mt-6 w-full">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-primary via-cyan-400 to-fuchsia-400"
+                        animate={{ width: `${publishProgressPct}%` }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                      />
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-2 text-left">
+                      {PUBLISH_STAGES.map((stage, idx) => {
+                        const isDone = idx < publishStageIndex;
+                        const isCurrent = idx === publishStageIndex;
+                        return (
+                          <div
+                            key={stage.title}
+                            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all ${
+                              isCurrent
+                                ? "bg-white/20 text-white"
+                                : isDone
+                                ? "bg-emerald-400/20 text-emerald-100"
+                                : "bg-white/5 text-white/70"
+                            }`}
+                          >
+                            {isDone ? (
+                              <CheckCircle2 className="h-4 w-4 shrink-0" />
+                            ) : (
+                              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-white/70" />
+                            )}
+                            <span>{stage.title}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AdSuccessModal
           openSuccessModal={openSuccessModal}

@@ -24,6 +24,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import CustomImage from "@/components/Common/CustomImage";
 import Loader from "@/components/Common/Loader";
+import Layout from "@/components/Layout/Layout";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -193,26 +194,37 @@ export default function ComparePage() {
       return { max: maxVal, min: minVal, best: bestVal };
   }, [items]);
 
-  if (loading) return <div className="min-h-[60vh] flex justify-center items-center"><Loader /></div>;
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex justify-center items-center">
+          <Loader />
+        </div>
+      </Layout>
+    );
+  }
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in zoom-in-95 duration-300">
-        <div className="w-24 h-24 bg-slate-100 rounded-[2rem] flex items-center justify-center mb-6 text-slate-400 shadow-inner">
-            <IoSwapHorizontalOutline size={40} />
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-24 h-24 bg-slate-100 rounded-[2rem] flex items-center justify-center mb-6 text-slate-400 shadow-inner">
+              <IoSwapHorizontalOutline size={40} />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-3">Usporedba je prazna</h1>
+          <p className="text-slate-500 max-w-sm mb-8 text-lg">Odaberite oglase koje želite usporediti klikom na ikonu vage na kartici oglasa.</p>
+          <Link href="/ads">
+              <Button className="rounded-full px-8 py-6 bg-slate-900 hover:bg-slate-800 text-lg shadow-lg shadow-slate-200">Pretraži oglase</Button>
+          </Link>
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-3">Usporedba je prazna</h1>
-        <p className="text-slate-500 max-w-sm mb-8 text-lg">Odaberite oglase koje želite usporediti klikom na ikonu vage na kartici oglasa.</p>
-        <Link href="/ads">
-            <Button className="rounded-full px-8 py-6 bg-slate-900 hover:bg-slate-800 text-lg shadow-lg shadow-slate-200">Pretraži oglase</Button>
-        </Link>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-24 print:bg-white print:p-0">
-      <div className="container mx-auto px-0 md:px-4 max-w-[1400px]">
+    <Layout>
+      <div className="min-h-screen bg-slate-50/50 pb-24 print:bg-white print:p-0">
+        <div className="container mx-auto px-0 md:px-4 max-w-[1400px]">
         
         {/* HEADER - Desktop */}
         <div className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8 pt-8 px-4 md:px-0 print:hidden">
@@ -461,9 +473,9 @@ export default function ComparePage() {
         <div className="mt-8 text-center text-xs font-medium text-slate-400 md:hidden pb-8">
             <IoSwapHorizontalOutline className="inline mr-1"/> Prikaži više detalja klikom na oglas
         </div>
-      </div>
+        </div>
 
-      <style jsx global>{`
+        <style jsx global>{`
         @media print {
           body { background: white; }
           .print\\:hidden { display: none !important; }
@@ -475,7 +487,8 @@ export default function ComparePage() {
             background: #cbd5e1; 
             border-radius: 10px; 
         }
-      `}</style>
-    </div>
+        `}</style>
+      </div>
+    </Layout>
   );
 }

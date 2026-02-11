@@ -21,6 +21,8 @@ import {
   IoCalendarOutline,
   IoFlashOutline,
   IoSparkles,
+  IoVideocamOutline,
+  IoCheckmarkCircleOutline,
 } from "react-icons/io5";
 import { FaWhatsapp, FaViber } from "react-icons/fa";
 import { MdOutlineEmail, MdTouchApp } from "react-icons/md";
@@ -966,7 +968,7 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
   if (error) return <ErrorState onRetry={fetchStats} />;
   if (!stats) return <EmptyState />;
 
-  const { summary, daily, sources, devices, funnel, hourly } = stats;
+  const { summary, daily, sources, devices, funnel, hourly, reel, quick_actions } = stats;
 
   const periodViews = summary?.period?.views || 0;
   const periodFavorites = summary?.period?.favorites || 0;
@@ -989,6 +991,11 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
   const topDevice = getTopDevice(devices);
   const peakDay = getPeakDay(daily);
   const peakHour = getPeakHour(hourly);
+  const reelStats = reel || {};
+  const quickActions = Array.isArray(quick_actions) ? quick_actions : [];
+  const reelPlays = reelStats?.plays || summary?.period?.video_plays || 0;
+  const reelCompletionRate = reelStats?.completion_rate || 0;
+  const hasReelVideo = Boolean(reelStats?.has_video);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -1084,6 +1091,84 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
             {funnel?.conversion_rate || 0}%
           </span>
         </div>
+      </div>
+
+      {/* REEL + QUICK ACTIONS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <BentoBox title="Reel performanse" icon={IoVideocamOutline}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Video status</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">
+                  {hasReelVideo ? "Video aktivan" : "Nema videa"}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {hasReelVideo
+                    ? reelStats?.video_source === "youtube"
+                      ? "YouTube izvor"
+                      : reelStats?.video_source === "upload"
+                      ? "Direktni upload"
+                      : "Vanjski video link"
+                    : "Dodaj video za veci engagement"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Completion rate</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{formatPercent(reelCompletionRate)}</p>
+                <p className="mt-1 text-xs text-slate-400">Zavrsenih gledanja</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <MiniStat icon={IoEyeOutline} label="Video play" value={reelPlays} color="purple" />
+              <MiniStat icon={IoCheckmarkCircleOutline} label="Do kraja" value={reelStats?.completions || 0} color="green" />
+            </div>
+
+            {hasReelVideo && (
+              <div className="space-y-2">
+                <RateRow label="25% zadrzavanje" value={reelStats?.watch_25_rate || 0} color="bg-blue-500" />
+                <RateRow label="50% zadrzavanje" value={reelStats?.watch_50_rate || 0} color="bg-indigo-500" />
+                <RateRow label="75% zadrzavanje" value={reelStats?.watch_75_rate || 0} color="bg-violet-500" />
+              </div>
+            )}
+          </div>
+        </BentoBox>
+
+        <BentoBox title="Brze akcije" icon={IoSparkles}>
+          <div className="space-y-3">
+            {quickActions.length ? (
+              quickActions.map((action) => (
+                <div key={action.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-bold text-slate-800">{action.title}</h4>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        action.priority === "high"
+                          ? "bg-red-100 text-red-700"
+                          : action.priority === "medium"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {action.priority === "high"
+                        ? "Visok"
+                        : action.priority === "medium"
+                        ? "Srednji"
+                        : "Nizak"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500 leading-relaxed">{action.description}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-700">Nema preporuka za ovaj period.</p>
+                <p className="mt-1 text-xs text-slate-500">Statistika je stabilna, nastavi isti ritam.</p>
+              </div>
+            )}
+          </div>
+        </BentoBox>
       </div>
 
       {/* INSIGHTS */}

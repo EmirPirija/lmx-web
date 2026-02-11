@@ -16,6 +16,8 @@ import {
   CheckCheck,
   Clock,
   Star,
+  ArrowDown,
+  Search,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 const SendMessage = dynamic(() => import("./SendMessage"), { ssr: false });
@@ -76,14 +78,14 @@ const MessageStatusIcon = ({ status }) => {
 // 🆕 Komponenta za prikaz da je recenzija već ostavljena
 const ReviewAlreadySubmitted = ({ review }) => {
   return (
-    <div className="bg-green-50 border border-green-200 rounded-xl p-4 mx-4 mb-2">
+    <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-xl p-4 mx-4 mb-2">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
           <Star className="w-5 h-5 text-green-600 fill-green-600" />
         </div>
  
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-green-800">
+          <p className="text-sm font-medium text-green-800 dark:text-green-200">
             Već ste ostavili recenziju
           </p>
  
@@ -105,7 +107,7 @@ const ReviewAlreadySubmitted = ({ review }) => {
           </div>
  
           {review?.review && (
-            <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+            <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
               "{review.review}"
             </p>
           )}
@@ -114,11 +116,37 @@ const ReviewAlreadySubmitted = ({ review }) => {
     </div>
   );
 };
+
+const escapeRegExp = (value = "") =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const highlightQueryMatch = (text, query) => {
+  if (!query || typeof text !== "string") return text;
+
+  const safeQuery = query.trim();
+  if (!safeQuery) return text;
+
+  const regex = new RegExp(`(${escapeRegExp(safeQuery)})`, "ig");
+  const parts = text.split(regex);
+
+  return parts.map((part, index) =>
+    part.toLowerCase() === safeQuery.toLowerCase() ? (
+      <mark
+        key={`${part}-${index}`}
+        className="rounded bg-yellow-200/80 px-0.5 text-inherit dark:bg-yellow-400/35"
+      >
+        {part}
+      </mark>
+    ) : (
+      <Fragment key={`${part}-${index}`}>{part}</Fragment>
+    )
+  );
+};
  
-const renderMessageContent = (message, isCurrentUser) => {
+const renderMessageContent = (message, isCurrentUser, searchQuery = "") => {
   const baseTextClass = isCurrentUser
-    ? "text-white bg-primary p-2 rounded-md w-fit"
-    : "text-black bg-border p-2 rounded-md w-fit";
+    ? "text-white bg-primary px-3 py-2 rounded-2xl rounded-br-md w-fit shadow-sm"
+    : "text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 px-3 py-2 rounded-2xl rounded-bl-md w-fit border border-slate-200/80 dark:border-slate-700 shadow-sm";
  
   const audioStyles = isCurrentUser ? "border-primary" : "border-border";
   const isOptimistic = message.isOptimistic || message.status === "sending";
@@ -183,7 +211,9 @@ const renderMessageContent = (message, isCurrentUser) => {
             width={200}
             height={200}
           />
-          <div className="border-white/20">{message.message}</div>
+          <div className="border-white/20 whitespace-pre-wrap">
+            {highlightQueryMatch(message.message, searchQuery)}
+          </div>
           {isOptimistic && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-md">
               <Loader2 className="w-5 h-5 animate-spin text-white" />
@@ -201,7 +231,7 @@ const renderMessageContent = (message, isCurrentUser) => {
             isOptimistic && "opacity-70"
           )}
         >
-          {message?.message}
+          {highlightQueryMatch(message?.message, searchQuery)}
         </p>
       );
   }
@@ -228,8 +258,9 @@ const ChatMessages = ({
  
   // review modal state
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
  
-  const lastMessageDate = useRef(null);
+  const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const prevChatIdRef = useRef(null);
  
@@ -303,8 +334,8 @@ const ChatMessages = ({
     const currentChatId = selectedChatDetails?.id;
  
     if (currentChatId && currentChatId !== prevChatIdRef.current) {
-      lastMessageDate.current = null;
       setChatMessages([]);
+      setShowScrollToBottom(false);
  
       // zatvori modal kad se promijeni chat
       setShowReviewDialog(false);
@@ -411,8 +442,20 @@ const ChatMessages = ({
     }
   };
  
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = useCallback((behavior = "smooth") => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior });
+  }, []);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    setShowScrollToBottom(distanceFromBottom > 180);
   }, []);
  
   useEffect(() => {
@@ -420,14 +463,29 @@ const ChatMessages = ({
       scrollToBottom();
     }
   }, [chatMessages.length, IsLoading, isLoadPrevMesg, scrollToBottom, searchQuery]);
+
+  const searchMatchCount = searchQuery ? filteredMessages.length : 0;
  
   return (
     <>
-      <div className="flex-1 overflow-y-auto bg-muted p-4 flex flex-col gap-2.5 relative">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleMessagesScroll}
+        className="relative flex-1 overflow-y-auto bg-gradient-to-b from-slate-100/70 via-slate-50 to-white p-4 sm:p-5 flex flex-col gap-2.5 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800"
+      >
         {IsLoading ? (
           <ChatMessagesSkeleton />
         ) : (
           <>
+            {searchQuery && (
+              <div className="sticky top-2 z-20 mx-auto mb-1 inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300">
+                <Search className="h-3.5 w-3.5" />
+                {searchMatchCount > 0
+                  ? `${searchMatchCount} rezultata za "${searchQuery}"`
+                  : `Nema rezultata za "${searchQuery}"`}
+              </div>
+            )}
+
             {/* Review popup (modal) */}
             {showReviewDialog && canLeaveReview && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 p-4">
@@ -450,7 +508,7 @@ const ChatMessages = ({
                 <button
                   onClick={() => fetchChatMessages(currentMessagesPage + 1)}
                   disabled={isLoadPrevMesg}
-                  className="text-primary text-sm font-medium px-3 py-1.5 bg-white/90 rounded-full shadow-md hover:bg-white flex items-center gap-1.5 transition-all hover:shadow-lg"
+                  className="text-primary text-sm font-medium px-3 py-1.5 bg-white/90 dark:bg-slate-900 rounded-full shadow-md hover:bg-white dark:hover:bg-slate-800 flex items-center gap-1.5 transition-all hover:shadow-lg"
                 >
                   {isLoadPrevMesg ? (
                     <>
@@ -473,8 +531,10 @@ const ChatMessages = ({
               !searchQuery && (
                 <div
                   className={cn(
-                    "flex flex-col gap-1 rounded-md p-2 w-fit",
-                    isSelling ? "bg-border" : "bg-primary text-white self-end"
+                    "flex flex-col gap-1 rounded-xl p-2.5 w-fit border shadow-sm",
+                    isSelling
+                      ? "bg-white border-slate-200 text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                      : "bg-primary text-white self-end border-primary/20"
                   )}
                 >
                   <p className="text-sm">
@@ -488,21 +548,21 @@ const ChatMessages = ({
  
             {/* Messages */}
             {filteredMessages.length > 0 ? (
-              filteredMessages.map((message) => {
-                const messageDate = formatMessageDate(message.created_at);
-                const showDateSeparator =
-                  messageDate !== lastMessageDate.current;
-                if (showDateSeparator) {
-                  lastMessageDate.current = messageDate;
-                }
- 
+              (() => {
+                let previousMessageDate = null;
+
+                return filteredMessages.map((message) => {
+                  const messageDate = formatMessageDate(message.created_at);
+                  const showDateSeparator = messageDate !== previousMessageDate;
+                  if (showDateSeparator) previousMessageDate = messageDate;
+
                 const isCurrentUser = message.sender_id === userId;
                 const messageStatus = message.status || "sent";
  
                 return (
                   <Fragment key={message?.id}>
                     {showDateSeparator && (
-                      <p className="text-xs bg-[#f1f1f1] py-1 px-2 rounded-lg text-muted-foreground my-5 mx-auto">
+                      <p className="text-[11px] bg-white/85 dark:bg-slate-900/85 border border-slate-200 dark:border-slate-700 py-1 px-2.5 rounded-full text-slate-500 dark:text-slate-400 my-5 mx-auto shadow-sm backdrop-blur">
                         {messageDate}
                       </p>
                     )}
@@ -514,9 +574,9 @@ const ChatMessages = ({
                           message.message_type === "audio" && "w-full"
                         )}
                       >
-                        {renderMessageContent(message, true)}
+                        {renderMessageContent(message, true, searchQuery)}
                         <div className="flex items-center justify-end gap-1">
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-slate-400">
                             {formatChatMessageTime(message?.created_at)}
                           </p>
                           <MessageStatusIcon status={messageStatus} />
@@ -529,18 +589,19 @@ const ChatMessages = ({
                           message.message_type === "audio" && "w-full"
                         )}
                       >
-                        {renderMessageContent(message, false)}
-                        <p className="text-xs text-muted-foreground ltr:text-left rtl:text-right">
+                        {renderMessageContent(message, false, searchQuery)}
+                        <p className="text-xs text-slate-400 dark:text-slate-500 ltr:text-left rtl:text-right">
                           {formatChatMessageTime(message?.created_at)}
                         </p>
                       </div>
                     )}
                   </Fragment>
                 );
-              })
+                });
+              })()
             ) : (
               searchQuery && (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 pt-10">
+                <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 gap-2 pt-10">
                   <span className="text-4xl">🔍</span>
                   <p>Nema pronađenih poruka za "{searchQuery}"</p>
                 </div>
@@ -550,18 +611,18 @@ const ChatMessages = ({
             {/* Typing indicator */}
             {isOtherUserTyping && !searchQuery && (
               <div className="flex flex-col gap-1 max-w-[80%]">
-                <div className="text-black bg-border p-3 rounded-md w-fit">
+                <div className="text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl rounded-bl-md w-fit shadow-sm">
                   <div className="flex gap-1.5 items-center">
                     <span
-                      className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-slate-500 rounded-full animate-bounce"
                       style={{ animationDelay: "0ms" }}
                     ></span>
                     <span
-                      className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-slate-500 rounded-full animate-bounce"
                       style={{ animationDelay: "150ms" }}
                     ></span>
                     <span
-                      className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-slate-500 rounded-full animate-bounce"
                       style={{ animationDelay: "300ms" }}
                     ></span>
                   </div>
@@ -570,6 +631,17 @@ const ChatMessages = ({
             )}
  
             <div ref={messagesEndRef} />
+
+            {showScrollToBottom && !searchQuery && (
+              <button
+                type="button"
+                onClick={() => scrollToBottom()}
+                className="sticky bottom-2 ml-auto inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur transition hover:border-primary/30 hover:text-primary dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-300"
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+                Najnovije poruke
+              </button>
+            )}
           </>
         )}
       </div>

@@ -87,6 +87,106 @@ export default function LmxAvatarSvg({ avatarId = "lmx-01", className = "" }) {
         </svg>
       );
 
+    case "lmx-09": // Compass
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" fill="#E0F2F1" rx="12" />
+          <circle cx="32" cy="32" r="18" fill="#009688" opacity="0.2" />
+          <circle cx="32" cy="32" r="14" fill="none" stroke="#009688" strokeWidth="3" />
+          <path d="M25 39 L39 25 L35 35 Z" fill="#00796B" />
+          <circle cx="32" cy="32" r="2.5" fill="#004D40" />
+        </svg>
+      );
+
+    case "lmx-10": // Pulse
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" fill="#E8EAF6" rx="12" />
+          <path
+            d="M10 36 H20 L24 24 L30 44 L36 20 L42 36 H54"
+            fill="none"
+            stroke="#3F51B5"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="32" cy="32" r="18" fill="none" stroke="#7986CB" strokeWidth="1.5" opacity="0.5" />
+        </svg>
+      );
+
+    case "lmx-11": // Shield
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" fill="#F1F8E9" rx="12" />
+          <path d="M32 10 L48 16 V30 C48 42 41 50 32 54 C23 50 16 42 16 30 V16 Z" fill="#689F38" />
+          <path d="M24 31 L30 37 L40 25" fill="none" stroke="#DCEDC8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+
+    case "lmx-12": // Crown
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" fill="#FFF8E1" rx="12" />
+          <path d="M12 42 L18 18 L32 30 L46 18 L52 42 Z" fill="#FBC02D" />
+          <rect x="12" y="42" width="40" height="8" rx="2" fill="#F9A825" />
+          <circle cx="18" cy="18" r="3" fill="#FFE082" />
+          <circle cx="32" cy="30" r="3" fill="#FFE082" />
+          <circle cx="46" cy="18" r="3" fill="#FFE082" />
+        </svg>
+      );
+
+    case "lmx-13": // Wave
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <defs>
+            <linearGradient id="w13" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#00ACC1" />
+              <stop offset="100%" stopColor="#006064" />
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" fill="#E0F7FA" rx="12" />
+          <path d="M8 38 C14 30, 22 46, 30 38 C38 30, 46 46, 56 36" stroke="url(#w13)" strokeWidth="5" fill="none" strokeLinecap="round" />
+          <path d="M8 28 C14 20, 22 36, 30 28 C38 20, 46 36, 56 26" stroke="#4DD0E1" strokeWidth="3" fill="none" strokeLinecap="round" />
+        </svg>
+      );
+
+    case "lmx-14": // Spark
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" fill="#FBE9E7" rx="12" />
+          <path d="M32 10 L37 24 L52 24 L40 33 L45 48 L32 39 L19 48 L24 33 L12 24 L27 24 Z" fill="#FF7043" />
+          <circle cx="49" cy="14" r="3" fill="#FFCCBC" />
+          <circle cx="14" cy="49" r="2.5" fill="#FFCCBC" />
+        </svg>
+      );
+
+    case "lmx-15": // Pixel
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" fill="#ECEFF1" rx="12" />
+          <rect x="18" y="18" width="8" height="8" fill="#455A64" />
+          <rect x="28" y="18" width="8" height="8" fill="#607D8B" />
+          <rect x="38" y="18" width="8" height="8" fill="#455A64" />
+          <rect x="18" y="28" width="8" height="8" fill="#607D8B" />
+          <rect x="28" y="28" width="8" height="8" fill="#263238" />
+          <rect x="38" y="28" width="8" height="8" fill="#607D8B" />
+          <rect x="18" y="38" width="8" height="8" fill="#455A64" />
+          <rect x="28" y="38" width="8" height="8" fill="#607D8B" />
+          <rect x="38" y="38" width="8" height="8" fill="#455A64" />
+        </svg>
+      );
+
+    case "lmx-16": // Orbit
+      return (
+        <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+          <rect width="64" height="64" fill="#EDE7F6" rx="12" />
+          <circle cx="32" cy="32" r="6" fill="#7E57C2" />
+          <ellipse cx="32" cy="32" rx="20" ry="9" fill="none" stroke="#9575CD" strokeWidth="2.5" />
+          <ellipse cx="32" cy="32" rx="9" ry="20" fill="none" stroke="#B39DDB" strokeWidth="2" />
+          <circle cx="50" cy="32" r="3" fill="#5E35B1" />
+        </svg>
+      );
+
     case "lmx-01":
     default: // Shop (Plava - Default)
       return (

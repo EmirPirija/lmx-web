@@ -6,17 +6,19 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AdsCard from "./MyAdsCard.jsx";
+import SellerAnalyticsOverview from "./SellerAnalyticsOverview";
 import {
   deleteItemApi,
   getMyItemsApi,
   renewItemApi,
   chanegItemStatusApi,
+  createFeaturedItemApi,
+  inventoryApi,
 } from "@/utils/api";
 import { useSelector } from "react-redux";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton.jsx";
@@ -37,8 +39,6 @@ import {
   TrendingDown,
   TrendingUp,
   Flame,
-  Filter,
-  ArrowUpDown,
   CheckCircle,
   EyeOff,
   ShoppingBag,
@@ -49,16 +49,14 @@ import {
   Trash2,
   RotateCcw,
   Loader2,
-  ChevronDown,
   Layers,
-  Package,
 } from "lucide-react";
 
 // ============================================
 // COMPONENTS
 // ============================================
 
-function StatusTab({ item, count, isActive, onClick }) {
+function StatusTab({ item, count, isActive, onClick, compact = false, scope = "desktop" }) {
   const icons = {
     approved: CheckCircle,
     inactive: EyeOff,
@@ -66,29 +64,51 @@ function StatusTab({ item, count, isActive, onClick }) {
     featured: Star,
     expired: AlertTriangle,
     resubmitted: RefreshCw,
+    renew_due: RefreshCw,
   };
   const Icon = icons[item.value] || Layers;
+  const tones = {
+    approved: "text-emerald-600 dark:text-emerald-400",
+    inactive: "text-amber-600 dark:text-amber-400",
+    "sold out": "text-slate-500 dark:text-slate-400",
+    featured: "text-violet-600 dark:text-violet-400",
+    expired: "text-rose-600 dark:text-rose-400",
+    resubmitted: "text-sky-600 dark:text-sky-400",
+    renew_due: "text-sky-600 dark:text-sky-400",
+  };
+  const toneClass = tones[item.value] || "text-slate-600 dark:text-slate-300";
 
   return (
     <motion.button
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "group relative flex items-center gap-2 px-4 py-3 rounded-2xl transition-all duration-300 whitespace-nowrap",
+        "group relative overflow-hidden inline-flex items-center gap-2.5 whitespace-nowrap rounded-2xl transition-all duration-200",
+        compact ? "px-3 py-2.5" : "px-3.5 py-2.5",
         isActive
-          ? "bg-gradient-to-r from-primary to-orange-500 text-white shadow-lg shadow-primary/30"
-          : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+          ? "text-white dark:text-slate-900 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.75)]"
+          : "border border-slate-200/80 dark:border-slate-700 bg-white/85 dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-white dark:hover:bg-slate-900"
       )}
     >
-      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-      <span className="font-semibold text-sm">{item.label}</span>
+      {isActive && (
+        <motion.span
+          layoutId={`myads-status-active-${scope}`}
+          className="absolute inset-0 rounded-2xl bg-slate-900 dark:bg-slate-100"
+          transition={{ type: "spring", stiffness: 340, damping: 30 }}
+        />
+      )}
+
+      <span className={cn("relative z-10", isActive ? "text-white dark:text-slate-900" : toneClass)}>
+        <Icon size={compact ? 16 : 17} strokeWidth={2.2} />
+      </span>
+      <span className={cn("relative z-10 font-semibold", compact ? "text-[13px]" : "text-sm")}>{item.label}</span>
       <span
         className={cn(
-          "min-w-[24px] h-6 px-2 flex items-center justify-center text-xs font-bold rounded-full transition-all",
+          "relative z-10 min-w-[24px] h-6 px-2 inline-flex items-center justify-center rounded-full text-xs font-bold border transition-all",
           isActive
-            ? "bg-white/20 text-white"
-            : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+            ? "bg-white/15 border-white/20 text-white dark:bg-slate-900/10 dark:border-slate-300 dark:text-slate-900"
+            : "bg-slate-100 dark:bg-slate-700/80 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300"
         )}
       >
         {count}
@@ -97,7 +117,7 @@ function StatusTab({ item, count, isActive, onClick }) {
   );
 }
 
-function SortButton({ value, onChange, isRTL }) {
+function SortButton({ value, onChange, isRTL, fullWidth = false, showLabelOnMobile = false }) {
   const sortOptions = [
     { value: "new-to-old", label: "Najnovije prvo", icon: Clock },
     { value: "old-to-new", label: "Najstarije prvo", icon: History },
@@ -111,10 +131,22 @@ function SortButton({ value, onChange, isRTL }) {
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-12 px-4 gap-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl hover:border-primary/50 transition-all">
-        <div className="flex items-center gap-2">
-          <CurrentIcon size={18} className="text-slate-500" />
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline">
+      <SelectTrigger
+        className={cn(
+          "h-11 px-3.5 gap-2 rounded-2xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600 transition-all",
+          fullWidth && "w-full"
+        )}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500">
+            <CurrentIcon size={16} />
+          </span>
+          <span
+            className={cn(
+              "truncate text-sm font-medium text-slate-700 dark:text-slate-300",
+              showLabelOnMobile ? "inline" : "hidden sm:inline"
+            )}
+          >
             {currentOption.label}
           </span>
         </div>
@@ -180,59 +212,44 @@ function SelectionBar({ count, onSelectAll, onCancel, allSelected, onDelete, onR
   );
 }
 
-function MobileFilterSheet({ isOpen, onClose, tabs, status, statusCounts, onStatusChange }) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-[2rem] z-50 max-h-[80vh] overflow-y-auto"
-          >
-            <div className="p-6">
-              <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-6" />
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Filter statusa</h3>
-              <div className="space-y-2">
-                {tabs.map((tab) => {
-                  const isActive = status === tab.value;
-                  return (
-                    <button
-                      key={tab.value}
-                      onClick={() => { onStatusChange(tab.value); onClose(); }}
-                      className={cn(
-                        "w-full flex items-center justify-between p-4 rounded-2xl transition-all",
-                        isActive
-                          ? "bg-gradient-to-r from-primary to-orange-500 text-white"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                      )}
-                    >
-                      <span className="font-semibold">{tab.label}</span>
-                      <span className={cn("font-bold", isActive ? "text-white" : "text-slate-500")}>{statusCounts[tab.value] || 0}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
 // ============================================
 // MAIN COMPONENT
 // ============================================
+
+const RENEW_DUE_STATUS = "renew_due";
+const POSITION_RENEW_COOLDOWN_DAYS = 15;
+
+const parseDateSafe = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  if (typeof value === "string" && value.includes(" ")) {
+    const normalized = new Date(value.replace(" ", "T"));
+    if (!Number.isNaN(normalized.getTime())) return normalized;
+  }
+
+  return null;
+};
+
+const isAdEligibleForPositionRenew = (item, now = new Date()) => {
+  if (!item) return false;
+
+  const status = String(item?.status || "").toLowerCase();
+  const isApproved = status === "approved" || status === "featured";
+  if (!isApproved) return false;
+  if (item?.is_feature) return false;
+
+  const expiryDate = parseDateSafe(item?.expiry_date);
+  if (expiryDate && expiryDate <= now) return false;
+
+  const baseline = parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at);
+  if (!baseline) return false;
+
+  const nextAllowed = new Date(baseline);
+  nextAllowed.setDate(nextAllowed.getDate() + POSITION_RENEW_COOLDOWN_DAYS);
+  return now >= nextAllowed;
+};
 
 const MyAds = () => {
   const { navigate } = useNavigate();
@@ -241,7 +258,8 @@ const MyAds = () => {
   const isFreeAdListing = useSelector(getIsFreAdListing);
 
   const sortValue = searchParams.get("sort") || "new-to-old";
-  const status = searchParams.get("status") || "approved";
+  const rawStatus = searchParams.get("status") || "approved";
+  const status = rawStatus === "resubmitted" ? RENEW_DUE_STATUS : rawStatus;
 
   const [MyItems, setMyItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -250,7 +268,7 @@ const MyAds = () => {
   const [IsLoadMore, setIsLoadMore] = useState(false);
 
   const [statusCounts, setStatusCounts] = useState({
-    approved: 0, inactive: 0, "sold out": 0, featured: 0, expired: 0, resubmitted: 0,
+    approved: 0, inactive: 0, "sold out": 0, featured: 0, expired: 0, [RENEW_DUE_STATUS]: 0,
   });
 
   const [ItemPackages, setItemPackages] = useState([]);
@@ -262,24 +280,51 @@ const MyAds = () => {
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [isRenewingAd, setIsRenewingAd] = useState(false);
 
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-
   const tabs = useMemo(() => [
     { value: "approved", label: "Aktivni" },
     { value: "inactive", label: "Skriveni" },
     { value: "sold out", label: "Završeni" },
     { value: "featured", label: "Istaknuti" },
     { value: "expired", label: "Istekli" },
-    { value: "resubmitted", label: "Za obnovu" },
+    { value: RENEW_DUE_STATUS, label: "Za obnovu" },
   ], []);
 
   const expiredAds = useMemo(() => MyItems.filter((item) => item.status === "expired"), [MyItems]);
   const canMultiSelect = expiredAds.length > 1;
 
+  const fetchRenewDueItems = useCallback(
+    async ({ sortBy = sortValue } = {}) => {
+      const approvedItems = [];
+      let page = 1;
+      let lastPage = 1;
+      let safetyCounter = 0;
+
+      do {
+        const res = await getMyItemsApi.getMyItems({
+          status: "approved",
+          page,
+          sort_by: sortBy,
+        });
+        const payload = res?.data?.data;
+        const rows = payload?.data || [];
+
+        approvedItems.push(...rows);
+        lastPage = Number(payload?.last_page || 1);
+        page += 1;
+        safetyCounter += 1;
+      } while (page <= lastPage && safetyCounter < 100);
+
+      const now = new Date();
+      return approvedItems.filter((item) => isAdEligibleForPositionRenew(item, now));
+    },
+    [sortValue]
+  );
+
   // Fetch counts
   useEffect(() => {
     const fetchAllCounts = async () => {
-      const promises = tabs.map(async (t) => {
+      const regularTabs = tabs.filter((t) => t.value !== RENEW_DUE_STATUS);
+      const promises = regularTabs.map(async (t) => {
         try {
           const res = await getMyItemsApi.getMyItems({ status: t.value, page: 1, sort_by: "new-to-old" });
           return { status: t.value, count: res?.data?.data?.total || 0 };
@@ -288,17 +333,35 @@ const MyAds = () => {
       const results = await Promise.all(promises);
       const newCounts = {};
       results.forEach((item) => { newCounts[item.status] = item.count; });
+      try {
+        const renewDueItems = await fetchRenewDueItems({ sortBy: "new-to-old" });
+        newCounts[RENEW_DUE_STATUS] = renewDueItems.length;
+      } catch {
+        newCounts[RENEW_DUE_STATUS] = 0;
+      }
       setStatusCounts((prev) => ({ ...prev, ...newCounts }));
     };
     fetchAllCounts();
-  }, []);
+  }, [tabs, fetchRenewDueItems]);
 
   // Fetch items
   const getMyItemsData = useCallback(async (page = 1) => {
     try {
+      page > 1 ? setIsLoadMore(true) : setIsLoading(true);
+
+      if (status === RENEW_DUE_STATUS) {
+        if (page > 1) return;
+
+        const renewDueItems = await fetchRenewDueItems({ sortBy: sortValue });
+        setMyItems(renewDueItems);
+        setCurrentPage(1);
+        setLastPage(1);
+        setStatusCounts((prev) => ({ ...prev, [RENEW_DUE_STATUS]: renewDueItems.length }));
+        return;
+      }
+
       const params = { page, sort_by: sortValue };
       if (status !== "all") params.status = status;
-      page > 1 ? setIsLoadMore(true) : setIsLoading(true);
 
       const res = await getMyItemsApi.getMyItems(params);
       const data = res?.data;
@@ -311,7 +374,7 @@ const MyAds = () => {
       }
     } catch (error) { console.error(error); }
     finally { setIsLoading(false); setIsLoadMore(false); }
-  }, [sortValue, status]);
+  }, [sortValue, status, fetchRenewDueItems]);
 
   useEffect(() => { getMyItemsData(1); }, [getMyItemsData]);
 
@@ -367,9 +430,9 @@ const MyAds = () => {
     finally { setIsRenewingAd(false); }
   };
 
-  const handleRenew = (ids) => {
+  const handleRenew = (ids, { allowWithoutPackage = false } = {}) => {
     const idsToRenew = Array.isArray(ids) ? ids : renewIds;
-    if (isFreeAdListing) {
+    if (isFreeAdListing || allowWithoutPackage) {
       renewAds({ ids: idsToRenew });
     } else {
       if (!selectedPackageId) { toast.error("Molimo odaberite paket."); return; }
@@ -432,55 +495,172 @@ const MyAds = () => {
     } catch (error) { console.error(error); toast.error("Greška pri označavanju oglasa."); }
   };
 
-  const handleContextMenuAction = (action, adId, buyerId = null) => {
+  const handleFeatureAd = async (adId, options = {}) => {
+    try {
+      const placement = options?.placement || "category_home";
+      const durationDays = Number(options?.duration_days || 30);
+
+      const res = await createFeaturedItemApi.createFeaturedItem({
+        item_id: adId,
+        placement,
+        duration_days: durationDays,
+      });
+
+      if (res?.data?.error === false) {
+        toast.success(res?.data?.message || "Oglas je uspješno izdvojen.");
+        setMyItems((prev) =>
+          prev.map((item) => (item.id === adId ? { ...item, is_feature: true } : item))
+        );
+
+        try {
+          const featuredRes = await getMyItemsApi.getMyItems({
+            status: "featured",
+            page: 1,
+            sort_by: "new-to-old",
+          });
+          const featuredCount = Number(featuredRes?.data?.data?.total);
+          if (Number.isFinite(featuredCount)) {
+            setStatusCounts((prev) => ({ ...prev, featured: featuredCount }));
+          }
+        } catch {}
+
+        await getMyItemsData(1);
+      } else {
+        toast.error(res?.data?.message || "Greška pri izdvajanju oglasa.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Greška pri izdvajanju oglasa.");
+    }
+  };
+
+  const handleReserveAd = async (adId) => {
+    try {
+      const res = await inventoryApi.reserveItem({ item_id: adId });
+      if (res?.data?.error === false) {
+        toast.success(res?.data?.message || "Oglas je označen kao rezervisan.");
+        setMyItems((prev) =>
+          prev.map((item) =>
+            item.id === adId
+              ? {
+                  ...item,
+                  reservation_status: "reserved",
+                }
+              : item
+          )
+        );
+      } else {
+        toast.error(res?.data?.message || "Greška pri rezervaciji oglasa.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Greška pri rezervaciji oglasa.");
+    }
+  };
+
+  const handleUnreserveAd = async (adId) => {
+    try {
+      const res = await inventoryApi.removeReservation({ item_id: adId });
+      if (res?.data?.error === false) {
+        toast.success(res?.data?.message || "Rezervacija je uklonjena.");
+        setMyItems((prev) =>
+          prev.map((item) =>
+            item.id === adId
+              ? {
+                  ...item,
+                  reservation_status: "none",
+                }
+              : item
+          )
+        );
+      } else {
+        toast.error(res?.data?.message || "Greška pri uklanjanju rezervacije.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Greška pri uklanjanju rezervacije.");
+    }
+  };
+
+  const handleContextMenuAction = (action, adId, payload = null) => {
     switch (action) {
       case "select": if (MyItems.find((i) => i.id === adId)?.status === "expired") handleAdSelection(adId); break;
       case "edit": navigate(`/edit-listing/${adId}`); break;
       case "deactivate": handleDeactivateAd(adId); break;
       case "activate": handleActivateAd(adId); break;
-      case "markAsSoldOut": handleMarkAsSoldOut(adId, buyerId); break;
-      case "renew": isFreeAdListing ? handleRenew([adId]) : (setRenewIds([adId]), setIsChoosePackage(true)); break;
+      case "markAsSoldOut": handleMarkAsSoldOut(adId, payload); break;
+      case "feature": handleFeatureAd(adId, payload || {}); break;
+      case "reserve": handleReserveAd(adId); break;
+      case "unreserve": handleUnreserveAd(adId); break;
+      case "renew": {
+        const currentItem = MyItems.find((i) => i.id === adId);
+        const isExpired = currentItem?.status === "expired";
+        if (isExpired) {
+          isFreeAdListing ? handleRenew([adId]) : (setRenewIds([adId]), setIsChoosePackage(true));
+        } else {
+          handleRenew([adId], { allowWithoutPackage: true });
+        }
+        break;
+      }
       case "delete": setSelectedIds([adId]); setIsDeleteDialog(true); break;
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Filter Bar */}
-      <div className="flex flex-col gap-4">
-        {/* Desktop Tabs */}
-        <div className="hidden lg:flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-            {tabs.map((tab) => (
-              <StatusTab
-                key={tab.value}
-                item={tab}
-                count={statusCounts[tab.value] || 0}
-                isActive={status === tab.value}
-                onClick={() => handleStatusChange(tab.value)}
-              />
-            ))}
-          </div>
-          <SortButton value={sortValue} onChange={handleSortChange} isRTL={isRTL} />
-        </div>
+      <SellerAnalyticsOverview />
 
-        {/* Mobile Filters */}
-        <div className="lg:hidden flex items-center gap-3">
-          <button
-            onClick={() => setMobileFilterOpen(true)}
-            className="flex-1 flex items-center justify-between p-4 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl"
-          >
-            <div className="flex items-center gap-3">
-              <Filter size={20} className="text-slate-500" />
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {tabs.find((t) => t.value === status)?.label || "Aktivni"}
+      {/* Filter Bar */}
+      <div className="space-y-3">
+        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_18px_60px_-46px_rgba(15,23,42,0.65)] p-3 sm:p-4">
+          <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_270px] lg:items-center lg:gap-3">
+            <div className="min-w-0 overflow-x-auto scrollbar-none">
+              <div className="flex w-max items-center gap-2 pr-1">
+                {tabs.map((tab) => (
+                  <StatusTab
+                    key={tab.value}
+                    item={tab}
+                    count={statusCounts[tab.value] || 0}
+                    isActive={status === tab.value}
+                    onClick={() => handleStatusChange(tab.value)}
+                    scope="desktop"
+                  />
+                ))}
+              </div>
+            </div>
+            <SortButton value={sortValue} onChange={handleSortChange} isRTL={isRTL} fullWidth />
+          </div>
+
+          <div className="lg:hidden space-y-3">
+            <div className="flex items-center justify-between px-0.5">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Status oglasa</p>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                {tabs.find((t) => t.value === status)?.label}: {statusCounts[status] || 0}
               </span>
             </div>
-            <span className="px-3 py-1 bg-primary/10 text-primary font-bold rounded-full text-sm">
-              {statusCounts[status] || 0}
-            </span>
-          </button>
-          <SortButton value={sortValue} onChange={handleSortChange} isRTL={isRTL} />
+            <div className="overflow-x-auto scrollbar-none -mx-1 px-1 pb-0.5">
+              <div className="flex w-max items-center gap-2">
+                {tabs.map((tab) => (
+                  <StatusTab
+                    key={tab.value}
+                    item={tab}
+                    count={statusCounts[tab.value] || 0}
+                    isActive={status === tab.value}
+                    onClick={() => handleStatusChange(tab.value)}
+                    compact
+                    scope="mobile"
+                  />
+                ))}
+              </div>
+            </div>
+            <SortButton
+              value={sortValue}
+              onChange={handleSortChange}
+              isRTL={isRTL}
+              fullWidth
+              showLabelOnMobile
+            />
+          </div>
         </div>
       </div>
 
@@ -500,7 +680,7 @@ const MyAds = () => {
       </AnimatePresence>
 
       {/* Ads Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
         {IsLoading ? (
           [...Array(8)].map((_, i) => (
             <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}>
@@ -554,16 +734,6 @@ const MyAds = () => {
           </Button>
         </div>
       )}
-
-      {/* Mobile Filter Sheet */}
-      <MobileFilterSheet
-        isOpen={mobileFilterOpen}
-        onClose={() => setMobileFilterOpen(false)}
-        tabs={tabs}
-        status={status}
-        statusCounts={statusCounts}
-        onStatusChange={handleStatusChange}
-      />
 
       {/* Modals */}
       <ChoosePackageModal

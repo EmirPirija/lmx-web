@@ -1,34 +1,24 @@
 import { Skeleton } from "../ui/skeleton";
 
 const ProductHorizontalCardSkeleton = () => {
-    return (
-        <div className="border p-2 rounded-md flex gap-2 sm:gap-4 w-full relative">
-            {/* Product image skeleton */}
-            <Skeleton className="w-[100px] sm:w-[219px] h-auto aspect-square sm:aspect-[219/190] rounded" />
+  return (
+    <div className="relative flex w-full overflow-hidden rounded-2xl border border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <Skeleton className="aspect-square w-[140px] shrink-0 sm:w-[200px] md:w-[230px]" />
 
-            {/* Like button skeleton */}
-            <Skeleton className="absolute h-8 w-8 ltr:right-2 rtl:left-2 top-2 rounded-full" />
-
-            <div className="flex flex-col gap-1 sm:gap-2 flex-1">
-                {/* Featured badge skeleton */}
-                <Skeleton className="h-6 w-24 rounded-md mb-1" />
-
-                {/* Price skeleton */}
-                <Skeleton className="h-5 sm:h-6 w-24 rounded" />
-
-                {/* Name skeleton */}
-                <Skeleton className="h-4 sm:h-5 w-3/4 rounded" />
-
-                {/* Location skeleton */}
-                <Skeleton className="h-3 sm:h-4 w-1/2 rounded" />
-
-                {/* Date skeleton */}
-                <div className="flex justify-end mt-auto">
-                    <Skeleton className="h-3 sm:h-4 w-24 rounded" />
-                </div>
-            </div>
+      <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <div className="flex gap-1.5">
+          <Skeleton className="h-5 w-16" />
+          <Skeleton className="h-5 w-12" />
         </div>
-    );
+        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-5 w-20" />
+        </div>
+      </div>
+    </div>
+  );
 };
 
-export default ProductHorizontalCardSkeleton; 
+export default ProductHorizontalCardSkeleton;

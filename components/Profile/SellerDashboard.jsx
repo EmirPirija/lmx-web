@@ -409,6 +409,21 @@ export default function SellerDashboard() {
     fetchAll();
   }, [fetchAll]);
 
+  useEffect(() => {
+    if (!userData) return;
+
+    const handleRealtimeRefresh = (event) => {
+      const detail = event?.detail;
+      if (!detail) return;
+      if (detail?.category === "notification" || detail?.category === "chat" || detail?.category === "system") {
+        fetchAll();
+      }
+    };
+
+    window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
+    return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
+  }, [userData, fetchAll]);
+
   // Izračun seller profila completeness
   const sellerSummary = useMemo(() => {
     if (!seller) {

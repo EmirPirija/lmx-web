@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 
@@ -10,20 +10,17 @@ import CustomLink from "@/components/Common/CustomLink";
 import { cn } from "@/lib/utils";
 import {
   User,
-  Bell,
-  MessageSquare,
-  DollarSign,
-  Layers,
-  Heart,
-  Receipt,
-  Star,
-  Briefcase,
   LogOut,
   Trash2,
   ChevronRight,
   Shield,
   Zap,
+  Search,
 } from "lucide-react";
+import {
+  getProfileNavigationSections,
+  isProfileNavItemActive,
+} from "@/components/Profile/profileNavConfig";
 
 import FirebaseData from "@/utils/Firebase";
 import { logoutSuccess, userSignUpData } from "@/redux/reducer/authSlice";
@@ -32,19 +29,7 @@ import { deleteUser, getAuth } from "firebase/auth";
 import ReusableAlertDialog from "../Common/ReusableAlertDialog";
 import { useNavigate } from "../Common/useNavigate";
 
-const navigationLinks = [
-  { href: "/profile", icon: User, label: "Profil", group: "main" },
-  { href: "/notifications", icon: Bell, label: "Obavijesti", badge: true, group: "main" },
-  { href: "/chat", icon: MessageSquare, label: "Chat", badge: true, group: "main" },
-  { href: "/user-subscription", icon: DollarSign, label: "Članstvo", group: "main" },
-  { href: "/my-ads", icon: Layers, label: "Moji oglasi", group: "seller" },
-  { href: "/favorites", icon: Heart, label: "Omiljeni", group: "buyer" },
-  { href: "/transactions", icon: Receipt, label: "Transakcije", group: "buyer" },
-  { href: "/reviews", icon: Star, label: "Recenzije", group: "main" },
-  { href: "/job-applications", icon: Briefcase, label: "Prijave", group: "buyer" },
-];
-
-function SidebarNavItem({ href, icon: Icon, label, isActive, badge, badgeCount = 0 }) {
+function SidebarNavItem({ href, icon: Icon, label, isActive, badgeCount = 0 }) {
   return (
     <CustomLink href={href}>
       <motion.div
@@ -53,37 +38,37 @@ function SidebarNavItem({ href, icon: Icon, label, isActive, badge, badgeCount =
         className={cn(
           "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
           isActive
-            ? "bg-slate-900 text-white"
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
         )}
       >
         <div
           className={cn(
             "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
-            isActive ? "bg-white/15" : "bg-slate-100 group-hover:bg-slate-200"
+            isActive ? "bg-white/15 dark:bg-slate-900/15" : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
           )}
         >
           <Icon
             size={18}
             strokeWidth={isActive ? 2.5 : 2}
-            className={cn(isActive ? "text-white" : "text-slate-500 group-hover:text-slate-700")}
+            className={cn(isActive ? "text-white dark:text-slate-900" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200")}
           />
         </div>
 
         <span
           className={cn(
             "flex-1 text-sm font-semibold",
-            isActive ? "text-white" : "text-slate-700 group-hover:text-slate-900"
+            isActive ? "text-white dark:text-slate-900" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white"
           )}
         >
           {label}
         </span>
 
-        {badge && badgeCount > 0 && (
+        {badgeCount > 0 && (
           <span
             className={cn(
               "min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full",
-              isActive ? "bg-white text-slate-900" : "bg-red-500 text-white"
+              isActive ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100" : "bg-red-500 text-white"
             )}
           >
             {badgeCount > 99 ? "99+" : badgeCount}
@@ -93,7 +78,7 @@ function SidebarNavItem({ href, icon: Icon, label, isActive, badge, badgeCount =
         {isActive && (
           <motion.div
             layoutId="sidebarActiveIndicator"
-            className="absolute left-0 w-1 h-6 bg-white rounded-r-full"
+            className="absolute left-0 w-1 h-6 bg-white dark:bg-slate-900 rounded-r-full"
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           />
         )}
@@ -112,6 +97,36 @@ export default function ProfileSidebar({ badges = {} }) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [navQuery, setNavQuery] = useState("");
+
+  const navigationSections = useMemo(
+    () =>
+      getProfileNavigationSections({
+        isVerified:
+          userData?.is_verified === 1 ||
+          userData?.is_verified === true ||
+          userData?.verified === true,
+        activeAds: userData?.active_ads || 0,
+        unreadNotifications: badges["/notifications"] || 0,
+        unreadMessages: badges["/chat"] || 0,
+      }),
+    [badges, userData]
+  );
+
+  const filteredSections = useMemo(() => {
+    const q = navQuery.trim().toLowerCase();
+    if (!q) return navigationSections;
+
+    return navigationSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          const haystack = `${section.title} ${item.label} ${item.description}`.toLowerCase();
+          return haystack.includes(q);
+        }),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [navQuery, navigationSections]);
 
   const handleLogout = async () => {
     try {
@@ -166,12 +181,12 @@ export default function ProfileSidebar({ badges = {} }) {
   };
 
   return (
-    <aside className="h-full flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+    <aside className="h-full flex flex-col bg-white dark:bg-slate-900/90 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 overflow-hidden">
       {/* User Header */}
-      <div className="p-4 border-b border-slate-100">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/90">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white overflow-hidden ring-2 ring-slate-100">
+            <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white overflow-hidden ring-2 ring-slate-100 dark:ring-slate-700">
               {userData?.profile_image ? (
                 <img
                   src={userData.profile_image}
@@ -187,71 +202,99 @@ export default function ProfileSidebar({ badges = {} }) {
           </div>
 
           <div className="overflow-hidden flex-1 min-w-0">
-            <h3 className="text-sm font-bold text-slate-900 truncate">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
               {userData?.name || "Korisnik"}
             </h3>
-            <p className="text-xs text-slate-500 truncate">{userData?.email || userData?.phone}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userData?.email || userData?.phone}</p>
           </div>
 
           <CustomLink
             href="/profile/seller"
-            className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
           >
-            <Zap size={16} className="text-slate-600" />
+            <Zap size={16} className="text-slate-600 dark:text-slate-300" />
           </CustomLink>
         </div>
 
         {/* Quick stats */}
         <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 text-center py-2 px-3 bg-slate-50 rounded-lg">
-            <div className="text-sm font-bold text-slate-900">{userData?.active_ads || 0}</div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wide">Oglasi</div>
+          <div className="flex-1 text-center py-2 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+            <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{userData?.active_ads || 0}</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Oglasi</div>
           </div>
-          <div className="flex-1 text-center py-2 px-3 bg-slate-50 rounded-lg">
-            <div className="text-sm font-bold text-slate-900">
+          <div className="flex-1 text-center py-2 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+            <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
               {userData?.average_rating ? Number(userData.average_rating).toFixed(1) : "0.0"}
             </div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-wide">Ocjena</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ocjena</div>
           </div>
+        </div>
+
+        <div className="mt-2.5 relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+          <input
+            type="text"
+            value={navQuery}
+            onChange={(e) => setNavQuery(e.target.value)}
+            placeholder="Pretrazi meni..."
+            className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-primary/40"
+          />
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2">
-        <div className="space-y-0.5">
-          {navigationLinks.map((link) => (
-            <SidebarNavItem
-              key={link.href}
-              {...link}
-              isActive={pathname === link.href}
-              badgeCount={badges[link.href] || 0}
-            />
+      <nav className="flex-1 overflow-y-auto py-2 px-2 scrollbar-lmx">
+        <div className="space-y-2">
+          {filteredSections.map((section) => (
+            <div key={section.title}>
+              <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {section.title}
+              </p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <SidebarNavItem
+                    key={item.href}
+                    href={item.href}
+                    icon={item.icon}
+                    label={item.label}
+                    isActive={isProfileNavItemActive(pathname, item)}
+                    badgeCount={typeof badges[item.href] === "number" ? badges[item.href] : item.badge || 0}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
+
+          {filteredSections.length === 0 && (
+            <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3 text-center text-xs text-slate-500 dark:text-slate-400">
+              Nema rezultata za "{navQuery}".
+            </div>
+          )}
         </div>
       </nav>
 
       {/* Footer Actions */}
-      <div className="p-2 border-t border-slate-100 space-y-1">
+      <div className="p-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
         <button
           onClick={() => setIsLogoutOpen(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all"
         >
-          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
-            <LogOut size={18} className="text-slate-500" />
+          <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+            <LogOut size={18} className="text-slate-500 dark:text-slate-300" />
           </div>
           <span className="flex-1 text-left">Odjavi se</span>
-          <ChevronRight size={16} className="text-slate-300" />
+          <ChevronRight size={16} className="text-slate-300 dark:text-slate-600" />
         </button>
 
         <button
           onClick={() => setIsDeleteOpen(true)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
         >
-          <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
-            <Trash2 size={18} className="text-red-500" />
+          <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+            <Trash2 size={18} className="text-red-500 dark:text-red-300" />
           </div>
           <span className="flex-1 text-left">Obriši nalog</span>
-          <ChevronRight size={16} className="text-red-200" />
+          <ChevronRight size={16} className="text-red-200 dark:text-red-800" />
         </button>
       </div>
 

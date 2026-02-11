@@ -65,12 +65,12 @@ function ProfileAvatar({ customAvatarUrl, avatarId, size = "lg", onImageClick })
         <img
           src={customAvatarUrl}
           alt="Profilna slika"
-          className={`${sizeClasses[size]} rounded-2xl object-cover border-2 border-slate-100 shadow-sm`}
+          className={`${sizeClasses[size]} rounded-2xl object-cover border-2 border-slate-100 shadow-sm dark:border-slate-700`}
           onError={() => setImgErr(true)}
           loading="lazy"
         />
       ) : (
-        <div className={`${sizeClasses[size]} rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-slate-100 shadow-sm`}>
+        <div className={`${sizeClasses[size]} rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-slate-100 shadow-sm dark:border-slate-700 dark:bg-primary/20`}>
           <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-2/3 h-2/3 text-primary" />
         </div>
       )}
@@ -159,14 +159,14 @@ function VerificationBadge({ status, reason }) {
 // ============================================
 function SettingCard({ icon: Icon, title, description, children }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-        <div className="p-2 bg-primary/10 rounded-lg">
+    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white dark:border-slate-700 dark:bg-slate-900/80">
+      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+        <div className="rounded-lg bg-primary/10 p-2 dark:bg-primary/20">
           <Icon className="w-4 h-4 text-primary" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          {description && <p className="text-xs text-slate-500">{description}</p>}
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+          {description && <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>}
         </div>
       </div>
       <div className="p-4">
@@ -183,8 +183,8 @@ function ToggleSetting({ label, description, checked, onChange, disabled, saving
   return (
     <div className="flex items-center justify-between gap-4 py-2">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-900">{label}</p>
-        {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</p>
+        {description && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>}
       </div>
       <div className="flex items-center gap-2">
         {saving && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
@@ -452,11 +452,11 @@ export default function Profile() {
     return (
       <div className="min-h-[40vh] flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
             <User className="w-8 h-8 text-slate-400" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Niste prijavljeni</h2>
-          <p className="text-sm text-slate-600 mb-4">Prijavite se da biste pristupili postavkama profila</p>
+          <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">Niste prijavljeni</h2>
+          <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">Prijavite se da biste pristupili postavkama profila</p>
           <CustomLink 
             href="/login" 
             className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm"
@@ -474,7 +474,7 @@ export default function Profile() {
       <div className="min-h-[40vh] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-sm text-slate-600">Učitavanje profila...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">Učitavanje profila...</p>
         </div>
       </div>
     );
@@ -484,10 +484,10 @@ export default function Profile() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto space-y-6"
+      className="mx-auto max-w-2xl space-y-6"
     >
       {/* Profile Header */}
-      <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+      <div className="flex items-center gap-4 border-b border-slate-100 pb-4 dark:border-slate-700">
         <ProfileAvatar 
           customAvatarUrl={profileImage} 
           avatarId={sellerAvatarId} 
@@ -504,12 +504,12 @@ export default function Profile() {
         
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h1 className="text-lg font-bold text-slate-900 truncate">
+            <h1 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">
               {formData.name || "Vaš profil"}
             </h1>
             <VerificationBadge status={verificationStatus} reason={rejectionReason} />
           </div>
-          <p className="text-sm text-slate-500 truncate">{formData.email}</p>
+          <p className="truncate text-sm text-slate-500 dark:text-slate-400">{formData.email}</p>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1 mt-2"
@@ -528,7 +528,7 @@ export default function Profile() {
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name" className="text-xs text-slate-600">Ime i prezime</Label>
+            <Label htmlFor="name" className="text-xs text-slate-600 dark:text-slate-300">Ime i prezime</Label>
             <Input
               id="name"
               value={formData.name}
@@ -539,7 +539,7 @@ export default function Profile() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs text-slate-600">Email adresa</Label>
+            <Label htmlFor="email" className="text-xs text-slate-600 dark:text-slate-300">Email adresa</Label>
             <Input
               id="email"
               type="email"
@@ -560,7 +560,7 @@ export default function Profile() {
         description="Načini kontakta"
       >
         <div className="space-y-1.5">
-          <Label htmlFor="phone" className="text-xs text-slate-600">Broj telefona</Label>
+          <Label htmlFor="phone" className="text-xs text-slate-600 dark:text-slate-300">Broj telefona</Label>
           <PhoneInput
             country={formData.region_code || "ba"}
             value={`${formData.country_code || ""}${formData.phone || ""}`}
@@ -578,7 +578,7 @@ export default function Profile() {
               border: "1px solid #e2e8f0",
             }}
           />
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
             Vidljiv samo ako je uključeno u postavkama privatnosti
           </p>
         </div>
@@ -598,11 +598,11 @@ export default function Profile() {
           />
           
           {bihLocation.formattedAddress && (
-            <div className="flex items-start gap-2 p-3 bg-green-50 rounded-lg border border-green-100">
-              <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg border border-green-100 bg-green-50 p-3 dark:border-green-500/40 dark:bg-green-500/10">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 text-green-600 dark:text-green-300" />
               <div>
-                <p className="text-xs font-medium text-green-800">Trenutna lokacija</p>
-                <p className="text-xs text-green-700">{bihLocation.formattedAddress}</p>
+                <p className="text-xs font-medium text-green-800 dark:text-green-100">Trenutna lokacija</p>
+                <p className="text-xs text-green-700 dark:text-green-200">{bihLocation.formattedAddress}</p>
               </div>
             </div>
           )}
@@ -626,11 +626,11 @@ export default function Profile() {
         </div>
         
         {/* Info note about seller settings */}
-        <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+        <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
           <div className="flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
             <div>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
                 Detaljne postavke kontakta (telefon, WhatsApp, Viber, radno vrijeme) možete podesiti u{" "}
                 <CustomLink href="/profile/seller-settings" className="text-primary font-medium hover:underline">
                   Postavkama prodavača
@@ -643,14 +643,14 @@ export default function Profile() {
 
       {/* Verification CTA */}
       {verificationStatus !== "approved" && (
-        <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+        <div className="rounded-xl border border-primary/10 bg-primary/5 p-4 dark:border-primary/30 dark:bg-primary/10">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
+            <div className="rounded-lg bg-primary/10 p-2 dark:bg-primary/20">
               <Shield className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-slate-900">Verifikuj svoj profil</h4>
-              <p className="text-xs text-slate-600 mt-1">
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Verifikuj svoj profil</h4>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                 Verifikovani profili imaju veću stopu uspješnih transakcija i više povjerenja kupaca.
               </p>
               <CustomLink 

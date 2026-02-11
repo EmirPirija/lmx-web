@@ -288,7 +288,7 @@ const MapLocation = ({
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p className="text-[10px] uppercase tracking-wide text-slate-400">Savjet</p>
           <p className="text-xs text-slate-600">
-            Klikni mapu da preciziraš lokaciju ili koristi pretragu za adresu.
+            Klikni mapu da preciziraš lokaciju ili koristi pretragu lokacije.
           </p>
         </div>
       </div>

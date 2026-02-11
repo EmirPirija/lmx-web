@@ -149,8 +149,8 @@ const SelectedChatHeader = ({
 
   if (isSearchMode) {
       return (
-        <div className="flex items-center gap-2 px-4 py-3 border-b bg-white shadow-sm z-10 h-[72px]">
-            <button onClick={closeSearch} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm z-10 h-[72px]">
+            <button onClick={closeSearch} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-300">
                 <MdArrowBack size={22} />
             </button>
             <form onSubmit={handleSearchSubmit} className="flex-1">
@@ -159,10 +159,10 @@ const SelectedChatHeader = ({
                     placeholder="Pretraži poruke..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50 border-slate-200 focus-visible:ring-primary h-10"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus-visible:ring-primary h-10"
                 />
             </form>
-            <button onClick={closeSearch} className="text-sm font-medium text-slate-500 hover:text-slate-800 px-2">
+            <button onClick={closeSearch} className="text-sm font-medium text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 px-2">
                 Otkaži
             </button>
         </div>
@@ -170,10 +170,10 @@ const SelectedChatHeader = ({
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-white shadow-sm z-10 h-[72px]">
+    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-200/80 dark:border-slate-700 bg-white/95 dark:bg-slate-900/90 backdrop-blur z-10 min-h-[72px]">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {!isLargeScreen && (
-          <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors">
+          <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
             <MdArrowBack size={22} className="rtl:scale-x-[-1] text-slate-600" />
           </button>
         )}
@@ -187,10 +187,10 @@ const SelectedChatHeader = ({
                 alt="avatar"
                 width={48}
                 height={48}
-                className="w-[48px] h-[48px] object-cover rounded-full ring-2 ring-slate-100 group-hover:ring-primary transition-all"
+                className="w-[48px] h-[48px] object-cover rounded-full ring-2 ring-slate-100 dark:ring-slate-700 group-hover:ring-primary transition-all"
               />
               {isOnline && (
-                <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
               )}
             </div>
           </CustomLink>
@@ -199,12 +199,12 @@ const SelectedChatHeader = ({
         {/* User Info */}
         <div className="flex flex-col min-w-0 justify-center">
           <div className="flex items-center gap-1.5">
-            <CustomLink href={`/seller/${userData?.id}`} className="font-bold text-slate-900 truncate text-[15px] hover:underline decoration-slate-300 underline-offset-4">
+            <CustomLink href={`/seller/${userData?.id}`} className="font-bold text-slate-900 dark:text-slate-100 truncate text-[15px] hover:underline decoration-slate-300 underline-offset-4">
               {userData?.name}
             </CustomLink>
             {isVerified && <MdVerified className="text-blue-500 text-sm flex-shrink-0" />}
             {rating && (
-              <div className="flex items-center gap-0.5 bg-yellow-50 px-1.5 py-0.5 rounded text-[10px] font-bold text-yellow-700 border border-yellow-100">
+              <div className="flex items-center gap-0.5 bg-yellow-50 dark:bg-yellow-500/15 px-1.5 py-0.5 rounded text-[10px] font-bold text-yellow-700 dark:text-yellow-300 border border-yellow-100 dark:border-yellow-500/30">
                 <MdStar className="text-yellow-500 text-xs" />
                 <span>{rating}</span>
               </div>
@@ -215,7 +215,7 @@ const SelectedChatHeader = ({
             {isOnline ? (
               <span className="text-green-600 font-medium">Online</span>
             ) : (
-              <span className="text-slate-500 font-medium truncate">
+              <span className="text-slate-500 dark:text-slate-400 font-medium truncate">
                 {lastSeenText ? `Viđen/a: ${lastSeenText}` : "Offline"}
               </span>
             )}
@@ -223,12 +223,17 @@ const SelectedChatHeader = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-3 pl-2 border-l border-slate-100 ml-2">
-        <div className="hidden sm:flex flex-col items-end min-w-0 text-right">
+      <div className="flex items-center gap-2 sm:gap-3 pl-2 border-l border-slate-100 dark:border-slate-700 ml-2">
+        <div className="hidden md:flex flex-col items-end min-w-0 text-right">
            <div className="flex items-center gap-1 mb-0.5">
                 {getItemStatusBadge(itemData?.status)}
+                {isArchived ? (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-500/30">
+                    ARHIVIRANO
+                  </span>
+                ) : null}
            </div>
-           <span className="text-xs text-slate-500 max-w-[120px] truncate block" title={itemData?.translated_name || itemData?.name}>
+           <span className="text-xs text-slate-500 dark:text-slate-400 max-w-[120px] truncate block" title={itemData?.translated_name || itemData?.name}>
              {itemData?.translated_name || itemData?.name}
            </span>
            <span className="font-bold text-primary text-sm block">
@@ -243,18 +248,37 @@ const SelectedChatHeader = ({
               alt="item"
               width={36}
               height={36}
-              className="w-[36px] h-[36px] object-cover rounded-md border border-slate-200 group-hover:border-primary transition-colors"
+              className="w-[36px] h-[36px] object-cover rounded-md border border-slate-200 dark:border-slate-700 group-hover:border-primary transition-colors"
             />
           </CustomLink>
         )}
 
+        <div className="hidden sm:flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setIsSearchMode(true)}
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-300 transition-colors"
+            title="Pretraži poruke"
+          >
+            <HiOutlineSearch size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={onShowMedia}
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-300 transition-colors"
+            title="Mediji"
+          >
+            <HiOutlinePhotograph size={18} />
+          </button>
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500 hover:text-slate-800 focus:outline-none">
+            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 focus:outline-none">
               <HiOutlineDotsVertical size={20} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-56 bg-white z-50">
+          <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-56 bg-white dark:bg-slate-900 z-50">
             
             {userData?.phone && (
                  <DropdownMenuItem className="cursor-pointer sm:hidden">
@@ -274,7 +298,7 @@ const SelectedChatHeader = ({
             </DropdownMenuItem>
             
             <DropdownMenuItem asChild>
-                <CustomLink href={`/ad/details/${itemData?.slug}`} className="flex items-center w-full cursor-pointer px-2 py-1.5">
+                <CustomLink href={`/ad-details/${itemData?.slug}`} className="flex items-center w-full cursor-pointer px-2 py-1.5">
                     <HiEye className="mr-2 h-4 w-4 text-slate-500" />
                     <span>Pogledaj oglas</span>
                 </CustomLink>

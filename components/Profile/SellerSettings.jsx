@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { sellerSettingsApi, updateProfileApi, getVerificationStatusApi } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
+import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
 import SellerDetailCard from "@/components/PagesComponent/Seller/SellerDetailCard";
 
@@ -77,8 +78,21 @@ const defaultCardPreferences = {
   show_business_hours: true,
   show_shipping_info: true,
   show_return_policy: true,
+  enable_buyer_filters: true,
+  buyer_filters_show_search: true,
+  buyer_filters_show_price: true,
+  buyer_filters_show_video: true,
+  buyer_filters_show_on_sale: true,
+  buyer_filters_show_featured: true,
   max_badges: 2,
 };
+
+const AVATAR_IDS = [
+  "lmx-01", "lmx-02", "lmx-03", "lmx-04",
+  "lmx-05", "lmx-06", "lmx-07", "lmx-08",
+  "lmx-09", "lmx-10", "lmx-11", "lmx-12",
+  "lmx-13", "lmx-14", "lmx-15", "lmx-16",
+];
 
 // ============================================
 // HELPERS
@@ -121,6 +135,30 @@ const normalizeCardPreferences = (raw) => {
     show_business_hours: toBool(obj.show_business_hours, defaultCardPreferences.show_business_hours),
     show_shipping_info: toBool(obj.show_shipping_info, defaultCardPreferences.show_shipping_info),
     show_return_policy: toBool(obj.show_return_policy, defaultCardPreferences.show_return_policy),
+    enable_buyer_filters: toBool(
+      obj.enable_buyer_filters,
+      defaultCardPreferences.enable_buyer_filters
+    ),
+    buyer_filters_show_search: toBool(
+      obj.buyer_filters_show_search,
+      defaultCardPreferences.buyer_filters_show_search
+    ),
+    buyer_filters_show_price: toBool(
+      obj.buyer_filters_show_price,
+      defaultCardPreferences.buyer_filters_show_price
+    ),
+    buyer_filters_show_video: toBool(
+      obj.buyer_filters_show_video,
+      defaultCardPreferences.buyer_filters_show_video
+    ),
+    buyer_filters_show_on_sale: toBool(
+      obj.buyer_filters_show_on_sale,
+      defaultCardPreferences.buyer_filters_show_on_sale
+    ),
+    buyer_filters_show_featured: toBool(
+      obj.buyer_filters_show_featured,
+      defaultCardPreferences.buyer_filters_show_featured
+    ),
   };
 };
 
@@ -278,6 +316,72 @@ const CardPreferencesSection = ({ cardPreferences, setCardPreferences }) => {
   );
 };
 
+const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop }) => {
+  const updatePref = (key, value) =>
+    setCardPreferences((prev) => ({ ...prev, [key]: value }));
+
+  const filtersEnabled = Boolean(cardPreferences.enable_buyer_filters);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+        <p className="text-xs text-slate-600">
+          Ovi filteri se prikazuju kupcima na tvojoj seller stranici i aktivni su
+          samo za PRO/SHOP profile.
+        </p>
+      </div>
+
+      {!isProOrShop && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          Ova opcija je dostupna nakon aktivacije PRO ili SHOP paketa.
+        </div>
+      )}
+
+      <ToggleRow
+        title="Uključi filtere kupcima"
+        description="Kupci mogu filtrirati tvoje oglase direktno na profilu."
+        icon={Settings2}
+        checked={filtersEnabled}
+        onCheckedChange={(value) => updatePref("enable_buyer_filters", value)}
+        disabled={!isProOrShop}
+      />
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <CompactToggle
+          title="Pretraga"
+          checked={cardPreferences.buyer_filters_show_search}
+          onCheckedChange={(value) => updatePref("buyer_filters_show_search", value)}
+          disabled={!isProOrShop || !filtersEnabled}
+        />
+        <CompactToggle
+          title="Raspon cijene"
+          checked={cardPreferences.buyer_filters_show_price}
+          onCheckedChange={(value) => updatePref("buyer_filters_show_price", value)}
+          disabled={!isProOrShop || !filtersEnabled}
+        />
+        <CompactToggle
+          title="Samo sa videom"
+          checked={cardPreferences.buyer_filters_show_video}
+          onCheckedChange={(value) => updatePref("buyer_filters_show_video", value)}
+          disabled={!isProOrShop || !filtersEnabled}
+        />
+        <CompactToggle
+          title="Samo akcija"
+          checked={cardPreferences.buyer_filters_show_on_sale}
+          onCheckedChange={(value) => updatePref("buyer_filters_show_on_sale", value)}
+          disabled={!isProOrShop || !filtersEnabled}
+        />
+        <CompactToggle
+          title="Samo izdvojeni"
+          checked={cardPreferences.buyer_filters_show_featured}
+          onCheckedChange={(value) => updatePref("buyer_filters_show_featured", value)}
+          disabled={!isProOrShop || !filtersEnabled}
+        />
+      </div>
+    </div>
+  );
+};
+
 // ============================================
 // PREVIEW PANEL
 // ============================================
@@ -350,6 +454,28 @@ const SellerSettings = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
   const isMountedRef = useRef(true);
+  const isProOrShop = useMemo(() => {
+    const tier = String(
+      currentUser?.membership?.tier ||
+        currentUser?.membership?.tier_name ||
+        currentUser?.membership?.plan ||
+        ""
+    ).toLowerCase();
+    const membershipStatus = String(
+      currentUser?.membership?.status || ""
+    ).toLowerCase();
+    const hasActiveMembership =
+      !membershipStatus || membershipStatus === "active";
+
+    const byTier =
+      hasActiveMembership &&
+      (tier.includes("pro") ||
+        tier.includes("premium") ||
+        tier.includes("shop") ||
+        tier.includes("business"));
+
+    return Boolean(currentUser?.is_pro || currentUser?.is_shop || byTier);
+  }, [currentUser]);
   
   useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
@@ -362,6 +488,7 @@ const SellerSettings = () => {
   // Avatar
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [selectedAvatarId, setSelectedAvatarId] = useState("lmx-01");
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -425,6 +552,7 @@ const SellerSettings = () => {
   ];
 
   const buildPayload = useCallback(() => ({
+    avatar_id: selectedAvatarId,
     show_phone: showPhone, show_email: showEmail, show_whatsapp: showWhatsapp, show_viber: showViber,
     whatsapp_number: whatsappNumber, viber_number: viberNumber, preferred_contact_method: preferredContact,
     business_hours: businessHours, response_time: responseTime, accepts_offers: acceptsOffers,
@@ -435,7 +563,7 @@ const SellerSettings = () => {
     social_facebook: socialFacebook, social_instagram: socialInstagram, social_tiktok: socialTiktok,
     social_youtube: socialYoutube, social_website: socialWebsite,
     card_preferences: normalizedCardPreferences,
-  }), [showPhone, showEmail, showWhatsapp, showViber, whatsappNumber, viberNumber, preferredContact,
+  }), [selectedAvatarId, showPhone, showEmail, showWhatsapp, showViber, whatsappNumber, viberNumber, preferredContact,
       businessHours, responseTime, acceptsOffers, autoReplyEnabled, autoReplyMessage, vacationMode,
       vacationMessage, vacationStartDate, vacationEndDate, vacationAutoActivate, businessDescription,
       returnPolicy, shippingInfo, socialFacebook, socialInstagram, socialTiktok, socialYoutube,
@@ -504,6 +632,7 @@ const SellerSettings = () => {
       if (response?.data?.error !== false || !response?.data?.data) { setLoadError(response?.data?.message || "Greška."); return; }
 
       const s = response.data.data;
+      setSelectedAvatarId(s.avatar_id || "lmx-01");
       setShowPhone(toBool(s.show_phone, true));
       setShowEmail(toBool(s.show_email, true));
       setShowWhatsapp(toBool(s.show_whatsapp, false));
@@ -533,6 +662,7 @@ const SellerSettings = () => {
       setCardPreferences(normalizedPrefs);
 
       setInitialPayloadStr(stableStringify({
+        avatar_id: s.avatar_id || "lmx-01",
         show_phone: toBool(s.show_phone, true), show_email: toBool(s.show_email, true),
         show_whatsapp: toBool(s.show_whatsapp, false), show_viber: toBool(s.show_viber, false),
         whatsapp_number: s.whatsapp_number || "", viber_number: s.viber_number || "",
@@ -685,23 +815,51 @@ const SellerSettings = () => {
         <div className="space-y-4">
           {/* Avatar */}
           <SettingSection icon={Camera} title="Profilna slika">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                {previewImage ? <img src={previewImage} alt="Profil" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-xs text-slate-400">Nema</div>}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+                  {previewImage ? (
+                    <img src={previewImage} alt="Profil" className="w-full h-full object-cover" />
+                  ) : (
+                    <LmxAvatarSvg avatarId={selectedAvatarId || "lmx-01"} className="w-9 h-9" />
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isAvatarUploading}>
+                    <Camera className="w-3.5 h-3.5 mr-1" />Učitaj
+                  </Button>
+                  <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={isAvatarUploading}><Sparkles className="w-3.5 h-3.5 mr-1" />Studio</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none">
+                      <LmxAvatarGenerator onSave={updateProfileImage} onCancel={() => setIsAvatarModalOpen(false)} isSaving={isAvatarUploading} />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isAvatarUploading}>
-                  <Camera className="w-3.5 h-3.5 mr-1" />Učitaj
-                </Button>
-                <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" disabled={isAvatarUploading}><Sparkles className="w-3.5 h-3.5 mr-1" />Studio</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none">
-                    <LmxAvatarGenerator onSave={updateProfileImage} onCancel={() => setIsAvatarModalOpen(false)} isSaving={isAvatarUploading} />
-                  </DialogContent>
-                </Dialog>
+
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">LMX avatar set</p>
+                <div className="grid grid-cols-8 gap-2">
+                  {AVATAR_IDS.map((avatarId) => (
+                    <button
+                      key={avatarId}
+                      type="button"
+                      onClick={() => setSelectedAvatarId(avatarId)}
+                      className={cn(
+                        "h-11 w-11 rounded-xl border flex items-center justify-center transition-all",
+                        selectedAvatarId === avatarId
+                          ? "border-primary bg-primary/10 shadow-sm"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      )}
+                      title={avatarId}
+                    >
+                      <LmxAvatarSvg avatarId={avatarId} className="w-6 h-6" />
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </SettingSection>
@@ -709,6 +867,19 @@ const SellerSettings = () => {
           {/* Card Preferences - NEW */}
           <SettingSection icon={LayoutGrid} title="Prikaz kartice" description="Šta se prikazuje kupcima" badge="NOVO">
             <CardPreferencesSection cardPreferences={cardPreferences} setCardPreferences={setCardPreferences} />
+          </SettingSection>
+
+          <SettingSection
+            icon={Settings2}
+            title="Filteri na seller stranici"
+            description="Kontroliši filtere koje kupci vide na tvojim oglasima"
+            badge="PRO/SHOP"
+          >
+            <BuyerFiltersSection
+              cardPreferences={cardPreferences}
+              setCardPreferences={setCardPreferences}
+              isProOrShop={isProOrShop}
+            />
           </SettingSection>
 
           {/* Contact */}

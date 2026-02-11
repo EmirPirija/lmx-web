@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import NoData from "@/components/EmptyStates/NoData";
-import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
+import ProductSellerDetailCard from "@/components/PagesComponent/ProductDetail/ProductSellerDetailCard";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { usersApi, getSellerApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
@@ -78,7 +79,7 @@ const UserCardSkeleton = ({ view }) => {
    USER CARD KOMPONENTA
 ===================================================== */
 
-const UserCard = ({ user, view, onClick }) => {
+const UserCard = ({ user, view }) => {
   const isPro = user?.is_pro || user?.membership?.tier?.includes("pro");
   const isShop = user?.is_shop || user?.membership?.tier?.includes("shop");
   const sellerSettings = user?.seller_settings || user?.sellerSettings || {
@@ -89,27 +90,29 @@ const UserCard = ({ user, view, onClick }) => {
       show_response_time: true,
     },
   };
+  const ratingTotal =
+    user?.ratings_count ??
+    user?.reviews_count ??
+    user?.total_reviews ??
+    user?.reviews ??
+    0;
 
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      onClick={onClick}
-      className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all"
+      className={cn("h-full", view === "list" && "w-full")}
     >
-      <div className="p-4">
-        <MinimalSellerCard
-          seller={user}
-          sellerSettings={sellerSettings}
-          badges={user?.badges || []}
-          ratings={{ total: user?.reviews_count ?? user?.total_reviews ?? user?.ratings_count ?? 0 }}
-          isPro={isPro}
-          isShop={isShop}
-          showProfileLink
-          variant={view === "list" ? "default" : "compact"}
-        />
-      </div>
-    </motion.div>
+      <ProductSellerDetailCard
+        seller={user}
+        sellerSettings={sellerSettings}
+        badges={Array.isArray(user?.badges) ? user.badges : []}
+        ratings={{ total: ratingTotal }}
+        isPro={isPro}
+        isShop={isShop}
+        enableOwnerReelControls={false}
+      />
+    </motion.article>
   );
 };
 
@@ -277,7 +280,9 @@ const FilterSidebar = ({
     return (
       <>
         {/* Desktop */}
-        <div className="hidden lg:block w-72 flex-shrink-0">{content}</div>
+        <div className="hidden lg:block w-[320px] flex-shrink-0">
+          <div className="sticky top-24">{content}</div>
+        </div>
 
         {/* Mobile overlay */}
         <AnimatePresence>
@@ -311,7 +316,7 @@ const FilterSidebar = ({
     );
   }
 
-  return <div className="w-72 flex-shrink-0">{content}</div>;
+  return <div className="w-[320px] flex-shrink-0">{content}</div>;
 };
 
 /* =====================================================
@@ -319,7 +324,6 @@ const FilterSidebar = ({
 ===================================================== */
 
 const SviKorisniciPage = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const CurrentLanguage = useSelector(CurrentLanguageData);
 
@@ -397,10 +401,33 @@ const SviKorisniciPage = () => {
     return { isPro, isShop };
   };
 
+  const isVerifiedUser = (user, details) => {
+    const seller = details?.seller || {};
+    return isSellerVerified(user, seller, details);
+  };
+
   const normalizeUser = (user, details) => {
     if (!user) return user;
     const { isPro, isShop } = getMembershipFlags(user, details);
     const seller = details?.seller || {};
+    const verified = isVerifiedUser(user, details);
+    const verificationStatus =
+      user?.verification_status ??
+      user?.verificationStatus ??
+      seller?.verification_status ??
+      seller?.verificationStatus ??
+      seller?.verification?.status ??
+      null;
+    const derivedReelCount =
+      seller?.reels_count ??
+      seller?.reel_count ??
+      seller?.videos_count ??
+      seller?.video_count ??
+      user?.reels_count ??
+      user?.reel_count ??
+      user?.videos_count ??
+      user?.video_count ??
+      0;
 
     const normalized = {
       ...user,
@@ -410,8 +437,12 @@ const SviKorisniciPage = () => {
         user?.avatar ||
         user?.svg_avatar ||
         seller?.profile ||
+        seller?.profile_image ||
         null,
-      is_verified: user?.is_verified ?? user?.verified ?? user?.isVerified,
+      is_verified: verified ? 1 : 0,
+      verified: verified ? 1 : 0,
+      isVerified: verified,
+      verification_status: verificationStatus,
       total_ads:
         user?.total_ads ??
         seller?.total_ads ??
@@ -423,6 +454,17 @@ const SviKorisniciPage = () => {
         user?.average_rating ??
         user?.rating ??
         user?.ratings_avg,
+      has_reel:
+        user?.has_reel ??
+        seller?.has_reel ??
+        (Number(derivedReelCount) > 0 ? 1 : 0),
+      reel_video:
+        user?.reel_video ??
+        seller?.reel_video ??
+        seller?.video ??
+        user?.video ??
+        null,
+      reels_count: Number(derivedReelCount) || 0,
       ratings_count:
         seller?.reviews_count ??
         user?.ratings_count ??
@@ -542,7 +584,7 @@ const SviKorisniciPage = () => {
     // Filter by verified
     if (filters.verified === "1") {
       filteredUsers = filteredUsers.filter(user => 
-        user?.is_verified || user?.verified || user?.verification_status === "verified"
+        isVerifiedUser(user, sellerDetailsMap[user?.id])
       );
     }
 
@@ -618,20 +660,47 @@ const SviKorisniciPage = () => {
     updateUrl("sort", newSort);
   };
 
-  const goToUserProfile = (userId) => {
-    router.push(`/seller/${userId}`);
-  };
-
   // Active filters count
   const activeFiltersCount = useMemo(() => {
     return [filters.membership, filters.shop, filters.verified, filters.online].filter(Boolean).length;
   }, [filters]);
 
+  const directoryStats = useMemo(() => {
+    const mergedUsers = allUsers.map((user) =>
+      normalizeUser(user, sellerDetailsMap[user?.id])
+    );
+
+    let proCount = 0;
+    let shopCount = 0;
+    let verifiedCount = 0;
+    let onlineCount = 0;
+
+    mergedUsers.forEach((user) => {
+      const membership = getMembershipFlags(user, sellerDetailsMap[user?.id]);
+      if (membership.isPro) proCount += 1;
+      if (membership.isShop) shopCount += 1;
+      if (isVerifiedUser(user, sellerDetailsMap[user?.id])) {
+        verifiedCount += 1;
+      }
+      if (user?.is_online || user?.online || isOnline(user)) {
+        onlineCount += 1;
+      }
+    });
+
+    return {
+      total: mergedUsers.length,
+      pro: proCount,
+      shop: shopCount,
+      verified: verifiedCount,
+      online: onlineCount,
+    };
+  }, [allUsers, sellerDetailsMap]);
+
   return (
     <Layout>
       <BreadCrumb title2="Svi korisnici" />
 
-      <div className="container py-6 lg:py-8">
+      <div className="container max-w-[1600px] py-6 lg:py-8">
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
@@ -640,6 +709,33 @@ const SviKorisniciPage = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-1">
             Pronađi prodavače, kupce i trgovine na platformi
           </p>
+        </div>
+
+        <div className="mb-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Ukupno</p>
+            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{directoryStats.total}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Prikazano</p>
+            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{totalUsers}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Pro</p>
+            <p className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-300">{directoryStats.pro}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Shop</p>
+            <p className="mt-1 text-xl font-bold text-indigo-600 dark:text-indigo-300">{directoryStats.shop}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Verifikovani</p>
+            <p className="mt-1 text-xl font-bold text-sky-600 dark:text-sky-300">{directoryStats.verified}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Online</p>
+            <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-300">{directoryStats.online}</p>
+          </div>
         </div>
 
         <div className="flex gap-6">
@@ -747,7 +843,7 @@ const SviKorisniciPage = () => {
               <div className={cn(
                 view === "list"
                   ? "space-y-4"
-                  : "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"
+                  : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5"
               )}>
                 {[...Array(12)].map((_, i) => (
                   <UserCardSkeleton key={i} view={view} />
@@ -759,7 +855,7 @@ const SviKorisniciPage = () => {
               <div className={cn(
                 view === "list"
                   ? "space-y-4"
-                  : "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"
+                  : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5"
               )}>
                 <AnimatePresence mode="popLayout">
                   {users.map((user) => (
@@ -767,7 +863,6 @@ const SviKorisniciPage = () => {
                       key={user.id}
                       user={user}
                       view={view}
-                      onClick={() => goToUserProfile(user.id)}
                     />
                   ))}
                 </AnimatePresence>

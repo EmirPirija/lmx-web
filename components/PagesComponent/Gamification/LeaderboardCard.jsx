@@ -3,48 +3,37 @@
 import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Flame, BarChart3, Video, Store, ShoppingBag } from "lucide-react";
+
+import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { cn } from "@/lib/utils";
 
-/**
- * LeaderboardCard.jsx (BS ijekavica)
- * - neutral/premium (bez šarenila)
- * - "Verificiran" label
- */
-
-const CheckSeal = ({ label = "Verificiran" }) => (
-  <span
-    title={label}
-    className={cn(
-      "inline-flex items-center gap-1.5 select-none",
-      "h-6 px-2.5 text-xs font-semibold rounded-full",
-      "border border-slate-200/70 dark:border-slate-700/70",
-      "bg-white/70 dark:bg-slate-900/60",
-      "text-slate-800 dark:text-slate-100"
-    )}
-  >
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 2.6l2.3 1.3 2.6-.2 1.3 2.3 2.3 1.3-.2 2.6 1.3 2.3-1.3 2.3.2 2.6-2.3 1.3-1.3 2.3-2.6-.2L12 21.4l-2.3-1.3-2.6.2-1.3-2.3-2.3-1.3.2-2.6L2.6 12l1.3-2.3-.2-2.6 2.3-1.3 1.3-2.3 2.6.2L12 2.6z"
-        className="fill-current opacity-15"
-      />
-      <path
-        d="M9.3 12.2l1.7 1.7 3.7-4.1"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-    <span className="leading-none">{label}</span>
-  </span>
-);
-
 const RankMark = ({ rank }) => {
-  const r = Number(rank);
-  if (r === 1) return <span className="text-xl font-extrabold text-slate-900 dark:text-white">#1</span>;
-  if (r === 2) return <span className="text-xl font-extrabold text-slate-900/80 dark:text-white/90">#2</span>;
-  if (r === 3) return <span className="text-xl font-extrabold text-slate-900/70 dark:text-white/80">#3</span>;
+  const r = Number(rank || 0);
+
+  if (r === 1) return <span className="text-xl font-black text-amber-500">#1</span>;
+  if (r === 2) return <span className="text-xl font-black text-slate-500 dark:text-slate-300">#2</span>;
+  if (r === 3) return <span className="text-xl font-black text-orange-500">#3</span>;
+
   return <span className="text-lg font-bold text-slate-600 dark:text-slate-300">#{r}</span>;
+};
+
+const Pill = ({ icon: Icon, children, tone = "slate" }) => {
+  const tones = {
+    slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    rose: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+    sky: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+    emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    violet: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  };
+
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", tones[tone] || tones.slate)}>
+      {Icon ? <Icon className="h-3 w-3" /> : null}
+      {children}
+    </span>
+  );
 };
 
 export default function LeaderboardCard({ user, rank }) {
@@ -56,70 +45,85 @@ export default function LeaderboardCard({ user, rank }) {
     user?.verification_status === "verified" ||
     user?.verification === "verified";
 
+  const points = Number(user?.total_points || 0);
+  const periodPoints = Number(user?.period_points || 0);
+
   return (
     <button
       type="button"
       onClick={() => router.push(`/seller/${user.id}`)}
       className={cn(
-        "w-full text-left flex items-center gap-4 p-4 rounded-3xl",
-        "border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60",
-        "shadow-sm hover:shadow-md transition"
+        "w-full text-left rounded-3xl border p-4",
+        "border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900/60",
+        "transition hover:shadow-md"
       )}
     >
-      <div className="flex-shrink-0 w-12 flex justify-center">
-        <RankMark rank={rank} />
-      </div>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex w-11 flex-shrink-0 justify-center">
+          <RankMark rank={rank} />
+        </div>
 
-      <div className="relative w-12 h-12 flex-shrink-0">
-        {user?.profile ? (
-          <Image src={user.profile} alt={user.name} fill className="rounded-full object-cover" />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold">
-            {user?.name?.charAt(0)?.toUpperCase() || "?"}
+        <div className="relative h-12 w-12 overflow-hidden rounded-full border border-slate-200/70 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800">
+          {user?.profile ? (
+            <Image src={user.profile} alt={user?.name || "Korisnik"} fill className="object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <LmxAvatarSvg avatarId={user?.avatar_id || "lmx-01"} className="h-8 w-8" />
+            </div>
+          )}
+
+          {isVerified ? (
+            <span className="absolute -bottom-0.5 -right-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white bg-emerald-500 text-white dark:border-slate-900">
+              <svg className="h-3 w-3" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M7.8 10.4l1.5 1.5 3.2-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{user?.name || "Korisnik"}</p>
+            {isVerified ? <Pill tone="emerald">Verifikovan</Pill> : null}
           </div>
-        )}
 
-        {isVerified ? (
-          <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-800 dark:text-slate-100 shadow-sm">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path
-                d="M8.3 10.6l1.1 1.2 2.9-3.2"
-                stroke="currentColor"
-                strokeWidth="2.1"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-        ) : null}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-slate-900 dark:text-white truncate">{user?.name}</p>
-          {isVerified ? <CheckSeal /> : null}
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <Pill tone="slate">Nivo {user?.level || 1}</Pill>
+            {Number(user?.streak_days || 0) > 0 ? (
+              <Pill icon={Flame} tone="rose">
+                {user.streak_days}d zaredom
+              </Pill>
+            ) : null}
+            {Number(user?.reel_count || 0) > 0 ? (
+              <Pill icon={Video} tone="violet">
+                {user.reel_count} reel
+              </Pill>
+            ) : null}
+            {Number(user?.seller_score || 0) > 0 ? (
+              <Pill icon={Store} tone="amber">
+                Prodavac {user.seller_score}
+              </Pill>
+            ) : null}
+            {Number(user?.buyer_score || 0) > 0 ? (
+              <Pill icon={ShoppingBag} tone="sky">
+                Kupac {user.buyer_score}
+              </Pill>
+            ) : null}
+            {Number(user?.momentum_score || 0) > 0 ? (
+              <Pill icon={BarChart3} tone="emerald">
+                Zamah {user.momentum_score}
+              </Pill>
+            ) : null}
+          </div>
         </div>
 
-        <div className="mt-1 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-300">
-          {user?.level ? (
-            <span className="rounded-full border border-slate-200/70 dark:border-slate-700/70 bg-white/60 dark:bg-slate-900/40 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200">
-              Nivo {user.level}
-            </span>
-          ) : null}
-
-          {user?.badge_count > 0 ? (
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-              {user.badge_count} bedževa
-            </span>
+        <div className="text-right">
+          <div className="text-xl font-black text-slate-900 dark:text-white">{points.toLocaleString("bs-BA")}</div>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">bodova</div>
+          {periodPoints > 0 ? (
+            <div className="mt-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">+{periodPoints.toLocaleString("bs-BA")} u periodu</div>
           ) : null}
         </div>
-      </div>
-
-      <div className="text-right">
-        <p className="text-2xl font-extrabold text-slate-900 dark:text-white">
-          {Number(user?.total_points || 0).toLocaleString("bs-BA")}
-        </p>
-        <p className="text-xs text-slate-500 dark:text-slate-300">bodova</p>
       </div>
     </button>
   );

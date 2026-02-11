@@ -294,14 +294,14 @@ const ComponentFive = ({
           </>
         )}
  
-        {/* Prikaz odabrane adrese */}
+        {/* Prikaz odabrane lokacije */}
         {location?.city && (
           <div className="flex items-start gap-4 bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm">
             <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
               <BiMapPin className="text-blue-600" size={28} />
             </div>
             <div className="flex-1">
-              <h6 className="font-semibold text-gray-800 text-lg mb-1">Adresa oglasa</h6>
+              <h6 className="font-semibold text-gray-800 text-lg mb-1">Lokacija oglasa</h6>
               <p className="text-gray-600">
                 {location?.address_translated || location?.address}
               </p>

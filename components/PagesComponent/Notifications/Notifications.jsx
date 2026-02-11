@@ -2,7 +2,7 @@
 
 import { formatDateMonthYear, t } from "@/utils";
 import { useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getNotificationList } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -136,7 +136,7 @@ const Notifications = () => {
   const userData = useSelector(userSignUpData);
   const { navigate } = useNavigate();
 
-  const fetchNotificationData = async (page) => {
+  const fetchNotificationData = useCallback(async (page) => {
     try {
       setIsLoading(true);
       const response = await getNotificationList.getNotification({ page });
@@ -149,11 +149,24 @@ const Notifications = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotificationData(currentPage);
-  }, [currentPage]);
+  }, [currentPage, fetchNotificationData]);
+
+  useEffect(() => {
+    const handleRealtimeRefresh = (event) => {
+      const detail = event?.detail;
+      if (!detail) return;
+      if (detail?.category === "notification" || detail?.category === "system") {
+        fetchNotificationData(currentPage);
+      }
+    };
+
+    window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
+    return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
+  }, [currentPage, fetchNotificationData]);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);

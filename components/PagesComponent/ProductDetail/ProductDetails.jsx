@@ -39,6 +39,7 @@ import ProductFeature from "./ProductFeature";
 import ProductDescription from "./ProductDescription";
 import ProductQuestions from "./ProductQuestions";
 import ProductLocation from "./ProductLocation";
+import SellerOtherAds from "./SellerOtherAds";
 import SimilarProducts from "./SimilarProducts";
 import AdsReportCard from "./AdsReportCard";
 import MyAdsListingDetailCard from "./MyAdsListingDetailCard";
@@ -501,9 +502,19 @@ const ProductDetails = ({ slug }) => {
           </div>
         </div>
 
+        {/* OSTALI OGLASI ISTOG PRODAVAČA */}
+        {!isMyListing && (
+          <div className="mt-12 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <SellerOtherAds
+              productDetails={productDetails}
+              onItemClick={trackSimilarItemsClick}
+            />
+          </div>
+        )}
+
         {/* SLIČNI OGLASI */}
         {!isMyListing && (
-          <div className="mt-12 lg:mt-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="mt-10 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <SimilarProducts productDetails={productDetails} onItemClick={trackSimilarItemsClick} />
           </div>
         )}

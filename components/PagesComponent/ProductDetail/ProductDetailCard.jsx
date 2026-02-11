@@ -9,7 +9,9 @@ import {
   MdTrendingDown,
   MdTrendingUp,
   MdHistory,
-  MdInfoOutline
+  MdInfoOutline,
+  MdOutlineLocationOn,
+  MdVerifiedUser
 } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
 import { toast } from "sonner";
@@ -48,6 +50,152 @@ const formatShortDate = (dateString) => {
   const months = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
   return `${day}. ${months[date.getMonth()]} ${date.getFullYear()}.`;
 };
+
+const formatCount = (count) =>
+  new Intl.NumberFormat("bs-BA", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(count) || 0);
+
+const parseJsonSafe = (value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const toBoolean = (value) =>
+  value === true || value === 1 || value === "1" || value === "true";
+
+const readAvailableNow = (item = {}) => {
+  const directCandidates = [
+    item?.available_now,
+    item?.is_available,
+    item?.is_avaible,
+    item?.isAvailable,
+    item?.availableNow,
+    item?.translated_item?.available_now,
+    item?.translated_item?.is_available,
+    item?.translated_item?.is_avaible,
+    item?.translated_item?.isAvailable,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (candidate !== undefined && candidate !== null) {
+      return toBoolean(candidate);
+    }
+  }
+
+  const keys = ["available_now", "is_available", "is_avaible", "isAvailable", "availableNow"];
+  const customFields = parseJsonSafe(item?.custom_fields);
+
+  const pickFromObject = (obj) => {
+    if (!obj || typeof obj !== "object") return undefined;
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        return toBoolean(obj[key]);
+      }
+    }
+    return undefined;
+  };
+
+  const topLevel = pickFromObject(customFields);
+  if (topLevel !== undefined) return topLevel;
+
+  if (customFields && typeof customFields === "object") {
+    for (const nested of Object.values(customFields)) {
+      const nestedValue = pickFromObject(nested);
+      if (nestedValue !== undefined) return nestedValue;
+    }
+  }
+
+  const translatedFields = item?.all_translated_custom_fields;
+  if (Array.isArray(translatedFields)) {
+    const availabilityField = translatedFields.find((field) => {
+      const name = String(field?.translated_name || field?.name || "")
+        .toLowerCase()
+        .trim();
+      return (
+        name.includes("dostup") ||
+        name.includes("available") ||
+        name.includes("isporuk")
+      );
+    });
+
+    if (availabilityField) {
+      const rawValue =
+        availabilityField?.translated_selected_values?.[0] ??
+        availabilityField?.value?.[0] ??
+        availabilityField?.value ??
+        availabilityField?.translated_value;
+
+      if (rawValue !== undefined && rawValue !== null && rawValue !== "") {
+        const normalized = String(rawValue).toLowerCase().trim();
+        if (
+          ["da", "yes", "true", "1", "odmah", "dostupno", "dostupan"].includes(
+            normalized
+          )
+        ) {
+          return true;
+        }
+        if (
+          ["ne", "no", "false", "0", "nije", "nedostupno", "nedostupan"].includes(
+            normalized
+          )
+        ) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+const getStatusLabel = (status, isReserved) => {
+  if (isReserved) return "Rezervisano";
+
+  const key = String(status || "").toLowerCase();
+  switch (key) {
+    case "approved":
+      return "Aktivan";
+    case "featured":
+      return "Izdvojen";
+    case "inactive":
+      return "Skriven";
+    case "sold out":
+      return "Prodan";
+    case "expired":
+      return "Istekao";
+    case "pending":
+      return "Na čekanju";
+    default:
+      return "Aktivan";
+  }
+};
+
+const parseDateSafe = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+  if (typeof value === "string" && value.includes(" ")) {
+    const normalized = new Date(value.replace(" ", "T"));
+    if (!Number.isNaN(normalized.getTime())) return normalized;
+  }
+  return null;
+};
+
+const DetailStatPill = ({ icon: Icon, label, value }) => (
+  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 px-3 py-2">
+    <div className="flex items-center gap-2">
+      <Icon className="text-slate-400 dark:text-slate-500" />
+      <span className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</span>
+    </div>
+    <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">{value}</p>
+  </div>
+);
 
 // ============================================
 // MODAL ZA HISTORIJU CIJENA (Desktop & Mobile)
@@ -186,6 +334,47 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
   const oldPrice = productDetails?.old_price;
   const currentPrice = productDetails?.price;
+  const publishedAt = formatShortDate(productDetails?.created_at) || "Nije dostupno";
+  const renewedAt = formatShortDate(productDetails?.last_renewed_at) || "Nije osvježeno";
+  const areaName = productDetails?.area?.translated_name || productDetails?.area?.name;
+  const locationLine = [areaName, productDetails?.city, productDetails?.state].filter(Boolean).join(", ") || "Lokacija nije navedena";
+  const viewsCount = Number(
+    productDetails?.total_clicks ??
+      productDetails?.clicks ??
+      productDetails?.views ??
+      0
+  );
+  const sellerResponseAvg = Number(productDetails?.user?.response_time_avg ?? 0);
+  const sellerResponseLabel =
+    Number.isFinite(sellerResponseAvg) && sellerResponseAvg > 0
+      ? `~${formatCount(sellerResponseAvg)} min`
+      : "Nema podataka";
+  const availableNow = readAvailableNow(productDetails);
+  const availableNowLabel = availableNow === true ? "Da" : "Ne";
+  const availabilityLabel = getStatusLabel(productDetails?.status, isReserved);
+  const featuredLabel = isFeatured ? "Da, istaknuto" : "Standardan prikaz";
+  const hasVideoAttached = Boolean(
+    productDetails?.video || (productDetails?.video_link && String(productDetails?.video_link).trim())
+  );
+  const videoStatusLabel = hasVideoAttached ? "Aktivan video" : "Bez videa";
+  const storyPublishLabel = Boolean(
+    productDetails?.add_video_to_story || productDetails?.publish_to_story
+  )
+    ? "Uključeno"
+    : "Isključeno";
+  const baseRenewDate = parseDateSafe(productDetails?.last_renewed_at) || parseDateSafe(productDetails?.created_at);
+  const daysToFreeRenew = (() => {
+    if (!baseRenewDate) return null;
+    const renewAfter = new Date(baseRenewDate.getTime() + 15 * 24 * 60 * 60 * 1000);
+    const diffMs = renewAfter.getTime() - Date.now();
+    return diffMs <= 0 ? 0 : Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  })();
+  const renewHintLabel =
+    daysToFreeRenew === null
+      ? "Nije dostupno"
+      : daysToFreeRenew === 0
+      ? "Moguća odmah"
+      : `Za ${daysToFreeRenew} dana`;
   
   const handleLikeItem = async () => {
     if (!isLoggedIn) {
@@ -274,7 +463,69 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
       )}
     </div>
   </div>
-  
+
+  {/* BRZE INFO KARTICE */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+    <DetailStatPill icon={MdHistory} label="Objavljeno" value={publishedAt} />
+    <DetailStatPill icon={MdOutlineLocationOn} label="Lokacija" value={locationLine} />
+    <DetailStatPill icon={MdTrendingUp} label="Pregleda" value={formatCount(viewsCount)} />
+  </div>
+
+  {/* KORISNI BLOK ZA KUPCA / PRODAVAČA */}
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-3">
+      <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Za kupca</p>
+      <div className="mt-2 space-y-2">
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Status oglasa</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{availabilityLabel}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Dostupno odmah</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{availableNowLabel}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Istaknut oglas</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{featuredLabel}</span>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <MdVerifiedUser className="text-emerald-500 dark:text-emerald-400" />
+          <span className="text-sm text-slate-600 dark:text-slate-300">Savjet: prije kupovine potvrdi stanje i detalje kroz poruke.</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-3">
+      <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Za prodavača</p>
+      <div className="mt-2 space-y-2">
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Posljednje osvježenje</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{renewedAt}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Besplatna obnova</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{renewHintLabel}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Prosječan odgovor</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{sellerResponseLabel}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Video u oglasu</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{videoStatusLabel}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Video na story</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{storyPublishLabel}</span>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2">
+          <MdInfoOutline className="text-primary" />
+          <span className="text-sm text-slate-600 dark:text-slate-300">Savjet: brzi odgovor i ažuran oglas povećavaju šansu za prodaju.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
             
             

@@ -4,7 +4,7 @@ import CustomImage from "@/components/Common/CustomImage";
 
 const NoChatListFound = () => {
   return (
-    <div className="flex flex-col items-center justify-center gap-2">
+    <div className="flex flex-col items-center justify-center gap-2 px-4">
       <CustomImage
         src={noChatListFound}
         alt="no chat list found"
@@ -12,10 +12,12 @@ const NoChatListFound = () => {
         height={200}
         className="w-[200px] h-auto aspect-square"
       />
-      <h3 className="font-medium text-2xl text-primary text-center">
+      <h3 className="font-semibold text-2xl text-primary text-center">
         {t("noConversationsFound")}
       </h3>
-      <span className="text-sm text-center">{t("noChatsAvailable")}</span>
+      <span className="text-sm text-slate-500 dark:text-slate-400 text-center">
+        {t("noChatsAvailable")}
+      </span>
     </div>
   );
 };

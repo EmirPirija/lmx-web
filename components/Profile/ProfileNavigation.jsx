@@ -1,117 +1,17 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import CustomLink from "@/components/Common/CustomLink";
 import { cn } from "@/lib/utils";
+import { IoCloseOutline, IoSearchOutline } from "react-icons/io5";
 import {
-  User,
-  Bell,
-  MessageSquare,
-  Layers,
-  Heart,
-  Star,
-  DollarSign,
-  Briefcase,
-  Settings,
-  Bookmark,
-  BarChart3,
-  Award,
-} from "lucide-react";
+  getProfileNavigationSections,
+  isProfileNavItemActive,
+} from "@/components/Profile/profileNavConfig";
 
-const navigationGroups = [
-  {
-    label: "Profil",
-    items: [
-      {
-        href: "/profile",
-        label: "Moj profil",
-        icon: User,
-        description: "Lični podaci i postavke",
-      },
-      {
-        href: "/notifications",
-        label: "Obavijesti",
-        icon: Bell,
-        description: "Nove poruke i notifikacije",
-        badge: true,
-      },
-    ],
-  },
-  {
-    label: "Prodaja",
-    items: [
-      {
-        href: "/profile/seller",
-        label: "Seller Dashboard",
-        icon: BarChart3,
-        description: "Pregled i statistika",
-        highlight: true,
-      },
-      {
-        href: "/my-ads",
-        label: "Moji oglasi",
-        icon: Layers,
-        description: "Upravljaj objavama",
-      },
-      {
-        href: "/chat",
-        label: "Poruke",
-        icon: MessageSquare,
-        description: "Chat sa kupcima",
-        badge: true,
-      },
-      {
-        href: "/profile/saved",
-        label: "Sačuvani kontakti",
-        icon: Bookmark,
-        description: "Kolekcije i bilješke",
-      },
-    ],
-  },
-  {
-    label: "Kupovina",
-    items: [
-      {
-        href: "/favorites",
-        label: "Omiljeni oglasi",
-        icon: Heart,
-        description: "Sačuvani proizvodi",
-      },
-      {
-        href: "/transactions",
-        label: "Transakcije",
-        icon: DollarSign,
-        description: "Plaćanja i kupovine",
-      },
-      {
-        href: "/job-applications",
-        label: "Prijave za posao",
-        icon: Briefcase,
-        description: "Tvoje aplikacije",
-      },
-    ],
-  },
-  {
-    label: "Ostalo",
-    items: [
-      {
-        href: "/reviews",
-        label: "Recenzije",
-        icon: Star,
-        description: "Tvoje ocjene",
-      },
-      {
-        href: "/user-subscription",
-        label: "Članstvo",
-        icon: Award,
-        description: "Pro/Shop paketi",
-      },
-    ],
-  },
-];
-
-function NavItem({ href, label, icon: Icon, description, isActive, badge, badgeCount, highlight }) {
+function NavItem({ href, label, icon: Icon, description, isActive, badgeCount, highlight }) {
   return (
     <CustomLink href={href}>
       <motion.div
@@ -120,26 +20,26 @@ function NavItem({ href, label, icon: Icon, description, isActive, badge, badgeC
         className={cn(
           "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
           isActive
-            ? "bg-slate-900 text-white shadow-sm"
+            ? "bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900"
             : highlight
-            ? "bg-emerald-50 text-emerald-900 border border-emerald-200/60 hover:bg-emerald-100/80"
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            ? "bg-emerald-50 text-emerald-900 border border-emerald-200/60 hover:bg-emerald-100/80 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30 dark:hover:bg-emerald-500/20"
+            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
         )}
       >
         <div
           className={cn(
             "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
             isActive
-              ? "bg-white/15"
+              ? "bg-white/15 dark:bg-slate-900/15"
               : highlight
-              ? "bg-emerald-100"
-              : "bg-slate-100"
+              ? "bg-emerald-100 dark:bg-emerald-500/20"
+              : "bg-slate-100 dark:bg-slate-800"
           )}
         >
           <Icon
             size={18}
             strokeWidth={isActive ? 2.5 : 2}
-            className={isActive ? "text-white" : highlight ? "text-emerald-600" : "text-slate-500"}
+            className={isActive ? "text-white dark:text-slate-900" : highlight ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"}
           />
         </div>
 
@@ -147,7 +47,11 @@ function NavItem({ href, label, icon: Icon, description, isActive, badge, badgeC
           <div
             className={cn(
               "text-sm font-semibold",
-              isActive ? "text-white" : highlight ? "text-emerald-900" : "text-slate-800"
+              isActive
+                ? "text-white dark:text-slate-900"
+                : highlight
+                ? "text-emerald-900 dark:text-emerald-300"
+                : "text-slate-800 dark:text-slate-200"
             )}
           >
             {label}
@@ -155,18 +59,18 @@ function NavItem({ href, label, icon: Icon, description, isActive, badge, badgeC
           <div
             className={cn(
               "text-[11px] truncate",
-              isActive ? "text-white/70" : highlight ? "text-emerald-600" : "text-slate-400"
+              isActive ? "text-white/70 dark:text-slate-900/70" : highlight ? "text-emerald-600 dark:text-emerald-300" : "text-slate-400 dark:text-slate-500"
             )}
           >
             {description}
           </div>
         </div>
 
-        {badge && badgeCount > 0 && (
+        {badgeCount > 0 && (
           <span
             className={cn(
               "min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full",
-              isActive ? "bg-white text-slate-900" : "bg-red-500 text-white"
+              isActive ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100" : "bg-red-500 text-white"
             )}
           >
             {badgeCount > 99 ? "99+" : badgeCount}
@@ -176,7 +80,7 @@ function NavItem({ href, label, icon: Icon, description, isActive, badge, badgeC
         {isActive && (
           <motion.div
             layoutId="activeNavIndicator"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white dark:bg-slate-900 rounded-r-full"
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           />
         )}
@@ -187,26 +91,123 @@ function NavItem({ href, label, icon: Icon, description, isActive, badge, badgeC
 
 export default function ProfileNavigation({ badges = {} }) {
   const pathname = usePathname();
+  const [query, setQuery] = useState("");
+
+  const navigationGroups = useMemo(
+    () =>
+      getProfileNavigationSections({
+        unreadNotifications: badges["/notifications"] || 0,
+        unreadMessages: badges["/chat"] || 0,
+      }).map((section) => ({ label: section.title, items: section.items })),
+    [badges]
+  );
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const flatItems = useMemo(() => navigationGroups.flatMap((group) => group.items), [navigationGroups]);
+
+  const filteredGroups = useMemo(() => {
+    if (!normalizedQuery) return navigationGroups;
+
+    return navigationGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          const haystack = `${item.label} ${item.description}`.toLowerCase();
+          return haystack.includes(normalizedQuery);
+        }),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [navigationGroups, normalizedQuery]);
+
+  const filteredFlatItems = useMemo(() => {
+    if (!normalizedQuery) return flatItems;
+    return flatItems.filter((item) => {
+      const haystack = `${item.label} ${item.description}`.toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+  }, [flatItems, normalizedQuery]);
 
   return (
-    <nav className="space-y-5">
-      {navigationGroups.map((group) => (
-        <div key={group.label}>
-          <h3 className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {group.label}
-          </h3>
-          <div className="space-y-0.5">
-            {group.items.map((item) => (
-              <NavItem
+    <div className="mb-6 rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+      <div className="relative">
+        <IoSearchOutline size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Pretrazi sekcije..."
+          className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-700 outline-none transition focus:border-primary/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            aria-label="Ocisti pretragu"
+          >
+            <IoCloseOutline size={14} />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="md:hidden mt-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-lmx">
+          {filteredFlatItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = isProfileNavItemActive(pathname, item);
+            const badgeCount = typeof badges[item.href] === "number" ? badges[item.href] : item.badge || 0;
+            return (
+              <CustomLink
                 key={item.href}
-                {...item}
-                isActive={pathname === item.href}
-                badgeCount={badges[item.href] || 0}
-              />
-            ))}
-          </div>
+                href={item.href}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold whitespace-nowrap transition",
+                  isActive
+                    ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                )}
+              >
+                <Icon size={14} />
+                {item.label}
+                {badgeCount > 0 ? (
+                  <span className="inline-flex min-w-[18px] justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                ) : null}
+              </CustomLink>
+            );
+          })}
+          {filteredFlatItems.length === 0 && (
+            <span className="text-xs text-slate-500 dark:text-slate-400 py-2">Nema rezultata.</span>
+          )}
         </div>
-      ))}
-    </nav>
+      </div>
+
+      <nav className="hidden md:block mt-4 space-y-5">
+        {filteredGroups.map((group) => (
+          <div key={group.label}>
+            <h3 className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {group.label}
+            </h3>
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <NavItem
+                  key={item.href}
+                  {...item}
+                  isActive={isProfileNavItemActive(pathname, item)}
+                  badgeCount={typeof badges[item.href] === "number" ? badges[item.href] : item.badge || 0}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {filteredGroups.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3 text-center text-xs text-slate-500 dark:text-slate-400">
+            Nema rezultata za "{query}".
+          </div>
+        )}
+      </nav>
+    </div>
   );
 }

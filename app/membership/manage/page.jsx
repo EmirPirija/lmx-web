@@ -1,168 +1,230 @@
 "use client";
-import React, { useEffect } from "react";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSelector, useDispatch } from "react-redux";
-import { membershipApi } from "@/utils/api";
+import { useDispatch, useSelector } from "react-redux";
 import {
-  setUserMembership,
-  setUserMembershipLoading,
-} from "@/redux/reducer/membershipSlice";
+  ArrowLeft,
+  CalendarClock,
+  CheckCircle2,
+  Crown,
+  RefreshCcw,
+  Store,
+  XCircle,
+} from "lucide-react";
+import { toast } from "sonner";
+import Checkauth from "@/HOC/Checkauth";
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Crown, Store } from "lucide-react";
 import { t } from "@/utils";
-import { toast } from "sonner";
-import Checkauth from "@/HOC/Checkauth";
+import { membershipApi } from "@/utils/api";
+import {
+  setUserMembership,
+  setUserMembershipError,
+  setUserMembershipLoading,
+} from "@/redux/reducer/membershipSlice";
+import { cn } from "@/lib/utils";
 
-// Mock membership za testiranje
-const MOCK_MEMBERSHIP = {
-  id: 1,
-  tier: "pro",
-  tier_name: "LMX Pro",
-  status: "active",
-  started_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dana prije
-  expires_at: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000).toISOString(), // 23 dana od sada
+const TIER_THEME = {
+  free: {
+    icon: CheckCircle2,
+    gradient: "from-slate-600 via-slate-700 to-slate-800",
+    label: "Free",
+  },
+  pro: {
+    icon: Crown,
+    gradient: "from-amber-400 via-yellow-500 to-orange-500",
+    label: "LMX Pro",
+  },
+  shop: {
+    icon: Store,
+    gradient: "from-sky-500 via-blue-600 to-indigo-600",
+    label: "LMX Shop",
+  },
+};
+
+const formatMembershipDate = (dateValue) => {
+  if (!dateValue) return "Nije dostupno";
+  const parsedDate = new Date(dateValue);
+  if (Number.isNaN(parsedDate.getTime())) return "Nije dostupno";
+  return parsedDate.toLocaleDateString();
 };
 
 const MembershipManagePage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
-  
-  const { data: membership, loading } = useSelector(
-    (state) => state.Membership.userMembership
-  );
+  const { data: membership, loading } = useSelector((state) => state.Membership.userMembership);
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  useEffect(() => {
-    fetchMembership();
-  }, []);
-
-  const fetchMembership = async () => {
+  const fetchMembership = useCallback(async () => {
     dispatch(setUserMembershipLoading(true));
+    dispatch(setUserMembershipError(null));
     try {
       const res = await membershipApi.getUserMembership();
-      if (res.data?.data && res.data.data.tier) {
-        dispatch(setUserMembership(res.data.data));
-      } else {
-        // Koristi mock ako API ne vrati membership
-        dispatch(setUserMembership(MOCK_MEMBERSHIP));
-      }
+      dispatch(setUserMembership(res?.data?.data || null));
     } catch (error) {
-      console.error("Error fetching membership, using mock:", error);
-      dispatch(setUserMembership(MOCK_MEMBERSHIP));
+      console.error("Error fetching membership:", error);
+      dispatch(setUserMembershipError("Failed to fetch membership"));
+      toast.error(t("errorFetchingData"));
     } finally {
       dispatch(setUserMembershipLoading(false));
     }
-  };
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetchMembership();
+  }, [fetchMembership]);
+
+  const normalizedTier = useMemo(() => {
+    const apiTier = String(membership?.tier || "free").toLowerCase();
+    if (apiTier.includes("shop")) return "shop";
+    if (apiTier.includes("pro")) return "pro";
+    return "free";
+  }, [membership]);
+
+  const theme = TIER_THEME[normalizedTier] || TIER_THEME.free;
+  const Icon = theme.icon;
+
+  const isFreePlan = normalizedTier === "free";
+  const membershipLabel = membership?.tier_name || theme.label;
+  const membershipStatus = String(membership?.status || "active");
+  const isActive = membership?.is_active ?? membershipStatus === "active";
 
   const handleCancelMembership = async () => {
-    if (!confirm(t("areYouSureYouWantToCancelMembership"))) {
+    if (isFreePlan) {
+      toast.info("Trenutno si na Free planu.");
       return;
     }
 
+    const confirmed = window.confirm(t("areYouSureYouWantToCancelMembership"));
+    if (!confirmed) return;
+
+    setIsCancelling(true);
     try {
       const res = await membershipApi.cancelMembership();
-      if (!res.data.error) {
+      if (res?.data?.error === false) {
         toast.success(t("membershipCancelledSuccessfully"));
-        fetchMembership();
-      } else {
-        toast.error(res.data.message || t("cancelFailed"));
+        await fetchMembership();
+        return;
       }
+      toast.error(res?.data?.message || t("cancelFailed"));
     } catch (error) {
       console.error("Error cancelling membership:", error);
       toast.error(t("errorCancellingMembership"));
+    } finally {
+      setIsCancelling(false);
     }
   };
-
-  const tierConfig = {
-    pro: { icon: Crown, gradient: "from-amber-400 to-yellow-600", name: "LMX Pro" },
-    shop: { icon: Store, gradient: "from-blue-500 to-indigo-600", name: "LMX Shop" },
-  };
-
-  // Koristi mock ako nema membership
-  const displayMembership = membership || MOCK_MEMBERSHIP;
-  const config = tierConfig[displayMembership?.tier?.toLowerCase()] || tierConfig.pro;
-  const Icon = config.icon;
 
   return (
     <Layout>
       <BreadCrumb title2={t("manageMembership")} />
-      
-      <div className="container mt-8 mb-12">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="mb-6"
-        >
+
+      <div className="container mb-12 mt-8">
+        <Button variant="ghost" onClick={() => router.back()} className="mb-6 rounded-full">
           <ArrowLeft size={18} className="mr-2" />
           {t("back")}
         </Button>
 
-        <div className="max-w-2xl mx-auto">
+        <div className="mx-auto max-w-3xl">
           {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+              <div className="h-11 w-11 animate-spin rounded-full border-b-2 border-primary" />
             </div>
           ) : (
-            <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${config.gradient} p-8 text-white shadow-xl`}>
-              <div className="absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 rounded-full bg-white/10 blur-3xl"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-3 bg-white/20 rounded-full">
-                    <Icon size={32} />
-                  </div>
-                  <div>
-                    <p className="text-sm opacity-90">{t("currentPlan")}</p>
-                    <h2 className="text-3xl font-bold">{config.name}</h2>
-                  </div>
-                </div>
+            <div className="space-y-5">
+              <div
+                className={cn(
+                  "relative overflow-hidden rounded-2xl bg-gradient-to-br p-7 text-white shadow-lg",
+                  theme.gradient
+                )}
+              >
+                <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+                <div className="relative z-10">
+                  <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex rounded-xl bg-white/20 p-2.5 backdrop-blur-sm">
+                        <Icon className="h-7 w-7" />
+                      </span>
+                      <div>
+                        <p className="text-sm text-white/85">{t("currentPlan")}</p>
+                        <h2 className="text-3xl font-bold">{membershipLabel}</h2>
+                      </div>
+                    </div>
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between items-center">
-                    <span className="opacity-90">{t("status")}:</span>
-                    <span className="font-semibold capitalize bg-white/20 px-3 py-1 rounded-full">
-                      {displayMembership?.status || 'Active'}
+                    <span
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide",
+                        isActive ? "bg-emerald-400/20 text-emerald-100" : "bg-red-400/20 text-red-100"
+                      )}
+                    >
+                      {membershipStatus}
                     </span>
                   </div>
-                  
-                  {displayMembership?.started_at && (
-                    <div className="flex justify-between items-center">
-                      <span className="opacity-90">{t("startedOn")}:</span>
-                      <span className="font-semibold">
-                        {new Date(displayMembership.started_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
 
-                  {displayMembership?.expires_at && (
-                    <div className="flex justify-between items-center">
-                      <span className="opacity-90">{t("expiresOn")}:</span>
-                      <span className="font-semibold">
-                        {new Date(displayMembership.expires_at).toLocaleDateString()}
-                      </span>
+                  <div className="grid gap-3 rounded-xl bg-white/10 p-4 backdrop-blur-sm sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-white/75">{t("startedOn")}</p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {formatMembershipDate(membership?.started_at)}
+                      </p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-white/75">{t("expiresOn")}</p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {membership?.expires_at ? formatMembershipDate(membership?.expires_at) : "Bez isteka"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Akcije</h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={fetchMembership}
+                  >
+                    <RefreshCcw className="mr-2 h-4 w-4" />
+                    Osvježi
+                  </Button>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Button
-                    variant="outline"
-                    className="flex-1 bg-white/10 border-white/30 text-white hover:bg-white/20"
+                    className="h-11 rounded-full"
                     onClick={() => router.push("/membership/upgrade")}
                   >
-                    {t("changePlan")}
+                    {isFreePlan ? "Nadogradi plan" : t("changePlan")}
                   </Button>
-                  
+
                   <Button
                     variant="outline"
-                    className="flex-1 bg-white/10 border-white/30 text-white hover:bg-red-500/50"
+                    className="h-11 rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-400/40 dark:text-red-300 dark:hover:bg-red-500/10"
                     onClick={handleCancelMembership}
+                    disabled={isFreePlan || isCancelling}
                   >
-                    {t("cancelMembership")}
+                    <XCircle className="mr-2 h-4 w-4" />
+                    {isFreePlan ? "Nema aktivnog plana za otkazivanje" : t("cancelMembership")}
                   </Button>
                 </div>
               </div>
+
+              {membership?.expires_at ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex items-start gap-3 text-slate-600 dark:text-slate-300">
+                    <CalendarClock className="mt-0.5 h-5 w-5 text-primary" />
+                    <p className="text-sm">
+                      Plan ističe <strong>{formatMembershipDate(membership.expires_at)}</strong>. Nadogradi
+                      ili promijeni plan prije isteka da zadržiš sve pogodnosti.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

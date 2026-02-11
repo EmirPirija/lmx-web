@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { myPurchasesApi } from "@/utils/api";
-import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import ProfileNavigation from "@/components/Profile/ProfileNavigation";
 import CustomImage from "@/components/Common/CustomImage";
@@ -14,10 +13,8 @@ import {
   MdStorefront,
   MdCalendarToday,
   MdShoppingBag,
-  MdClose,
   MdOpenInNew
 } from "react-icons/md";
-import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -262,7 +259,7 @@ const MyPurchases = () => {
   };
  
   return (
-    <Layout>
+    <>
       <BreadCrumb title2="Moje kupovine" />
       <div className="container py-6">
         <ProfileNavigation />
@@ -335,7 +332,7 @@ const MyPurchases = () => {
         onClose={() => setShowReceiptModal(false)}
         purchase={selectedPurchase}
       />
-    </Layout>
+    </>
   );
 };
  

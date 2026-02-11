@@ -8,7 +8,7 @@ const initialState = {
     error: null,
   },
   membershipTiers: {
-    data: null,
+    data: [],
     loading: false,
     error: null,
   },
