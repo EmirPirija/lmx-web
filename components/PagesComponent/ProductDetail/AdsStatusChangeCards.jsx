@@ -242,11 +242,14 @@ const AdsStatusChangeCards = ({
       const res = await chanegItemStatusApi.changeItemStatus(apiParams);
       
       if (res?.data?.error === false) {
-        toast.success(t("statusUpdated") || "Status oglasa je uspješno ažuriran");
-        
-        // Update local state
-        const newInventoryCount = saleDetails?.remainingAfterSale ?? 0;
-        const newStatus = newInventoryCount > 0 ? "approved" : "sold out";
+        toast.success(res?.data?.message || t("statusUpdated") || "Status oglasa je uspješno ažuriran");
+
+        const responseData = res?.data?.data || {};
+        const newStatus = responseData?.status || (saleDetails?.remainingAfterSale > 0 ? "approved" : "sold out");
+        const newInventoryCount =
+          responseData?.inventory_count !== undefined && responseData?.inventory_count !== null
+            ? Number(responseData.inventory_count)
+            : saleDetails?.remainingAfterSale ?? productDetails?.inventory_count ?? 0;
         
         setProductDetails((prev) => ({ 
           ...prev, 
@@ -535,6 +538,7 @@ const AdsStatusChangeCards = ({
         setSelectedRadioValue={setSelectedRadioValue}
         setShowConfirmModal={setShowConfirmModal}
         onSoldWithDetails={handleSoldWithDetails}
+        sellerSettings={productDetails?.seller_settings}
       />
  
       <ReusableAlertDialog

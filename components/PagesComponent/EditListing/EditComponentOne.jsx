@@ -12,7 +12,9 @@ import { generateSlug } from "@/utils";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useSelector } from "react-redux";
+import { userSignUpData } from "@/redux/reducer/authSlice";
 import { useRouter } from "next/navigation";
+import { resolveMembership } from "@/lib/membership";
 
 // Ikone za sekcije (React Icons)
 import {
@@ -290,6 +292,9 @@ const EditComponentOne = ({
   const router = useRouter();
   const currencyPosition = useSelector(getCurrencyPosition);
   const currencySymbol = useSelector(getCurrencySymbol);
+  const currentUser = useSelector(userSignUpData);
+  const membership = resolveMembership(currentUser, currentUser?.membership);
+  const isShopMember = Boolean(membership?.isShop);
 
   const placeholderLabel =
     currencyPosition === "right" ? `00 ${currencySymbol}` : `${currencySymbol} 00`;
@@ -619,7 +624,7 @@ const EditComponentOne = ({
       {isDefaultLang && !is_job_category && (
         <AccordionSection
           title="Zalihe"
-          subtitle="Opcionalno: unesite ako imate više komada"
+          subtitle="Shop može voditi zalihe i internu šifru artikla"
           badge="optional"
           isOpen={stockOpen}
           onToggle={() => setStockOpen((v) => !v)}
@@ -648,13 +653,39 @@ const EditComponentOne = ({
                 placeholder="npr. 10"
                 value={current?.inventory_count || ""}
                 onChange={handleField("inventory_count")}
+                disabled={!isShopMember}
                 className={baseInput}
               />
-              {current?.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
+              {!isShopMember && (
+                <p className="text-xs text-amber-700 mt-2">
+                  Ova opcija je dostupna samo za LMX Shop korisnike.
+                </p>
+              )}
+              {isShopMember && current?.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
                 <p className="text-xs text-gray-600 mt-2">
                   ✅ Unijeli ste više komada — zalihe možete pratiti kroz oglas.
                 </p>
               )}
+            </div>
+
+            <div className="mt-4">
+              <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-900">
+                Interna šifra proizvoda (SHOP)
+              </Label>
+              <Input
+                type="text"
+                name="seller_product_code"
+                id="seller_product_code"
+                maxLength={100}
+                placeholder="npr. SKU-BT-ZV-001"
+                value={current?.seller_product_code || ""}
+                onChange={handleField("seller_product_code")}
+                disabled={!isShopMember}
+                className={`${baseInput} mt-2`}
+              />
+              <p className="text-xs text-gray-600 mt-2">
+                Šifra služi za internu evidenciju prodaje i praćenje artikala.
+              </p>
             </div>
           </div>
         </AccordionSection>

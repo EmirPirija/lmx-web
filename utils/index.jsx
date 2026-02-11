@@ -1081,6 +1081,11 @@ export const getMainDetailsTranslations = (
         country_code: countryCodeFromRegion,
         is_on_sale: listingData?.is_on_sale || false,
         old_price: listingData?.old_price || "",
+        inventory_count:
+          listingData?.inventory_count !== undefined && listingData?.inventory_count !== null
+            ? String(listingData.inventory_count)
+            : "",
+        seller_product_code: listingData?.seller_product_code || "",
       };
     } else {
       // Other languages: get translation if available

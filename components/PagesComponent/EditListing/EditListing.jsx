@@ -820,6 +820,13 @@ const EditListing = ({ id }) => {
     exchange_possible: Boolean(exchangePossible),
     is_exchange: Boolean(exchangePossible),
     allow_exchange: Boolean(exchangePossible),
+    inventory_count:
+      defaultDetails?.inventory_count !== undefined &&
+      defaultDetails?.inventory_count !== null &&
+      String(defaultDetails.inventory_count).trim() !== ""
+        ? Number(defaultDetails.inventory_count)
+        : null,
+    seller_product_code: String(defaultDetails?.seller_product_code || "").trim(),
     region_code: defaultDetails?.region_code?.toUpperCase() || "",
     video_link: trimmedVideoLink,
     instagram_source_url: (instagramSourceUrl || "").trim(),

@@ -1013,6 +1013,7 @@ const MyAdsCard = ({
 
   const hasVideo = !!(data?.video_link && String(data?.video_link).trim() !== "");
   const exchangePossible = readExchangePossible(data);
+  const sellerProductCode = String(data?.seller_product_code || "").trim();
 
   const isHidePrice = isJobCategory
     ? [data?.min_salary, data?.max_salary].every(
@@ -1150,8 +1151,10 @@ const MyAdsCard = ({
   };
 
   const handleSoldOutAction = (salePayload = null) => {
-    const buyerId = salePayload?.buyerId ?? selectedBuyerId ?? null;
-    onContextMenuAction?.("markAsSoldOut", data?.id, buyerId);
+    const payload = salePayload && typeof salePayload === "object"
+      ? salePayload
+      : { buyerId: selectedBuyerId ?? null };
+    onContextMenuAction?.("markAsSoldOut", data?.id, payload);
     setIsSoldOutDialogOpen(false);
   };
 
@@ -1535,6 +1538,14 @@ const MyAdsCard = ({
                 </motion.span>
               ))}
             </div>
+          ) : null}
+        </div>
+
+        <div className="min-h-5">
+          {sellerProductCode ? (
+            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              Šifra: {sellerProductCode}
+            </span>
           ) : null}
         </div>
 

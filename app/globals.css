@@ -153,22 +153,6 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  html {
-    scroll-behavior: smooth;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  body {
-    @apply bg-[var(--background)] text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-}
 
 @layer utilities {
   /* LMX Custom Utilities */
@@ -528,4 +512,8 @@ body {
 .custom-lmx-bg {
   /* background: #F5F1EC; */
   padding-bottom: 2rem;
+}
+
+.flex.gap-2.items-center img.h-7.w-7.rounded-sm {
+  display: none;
 }

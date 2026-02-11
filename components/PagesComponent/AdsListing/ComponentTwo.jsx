@@ -21,6 +21,8 @@ import {
 import { generateSlug } from "@/utils";
 import PhoneInput from "react-phone-input-2";
 import { useSelector } from "react-redux";
+import { userSignUpData } from "@/redux/reducer/authSlice";
+import { resolveMembership } from "@/lib/membership";
 
 // ============================================
 // ACCORDION SECTION
@@ -271,6 +273,9 @@ const ComponentTwo = ({
 }) => {
   const currencyPosition = useSelector(getCurrencyPosition);
   const currencySymbol = useSelector(getCurrencySymbol);
+  const currentUser = useSelector(userSignUpData);
+  const membership = resolveMembership(currentUser, currentUser?.membership);
+  const isShopMember = Boolean(membership?.isShop);
 
   const placeholderLabel =
     currencyPosition === "right" ? `${currencySymbol}` : `${currencySymbol}`;
@@ -574,7 +579,7 @@ const ComponentTwo = ({
       {isDefaultLang && (
         <AccordionSection
           title="Zalihe"
-          subtitle="Zalihe su dostupne samo za LMX Shop"
+          subtitle="Shop može voditi zalihe i internu šifru artikla"
           isOpen={stockOpen}
           onToggle={() => setStockOpen((v) => !v)}
           badge="optional"
@@ -595,14 +600,41 @@ const ComponentTwo = ({
               placeholder="npr. 10"
               value={current.inventory_count || ""}
               onChange={handleField("inventory_count")}
+              disabled={!isShopMember}
               className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
 
-            {current.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
+            {!isShopMember && (
+              <p className="text-xs text-amber-600 mt-1">
+                Ova opcija je dostupna samo za LMX Shop korisnike.
+              </p>
+            )}
+
+            {isShopMember && current.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
               <p className="text-xs text-blue-600 mt-1">
                 ✨ Moći ćete pratiti prodaju i zalihe za ovaj oglas!
               </p>
             )}
+
+            <div className="mt-3 flex flex-col gap-2">
+              <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-800">
+                Interna šifra proizvoda (SHOP)
+              </Label>
+              <Input
+                type="text"
+                name="seller_product_code"
+                id="seller_product_code"
+                maxLength={100}
+                placeholder="npr. SKU-BT-ZV-001"
+                value={current.seller_product_code || ""}
+                onChange={handleField("seller_product_code")}
+                disabled={!isShopMember}
+                className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500">
+                Šifra je za internu evidenciju prodavača i neće biti javno istaknuta kupcima.
+              </p>
+            </div>
           </div>
         </AccordionSection>
       )}

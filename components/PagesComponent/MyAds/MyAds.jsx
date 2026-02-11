@@ -547,22 +547,69 @@ const MyAds = () => {
     } catch (error) { console.error(error); toast.error("Greška pri aktiviranju oglasa."); }
   };
 
-  const handleMarkAsSoldOut = async (adId, buyerId = null) => {
+  const handleMarkAsSoldOut = async (adId, salePayload = null) => {
     try {
-      const payload = { item_id: adId, status: "sold out", ...(buyerId && { sold_to: buyerId }) };
+      const buyerId = salePayload?.buyerId ?? null;
+      const payload = {
+        item_id: adId,
+        status: "sold out",
+        ...(buyerId ? { sold_to: buyerId } : {}),
+      };
+
+      if (salePayload?.quantitySold) {
+        payload.quantity_sold = salePayload.quantitySold;
+      }
+      if (salePayload?.receiptFile) {
+        payload.sale_receipt = salePayload.receiptFile;
+      }
+      if (salePayload?.saleNote !== undefined && salePayload?.saleNote !== null) {
+        payload.sale_note = salePayload.saleNote;
+      }
+      if (salePayload?.totalPrice !== undefined && salePayload?.totalPrice !== null) {
+        payload.sale_price = salePayload.totalPrice;
+      }
+
       const res = await chanegItemStatusApi.changeItemStatus(payload);
       if (res?.data?.error === false) {
+        const responseData = res?.data?.data || {};
+        const newStatus = responseData?.status || "sold out";
+        const newInventory =
+          responseData?.inventory_count !== undefined && responseData?.inventory_count !== null
+            ? Number(responseData.inventory_count)
+            : undefined;
         const currentItem = MyItems.find((item) => item.id === adId);
         const isJob = Number(currentItem?.category?.is_job_category) === 1;
-        toast.success(isJob ? "Posao je označen kao popunjen." : "Oglas je označen kao prodat.");
-        setMyItems((prev) => prev.map((item) => item.id === adId ? { ...item, status: "sold out", sold_to: buyerId } : item));
+        toast.success(
+          res?.data?.message ||
+            (isJob ? "Pozicija je uspješno ažurirana." : "Prodaja je uspješno evidentirana.")
+        );
+        setMyItems((prev) =>
+          prev.map((item) =>
+            item.id === adId
+              ? {
+                  ...item,
+                  status: newStatus,
+                  sold_to: buyerId,
+                  ...(newInventory !== undefined ? { inventory_count: newInventory } : {}),
+                }
+              : item
+          )
+        );
         setStatusCounts((prev) => ({
           ...prev,
-          approved: Math.max(0, prev.approved - 1),
+          approved: Math.max(
+            0,
+            prev.approved - (newStatus === "sold out" ? 1 : 0)
+          ),
           featured: currentItem?.is_feature ? Math.max(0, prev.featured - 1) : prev.featured,
-          "sold out": prev["sold out"] + 1,
+          "sold out": Math.max(
+            0,
+            prev["sold out"] + (newStatus === "sold out" ? 1 : 0)
+          ),
         }));
-        if (status !== "sold out") updateURLParams("status", "sold out");
+        if (newStatus === "sold out" && status !== "sold out") {
+          updateURLParams("status", "sold out");
+        }
       } else toast.error(res?.data?.message || "Greška pri označavanju oglasa.");
     } catch (error) { console.error(error); toast.error("Greška pri označavanju oglasa."); }
   };
@@ -660,7 +707,7 @@ const MyAds = () => {
       case "edit": navigate(`/edit-listing/${adId}`); break;
       case "deactivate": handleDeactivateAd(adId); break;
       case "activate": handleActivateAd(adId); break;
-      case "markAsSoldOut": handleMarkAsSoldOut(adId, payload); break;
+      case "markAsSoldOut": handleMarkAsSoldOut(adId, payload || null); break;
       case "feature": handleFeatureAd(adId, payload || {}); break;
       case "reserve": handleReserveAd(adId); break;
       case "unreserve": handleUnreserveAd(adId); break;

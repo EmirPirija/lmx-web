@@ -82,8 +82,9 @@ const SoldOutModal = ({
     [currentUser, productDetails]
   );
   const isShopMember = Boolean(membership?.isShop);
-  const hasInventory = productDetails?.inventory_count && productDetails?.inventory_count > 0;
-  const inventoryCount = productDetails?.inventory_count || 1;
+  const parsedInventoryCount = Number(productDetails?.inventory_count);
+  const hasInventory = Number.isFinite(parsedInventoryCount) && parsedInventoryCount > 0;
+  const inventoryCount = hasInventory ? parsedInventoryCount : 1;
   const continueSellingWhenOutOfStock = sellerSettings?.continue_selling_out_of_stock || false;
   
   // Izračunaj koliko ostaje nakon prodaje
@@ -454,10 +455,14 @@ const SoldOutModal = ({
                     <MdAdd size={20} />
                   </button>
                 </div>
-                <div className="text-sm text-slate-500">
-                  od <span className="font-semibold">{inventoryCount}</span> na zalihi
-                </div>
+              <div className="text-sm text-slate-500">
+                od <span className="font-semibold">{inventoryCount}</span> na zalihi
               </div>
+            </div>
+              <p className="text-xs font-medium text-slate-600">
+                Preostalo nakon prodaje:{" "}
+                <span className="font-semibold text-slate-900">{remainingAfterSale}</span>
+              </p>
               
               {/* Info o preostalom */}
               <div className={cn(

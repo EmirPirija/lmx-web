@@ -284,6 +284,8 @@ const AdsListing = () => {
       contact: mobile,
       country_code: countryCode || "91",
       region_code: regionCode,
+      inventory_count: "",
+      seller_product_code: "",
     },
   });
 
@@ -613,6 +615,8 @@ const AdsListing = () => {
         contact: mobile,
         country_code: countryCode,
         region_code: regionCode,
+        inventory_count: "",
+        seller_product_code: "",
       },
     });
     setExtraDetails({ [defaultLangId]: {} });
@@ -725,6 +729,13 @@ const AdsListing = () => {
       exchange_possible: Boolean(exchangePossible),
       is_exchange: Boolean(exchangePossible),
       allow_exchange: Boolean(exchangePossible),
+      inventory_count:
+        defaultDetails?.inventory_count !== undefined &&
+        defaultDetails?.inventory_count !== null &&
+        String(defaultDetails.inventory_count).trim() !== ""
+          ? Number(defaultDetails.inventory_count)
+          : null,
+      seller_product_code: String(defaultDetails?.seller_product_code || "").trim(),
       video_link: trimmedVideoLink,
       temp_main_image_id: uploadedImages?.[0]?.id ?? null,
       temp_gallery_image_ids: (otherImages || []).map((x) => x?.id).filter(Boolean),
@@ -825,6 +836,8 @@ const AdsListing = () => {
         contact: mobile,
         country_code: countryCode,
         region_code: regionCode,
+        inventory_count: "",
+        seller_product_code: "",
       },
     });
     setExtraDetails({ [defaultLangId]: {} });

@@ -623,13 +623,31 @@ export const deleteItemApi = {
 };
 
 export const chanegItemStatusApi = {
-  changeItemStatus: ({ item_id, status, sold_to } = {}) => {
+  changeItemStatus: ({
+    item_id,
+    status,
+    sold_to,
+    quantity_sold,
+    sale_receipt,
+    sale_note,
+    sale_price,
+  } = {}) => {
     const formData = new FormData();
 
     // Append only if the value is defined and not an empty string
     if (item_id) formData.append("item_id", item_id);
     if (status) formData.append("status", status);
     if (sold_to) formData.append("sold_to", sold_to);
+    if (quantity_sold !== undefined && quantity_sold !== null) {
+      formData.append("quantity_sold", quantity_sold);
+    }
+    if (sale_receipt) formData.append("sale_receipt", sale_receipt);
+    if (sale_note !== undefined && sale_note !== null) {
+      formData.append("sale_note", sale_note);
+    }
+    if (sale_price !== undefined && sale_price !== null) {
+      formData.append("sale_price", sale_price);
+    }
 
     return Api.post(UPDATE_ITEM_STATUS, formData, {
       headers: {
@@ -1032,6 +1050,7 @@ export const addItemApi = {
     zamjena,
     zamena,
     inventory_count,
+    seller_product_code,
     show_only_to_premium,
     add_video_to_story,
     publish_to_instagram,
@@ -1132,8 +1151,15 @@ export const addItemApi = {
     if (min_salary) formData.append("min_salary", min_salary);
     if (max_salary) formData.append("max_salary", max_salary);
     if (region_code) formData.append("region_code", region_code);
-    if (inventory_count !== undefined && inventory_count !== null) {
+    if (
+      inventory_count !== undefined &&
+      inventory_count !== null &&
+      String(inventory_count).trim() !== ""
+    ) {
       formData.append("inventory_count", inventory_count);
+    }
+    if (seller_product_code !== undefined && seller_product_code !== null) {
+      formData.append("seller_product_code", String(seller_product_code).trim());
     }
 
     if (custom_field_translations)
@@ -1207,6 +1233,7 @@ export const editItemApi = {
     old_price,
 
     inventory_count,
+    seller_product_code,
     available_now,
     isAvailable,
     is_available,
@@ -1311,8 +1338,15 @@ export const editItemApi = {
       formData.append("max_salary", max_salary);
     }
 
-    if (inventory_count !== undefined && inventory_count !== null) {
+    if (
+      inventory_count !== undefined &&
+      inventory_count !== null &&
+      String(inventory_count).trim() !== ""
+    ) {
       formData.append("inventory_count", inventory_count);
+    }
+    if (seller_product_code !== undefined && seller_product_code !== null) {
+      formData.append("seller_product_code", String(seller_product_code).trim());
     }
 
     if (isFileLike(video)) {
