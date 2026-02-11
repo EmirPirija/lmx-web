@@ -1,13 +1,19 @@
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { SlidersHorizontal, MapPin, DollarSign, Calendar, Tag, X, Waypoints } from "lucide-react";
+import { SlidersHorizontal, MapPin, DollarSign, Calendar, Tag, X, Waypoints, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CategoryPopup from "./CategoryPopup";
-import LocationPopup from "./LocationPopup";
 import BudgetPopup from "./BudgetPopup";
 import DatePopup from "./DatePopup";
 import RangePopup from "./RangePopup";
 import ExtraDetailsPopup from "./ExtraDetailsPopup";
+import SellerTypePopup from "./SellerTypePopup";
 import { useSearchParams } from "next/navigation";
+
+const LocationModal = dynamic(
+  () => import("@/components/Location/LocationModal.jsx"),
+  { ssr: false }
+);
 
 
 const Filter = ({
@@ -22,6 +28,7 @@ const Filter = ({
 }) => {
   const searchParams = useSearchParams();
   const [activePopup, setActivePopup] = useState(null);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
   const selectedCategory = urlParams.get("category") || "";
@@ -29,6 +36,8 @@ const Filter = ({
   const maxPrice = searchParams.get("max_price");
   const datePosted = searchParams.get("date_posted");
   const kmRange = searchParams.get("km_range");
+  const sellerType = searchParams.get("seller_type");
+  const sellerVerified = searchParams.get("seller_verified") === "1";
 
   // Brojanje aktivnih filtera
   const getFilterCount = () => {
@@ -38,6 +47,7 @@ const Filter = ({
       budget: (minPrice || maxPrice) ? 1 : 0,
       date: datePosted ? 1 : 0,
       range: kmRange ? 1 : 0,
+      seller: (sellerType && sellerType !== "all" ? 1 : 0) + (sellerVerified ? 1 : 0),
       details: Object.keys(extraDetails || {}).length,
     };
     return counts;
@@ -51,6 +61,44 @@ const Filter = ({
     const lang = searchParams.get("lang");
     if (lang) newSearchParams.set("lang", lang);
     window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+  };
+
+  const handleLocationSaved = (locationData) => {
+    const params = new URLSearchParams(window.location.search);
+    const locationKeys = ["country", "state", "city", "area", "areaId", "lat", "lng"];
+
+    locationKeys.forEach((key) => params.delete(key));
+
+    if (!locationData) {
+      params.delete("km_range");
+      window.history.pushState(null, "", `/ads?${params.toString()}`);
+      setIsLocationModalOpen(false);
+      return;
+    }
+
+    const nextLocation = {
+      country: locationData?.country,
+      state: locationData?.state,
+      city: locationData?.city,
+      area: locationData?.area,
+      areaId: locationData?.areaId,
+      lat: locationData?.lat,
+      lng: locationData?.long ?? locationData?.lng,
+    };
+
+    Object.entries(nextLocation).forEach(([key, value]) => {
+      const hasValue = value === 0 || value === "0" || Boolean(value);
+      if (hasValue) {
+        params.set(key, String(value));
+      } else {
+        params.delete(key);
+      }
+    });
+
+    params.delete("km_range");
+
+    window.history.pushState(null, "", `/ads?${params.toString()}`);
+    setIsLocationModalOpen(false);
   };
 
   // Komponenta za dugme sa modernim dizajnom i animacijama
@@ -117,7 +165,10 @@ const Filter = ({
               label="Lokacija"
               count={counts.location}
               active={counts.location > 0}
-              onClick={() => setActivePopup(activePopup === "location" ? null : "location")}
+              onClick={() => {
+                setActivePopup(null);
+                setIsLocationModalOpen(true);
+              }}
             />
 
             <FilterButton
@@ -142,6 +193,14 @@ const Filter = ({
               count={counts.range}
               active={counts.range > 0}
               onClick={() => setActivePopup(activePopup === "range" ? null : "range")}
+            />
+
+            <FilterButton
+              icon={Store}
+              label="Prodavač"
+              count={counts.seller}
+              active={counts.seller > 0}
+              onClick={() => setActivePopup(activePopup === "seller" ? null : "seller")}
             />
 
             {customFields && customFields.length > 0 && (
@@ -179,16 +238,6 @@ const Filter = ({
         />
       )}
 
-      {activePopup === "location" && (
-        <LocationPopup
-          onClose={() => setActivePopup(null)}
-          country={country}
-          state={state}
-          city={city}
-          area={area}
-        />
-      )}
-
       {activePopup === "budget" && (
         <BudgetPopup onClose={() => setActivePopup(null)} />
       )}
@@ -201,6 +250,10 @@ const Filter = ({
         <RangePopup onClose={() => setActivePopup(null)} />
       )}
 
+      {activePopup === "seller" && (
+        <SellerTypePopup onClose={() => setActivePopup(null)} />
+      )}
+
       {activePopup === "details" && (
         <ExtraDetailsPopup
           onClose={() => setActivePopup(null)}
@@ -210,6 +263,13 @@ const Filter = ({
           newSearchParams={newSearchParams}
         />
       )}
+
+      <LocationModal
+        IsLocationModalOpen={isLocationModalOpen}
+        setIsLocationModalOpen={setIsLocationModalOpen}
+        navigateOnSave={false}
+        onLocationSaved={handleLocationSaved}
+      />
     </>
   );
 };

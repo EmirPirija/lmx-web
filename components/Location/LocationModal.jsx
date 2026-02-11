@@ -7,7 +7,12 @@ import LocationSelector from "./LocationSelector";
 import MapLocation from "./MapLocation";
 import { getIsPaidApi } from "@/redux/reducer/settingSlice";
 
-const LocationModal = ({ IsLocationModalOpen, setIsLocationModalOpen }) => {
+const LocationModal = ({
+  IsLocationModalOpen,
+  setIsLocationModalOpen,
+  navigateOnSave = true,
+  onLocationSaved = null,
+}) => {
   const IsPaidApi = useSelector(getIsPaidApi);
   const [IsMapLocation, setIsMapLocation] = useState(IsPaidApi);
   const cityData = useSelector(getCityData);
@@ -26,6 +31,8 @@ const LocationModal = ({ IsLocationModalOpen, setIsLocationModalOpen }) => {
             setSelectedCity={setSelectedCity}
             setIsMapLocation={setIsMapLocation}
             IsPaidApi={IsPaidApi}
+            navigateOnSave={navigateOnSave}
+            onLocationSaved={onLocationSaved}
           />
         ) : (
           <LocationSelector
@@ -33,6 +40,8 @@ const LocationModal = ({ IsLocationModalOpen, setIsLocationModalOpen }) => {
             setSelectedCity={setSelectedCity}
             IsMapLocation={IsMapLocation}
             setIsMapLocation={setIsMapLocation}
+            navigateOnSave={navigateOnSave}
+            onLocationSaved={onLocationSaved}
           />
         )}
       </DialogContent>

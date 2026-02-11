@@ -17,9 +17,11 @@ import {
 } from "@/utils/api";
 
 import { useNavigate } from "@/components/Common/useNavigate";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 
 // ✅ LMX avatar
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
+import { resolveMembership } from "@/lib/membership";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -49,7 +51,7 @@ import {
   IoChatbubbleOutline,
   IoChatbubbleEllipsesOutline,
 } from "react-icons/io5";
-import { Crown, Store, Sparkles, TrendingUp } from "lucide-react";
+import { Sparkles, TrendingUp } from "lucide-react";
 import { MdVerified } from "react-icons/md";
 
 // ============================================
@@ -145,43 +147,6 @@ function UserAvatar({
     </div>
   );
 }
-
-// ============================================
-// MEMBERSHIP BADGE
-// ============================================
-const MembershipBadge = ({ tier, size = "sm" }) => {
-  if (!tier || tier === "free") return null;
-
-  const configs = {
-    pro: {
-      icon: Crown,
-      bg: "bg-gradient-to-r from-amber-100 to-yellow-100",
-      text: "text-amber-700",
-      border: "border-amber-200",
-      label: "Pro",
-    },
-    shop: {
-      icon: Store,
-      bg: "bg-gradient-to-r from-blue-100 to-indigo-100",
-      text: "text-blue-700",
-      border: "border-blue-200",
-      label: "Shop",
-    },
-  };
-
-  const config = configs[String(tier).toLowerCase()] || configs.pro;
-  const Icon = config.icon;
-  const sizeClasses = { xs: "text-[10px] px-2 py-0.5", sm: "text-xs px-2.5 py-1" };
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${config.bg} ${config.text} ${config.border} ${sizeClasses[size]}`}
-    >
-      <Icon size={size === "xs" ? 10 : 12} />
-      {config.label}
-    </span>
-  );
-};
 
 // ============================================
 // MENU ITEM
@@ -349,9 +314,13 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     setIsLogout(true);
   }, [setIsLogout]);
 
-  const isPro = userStats.membershipTier === "pro";
-  const isShop = userStats.membershipTier === "shop";
-  const isPremium = isPro || isShop;
+  const resolvedMembership = useMemo(
+    () => resolveMembership({ tier: userStats.membershipTier }),
+    [userStats.membershipTier]
+  );
+  const isPro = resolvedMembership.isPro;
+  const isShop = resolvedMembership.isShop;
+  const isPremium = resolvedMembership.isPremium;
 
   const fetchAllData = useCallback(async () => {
     if (!userData) return;
@@ -372,10 +341,10 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
 
       const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] = results;
 
-      let membershipTier = userData?.membership_tier || "free";
+      let membershipTier = resolveMembership(userData).tier;
       if (membershipRes.status === "fulfilled") {
         const membershipData = getApiData(membershipRes.value);
-        membershipTier = membershipData?.tier || membershipData?.membership_tier || membershipTier;
+        membershipTier = resolveMembership(userData, membershipData).tier;
       }
 
       let unreadNotifications = 0;
@@ -510,13 +479,13 @@ if (verificationRes?.status === "fulfilled") {
           />
 
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[220px]">
-              {userData?.name || "Korisnik"}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px]">{userData?.email}</p>
-            <div className="mt-1">
-              <MembershipBadge tier={userStats.membershipTier} size="xs" />
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[180px]">
+                {userData?.name || "Korisnik"}
+              </p>
+              <MembershipBadge tier={userStats.membershipTier} size="xs" uppercase={false} />
             </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px]">{userData?.email}</p>
           </div>
         </div>
       </div>

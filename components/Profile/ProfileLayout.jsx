@@ -15,8 +15,10 @@ import {
   sellerSettingsApi,
 } from "@/utils/api";
 
+import MembershipBadge from "@/components/Common/MembershipBadge";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
+import { resolveMembership } from "@/lib/membership";
 import { cn } from "@/lib/utils";
 import {
   getProfileNavigationSections,
@@ -34,7 +36,7 @@ import {
   IoMenuOutline,
   IoCloseOutline,
 } from "react-icons/io5";
-import { Crown, Store } from "lucide-react";
+import { Crown } from "lucide-react";
 import { MdVerified } from "react-icons/md";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -119,49 +121,6 @@ function UserAvatar({
     </div>
   );
 }
-
-// ============================================
-// MEMBERSHIP BADGE (isti stil kao ProfileDropdown)
-// ============================================
-const MembershipBadge = ({ tier, size = "sm" }) => {
-  if (!tier || tier === "free") return null;
-
-  const configs = {
-    pro: {
-      icon: Crown,
-      bg: "bg-primary/10",
-      text: "text-primary",
-      border: "border-primary/20",
-      label: "Pro",
-    },
-    shop: {
-      icon: Store,
-      bg: "bg-secondary/10",
-      text: "text-secondary",
-      border: "border-secondary/20",
-      label: "Shop",
-    },
-  };
-
-  const config = configs[String(tier).toLowerCase()] || configs.pro;
-  const Icon = config.icon;
-  const sizeClasses = { xs: "text-[10px] px-2 py-0.5", sm: "text-xs px-2.5 py-1" };
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-semibold border",
-        config.bg,
-        config.text,
-        config.border,
-        sizeClasses[size]
-      )}
-    >
-      <Icon size={size === "xs" ? 10 : 12} />
-      {config.label}
-    </span>
-  );
-};
 
 // ============================================
 // MENU ITEM (isti stil kao ProfileDropdown)
@@ -296,9 +255,13 @@ const ProfileSidebar = ({
   onClose,
   isMobile = false,
 }) => {
-  const isPro = userStats.membershipTier === "pro";
-  const isShop = userStats.membershipTier === "shop";
-  const isPremium = isPro || isShop;
+  const resolvedMembership = useMemo(
+    () => resolveMembership({ tier: userStats.membershipTier }),
+    [userStats.membershipTier]
+  );
+  const isPro = resolvedMembership.isPro;
+  const isShop = resolvedMembership.isShop;
+  const isPremium = resolvedMembership.isPremium;
   const [menuQuery, setMenuQuery] = useState("");
 
   const normalizedQuery = menuQuery.trim().toLowerCase();
@@ -334,13 +297,13 @@ const ProfileSidebar = ({
             />
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {userData?.name || "Korisnik"}
-              </p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{userData?.email}</p>
-              <div className="mt-1">
-                <MembershipBadge tier={userStats.membershipTier} size="xs" />
+              <div className="flex items-center gap-2">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100 max-w-[150px]">
+                  {userData?.name || "Korisnik"}
+                </p>
+                <MembershipBadge tier={userStats.membershipTier} size="xs" uppercase={false} />
               </div>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{userData?.email}</p>
             </div>
           </div>
 
@@ -565,10 +528,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
       const [membershipRes, notifRes, adsRes, reviewsRes] = results;
 
-      let membershipTier = userData?.membership_tier || "free";
+      let membershipTier = resolveMembership(userData).tier;
       if (membershipRes.status === "fulfilled") {
         const membershipData = getApiData(membershipRes.value);
-        membershipTier = membershipData?.tier || membershipData?.membership_tier || membershipTier;
+        membershipTier = resolveMembership(userData, membershipData).tier;
       }
 
       let unreadNotifications = 0;

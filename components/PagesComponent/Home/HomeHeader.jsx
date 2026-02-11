@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "usehooks-ts";
 import { useSelector } from "react-redux";
@@ -21,6 +21,7 @@ import {
 import { getIsFreAdListing, settingsData } from "@/redux/reducer/settingSlice";
 import { CategoryData, getIsCatLoading } from "@/redux/reducer/categorySlice.js";
 import { getCityData } from "@/redux/reducer/locationSlice";
+import { resolveMembership } from "@/lib/membership";
 
 import ProfileDropdown from "./ProfileDropdown.jsx";
 import HomeMobileMenu from "./HomeMobileMenu.jsx";
@@ -288,6 +289,10 @@ const HomeHeader = () => {
   const brandName = settings?.company_name || settings?.app_name || "LMX";
   const brandTagline = "Prodaj, kupi i pronađi brzo.";
   const isOnHome = pathname === "/";
+  const membership = useMemo(
+    () => resolveMembership(userData, userData?.membership),
+    [userData]
+  );
 
   return (
     <>
@@ -326,6 +331,22 @@ const HomeHeader = () => {
                   >
                     Svi korisnici
                   </CustomLink>
+                  {!membership.isPremium && (
+                    <CustomLink
+                      href="/membership/upgrade?tier=pro"
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100/70 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-300"
+                    >
+                      Postani LMX PRO
+                    </CustomLink>
+                  )}
+                  {!membership.isShop && (
+                    <CustomLink
+                      href="/membership/upgrade?tier=shop"
+                      className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100/70 dark:border-blue-800/60 dark:bg-blue-900/20 dark:text-blue-300"
+                    >
+                      Postani LMX SHOP
+                    </CustomLink>
+                  )}
                 </div>
 
                 {/* right: (od desna) Theme, Poruke, Moji oglasi, Profil */}
@@ -455,6 +476,14 @@ const HomeHeader = () => {
                       >
                         Svi korisnici
                       </CustomLink>
+                      {!membership.isShop && (
+                        <CustomLink
+                          href="/membership/upgrade"
+                          className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-700 transition-all dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-300"
+                        >
+                          PRO/SHOP
+                        </CustomLink>
+                      )}
                     </div>
 
                     <button

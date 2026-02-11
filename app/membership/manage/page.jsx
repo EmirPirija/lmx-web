@@ -17,7 +17,6 @@ import Checkauth from "@/HOC/Checkauth";
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import { Button } from "@/components/ui/button";
-import { t } from "@/utils";
 import { membershipApi } from "@/utils/api";
 import {
   setUserMembership,
@@ -30,7 +29,7 @@ const TIER_THEME = {
   free: {
     icon: CheckCircle2,
     gradient: "from-slate-600 via-slate-700 to-slate-800",
-    label: "Free",
+    label: "Besplatni plan",
   },
   pro: {
     icon: Crown,
@@ -48,7 +47,7 @@ const formatMembershipDate = (dateValue) => {
   if (!dateValue) return "Nije dostupno";
   const parsedDate = new Date(dateValue);
   if (Number.isNaN(parsedDate.getTime())) return "Nije dostupno";
-  return parsedDate.toLocaleDateString();
+  return parsedDate.toLocaleDateString("bs-BA");
 };
 
 const MembershipManagePage = () => {
@@ -65,8 +64,8 @@ const MembershipManagePage = () => {
       dispatch(setUserMembership(res?.data?.data || null));
     } catch (error) {
       console.error("Error fetching membership:", error);
-      dispatch(setUserMembershipError("Failed to fetch membership"));
-      toast.error(t("errorFetchingData"));
+      dispatch(setUserMembershipError("Greška pri učitavanju članstva"));
+      toast.error("Greška pri učitavanju članstva.");
     } finally {
       dispatch(setUserMembershipLoading(false));
     }
@@ -87,31 +86,40 @@ const MembershipManagePage = () => {
   const Icon = theme.icon;
 
   const isFreePlan = normalizedTier === "free";
-  const membershipLabel = membership?.tier_name || theme.label;
+  const membershipLabel = theme.label;
   const membershipStatus = String(membership?.status || "active");
   const isActive = membership?.is_active ?? membershipStatus === "active";
+  const membershipStatusLabel = isActive
+    ? "Aktivan"
+    : membershipStatus.includes("cancel")
+    ? "Otkazan"
+    : membershipStatus.includes("expire")
+    ? "Istekao"
+    : membershipStatus.includes("pend")
+    ? "Na čekanju"
+    : "Neaktivan";
 
   const handleCancelMembership = async () => {
     if (isFreePlan) {
-      toast.info("Trenutno si na Free planu.");
+      toast.info("Trenutno koristiš besplatni plan.");
       return;
     }
 
-    const confirmed = window.confirm(t("areYouSureYouWantToCancelMembership"));
+    const confirmed = window.confirm("Da li sigurno želiš otkazati aktivni plan?");
     if (!confirmed) return;
 
     setIsCancelling(true);
     try {
       const res = await membershipApi.cancelMembership();
       if (res?.data?.error === false) {
-        toast.success(t("membershipCancelledSuccessfully"));
+        toast.success("Članstvo je uspješno otkazano.");
         await fetchMembership();
         return;
       }
-      toast.error(res?.data?.message || t("cancelFailed"));
+      toast.error(res?.data?.message || "Otkazivanje plana nije uspjelo.");
     } catch (error) {
       console.error("Error cancelling membership:", error);
-      toast.error(t("errorCancellingMembership"));
+      toast.error("Greška pri otkazivanju plana.");
     } finally {
       setIsCancelling(false);
     }
@@ -119,12 +127,12 @@ const MembershipManagePage = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("manageMembership")} />
+      <BreadCrumb title2="Upravljanje članstvom" />
 
       <div className="container mb-12 mt-8">
         <Button variant="ghost" onClick={() => router.back()} className="mb-6 rounded-full">
           <ArrowLeft size={18} className="mr-2" />
-          {t("back")}
+          Nazad
         </Button>
 
         <div className="mx-auto max-w-3xl">
@@ -148,7 +156,7 @@ const MembershipManagePage = () => {
                         <Icon className="h-7 w-7" />
                       </span>
                       <div>
-                        <p className="text-sm text-white/85">{t("currentPlan")}</p>
+                        <p className="text-sm text-white/85">Trenutni plan</p>
                         <h2 className="text-3xl font-bold">{membershipLabel}</h2>
                       </div>
                     </div>
@@ -159,19 +167,19 @@ const MembershipManagePage = () => {
                         isActive ? "bg-emerald-400/20 text-emerald-100" : "bg-red-400/20 text-red-100"
                       )}
                     >
-                      {membershipStatus}
+                      {membershipStatusLabel}
                     </span>
                   </div>
 
                   <div className="grid gap-3 rounded-xl bg-white/10 p-4 backdrop-blur-sm sm:grid-cols-2">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-white/75">{t("startedOn")}</p>
+                      <p className="text-xs uppercase tracking-wide text-white/75">Aktiviran</p>
                       <p className="mt-1 text-sm font-semibold">
                         {formatMembershipDate(membership?.started_at)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-white/75">{t("expiresOn")}</p>
+                      <p className="text-xs uppercase tracking-wide text-white/75">Ističe</p>
                       <p className="mt-1 text-sm font-semibold">
                         {membership?.expires_at ? formatMembershipDate(membership?.expires_at) : "Bez isteka"}
                       </p>
@@ -199,7 +207,7 @@ const MembershipManagePage = () => {
                     className="h-11 rounded-full"
                     onClick={() => router.push("/membership/upgrade")}
                   >
-                    {isFreePlan ? "Nadogradi plan" : t("changePlan")}
+                    {isFreePlan ? "Aktiviraj plan" : "Promijeni plan"}
                   </Button>
 
                   <Button
@@ -209,8 +217,16 @@ const MembershipManagePage = () => {
                     disabled={isFreePlan || isCancelling}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
-                    {isFreePlan ? "Nema aktivnog plana za otkazivanje" : t("cancelMembership")}
+                    {isFreePlan ? "Nema plana za otkazivanje" : "Otkaži plan"}
                   </Button>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
+                  {isActive && !isFreePlan
+                    ? "Tvoj plan je trenutno aktivan."
+                    : isFreePlan
+                    ? "Trenutno koristiš besplatni plan."
+                    : "Plan trenutno nije aktivan."}
                 </div>
               </div>
 

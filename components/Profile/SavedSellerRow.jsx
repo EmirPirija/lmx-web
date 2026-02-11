@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { resolveMembership } from "@/lib/membership";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { savedCollectionsApi } from "@/utils/api";
@@ -55,6 +57,10 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
   }, [item?.note]);
 
   const memberSince = useMemo(() => formatMonthYearStable(seller?.created_at), [seller?.created_at]);
+  const membership = useMemo(
+    () => resolveMembership(seller, seller?.membership),
+    [seller]
+  );
 
   const saveNow = async (next) => {
     if (!sellerId) return;
@@ -108,17 +114,7 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
                 </span>
               ) : null}
 
-              {Boolean(!seller?.is_shop && (seller?.is_pro ?? seller?.isPro)) ? (
-                <span className="inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200">
-                  Pro
-                </span>
-              ) : null}
-
-              {Boolean(seller?.is_shop ?? seller?.isShop) ? (
-                <span className="inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200">
-                  Shop
-                </span>
-              ) : null}
+              <MembershipBadge tier={membership.tier} size="xs" uppercase={false} />
             </div>
 
             <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">

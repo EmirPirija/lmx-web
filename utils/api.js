@@ -209,6 +209,15 @@ export const allItemApi = {
     limit,
     current_page,
     has_video,
+    seller_type,
+    seller_verified,
+    is_pro,
+    is_shop,
+    is_free,
+    is_premium,
+    membership,
+    verified,
+    shop,
   } = {}) => {
     return Api.get(GET_ITEM, {
       params: {
@@ -238,6 +247,15 @@ export const allItemApi = {
         limit,
         current_page,
         has_video,
+        seller_type,
+        seller_verified,
+        is_pro,
+        is_shop,
+        is_free,
+        is_premium,
+        membership,
+        verified,
+        shop,
       },
     });
   },
@@ -793,7 +811,31 @@ export const getMessagesApi = {
 };
 
 const normalizeBoolean = (val) => {
-  if (val === true || val === 1 || val === "1" || val === "true") return 1;
+  if (val === true || val === 1 || val === "1") return 1;
+  if (val === false || val === 0 || val === "0") return 0;
+
+  const normalized = String(val ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+  if (
+    ["true", "yes", "da", "on", "active", "aktivan", "ukljuceno", "moguce", "moguca"].includes(
+      normalized
+    )
+  ) {
+    return 1;
+  }
+
+  if (
+    ["false", "no", "ne", "off", "inactive", "neaktivan", "iskljuceno", "nemoguce", "nemoguca"].includes(
+      normalized
+    )
+  ) {
+    return 0;
+  }
+
   return 0;
 };
 
@@ -884,6 +926,46 @@ const pickAvailableNow = (explicit, custom_fields) => {
   };
 };
 
+const pickExchangePossible = (explicit, custom_fields) => {
+  let value = explicit;
+
+  const cf = tryParseJson(custom_fields);
+  const KEYS = [
+    "exchange_possible",
+    "is_exchange",
+    "is_exchange_possible",
+    "allow_exchange",
+    "exchange",
+    "zamjena",
+    "zamena",
+    "trade",
+    "swap",
+  ];
+
+  const readFromObj = (obj) => {
+    if (!obj || typeof obj !== "object") return undefined;
+    for (const k of KEYS) {
+      if (obj[k] !== undefined) return obj[k];
+    }
+    return undefined;
+  };
+
+  if (value === undefined) {
+    value = readFromObj(cf);
+    if (value === undefined && cf && typeof cf === "object") {
+      for (const nested of Object.values(cf)) {
+        const found = readFromObj(nested);
+        if (found !== undefined) {
+          value = found;
+          break;
+        }
+      }
+    }
+  }
+
+  return value === undefined ? undefined : to01(value);
+};
+
 
 
 // helpers (stavi iznad addItemApi / editItemApi u istom fajlu)
@@ -942,6 +1024,13 @@ export const addItemApi = {
     isAvailable,
     is_available,
     is_avaible,
+    exchange_possible,
+    is_exchange,
+    is_exchange_possible,
+    allow_exchange,
+    exchange,
+    zamjena,
+    zamena,
     inventory_count,
     show_only_to_premium,
     add_video_to_story,
@@ -971,6 +1060,16 @@ export const addItemApi = {
     // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
+      custom_fields
+    );
+    const exchangePossible01 = pickExchangePossible(
+      exchange_possible ??
+        is_exchange ??
+        is_exchange_possible ??
+        allow_exchange ??
+        exchange ??
+        zamjena ??
+        zamena,
       custom_fields
     );
 
@@ -1045,6 +1144,14 @@ export const addItemApi = {
     // ✅ always send 0/1
     formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
     formData.append("available_now", availableNow01 ?? 0);
+    formData.append("is_available", availableNow01 ?? 0);
+    formData.append("is_avaible", availableNow01 ?? 0);
+    if (exchangePossible01 !== undefined) {
+      formData.append("exchange_possible", exchangePossible01);
+      formData.append("is_exchange", exchangePossible01);
+      formData.append("is_exchange_possible", exchangePossible01);
+      formData.append("allow_exchange", exchangePossible01);
+    }
     if (add_video_to_story !== undefined) {
       formData.append("add_video_to_story", add_video_to_story ? 1 : 0);
     }
@@ -1104,6 +1211,13 @@ export const editItemApi = {
     isAvailable,
     is_available,
     is_avaible,
+    exchange_possible,
+    is_exchange,
+    is_exchange_possible,
+    allow_exchange,
+    exchange,
+    zamjena,
+    zamena,
     show_only_to_premium,
     add_video_to_story,
     publish_to_instagram,
@@ -1140,6 +1254,16 @@ export const editItemApi = {
 
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
+      custom_fields
+    );
+    const exchangePossible01 = pickExchangePossible(
+      exchange_possible ??
+        is_exchange ??
+        is_exchange_possible ??
+        allow_exchange ??
+        exchange ??
+        zamjena ??
+        zamena,
       custom_fields
     );
 
@@ -1212,6 +1336,14 @@ export const editItemApi = {
     // ✅ samo ako imamo vrijednost
     if (availableNow01 !== undefined) {
       formData.append("available_now", availableNow01);
+      formData.append("is_available", availableNow01);
+      formData.append("is_avaible", availableNow01);
+    }
+    if (exchangePossible01 !== undefined) {
+      formData.append("exchange_possible", exchangePossible01);
+      formData.append("is_exchange", exchangePossible01);
+      formData.append("is_exchange_possible", exchangePossible01);
+      formData.append("allow_exchange", exchangePossible01);
     }
 
     if (show_only_to_premium !== undefined) {

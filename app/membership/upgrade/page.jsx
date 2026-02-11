@@ -10,7 +10,6 @@ import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import MembershipTierSelector from "@/components/PagesComponent/Membership/MembershipTierSelector";
 import { Button } from "@/components/ui/button";
-import { t } from "@/utils";
 import { membershipApi } from "@/utils/api";
 import {
   setMembershipTiers,
@@ -21,7 +20,7 @@ import { cn } from "@/lib/utils";
 
 const PAYMENT_OPTIONS = [
   { value: "stripe", label: "Stripe" },
-  { value: "bank_transfer", label: "Bank transfer" },
+  { value: "bank_transfer", label: "Bankovni prijenos" },
   { value: "paypal", label: "PayPal" },
 ];
 
@@ -37,6 +36,7 @@ const MembershipUpgradePage = () => {
   const [selectedTier, setSelectedTier] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("stripe");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentMembership, setCurrentMembership] = useState(null);
 
   const hasFetched = useRef(false);
 
@@ -45,13 +45,18 @@ const MembershipUpgradePage = () => {
     dispatch(setMembershipTiersError(null));
 
     try {
-      const res = await membershipApi.getMembershipTiers();
-      const payload = Array.isArray(res?.data?.data) ? res.data.data : [];
+      const [tiersRes, membershipRes] = await Promise.all([
+        membershipApi.getMembershipTiers(),
+        membershipApi.getUserMembership().catch(() => null),
+      ]);
+
+      const payload = Array.isArray(tiersRes?.data?.data) ? tiersRes.data.data : [];
       dispatch(setMembershipTiers(payload));
+      setCurrentMembership(membershipRes?.data?.data || null);
     } catch (error) {
       console.error("Failed to fetch membership tiers:", error);
-      dispatch(setMembershipTiersError("Failed to fetch membership tiers"));
-      toast.error(t("errorFetchingData"));
+      dispatch(setMembershipTiersError("Greška pri učitavanju planova"));
+      toast.error("Greška pri učitavanju planova.");
     } finally {
       dispatch(setMembershipTiersLoading(false));
     }
@@ -83,9 +88,29 @@ const MembershipUpgradePage = () => {
     return selectedTier.features.length;
   }, [selectedTier]);
 
+  const normalizedCurrentTier = useMemo(() => {
+    const raw = String(currentMembership?.tier || "").toLowerCase();
+    if (raw.includes("shop")) return "shop";
+    if (raw.includes("pro")) return "pro";
+    return "free";
+  }, [currentMembership]);
+
+  const hasActivePaidPlan = useMemo(() => {
+    const status = String(currentMembership?.status || "").toLowerCase();
+    const activeFlag = currentMembership?.is_active ?? status === "active";
+    return Boolean(activeFlag && normalizedCurrentTier !== "free");
+  }, [currentMembership, normalizedCurrentTier]);
+
+  const formatMembershipDate = (dateValue) => {
+    if (!dateValue) return "Nije dostupno";
+    const parsedDate = new Date(dateValue);
+    if (Number.isNaN(parsedDate.getTime())) return "Nije dostupno";
+    return parsedDate.toLocaleDateString("bs-BA");
+  };
+
   const handleUpgrade = async () => {
     if (!selectedTier?.id) {
-      toast.error(t("pleaseSelectATier"));
+      toast.error("Odaberi plan prije nastavka.");
       return;
     }
 
@@ -97,15 +122,15 @@ const MembershipUpgradePage = () => {
       });
 
       if (res?.data?.error === false) {
-        toast.success(t("membershipUpgradedSuccessfully"));
+        toast.success("Članstvo je uspješno nadograđeno.");
         router.push("/membership/manage");
         return;
       }
 
-      toast.error(res?.data?.message || t("upgradeFailed"));
+      toast.error(res?.data?.message || "Nadogradnja nije uspjela.");
     } catch (error) {
       console.error("Error upgrading membership:", error);
-      toast.error(t("errorUpgradingMembership"));
+      toast.error("Greška pri nadogradnji članstva.");
     } finally {
       setIsProcessing(false);
     }
@@ -113,22 +138,36 @@ const MembershipUpgradePage = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("upgradeMembership")} />
+      <BreadCrumb title2="Nadogradnja članstva" />
 
       <div className="container mb-12 mt-8">
         <Button variant="ghost" onClick={() => router.back()} className="mb-6 rounded-full">
           <ArrowLeft size={18} className="mr-2" />
-          {t("back")}
+          Nazad
         </Button>
 
         <div className="mx-auto max-w-6xl">
           <div className="mb-7 text-center">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {t("chooseMembershipPlan")}
+              Odaberi plan članstva
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               Odaberi Pro ili Shop plan i potvrdi nadogradnju.
             </p>
+          </div>
+
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+            {hasActivePaidPlan ? (
+              <p>
+                Trenutno aktivan plan:{" "}
+                <strong>{normalizedCurrentTier === "shop" ? "LMX Shop" : "LMX Pro"}</strong>
+                {currentMembership?.expires_at
+                  ? ` (važi do ${formatMembershipDate(currentMembership.expires_at)})`
+                  : ""}.
+              </p>
+            ) : (
+              <p>Trenutno nemaš aktivan plaćeni plan.</p>
+            )}
           </div>
 
           {loading ? (
@@ -168,14 +207,14 @@ const MembershipUpgradePage = () => {
                         {selectedTier?.name}
                       </p>
                       <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                        {selectedTier?.description || "Membership plan"}
+                        {selectedTier?.description || "Paket članstva"}
                       </p>
                       <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {selectedTier?.price ? `${selectedTier.price} EUR` : "0 EUR"} /{" "}
                         {selectedTier?.duration_days || 30} dana
                       </p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Features: {selectedTierFeaturesCount}
+                        Stavke paketa: {selectedTierFeaturesCount}
                       </p>
                     </div>
 
@@ -213,7 +252,7 @@ const MembershipUpgradePage = () => {
                       onClick={handleUpgrade}
                       disabled={!selectedTier || isProcessing}
                     >
-                      {isProcessing ? t("processing") : t("proceedToPayment")}
+                      {isProcessing ? "Obrada..." : "Nastavi na plaćanje"}
                     </Button>
                   </div>
                 ) : (

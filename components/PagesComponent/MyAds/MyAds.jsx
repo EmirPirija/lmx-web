@@ -292,6 +292,63 @@ const MyAds = () => {
   const expiredAds = useMemo(() => MyItems.filter((item) => item.status === "expired"), [MyItems]);
   const canMultiSelect = expiredAds.length > 1;
 
+  const getPositionRenewHint = useCallback(
+    (itemId) => {
+      const item = MyItems.find((entry) => String(entry?.id) === String(itemId));
+      if (!item) {
+        return "Oglas možeš obnoviti poziciju svakih 15 dana.";
+      }
+
+      const baseline = parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at);
+      if (!baseline) {
+        return "Oglas možeš obnoviti poziciju svakih 15 dana.";
+      }
+
+      const nextAllowed = new Date(baseline);
+      nextAllowed.setDate(nextAllowed.getDate() + POSITION_RENEW_COOLDOWN_DAYS);
+
+      if (Date.now() >= nextAllowed.getTime()) {
+        return "Obnova pozicije trenutno nije potvrđena na serveru. Osvježi listu oglasa da se prikaže tačan termin sljedeće obnove.";
+      }
+
+      return `Oglas možeš obnoviti svakih 15 dana. Sljedeća obnova: ${nextAllowed.toLocaleString("bs-BA", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}.`;
+    },
+    [MyItems]
+  );
+
+  const mapRenewErrorMessage = useCallback(
+    (message, itemId) => {
+      const raw = String(message || "").trim();
+      if (!raw) return "Obnova oglasa nije uspjela.";
+      const lower = raw.toLowerCase();
+
+      if (
+        lower.includes("has not expired yet") ||
+        lower.includes("cannot be renewed") ||
+        lower.includes("not expired")
+      ) {
+        return getPositionRenewHint(itemId);
+      }
+
+      if (lower.includes("please select package")) {
+        return "Odaberi paket za obnovu isteklog oglasa.";
+      }
+
+      if (lower.includes("you have not purchased this package")) {
+        return "Odabrani paket nije aktivan na tvom računu.";
+      }
+
+      return raw;
+    },
+    [getPositionRenewHint]
+  );
+
   const fetchRenewDueItems = useCallback(
     async ({ sortBy = sortValue } = {}) => {
       const approvedItems = [];
@@ -412,7 +469,7 @@ const MyAds = () => {
     finally { setIsDeleting(false); }
   };
 
-  const renewAds = async ({ ids, packageId }) => {
+  const renewAds = async ({ ids, packageId, contextItemId }) => {
     try {
       setIsRenewingAd(true);
       const payload = {
@@ -425,20 +482,35 @@ const MyAds = () => {
         setIsChoosePackage(false);
         setRenewIds([]);
         await getMyItemsData(1);
-      } else toast.error(res?.data?.message);
-    } catch (error) { console.error(error); }
+      } else {
+        toast.error(
+          mapRenewErrorMessage(
+            res?.data?.message,
+            contextItemId || (Array.isArray(ids) ? ids[0] : ids)
+          )
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        mapRenewErrorMessage(
+          error?.response?.data?.message || error?.message,
+          contextItemId || (Array.isArray(ids) ? ids[0] : ids)
+        )
+      );
+    }
     finally { setIsRenewingAd(false); }
   };
 
-  const handleRenew = (ids, { allowWithoutPackage = false } = {}) => {
+  const handleRenew = (ids, { allowWithoutPackage = false, contextItemId } = {}) => {
     const idsToRenew = Array.isArray(ids) ? ids : renewIds;
     if (isFreeAdListing || allowWithoutPackage) {
-      renewAds({ ids: idsToRenew });
+      renewAds({ ids: idsToRenew, contextItemId });
     } else {
       if (!selectedPackageId) { toast.error("Molimo odaberite paket."); return; }
       const subPackage = ItemPackages.find((p) => Number(p.id) === Number(selectedPackageId));
       if (!subPackage?.is_active) { toast.error("Prvo morate kupiti paket."); navigate("/user-subscription"); return; }
-      renewAds({ ids: idsToRenew, packageId: selectedPackageId });
+      renewAds({ ids: idsToRenew, packageId: selectedPackageId, contextItemId });
     }
   };
 
@@ -596,9 +668,15 @@ const MyAds = () => {
         const currentItem = MyItems.find((i) => i.id === adId);
         const isExpired = currentItem?.status === "expired";
         if (isExpired) {
-          isFreeAdListing ? handleRenew([adId]) : (setRenewIds([adId]), setIsChoosePackage(true));
+          isFreeAdListing
+            ? handleRenew([adId], { contextItemId: adId })
+            : (setRenewIds([adId]), setIsChoosePackage(true));
         } else {
-          handleRenew([adId], { allowWithoutPackage: true });
+          if (!isAdEligibleForPositionRenew(currentItem)) {
+            toast.error(getPositionRenewHint(adId));
+            break;
+          }
+          handleRenew([adId], { allowWithoutPackage: true, contextItemId: adId });
         }
         break;
       }
@@ -680,10 +758,16 @@ const MyAds = () => {
       </AnimatePresence>
 
       {/* Ads Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
         {IsLoading ? (
           [...Array(8)].map((_, i) => (
-            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}>
+            <motion.div
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.05 }}
+              className="h-full"
+            >
               <ProductCardSkeleton />
             </motion.div>
           ))
@@ -694,6 +778,7 @@ const MyAds = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.03 }}
+              className="h-full"
             >
               <AdsCard
                 data={item}

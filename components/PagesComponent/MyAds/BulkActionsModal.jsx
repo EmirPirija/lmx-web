@@ -191,6 +191,26 @@ const BulkActionsModal = ({
 
   const itemCount = selectedItems.length;
 
+  const mapRenewErrorMessage = (message) => {
+    const raw = String(message || "").trim();
+    if (!raw) return "Greška pri obnavljanju oglasa.";
+    const lower = raw.toLowerCase();
+    if (
+      lower.includes("has not expired yet") ||
+      lower.includes("cannot be renewed") ||
+      lower.includes("not expired")
+    ) {
+      return "Neki oglasi još nisu spremni za obnovu pozicije. Obnova je dostupna svakih 15 dana.";
+    }
+    if (lower.includes("please select package")) {
+      return "Odaberi paket za obnovu isteklih oglasa.";
+    }
+    if (lower.includes("you have not purchased this package")) {
+      return "Odabrani paket nije aktivan na tvom računu.";
+    }
+    return raw;
+  };
+
   const resetState = () => {
     setActiveAction(null);
     setProgress(0);
@@ -231,11 +251,11 @@ const BulkActionsModal = ({
         onSuccess?.();
         handleClose();
       } else {
-        toast.error(response?.data?.message || "Greška pri obnavljanju oglasa");
+        toast.error(mapRenewErrorMessage(response?.data?.message));
       }
     } catch (error) {
       console.error("Bulk renew error:", error);
-      toast.error("Greška pri obnavljanju oglasa");
+      toast.error(mapRenewErrorMessage(error?.response?.data?.message || error?.message));
     } finally {
       setIsProcessing(false);
     }

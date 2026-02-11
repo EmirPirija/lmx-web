@@ -1,22 +1,24 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  BadgePercent,
   ChevronLeft,
   ChevronRight,
   Clock,
+  GitCompare,
   Heart,
   Images,
   MapPin,
   Rocket,
   Youtube,
 } from "lucide-react";
+import { ArrowsLeftRightIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { formatPriceAbbreviated, formatSalaryRange, t } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
+import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/reducer/compareSlice";
 import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -93,6 +95,174 @@ const getThreeDots = (total, current) => {
   return [current - 1, current, current + 1];
 };
 
+const ICON_PRIMARY_FILL = "#dadad5";
+const ICON_SECONDARY_FILL = "#0ab6af";
+
+const normalizeText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const toBoolean = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+
+  if (
+    [
+      "true",
+      "yes",
+      "da",
+      "moguce",
+      "moguca",
+      "moze",
+      "ukljuceno",
+      "enabled",
+      "on",
+      "active",
+      "aktivan",
+    ].includes(normalized)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      "false",
+      "no",
+      "ne",
+      "nemoguce",
+      "nemoguca",
+      "ne moze",
+      "iskljuceno",
+      "disabled",
+      "off",
+      "inactive",
+      "neaktivan",
+    ].includes(normalized)
+  ) {
+    return false;
+  }
+
+  return null;
+};
+
+const parseJsonSafe = (value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
+  const keysSet = new Set(keys);
+  const customFields = parseJsonSafe(customFieldsValue);
+  if (!customFields || typeof customFields !== "object") return null;
+
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return null;
+
+    for (const [key, value] of Object.entries(node)) {
+      if (keysSet.has(key)) {
+        const parsed = toBoolean(value);
+        if (parsed !== null) return parsed;
+      }
+
+      if (value && typeof value === "object") {
+        const nested = walk(value);
+        if (nested !== null) return nested;
+      }
+    }
+
+    return null;
+  };
+
+  return walk(customFields);
+};
+
+const readExchangeFromTranslatedFields = (item = {}) => {
+  const fields = [
+    ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
+    ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
+  ];
+
+  for (const field of fields) {
+    const fieldName = normalizeText(field?.translated_name || field?.name || "");
+    if (!fieldName) continue;
+    if (!["zamjen", "zamena", "exchange", "trade", "swap"].some((hint) => fieldName.includes(hint))) {
+      continue;
+    }
+
+    const values = [
+      field?.translated_selected_values,
+      field?.selected_values,
+      field?.value,
+      field?.translated_value,
+      field?.selected_value,
+      field?.translated_selected_value,
+    ];
+
+    for (const candidate of values) {
+      if (Array.isArray(candidate)) {
+        for (const nested of candidate) {
+          const parsedNested = toBoolean(nested);
+          if (parsedNested !== null) return parsedNested;
+        }
+      } else {
+        const parsed = toBoolean(candidate);
+        if (parsed !== null) return parsed;
+      }
+    }
+  }
+
+  return null;
+};
+
+const readExchangePossible = (item = {}) => {
+  const directCandidates = [
+    item?.exchange_possible,
+    item?.is_exchange,
+    item?.is_exchange_possible,
+    item?.allow_exchange,
+    item?.exchange,
+    item?.zamjena,
+    item?.zamena,
+    item?.translated_item?.exchange_possible,
+    item?.translated_item?.is_exchange,
+    item?.translated_item?.allow_exchange,
+    item?.translated_item?.zamjena,
+  ];
+
+  for (const candidate of directCandidates) {
+    const parsed = toBoolean(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
+    "exchange_possible",
+    "is_exchange",
+    "is_exchange_possible",
+    "allow_exchange",
+    "exchange",
+    "zamjena",
+    "zamena",
+    "trade",
+    "swap",
+  ]);
+  if (fromCustomFields !== null) return fromCustomFields;
+
+  const fromTranslatedFields = readExchangeFromTranslatedFields(item);
+  if (fromTranslatedFields !== null) return fromTranslatedFields;
+
+  return false;
+};
+
 const OverlayPill = ({ icon: Icon, className, children }) => (
   <div
     className={cn(
@@ -116,6 +286,8 @@ const formatPriceOrInquiry = (price) => {
 const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) => {
   const dispatch = useDispatch();
   const userData = useSelector(userSignUpData);
+  const compareList = useSelector(selectCompareList);
+  const isInCompare = compareList?.some((i) => i.id === item?.id);
 
   const translatedItem = item?.translated_item;
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
@@ -123,6 +295,8 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
   const displayCity = item?.translated_city || item?.city || "";
   const displayAddress = item?.translated_address || item?.address || "";
   const hasVideo = Boolean(item?.video_link && String(item?.video_link).trim() !== "");
+  const exchangePossible = readExchangePossible(item);
+  const isReserved = item?.status === "reserved" || item?.reservation_status === "reserved";
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -223,6 +397,18 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
     }
   };
 
+  const handleCompare = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isInCompare) {
+      dispatch(removeFromCompare(item.id));
+      return;
+    }
+
+    dispatch(addToCompare(item));
+  };
+
   const handlePrevSlide = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -310,32 +496,62 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           ) : null}
 
           {!isViewMoreSlide ? (
-            <div className="absolute right-2 top-2 z-30 flex items-center gap-1">
-              {item?.is_feature ? (
-                <OverlayPill icon={Rocket} className="border-amber-200 bg-amber-100/90 text-amber-700" />
-              ) : null}
+            <>
+              <div className="absolute left-2 top-2 z-30 flex items-center gap-1">
+                {item?.is_feature ? (
+                  <OverlayPill
+                    icon={Rocket}
+                    className="border-amber-200 bg-amber-100/95 text-amber-700"
+                  />
+                ) : null}
 
-              {isOnSale && discountPercentage > 0 ? (
-                <OverlayPill
-                  icon={BadgePercent}
-                  className="border-rose-200 bg-rose-100/90 text-rose-700"
-                />
-              ) : null}
+                {isReserved ? (
+                  <OverlayPill
+                    icon={Clock}
+                    className="border-blue-200 bg-blue-100/95 text-blue-700"
+                  >
+                    Rezervisano
+                  </OverlayPill>
+                ) : null}
+              </div>
 
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleLikeItem}
-                className={cn(
-                  "h-8 w-8 rounded-full border-slate-200 bg-white/90 shadow-none backdrop-blur-sm",
-                  "hover:border-rose-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:hover:border-rose-400",
-                  item?.is_liked && "border-rose-200 bg-rose-50/90 text-rose-600 dark:border-rose-400/40 dark:bg-rose-500/15",
-                  isHovered || item?.is_liked ? "opacity-100" : "opacity-85"
-                )}
-              >
-                <Heart className={cn("h-4 w-4", item?.is_liked && "fill-rose-500")} />
-              </Button>
-            </div>
+              <div className="absolute right-2 top-2 z-30 flex items-center gap-1">
+                {isHovered ? (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCompare}
+                    className={cn(
+                      "h-8 w-8 rounded-full border-slate-200 bg-white/90 shadow-none backdrop-blur-sm transition-all",
+                      "hover:border-blue-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:hover:border-blue-400",
+                      isInCompare && "border-blue-200 bg-blue-50/90 text-blue-600 dark:border-blue-400/40 dark:bg-blue-500/15"
+                    )}
+                    title={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
+                    aria-label={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
+                  >
+                    <GitCompare className="h-4 w-4" />
+                  </Button>
+                ) : null}
+
+                {isHovered ? (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleLikeItem}
+                    className={cn(
+                      "h-8 w-8 rounded-full border-slate-200 bg-white/90 shadow-none backdrop-blur-sm transition-all",
+                      "hover:border-rose-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:hover:border-rose-400",
+                      item?.is_liked &&
+                        "border-rose-200 bg-rose-50/90 text-rose-600 dark:border-rose-400/40 dark:bg-rose-500/15"
+                    )}
+                    title={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
+                    aria-label={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
+                  >
+                    <Heart className={cn("h-4 w-4", item?.is_liked && "fill-rose-500")} />
+                  </Button>
+                ) : null}
+              </div>
+            </>
           ) : null}
 
           {!isViewMoreSlide ? (
@@ -355,7 +571,12 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           ) : null}
 
           {totalSlides > 1 ? (
-            <div className="absolute bottom-2 right-2 z-30 hidden items-center gap-1.5 sm:flex">
+            <div
+              className={cn(
+                "absolute bottom-2 right-2 z-30 hidden items-center gap-1.5 transition-all duration-200 sm:flex",
+                isHovered ? "opacity-100" : "pointer-events-none translate-y-1 opacity-0"
+              )}
+            >
               {threeDots.map((index) => {
                 const isActive = index === currentSlide;
                 return (
@@ -415,9 +636,34 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 sm:p-4">
-        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
-          {translatedItem?.name || item?.name}
-        </h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
+            {translatedItem?.name || item?.name}
+          </h3>
+          {exchangePossible ? (
+            <span
+              className="relative mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center"
+              title="Zamjena moguća"
+              aria-label="Zamjena moguća"
+            >
+              <ArrowsLeftRightIcon
+                weight="fill"
+                color={ICON_SECONDARY_FILL}
+                className="absolute inset-0 h-full w-full"
+              />
+              <ArrowsLeftRightIcon
+                weight="duotone"
+                color={ICON_SECONDARY_FILL}
+                className="absolute inset-0 h-full w-full"
+              />
+              <ArrowsLeftRightIcon
+                weight="regular"
+                color={ICON_PRIMARY_FILL}
+                className="h-full w-full"
+              />
+            </span>
+          ) : null}
+        </div>
 
         {(displayCity || displayAddress) ? (
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">

@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { resolveMembership } from "@/lib/membership";
 import { isSellerVerified } from "@/lib/seller-verification";
 import { usersApi, getSellerApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -80,8 +81,9 @@ const UserCardSkeleton = ({ view }) => {
 ===================================================== */
 
 const UserCard = ({ user, view }) => {
-  const isPro = user?.is_pro || user?.membership?.tier?.includes("pro");
-  const isShop = user?.is_shop || user?.membership?.tier?.includes("shop");
+  const membership = resolveMembership(user, user?.membership);
+  const isPro = membership.isPro;
+  const isShop = membership.isShop;
   const sellerSettings = user?.seller_settings || user?.sellerSettings || {
     card_preferences: {
       show_ratings: true,
@@ -368,42 +370,106 @@ const SviKorisniciPage = () => {
     sellerDetailsRef.current = sellerDetailsMap;
   }, [sellerDetailsMap]);
 
-  const getLabelText = (user, details) => {
-    const rawLabel =
-      user?.label ||
-      details?.membership?.tier ||
-      details?.membership?.tier_name ||
-      details?.membership?.plan ||
-      user?.membership?.label ||
-      user?.membership?.tier ||
-      user?.membership?.tier_name ||
-      user?.membership?.plan ||
-      user?.seller_level ||
-      user?.role ||
-      "";
-    return String(rawLabel || "").toLowerCase();
+  const isTruthyFlag = (value) => {
+    if (value === true || value === 1) return true;
+    if (typeof value === "number") return value > 0;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (!normalized) return false;
+      if (["1", "true", "yes", "y", "approved", "verified", "active"].includes(normalized)) {
+        return true;
+      }
+      const numeric = Number(normalized);
+      return Number.isFinite(numeric) ? numeric > 0 : false;
+    }
+    return false;
   };
 
-  const getMembershipFlags = (user, details) => {
-    const label = getLabelText(user, details);
-    const isShop = Boolean(
-      details?.is_shop ||
-        user?.is_shop ||
-        label.includes("shop") ||
-        label.includes("trgovina") ||
-        label.includes("business")
-    );
-    const isPro = Boolean(
-      details?.is_pro ||
-        user?.is_pro ||
-        (!isShop && (label.includes("pro") || label.includes("premium")))
-    );
-    return { isPro, isShop };
+  const resolveUserAvatar = (user = {}, details = {}) => {
+    const seller = details?.seller || {};
+    const raw =
+      user?.profile ||
+      user?.profile_image ||
+      user?.profileImage ||
+      user?.avatar ||
+      user?.avatar_url ||
+      user?.image ||
+      user?.photo ||
+      user?.svg_avatar ||
+      seller?.profile ||
+      seller?.profile_image ||
+      seller?.profileImage ||
+      seller?.avatar ||
+      seller?.avatar_url ||
+      seller?.image ||
+      details?.profile ||
+      details?.profile_image ||
+      details?.avatar ||
+      "";
+    return String(raw || "").trim() || null;
   };
+
+  const getMembershipFlags = (user, details) =>
+    resolveMembership(user, details, details?.membership, details?.seller);
 
   const isVerifiedUser = (user, details) => {
     const seller = details?.seller || {};
-    return isSellerVerified(user, seller, details);
+    if (isSellerVerified(user, seller, details)) return true;
+
+    const directFlagCandidates = [
+      user?.is_verified,
+      user?.verified,
+      user?.isVerified,
+      user?.seller_verified,
+      user?.sellerVerified,
+      user?.is_seller_verified,
+      seller?.is_verified,
+      seller?.verified,
+      seller?.seller_verified,
+      seller?.sellerVerified,
+      details?.is_verified,
+      details?.verified,
+      details?.seller_verified,
+    ];
+
+    if (directFlagCandidates.some((value) => isTruthyFlag(value))) {
+      return true;
+    }
+
+    const statusCandidates = [
+      user?.verification_status,
+      user?.verificationStatus,
+      user?.verified_status,
+      user?.kyc_status,
+      seller?.verification_status,
+      seller?.verificationStatus,
+      seller?.verified_status,
+      seller?.kyc_status,
+      seller?.verification?.status,
+      details?.verification_status,
+      details?.verificationStatus,
+      details?.status,
+    ]
+      .map((value) => String(value ?? "").trim().toLowerCase())
+      .filter(Boolean);
+
+    if (
+      statusCandidates.some((status) =>
+        ["approved", "verified", "kyc_approved", "kyc_verified", "seller_verified"].includes(status)
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      statusCandidates.some((status) =>
+        ["pending", "in_review", "rejected", "declined", "not applied", "unverified"].includes(status)
+      )
+    ) {
+      return false;
+    }
+
+    return false;
   };
 
   const normalizeUser = (user, details) => {
@@ -429,16 +495,12 @@ const SviKorisniciPage = () => {
       user?.video_count ??
       0;
 
+    const resolvedProfile = resolveUserAvatar(user, details);
+
     const normalized = {
       ...user,
-      profile:
-        user?.profile ||
-        user?.profile_image ||
-        user?.avatar ||
-        user?.svg_avatar ||
-        seller?.profile ||
-        seller?.profile_image ||
-        null,
+      profile: resolvedProfile,
+      profile_image: resolvedProfile,
       is_verified: verified ? 1 : 0,
       verified: verified ? 1 : 0,
       isVerified: verified,
@@ -471,15 +533,23 @@ const SviKorisniciPage = () => {
         user?.reviews_count ??
         user?.reviews ??
         0,
-      is_pro: user?.is_pro ?? details?.is_pro ?? isPro,
-      is_shop: user?.is_shop ?? details?.is_shop ?? isShop,
+      is_pro: isPro,
+      is_shop: isShop,
       membership: details?.membership || user?.membership,
     };
     return normalized;
   };
 
   const isOnline = (user) => {
-    const lastSeen = user?.last_seen || user?.lastSeen || user?.updated_at;
+    const hasOnlineFlag = isTruthyFlag(user?.is_online) || isTruthyFlag(user?.online);
+    if (hasOnlineFlag) return true;
+
+    const lastSeen =
+      user?.last_seen ||
+      user?.lastSeen ||
+      user?.last_activity_at ||
+      user?.lastActiveAt ||
+      user?.updated_at;
     if (!lastSeen) return false;
     const last = new Date(lastSeen).getTime();
     if (Number.isNaN(last)) return false;

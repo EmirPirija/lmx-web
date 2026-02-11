@@ -219,6 +219,7 @@ const AdsListing = () => {
   const [scheduledAt, setScheduledAt] = useState(null);
   const [isScheduledAd, setIsScheduledAd] = useState(false);
   const [availableNow, setAvailableNow] = useState(false);
+  const [exchangePossible, setExchangePossible] = useState(false);
 
   const [disabledTab, setDisabledTab] = useState({
     categoryTab: false,
@@ -721,6 +722,9 @@ const AdsListing = () => {
       price: defaultDetails.price,
       contact: defaultDetails.contact,
       available_now: Boolean(availableNow),
+      exchange_possible: Boolean(exchangePossible),
+      is_exchange: Boolean(exchangePossible),
+      allow_exchange: Boolean(exchangePossible),
       video_link: trimmedVideoLink,
       temp_main_image_id: uploadedImages?.[0]?.id ?? null,
       temp_gallery_image_ids: (otherImages || []).map((x) => x?.id).filter(Boolean),
@@ -1130,6 +1134,8 @@ const AdsListing = () => {
                     defaultLangId={defaultLangId}
                     isAvailable={availableNow}
                     setIsAvailable={setAvailableNow}
+                    isExchange={exchangePossible}
+                    setIsExchange={setExchangePossible}
                   />
                 )}
 

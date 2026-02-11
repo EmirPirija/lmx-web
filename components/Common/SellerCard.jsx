@@ -1,4 +1,6 @@
 import { cn } from "@/lib/utils";
+import { resolveMembership } from "@/lib/membership";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 import { MdVerified } from "react-icons/md";
 
 const SellerCard = ({
@@ -23,8 +25,7 @@ const SellerCard = ({
   const hasBadges = Array.isArray(badgeNodes) && badgeNodes.length > 0;
   const showActions = Array.isArray(actions) ? actions.length > 0 : Boolean(actions);
   const showContacts = Array.isArray(contacts) ? contacts.length > 0 : Boolean(contacts);
-  const resolvedIsShop = Boolean(isShop);
-  const resolvedIsPro = Boolean(!resolvedIsShop && isPro);
+  const membership = resolveMembership({ is_pro: isPro, is_shop: isShop });
 
   return (
     <div
@@ -51,18 +52,9 @@ const SellerCard = ({
             {Boolean(isVerified) && <MdVerified className="text-primary text-xl" title="Verificiran" />}
           </div>
 
-          {(resolvedIsPro || resolvedIsShop) && (
+          {membership.isPremium && (
             <div className="mt-2 flex items-center gap-2">
-              {resolvedIsShop ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary dark:bg-primary/20">
-                  Shop
-                </span>
-              ) : null}
-              {resolvedIsPro ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200">
-                  Pro
-                </span>
-              ) : null}
+              <MembershipBadge tier={membership.tier} size="xs" uppercase={false} />
             </div>
           )}
 

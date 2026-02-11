@@ -25,6 +25,7 @@ import GiveReview from "../../PagesComponent/Chat/GiveReview";
 import { getNotification } from "@/redux/reducer/globalStateSlice";
 import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
  
 // Skeleton component for chat messages
 const ChatMessagesSkeleton = () => {
@@ -281,6 +282,7 @@ const ChatMessages = ({
   // 🔥 Ako NIJE ostavio recenziju -> prikazujemo samo dugme koje otvara popup
   const canLeaveReview =
     isBuyerOfSoldItem && !selectedChatDetails?.item?.review;
+  const isReviewModalOpen = showReviewDialog && canLeaveReview;
  
   // 🔥 FILTER LOGIC
   const filteredMessages = chatMessages.filter((msg) => {
@@ -486,22 +488,6 @@ const ChatMessages = ({
               </div>
             )}
 
-            {/* Review popup (modal) */}
-            {showReviewDialog && canLeaveReview && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 p-4">
-                <div className="w-full max-w-md">
-                  <GiveReview
-                    itemId={selectedChatDetails?.item_id}
-                    sellerId={selectedChatDetails?.seller_id}
-                    setSelectedChatDetails={setSelectedChatDetails}
-                    setBuyer={setBuyer}
-                    onClose={() => setShowReviewDialog(false)}
-                    onSuccess={() => setShowReviewDialog(false)}
-                  />
-                </div>
-              </div>
-            )}
- 
             {/* Load more button */}
             {hasMoreChatMessages && !IsLoading && !searchQuery && (
               <div className="absolute top-3 left-0 right-0 z-10 flex justify-center pb-2">
@@ -645,6 +631,19 @@ const ChatMessages = ({
           </>
         )}
       </div>
+
+      <Dialog open={isReviewModalOpen} onOpenChange={(open) => setShowReviewDialog(open)}>
+        <DialogContent className="w-[min(92vw,760px)] max-w-[760px] border-none bg-transparent p-0 shadow-none sm:max-w-[760px] [&>button]:hidden">
+          <GiveReview
+            itemId={selectedChatDetails?.item_id}
+            sellerId={selectedChatDetails?.seller_id}
+            setSelectedChatDetails={setSelectedChatDetails}
+            setBuyer={setBuyer}
+            onClose={() => setShowReviewDialog(false)}
+            onSuccess={() => setShowReviewDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
  
       {/* 🔥 SEKCIJA ZA RECENZIJU - Iznad SendMessage */}
       {/* Ako je VEĆ ostavio recenziju - samo prikaži info (ne može opet) */}

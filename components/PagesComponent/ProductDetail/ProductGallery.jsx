@@ -363,16 +363,6 @@ const ProductGallery = ({
           />
         </button>
 
-        {isReserved && (
-          <div className="absolute top-4 left-4 z-30">
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-pulse">
-              <span className="font-bold text-sm uppercase tracking-wider">
-                Rezervisano
-              </span>
-            </div>
-          </div>
-        )}
-
         <div className="absolute top-4 right-4 flex items-center gap-2 z-30">
           {hasVideo && (
             <button

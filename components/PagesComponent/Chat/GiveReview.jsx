@@ -198,84 +198,75 @@ const GiveReview = ({
   };
  
   return (
-    <div className="bg-gray-50 p-4">
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative">
-        {/* Close dugme ako je modal verzija */}
+    <div className="rounded-3xl border border-slate-200/90 bg-white/95 shadow-[0_32px_80px_-44px_rgba(15,23,42,0.6)] backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+      <div className="relative p-5 sm:p-6">
         {typeof onClose === 'function' && (
           <button
             onClick={handleClose}
-            className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             aria-label="Zatvori"
           >
-            <HiX className="w-5 h-5" />
+            <HiX className="h-5 w-5" />
           </button>
         )}
- 
-        {/* Header */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Ocijenite prodavača</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Podijelite vaše iskustvo sa drugima
+
+        <div className="mb-6 pr-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0ab6af]">Dojam kupca</p>
+          <h3 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">Ocijenite prodavača</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Kratko i konkretno podijelite iskustvo kupovine.
           </p>
         </div>
- 
-        {/* Ocjena zvjezdicama */}
+
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Vaša ocjena
-          </label>
+          <label className="mb-3 block text-sm font-semibold text-slate-700 dark:text-slate-200">Vaša ocjena</label>
           <StarRatingInput
             rating={rating}
             onRatingChange={handleRatingChange}
-            size={36}
+            size={34}
           />
           {errors.rating && (
-            <p className="text-red-500 text-sm mt-2">{errors.rating}</p>
+            <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">{errors.rating}</p>
           )}
         </div>
- 
-        {/* Tekst recenzije */}
+
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Vaša recenzija
-          </label>
+          <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">Vaš dojam</label>
           <Textarea
-            placeholder="Opišite vaše iskustvo sa prodavačem..."
+            placeholder="Napišite šta je bilo dobro, a šta može bolje..."
             value={review}
             onChange={handleReviewChange}
             maxLength={500}
             className={cn(
-              'min-h-[120px] resize-none rounded-lg',
-              errors.review && 'border-red-500 focus-visible:ring-red-500'
+              'min-h-[130px] resize-none rounded-2xl border-slate-200 bg-white px-4 py-3 text-slate-800 placeholder:text-slate-400 focus-visible:ring-[#0ab6af]/35 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500',
+              errors.review && 'border-rose-500 focus-visible:ring-rose-500/35'
             )}
           />
-          <div className="flex justify-between mt-1">
+          <div className="mt-1 flex justify-between">
             {errors.review ? (
-              <p className="text-red-500 text-sm">{errors.review}</p>
+              <p className="text-sm text-rose-600 dark:text-rose-400">{errors.review}</p>
             ) : (
               <span />
             )}
-            <span className="text-xs text-gray-400">{review.length}/500</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">{review.length}/500</span>
           </div>
         </div>
- 
-        {/* Upload slika */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Dodajte slike <span className="text-gray-400 font-normal">(opcionalno)</span>
+
+        <div className="mb-7">
+          <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Fotografije <span className="font-normal text-slate-400">(opcionalno)</span>
           </label>
- 
-          {/* Drag & Drop zona */}
+
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
-              'border-2 border-dashed rounded-lg p-4 text-center transition-colors',
+              'rounded-2xl border-2 border-dashed p-4 text-center transition-colors',
               isDragging
-                ? 'border-primary bg-primary/5'
-                : 'border-gray-200 hover:border-gray-300',
-              images.length >= MAX_IMAGES && 'opacity-50 pointer-events-none'
+                ? 'border-[#0ab6af] bg-[#0ab6af]/5 dark:bg-[#0ab6af]/10'
+                : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600',
+              images.length >= MAX_IMAGES && 'pointer-events-none opacity-55'
             )}
           >
             <input
@@ -286,70 +277,70 @@ const GiveReview = ({
               onChange={handleImageSelect}
               className="hidden"
             />
- 
+
             {imagePreviews.length === 0 ? (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-4"
+                className="w-full py-5"
                 disabled={images.length >= MAX_IMAGES}
               >
-                <HiOutlinePhotograph className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                <p className="text-sm text-gray-600">
+                <HiOutlinePhotograph className="mx-auto mb-2 h-8 w-8 text-slate-400 dark:text-slate-500" />
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                   Kliknite ili prevucite slike ovdje
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                   Maksimalno {MAX_IMAGES} slika, do 5MB po slici
                 </p>
               </button>
             ) : (
               <div className="space-y-3">
-                {/* Preview slika */}
-                <div className="flex flex-wrap gap-2 justify-center">
+                <div className="flex flex-wrap justify-center gap-2">
                   {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative group">
+                    <div key={index} className="group relative">
                       <img
                         src={preview}
                         alt={`Preview ${index + 1}`}
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="h-20 w-20 rounded-xl object-cover"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        aria-label="Ukloni sliku"
                       >
-                        <IoClose className="w-3 h-3" />
+                        <IoClose className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   ))}
- 
-                  {/* Dugme za dodavanje više slika */}
+
                   {images.length < MAX_IMAGES && (
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-20 h-20 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center hover:border-primary hover:bg-primary/5 transition-colors"
+                      className="inline-flex h-20 w-20 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-2xl text-slate-400 transition-colors hover:border-[#0ab6af] hover:text-[#0ab6af] dark:border-slate-700 dark:text-slate-500 dark:hover:border-[#0ab6af]"
+                      aria-label="Dodaj još slika"
                     >
-                      <span className="text-2xl text-gray-400">+</span>
+                      +
                     </button>
                   )}
                 </div>
- 
-                <p className="text-xs text-gray-400">
+
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   {images.length}/{MAX_IMAGES} slika
                 </p>
               </div>
             )}
           </div>
         </div>
- 
-        {/* Submit dugme */}
-        <div className="flex justify-end gap-3">
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           {typeof onClose === 'function' && (
             <Button
               variant="outline"
               onClick={handleClose}
               disabled={isSubmitting}
+              className="rounded-xl border-slate-300 dark:border-slate-700"
             >
               Odustani
             </Button>
@@ -357,11 +348,11 @@ const GiveReview = ({
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="min-w-[140px]"
+            className="min-w-[150px] rounded-xl bg-[#0ab6af] text-white hover:bg-[#0a9f99]"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
                   <circle
                     className="opacity-25"
                     cx="12"

@@ -33,7 +33,13 @@ const BIH_DEFAULT_COORDS = {
   long: 18.4131,
 };
  
-const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
+const LocationSelector = ({
+  OnHide,
+  setSelectedCity,
+  setIsMapLocation,
+  navigateOnSave = true,
+  onLocationSaved = null,
+}) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const dispatch = useDispatch();
   const { navigate } = useNavigate();
@@ -83,7 +89,7 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
     minLength > 0
       ? dispatch(setKilometerRange(minLength))
       : dispatch(setKilometerRange(0));
-    if (pathname !== "/") {
+    if (navigateOnSave && pathname !== "/") {
       navigate("/");
     }
   };
@@ -120,6 +126,15 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
           long: BIH_DEFAULT_COORDS.long,
           formattedAddress: fullAddress,
         });
+        onLocationSaved?.({
+          country: "Bosna i Hercegovina",
+          state: selectedLocation.region?.name || "",
+          city: item.name,
+          area: "",
+          lat: BIH_DEFAULT_COORDS.lat,
+          long: BIH_DEFAULT_COORDS.long,
+          formattedAddress: fullAddress,
+        });
         handleSubmitLocation();
         OnHide();
         break;
@@ -138,6 +153,15 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
       long: BIH_DEFAULT_COORDS.long,
       formattedAddress: fullAddress,
     });
+    onLocationSaved?.({
+      country: "Bosna i Hercegovina",
+      state: result.regionName || "",
+      city: result.name,
+      area: "",
+      lat: BIH_DEFAULT_COORDS.lat,
+      long: BIH_DEFAULT_COORDS.long,
+      formattedAddress: fullAddress,
+    });
     handleSubmitLocation();
     OnHide();
   };
@@ -147,6 +171,15 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
     const fullLocation = getFullLocationFromMunicipalityId(city.id);
     if (fullLocation) {
       saveCity({
+        country: "Bosna i Hercegovina",
+        state: fullLocation.region?.name || "",
+        city: fullLocation.municipality?.name || "",
+        area: "",
+        lat: BIH_DEFAULT_COORDS.lat,
+        long: BIH_DEFAULT_COORDS.long,
+        formattedAddress: fullLocation.formatted,
+      });
+      onLocationSaved?.({
         country: "Bosna i Hercegovina",
         state: fullLocation.region?.name || "",
         city: fullLocation.municipality?.name || "",
@@ -216,41 +249,53 @@ const LocationSelector = ({ OnHide, setSelectedCity, setIsMapLocation }) => {
   const handleAllSelect = () => {
     switch (currentView) {
       case "entities":
-        saveCity({
-          country: "Bosna i Hercegovina",
-          state: "",
-          city: "",
-          area: "",
-          lat: BIH_DEFAULT_COORDS.lat,
-          long: BIH_DEFAULT_COORDS.long,
-          formattedAddress: "Bosna i Hercegovina",
-        });
+        {
+          const locationData = {
+            country: "Bosna i Hercegovina",
+            state: "",
+            city: "",
+            area: "",
+            lat: BIH_DEFAULT_COORDS.lat,
+            long: BIH_DEFAULT_COORDS.long,
+            formattedAddress: "Bosna i Hercegovina",
+          };
+          saveCity(locationData);
+          onLocationSaved?.(locationData);
+        }
         handleSubmitLocation();
         OnHide();
         break;
       case "regions":
-        saveCity({
-          country: "Bosna i Hercegovina",
-          state: selectedLocation.entity?.name || "",
-          city: "",
-          area: "",
-          lat: BIH_DEFAULT_COORDS.lat,
-          long: BIH_DEFAULT_COORDS.long,
-          formattedAddress: `${selectedLocation.entity?.name}, Bosna i Hercegovina`,
-        });
+        {
+          const locationData = {
+            country: "Bosna i Hercegovina",
+            state: selectedLocation.entity?.name || "",
+            city: "",
+            area: "",
+            lat: BIH_DEFAULT_COORDS.lat,
+            long: BIH_DEFAULT_COORDS.long,
+            formattedAddress: `${selectedLocation.entity?.name}, Bosna i Hercegovina`,
+          };
+          saveCity(locationData);
+          onLocationSaved?.(locationData);
+        }
         handleSubmitLocation();
         OnHide();
         break;
       case "municipalities":
-        saveCity({
-          country: "Bosna i Hercegovina",
-          state: selectedLocation.region?.name || "",
-          city: "",
-          area: "",
-          lat: BIH_DEFAULT_COORDS.lat,
-          long: BIH_DEFAULT_COORDS.long,
-          formattedAddress: `${selectedLocation.region?.name}, ${selectedLocation.entity?.name}, Bosna i Hercegovina`,
-        });
+        {
+          const locationData = {
+            country: "Bosna i Hercegovina",
+            state: selectedLocation.region?.name || "",
+            city: "",
+            area: "",
+            lat: BIH_DEFAULT_COORDS.lat,
+            long: BIH_DEFAULT_COORDS.long,
+            formattedAddress: `${selectedLocation.region?.name}, ${selectedLocation.entity?.name}, Bosna i Hercegovina`,
+          };
+          saveCity(locationData);
+          onLocationSaved?.(locationData);
+        }
         handleSubmitLocation();
         OnHide();
         break;

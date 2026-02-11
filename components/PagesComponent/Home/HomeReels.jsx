@@ -250,8 +250,27 @@ const HomeReels = () => {
 
   /* shuffle */
   const toggleShuffle = () => {
-    setShuffled((p) => !p);
-    toast.success(shuffled ? "Originalni redoslijed" : "Pomiješano!");
+    setShuffled((prev) => {
+      const next = !prev;
+      toast.success(next ? "Pomiješano!" : "Originalni redoslijed");
+      return next;
+    });
+  };
+
+  const toggleAutoPlay = () => {
+    setAutoPlay((prev) => {
+      const next = !prev;
+      toast.success(next ? "Auto-play uključen" : "Auto-play isključen");
+      return next;
+    });
+  };
+
+  const toggleAutoStory = () => {
+    setAutoStory((prev) => {
+      const next = !prev;
+      toast.success(next ? "Auto priče uključene" : "Auto priče isključene");
+      return next;
+    });
   };
 
   /* speed cycle */
@@ -282,7 +301,7 @@ const HomeReels = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F7941D] via-[#E1306C] to-[#833AB4] p-[2px]">
-              <div className="w-full h-full rounded-[10px] bg-white dark:bg-slate-900 flex items-center justify-center">
+              <div className="w-full h-full rounded-[10px] flex items-center justify-center">
                 <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
                   <path d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2M16 4h2a2 2 0 012 2v2M16 20h2a2 2 0 002-2v-2" stroke="url(#rg)" strokeWidth="2" strokeLinecap="round" />
                   <path d="M9.5 9l5 3-5 3V9z" fill="url(#rg)" />
@@ -300,99 +319,24 @@ const HomeReels = () => {
             </div>
           </div>
 
-          {/* controls */}
           {hasAny && (
-            <div className="flex items-center gap-2">
-              {/* auto-play switch */}
-              <div className="hidden sm:flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-full px-3 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
-                <MdAutorenew size={14} className={autoPlay ? "text-emerald-500" : "text-slate-400"} />
-                <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">Auto</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAutoPlay((p) => !p);
-                    toast.success(autoPlay ? "Auto-play isključen" : "Auto-play uključen");
-                  }}
-                  className={`relative w-9 h-5 rounded-full transition-colors duration-300 ${
-                    autoPlay ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
-                  }`}
-                >
-                  <motion.div
-                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md"
-                    animate={{ left: autoPlay ? 18 : 2 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                </button>
-              </div>
-
-              {/* story auto switch */}
-              <div className="hidden sm:flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-full px-3 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
-                <MdPlayArrow size={14} className={autoStory ? "text-pink-500" : "text-slate-400"} />
-                <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">Auto priče</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAutoStory((p) => !p);
-                    toast.success(autoStory ? "Auto priče isključene" : "Auto priče uključene");
-                  }}
-                  className={`relative w-9 h-5 rounded-full transition-colors duration-300 ${
-                    autoStory ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-600"
-                  }`}
-                >
-                  <motion.div
-                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md"
-                    animate={{ left: autoStory ? 18 : 2 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                </button>
-              </div>
-
-              {/* speed */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={cycleSpeed}
-                className="hidden sm:flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/60 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-              >
-                <MdSpeed size={14} />
-                {playSpeed}x
-              </motion.button>
-
-              {/* shuffle */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={toggleShuffle}
-                className={`hidden sm:flex items-center justify-center w-8 h-8 rounded-full border transition ${
-                  shuffled
-                    ? "bg-[#E1306C]/10 border-[#E1306C]/30 text-[#E1306C]"
-                    : "bg-slate-50 dark:bg-slate-800 border-slate-200/60 dark:border-slate-700/60 text-slate-400 hover:text-slate-600"
+            <div className="hidden sm:flex items-center gap-1.5">
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                type="button" onClick={() => scrollBy(-1)} disabled={!canScrollLeft}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  canScrollLeft ? "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200" : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed"
                 }`}
               >
-                <MdShuffle size={16} />
+                <MdChevronLeft size={22} />
               </motion.button>
-
-              {/* nav arrows */}
-              <div className="hidden sm:flex items-center gap-1.5">
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                  type="button" onClick={() => scrollBy(-1)} disabled={!canScrollLeft}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
-                    canScrollLeft ? "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200" : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                  }`}
-                >
-                  <MdChevronLeft size={22} />
-                </motion.button>
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                  type="button" onClick={() => scrollBy(1)} disabled={!canScrollRight}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
-                    canScrollRight ? "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200" : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                  }`}
-                >
-                  <MdChevronRight size={22} />
-                </motion.button>
-              </div>
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                type="button" onClick={() => scrollBy(1)} disabled={!canScrollRight}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  canScrollRight ? "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200" : "bg-slate-50 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                }`}
+              >
+                <MdChevronRight size={22} />
+              </motion.button>
             </div>
           )}
         </div>
@@ -433,12 +377,12 @@ const HomeReels = () => {
                     )}
                     {/* gradient ring */}
                     <div className="w-[68px] h-[68px] rounded-full p-[3px] bg-gradient-to-br from-[#F7941D] via-[#E1306C] to-[#833AB4] group-hover:shadow-lg group-hover:shadow-pink-500/20 transition-shadow duration-300">
-                      <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 p-[2px]">
+                      <div className="w-full h-full rounded-full p-[2px]">
                         {sImg ? (
                           <img src={sImg} alt="" className="w-full h-full rounded-full object-cover" />
                         ) : (
-                          <div className="w-full h-full rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                            <MdStorefront className="w-6 h-6 text-slate-400" />
+                          <div className="w-full h-full rounded-full bg-black/25 dark:bg-black/30 backdrop-blur-[1px] flex items-center justify-center">
+                            <MdStorefront className="w-6 h-6 text-white/90" />
                           </div>
                         )}
                       </div>
@@ -452,8 +396,8 @@ const HomeReels = () => {
                     )}
 
                     {/* play icon */}
-                    <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center">
-                      <MdPlayArrow className="w-3.5 h-3.5 text-[#E1306C]" />
+                    <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full border border-white/70 bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
+                      <MdPlayArrow className="w-3.5 h-3.5 text-white" />
                     </span>
                   </div>
 
@@ -463,78 +407,6 @@ const HomeReels = () => {
                 </motion.button>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* ── mobile controls row ── */}
-      {!isLoading && hasAny && (
-        <div className="sm:hidden container mb-3">
-            <div className="flex items-center gap-2">
-            {/* auto-play */}
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
-                <MdAutorenew size={13} className={autoPlay ? "text-emerald-500" : "text-slate-400"} />
-                <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Auto</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setAutoPlay((p) => !p);
-                  toast.success(autoPlay ? "Auto-play isključen" : "Auto-play uključen");
-                }}
-                className={`relative w-8 h-[18px] rounded-full transition-colors duration-300 ${
-                  autoPlay ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
-                }`}
-              >
-                <motion.div
-                  className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-md"
-                  animate={{ left: autoPlay ? 15 : 2 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
-                <MdPlayArrow size={12} className={autoStory ? "text-pink-500" : "text-slate-400"} />
-                <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">Auto priče</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAutoStory((p) => !p);
-                    toast.success(autoStory ? "Auto priče isključene" : "Auto priče uključene");
-                  }}
-                  className={`relative w-8 h-[18px] rounded-full transition-colors duration-300 ${
-                    autoStory ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-600"
-                  }`}
-                >
-                  <motion.div
-                    className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-md"
-                    animate={{ left: autoStory ? 15 : 2 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                </button>
-              </div>
-
-            {/* speed */}
-            <button
-              type="button"
-              onClick={cycleSpeed}
-              className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded-full px-2 py-1.5 border border-slate-200/60 dark:border-slate-700/60 text-[10px] font-medium text-slate-600 dark:text-slate-300"
-            >
-              <MdSpeed size={12} /> {playSpeed}x
-            </button>
-
-            {/* shuffle */}
-            <button
-              type="button"
-              onClick={toggleShuffle}
-              className={`flex items-center justify-center w-7 h-7 rounded-full border transition ${
-                shuffled
-                  ? "bg-[#E1306C]/10 border-[#E1306C]/30 text-[#E1306C]"
-                  : "bg-slate-50 dark:bg-slate-800 border-slate-200/60 dark:border-slate-700/60 text-slate-400"
-              }`}
-            >
-              <MdShuffle size={13} />
-            </button>
           </div>
         </div>
       )}
@@ -595,7 +467,13 @@ const HomeReels = () => {
                   onLike={() => onToggleLike(previewItem.id)}
                   onOpenStory={() => openStory(index)}
                   autoPlay={autoPlay}
+                  autoStory={autoStory}
                   playSpeed={playSpeed}
+                  shuffled={shuffled}
+                  onToggleAutoPlay={toggleAutoPlay}
+                  onToggleAutoStory={toggleAutoStory}
+                  onCycleSpeed={cycleSpeed}
+                  onToggleShuffle={toggleShuffle}
                 />
               );
             })}
@@ -612,7 +490,23 @@ export default HomeReels;
    REEL CARD
 ══════════════════════════════════════ */
 
-const ReelCard = ({ item, sellerGroup, index, isLoggedIn, currentUser, onLike, onOpenStory, autoPlay, playSpeed }) => {
+const ReelCard = ({
+  item,
+  sellerGroup,
+  index,
+  isLoggedIn,
+  currentUser,
+  onLike,
+  onOpenStory,
+  autoPlay,
+  autoStory,
+  playSpeed,
+  shuffled,
+  onToggleAutoPlay,
+  onToggleAutoStory,
+  onCycleSpeed,
+  onToggleShuffle,
+}) => {
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -806,7 +700,7 @@ const ReelCard = ({ item, sellerGroup, index, isLoggedIn, currentUser, onLike, o
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: index * 0.04 }}
       ref={wrapperRef}
-      className="snap-start shrink-0 w-[180px] sm:w-[220px] aspect-[9/16] rounded-2xl overflow-hidden bg-slate-900 relative cursor-pointer group"
+      className="snap-start shrink-0 w-[180px] sm:w-[220px] aspect-[9/16] rounded-2xl overflow-hidden bg-black/20 relative cursor-pointer group"
       onClick={onOpenStory}
       onDoubleClick={handleDoubleTap}
       onMouseEnter={() => setIsHovered(true)}
@@ -830,9 +724,9 @@ const ReelCard = ({ item, sellerGroup, index, isLoggedIn, currentUser, onLike, o
             className="w-full h-full object-cover"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-black/25" />
+          <div className="absolute inset-0 bg-black/10" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full border border-white/50 bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
               <MdPlayArrow className="w-7 h-7 text-white ml-0.5" />
             </div>
           </div>
@@ -920,10 +814,10 @@ const ReelCard = ({ item, sellerGroup, index, isLoggedIn, currentUser, onLike, o
         >
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#F7941D] via-[#E1306C] to-[#833AB4] p-[1.5px] shrink-0">
             {sellerImage ? (
-              <img src={sellerImage} alt="" className="w-full h-full rounded-full object-cover bg-white" />
+              <img src={sellerImage} alt="" className="w-full h-full rounded-full object-cover ring-1 ring-white/60" />
             ) : (
-              <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                <MdStorefront className="w-3.5 h-3.5 text-slate-400" />
+              <div className="w-full h-full rounded-full bg-black/25 backdrop-blur-[2px] border border-white/45 flex items-center justify-center">
+                <MdStorefront className="w-3.5 h-3.5 text-white/90" />
               </div>
             )}
           </div>
@@ -939,12 +833,77 @@ const ReelCard = ({ item, sellerGroup, index, isLoggedIn, currentUser, onLike, o
           type="button"
           onClick={toggleMute}
           disabled={isYouTube}
-          className={`w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center transition-transform ${
+          className={`w-7 h-7 rounded-full border border-white/30 bg-black/20 backdrop-blur-[2px] text-white flex items-center justify-center transition-transform ${
             isYouTube ? "opacity-50 cursor-not-allowed" : "hover:scale-110"
           }`}
         >
           {isMuted ? <MdVolumeOff size={14} /> : <MdVolumeUp size={14} />}
         </button>
+      </div>
+
+      {/* in-video controls */}
+      <div className="absolute top-11 left-2 right-10 z-10">
+        <div className="flex flex-wrap items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleAutoPlay?.();
+            }}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold backdrop-blur-[2px] transition ${
+              autoPlay
+                ? "border-emerald-300/70 bg-emerald-500/25 text-emerald-100"
+                : "border-white/35 bg-black/20 text-white/85"
+            }`}
+          >
+            <MdAutorenew size={11} />
+            Auto
+          </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleAutoStory?.();
+              }}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold backdrop-blur-[2px] transition ${
+                autoStory
+                  ? "border-pink-300/70 bg-pink-500/25 text-pink-100"
+                  : "border-white/35 bg-black/20 text-white/85"
+              }`}
+            >
+              <MdPlayArrow size={11} />
+              Auto priče
+            </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCycleSpeed?.();
+            }}
+            className="inline-flex items-center gap-1 rounded-full border border-white/35 bg-black/20 px-2 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-[2px] transition hover:bg-black/30"
+          >
+            <MdSpeed size={11} />
+            {playSpeed}x
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleShuffle?.();
+            }}
+            className={`inline-flex items-center justify-center rounded-full border p-1.5 backdrop-blur-[2px] transition ${
+              shuffled
+                ? "border-[#E1306C]/70 bg-[#E1306C]/25 text-pink-100"
+                : "border-white/35 bg-black/20 text-white/85"
+            }`}
+            aria-label="Promijeni redoslijed videa"
+          >
+            <MdShuffle size={11} />
+          </button>
+        </div>
       </div>
 
       {/* play/pause */}
@@ -1013,9 +972,13 @@ const ReelCard = ({ item, sellerGroup, index, isLoggedIn, currentUser, onLike, o
                 initial={{ opacity: 0, scale: 0.9, y: -5 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: -5 }}
-                className="absolute bottom-10 right-0 z-30 bg-white dark:bg-slate-800 rounded-xl shadow-2xl overflow-hidden min-w-[160px] border border-slate-100 dark:border-slate-700"
+                className="absolute bottom-10 right-0 z-30 bg-white dark:bg-slate-800 rounded-xl shadow-2xl overflow-hidden min-w-[170px] border border-slate-100 dark:border-slate-700"
               >
                 {[
+                  { icon: MdAutorenew, label: autoPlay ? "Auto: uključeno" : "Auto: isključeno", fn: () => onToggleAutoPlay?.() },
+                  { icon: MdPlayArrow, label: autoStory ? "Auto priče: uključeno" : "Auto priče: isključeno", fn: () => onToggleAutoStory?.() },
+                  { icon: MdSpeed, label: `Brzina: ${playSpeed}x`, fn: () => onCycleSpeed?.() },
+                  { icon: MdShuffle, label: shuffled ? "Mix: uključen" : "Mix: isključen", fn: () => onToggleShuffle?.() },
                   { icon: MdOpenInNew, label: "Pogledaj oglas", fn: () => router.push(`/ad-details/${item?.slug}`) },
                   { icon: MdStorefront, label: "Profil prodavača", fn: () => seller?.id && router.push(`/seller/${seller.id}`) },
                   { icon: MdShare, label: "Podijeli", fn: () => handleShare() },

@@ -197,8 +197,144 @@ const parseJsonSafe = (value) => {
   }
 };
 
-const normalizeAvailabilityValue = (value) =>
-  value === true || value === 1 || value === "1" || value === "true";
+const normalizeText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const normalizeBooleanValue = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+
+  if (
+    [
+      "true",
+      "yes",
+      "da",
+      "odmah",
+      "dostupno",
+      "dostupan",
+      "moguce",
+      "moguca",
+      "moze",
+      "ukljuceno",
+      "enabled",
+      "on",
+      "active",
+      "aktivan",
+    ].includes(normalized)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      "false",
+      "no",
+      "ne",
+      "nije",
+      "nedostupno",
+      "nedostupan",
+      "nemoguce",
+      "nemoguca",
+      "ne moze",
+      "iskljuceno",
+      "disabled",
+      "off",
+      "inactive",
+      "neaktivan",
+    ].includes(normalized)
+  ) {
+    return false;
+  }
+
+  return null;
+};
+
+const readBooleanFromCandidates = (candidates = []) => {
+  for (const candidate of candidates) {
+    const parsed = normalizeBooleanValue(candidate);
+    if (parsed !== null) return parsed;
+  }
+  return null;
+};
+
+const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
+  const keysSet = new Set(keys);
+  const customFields = parseJsonSafe(customFieldsValue);
+  if (!customFields || typeof customFields !== "object") return null;
+
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return null;
+
+    for (const [key, value] of Object.entries(node)) {
+      if (keysSet.has(key)) {
+        const parsed = normalizeBooleanValue(value);
+        if (parsed !== null) return parsed;
+      }
+
+      if (value && typeof value === "object") {
+        const nested = walk(value);
+        if (nested !== null) return nested;
+      }
+    }
+
+    return null;
+  };
+
+  return walk(customFields);
+};
+
+const getTranslatedCustomFields = (listingData = {}) => {
+  const fields = [];
+  if (Array.isArray(listingData?.all_translated_custom_fields)) {
+    fields.push(...listingData.all_translated_custom_fields);
+  }
+  if (Array.isArray(listingData?.translated_custom_fields)) {
+    fields.push(...listingData.translated_custom_fields);
+  }
+  return fields;
+};
+
+const getTranslatedFieldValues = (field = {}) => {
+  const candidates = [
+    field?.translated_selected_values,
+    field?.selected_values,
+    field?.value,
+    field?.translated_value,
+    field?.selected_value,
+    field?.translated_selected_value,
+  ];
+
+  const values = [];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) values.push(...candidate);
+    else if (candidate !== undefined && candidate !== null) values.push(candidate);
+  }
+  return values;
+};
+
+const readBooleanFromTranslatedFields = (listingData = {}, hints = []) => {
+  const normalizedHints = hints.map((hint) => normalizeText(hint));
+  const fields = getTranslatedCustomFields(listingData);
+  if (!fields.length) return null;
+
+  for (const field of fields) {
+    const fieldName = normalizeText(field?.translated_name || field?.name || "");
+    if (!fieldName) continue;
+    if (!normalizedHints.some((hint) => fieldName.includes(hint))) continue;
+
+    const parsed = readBooleanFromCandidates(getTranslatedFieldValues(field));
+    if (parsed !== null) return parsed;
+  }
+
+  return null;
+};
 
 const readAvailableNowFromListingData = (listingData = {}) => {
   const directCandidates = [
@@ -207,36 +343,70 @@ const readAvailableNowFromListingData = (listingData = {}) => {
     listingData?.is_avaible,
     listingData?.isAvailable,
     listingData?.availableNow,
+    listingData?.dostupno_odmah,
+    listingData?.ready_for_pickup,
   ];
 
-  for (const candidate of directCandidates) {
-    if (candidate !== undefined && candidate !== null) {
-      return normalizeAvailabilityValue(candidate);
-    }
-  }
+  const direct = readBooleanFromCandidates(directCandidates);
+  if (direct !== null) return direct;
 
-  const keys = ["available_now", "is_available", "is_avaible", "isAvailable", "availableNow"];
-  const customFields = parseJsonSafe(listingData?.custom_fields);
+  const fromCustomFields = readBooleanFromCustomFields(listingData?.custom_fields, [
+    "available_now",
+    "is_available",
+    "is_avaible",
+    "isAvailable",
+    "availableNow",
+    "dostupno_odmah",
+    "ready_for_pickup",
+  ]);
+  if (fromCustomFields !== null) return fromCustomFields;
 
-  const pickFromObject = (obj) => {
-    if (!obj || typeof obj !== "object") return undefined;
-    for (const key of keys) {
-      if (obj[key] !== undefined && obj[key] !== null) {
-        return normalizeAvailabilityValue(obj[key]);
-      }
-    }
-    return undefined;
-  };
+  const fromTranslatedFields = readBooleanFromTranslatedFields(listingData, [
+    "dostup",
+    "available",
+    "isporuk",
+    "odmah",
+  ]);
+  if (fromTranslatedFields !== null) return fromTranslatedFields;
 
-  const topLevel = pickFromObject(customFields);
-  if (topLevel !== undefined) return topLevel;
+  return false;
+};
 
-  if (customFields && typeof customFields === "object") {
-    for (const nested of Object.values(customFields)) {
-      const nestedValue = pickFromObject(nested);
-      if (nestedValue !== undefined) return nestedValue;
-    }
-  }
+const readExchangeFromListingData = (listingData = {}) => {
+  const directCandidates = [
+    listingData?.exchange_possible,
+    listingData?.is_exchange,
+    listingData?.is_exchange_possible,
+    listingData?.allow_exchange,
+    listingData?.exchange,
+    listingData?.zamjena,
+    listingData?.zamena,
+  ];
+
+  const direct = readBooleanFromCandidates(directCandidates);
+  if (direct !== null) return direct;
+
+  const fromCustomFields = readBooleanFromCustomFields(listingData?.custom_fields, [
+    "exchange_possible",
+    "is_exchange",
+    "is_exchange_possible",
+    "allow_exchange",
+    "exchange",
+    "zamjena",
+    "zamena",
+    "trade",
+    "swap",
+  ]);
+  if (fromCustomFields !== null) return fromCustomFields;
+
+  const fromTranslatedFields = readBooleanFromTranslatedFields(listingData, [
+    "zamjen",
+    "zamena",
+    "exchange",
+    "trade",
+    "swap",
+  ]);
+  if (fromTranslatedFields !== null) return fromTranslatedFields;
 
   return false;
 };
@@ -267,6 +437,7 @@ const EditListing = ({ id }) => {
   const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [scheduledAt, setScheduledAt] = useState(null);
   const [availableNow, setAvailableNow] = useState(false);
+  const [exchangePossible, setExchangePossible] = useState(false);
   
   const [isFeatured, setIsFeatured] = useState(false);
 
@@ -405,6 +576,7 @@ const EditListing = ({ id }) => {
       setDeleteVideo(false);
       setIsFeatured(Number(listingData?.is_feature) === 1);
       setAvailableNow(readAvailableNowFromListingData(listingData));
+      setExchangePossible(readExchangeFromListingData(listingData));
 
       const mainDetailsTranslation = getMainDetailsTranslations(
         listingData,
@@ -645,6 +817,9 @@ const EditListing = ({ id }) => {
     price: defaultDetails.price,
     contact: defaultDetails.contact,
     available_now: Boolean(availableNow),
+    exchange_possible: Boolean(exchangePossible),
+    is_exchange: Boolean(exchangePossible),
+    allow_exchange: Boolean(exchangePossible),
     region_code: defaultDetails?.region_code?.toUpperCase() || "",
     video_link: trimmedVideoLink,
     instagram_source_url: (instagramSourceUrl || "").trim(),
@@ -1064,6 +1239,8 @@ const EditListing = ({ id }) => {
                         defaultLangId={defaultLangId}
                         isAvailable={availableNow}
                         setIsAvailable={setAvailableNow}
+                        isExchange={exchangePossible}
+                        setIsExchange={setExchangePossible}
                       />
                     )}
 

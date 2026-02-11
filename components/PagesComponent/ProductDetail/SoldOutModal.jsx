@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,10 @@ import {
   MdInfo
 } from "react-icons/md";
 import { cn } from "@/lib/utils";
+import { useSelector } from "react-redux";
+import { userSignUpData } from "@/redux/reducer/authSlice";
+import { resolveMembership } from "@/lib/membership";
+import MembershipBadge from "@/components/Common/MembershipBadge";
  
 const SoldOutModal = ({
   productDetails,
@@ -33,6 +37,7 @@ const SoldOutModal = ({
   selectedRadioValue,
   setSelectedRadioValue,
   setShowConfirmModal,
+  onSoldWithDetails,
   onSaleComplete,
   sellerSettings,
 }) => {
@@ -50,8 +55,33 @@ const SoldOutModal = ({
   
   // Current step
   const [currentStep, setCurrentStep] = useState(1);
+  const currentUser = useSelector(userSignUpData);
+
+  const stopEventPropagation = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+  };
+
+  const stopPropagationOnly = (event) => {
+    event?.stopPropagation?.();
+  };
  
   const isJobAd = productDetails?.category?.is_job_category === 1;
+  const membership = useMemo(
+    () =>
+      resolveMembership(
+        currentUser,
+        currentUser?.membership,
+        productDetails,
+        productDetails?.membership,
+        productDetails?.user,
+        productDetails?.user?.membership,
+        productDetails?.seller,
+        productDetails?.seller?.membership
+      ),
+    [currentUser, productDetails]
+  );
+  const isShopMember = Boolean(membership?.isShop);
   const hasInventory = productDetails?.inventory_count && productDetails?.inventory_count > 0;
   const inventoryCount = productDetails?.inventory_count || 1;
   const continueSellingWhenOutOfStock = sellerSettings?.continue_selling_out_of_stock || false;
@@ -137,27 +167,35 @@ const SoldOutModal = ({
     }
   };
  
-  const handleProceedToDetails = () => {
+  const handleProceedToDetails = (event) => {
+    stopEventPropagation(event);
     setCurrentStep(2);
   };
  
-  const handleFinalSale = () => {
+  const handleFinalSale = (event) => {
+    stopEventPropagation(event);
     const selectedBuyer = selectedRadioValue 
       ? buyers.find((b) => b.id === selectedRadioValue)
       : null;
  
+    const salePayload = {
+      buyerId: selectedRadioValue,
+      buyerName: selectedBuyer?.name || null,
+      buyerEmail: selectedBuyer?.email || null,
+      quantitySold: quantitySold,
+      receiptFile: receiptFile,
+      saleNote: saleNote,
+      remainingStock: remainingAfterSale,
+      willBeOutOfStock: willBeOutOfStock,
+      totalPrice: productDetails?.price * quantitySold,
+    };
+
     if (onSaleComplete) {
-      onSaleComplete({
-        buyerId: selectedRadioValue,
-        buyerName: selectedBuyer?.name || null,
-        buyerEmail: selectedBuyer?.email || null,
-        quantitySold: quantitySold,
-        receiptFile: receiptFile,
-        saleNote: saleNote,
-        remainingStock: remainingAfterSale,
-        willBeOutOfStock: willBeOutOfStock,
-        totalPrice: productDetails?.price * quantitySold,
-      });
+      onSaleComplete(salePayload);
+    } else if (onSoldWithDetails) {
+      onSoldWithDetails(salePayload);
+    } else if (setShowConfirmModal) {
+      setShowConfirmModal(true);
     }
     
     handleHideModal();
@@ -318,6 +356,7 @@ const SoldOutModal = ({
           </label>
         </div>
         <button
+          type="button"
           className={cn(
             "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all",
             (!selectedRadioValue && !isNoneOfAboveChecked) || isLoading
@@ -448,12 +487,13 @@ const SoldOutModal = ({
             </div>
           )}
  
-          {/* Upload računa - samo ako je odabran kupac */}
-          {selectedRadioValue && (
+          {/* Upload računa - samo SHOP korisnici */}
+          {selectedRadioValue && isShopMember && (
             <div className="space-y-3">
               <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                 <MdReceipt size={18} className="text-slate-500" />
-                Priloži račun
+                <span>Priloži račun</span>
+                <MembershipBadge tier="shop" size="xs" className="uppercase" />
                 <span className="text-slate-400 font-normal text-xs">(opcionalno)</span>
               </label>
               
@@ -558,12 +598,17 @@ const SoldOutModal = ({
         {/* Footer */}
         <div className="pt-4 mt-4 border-t flex items-center justify-between">
           <button
+            type="button"
             className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
-            onClick={() => setCurrentStep(1)}
+            onClick={(event) => {
+              stopEventPropagation(event);
+              setCurrentStep(1);
+            }}
           >
             ← Nazad
           </button>
           <button
+            type="button"
             className="px-6 py-2.5 rounded-xl font-semibold text-sm bg-primary text-white hover:bg-primary/90 shadow-sm transition-all"
             onClick={handleFinalSale}
           >
@@ -576,7 +621,11 @@ const SoldOutModal = ({
  
   return (
     <Dialog open={showSoldOut} onOpenChange={handleHideModal}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"
+        onClick={stopPropagationOnly}
+        onPointerDown={stopPropagationOnly}
+      >
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-800">
             {currentStep === 1 

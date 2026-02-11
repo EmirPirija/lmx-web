@@ -96,7 +96,7 @@ const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/80">
-                    Membership
+                    Članstvo
                   </p>
                   <h3 className="text-2xl font-bold">{tier?.name || "Plan"}</h3>
                   <p className="text-sm text-white/85">
@@ -129,7 +129,7 @@ const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
                   ))
                 ) : (
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Ovaj plan nema dodatne feature stavke.
+                    Ovaj plan nema dodatnih stavki.
                   </p>
                 )}
               </div>

@@ -45,10 +45,12 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { resolveMembership } from "@/lib/membership";
 import { hasSellerActiveReel } from "@/lib/seller-reel";
 import { isSellerVerified } from "@/lib/seller-verification";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
@@ -161,6 +163,9 @@ const defaultCardPreferences = {
   show_badges: true,
   show_member_since: false,
   show_response_time: true,
+  show_online_status: true,
+  show_reel_hint: true,
+  highlight_contact_button: false,
   show_business_hours: true,
   show_shipping_info: true,
   show_return_policy: true,
@@ -189,6 +194,12 @@ const normalizeCardPreferences = (raw) => {
     show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
     show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
     show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
+    show_online_status: normalizePrefBool(obj?.show_online_status, defaultCardPreferences.show_online_status),
+    show_reel_hint: normalizePrefBool(obj?.show_reel_hint, defaultCardPreferences.show_reel_hint),
+    highlight_contact_button: normalizePrefBool(
+      obj?.highlight_contact_button,
+      defaultCardPreferences.highlight_contact_button
+    ),
     show_business_hours: normalizePrefBool(obj?.show_business_hours, defaultCardPreferences.show_business_hours),
     show_shipping_info: normalizePrefBool(obj?.show_shipping_info, defaultCardPreferences.show_shipping_info),
     show_return_policy: normalizePrefBool(obj?.show_return_policy, defaultCardPreferences.show_return_policy),
@@ -928,6 +939,10 @@ export const SellerPreviewCard = ({
   const CompanyName = useSelector(getCompanyName);
 
   const settings = useMemo(() => sellerSettings || {}, [sellerSettings]);
+  const resolvedMembership = useMemo(
+    () => resolveMembership({ is_pro: isPro, is_shop: isShop }, seller, settings?.membership),
+    [isPro, isShop, seller, settings]
+  );
   const computedVerified = useMemo(
     () => getVerifiedStatus(seller, settings),
     [seller, settings]
@@ -947,6 +962,9 @@ export const SellerPreviewCard = ({
   const showBadges = prefs.showBadges ?? mergedPrefs.show_badges;
   const showMemberSince = prefs.showMemberSince ?? mergedPrefs.show_member_since;
   const showResponseTime = prefs.showResponseTime ?? mergedPrefs.show_response_time;
+  const showReelHint = prefs.showReelHint ?? mergedPrefs.show_reel_hint;
+  const highlightContactButton =
+    prefs.highlightContactButton ?? mergedPrefs.highlight_contact_button;
   const showBusinessHours = mergedPrefs.show_business_hours;
   const showShare = prefs.showShare ?? true;
 
@@ -1143,13 +1161,15 @@ export const SellerPreviewCard = ({
                 {sellerId ? (
                   <CustomLink
                     href={`/seller/${sellerId}`}
-                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors"
+                    className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors flex items-center gap-1.5"
                   >
-                    {seller?.name}
+                    <span className="truncate">{seller?.name}</span>
+                    <MembershipBadge tier={resolvedMembership.tier} size="xs" />
                   </CustomLink>
                 ) : (
-                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-                    {seller?.name}
+                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
+                    <span className="truncate">{seller?.name}</span>
+                    <MembershipBadge tier={resolvedMembership.tier} size="xs" />
                   </span>
                 )}
 
@@ -1186,11 +1206,11 @@ export const SellerPreviewCard = ({
                   </span>
                 )}
 
-                {isPro && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded">PRO</span>
-                )}
-                {isShop && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded">SHOP</span>
+                {showReelHint && showReelRing && (
+                  <span className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-300">
+                    <Play className="w-3 h-3" />
+                    Aktivan story video
+                  </span>
                 )}
               </div>
 
@@ -1256,7 +1276,12 @@ export const SellerPreviewCard = ({
                 type="button"
                 onClick={handlePhoneClick}
                 disabled={actionsDisabled}
-                className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50"
+                className={cn(
+                  "flex items-center justify-center w-10 h-10 rounded-xl border transition-colors disabled:opacity-50",
+                  highlightContactButton
+                    ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+                )}
               >
                 <Phone className="w-4 h-4" />
               </button>
@@ -1266,7 +1291,12 @@ export const SellerPreviewCard = ({
                   <a
                     href={`tel:${seller.mobile}`}
                     onClick={handlePhoneClick}
-                    className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-600 transition-colors"
+                    className={cn(
+                      "flex items-center justify-center w-10 h-10 rounded-xl border transition-colors",
+                      highlightContactButton
+                        ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-600"
+                    )}
                   >
                     <Phone className="w-4 h-4" />
                   </a>

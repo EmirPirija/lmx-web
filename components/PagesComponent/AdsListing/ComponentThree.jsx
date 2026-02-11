@@ -353,7 +353,32 @@ const EnhancedCheckboxGroup = ({
 // ============================================
 // AVAILABILITY SECTION COMPONENT
 // ============================================
-const AvailabilitySection = ({ isAvailable, setIsAvailable }) => {
+const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExchange }) => {
+  const ToggleRow = ({ enabled, onToggle, activeLabel, inactiveLabel }) => (
+    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200">
+      <div className="flex items-center gap-3">
+        <div className={`w-3 h-3 rounded-full ${enabled ? "bg-green-500 animate-pulse" : "bg-gray-400"}`} />
+        <span className={`font-medium ${enabled ? "text-green-700" : "text-gray-600"}`}>
+          {enabled ? activeLabel : inactiveLabel}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+          enabled ? "bg-green-500" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+            enabled ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
+      </button>
+    </div>
+  );
+
   return (
     <div className="w-full bg-white border-2 border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm">
       <div className="flex items-start gap-3 mb-4">
@@ -379,28 +404,19 @@ const AvailabilitySection = ({ isAvailable, setIsAvailable }) => {
         </p>
       </div>
 
-      {/* Toggle Switch */}
-      <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 rounded-full ${isAvailable ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-          <span className={`font-medium ${isAvailable ? 'text-green-700' : 'text-gray-600'}`}>
-            {isAvailable ? "Artikal je odmah dostupan" : "Artikal nije odmah dostupan"}
-          </span>
-        </div>
-        
-        <button
-          type="button"
-          onClick={() => setIsAvailable(!isAvailable)}
-          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-            isAvailable ? 'bg-green-500' : 'bg-gray-300'
-          }`}
-        >
-          <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-              isAvailable ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
+      <div className="space-y-3">
+        <ToggleRow
+          enabled={isAvailable}
+          onToggle={() => setIsAvailable(!isAvailable)}
+          activeLabel="Artikal je odmah dostupan"
+          inactiveLabel="Artikal nije odmah dostupan"
+        />
+        <ToggleRow
+          enabled={isExchange}
+          onToggle={() => setIsExchange(!isExchange)}
+          activeLabel="Prihvata se zamjena"
+          inactiveLabel="Nije ponuđena zamjena"
+        />
       </div>
     </div>
   );
@@ -582,11 +598,17 @@ const ComponentThree = ({
   defaultLangId,
   isAvailable: isAvailableProp,
   setIsAvailable: setIsAvailableProp,
+  isExchange: isExchangeProp,
+  setIsExchange: setIsExchangeProp,
 }) => {
   const [isAvailableLocal, setIsAvailableLocal] = useState(false);
+  const [isExchangeLocal, setIsExchangeLocal] = useState(false);
   const isAvailable =
     isAvailableProp !== undefined ? isAvailableProp : isAvailableLocal;
+  const isExchange =
+    isExchangeProp !== undefined ? isExchangeProp : isExchangeLocal;
   const setIsAvailable = setIsAvailableProp || setIsAvailableLocal;
+  const setIsExchange = setIsExchangeProp || setIsExchangeLocal;
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   
   // Accordion states
@@ -971,6 +993,8 @@ const ComponentThree = ({
           <AvailabilitySection 
             isAvailable={isAvailable}
             setIsAvailable={setIsAvailable}
+            isExchange={isExchange}
+            setIsExchange={setIsExchange}
           />
 
           {/* Disclaimer Section */}

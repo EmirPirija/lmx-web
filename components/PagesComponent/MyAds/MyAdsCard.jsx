@@ -6,7 +6,6 @@ import { createPortal } from "react-dom";
 
 import {
   ArrowRight,
-  BadgePercent,
   CalendarDays,
   CheckCircle,
   CheckSquare,
@@ -27,6 +26,7 @@ import {
   X,
   Youtube,
 } from "lucide-react";
+import { ArrowsLeftRightIcon } from "@phosphor-icons/react";
 
 import CustomImage from "@/components/Common/CustomImage";
 
@@ -187,6 +187,174 @@ const getThreeDots = (total, current) => {
   }
 
   return [current - 1, current, current + 1];
+};
+
+const ICON_PRIMARY_FILL = "#dadad5";
+const ICON_SECONDARY_FILL = "#0ab6af";
+
+const normalizeText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const toBoolean = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+
+  if (
+    [
+      "true",
+      "yes",
+      "da",
+      "moguce",
+      "moguca",
+      "moze",
+      "ukljuceno",
+      "enabled",
+      "on",
+      "active",
+      "aktivan",
+    ].includes(normalized)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      "false",
+      "no",
+      "ne",
+      "nemoguce",
+      "nemoguca",
+      "ne moze",
+      "iskljuceno",
+      "disabled",
+      "off",
+      "inactive",
+      "neaktivan",
+    ].includes(normalized)
+  ) {
+    return false;
+  }
+
+  return null;
+};
+
+const parseJsonSafe = (value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
+  const keysSet = new Set(keys);
+  const customFields = parseJsonSafe(customFieldsValue);
+  if (!customFields || typeof customFields !== "object") return null;
+
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return null;
+
+    for (const [key, value] of Object.entries(node)) {
+      if (keysSet.has(key)) {
+        const parsed = toBoolean(value);
+        if (parsed !== null) return parsed;
+      }
+
+      if (value && typeof value === "object") {
+        const nested = walk(value);
+        if (nested !== null) return nested;
+      }
+    }
+
+    return null;
+  };
+
+  return walk(customFields);
+};
+
+const readExchangeFromTranslatedFields = (item = {}) => {
+  const fields = [
+    ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
+    ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
+  ];
+
+  for (const field of fields) {
+    const fieldName = normalizeText(field?.translated_name || field?.name || "");
+    if (!fieldName) continue;
+    if (!["zamjen", "zamena", "exchange", "trade", "swap"].some((hint) => fieldName.includes(hint))) {
+      continue;
+    }
+
+    const values = [
+      field?.translated_selected_values,
+      field?.selected_values,
+      field?.value,
+      field?.translated_value,
+      field?.selected_value,
+      field?.translated_selected_value,
+    ];
+
+    for (const candidate of values) {
+      if (Array.isArray(candidate)) {
+        for (const nested of candidate) {
+          const parsedNested = toBoolean(nested);
+          if (parsedNested !== null) return parsedNested;
+        }
+      } else {
+        const parsed = toBoolean(candidate);
+        if (parsed !== null) return parsed;
+      }
+    }
+  }
+
+  return null;
+};
+
+const readExchangePossible = (item = {}) => {
+  const directCandidates = [
+    item?.exchange_possible,
+    item?.is_exchange,
+    item?.is_exchange_possible,
+    item?.allow_exchange,
+    item?.exchange,
+    item?.zamjena,
+    item?.zamena,
+    item?.translated_item?.exchange_possible,
+    item?.translated_item?.is_exchange,
+    item?.translated_item?.allow_exchange,
+    item?.translated_item?.zamjena,
+  ];
+
+  for (const candidate of directCandidates) {
+    const parsed = toBoolean(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
+    "exchange_possible",
+    "is_exchange",
+    "is_exchange_possible",
+    "allow_exchange",
+    "exchange",
+    "zamjena",
+    "zamena",
+    "trade",
+    "swap",
+  ]);
+  if (fromCustomFields !== null) return fromCustomFields;
+
+  const fromTranslatedFields = readExchangeFromTranslatedFields(item);
+  if (fromTranslatedFields !== null) return fromTranslatedFields;
+
+  return false;
 };
 
 // ============================================
@@ -844,6 +1012,7 @@ const MyAdsCard = ({
     : null;
 
   const hasVideo = !!(data?.video_link && String(data?.video_link).trim() !== "");
+  const exchangePossible = readExchangePossible(data);
 
   const isHidePrice = isJobCategory
     ? [data?.min_salary, data?.max_salary].every(
@@ -980,9 +1149,9 @@ const MyAdsCard = ({
     setIsSoldOutDialogOpen(true);
   };
 
-  const handleSoldOutAction = (shouldProcess) => {
-    if (!shouldProcess) return;
-    onContextMenuAction?.("markAsSoldOut", data?.id, selectedBuyerId);
+  const handleSoldOutAction = (salePayload = null) => {
+    const buyerId = salePayload?.buyerId ?? selectedBuyerId ?? null;
+    onContextMenuAction?.("markAsSoldOut", data?.id, buyerId);
     setIsSoldOutDialogOpen(false);
   };
 
@@ -1008,6 +1177,12 @@ const MyAdsCard = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
+        if (isSoldOutDialogOpen || isFeaturedPlanOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
         if (isSelectable) {
           e.preventDefault();
           onSelectionToggle?.();
@@ -1097,42 +1272,37 @@ const MyAdsCard = ({
             </motion.div>
           )}
 
-          {/* Badževi gore-lijevo (premium / sniženje) */}
-          {!isViewMoreSlide && (
+          {/* Status gore-lijevo */}
+          {!isViewMoreSlide ? (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className={cn("absolute top-2 z-20 flex items-center gap-2", isSelectable ? "left-9" : "left-2")}
+              className={cn(
+                "absolute top-2 z-20 flex items-center gap-2",
+                isSelectable ? "left-9" : "left-2"
+              )}
             >
               {data?.is_feature ? (
-                <OverlayPill icon={Rocket} className="text-amber-700 bg-amber-100/90 border-amber-200">
-                  {/* Premium */}
-                </OverlayPill>
+                <OverlayPill
+                  icon={Rocket}
+                  className="border-amber-200 bg-amber-100/95 text-amber-700"
+                />
               ) : null}
 
               {isReserved ? (
-                <OverlayPill icon={Clock} className="text-blue-700 bg-blue-100/90 border-blue-200">
+                <OverlayPill
+                  icon={Clock}
+                  className="border-blue-200 bg-blue-100/95 text-blue-700"
+                >
                   Rezervisano
                 </OverlayPill>
               ) : null}
-
-              {isOnSale && discountPercentage > 0 ? (
-                <OverlayPill icon={BadgePercent} className="text-rose-700 bg-rose-100/90 border-rose-200">
-                  
-                </OverlayPill>
-              ) : null}
             </motion.div>
-          )}
+          ) : null}
 
           {/* Dugme za quick actions gore-desno */}
-          <div
-            className="absolute top-2 right-2 z-30"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
+          <div className="absolute top-2 right-2 z-30">
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -1149,11 +1319,16 @@ const MyAdsCard = ({
                   "h-8 w-8 rounded-full",
                   "bg-white/90 backdrop-blur-sm dark:bg-slate-900/90",
                   "border-slate-200 dark:border-slate-700 shadow-sm",
+                  "transition-all duration-200",
+                  isMobile || isHovered || showQuickActions
+                    ? "opacity-100"
+                    : "pointer-events-none opacity-0",
                   "hover:bg-white dark:hover:bg-slate-900 hover:border-primary/30",
                   showQuickActions &&
                     "border-primary/40 bg-white text-primary dark:bg-slate-900 dark:border-primary/40 dark:text-primary"
                 )}
-                aria-label="Prikaži brze akcije"
+                title={showQuickActions ? "Zatvori brze akcije" : "Prikaži brze akcije"}
+                aria-label={showQuickActions ? "Zatvori brze akcije" : "Prikaži brze akcije"}
                 aria-expanded={showQuickActions}
               >
                 <motion.span
@@ -1202,7 +1377,12 @@ const MyAdsCard = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="absolute bottom-2 right-2 z-20 hidden sm:flex items-center gap-1.5"
+              className={cn(
+                "absolute bottom-2 right-2 z-20 hidden sm:flex items-center gap-1.5 transition-all duration-200",
+                isHovered || showQuickActions
+                  ? "opacity-100"
+                  : "pointer-events-none translate-y-1 opacity-0"
+              )}
             >
               <div
                 className={cn(
@@ -1304,34 +1484,59 @@ const MyAdsCard = ({
       {/* SADRŽAJ */}
       <div className="flex flex-col gap-2 p-3 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <motion.h3 
+          <motion.h3
             whileHover={{ color: "hsl(var(--primary))" }}
-            className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
+            className="min-h-[2.5rem] text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
           >
             {title}
           </motion.h3>
+          {exchangePossible ? (
+            <span
+              className="relative mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center"
+              title="Zamjena moguća"
+              aria-label="Zamjena moguća"
+            >
+              <ArrowsLeftRightIcon
+                weight="fill"
+                color={ICON_SECONDARY_FILL}
+                className="absolute inset-0 h-full w-full"
+              />
+              <ArrowsLeftRightIcon
+                weight="duotone"
+                color={ICON_SECONDARY_FILL}
+                className="absolute inset-0 h-full w-full"
+              />
+              <ArrowsLeftRightIcon
+                weight="regular"
+                color={ICON_PRIMARY_FILL}
+                className="h-full w-full"
+              />
+            </span>
+          ) : null}
         </div>
 
-        {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {keyAttributes.map((attr, index) => (
-              <motion.span
-                key={`${attr}-${index}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className={cn(
-                  "inline-flex items-center",
-                  "px-2 py-0.5 rounded-md border",
-                  "bg-slate-50 text-slate-700 border-slate-100",
-                  "text-[10px] font-semibold"
-                )}
-              >
-                {attr}
-              </motion.span>
-            ))}
-          </div>
-        ) : null}
+        <div className="min-h-6">
+          {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
+            <div className="flex h-6 flex-nowrap items-center gap-1 overflow-hidden">
+              {keyAttributes.map((attr, index) => (
+                <motion.span
+                  key={`${attr}-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={cn(
+                    "inline-flex max-w-full shrink-0 items-center truncate",
+                    "px-2 py-0.5 rounded-md border",
+                    "bg-slate-50 text-slate-700 border-slate-100",
+                    "text-[10px] font-semibold"
+                  )}
+                >
+                  {attr}
+                </motion.span>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div className="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -1383,13 +1588,13 @@ const MyAdsCard = ({
         setShowSoldOut={setIsSoldOutDialogOpen}
         selectedRadioValue={selectedBuyerId}
         setSelectedRadioValue={setSelectedBuyerId}
-        setShowConfirmModal={handleSoldOutAction}
+        onSaleComplete={handleSoldOutAction}
       />
     </div>
   );
 
   return (
-    <motion.div ref={cardShellRef} layout className="relative">
+    <motion.div ref={cardShellRef} layout className="relative h-full">
       {cardContent}
 
       <SmartQuickActionsPanel

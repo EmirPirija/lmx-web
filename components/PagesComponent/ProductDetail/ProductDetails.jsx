@@ -51,6 +51,8 @@ import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
 import ExistingConversationBanner from "@/components/PagesComponent/ProductDetail/ExistingConversationBanner";
+import GiveReview from "@/components/PagesComponent/Chat/GiveReview";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // Redux
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -209,6 +211,7 @@ const ProductDetails = ({ slug }) => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOpenInApp, setIsOpenInApp] = useState(false);
+  const [showProductReviewDialog, setShowProductReviewDialog] = useState(false);
   
   // Mobile Drawers
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
@@ -230,7 +233,12 @@ const ProductDetails = ({ slug }) => {
       // Use path-based check for API call since we don't have product data yet
       const apiCall = isMyListingPath ? getMyItemsApi.getMyItems : allItemApi.getItems;
       const res = await apiCall({ slug });
-      const product = res?.data?.data?.data?.[0];
+      let product = res?.data?.data?.data?.[0];
+
+      if (!product && !isMyListingPath) {
+        const soldRes = await allItemApi.getItems({ slug, status: "sold out" });
+        product = soldRes?.data?.data?.data?.[0];
+      }
 
       if (!product) throw new Error("Oglas nije pronađen");
 
@@ -285,6 +293,25 @@ const ProductDetails = ({ slug }) => {
   
   // isMyListing = true if accessed via /my-listing OR if the logged-in user is the owner
   const isMyListing = isMyListingPath || isOwner;
+  const itemReviews = Array.isArray(productDetails?.review)
+    ? productDetails.review
+    : productDetails?.review
+    ? [productDetails.review]
+    : [];
+  const isSoldToCurrentUser = Boolean(
+    currentUser?.id &&
+      Number(productDetails?.sold_to) === Number(currentUser.id)
+  );
+  const hasCurrentUserReview = Boolean(
+    currentUser?.id &&
+      itemReviews.some((review) => Number(review?.buyer_id) === Number(currentUser.id))
+  );
+  const canLeaveProductReview = Boolean(
+    !isMyListing &&
+      productDetails?.status === "sold out" &&
+      isSoldToCurrentUser &&
+      !hasCurrentUserReview
+  );
 
   // 2. Fetch Seller Info
   useEffect(() => {
@@ -403,6 +430,34 @@ const ProductDetails = ({ slug }) => {
                   itemId={productDetails.id}
                   seller={productDetails?.user}
                 />
+              </div>
+            )}
+
+            {!isMyListing && productDetails?.status === "sold out" && isSoldToCurrentUser && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      Kupovina je završena.
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      Podijelite iskustvo i pomozite drugim kupcima.
+                    </p>
+                  </div>
+                  {canLeaveProductReview ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowProductReviewDialog(true)}
+                      className="inline-flex items-center justify-center rounded-xl bg-[#0ab6af] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0a9f99]"
+                    >
+                      Ostavi dojam
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-900/25 dark:text-emerald-300">
+                      Već ste ostavili dojam
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
@@ -576,6 +631,33 @@ const ProductDetails = ({ slug }) => {
 
       {/* In-App Browser Drawer */}
       <OpenInAppDrawer isOpenInApp={isOpenInApp} setIsOpenInApp={setIsOpenInApp} />
+
+      <Dialog
+        open={showProductReviewDialog && canLeaveProductReview}
+        onOpenChange={(open) => setShowProductReviewDialog(open)}
+      >
+        <DialogContent className="w-[min(92vw,760px)] max-w-[760px] border-none bg-transparent p-0 shadow-none sm:max-w-[760px] [&>button]:hidden">
+          <GiveReview
+            itemId={productDetails?.id}
+            sellerId={productDetails?.user?.id || productDetails?.user_id}
+            onClose={() => setShowProductReviewDialog(false)}
+            onSuccess={(newReview) => {
+              setProductDetails((prev) => {
+                const currentReviews = Array.isArray(prev?.review)
+                  ? prev.review
+                  : prev?.review
+                  ? [prev.review]
+                  : [];
+                const cleaned = currentReviews.filter(
+                  (review) => Number(review?.id) !== Number(newReview?.id)
+                );
+                return { ...prev, review: [newReview, ...cleaned] };
+              });
+              setShowProductReviewDialog(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* MOBILE STICKY BAR */}
       <MobileStickyBar 

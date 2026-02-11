@@ -35,6 +35,8 @@ const MapLocation = ({
   setSelectedCity,
   setIsMapLocation,
   IsPaidApi,
+  navigateOnSave = true,
+  onLocationSaved = null,
 }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const dispatch = useDispatch();
@@ -206,10 +208,11 @@ const MapLocation = ({
     }
     dispatch(setKilometerRange(KmRange));
     saveCity(selectedCity);
+    onLocationSaved?.(selectedCity);
     toast.success(t("locationSaved"));
     OnHide();
     // avoid redirect if already on home page otherwise router.push triggering server side api calls
-    if (pathname !== "/") {
+    if (navigateOnSave && pathname !== "/") {
       navigate("/");
     }
   };
@@ -219,9 +222,10 @@ const MapLocation = ({
     min_range > 0
       ? dispatch(setKilometerRange(min_range))
       : dispatch(setKilometerRange(0));
+    onLocationSaved?.(null);
     OnHide();
     // avoid redirect if already on home page otherwise router.push triggering server side api calls
-    if (pathname !== "/") {
+    if (navigateOnSave && pathname !== "/") {
       navigate("/");
     }
   };

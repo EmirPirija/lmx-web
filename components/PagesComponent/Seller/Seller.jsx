@@ -17,32 +17,13 @@ import SellerSkeleton from "./SellerSkeleton";
 
 import { getSellerApi, gamificationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
+import { resolveMembership } from "@/lib/membership";
 import { cn } from "@/lib/utils";
 
 // ============================================
 // HELPERS
 // ============================================
-const getMembershipFlags = (data) => {
-  const resolveFlags = (raw) => {
-    const isShop = Boolean(raw?.is_shop);
-    if (isShop) return { isPro: false, isShop: true };
-    return { isPro: Boolean(raw?.is_pro), isShop: false };
-  };
-
-  const membership = data?.membership;
-  if (!membership) return resolveFlags(data);
-
-  const tier = String(membership.tier || membership.tier_name || membership.plan || "").toLowerCase();
-  const status = String(membership.status || "").toLowerCase();
-
-  // Only treat as active when membership status is active.
-  if (status !== "active") return resolveFlags(data);
-
-  // Heuristics based on existing backend naming.
-  if (tier.includes("shop") || tier.includes("business")) return { isPro: false, isShop: true };
-  if (tier.includes("pro") || tier.includes("premium")) return { isPro: true, isShop: false };
-  return resolveFlags(data);
-};
+const getMembershipFlags = (data) => resolveMembership(data, data?.membership);
 
 const normalizeRatingsPagination = (ratings) => {
   const current = Number(ratings?.current_page || ratings?.meta?.current_page || 1);

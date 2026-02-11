@@ -36,6 +36,8 @@ import {
 } from "@/redux/reducer/breadCrumbSlice";
 import { t, updateMetadata } from "@/utils";
 import { getSelectedLocation } from "@/redux/reducer/globalStateSlice";
+import { resolveMembership } from "@/lib/membership";
+import { isSellerVerified } from "@/lib/seller-verification";
 
 // ✅ NOVO: Saved searches controls
 import SavedSearchControls from "./SavedSearchControls";
@@ -90,6 +92,8 @@ const Ads = () => {
   const sortBy = searchParams.get("sort_by") || "new-to-old";
   const langCode = searchParams.get("lang");
   const featured_section = searchParams.get("featured_section") || "";
+  const sellerType = (searchParams.get("seller_type") || "").toLowerCase();
+  const sellerVerified = searchParams.get("seller_verified") === "1";
 
   const isMinPrice =
     min_price !== "" &&
@@ -114,6 +118,8 @@ const Ads = () => {
     "query",
     "lang",
     "featured_section",
+    "seller_type",
+    "seller_verified",
   ];
 
   const title = useMemo(() => {
@@ -155,6 +161,16 @@ const Ads = () => {
   ]);
 
   const [extraDetails, setExtraDetails] = useState(initialExtraDetails);
+  const hasSellerTypeFilter = Boolean(sellerType && sellerType !== "all");
+  const hasSellerVerifiedFilter = sellerVerified;
+
+  const getSellerTypeLabel = () => {
+    if (sellerType === "shop") return "Samo SHOP";
+    if (sellerType === "pro") return "Samo PRO";
+    if (sellerType === "free") return "Samo obični";
+    if (sellerType === "premium") return "PRO + SHOP";
+    return "";
+  };
 
   // Count active filters
   const getActiveFilterCount = () => {
@@ -163,6 +179,8 @@ const Ads = () => {
     if (km_range) count++;
     if (category) count++;
     if (featured_section) count++;
+    if (hasSellerTypeFilter) count++;
+    if (hasSellerVerifiedFilter) count++;
     if (query) count++;
     if (date_posted) count++;
     if (isMinPrice && max_price) count++;
@@ -173,6 +191,10 @@ const Ads = () => {
   };
 
   const activeFilterCount = getActiveFilterCount();
+  const selectedLocationLabel =
+    selectedLocation?.translated_name ||
+    selectedLocation?.name ||
+    [area, city, state, country].filter(Boolean).join(", ");
 
   useEffect(() => {
     const fetchFeaturedSectionData = async () => {
@@ -304,7 +326,34 @@ const Ads = () => {
     query,
     langCode,
     featured_section,
+    sellerType,
+    sellerVerified,
   ]);
+
+  const matchSellerType = (membership) => {
+    if (!hasSellerTypeFilter) return true;
+    if (sellerType === "shop") return membership.isShop;
+    if (sellerType === "pro") return membership.isPro && !membership.isShop;
+    if (sellerType === "free") return !membership.isPro && !membership.isShop;
+    if (sellerType === "premium") return membership.isPro || membership.isShop;
+    return true;
+  };
+
+  const applySellerFilters = (items = []) => {
+    if (!hasSellerTypeFilter && !hasSellerVerifiedFilter) return items;
+    return items.filter((item) => {
+      const membership = resolveMembership(
+        item,
+        item?.membership,
+        item?.user,
+        item?.user?.membership
+      );
+      const typeMatch = matchSellerType(membership);
+      if (!typeMatch) return false;
+      if (!hasSellerVerifiedFilter) return true;
+      return isSellerVerified(item, item?.user, item?.seller);
+    });
+  };
 
   const getSingleCatItem = async (page) => {
     try {
@@ -316,6 +365,24 @@ const Ads = () => {
       if (slug) parameters.category_slug = slug;
       if (extraDetails) parameters.custom_fields = extraDetails;
       if (featured_section) parameters.featured_section_slug = featured_section;
+      if (hasSellerTypeFilter) {
+        parameters.seller_type = sellerType;
+        if (sellerType === "shop") {
+          parameters.is_shop = 1;
+          parameters.shop = 1;
+        } else if (sellerType === "pro") {
+          parameters.is_pro = 1;
+          parameters.membership = "pro";
+        } else if (sellerType === "free") {
+          parameters.is_free = 1;
+        } else if (sellerType === "premium") {
+          parameters.is_premium = 1;
+        }
+      }
+      if (hasSellerVerifiedFilter) {
+        parameters.seller_verified = 1;
+        parameters.verified = 1;
+      }
 
       if (Number(km_range) > 0) {
         parameters.latitude = lat;
@@ -343,7 +410,8 @@ const Ads = () => {
       const data = res?.data;
 
       if (data.error === false) {
-        const items = data?.data?.data || [];
+        const rawItems = data?.data?.data || [];
+        const items = applySellerFilters(rawItems);
 
         // ✅ TRACK SEARCH IMPRESSIONS
         if (items.length > 0) {
@@ -359,13 +427,15 @@ const Ads = () => {
             category_slug: slug || null,
             sort_by: sortBy,
             featured_section: featured_section || null,
+            seller_type: sellerType || null,
+            seller_verified: hasSellerVerifiedFilter ? 1 : null,
             filters,
           };
           const searchId = getSearchId(searchContext);
           searchIdRef.current = searchId;
           await trackSearchImpressions(itemIds, {
             ...searchContext,
-            results_count: data?.data?.total || items.length,
+            results_count: items.length,
             page,
           });
           lastImpressionIdRef.current = null;
@@ -485,6 +555,8 @@ const Ads = () => {
     newSearchParams.delete("category");
     newSearchParams.delete("query");
     newSearchParams.delete("featured_section");
+    newSearchParams.delete("seller_type");
+    newSearchParams.delete("seller_verified");
     Object.keys(initialExtraDetails || {})?.forEach((key) => {
       newSearchParams.delete(key);
     });
@@ -494,6 +566,16 @@ const Ads = () => {
 
   const handleClearQuery = () => {
     newSearchParams.delete("query");
+    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+  };
+
+  const handleClearSellerType = () => {
+    newSearchParams.delete("seller_type");
+    window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
+  };
+
+  const handleClearSellerVerified = () => {
+    newSearchParams.delete("seller_verified");
     window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
   };
 
@@ -638,9 +720,7 @@ const Ads = () => {
 
               {(country || state || city || area) && (
                 <FilterTag
-                  label={`${t("location")}: ${
-                    selectedLocation?.translated_name || selectedLocation?.name
-                  }`}
+                  label={`${t("location")}: ${selectedLocationLabel}`}
                   onClear={handleClearLocation}
                 />
               )}
@@ -670,6 +750,20 @@ const Ads = () => {
                 <FilterTag
                   label={`${t("featuredSection")}: ${featuredTitle}`}
                   onClear={handleClearFeaturedSection}
+                />
+              )}
+
+              {hasSellerTypeFilter && (
+                <FilterTag
+                  label={`Prodavač: ${getSellerTypeLabel()}`}
+                  onClear={handleClearSellerType}
+                />
+              )}
+
+              {hasSellerVerifiedFilter && (
+                <FilterTag
+                  label="Prodavač: Samo verificirani"
+                  onClear={handleClearSellerVerified}
                 />
               )}
 

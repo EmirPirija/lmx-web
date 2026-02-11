@@ -28,6 +28,27 @@ const RenewAd = ({
 
   const isFreeAdListing = useSelector(getIsFreAdListing);
 
+  const mapRenewToastMessage = (message) => {
+    const raw = String(message || "").trim();
+    if (!raw) return "Greška pri obnavljanju oglasa.";
+    const lower = raw.toLowerCase();
+
+    if (
+      lower.includes("has not expired yet") ||
+      lower.includes("cannot be renewed") ||
+      lower.includes("not expired")
+    ) {
+      return "Oglas još nije spreman za ovu obnovu. Obnova pozicije je dostupna svakih 15 dana.";
+    }
+    if (lower.includes("please select package")) {
+      return "Odaberi paket za obnovu isteklog oglasa.";
+    }
+    if (lower.includes("you have not purchased this package")) {
+      return "Odabrani paket nije aktivan na tvom računu.";
+    }
+    return raw;
+  };
+
   useEffect(() => {
     getItemsPackageData();
   }, [currentLanguageId]);
@@ -89,11 +110,15 @@ const RenewAd = ({
           navigate("/my-ads");
         }, 1500);
       } else {
-        toast.error(res?.data?.message || "Greška pri obnavljanju oglasa");
+        toast.error(mapRenewToastMessage(res?.data?.message));
       }
     } catch (error) {
       console.error(error);
-      toast.error(t("somethingWentWrong") || "Nešto je pošlo po zlu");
+      toast.error(
+        mapRenewToastMessage(
+          error?.response?.data?.message || t("somethingWentWrong") || "Nešto je pošlo po zlu"
+        )
+      );
     } finally {
       setIsRenewingAd(false);
     }

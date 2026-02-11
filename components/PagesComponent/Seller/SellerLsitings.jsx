@@ -20,6 +20,7 @@ import {
 import {
   SlidersHorizontal,
   Search,
+  Tag,
   DollarSign,
   Video,
   BadgePercent,
@@ -41,6 +42,7 @@ import { useSelector } from "react-redux";
 const defaultBuyerFilterPreferences = {
   enable_buyer_filters: true,
   buyer_filters_show_search: true,
+  buyer_filters_show_category: true,
   buyer_filters_show_price: true,
   buyer_filters_show_video: true,
   buyer_filters_show_on_sale: true,
@@ -79,6 +81,10 @@ const normalizeBuyerFilterPreferences = (raw) => {
     buyer_filters_show_search: toBool(
       source.buyer_filters_show_search,
       defaultBuyerFilterPreferences.buyer_filters_show_search
+    ),
+    buyer_filters_show_category: toBool(
+      source.buyer_filters_show_category,
+      defaultBuyerFilterPreferences.buyer_filters_show_category
     ),
     buyer_filters_show_price: toBool(
       source.buyer_filters_show_price,
@@ -120,6 +126,8 @@ const SellerLsitings = ({
   const [hasMore, setHasMore] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("all");
+  const [categorySearchText, setCategorySearchText] = useState("");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [onlyVideo, setOnlyVideo] = useState(false);
@@ -142,6 +150,43 @@ const SellerLsitings = ({
     [hasProOrShop, buyerFilterPreferences.enable_buyer_filters]
   );
 
+  const categoryOptions = useMemo(() => {
+    const map = new Map();
+    (sellerItems || []).forEach((item) => {
+      const categoryId = item?.category_id ?? item?.category?.id;
+      if (!categoryId) return;
+
+      const categoryName =
+        item?.category?.translated_name ||
+        item?.category?.name ||
+        item?.translated_category?.name ||
+        `Kategorija #${categoryId}`;
+
+      if (!map.has(String(categoryId))) {
+        map.set(String(categoryId), {
+          id: String(categoryId),
+          name: categoryName,
+          count: 0,
+        });
+      }
+
+      const current = map.get(String(categoryId));
+      current.count += 1;
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      String(a.name).localeCompare(String(b.name), "bs", { sensitivity: "base" })
+    );
+  }, [sellerItems]);
+
+  const visibleCategoryOptions = useMemo(() => {
+    const term = categorySearchText.trim().toLowerCase();
+    if (!term) return categoryOptions;
+    return categoryOptions.filter((category) =>
+      String(category.name).toLowerCase().includes(term)
+    );
+  }, [categoryOptions, categorySearchText]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchText(searchText.trim());
@@ -160,9 +205,11 @@ const SellerLsitings = ({
     filterStatus,
     canUseBuyerFilters,
     buyerFilterPreferences.buyer_filters_show_search,
+    buyerFilterPreferences.buyer_filters_show_category,
     buyerFilterPreferences.buyer_filters_show_price,
     buyerFilterPreferences.buyer_filters_show_video,
     debouncedSearchText,
+    selectedCategoryId,
     priceMin,
     priceMax,
     onlyVideo,
@@ -186,6 +233,13 @@ const SellerLsitings = ({
           debouncedSearchText
         ) {
           params.search = debouncedSearchText;
+        }
+
+        if (
+          buyerFilterPreferences.buyer_filters_show_category &&
+          selectedCategoryId !== "all"
+        ) {
+          params.category_id = selectedCategoryId;
         }
 
         if (
@@ -270,6 +324,8 @@ const SellerLsitings = ({
 
     return Boolean(
       (buyerFilterPreferences.buyer_filters_show_search && searchText.trim()) ||
+        (buyerFilterPreferences.buyer_filters_show_category &&
+          selectedCategoryId !== "all") ||
         (buyerFilterPreferences.buyer_filters_show_price &&
           (priceMin !== "" || priceMax !== "")) ||
         (buyerFilterPreferences.buyer_filters_show_video && onlyVideo) ||
@@ -279,11 +335,13 @@ const SellerLsitings = ({
   }, [
     canUseBuyerFilters,
     buyerFilterPreferences.buyer_filters_show_search,
+    buyerFilterPreferences.buyer_filters_show_category,
     buyerFilterPreferences.buyer_filters_show_price,
     buyerFilterPreferences.buyer_filters_show_video,
     buyerFilterPreferences.buyer_filters_show_on_sale,
     buyerFilterPreferences.buyer_filters_show_featured,
     searchText,
+    selectedCategoryId,
     priceMin,
     priceMax,
     onlyVideo,
@@ -293,6 +351,8 @@ const SellerLsitings = ({
 
   const resetBuyerFilters = () => {
     setSearchText("");
+    setSelectedCategoryId("all");
+    setCategorySearchText("");
     setPriceMin("");
     setPriceMax("");
     setOnlyVideo(false);
@@ -304,6 +364,16 @@ const SellerLsitings = ({
     if (!canUseBuyerFilters) return sellerItems;
 
     return (sellerItems || []).filter((item) => {
+      if (
+        buyerFilterPreferences.buyer_filters_show_category &&
+        selectedCategoryId !== "all"
+      ) {
+        const itemCategoryId = String(item?.category_id ?? item?.category?.id ?? "");
+        if (itemCategoryId !== String(selectedCategoryId)) {
+          return false;
+        }
+      }
+
       if (
         buyerFilterPreferences.buyer_filters_show_on_sale &&
         onlyOnSale &&
@@ -329,8 +399,10 @@ const SellerLsitings = ({
   }, [
     sellerItems,
     canUseBuyerFilters,
+    buyerFilterPreferences.buyer_filters_show_category,
     buyerFilterPreferences.buyer_filters_show_on_sale,
     buyerFilterPreferences.buyer_filters_show_featured,
+    selectedCategoryId,
     onlyOnSale,
     onlyFeatured,
   ]);
@@ -359,6 +431,13 @@ const SellerLsitings = ({
     }
 
     if (
+      activeFilterPanel === "category" &&
+      !buyerFilterPreferences.buyer_filters_show_category
+    ) {
+      setActiveFilterPanel(null);
+    }
+
+    if (
       activeFilterPanel === "price" &&
       !buyerFilterPreferences.buyer_filters_show_price
     ) {
@@ -368,6 +447,7 @@ const SellerLsitings = ({
     activeFilterPanel,
     canUseBuyerFilters,
     buyerFilterPreferences.buyer_filters_show_search,
+    buyerFilterPreferences.buyer_filters_show_category,
     buyerFilterPreferences.buyer_filters_show_price,
   ]);
 
@@ -399,6 +479,11 @@ const SellerLsitings = ({
 
   const searchFilterCount =
     buyerFilterPreferences.buyer_filters_show_search && searchText.trim() ? 1 : 0;
+  const categoryFilterCount =
+    buyerFilterPreferences.buyer_filters_show_category &&
+    selectedCategoryId !== "all"
+      ? 1
+      : 0;
   const priceFilterCount =
     buyerFilterPreferences.buyer_filters_show_price &&
     (String(priceMin).trim() !== "" || String(priceMax).trim() !== "")
@@ -439,6 +524,23 @@ const SellerLsitings = ({
                       onClick={() =>
                         setActiveFilterPanel((prev) =>
                           prev === "search" ? null : "search"
+                        )
+                      }
+                    />
+                  )}
+
+                  {buyerFilterPreferences.buyer_filters_show_category && (
+                    <FilterPill
+                      icon={Tag}
+                      label="Kategorija"
+                      count={categoryFilterCount}
+                      active={
+                        categoryFilterCount > 0 ||
+                        activeFilterPanel === "category"
+                      }
+                      onClick={() =>
+                        setActiveFilterPanel((prev) =>
+                          prev === "category" ? null : "category"
                         )
                       }
                     />
@@ -580,6 +682,8 @@ const SellerLsitings = ({
         {canUseBuyerFilters &&
           ((activeFilterPanel === "search" &&
             buyerFilterPreferences.buyer_filters_show_search) ||
+            (activeFilterPanel === "category" &&
+              buyerFilterPreferences.buyer_filters_show_category) ||
             (activeFilterPanel === "price" &&
               buyerFilterPreferences.buyer_filters_show_price)) && (
             <div className="mt-3 border-t border-gray-100 pt-3 dark:border-slate-800">
@@ -591,6 +695,56 @@ const SellerLsitings = ({
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
                   />
+                )}
+
+              {activeFilterPanel === "category" &&
+                buyerFilterPreferences.buyer_filters_show_category && (
+                  <div className="space-y-3">
+                    <Input
+                      className="h-10 border-gray-200 dark:border-slate-700"
+                      placeholder="Pretraži kategorije..."
+                      value={categorySearchText}
+                      onChange={(e) => setCategorySearchText(e.target.value)}
+                    />
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategoryId("all")}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                          selectedCategoryId === "all"
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-500/20 dark:text-blue-200"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
+                        }`}
+                      >
+                        Sve kategorije
+                      </button>
+
+                      {visibleCategoryOptions.map((category) => (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => setSelectedCategoryId(category.id)}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                            selectedCategoryId === category.id
+                              ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-500/20 dark:text-blue-200"
+                              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
+                          }`}
+                        >
+                          <span className="max-w-[170px] truncate">{category.name}</span>
+                          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {category.count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {visibleCategoryOptions.length === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-slate-400">
+                        Nema kategorija za traženi unos.
+                      </p>
+                    )}
+                  </div>
                 )}
 
               {activeFilterPanel === "price" &&

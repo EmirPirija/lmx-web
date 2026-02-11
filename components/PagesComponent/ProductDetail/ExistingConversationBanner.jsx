@@ -9,14 +9,12 @@ import {
   ArrowRight,
   Clock,
   CheckCircle2,
-  Loader2,
   X
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { itemConversationApi } from "@/utils/api";
-import CustomImage from "@/components/Common/CustomImage";
 
 /**
  * ExistingConversationBanner - Prikazuje banner ako korisnik ima postojeći razgovor
@@ -40,7 +38,8 @@ const ExistingConversationBanner = ({ itemId, seller }) => {
       }
 
       // Ako je korisnik vlasnik oglasa, ne prikazuj
-      if (seller?.id && String(currentUser.id) === String(seller.id)) {
+      const sellerId = seller?.user_id || seller?.id;
+      if (sellerId && String(currentUser.id) === String(sellerId)) {
         setIsLoading(false);
         return;
       }
@@ -54,9 +53,15 @@ const ExistingConversationBanner = ({ itemId, seller }) => {
           const conversationId = data.conversation_id || data.item_offer_id || data.id;
 
           if (conversationId) {
+            const rawLastMessage = data.last_message || data.message;
+            const normalizedLastMessage =
+              typeof rawLastMessage === "string"
+                ? rawLastMessage
+                : rawLastMessage?.message || "";
+
             setConversation({
               id: conversationId,
-              lastMessage: data.last_message || data.message,
+              lastMessage: normalizedLastMessage,
               lastMessageTime: data.updated_at || data.created_at,
               unreadCount: data.unread_count || 0,
               hasOffer: data.has_offer || data.offer_amount > 0,
@@ -73,12 +78,28 @@ const ExistingConversationBanner = ({ itemId, seller }) => {
     };
 
     checkExistingConversation();
-  }, [itemId, currentUser?.id, isLoggedIn, seller?.id]);
+  }, [itemId, currentUser?.id, isLoggedIn, seller?.id, seller?.user_id]);
 
   const handleGoToChat = () => {
     if (conversation?.id) {
       router.push(`/chat?chatid=${conversation.id}`);
     }
+  };
+
+  const formatLastMessageTime = (dateValue) => {
+    if (!dateValue) return "Upravo sada";
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "Upravo sada";
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMin = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+
+    if (diffMin < 60) return `Prije ${diffMin} min`;
+    if (diffMin < 1440) return `Prije ${Math.floor(diffMin / 60)} h`;
+    if (diffMin < 10080) return `Prije ${Math.floor(diffMin / 1440)} dana`;
+
+    const months = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
+    return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}.`;
   };
 
   // Ne prikazuj ako nema konverzacije, ako je učitavanje u toku, ili ako je korisnik zatvorio banner
@@ -94,96 +115,107 @@ const ExistingConversationBanner = ({ itemId, seller }) => {
         exit={{ opacity: 0, y: -10, scale: 0.98 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         className={cn(
-          "relative overflow-hidden rounded-2xl",
-          "bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-50",
-          "dark:from-indigo-950/40 dark:via-blue-950/30 dark:to-indigo-950/40",
-          "border border-indigo-200/60 dark:border-indigo-800/40",
-          "shadow-lg shadow-indigo-500/10 dark:shadow-indigo-900/20",
-          "p-4"
+          "relative overflow-hidden rounded-2xl border p-4 sm:p-5",
+          "border-slate-200/80 dark:border-slate-800",
+          "bg-white/95 dark:bg-slate-900/85 backdrop-blur-sm",
+          "shadow-[0_16px_36px_-28px_rgba(15,23,42,0.5)]"
         )}
       >
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-400/10 to-transparent rounded-full blur-2xl" />
+        {/* Soft ambient */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -left-20 -bottom-20 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl dark:bg-cyan-300/10" />
+        </div>
 
         {/* Dismiss button */}
         <button
           onClick={() => setIsDismissed(true)}
-          className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+          className="absolute top-3 right-3 z-20 p-1.5 rounded-lg border border-slate-200/70 bg-white/80 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/75 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+          aria-label="Zatvori zadnje poruke"
         >
-          <X size={16} className="text-slate-400" />
+          <X size={15} />
         </button>
 
-        <div className="relative flex items-center gap-4">
-          {/* Icon */}
-          <div className={cn(
-            "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center",
-            "bg-gradient-to-br from-indigo-500 to-blue-600",
-            "shadow-lg shadow-indigo-500/30"
-          )}>
-            <MessageCircle size={24} className="text-white" />
+        <div className="relative z-10">
+          <div className="flex flex-wrap items-start justify-between gap-3 pr-10">
+            <div className="flex items-start gap-3 min-w-0">
+              <div
+                className={cn(
+                  "flex-shrink-0 h-11 w-11 rounded-xl flex items-center justify-center",
+                  "bg-primary/10 text-primary border border-primary/20"
+                )}
+              >
+                <MessageCircle size={20} />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Zadnje poruke
+                </p>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
+                  Već imate aktivan razgovor za ovaj oglas
+                </h4>
+              </div>
+            </div>
+
+            {conversation.unreadCount > 0 && (
+              <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 dark:border-red-800/40 dark:bg-red-900/25 dark:text-red-300">
+                {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount} nepročitano
+              </span>
+            )}
           </div>
 
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
-              Imate aktivan razgovor
-            </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 truncate">
+          <div className="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/60 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Posljednja poruka
+            </p>
+            <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2">
               {conversation.lastMessage
-                ? `Zadnja poruka: "${conversation.lastMessage.substring(0, 40)}${conversation.lastMessage.length > 40 ? '...' : ''}"`
-                : "Razgovor je započet"
-              }
+                ? conversation.lastMessage
+                : "Razgovor je započet. Nastavite gdje ste stali."}
             </p>
 
-            {/* Offer status if exists */}
-            {conversation.hasOffer && (
-              <div className="mt-1.5 flex items-center gap-2">
-                <span className={cn(
-                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-                  conversation.offerStatus === 'accepted'
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                    : conversation.offerStatus === 'rejected'
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                )}>
-                  {conversation.offerStatus === 'accepted' && <CheckCircle2 size={12} />}
-                  {conversation.offerStatus === 'pending' && <Clock size={12} />}
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-1">
+                <Clock size={13} />
+                {formatLastMessageTime(conversation.lastMessageTime)}
+              </span>
+
+              {conversation.hasOffer && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+                    conversation.offerStatus === "accepted"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                      : conversation.offerStatus === "rejected"
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                  )}
+                >
+                  {conversation.offerStatus === "accepted" && <CheckCircle2 size={12} />}
+                  {conversation.offerStatus === "pending" && <Clock size={12} />}
                   Ponuda: {conversation.offerAmount} KM
                 </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* CTA Button */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleGoToChat}
-            className={cn(
-              "flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl",
-              "bg-indigo-600 hover:bg-indigo-700",
-              "text-white text-sm font-semibold",
-              "shadow-lg shadow-indigo-500/25",
-              "transition-colors duration-200"
-            )}
-          >
-            Otvori chat
-            <ArrowRight size={16} />
-          </motion.button>
+          <div className="mt-3 flex justify-end">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleGoToChat}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl px-4 py-2.5",
+                "bg-primary hover:bg-primary/90 text-white text-sm font-semibold",
+                "shadow-[0_14px_28px_-18px_rgba(13,148,136,0.65)] transition-colors duration-200"
+              )}
+            >
+              Nastavi razgovor
+              <ArrowRight size={16} />
+            </motion.button>
+          </div>
         </div>
-
-        {/* Unread badge */}
-        {conversation.unreadCount > 0 && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg"
-          >
-            <span className="text-white text-xs font-bold">
-              {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
-            </span>
-          </motion.div>
-        )}
       </motion.div>
     </AnimatePresence>
   );

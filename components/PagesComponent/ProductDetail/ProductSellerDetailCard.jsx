@@ -28,10 +28,12 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { resolveMembership } from "@/lib/membership";
 import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
 import { isSellerVerified } from "@/lib/seller-verification";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 import CustomImage from "@/components/Common/CustomImage";
 import CustomLink from "@/components/Common/CustomLink";
 import ShareDropdown from "@/components/Common/ShareDropdown";
@@ -82,6 +84,49 @@ const formatMemberSince = (dateStr) => {
   return `${MONTHS_BS[d.getMonth()]} ${d.getFullYear()}`;
 };
 
+const resolveSellerAvatar = (seller = {}) =>
+  (
+    seller?.profile ||
+    seller?.profile_image ||
+    seller?.profileImage ||
+    seller?.avatar ||
+    seller?.avatar_url ||
+    seller?.image ||
+    seller?.photo ||
+    seller?.svg_avatar ||
+    ""
+  )
+    .toString()
+    .trim();
+
+const parseLastSeenDate = (seller = {}) => {
+  const raw =
+    seller?.last_seen ||
+    seller?.lastSeen ||
+    seller?.last_activity_at ||
+    seller?.lastActiveAt ||
+    seller?.updated_at;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatSeenAgoLabel = (lastSeenDate) => {
+  if (!lastSeenDate) return "";
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - lastSeenDate.getTime()) / 1000));
+  if (diffSeconds < 60) return "upravo sada";
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return diffMinutes === 1 ? "prije 1 min" : `prije ${diffMinutes} min`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return diffHours === 1 ? "prije 1 sat" : `prije ${diffHours} sati`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return diffDays === 1 ? "prije 1 dan" : `prije ${diffDays} dana`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return diffMonths === 1 ? "prije 1 mjesec" : `prije ${diffMonths} mjeseci`;
+  const diffYears = Math.floor(diffMonths / 12);
+  return diffYears === 1 ? "prije 1 godinu" : `prije ${diffYears} godina`;
+};
+
 const responseTimeLabels = {
   instant: "par minuta",
   few_hours: "par sati",
@@ -94,6 +139,9 @@ const defaultCardPreferences = {
   show_badges: true,
   show_member_since: false,
   show_response_time: true,
+  show_online_status: true,
+  show_reel_hint: true,
+  highlight_contact_button: false,
   show_business_hours: true,
   show_shipping_info: true,
   show_return_policy: true,
@@ -122,6 +170,12 @@ const normalizeCardPreferences = (raw) => {
     show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
     show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
     show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
+    show_online_status: normalizePrefBool(obj?.show_online_status, defaultCardPreferences.show_online_status),
+    show_reel_hint: normalizePrefBool(obj?.show_reel_hint, defaultCardPreferences.show_reel_hint),
+    highlight_contact_button: normalizePrefBool(
+      obj?.highlight_contact_button,
+      defaultCardPreferences.highlight_contact_button
+    ),
     show_business_hours: normalizePrefBool(obj?.show_business_hours, defaultCardPreferences.show_business_hours),
     show_shipping_info: normalizePrefBool(obj?.show_shipping_info, defaultCardPreferences.show_shipping_info),
     show_return_policy: normalizePrefBool(obj?.show_return_policy, defaultCardPreferences.show_return_policy),
@@ -345,7 +399,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100">
-              <CustomImage src={seller?.profile || seller?.profile_image} alt={seller?.name} width={32} height={32} className="w-full h-full object-cover" />
+              <CustomImage src={resolveSellerAvatar(seller)} alt={seller?.name} width={32} height={32} className="w-full h-full object-cover" />
             </div>
             <span className="text-sm font-semibold text-slate-900">{seller?.name}</span>
           </div>
@@ -512,8 +566,13 @@ const ProductSellerDetailCard = ({
   // Extract from productDetails or use props
   const seller = sellerProp || productDetails?.user;
   const ratings = ratingsProp || productDetails?.ratings;
-  const isShop = Boolean(isShopProp || productDetails?.user?.is_shop);
-  const isPro = Boolean(!isShop && (isProProp || productDetails?.user?.is_pro));
+  const membership = resolveMembership(
+    { is_pro: isProProp, is_shop: isShopProp },
+    seller,
+    productDetails?.user,
+    sellerProp?.membership,
+    productDetails?.membership
+  );
   const itemId = itemIdProp || productDetails?.id;
   const itemPrice = itemPriceProp || productDetails?.price;
 
@@ -553,6 +612,8 @@ const ProductSellerDetailCard = ({
   const showBadges = mergedPrefs.show_badges;
   const showResponseTime = mergedPrefs.show_response_time;
   const showMemberSince = mergedPrefs.show_member_since;
+  const showReelHint = mergedPrefs.show_reel_hint;
+  const highlightContactButton = mergedPrefs.highlight_contact_button;
   const showBusinessHours = mergedPrefs.show_business_hours;
   const showShippingInfo = mergedPrefs.show_shipping_info;
   const showReturnPolicy = mergedPrefs.show_return_policy;
@@ -591,6 +652,10 @@ const ProductSellerDetailCard = ({
     : null;
 
   const memberSince = showMemberSince ? formatMemberSince(seller?.created_at) : "";
+  const sellerAvatar = resolveSellerAvatar(seller);
+  const lastSeenDate = parseLastSeenDate(seller);
+  const seenAgoLabel = formatSeenAgoLabel(lastSeenDate);
+  const seenInfoLabel = lastSeenDate && seenAgoLabel ? `Viđen ${seenAgoLabel}` : null;
 
   // Rating
   const ratingValue = useMemo(
@@ -702,7 +767,7 @@ const ProductSellerDetailCard = ({
                       )}
                     >
                       <CustomImage
-                        src={seller?.profile || seller?.profile_image}
+                        src={sellerAvatar}
                         alt={seller?.name || "Prodavač"}
                         width={48}
                         height={48}
@@ -754,7 +819,7 @@ const ProductSellerDetailCard = ({
                     )}
                   >
                     <CustomImage
-                      src={seller?.profile || seller?.profile_image}
+                      src={sellerAvatar}
                       alt={seller?.name || "Prodavač"}
                       width={48}
                       height={48}
@@ -785,22 +850,12 @@ const ProductSellerDetailCard = ({
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <span className="truncate">{seller?.name}</span>
-                    {isShop && (
-                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Shop</span>
-                    )}
-                    {!isShop && isPro && (
-                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pro</span>
-                    )}
+                    <MembershipBadge tier={membership.tier} size="xs" />
                   </CustomLink>
                 ) : (
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                     <span className="truncate">{seller?.name}</span>
-                    {isShop && (
-                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Shop</span>
-                    )}
-                    {!isShop && isPro && (
-                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pro</span>
-                    )}
+                    <MembershipBadge tier={membership.tier} size="xs" />
                   </span>
                 )}
                 
@@ -835,13 +890,19 @@ const ProductSellerDetailCard = ({
                   </span>
                 )}
 
-                {isPro && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded">PRO</span>
-                )}
-                {isShop && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded">SHOP</span>
+                {showReelHint && hasReel && (
+                  <span className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-300">
+                    <Play className="w-3 h-3" />
+                    Aktivan story video
+                  </span>
                 )}
               </div>
+
+              {seenInfoLabel && (
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  {seenInfoLabel}
+                </p>
+              )}
 
               {canManageReels && !hasVideo && (
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#11b7b0]/40 bg-[#11b7b0]/10 px-3 py-1 text-xs font-semibold text-[#0f766e]">
@@ -916,7 +977,12 @@ const ProductSellerDetailCard = ({
               <button
                 type="button"
                 onClick={handleContactClick}
-                className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+                className={cn(
+                  "flex items-center justify-center w-10 h-10 rounded-xl border transition-colors",
+                  highlightContactButton
+                    ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+                )}
               >
                 <Phone className="w-4 h-4" />
               </button>

@@ -24,8 +24,16 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
 import { cn } from "@/lib/utils";
-import { sellerSettingsApi, updateProfileApi, getVerificationStatusApi } from "@/utils/api";
+import { resolveMembership } from "@/lib/membership";
+import {
+  sellerSettingsApi,
+  updateProfileApi,
+  getVerificationStatusApi,
+  membershipApi,
+} from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
+import MembershipBadge from "@/components/Common/MembershipBadge";
+import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
@@ -75,6 +83,9 @@ const defaultCardPreferences = {
   show_badges: true,
   show_member_since: false,
   show_response_time: true,
+  show_online_status: true,
+  show_reel_hint: true,
+  highlight_contact_button: false,
   show_business_hours: true,
   show_shipping_info: true,
   show_return_policy: true,
@@ -132,6 +143,12 @@ const normalizeCardPreferences = (raw) => {
     show_badges: toBool(obj.show_badges, defaultCardPreferences.show_badges),
     show_member_since: toBool(obj.show_member_since, defaultCardPreferences.show_member_since),
     show_response_time: toBool(obj.show_response_time, defaultCardPreferences.show_response_time),
+    show_online_status: toBool(obj.show_online_status, defaultCardPreferences.show_online_status),
+    show_reel_hint: toBool(obj.show_reel_hint, defaultCardPreferences.show_reel_hint),
+    highlight_contact_button: toBool(
+      obj.highlight_contact_button,
+      defaultCardPreferences.highlight_contact_button
+    ),
     show_business_hours: toBool(obj.show_business_hours, defaultCardPreferences.show_business_hours),
     show_shipping_info: toBool(obj.show_shipping_info, defaultCardPreferences.show_shipping_info),
     show_return_policy: toBool(obj.show_return_policy, defaultCardPreferences.show_return_policy),
@@ -164,6 +181,46 @@ const normalizeCardPreferences = (raw) => {
 
 const safeUrl = (u) => { if (!u) return true; try { new URL(u.startsWith("http") ? u : `https://${u}`); return true; } catch { return false; } };
 const normalizePhone = (p) => (p || "").replace(/\s+/g, "").trim();
+
+const normalizeMembershipTier = (value) => {
+  const tier = String(value || "").trim().toLowerCase();
+  if (tier.includes("shop") || tier.includes("trgovina") || tier.includes("business")) return "shop";
+  if (tier.includes("pro") || tier.includes("premium")) return "pro";
+  return "free";
+};
+
+const normalizeMembershipSource = (raw) => {
+  if (!raw || typeof raw !== "object") return null;
+
+  const tierCandidate =
+    raw?.tier?.slug ??
+    raw?.tier ??
+    raw?.tier_name ??
+    raw?.membership_tier ??
+    raw?.membershipTier ??
+    raw?.membership?.tier?.slug ??
+    raw?.membership?.tier ??
+    raw?.membership?.plan ??
+    raw?.plan?.slug ??
+    raw?.plan ??
+    raw?.label ??
+    "";
+
+  const tier = normalizeMembershipTier(tierCandidate);
+
+  return {
+    ...raw,
+    tier,
+    membership_tier: tier,
+    is_shop: raw?.is_shop ?? raw?.isShop ?? raw?.shop ?? (tier === "shop"),
+    is_pro: raw?.is_pro ?? raw?.isPro ?? raw?.premium ?? (tier === "pro"),
+    membership_status:
+      raw?.membership_status ??
+      raw?.status ??
+      raw?.membership?.status ??
+      "active",
+  };
+};
 
 const stableStringify = (value) => {
   const seen = new WeakSet();
@@ -298,6 +355,9 @@ const CardPreferencesSection = ({ cardPreferences, setCardPreferences }) => {
           <CompactToggle title="Bedževi" checked={cardPreferences.show_badges} onCheckedChange={(v) => updatePref("show_badges", v)} />
           <CompactToggle title="Član od" checked={cardPreferences.show_member_since} onCheckedChange={(v) => updatePref("show_member_since", v)} />
           <CompactToggle title="Vrijeme odg." checked={cardPreferences.show_response_time} onCheckedChange={(v) => updatePref("show_response_time", v)} />
+          <CompactToggle title="Online status" checked={cardPreferences.show_online_status} onCheckedChange={(v) => updatePref("show_online_status", v)} />
+          <CompactToggle title="Reel indikator" checked={cardPreferences.show_reel_hint} onCheckedChange={(v) => updatePref("show_reel_hint", v)} />
+          <CompactToggle title="Istakni kontakt" checked={cardPreferences.highlight_contact_button} onCheckedChange={(v) => updatePref("highlight_contact_button", v)} />
           <CompactToggle title="Radno vrijeme" checked={cardPreferences.show_business_hours} onCheckedChange={(v) => updatePref("show_business_hours", v)} />
           <CompactToggle title="Info dostave" checked={cardPreferences.show_shipping_info} onCheckedChange={(v) => updatePref("show_shipping_info", v)} />
           <CompactToggle title="Politika povrata" checked={cardPreferences.show_return_policy} onCheckedChange={(v) => updatePref("show_return_policy", v)} />
@@ -388,9 +448,10 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
 const PreviewPanel = ({
   previewSeller, previewSettings, businessHours, businessDescription,
   shippingInfo, returnPolicy, responseTime, vacationMode, vacationMessage,
-  socialFacebook, socialInstagram, socialWebsite, verificationStatus, cardPreferences,
+  socialFacebook, socialInstagram, socialWebsite, verificationStatus, cardPreferences, membershipTier,
 }) => {
   const [activeTab, setActiveTab] = useState("card");
+  const membership = useMemo(() => resolveMembership({ tier: membershipTier }), [membershipTier]);
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
@@ -420,8 +481,8 @@ const PreviewPanel = ({
                 seller={previewSeller}
                 sellerSettings={previewSettings}
                 badges={[]}
-                isPro={false}
-                isShop={false}
+                isPro={membership.isPro}
+                isShop={membership.isShop}
                 showProfileLink={false}
                 onChatClick={() => toast.message("Ovo je samo prikaz.")}
                 onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
@@ -434,8 +495,8 @@ const PreviewPanel = ({
                 sellerSettings={previewSettings}
                 badges={[]}
                 ratings={null}
-                isPro={false}
-                isShop={false}
+                isPro={membership.isPro}
+                isShop={membership.isShop}
                 onChatClick={() => toast.message("Ovo je samo prikaz.")}
                 onPhoneReveal={() => toast.message("Ovo je samo prikaz.")}
               />
@@ -454,28 +515,18 @@ const SellerSettings = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
   const isMountedRef = useRef(true);
-  const isProOrShop = useMemo(() => {
-    const tier = String(
-      currentUser?.membership?.tier ||
-        currentUser?.membership?.tier_name ||
-        currentUser?.membership?.plan ||
-        ""
-    ).toLowerCase();
-    const membershipStatus = String(
-      currentUser?.membership?.status || ""
-    ).toLowerCase();
-    const hasActiveMembership =
-      !membershipStatus || membershipStatus === "active";
-
-    const byTier =
-      hasActiveMembership &&
-      (tier.includes("pro") ||
-        tier.includes("premium") ||
-        tier.includes("shop") ||
-        tier.includes("business"));
-
-    return Boolean(currentUser?.is_pro || currentUser?.is_shop || byTier);
-  }, [currentUser]);
+  const [membershipContext, setMembershipContext] = useState(null);
+  const resolvedMembership = useMemo(
+    () =>
+      resolveMembership(
+        currentUser,
+        currentUser?.membership,
+        membershipContext,
+        membershipContext?.membership
+      ),
+    [currentUser, membershipContext]
+  );
+  const isProOrShop = resolvedMembership.isPremium;
   
   useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
@@ -619,12 +670,23 @@ const SellerSettings = () => {
       setIsLoading(true); setLoadError("");
       
       // Fetch both settings and verification status
-      const [response, verificationRes] = await Promise.all([
+      const [response, verificationRes, membershipRes] = await Promise.all([
         withTimeout(getFn(), 15000),
         getVerificationStatusApi.getVerificationStatus().catch(() => ({ error: true })),
+        membershipApi.getUserMembership({}).catch(() => null),
       ]);
       
       setVerificationStatus(normalizeVerificationStatus(verificationRes));
+
+      const membershipPayload = membershipRes?.data?.data || membershipRes?.data || null;
+      const settingsPayload = response?.data?.data || null;
+      const normalizedMembership =
+        normalizeMembershipSource(membershipPayload) ||
+        normalizeMembershipSource(settingsPayload);
+
+      if (normalizedMembership && isMountedRef.current) {
+        setMembershipContext(normalizedMembership);
+      }
       
 
       
@@ -788,6 +850,7 @@ const SellerSettings = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-slate-900">Postavke prodavača</h2>
+            <MembershipBadge tier={resolvedMembership.tier} size="xs" uppercase={false} />
             <VerificationBadge status={verificationStatus} />
           </div>
           <p className="text-sm text-slate-500">Kako te kupci vide</p>
@@ -880,6 +943,49 @@ const SellerSettings = () => {
               setCardPreferences={setCardPreferences}
               isProOrShop={isProOrShop}
             />
+          </SettingSection>
+
+          <SettingSection
+            icon={Sparkles}
+            title="LMX članstvo i premium alati"
+            description="Brzi pristup PRO/SHOP opcijama i pogodnostima"
+            defaultOpen={false}
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
+                <span className="text-xs font-medium text-slate-600">Trenutni paket</span>
+                <MembershipBadge tier={resolvedMembership.tier} size="sm" uppercase={false} />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {!resolvedMembership.isPremium && (
+                  <CustomLink
+                    href="/membership/upgrade?tier=pro"
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition-all hover:border-amber-300 hover:bg-amber-100/70"
+                  >
+                    Postani LMX PRO
+                  </CustomLink>
+                )}
+                {!resolvedMembership.isShop && (
+                  <CustomLink
+                    href="/membership/upgrade?tier=shop"
+                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-all hover:border-blue-300 hover:bg-blue-100/70"
+                  >
+                    Postani LMX SHOP
+                  </CustomLink>
+                )}
+                <CustomLink
+                  href="/subscription"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 sm:col-span-2"
+                >
+                  Pogledaj pakete i pogodnosti
+                </CustomLink>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                PRO otključava napredne alate i bolji istaknuti profil, dok SHOP daje proširene mogućnosti za trgovine i veći obim objava.
+              </p>
+            </div>
           </SettingSection>
 
           {/* Contact */}
@@ -1020,6 +1126,7 @@ const SellerSettings = () => {
             socialWebsite={socialWebsite}
             verificationStatus={verificationStatus}
             cardPreferences={normalizedCardPreferences}
+            membershipTier={resolvedMembership.tier}
           />
 
           {/* Tips */}
