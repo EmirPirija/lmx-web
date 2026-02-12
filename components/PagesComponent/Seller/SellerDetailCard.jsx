@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { getVerificationStatusApi } from "@/utils/api";
 import { MdVerified } from "react-icons/md";
 
+import { allItemApi } from "@/utils/api";
+
 // Lucide ikone
 import {
   User as UserCircle,
@@ -948,7 +950,6 @@ export const SellerPreviewCard = ({
     [seller, settings]
   );
   
-  // ✅ ako je parent izračunao verifikaciju (remote + local), koristi to
   const isVerified = isVerifiedOverride ?? computedVerified;
   
   const prefs = uiPrefs || {};
@@ -975,12 +976,9 @@ export const SellerPreviewCard = ({
 
   if (!seller) return <SellerPreviewSkeleton compactness={compactness} />;
 
-  // Use user_id if available, fallback to id
   const sellerId = seller?.user_id ?? seller?.id;
   const canOpenReel = Boolean(onRingClick);
   const showReelPrompt = false;
-  const ringMotion = undefined;
-  const ringTransition = undefined;
 
   const computedShareUrl = shareUrl || (sellerId
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
@@ -1049,7 +1047,7 @@ export const SellerPreviewCard = ({
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900">
         <div className="p-4 space-y-3">
-          {/* Header: Avatar + Info — matching MinimalSellerCard */}
+          {/* Header: Avatar + Info */}
           <div className="flex items-start gap-3">
             {/* Avatar */}
             {(() => {
@@ -1060,20 +1058,22 @@ export const SellerPreviewCard = ({
                     showReelRing && "cursor-pointer"
                   )}
                 >
-                  <motion.div
+                  {/* Reel ring wrapper — let CSS handle padding + radius */}
+                  <div
                     className={cn(
-                      "rounded-[14px] p-[2px]",
-                      showReelRing ? "reel-ring" : "bg-transparent"
+                      showReelRing ? "reel-ring" : "rounded-[14px] p-[2px] bg-transparent"
                     )}
-                    animate={ringMotion}
-                    transition={ringTransition}
                   >
+                    {/* Flash + Bubbles only when reel active */}
+                    {showReelRing && <div className="reel-ring-flash" />}
+
+
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
+                        "w-12 h-12 overflow-hidden bg-slate-100 dark:bg-slate-800",
                         showReelRing
-                          ? "border border-white/70 dark:border-slate-700/80"
-                          : "border border-slate-200/60 dark:border-slate-700/60"
+                          ? "reel-ring-inner border border-white/70 dark:border-slate-700/80"
+                          : "rounded-xl border border-slate-200/60 dark:border-slate-700/60"
                       )}
                     >
                       <CustomImage
@@ -1084,7 +1084,7 @@ export const SellerPreviewCard = ({
                         className="w-full h-full object-cover"
                       />
                     </div>
-                  </motion.div>
+                  </div>
 
                   {showReelRing && (
                     <motion.span
@@ -1253,7 +1253,7 @@ export const SellerPreviewCard = ({
             </div>
           )}
 
-          {/* Actions — inline like MinimalSellerCard */}
+          {/* Actions */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1459,12 +1459,53 @@ const SocialPill = ({ icon: Icon, label, href }) => {
 };
 
 /* =====================================================
-   GLAVNI SELLER DETAIL CARD
+   useSellerHasReel HOOK
 ===================================================== */
 
+/**
+ * Provjerava da li seller ima aktivan reel/video putem API-ja.
+ * Koristi isti endpoint kao ReelViewerModal.
+ */
+const useSellerHasReel = (sellerId, localHasReel) => {
+  const [hasReel, setHasReel] = useState(localHasReel);
+
+  useEffect(() => {
+    if (localHasReel) {
+      setHasReel(true);
+      return;
+    }
+
+    if (!sellerId) return;
+
+    let alive = true;
+
+    const check = async () => {
+      try {
+        const res = await allItemApi.getItems({
+          user_id: sellerId,
+          has_video: 1,
+          status: "approved",
+          limit: 1,
+        });
+
+        const items = res?.data?.data?.data || res?.data?.data || res?.data?.items || [];
+        if (alive) {
+          setHasReel(Array.isArray(items) && items.length > 0);
+        }
+      } catch {
+        // fail silently
+      }
+    };
+
+    check();
+    return () => { alive = false; };
+  }, [sellerId, localHasReel]);
+
+  return [hasReel, setHasReel];
+};
 
 /* =====================================================
-   GLAVNI SELLER DETAIL CARD (POPRAVLJENO)
+   GLAVNI SELLER DETAIL CARD
 ===================================================== */
 
 const SellerDetailCard = ({
@@ -1481,36 +1522,34 @@ const SellerDetailCard = ({
   const settings = sellerSettings || {};
   const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
 
-  // 1. LOKALNI STATUS: Provjerava props-e koji su stigli odmah (iz listinga)
+  // ── Seller ID (definisano PRVO jer ga koriste hookovi ispod) ──
+  const mainSellerId = seller?.user_id ?? seller?.id;
+
+  // ── Verifikacija ──
   const localVerified = useMemo(
     () => getVerifiedStatus(seller, settings),
     [seller, settings]
   );
 
-  // 2. REMOTE STATUS: Provjera preko API-ja (za slučaj da podaci fale u listingu)
   const [verifiedRemote, setVerifiedRemote] = useState(false);
-  const sellerId = seller?.user_id ?? seller?.id;
   const currentUser = useSelector(userSignUpData);
   const isOwnProfile = Boolean(
-    currentUser?.id && String(currentUser.id) === String(sellerId)
+    currentUser?.id && String(currentUser.id) === String(mainSellerId)
   );
 
   useEffect(() => {
     setVerifiedRemote(false);
-  }, [sellerId]);
+  }, [mainSellerId]);
 
   useEffect(() => {
-    // Endpoint vraća status trenutnog auth korisnika, pa ga koristimo samo na vlastitom profilu.
-    if (localVerified || !sellerId || !isOwnProfile) return;
+    if (localVerified || !mainSellerId || !isOwnProfile) return;
   
     let alive = true;
   
     const fetchRemote = async () => {
       try {
         const res = await getVerificationStatusApi.getVerificationStatus();
-        
         const statusData = res?.data?.data || res?.data; 
-  
         if (alive && statusData) {
           const isRemoteValid = getVerifiedStatus(statusData, statusData);
           if (isRemoteValid) {
@@ -1524,23 +1563,21 @@ const SellerDetailCard = ({
   
     fetchRemote();
     return () => { alive = false; };
-  }, [sellerId, localVerified, isOwnProfile]);
+  }, [mainSellerId, localVerified, isOwnProfile]);
 
-  // FINALNI STATUS
   const isVerified = localVerified || verifiedRemote;
 
-  // State za modale
+  // ── Reel detection (definisano PRIJE korištenja) ──
+  const localHasReel = Boolean(hasSellerActiveReel(seller));
+  const [hasReel, setHasReel] = useSellerHasReel(mainSellerId, localHasReel);
+
+  // ── Modali ──
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
   const [isReelViewerOpen, setIsReelViewerOpen] = useState(false);
-  const [hasReel, setHasReel] = useState(Boolean(hasSellerActiveReel(seller)));
 
-  useEffect(() => {
-    setHasReel(Boolean(hasSellerActiveReel(seller)));
-  }, [seller]);
-
-  // Parsiranje postavki
+  // ── Parsiranje postavki ──
   const businessDescription = settings.business_description || "";
   const returnPolicy = mergedPrefs.show_return_policy ? (settings.return_policy || "") : "";
   const shippingInfo = mergedPrefs.show_shipping_info ? (settings.shipping_info || "") : "";
@@ -1564,8 +1601,6 @@ const SellerDetailCard = ({
   const hasSocialLinks = Boolean(
     socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite
   );
-
-  const mainSellerId = seller?.user_id ?? seller?.id;
 
   const storageKey = mainSellerId
     ? `seller_accordion_open_${mainSellerId}`
@@ -1626,8 +1661,6 @@ const SellerDetailCard = ({
         onRingClick={() => setIsReelViewerOpen(true)}
         showAddReel={isOwnProfile}
         onAddReelClick={() => setIsReelModalOpen(true)}
-        // Ako je isVerified TRUE, šaljemo true. Ako je FALSE, šaljemo undefined 
-        // kako bi SellerPreviewCard koristio svoj fallback izračun.
         isVerifiedOverride={isVerified || undefined} 
       />
 
@@ -1696,7 +1729,7 @@ const SellerDetailCard = ({
         </AccordionSection>
       )}
 
-      {/* INFO SEKCIJA (SHIPPING, RETURN, DESCRIPTION) */}
+      {/* INFO SEKCIJA */}
       {(shippingInfo || returnPolicy || businessDescription) && (
         <AccordionSection
           id="info"

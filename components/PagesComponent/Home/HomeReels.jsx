@@ -766,17 +766,6 @@ const ReelCard = ({
       {/* gradients */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
-      {/* story count badge */}
-      {sellerStoryCount > 1 && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="absolute top-2 right-10 z-10 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#F7941D] to-[#E1306C] text-white text-[9px] font-bold shadow-md"
-        >
-          {sellerStoryCount} videa
-        </motion.div>
-      )}
-
       {/* hold indicator */}
       <AnimatePresence>
         {isHolding && (
@@ -842,7 +831,7 @@ const ReelCard = ({
       </div>
 
       {/* in-video controls */}
-      <div className="absolute top-11 left-2 right-10 z-10">
+      {/* <div className="absolute top-11 left-2 right-10 z-10">
         <div className="flex flex-wrap items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
           <button
             type="button"
@@ -904,7 +893,7 @@ const ReelCard = ({
             <MdShuffle size={11} />
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* play/pause */}
       <AnimatePresence>
@@ -920,7 +909,7 @@ const ReelCard = ({
       </AnimatePresence>
 
       {/* right actions */}
-      <div className="absolute right-2 bottom-24 flex flex-col items-center gap-3">
+      <div className="absolute right-2 bottom-8 flex flex-col items-center gap-3">
         <motion.button whileTap={{ scale: 0.85 }} type="button"
           onClick={(e) => { e.stopPropagation(); onLike?.(); }}
           className="flex flex-col items-center"

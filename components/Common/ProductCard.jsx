@@ -558,7 +558,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
               ) : null}
               {isReserved ? (
                 <OverlayPill
-                  icon={Clock}
+                  // icon={Clock}
                   className="border-blue-200 bg-blue-100/95 text-blue-700"
                 >
                   Rezervisano
