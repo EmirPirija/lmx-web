@@ -1,10 +1,14 @@
 "use client";
 
 import React from "react";
-import { Check, Crown, Store } from "lucide-react";
+import { Check, Crown, Store } from "@/components/Common/UnifiedIconPack";
 import { formatPriceAbbreviated } from "@/utils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  getRealMembershipBenefits,
+  resolveMembershipTierSlug,
+} from "@/lib/membershipBenefits";
 
 const TIER_THEMES = {
   pro: {
@@ -27,12 +31,39 @@ const TIER_THEMES = {
   },
 };
 
-const formatPermissionLabel = (permissionKey) =>
-  permissionKey
+const PERMISSION_LABELS_BS = {
+  unlimited_listings: "Neograničen broj oglasa",
+  priority_support: "Prioritetna podrška",
+  advanced_analytics: "Napredna analitika",
+  pro_badge: "PRO oznaka",
+  highlighted_listings: "Istaknuti oglasi",
+  business_profile_page: "Poslovna profilna stranica",
+  multiple_locations: "Više lokacija",
+  bulk_upload: "Skupni unos oglasa",
+  dedicated_account_manager: "Namjenski menadžer naloga",
+  featured_ads: "Istaknuti oglasi",
+  promoted_ads: "Promovisani oglasi",
+  priority_listing: "Prioritetni prikaz oglasa",
+  verification_boost: "Dodatna vidljivost verifikovanog profila",
+};
+
+const formatPermissionLabel = (permissionKey) => {
+  const normalizedKey = String(permissionKey || "").trim().toLowerCase();
+  if (PERMISSION_LABELS_BS[normalizedKey]) {
+    return PERMISSION_LABELS_BS[normalizedKey];
+  }
+
+  return normalizedKey
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+};
 
-const normalizeFeatures = (tier) => {
+const normalizeFeatures = (tier, tierSlug) => {
+  const realBenefits = getRealMembershipBenefits(tierSlug || tier);
+  if (realBenefits.length > 0) {
+    return realBenefits;
+  }
+
   if (Array.isArray(tier?.features) && tier.features.length > 0) {
     return tier.features
       .map((feature) => {
@@ -62,10 +93,10 @@ const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
   return (
     <div className="grid gap-5 md:grid-cols-2">
       {tiers.map((tier) => {
-        const tierSlug = String(tier?.slug || "").toLowerCase();
+        const tierSlug = resolveMembershipTierSlug(tier);
         const theme = TIER_THEMES[tierSlug] || TIER_THEMES.default;
         const Icon = theme.icon;
-        const features = normalizeFeatures(tier);
+        const features = normalizeFeatures(tier, tierSlug);
         const isSelected = selectedTier?.id === tier?.id;
         const durationLabel =
           Number(tier?.duration_days) > 0 ? `${tier.duration_days} dana` : "Bez isteka";
@@ -100,7 +131,7 @@ const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
                   </p>
                   <h3 className="text-2xl font-bold">{tier?.name || "Plan"}</h3>
                   <p className="text-sm text-white/85">
-                    {tier?.description || "Nadogradite svoj profil i dobijte napredne mogućnosti."}
+                    {tier?.description || "Nadogradi profil i dobij napredne mogućnosti."}
                   </p>
                 </div>
                 <span className="rounded-xl bg-white/15 p-2.5 backdrop-blur-sm">

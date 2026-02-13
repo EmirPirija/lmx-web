@@ -8,6 +8,8 @@ const Api = axios.create({
 });
 
 let isUnauthorizedToastShown = false;
+const UNAUTHORIZED_COOLDOWN_MS = 10000;
+let lastUnauthorizedAt = 0;
 
 Api.interceptors.request.use(function (config) {
   let token = undefined;
@@ -31,16 +33,32 @@ Api.interceptors.response.use(
     return response;
   },
   function (error) {
-    if (error.response && error.response.status === 401) {
-      // Call the logout function if the status code is 401
-      logoutSuccess();
-      if (!isUnauthorizedToastShown) {
-        store.dispatch(setIsUnauthorized(true));
-        isUnauthorizedToastShown = true;
-        // Reset the flag after a certain period
-        setTimeout(() => {
-          isUnauthorizedToastShown = false;
-        }, 3000); // 3 seconds delay before allowing another toast
+    const status = error?.response?.status;
+    if (status === 401) {
+      const state = store.getState();
+      const hasTokenInStore = Boolean(state?.UserSignup?.data?.token);
+      const hadAuthHeader = Boolean(
+        error?.config?.headers?.authorization || error?.config?.headers?.Authorization
+      );
+      const requestUrl = String(error?.config?.url || "");
+      const isLogoutRequest = requestUrl.includes("logout");
+
+      // Avoid endless unauthorized popups for guests/public requests.
+      // Only handle when there was an authenticated session/request.
+      if (!isLogoutRequest && (hasTokenInStore || hadAuthHeader)) {
+        logoutSuccess();
+
+        const now = Date.now();
+        const canShowModal = now - lastUnauthorizedAt >= UNAUTHORIZED_COOLDOWN_MS;
+        if (!isUnauthorizedToastShown && canShowModal) {
+          store.dispatch(setIsUnauthorized(true));
+          isUnauthorizedToastShown = true;
+          lastUnauthorizedAt = now;
+
+          setTimeout(() => {
+            isUnauthorizedToastShown = false;
+          }, 3000);
+        }
       }
     }
     return Promise.reject(error);

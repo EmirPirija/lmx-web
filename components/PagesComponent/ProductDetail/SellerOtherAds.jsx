@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/components/Common/UnifiedIconPack";
 import { useSelector } from "react-redux";
 import { allItemApi } from "@/utils/api";
 import ProductCard from "@/components/Common/ProductCard";

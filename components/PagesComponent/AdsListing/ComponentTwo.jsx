@@ -13,16 +13,20 @@ import {
   Type,
   Percent,
   Tag,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import {
   getCurrencyPosition,
   getCurrencySymbol,
 } from "@/redux/reducer/settingSlice";
 import { generateSlug } from "@/utils";
 import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { resolveMembership } from "@/lib/membership";
+import StickyActionButtons from "@/components/Common/StickyActionButtons";
+import PlanGateLabel from "@/components/Common/PlanGateLabel";
+import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
 
 // ============================================
 // ACCORDION SECTION
@@ -33,6 +37,7 @@ const AccordionSection = ({
   isOpen,
   onToggle,
   badge, 
+  planGate,
   children,
 }) => {
   return (
@@ -52,6 +57,8 @@ const AccordionSection = ({
             >
               {title}
             </h3>
+
+            {planGate ? planGate : null}
 
             {badge && (
               <span
@@ -270,6 +277,7 @@ const ComponentTwo = ({
   is_job_category,
   isPriceOptional,
   defaultLangId,
+  isNextLoading = false,
 }) => {
   const currencyPosition = useSelector(getCurrencyPosition);
   const currencySymbol = useSelector(getCurrencySymbol);
@@ -583,11 +591,15 @@ const ComponentTwo = ({
           isOpen={stockOpen}
           onToggle={() => setStockOpen((v) => !v)}
           badge="optional"
+          planGate={<PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />}
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-800">
-              Količina na zalihi
-            </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-800">
+                Količina na zalihi
+              </Label>
+              <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+            </div>
             <p className="text-sm text-gray-600">
               Ostavite prazno ako prodajete samo jedan artikal. Zalihe su dostupne isključivo za LMX Shop članove.
             </p>
@@ -617,9 +629,12 @@ const ComponentTwo = ({
             )}
 
             <div className="mt-3 flex flex-col gap-2">
-              <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-800">
-                Interna šifra proizvoda (SHOP)
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-800">
+                  Interna šifra proizvoda
+                </Label>
+                <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+              </div>
               <Input
                 type="text"
                 name="seller_product_code"
@@ -664,32 +679,20 @@ const ComponentTwo = ({
                 name: "phonenumber",
                 id: "phonenumber",
               }}
-              enableLongNumbers
-              inputClass="!border-2 !border-gray-200 !rounded-xl focus:!ring-2 focus:!ring-blue-500"
+              {...LMX_PHONE_INPUT_PROPS}
             />
           </div>
         </AccordionSection>
       )}
 
       {/* Sticky Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
-          <button
-            type="button"
-            className="bg-black text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={handleDeatilsBack}
-          >
-            Nazad
-          </button>
-          <button
-            type="button"
-            className="bg-primary text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-primary/90 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={handleDetailsSubmit}
-          >
-            Naprijed
-          </button>
-        </div>
-      </div>
+      <StickyActionButtons
+        secondaryLabel="Nazad"
+        onSecondaryClick={handleDeatilsBack}
+        primaryLabel={isNextLoading ? "Pripremamo..." : "Naprijed"}
+        onPrimaryClick={handleDetailsSubmit}
+        primaryDisabled={isNextLoading}
+      />
     </div>
   );
 };

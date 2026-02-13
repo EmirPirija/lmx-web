@@ -7,7 +7,7 @@ import { setNotification } from "@/redux/reducer/globalStateSlice";
 import { useNavigate } from "../Common/useNavigate";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import useRealtimeUserEvents from "@/hooks/useRealtimeUserEvents";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 const CHAT_LIKE_TYPES = new Set([
   "chat",

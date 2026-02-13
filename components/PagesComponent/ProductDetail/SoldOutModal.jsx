@@ -23,12 +23,13 @@ import {
   MdCheck,
   MdWarning,
   MdInfo
-} from "react-icons/md";
+} from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { resolveMembership } from "@/lib/membership";
 import MembershipBadge from "@/components/Common/MembershipBadge";
+import PlanGateLabel from "@/components/Common/PlanGateLabel";
  
 const SoldOutModal = ({
   productDetails,
@@ -493,68 +494,83 @@ const SoldOutModal = ({
           )}
  
           {/* Upload računa - samo SHOP korisnici */}
-          {selectedRadioValue && isShopMember && (
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <MdReceipt size={18} className="text-slate-500" />
-                <span>Priloži račun</span>
-                <MembershipBadge tier="shop" size="xs" className="uppercase" />
-                <span className="text-slate-400 font-normal text-xs">(opcionalno)</span>
-              </label>
-              
-              {!receiptFile ? (
-                <div
-                  {...getRootProps()}
-                  className={cn(
-                    "border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all",
-                    isDragActive 
-                      ? "border-primary bg-primary/5" 
-                      : "border-slate-300 hover:border-primary hover:bg-slate-50"
-                  )}
-                >
-                  <input {...getInputProps()} />
-                  <MdCloudUpload className="mx-auto text-slate-400 mb-2" size={40} />
-                  <p className="text-sm text-slate-600">
-                    {isDragActive ? "Pusti ovdje..." : "Prevuci račun ili klikni za odabir"}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">PNG, JPG ili PDF (max 5MB)</p>
-                </div>
-              ) : (
-                <div className="relative border-2 border-green-200 rounded-xl p-3 bg-green-50">
-                  <div className="flex items-center gap-3">
-                    {receiptPreview && !receiptFile.type.includes("pdf") ? (
-                      <img
-                        src={receiptPreview}
-                        alt="Račun"
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center border">
-                        <MdReceipt className="text-slate-400" size={28} />
-                      </div>
+          {selectedRadioValue && (
+            isShopMember ? (
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <MdReceipt size={18} className="text-slate-500" />
+                  <span>Priloži račun</span>
+                  <MembershipBadge tier="shop" size="xs" className="uppercase" />
+                  <span className="text-slate-400 font-normal text-xs">(opcionalno)</span>
+                </label>
+                
+                {!receiptFile ? (
+                  <div
+                    {...getRootProps()}
+                    className={cn(
+                      "border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all",
+                      isDragActive 
+                        ? "border-primary bg-primary/5" 
+                        : "border-slate-300 hover:border-primary hover:bg-slate-50"
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-700 truncate">
-                        {receiptFile.name}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {(receiptFile.size / 1024).toFixed(1)} KB
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearReceipt}
-                      className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
-                    >
-                      <MdClose size={18} />
-                    </button>
+                  >
+                    <input {...getInputProps()} />
+                    <MdCloudUpload className="mx-auto text-slate-400 mb-2" size={40} />
+                    <p className="text-sm text-slate-600">
+                      {isDragActive ? "Pusti ovdje..." : "Prevuci račun ili klikni za odabir"}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">PNG, JPG ili PDF (max 5MB)</p>
                   </div>
+                ) : (
+                  <div className="relative border-2 border-green-200 rounded-xl p-3 bg-green-50">
+                    <div className="flex items-center gap-3">
+                      {receiptPreview && !receiptFile.type.includes("pdf") ? (
+                        <img
+                          src={receiptPreview}
+                          alt="Račun"
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center border">
+                          <MdReceipt className="text-slate-400" size={28} />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">
+                          {receiptFile.name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {(receiptFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearReceipt}
+                        className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
+                      >
+                        <MdClose size={18} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-slate-500">
+                  💡 Račun će biti poslan kupcu u "Moje kupovine" sekciju.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <MdReceipt size={16} className="text-slate-500" />
+                    <span>Priloži račun</span>
+                  </div>
+                  <PlanGateLabel scope="shop" unlocked={false} />
                 </div>
-              )}
-              <p className="text-xs text-slate-500">
-                💡 Račun će biti poslan kupcu u "Moje kupovine" sekciju.
-              </p>
-            </div>
+                <p className="text-xs text-slate-500">
+                  Ova opcija je zaključana. Aktiviraj LMX Shop da bi mogao slati račun kupcu u sekciju Moje kupovine.
+                </p>
+              </div>
+            )
           )}
  
           {/* Napomena */}

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { membershipApi } from "@/utils/api";
 import {
@@ -9,17 +9,16 @@ import {
   setMembershipTiersLoading,
 } from "@/redux/reducer/membershipSlice";
 import { Button } from "@/components/ui/button";
-import { Crown, Store, Check, Sparkles, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
+import { Crown, Store, Check, Sparkles, ArrowRight } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 import { useRouter } from "next/navigation";
+import { extractApiData, resolveMembership, resolveMembershipActivity } from "@/lib/membership";
+import { getRealMembershipBenefits } from "@/lib/membershipBenefits";
 
 const UpgradeMembershipCard = () => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { data: membership, loading } = useSelector((state) => state.Membership.userMembership);
-  const { data: tiers } = useSelector((state) => state.Membership.membershipTiers);
-
-  const [selectedTier, setSelectedTier] = useState(null);
+  const { data: membership } = useSelector((state) => state.Membership.userMembership);
 
   useEffect(() => {
     fetchMembershipData();
@@ -36,31 +35,61 @@ const UpgradeMembershipCard = () => {
       ]);
 
       if (!membershipRes.data.error) {
-        dispatch(setUserMembership(membershipRes.data.data));
+        const membershipPayload = extractApiData(membershipRes);
+        dispatch(
+          setUserMembership(
+            membershipPayload && typeof membershipPayload === "object"
+              ? membershipPayload
+              : null
+          )
+        );
       }
 
       if (!tiersRes.data.error) {
-        dispatch(setMembershipTiers(tiersRes.data.data));
+        const tiersPayload = extractApiData(tiersRes);
+        dispatch(setMembershipTiers(Array.isArray(tiersPayload) ? tiersPayload : []));
       }
     } catch (error) {
-      console.error("Error fetching membership:", error);
+      console.error("Greška pri učitavanju članstva:", error);
       toast.error("Greška pri dohvatanju podataka o članstvu.");
+    } finally {
+      dispatch(setUserMembershipLoading(false));
+      dispatch(setMembershipTiersLoading(false));
     }
   };
 
   const handleUpgradeClick = (tier) => {
-    setSelectedTier(tier);
     router.push(`/membership/upgrade?tier=${tier.id}`);
   };
 
-  // Ako je vec Pro ili Shop, prikaži status
-  if (membership && membership.tier !== "free") {
+  const resolvedMembership = useMemo(
+    () => resolveMembership(membership, membership?.membership),
+    [membership]
+  );
+
+  const membershipActivity = useMemo(
+    () => resolveMembershipActivity(membership, membership?.membership),
+    [membership]
+  );
+
+  const hasActivePaidPlan = resolvedMembership.isPremium && membershipActivity.isActive;
+  const normalizedTier = resolvedMembership?.tier || "free";
+  const membershipExpiry =
+    membership?.expires_at ||
+    membership?.membership?.expires_at ||
+    membershipActivity?.expiresAt ||
+    null;
+  const proBenefits = getRealMembershipBenefits("pro");
+  const shopBenefits = getRealMembershipBenefits("shop", { includeProForShop: false });
+
+  // Ako je aktivan Pro ili Shop, prikaži status
+  if (hasActivePaidPlan) {
     const tierConfig = {
       pro: { icon: Crown, gradient: "from-amber-400 to-yellow-600", name: "LMX Pro" },
       shop: { icon: Store, gradient: "from-blue-500 to-indigo-600", name: "LMX Shop" },
     };
 
-    const config = tierConfig[membership.tier?.toLowerCase()] || tierConfig.pro;
+    const config = tierConfig[normalizedTier] || tierConfig.pro;
     const Icon = config.icon;
 
     return (
@@ -77,9 +106,9 @@ const UpgradeMembershipCard = () => {
             </div>
           </div>
 
-          {membership.expires_at && (
+          {membershipExpiry && (
             <p className="text-sm opacity-80">
-              Ističe: {new Date(membership.expires_at).toLocaleDateString()}
+              Ističe: {new Date(membershipExpiry).toLocaleDateString("bs-BA")}
             </p>
           )}
 
@@ -124,7 +153,7 @@ const UpgradeMembershipCard = () => {
             <div className="relative z-10">
               <Crown className="text-white mb-2" size={28} />
               <h4 className="text-white font-bold text-lg">LMX Pro</h4>
-              <p className="text-amber-100 text-xs mt-1">Za napredne korisnike koji žele više mogućnosti</p>
+              <p className="text-amber-100 text-xs mt-1">Napredna analitika oglasa i premium alati profila</p>
               <div className="flex items-center gap-1 mt-3 text-white">
                 <span className="text-sm">Saznaj više</span>
                 <ArrowRight size={14} />
@@ -141,7 +170,7 @@ const UpgradeMembershipCard = () => {
             <div className="relative z-10">
               <Store className="text-white mb-2" size={28} />
               <h4 className="text-white font-bold text-lg">LMX Shop</h4>
-              <p className="text-blue-100 text-xs mt-1">Za biznise i profesionalne prodavače</p>
+              <p className="text-blue-100 text-xs mt-1">Zalihe, SKU, računi kupcima i shop analitika</p>
               <div className="flex items-center gap-1 mt-3 text-white">
                 <span className="text-sm">Saznaj više</span>
                 <ArrowRight size={14} />
@@ -151,18 +180,25 @@ const UpgradeMembershipCard = () => {
         </div>
 
         {/* Benefits Preview */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-            Premium pogodnosti:
+            Stvarne pogodnosti u LMX-web:
           </p>
-          <div className="grid gap-2 text-sm">
-            {[
-              "Prioritetna podrška",
-              "Neograničen broj oglasa",
-              "Napredna analitika",
-              "Ekskluzivni bedž",
-            ].map((benefit, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">LMX Pro</p>
+            {proBenefits.slice(0, 3).map((benefit, idx) => (
+              <div key={`pro-${idx}`} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <Check size={16} className="text-green-600 dark:text-green-400" />
+                <span>{benefit}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">LMX Shop (dodatno)</p>
+            {shopBenefits.slice(0, 3).map((benefit, idx) => (
+              <div key={`shop-${idx}`} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <Check size={16} className="text-green-600 dark:text-green-400" />
                 <span>{benefit}</span>
               </div>

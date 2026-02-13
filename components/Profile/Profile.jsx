@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -24,11 +24,12 @@ import {
   BadgeCheck,
   Loader2,
   Info,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
+import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
 
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -566,17 +567,11 @@ export default function Profile() {
             value={`${formData.country_code || ""}${formData.phone || ""}`}
             onChange={handlePhoneChange}
             onBlur={() => handleBlur("phone")}
-            inputStyle={{
-              width: "100%",
-              height: "40px",
-              borderRadius: "8px",
-              border: "1px solid #e2e8f0",
-              fontSize: "14px",
+            inputProps={{
+              id: "phone",
+              name: "phone",
             }}
-            buttonStyle={{
-              borderRadius: "8px 0 0 8px",
-              border: "1px solid #e2e8f0",
-            }}
+            {...LMX_PHONE_INPUT_PROPS}
           />
           <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
             Vidljiv samo ako je uključeno u postavkama privatnosti
@@ -651,7 +646,7 @@ export default function Profile() {
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Verifikuj svoj profil</h4>
               <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                Verifikovani profili imaju veću stopu uspješnih transakcija i više povjerenja kupaca.
+                Verificirani profili imaju veću stopu uspješnih transakcija i više povjerenja kupaca.
               </p>
               <CustomLink 
                 href="/user-verification"

@@ -4,7 +4,7 @@ import { setBreadcrumbPath } from "@/redux/reducer/breadCrumbSlice";
 import { formatDateMonthYear, t, truncate } from "@/utils";
 import { getBlogsApi } from "@/utils/api";
 import { useEffect, useState } from "react";
-import { FaEye, FaRegCalendarCheck } from "react-icons/fa";
+import { FaEye, FaRegCalendarCheck } from "@/components/Common/UnifiedIconPack";
 import { useDispatch, useSelector } from "react-redux";
 import parse from "html-react-parser";
 import {
@@ -12,10 +12,10 @@ import {
   TwitterShareButton,
   WhatsappShareButton,
 } from "react-share";
-import { BiLink, BiLogoFacebook, BiLogoWhatsapp } from "react-icons/bi";
-import { RiTwitterXLine } from "react-icons/ri";
+import { BiLink, BiLogoFacebook, BiLogoWhatsapp } from "@/components/Common/UnifiedIconPack";
+import { RiTwitterXLine } from "@/components/Common/UnifiedIconPack";
 import { usePathname } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import BlogCard from "../LandingPage/BlogCard";
 import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/Layout/Layout";

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import {
   editItemApi,
@@ -23,12 +24,12 @@ import EditComponentOne from "./EditComponentOne";
 import EditComponentTwo from "./EditComponentTwo";
 import EditComponentThree from "./EditComponentThree";
 import EditComponentFour from "./EditComponentFour";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import Layout from "@/components/Layout/Layout";
 import Checkauth from "@/HOC/Checkauth";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
-import AdSuccessModal from "../AdsListing/AdSuccessModal";
+import AdsEditSuccessModal from "./AdsEditSuccessModal";
 import {
   getDefaultLanguageCode,
   getLanguages,
@@ -47,9 +48,10 @@ import {
   MapPin,
   Clock,
   Images,
-  ChevronRight 
-} from "lucide-react";
-import { IconRosetteDiscount, IconRocket } from "@tabler/icons-react";
+  ChevronRight,
+  Sparkles,
+} from "@/components/Common/UnifiedIconPack";
+import { IconRosetteDiscount, IconRocket } from "@/components/Common/UnifiedIconPack";
 
 
 // =======================================================
@@ -421,6 +423,8 @@ const EditListing = ({ id }) => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [OtherImages, setOtherImages] = useState([]);
   const otherImagesRef = useRef([]);
+  const stepRailRef = useRef(null);
+  const stepNodeRefs = useRef([]);
   useEffect(() => {
     otherImagesRef.current = OtherImages;
   }, [OtherImages]);
@@ -438,6 +442,7 @@ const EditListing = ({ id }) => {
   const [scheduledAt, setScheduledAt] = useState(null);
   const [availableNow, setAvailableNow] = useState(false);
   const [exchangePossible, setExchangePossible] = useState(false);
+  const [stepRailFill, setStepRailFill] = useState({ left: 0, width: 0 });
   
   const [isFeatured, setIsFeatured] = useState(false);
 
@@ -918,29 +923,150 @@ const EditListing = ({ id }) => {
     }
   };
 
-  const steps = [
-    { id: 1, label: t("details"), icon: Circle, disabled: false },
-    ...(customFields?.length > 0 ? [{ id: 2, label: t("extraDetails"), icon: Circle, disabled: false }] : []),
-    { id: 3, label: "Media", icon: Circle, disabled: false },
-    { id: 4, label: t("location"), icon: Circle, disabled: false },
-  ];
+  const steps = useMemo(
+    () => [
+      { id: 1, label: t("details"), icon: Circle, disabled: false },
+      ...(customFields?.length > 0
+        ? [{ id: 2, label: t("extraDetails"), icon: Circle, disabled: false }]
+        : []),
+      { id: 3, label: "Media", icon: Circle, disabled: false },
+      { id: 4, label: t("location"), icon: Circle, disabled: false },
+    ],
+    [customFields?.length]
+  );
 
-  const getStepProgress = (stepId) => {
-    const stepIndex = steps.findIndex(s => s.id === stepId);
-    const currentIndex = steps.findIndex(s => s.id === step);
-    
-    if (stepIndex < currentIndex) return 100;
-    if (stepIndex === currentIndex) {
-      switch (stepId) {
-        case 1: return (defaultDetails.name && defaultDetails.description) ? 100 : 50;
-        case 2: return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
-        case 3: return uploadedImages.length > 0 ? 100 : 0;
-        case 4: return Location?.address ? 100 : 0;
-        default: return 0;
-      }
+  const stepIdSequence = useMemo(() => steps.map((s) => s.id), [steps]);
+
+  const resolveNearestStep = useCallback(
+    (targetStep) => {
+      if (stepIdSequence.includes(targetStep)) return targetStep;
+      if (!stepIdSequence.length) return 1;
+      return stepIdSequence.reduce((closest, candidate) => {
+        const candidateDistance = Math.abs(candidate - targetStep);
+        const closestDistance = Math.abs(closest - targetStep);
+
+        if (candidateDistance < closestDistance) return candidate;
+        if (candidateDistance === closestDistance && candidate > closest) return candidate;
+        return closest;
+      });
+    },
+    [stepIdSequence]
+  );
+
+  useEffect(() => {
+    const normalizedStep = resolveNearestStep(step);
+    if (normalizedStep !== step) {
+      setStep(normalizedStep);
     }
-    return 0;
-  };
+  }, [resolveNearestStep, step]);
+
+  const activeStepId = resolveNearestStep(step);
+  const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
+  const renderedStep = activeStepId;
+
+  const syncStepRailFill = useCallback(() => {
+    const railEl = stepRailRef.current;
+    const firstNodeEl = stepNodeRefs.current[0];
+    const activeNodeEl = stepNodeRefs.current[activeStepIndex] || firstNodeEl;
+
+    if (!railEl || !firstNodeEl || !activeNodeEl) {
+      setStepRailFill({ left: 0, width: 0 });
+      return;
+    }
+
+    const railRect = railEl.getBoundingClientRect();
+    if (!railRect.width) {
+      setStepRailFill({ left: 0, width: 0 });
+      return;
+    }
+
+    const firstRect = firstNodeEl.getBoundingClientRect();
+    const activeRect = activeNodeEl.getBoundingClientRect();
+
+    const startX = firstRect.left + firstRect.width / 2 - railRect.left;
+    const endX = activeRect.left + activeRect.width / 2 - railRect.left;
+    const clampedStart = Math.max(0, Math.min(startX, railRect.width));
+    const clampedEnd = Math.max(clampedStart, Math.min(endX, railRect.width));
+
+    const rawWidth = clampedEnd - clampedStart;
+    const minVisibleWidth = Math.min(2, Math.max(0, railRect.width - clampedStart));
+    const nextFill = { left: clampedStart, width: rawWidth > 1 ? rawWidth : minVisibleWidth };
+
+    setStepRailFill((prev) => {
+      const deltaLeft = Math.abs(prev.left - nextFill.left);
+      const deltaWidth = Math.abs(prev.width - nextFill.width);
+      if (deltaLeft < 0.5 && deltaWidth < 0.5) return prev;
+      return nextFill;
+    });
+  }, [activeStepIndex]);
+
+  useEffect(() => {
+    stepNodeRefs.current = stepNodeRefs.current.slice(0, steps.length);
+    const rafId = requestAnimationFrame(syncStepRailFill);
+    return () => cancelAnimationFrame(rafId);
+  }, [steps.length, syncStepRailFill]);
+
+  useEffect(() => {
+    const onResize = () => syncStepRailFill();
+    window.addEventListener("resize", onResize);
+
+    let observer;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => syncStepRailFill());
+      if (stepRailRef.current) observer.observe(stepRailRef.current);
+      stepNodeRefs.current.forEach((node) => {
+        if (node) observer.observe(node);
+      });
+    }
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+      observer?.disconnect();
+    };
+  }, [activeStepIndex, steps.length, syncStepRailFill]);
+
+  const getStepProgress = useCallback(
+    (stepId) => {
+      const stepIndex = steps.findIndex((s) => s.id === stepId);
+      if (stepIndex < activeStepIndex) return 100;
+      if (stepIndex === activeStepIndex) {
+        switch (stepId) {
+          case 1:
+            return defaultDetails.name && defaultDetails.description && defaultDetails.contact
+              ? 100
+              : defaultDetails.name || defaultDetails.description || defaultDetails.contact
+              ? 55
+              : 0;
+          case 2:
+            return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
+          case 3:
+            return uploadedImages.length > 0 ? 100 : 0;
+          case 4:
+            return Location?.address && Location?.city && Location?.state && Location?.country
+              ? 100
+              : Location?.address
+              ? 60
+              : 0;
+          default:
+            return 0;
+        }
+      }
+      return 0;
+    },
+    [
+      Location?.address,
+      Location?.city,
+      Location?.country,
+      Location?.state,
+      activeStepIndex,
+      currentExtraDetails,
+      defaultDetails.contact,
+      defaultDetails.description,
+      defaultDetails.name,
+      steps,
+      uploadedImages.length,
+    ]
+  );
 
   const getPreviewImage = () => {
     if (uploadedImages && uploadedImages.length > 0) {
@@ -1001,6 +1127,27 @@ const EditListing = ({ id }) => {
     ? Math.round(((oldPrice - currentPrice) / oldPrice) * 100)
     : 0;
   const previewAttributes = getPreviewAttributes();
+  const successCategoryLabel =
+    selectedCategoryPath?.[selectedCategoryPath.length - 1]?.translated_name ||
+    selectedCategoryPath?.[selectedCategoryPath.length - 1]?.name ||
+    "";
+  const successLocationLabel =
+    [Location?.city, Location?.state, Location?.country].filter(Boolean).join(", ") ||
+    Location?.address ||
+    "";
+  const successPriceLabel = is_job_category
+    ? defaultDetails?.min_salary && defaultDetails?.max_salary
+      ? `${formatPriceAbbreviated(defaultDetails.min_salary)} - ${formatPriceAbbreviated(defaultDetails.max_salary)}`
+      : defaultDetails?.min_salary
+      ? `Od ${formatPriceAbbreviated(defaultDetails.min_salary)}`
+      : defaultDetails?.max_salary
+      ? `Do ${formatPriceAbbreviated(defaultDetails.max_salary)}`
+      : ""
+    : defaultDetails?.price_on_request
+    ? t("Na upit")
+    : showDiscount
+    ? `${formatPriceAbbreviated(currentPrice)} (sniženo sa ${formatPriceAbbreviated(oldPrice)})`
+    : formatPriceAbbreviated(defaultDetails?.price);
 
   // =======================================================
   // MEDIA: kompresija + watermark odmah na selekciju
@@ -1125,58 +1272,143 @@ const EditListing = ({ id }) => {
                 
                 <div className="lg:col-span-2 flex flex-col gap-6">
                   
-                  <div className="border rounded-lg p-6 bg-white shadow-sm">
+                  <div className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6">
+                    <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
+                    <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-300/20" />
+
+                    <div className="relative mb-5 flex items-center justify-between gap-2">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/20">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Korak {activeStepIndex + 1} od {steps.length}
+                      </div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-300">
+                        Preostalo: {Math.max(steps.length - (activeStepIndex + 1), 0)}
+                      </p>
+                    </div>
+
                     <div className="relative">
-                      <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
-                      <div 
-                        className="absolute top-5 left-0 h-1 bg-primary rounded-full transition-all duration-500"
-                        style={{ 
-                          width: `${(steps.findIndex(s => s.id === step) / (steps.length - 1)) * 100}%`,
-                          zIndex: 1
-                        }}
+                      <div
+                        ref={stepRailRef}
+                        className="pointer-events-none absolute inset-x-0 top-[22px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80"
                       />
-                      <div className="relative flex justify-between" style={{ zIndex: 2 }}>
+                      <motion.div
+                        className="pointer-events-none absolute top-[22px] h-1 rounded-full bg-gradient-to-r from-primary via-cyan-400 to-primary shadow-[0_0_20px_-4px_rgba(14,165,233,0.8)]"
+                        initial={false}
+                        animate={{ left: stepRailFill.left, width: stepRailFill.width }}
+                        transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
+                      />
+
+                      <div
+                        className="relative z-[2] grid gap-2 sm:gap-4"
+                        style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+                      >
                         {steps.map((s, idx) => {
                           const progress = getStepProgress(s.id);
-                          const isActive = s.id === step;
-                          const isCompleted = progress === 100 && !isActive;
-                          
+                          const isActive = idx === activeStepIndex;
+                          const isCompleted = idx < activeStepIndex;
+
                           return (
-                            <div key={s.id} className="flex flex-col items-center gap-2">
+                            <motion.button
+                              key={s.id}
+                              type="button"
+                              layout
+                              onClick={() => handleTabClick(s.id)}
+                              whileTap={!s.disabled ? { scale: 0.97 } : undefined}
+                              disabled={s.disabled}
+                              className={`group flex min-w-0 flex-col items-center gap-2 text-center transition-colors ${
+                                s.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                              }`}
+                            >
                               <div
-                                className={`
-                                  relative w-10 h-10 rounded-full flex items-center justify-center
-                                  transition-all duration-300 z-10 cursor-default
-                                  ${isActive ? 'scale-110 shadow-lg bg-white border-4 border-primary text-primary' : ''}
-                                  ${isCompleted ? 'bg-primary text-white border-2 border-primary' : ''}
-                                  ${!isActive && !isCompleted ? 'bg-white border-2 border-gray-300 text-gray-400' : ''}
-                                `}
+                                ref={(node) => {
+                                  stepNodeRefs.current[idx] = node;
+                                }}
+                                className="relative"
                               >
-                                {isCompleted ? (
-                                  <CheckCircle2 className="w-5 h-5" />
-                                ) : (
-                                  <span className="text-sm font-bold">
-                                    {idx + 1}
-                                  </span>
+                                {isActive && (
+                                  <motion.span
+                                    className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 blur-md"
+                                    initial={{ opacity: 0.2, scale: 0.8 }}
+                                    animate={{ opacity: 0.45, scale: 1.18 }}
+                                    transition={{ duration: 0.35, ease: "easeOut" }}
+                                  />
                                 )}
-                                {isActive && !isCompleted && (
-                                  <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20" />
-                                )}
+
+                                <motion.span
+                                  initial={false}
+                                  animate={
+                                    isActive
+                                      ? { scale: 1.08, y: -1 }
+                                      : isCompleted
+                                      ? { scale: 1 }
+                                      : { scale: 0.98 }
+                                  }
+                                  transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                                  className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full border text-sm font-bold ${
+                                    isActive
+                                      ? "border-primary bg-white text-primary shadow-[0_10px_24px_-14px_rgba(8,145,178,0.9)] dark:bg-slate-950"
+                                      : ""
+                                  } ${
+                                    isCompleted ? "border-primary bg-primary text-white" : ""
+                                  } ${
+                                    !isActive && !isCompleted
+                                      ? "border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                                      : ""
+                                  }`}
+                                >
+                                  <AnimatePresence mode="wait" initial={false}>
+                                    {isCompleted ? (
+                                      <motion.span
+                                        key={`done-${s.id}`}
+                                        initial={{ opacity: 0, scale: 0.7, y: 4 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.8, y: -4 }}
+                                        transition={{ duration: 0.2 }}
+                                      >
+                                        <CheckCircle2 className="h-5 w-5" />
+                                      </motion.span>
+                                    ) : (
+                                      <motion.span
+                                        key={`index-${s.id}`}
+                                        initial={{ opacity: 0, y: 4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -4 }}
+                                        transition={{ duration: 0.18 }}
+                                      >
+                                        {idx + 1}
+                                      </motion.span>
+                                    )}
+                                  </AnimatePresence>
+                                </motion.span>
                               </div>
-                              <span className={`
-                                text-xs font-medium text-center max-w-[80px] transition-colors duration-300
-                                ${isActive ? 'text-primary font-bold' : 'text-gray-500'}
-                              `}>
+
+                              <motion.span
+                                initial={false}
+                                animate={{ y: isActive ? 0 : 1 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                className={`line-clamp-2 max-w-[120px] text-[11px] font-medium leading-tight sm:text-xs ${
+                                  isActive ? "font-semibold text-primary" : "text-slate-500 dark:text-slate-300"
+                                }`}
+                              >
                                 {s.label}
-                              </span>
-                            </div>
+                              </motion.span>
+
+                              <div className="h-[3px] w-14 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
+                                <motion.div
+                                  className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400"
+                                  initial={false}
+                                  animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
+                                  transition={{ type: "spring", stiffness: 190, damping: 24 }}
+                                />
+                              </div>
+                            </motion.button>
                           );
                         })}
                       </div>
                     </div>
                   </div>
 
-                  {(step === 1 || (step === 2 && hasTextbox)) && (
+                  {(renderedStep === 1 || (renderedStep === 2 && hasTextbox)) && (
                     <div className="flex justify-end">
                       <AdLanguageSelector
                         langId={langId}
@@ -1187,7 +1419,7 @@ const EditListing = ({ id }) => {
                     </div>
                   )}
 
-                  {step === 1 && selectedCategoryPath?.length > 0 && (
+                  {renderedStep === 1 && selectedCategoryPath?.length > 0 && (
                     <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                       <div className="flex items-center justify-between">
                         <p className="font-medium text-sm text-gray-500">
@@ -1220,7 +1452,7 @@ const EditListing = ({ id }) => {
                   )}
 
                   <div className="border rounded-lg p-6 bg-white shadow-sm">
-                    {step == 1 && (
+                    {renderedStep === 1 && (
                       <EditComponentOne
                         setTranslations={setTranslations}
                         current={currentDetails}
@@ -1232,7 +1464,7 @@ const EditListing = ({ id }) => {
                       />
                     )}
 
-                    {step == 2 && customFields.length > 0 && (
+                    {renderedStep === 2 && customFields.length > 0 && (
                       <EditComponentTwo
                         customFields={customFields}
                         extraDetails={extraDetails}
@@ -1251,7 +1483,7 @@ const EditListing = ({ id }) => {
                       />
                     )}
 
-                    {step == 3 && (
+                    {renderedStep === 3 && (
                       <EditComponentThree
                         setUploadedImages={setUploadedImagesProcessed}
                         uploadedImages={uploadedImages}
@@ -1276,7 +1508,7 @@ const EditListing = ({ id }) => {
                       />
                     )}
 
-                    {step == 4 && (
+                    {renderedStep === 4 && (
                       <EditComponentFour
                         handleGoBack={handleGoBack}
                         location={Location}
@@ -1444,11 +1676,19 @@ const EditListing = ({ id }) => {
               </div>
             </div>
           </div>
-          <AdSuccessModal
+          <AdsEditSuccessModal
             openSuccessModal={openSuccessModal}
             setOpenSuccessModal={setOpenSuccessModal}
             createdAdSlug={CreatedAdSlug}
+            isScheduled={Boolean(scheduledAt)}
             scheduledDate={scheduledAt}
+            adName={defaultDetails?.name || ""}
+            categoryLabel={successCategoryLabel}
+            priceLabel={successPriceLabel}
+            locationLabel={successLocationLabel}
+            publishToInstagram={publishToInstagram}
+            completenessScore={completenessScore}
+            isFeatured={isFeatured}
           />
         </>
       )}

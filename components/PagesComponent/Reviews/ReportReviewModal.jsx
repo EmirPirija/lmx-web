@@ -10,9 +10,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { addReportReviewApi } from '@/utils/api';
-import { toast } from 'sonner';
+import { toast } from "@/utils/toastBs";
 import { cn } from '@/lib/utils';
-import { HiOutlineExclamationCircle } from 'react-icons/hi';
+import { HiOutlineExclamationCircle } from "@/components/Common/UnifiedIconPack";
  
 const REPORT_REASONS = [
   { id: 'spam', label: 'Spam ili reklamiranje' },

@@ -12,7 +12,7 @@ import { chatListApi } from "@/utils/api";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import useWebSocket from "@/hooks/useWebSocket";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 const Chat = () => {
   const searchParams = useSearchParams();

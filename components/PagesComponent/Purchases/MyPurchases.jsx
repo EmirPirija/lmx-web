@@ -14,7 +14,7 @@ import {
   MdCalendarToday,
   MdShoppingBag,
   MdOpenInNew
-} from "react-icons/md";
+} from "@/components/Common/UnifiedIconPack";
 import {
   Dialog,
   DialogContent,

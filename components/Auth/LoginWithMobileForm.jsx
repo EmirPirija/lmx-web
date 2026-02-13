@@ -1,15 +1,17 @@
 import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import useAutoFocus from "../Common/useAutoFocus";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError, t } from "@/utils";
 import { getAuth, signInWithPhoneNumber } from "firebase/auth";
 import { getOtpApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
+import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
 
 const LoginWithMobileForm = ({
   generateRecaptcha,
@@ -107,9 +109,12 @@ const LoginWithMobileForm = ({
   };
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={handleMobileSubmit}>
+    <form
+      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+      onSubmit={handleMobileSubmit}
+    >
       <div className="labelInputCont">
-        <Label className="font-semibold after:content-['*'] after:text-red-500">
+        <Label className="text-sm font-semibold text-slate-700 after:content-['*'] after:text-red-500">
           {t("loginWithMobile")}
         </Label>
         <PhoneInput
@@ -122,17 +127,17 @@ const LoginWithMobileForm = ({
             required: true,
             ref: numberInputRef,
           }}
-          enableLongNumbers
+          {...LMX_PHONE_INPUT_PROPS}
         />
       </div>
       <Button
         type="submit"
         disabled={showLoader}
-        className="text-xl text-white font-light px-4 py-2"
-        size="big"
+        className="h-11 rounded-xl text-sm font-semibold"
+        size="lg"
       >
         {showLoader ? (
-          <Loader2 className="size-6 animate-spin" />
+          <Loader2 className="size-4 animate-spin" />
         ) : (
           t("continue")
         )}

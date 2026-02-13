@@ -3,6 +3,10 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { 
+  CalendarDays,
+  CheckCircle2,
+  GitCompare,
+  MapPin,
   MdFavorite, 
   MdFavoriteBorder, 
   MdStar,
@@ -10,15 +14,9 @@ import {
   MdTrendingUp,
   MdHistory,
   MdInfoOutline
-} from "react-icons/md";
-import { IoClose } from "react-icons/io5";
-import {
-  ArrowsLeftRightIcon,
-  CalendarBlankIcon,
-  CheckCircleIcon,
-  MapPinIcon,
-} from "@phosphor-icons/react";
-import { toast } from "sonner";
+} from "@/components/Common/UnifiedIconPack";
+import { IoClose } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 import { cn } from "@/lib/utils";
 import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
@@ -55,6 +53,18 @@ const formatShortDate = (dateString) => {
   return `${day}. ${months[date.getMonth()]} ${date.getFullYear()}.`;
 };
 
+const formatDateTimeEu = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${dd}.${mm}.${yyyy}. ${hh}:${min}`;
+};
+
 const parseJsonSafe = (value) => {
   if (typeof value !== "string") return value;
   try {
@@ -63,9 +73,6 @@ const parseJsonSafe = (value) => {
     return value;
   }
 };
-
-const ICON_PRIMARY_FILL = "#dadad5";
-const ICON_SECONDARY_FILL = "#0ab6af";
 
 const normalizeText = (value = "") =>
   String(value)
@@ -292,31 +299,119 @@ const readExchangePossible = (item = {}) => {
   return null;
 };
 
-const DetailInfoPill = ({ icon: Icon, label, value }) => (
-  <div className="min-w-[190px] flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 px-3 py-2.5">
-    <div className="flex items-center gap-2">
-      <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
-        <Icon
-          weight="fill"
-          color={ICON_SECONDARY_FILL}
-          className="absolute inset-0 h-full w-full"
-        />
-        <Icon
-          weight="duotone"
-          color={ICON_SECONDARY_FILL}
-          className="absolute inset-0 h-full w-full"
-        />
-        <Icon
-          weight="regular"
-          color={ICON_PRIMARY_FILL}
-          className="h-full w-full"
-        />
+const AutoMarqueeText = ({ text, className }) => {
+  const viewportRef = useRef(null);
+  const contentRef = useRef(null);
+  const [metrics, setMetrics] = useState({
+    isOverflowing: false,
+    distance: 0,
+    duration: 0,
+  });
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const content = contentRef.current;
+    if (!viewport || !content) return;
+
+    const measure = () => {
+      const distance = Math.max(0, content.scrollWidth - viewport.clientWidth);
+      const isOverflowing = distance > 1;
+      const duration = Math.max(7, Number((distance / 22).toFixed(2)));
+
+      setMetrics((prev) => {
+        if (
+          prev.isOverflowing === isOverflowing &&
+          Math.abs(prev.distance - distance) < 1 &&
+          Math.abs(prev.duration - duration) < 0.1
+        ) {
+          return prev;
+        }
+
+        return { isOverflowing, distance, duration };
+      });
+    };
+
+    measure();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    observer?.observe(viewport);
+    observer?.observe(content);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [text]);
+
+  return (
+    <span className={cn("block min-w-0 overflow-hidden whitespace-nowrap", className)} ref={viewportRef} title={text}>
+      <span
+        ref={contentRef}
+        className={cn("inline-block whitespace-nowrap", metrics.isOverflowing && "product-detail-pill-marquee")}
+        style={
+          metrics.isOverflowing
+            ? {
+                "--marquee-distance": `${metrics.distance}px`,
+                "--marquee-duration": `${metrics.duration}s`,
+              }
+            : undefined
+        }
+      >
+        {text}
       </span>
-      <span className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</span>
+    </span>
+  );
+};
+
+const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className, valueTitle }) => {
+  const isBadgeTone = tone !== "default";
+  const isExchangeIcon = Icon === GitCompare;
+
+  return (
+    <div
+      className={cn(
+        "flex w-full min-w-0 items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 px-2.5 py-2",
+        className
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span
+          className={cn(
+            "relative inline-flex h-[18px] w-[18px] items-center justify-center",
+            isExchangeIcon && "text-slate-500 dark:text-slate-300"
+          )}
+        >
+          <Icon className="h-full w-full text-primary dark:text-primary" />
+        </span>
+        <span className="shrink-0 text-[11px] font-semibold leading-tight text-slate-500 dark:text-slate-400">
+          {label}:
+        </span>
+      </div>
+      <p
+        className={cn(
+          "min-w-0 text-xs font-semibold leading-tight text-slate-900 dark:text-slate-100",
+          isBadgeTone ? "flex-none" : "flex-1"
+        )}
+        title={valueTitle || String(value || "")}
+      >
+        {isBadgeTone ? (
+          <span
+            className={cn(
+              "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold",
+              tone === "positive" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+              tone === "negative" && "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+              tone === "neutral" && "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            )}
+          >
+            {value}
+          </span>
+        ) : (
+          <AutoMarqueeText text={String(value || "")} />
+        )}
+      </p>
     </div>
-    <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100 break-words">{value}</p>
-  </div>
-);
+  );
+};
 
 // ============================================
 // MODAL ZA HISTORIJU CIJENA (Desktop & Mobile)
@@ -456,13 +551,31 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
   const oldPrice = productDetails?.old_price;
   const currentPrice = productDetails?.price;
-  const renewedAt = formatShortDate(productDetails?.last_renewed_at) || "-";
+  const renewalSourceDate =
+    productDetails?.last_renewed_at ||
+    productDetails?.renewed_at ||
+    productDetails?.updated_at;
+  const renewalDateTime = formatDateTimeEu(renewalSourceDate);
   const areaName = productDetails?.area?.translated_name || productDetails?.area?.name;
   const locationLine = [areaName, productDetails?.city, productDetails?.state].filter(Boolean).join(", ") || "Lokacija nije navedena";
   const availableNow = readAvailableNow(productDetails);
   const exchangePossible = readExchangePossible(productDetails);
-  const availableNowLabel = availableNow === true ? "DA" : "NE";
-  const exchangeLabel = exchangePossible === true ? "DA" : "NE";
+  const availableNowLabel = availableNow === true ? "Da" : availableNow === false ? "Ne" : "Nije navedeno";
+  const exchangeLabel = exchangePossible === true ? "Da" : exchangePossible === false ? "Ne" : "Nije navedeno";
+  const availableNowTone = availableNow === true ? "positive" : availableNow === false ? "negative" : "neutral";
+  const exchangeTone = exchangePossible === true ? "positive" : exchangePossible === false ? "negative" : "neutral";
+  const renewalInfoValue = renewalDateTime || "Datum nije dostupan";
+  const renewalInfoTitle = renewalDateTime
+    ? `Zadnja obnova: ${renewalDateTime}`
+    : "Datum zadnje obnove nije dostupan.";
+  const productIdLabel = productDetails?.id ? `#${productDetails.id}` : "-";
+  const oldPriceNumber = Number(oldPrice);
+  const currentPriceNumber = Number(currentPrice);
+  const hasDiscount = isOnSale && Number.isFinite(oldPriceNumber) && Number.isFinite(currentPriceNumber) && oldPriceNumber > currentPriceNumber && currentPriceNumber > 0;
+  const discountPercent = hasDiscount ? Math.round(((oldPriceNumber - currentPriceNumber) / oldPriceNumber) * 100) : 0;
+  const displayPrice = isJobCategory
+    ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
+    : formatBosnianPrice(productDetails?.price);
   
   const handleLikeItem = async () => {
     if (!isLoggedIn) {
@@ -485,10 +598,15 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   return (
     <>
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           
           {/* BADGES ROW */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+          {productDetails?.category?.name && (
+              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700">
+                {productDetails.category.name}
+              </span>
+            )}
             {isSoldOut && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-300 text-xs font-black uppercase tracking-wider border border-rose-200 dark:border-rose-900/50">
                 <MdInfoOutline className="text-sm" /> PRODANO
@@ -496,106 +614,128 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
             )}
             {isReserved && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-200 dark:border-amber-900/50">
-                <MdInfoOutline className="text-sm" /> Rezervisano
+                <MdInfoOutline className="text-sm" /> REZERVISANO
               </span>
             )}
+            {/* {!isReserved && !isSoldOut && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider border border-emerald-200 dark:border-emerald-900/50">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Dostupno
+              </span>
+            )} */}
             {isFeatured && !isReserved && !isSoldOut && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold shadow-sm">
                 <MdStar className="text-sm" /> Istaknuto
               </span>
             )}
-            {/* {productDetails?.category?.name && (
-              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700">
-                {productDetails.category.name}
-              </span>
-            )} */}
           </div>
 
-          {/* TITLE & ACTIONS ROW */}
-          <div className="flex justify-between items-start gap-4 mb-6">
+          {/* TITLE, ACTIONS & PRICE */}
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 space-y-2">
+                <h1 className="text-xl lg:text-2xl font-extrabold text-slate-900 dark:text-white leading-tight break-words">
+                  {productName}
+                </h1>
 
-            {/* Parent Container: Flex kolona sa razmakom */}
-<div className="flex flex-col gap-4 w-full">
-  
-  {/* NASLOV */}
-  <h1 className="text-xl lg:text-2xl font-extrabold text-slate-900 dark:text-white leading-tight break-words">
-    {productName}
-  </h1>
+              </div>
 
-  {/* PRICE SECTION */}
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-br from-slate-50/50 dark:from-slate-900/50 to-white dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-    <div>
-      {isOnSale && oldPrice && Number(oldPrice) > Number(currentPrice) ? (
-        <div className="flex flex-col">
-          <span className="text-slate-400 dark:text-slate-500 line-through text-sm font-medium">
-            {formatBosnianPrice(oldPrice)}
-          </span>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl font-black text-red-600 dark:text-red-500 tracking-tight">
-              {formatBosnianPrice(currentPrice)}
-            </span>
-            <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold rounded-md">
-              Akcija
-            </span>
-          </div>
-        </div>
-      ) : (
-        <span className="flex items-center gap-3 text-3xl font-black text-primary tracking-tight">
-          {isJobCategory
-            ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
-            : formatBosnianPrice(productDetails?.price)}
-          {hasHistory && (
-            <button
-              onClick={() => setShowHistoryModal(true)}
-              className="flex items-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
-            >
-              <MdHistory className="text-lg text-slate-400 dark:text-slate-400" />
-            </button>
-          )}
-        </span>
-      )}
-    </div>
-  </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <ShareDropdown
+                  url={currentUrl}
+                  title={FbTitle}
+                  headline={headline}
+                  companyName={CompanyName}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-primary dark:hover:text-primary transition-all active:scale-95 border border-slate-200 dark:border-slate-700"
+                  triggerTitle="Podijeli oglas"
+                  triggerAriaLabel="Podijeli oglas"
+                  onShare={(platform) => onShareClick?.(platform)}
+                />
+                <button
+                  type="button"
+                  onClick={handleLikeItem}
+                  className={cn(
+                    "w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95 border",
+                    productDetails?.is_liked
+                      ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-red-600 dark:hover:text-red-400"
+                  )}
+                  title={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Sačuvaj oglas"}
+                  aria-label={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Sačuvaj oglas"}
+                >
+                  {productDetails?.is_liked ? <MdFavorite size={20} /> : <MdFavoriteBorder size={20} />}
+                </button>
+              </div>
+            </div>
 
-  <div className="flex gap-2 overflow-x-auto pb-1">
-    <DetailInfoPill icon={CheckCircleIcon} label="Dostupno odmah" value={availableNowLabel} />
-    <DetailInfoPill icon={ArrowsLeftRightIcon} label="Zamjena" value={exchangeLabel} />
-    <DetailInfoPill icon={MapPinIcon} label="Lokacija" value={locationLine} />
-    <DetailInfoPill icon={CalendarBlankIcon} label="Obnovljen" value={renewedAt} />
-  </div>
+            <div className="flex flex-col gap-3 p-4 sm:p-5 bg-gradient-to-br from-slate-50/80 dark:from-slate-900/50 to-white dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {isJobCategory ? "Plata" : "Cijena"}
+                  </p>
+                  {hasDiscount ? (
+                    <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
+                      <span className="text-sm font-medium text-slate-400 dark:text-slate-500 line-through">
+                        {formatBosnianPrice(oldPriceNumber)}
+                      </span>
+                      <span className="text-3xl font-black text-red-600 dark:text-red-500 tracking-tight break-words">
+                        {formatBosnianPrice(currentPriceNumber)}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold">
+                        AKCIJA
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-3xl font-black text-primary tracking-tight break-words">{displayPrice}</p>
+                  )}
+                </div>
 
-</div>
-            
-            
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <ShareDropdown
-                url={currentUrl}
-                title={FbTitle}
-                headline={headline}
-                companyName={CompanyName}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-primary dark:hover:text-primary transition-all active:scale-95 border border-slate-200 dark:border-slate-700"
-                onShare={(platform) => onShareClick?.(platform)}
-              />
-              <button
-                onClick={handleLikeItem}
-                className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95 border",
-                  productDetails?.is_liked 
-                    ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40" 
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-red-600 dark:hover:text-red-400"
+                {hasHistory && (
+                  <button
+                    type="button"
+                    onClick={() => setShowHistoryModal(true)}
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
+                    title="Historija cijena"
+                    aria-label="Prikaži historiju cijena"
+                  >
+                    <MdHistory className="text-base text-slate-400 dark:text-slate-400" />
+                    Historija cijena
+                  </button>
                 )}
-                title={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Sačuvaj oglas"}
-              >
-                {productDetails?.is_liked ? <MdFavorite size={20} /> : <MdFavoriteBorder size={20} />}
-              </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <DetailInfoPill
+                icon={CheckCircle2}
+                label="Dostupno odmah"
+                value={availableNowLabel}
+                tone={availableNowTone}
+                className="sm:w-auto sm:flex-none"
+              />
+              <DetailInfoPill
+                icon={GitCompare}
+                label="Zamjena"
+                value={exchangeLabel}
+                tone={exchangeTone}
+                className="sm:w-auto sm:flex-none"
+              />
+              <DetailInfoPill
+                icon={MapPin}
+                label="Lokacija"
+                value={locationLine}
+                valueTitle={locationLine}
+                className="sm:min-w-0 sm:flex-1"
+              />
+              <DetailInfoPill
+                icon={CalendarDays}
+                label="Zadnja obnova"
+                value={renewalInfoValue}
+                valueTitle={renewalInfoTitle}
+                className="sm:w-auto sm:flex-none"
+              />
             </div>
           </div>
-
-          {/* DATE INFO */}
-          {/* <div className="mt-4 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 px-1">
-            <span>Objavljeno: {formatShortDate(productDetails?.created_at)}</span>
-            <span>ID: #{productDetails?.id}</span>
-          </div> */}
 
         </div>
       </div>
@@ -607,6 +747,32 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
         priceHistory={productDetails?.price_history} 
         currentPrice={productDetails?.price} 
       />
+      <style jsx global>{`
+        @keyframes product-detail-pill-marquee-keyframes {
+          0%,
+          15% {
+            transform: translateX(0);
+          }
+          85%,
+          100% {
+            transform: translateX(calc(-1 * var(--marquee-distance, 0px)));
+          }
+        }
+
+        .product-detail-pill-marquee {
+          animation-name: product-detail-pill-marquee-keyframes;
+          animation-duration: var(--marquee-duration, 8s);
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+          will-change: transform;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .product-detail-pill-marquee {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </>
   );
 };

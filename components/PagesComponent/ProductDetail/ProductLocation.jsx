@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { IoCopyOutline, IoLocationOutline } from "react-icons/io5";
-import { MdDirections, MdMap, MdOpenInNew } from "react-icons/md";
+import { IoCopyOutline, IoLocationOutline } from "@/components/Common/UnifiedIconPack";
+import { MdDirections, MdMap, MdOpenInNew } from "@/components/Common/UnifiedIconPack";
 import dynamic from "next/dynamic";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 const MAP_PRIVACY_RADIUS_METERS = 1200;
 
@@ -201,28 +201,13 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
             <IoLocationOutline size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1 dark:text-slate-500">
-              Lokacija
-            </p>
+
             <p className="text-sm font-medium text-slate-700 break-words leading-relaxed dark:text-slate-200">
               {approximateLocation}
             </p>
             <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               Tačna lokacija nije javno prikazana i dijeli se po dogovoru sa prodavačem.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
-                Grad: <span className="font-semibold">{cityLabel}</span>
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
-                Šira zona: <span className="font-semibold">{areaLabel}</span>
-              </span>
-              {zoneLocation && (
-                <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
-                  Uži dio: <span className="font-semibold">{zoneLocation}</span>
-                </span>
-              )}
-            </div>
           </div>
         </div>
 
@@ -234,12 +219,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
             privacyMode
             approximateRadiusMeters={MAP_PRIVACY_RADIUS_METERS}
           />
-          {hasCoordinates && (
-            <div className="absolute top-3 left-3 bg-white/90 border border-slate-100 text-xs text-slate-600 rounded-lg px-3 py-2 shadow-sm backdrop-blur-sm dark:bg-slate-900/90 dark:border-slate-700 dark:text-slate-300">
-              <p className="font-semibold text-slate-800 dark:text-slate-100">Okvirni prikaz</p>
-              <p>Radijus oko lokacije: ~{Math.round(MAP_PRIVACY_RADIUS_METERS / 100) * 100}m</p>
-            </div>
-          )}
+
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">

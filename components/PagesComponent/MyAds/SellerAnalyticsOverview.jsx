@@ -18,7 +18,7 @@ import {
   Clock3,
   Search,
   RefreshCw,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import { motion } from "framer-motion";
 
 import { itemStatisticsApi } from "@/utils/api";
@@ -118,7 +118,7 @@ export default function SellerAnalyticsOverview() {
         setData(payload.data);
       } else {
         setData(null);
-        setError(payload?.message || "Ne mogu ucitati statistiku.");
+        setError(payload?.message || "Ne mogu učitati statistiku.");
       }
     } catch (e) {
       const status = Number(e?.response?.status || 0);
@@ -132,7 +132,7 @@ export default function SellerAnalyticsOverview() {
 
       console.error("Seller overview error", e);
       setData(null);
-      setError("Ne mogu ucitati statistiku.");
+      setError("Ne mogu učitati statistiku.");
     } finally {
       setLoading(false);
     }
@@ -167,7 +167,7 @@ export default function SellerAnalyticsOverview() {
     return (
       <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700/70 bg-white dark:bg-slate-900/60 p-6">
         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-          <RefreshCw className="h-4 w-4 animate-spin" /> Ucitavanje seller statistike...
+          <RefreshCw className="h-4 w-4 animate-spin" /> Učitavanje statistike prodavača...
         </div>
       </div>
     );
@@ -186,7 +186,7 @@ export default function SellerAnalyticsOverview() {
           onClick={fetchOverview}
           className="mt-3 inline-flex items-center gap-2 rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:border-rose-600 dark:text-rose-300"
         >
-          <RefreshCw className="h-3.5 w-3.5" /> Pokusaj ponovo
+          <RefreshCw className="h-3.5 w-3.5" /> Pokušaj ponovo
         </button>
       </div>
     );
@@ -248,7 +248,7 @@ export default function SellerAnalyticsOverview() {
             <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
               <Sparkles className="h-4 w-4 text-amber-500" /> Brze akcije za rast
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400">Top preporuke</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">Najbolje preporuke</span>
           </div>
 
           <div className="space-y-3">
@@ -313,7 +313,7 @@ export default function SellerAnalyticsOverview() {
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/60 p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-            <Trophy className="h-4 w-4 text-amber-500" /> Top oglasi za ovaj period
+            <Trophy className="h-4 w-4 text-amber-500" /> Najbolji oglasi za ovaj period
           </div>
 
           <div className="space-y-2">

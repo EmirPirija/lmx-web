@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
@@ -16,6 +16,7 @@ import {
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 import { getYouTubeVideoId } from "@/utils";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +43,7 @@ import {
   MdOpenInNew,
   MdFlag,
   MdAutorenew,
-} from "react-icons/md";
+} from "@/components/Common/UnifiedIconPack";
 
 /* ── helpers ────────────────────────── */
 
@@ -813,7 +814,14 @@ const ReelCard = ({
           <div className="flex items-center gap-1 min-w-0">
             <span className="text-white text-[11px] font-semibold truncate max-w-[60px]">{sellerName}</span>
             {isVerified && <MdVerified className="w-3 h-3 text-[#3897F0] shrink-0" />}
-            {isShop && <span className="px-1.5 py-0.5 rounded bg-[#F7941D]/90 text-[8px] font-bold text-white uppercase tracking-wide">Shop</span>}
+            {isShop && (
+              <MembershipBadge
+                tier="shop"
+                size="xs"
+                uppercase
+                className="!text-[8px] !px-1.5 !py-0.5"
+              />
+            )}
             {isYouTube && <span className="px-1.5 py-0.5 rounded bg-white/20 text-[8px] font-bold text-white uppercase tracking-wide">YT</span>}
           </div>
         </button>

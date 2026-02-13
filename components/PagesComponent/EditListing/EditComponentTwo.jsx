@@ -25,21 +25,22 @@ import {
   Smile,
   Eye,
   Type,
-} from "lucide-react";
-import { toast } from "sonner";
-import { HiOutlineUpload } from "react-icons/hi";
-import { MdOutlineAttachFile } from "react-icons/md";
+} from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
+import { HiOutlineUpload } from "@/components/Common/UnifiedIconPack";
+import { MdOutlineAttachFile } from "@/components/Common/UnifiedIconPack";
 import { 
   IoInformationCircleOutline, 
   IoShieldCheckmarkOutline, 
   IoAlertCircleOutline 
-} from "react-icons/io5";
+} from "@/components/Common/UnifiedIconPack";
 import CustomLink from "@/components/Common/CustomLink";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { handleKeyDown, inpNum, t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
+import StickyActionButtons from "@/components/Common/StickyActionButtons";
 
 // Emoji lista
 const EMOJI_LIST = [
@@ -1318,22 +1319,12 @@ const EditComponentTwo = ({
       </AccordionSection>
 
       {/* Sticky Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
-          <button
-            className="bg-black text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={handleGoBack}
-          >
-            Nazad
-          </button>
-          <button
-            className="bg-primary text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-primary/90 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={handleNext}
-          >
-            Naprijed
-          </button>
-        </div>
-      </div>
+      <StickyActionButtons
+        secondaryLabel="Nazad"
+        onSecondaryClick={handleGoBack}
+        primaryLabel="Naprijed"
+        onPrimaryClick={handleNext}
+      />
     </div>
   );
 };

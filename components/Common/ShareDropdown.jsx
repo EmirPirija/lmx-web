@@ -13,16 +13,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IoShareSocialOutline } from "react-icons/io5";
-import { CiLink } from "react-icons/ci";
-import { toast } from "sonner";
+import { IoShareSocialOutline } from "@/components/Common/UnifiedIconPack";
+import { CiLink } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 import { t } from "@/utils/index";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 
-const ShareDropdown = ({ url, title, headline, companyName, className, onShare }) => {
+const ShareDropdown = ({ url, title, headline, companyName, className, onShare, triggerTitle, triggerAriaLabel }) => {
   const [open, setOpen] = useState(false);
   const searchParams = useSearchParams();
   const langCode = searchParams.get("lang");
@@ -47,7 +47,12 @@ const ShareDropdown = ({ url, title, headline, companyName, className, onShare }
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <button className={className}>
+        <button
+          type="button"
+          className={className}
+          title={triggerTitle || "Podijeli"}
+          aria-label={triggerAriaLabel || triggerTitle || "Podijeli"}
+        >
           <IoShareSocialOutline size={20} />
         </button>
       </DropdownMenuTrigger>

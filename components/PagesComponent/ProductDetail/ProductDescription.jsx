@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import parse from "html-react-parser";
-import { FaChevronDown, FaChevronUp } from "react-icons/fa";
-import { MdDescription } from "react-icons/md";
+import { FaChevronDown, FaChevronUp } from "@/components/Common/UnifiedIconPack";
+import { MdDescription } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
  
 const ProductDescription = ({ productDetails }) => {

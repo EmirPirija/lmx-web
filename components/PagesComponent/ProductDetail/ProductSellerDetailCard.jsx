@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 import {
   Phone,
@@ -25,7 +25,7 @@ import {
   RotateCcw,
   ExternalLink,
   Info,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
@@ -775,9 +775,13 @@ const ProductSellerDetailCard = ({
                       />
                     </div>
                   </motion.div>
-                  {hasReel && (
+                  {(hasReel || isVerified) && (
                     <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center">
-                      <Play className="w-3 h-3 text-[#1e3a8a]" />
+                      {isVerified ? (
+                        <BadgeCheck className="w-3 h-3 text-[#0ea5e9]" />
+                      ) : (
+                        <Play className="w-3 h-3 text-[#1e3a8a]" />
+                      )}
                     </div>
                   )}
                 </button>
@@ -793,11 +797,6 @@ const ProductSellerDetailCard = ({
                   >
                     <span className="text-lg leading-none text-[#1e3a8a]">+</span>
                   </button>
-                )}
-                {isVerified && (
-                  <div className="absolute -bottom-0.5 -left-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white dark:border-slate-900">
-                    <BadgeCheck className="w-2.5 h-2.5 text-white" />
-                  </div>
                 )}
               </div>
             ) : (
@@ -827,14 +826,13 @@ const ProductSellerDetailCard = ({
                     />
                   </div>
                 </motion.div>
-                {hasReel && (
+                {(hasReel || isVerified) && (
                   <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center">
-                    <Play className="w-3 h-3 text-[#1e3a8a]" />
-                  </div>
-                )}
-                {isVerified && (
-                  <div className="absolute -bottom-0.5 -left-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white dark:border-slate-900">
-                    <BadgeCheck className="w-2.5 h-2.5 text-white" />
+                    {isVerified ? (
+                      <BadgeCheck className="w-3 h-3 text-[#0ea5e9]" />
+                    ) : (
+                      <Play className="w-3 h-3 text-[#1e3a8a]" />
+                    )}
                   </div>
                 )}
               </div>
@@ -850,12 +848,12 @@ const ProductSellerDetailCard = ({
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <span className="truncate">{seller?.name}</span>
-                    <MembershipBadge tier={membership.tier} size="xs" />
+                    {membership.isPremium && <MembershipBadge tier={membership.tier} size="xs" />}
                   </CustomLink>
                 ) : (
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                     <span className="truncate">{seller?.name}</span>
-                    <MembershipBadge tier={membership.tier} size="xs" />
+                    {membership.isPremium && <MembershipBadge tier={membership.tier} size="xs" />}
                   </span>
                 )}
                 
@@ -866,35 +864,34 @@ const ProductSellerDetailCard = ({
                 </ShareDropdown>
               </div>
 
-              {/* Meta row */}
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                {showRatings && ratingValue && (
-                  <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    <span className="font-medium">{ratingValue}</span>
-                    <span className="text-slate-400 dark:text-slate-500">({ratingCount})</span>
-                  </span>
-                )}
+              {/* Meta rows */}
+              <div className="mt-0.5 space-y-0.5">
+                {(showRatings && ratingValue) || memberSince ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {showRatings && ratingValue && (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <span className="font-medium">{ratingValue}</span>
+                      </span>
+                    )}
+
+                    {showRatings && ratingValue && memberSince && (
+                      <span className="text-[10px] text-slate-300 dark:text-slate-600">•</span>
+                    )}
+
+                    {memberSince && (
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+                        Član od {memberSince}
+                      </span>
+                    )}
+                  </div>
+                ) : null}
 
                 {responseLabel && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
+                  <div className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
                     <Zap className="w-3 h-3 text-amber-500" />
-                    {responseLabel}
-                  </span>
-                )}
-
-                {memberSince && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
-                    <Calendar className="w-3 h-3" />
-                    {memberSince}
-                  </span>
-                )}
-
-                {showReelHint && hasReel && (
-                  <span className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-300">
-                    <Play className="w-3 h-3" />
-                    Aktivan story video
-                  </span>
+                    <span>Prosječno vrijeme odgovora: {responseLabel}</span>
+                  </div>
                 )}
               </div>
 
@@ -904,11 +901,11 @@ const ProductSellerDetailCard = ({
                 </p>
               )}
 
-              {canManageReels && !hasVideo && (
+              {/* {canManageReels && !hasVideo && (
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#11b7b0]/40 bg-[#11b7b0]/10 px-3 py-1 text-xs font-semibold text-[#0f766e]">
                   Dodaj video preko + ikone na avataru
                 </div>
-              )}
+              )} */}
 
               {/* Gamification badges */}
               {showBadges && badgeList.length > 0 && (
@@ -990,7 +987,7 @@ const ProductSellerDetailCard = ({
           </div>
 
           {/* Profile link */}
-          {sellerId && (
+          {/* {sellerId && (
             <CustomLink
               href={`/seller/${sellerId}`}
               className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group cursor-pointer"
@@ -998,7 +995,7 @@ const ProductSellerDetailCard = ({
               Pogledaj kompletan profil
               <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </CustomLink>
-          )}
+          )} */}
         </div>
 
         {/* Info sections */}

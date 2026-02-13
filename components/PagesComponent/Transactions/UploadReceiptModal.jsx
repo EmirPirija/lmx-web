@@ -9,8 +9,8 @@ import { t } from "@/utils";
 import { updateBankTransferApi } from "@/utils/api";
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { MdClose } from "react-icons/md";
-import { toast } from "sonner";
+import { MdClose } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 
 const UploadReceiptModal = ({
   IsUploadRecipt,

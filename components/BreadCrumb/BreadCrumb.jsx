@@ -13,7 +13,7 @@ import { t } from "@/utils";
 import { useSearchParams } from "next/navigation";
 import CustomLink from "@/components/Common/CustomLink";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Home } from "@/components/Common/UnifiedIconPack";
 
 const BreadCrumb = ({ title2 }) => {
   const langCode = useSelector(getCurrentLangCode);

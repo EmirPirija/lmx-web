@@ -1,6 +1,9 @@
+"use client";
+
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { SlidersHorizontal, MapPin, DollarSign, Calendar, Tag, X, Waypoints, Store } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { SlidersHorizontal, MapPin, DollarSign, Calendar, Tag, X, Waypoints, Store } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 import CategoryPopup from "./CategoryPopup";
 import BudgetPopup from "./BudgetPopup";
@@ -17,6 +20,7 @@ const LocationModal = dynamic(
 
 
 const Filter = ({
+  railRef = null,
   customFields,
   extraDetails,
   setExtraDetails,
@@ -25,19 +29,25 @@ const Filter = ({
   state,
   city,
   area,
+  mobileCompact = false,
+  mobileStickyActive = true,
+  mobileUtilityRenderer = null,
+  mobileUtilityHidden = false,
 }) => {
   const searchParams = useSearchParams();
   const [activePopup, setActivePopup] = useState(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const selectedCategory = urlParams.get("category") || "";
+  const selectedCategory = searchParams.get("category") || "";
   const minPrice = searchParams.get("min_price");
   const maxPrice = searchParams.get("max_price");
   const datePosted = searchParams.get("date_posted");
   const kmRange = searchParams.get("km_range");
   const sellerType = searchParams.get("seller_type");
   const sellerVerified = searchParams.get("seller_verified") === "1";
+  const isCompactMobile = Boolean(mobileCompact);
+  const isMobileStickyActive = Boolean(mobileStickyActive);
+  const showMobileUtility = Boolean(mobileUtilityRenderer) && !mobileUtilityHidden;
 
   // Brojanje aktivnih filtera
   const getFilterCount = () => {
@@ -55,6 +65,7 @@ const Filter = ({
 
   const counts = getFilterCount();
   const totalActive = Object.values(counts).reduce((a, b) => a + b, 0);
+  const railTransition = { type: "spring", stiffness: 320, damping: 34, mass: 0.86 };
 
   const clearAllFilters = () => {
     const newSearchParams = new URLSearchParams();
@@ -103,131 +114,211 @@ const Filter = ({
 
   // Komponenta za dugme sa modernim dizajnom i animacijama
   const FilterButton = ({ icon: Icon, label, count, onClick, active }) => (
-    <button
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.94 }}
+      transition={{ type: "spring", stiffness: 420, damping: 30 }}
       onClick={onClick}
       className={cn(
-        "group flex items-center gap-2 px-3 py-2 rounded-full border transition-all duration-200 whitespace-nowrap outline-none select-none",
-        "active:scale-95", // Klik animacija (smanjivanje)
+        "group relative flex items-center gap-2 rounded-full border transition-all duration-200 whitespace-nowrap outline-none select-none",
+        isCompactMobile ? "h-10 w-10 justify-center p-0" : "px-3 py-2",
         active 
-          ? "border-blue-500 bg-blue-50/80 text-blue-700 shadow-sm ring-2 ring-blue-100 ring-offset-0" 
-          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm"
+          ? "border-primary/35 bg-primary/10 text-primary shadow-[0_10px_24px_-16px_rgba(15,23,42,0.45)] dark:border-primary/45 dark:bg-primary/20"
+          : "border-slate-200/90 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-100/80 hover:text-slate-800 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       )}
+      aria-label={label}
+      title={label}
     >
-      <Icon className={cn("w-4 h-4 flex-shrink-0 transition-colors", active ? "text-blue-600" : "text-gray-500 group-hover:text-gray-700")} />
-      <span className="hidden sm:inline font-medium text-sm">{label}</span>
+      <Icon
+        className={cn(
+          "w-4 h-4 flex-shrink-0 transition-colors",
+          active ? "text-primary" : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
+        )}
+      />
+      <span className={cn("font-medium text-sm", isCompactMobile ? "hidden" : "hidden md:inline")}>
+        {label}
+      </span>
       
       {/* Animirani badge sa brojem */}
       {count > 0 && (
-        <span className="animate-in zoom-in duration-300 px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded-full min-w-[18px] text-center font-bold shadow-sm">
-          {count}
-        </span>
+        <span
+          className={cn(
+            "animate-in zoom-in duration-300 bg-primary text-white text-[10px] rounded-full min-w-[18px] h-[18px] px-1.5 text-center font-bold shadow-sm flex items-center justify-center",
+              isCompactMobile ? "absolute -right-1 -top-1 ring-2 ring-white dark:ring-slate-900" : ""
+            )}
+          >
+            {count}
+          </span>
       )}
-    </button>
+    </motion.button>
   );
 
   return (
     <>
-      {/* GLAVNI KONTEJNER: Sticky + Glassmorphism */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/80 py-3 shadow-sm transition-all">
-        <div className="container relative">
-          
-          {/* Lijevi fade gradient (estetika) */}
-          <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-white/90 to-transparent z-10 pointer-events-none md:hidden" />
-          
-          {/* Desni fade gradient (sugeriše skrolanje) */}
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white/90 to-transparent z-10 pointer-events-none" />
-
-          {/* Lista dugmadi sa skrivenim scrollbarom */}
-          <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-1 py-1">
-            
-            {/* Labela "Filteri" sa ikonom */}
-            <div className="flex items-center gap-2 mr-2 flex-shrink-0 pl-1">
-              <div className="p-1.5 bg-gray-100 rounded-md">
-                <SlidersHorizontal className="w-4 h-4 text-gray-700" />
-              </div>
-              <span className="text-sm font-bold text-gray-900 hidden lg:inline">Filteri</span>
-            </div>
-
-            {/* Vertikalni separator */}
-            <div className="h-6 w-px bg-gray-200 mx-1 flex-shrink-0 hidden sm:block"></div>
-
-            {/* Dugmad */}
-            <FilterButton
-              icon={Tag}
-              label="Kategorija"
-              count={counts.category}
-              active={counts.category > 0}
-              onClick={() => setActivePopup(activePopup === "category" ? null : "category")}
-            />
-
-            <FilterButton
-              icon={MapPin}
-              label="Lokacija"
-              count={counts.location}
-              active={counts.location > 0}
-              onClick={() => {
-                setActivePopup(null);
-                setIsLocationModalOpen(true);
-              }}
-            />
-
-            <FilterButton
-              icon={DollarSign}
-              label="Cijena"
-              count={counts.budget}
-              active={counts.budget > 0}
-              onClick={() => setActivePopup(activePopup === "budget" ? null : "budget")}
-            />
-
-            <FilterButton
-              icon={Calendar}
-              label="Datum"
-              count={counts.date}
-              active={counts.date > 0}
-              onClick={() => setActivePopup(activePopup === "date" ? null : "date")}
-            />
-
-            <FilterButton
-              icon={Waypoints}
-              label="Blizina"
-              count={counts.range}
-              active={counts.range > 0}
-              onClick={() => setActivePopup(activePopup === "range" ? null : "range")}
-            />
-
-            <FilterButton
-              icon={Store}
-              label="Prodavač"
-              count={counts.seller}
-              active={counts.seller > 0}
-              onClick={() => setActivePopup(activePopup === "seller" ? null : "seller")}
-            />
-
-            {customFields && customFields.length > 0 && (
-              <FilterButton
-                icon={SlidersHorizontal}
-                label="Detalji"
-                count={counts.details}
-                active={counts.details > 0}
-                onClick={() => setActivePopup(activePopup === "details" ? null : "details")}
-              />
-            )}
-
-            {/* Dugme "Poništi" - pojavljuje se samo ako ima aktivnih filtera */}
-            {totalActive > 0 && (
-              <button
-                onClick={clearAllFilters}
-                className="group flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-all whitespace-nowrap ml-auto flex-shrink-0 active:scale-95"
+      {/* GLAVNI KONTEJNER */}
+      <div
+        ref={railRef}
+        className={cn(
+          "sticky z-[72] border-b border-slate-200/80 bg-gradient-to-r from-slate-50/95 to-white/95 backdrop-blur-xl transition-[top,background-color,border-color] duration-300 ease-out dark:border-slate-800/80 dark:from-slate-900/95 dark:to-slate-900/90",
+          isCompactMobile
+            ? "py-2"
+            : "py-3"
+        )}
+        style={{ top: "var(--lmx-mobile-header-offset, 0px)" }}
+      >
+        <div className="container">
+          <motion.div
+            layout
+            initial={false}
+            transition={railTransition}
+            className="transition-[transform,opacity] duration-300 ease-out"
+          >
+            <motion.div
+              layout
+              initial={false}
+              animate={{ opacity: 1 }}
+              transition={railTransition}
+              className={cn(
+                "rounded-2xl border-transparent transition-all duration-300",
+                isMobileStickyActive
+                  ? "border-slate-200/90 bg-white/92 shadow-[0_14px_30px_-24px_rgba(15,23,42,0.42)] backdrop-blur-sm dark:border-slate-700/85 dark:bg-slate-900/95 dark:shadow-[0_16px_34px_-24px_rgba(2,6,23,0.85)]"
+                  : "border-slate-200/70 bg-white/70 dark:border-slate-800/80 dark:bg-slate-900/75 shadow-none"
+              )}
+            >
+              {/* Lista dugmadi sa skrivenim scrollbarom */}
+              <motion.div
+                layout
+                initial={false}
+                transition={railTransition}
+                className={cn(
+                  "flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+                  isCompactMobile ? "px-0.5 py-0.5" : "px-1 py-1"
+                )}
               >
-                <X className="w-4 h-4 transition-transform group-hover:rotate-90" />
-                <span className="hidden sm:inline">Poništi</span>
-              </button>
-            )}
-            
-            {/* Prazan prostor na kraju da zadnje dugme ne bude odsječeno fade efektom */}
-            <div className="w-4 flex-shrink-0"></div>
-          </div>
+                {/* Labela "Filteri" sa ikonom */}
+                <div
+                  className={cn(
+                    "flex items-center gap-2 flex-shrink-0 rounded-full border border-slate-200/90 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200",
+                    isCompactMobile ? "h-10 w-10 justify-center p-0" : "mr-1 px-3 py-2"
+                  )}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span className={cn("text-sm font-semibold", isCompactMobile ? "hidden" : "hidden lg:inline")}>
+                    Filteri
+                  </span>
+                </div>
+
+                {/* Dugmad */}
+                <FilterButton
+                  icon={Tag}
+                  label="Kategorija"
+                  count={counts.category}
+                  active={counts.category > 0}
+                  onClick={() => setActivePopup(activePopup === "category" ? null : "category")}
+                />
+
+                <FilterButton
+                  icon={MapPin}
+                  label="Lokacija"
+                  count={counts.location}
+                  active={counts.location > 0}
+                  onClick={() => {
+                    setActivePopup(null);
+                    setIsLocationModalOpen(true);
+                  }}
+                />
+
+                <FilterButton
+                  icon={DollarSign}
+                  label="Cijena"
+                  count={counts.budget}
+                  active={counts.budget > 0}
+                  onClick={() => setActivePopup(activePopup === "budget" ? null : "budget")}
+                />
+
+                <FilterButton
+                  icon={Calendar}
+                  label="Datum"
+                  count={counts.date}
+                  active={counts.date > 0}
+                  onClick={() => setActivePopup(activePopup === "date" ? null : "date")}
+                />
+
+                <FilterButton
+                  icon={Waypoints}
+                  label="Blizina"
+                  count={counts.range}
+                  active={counts.range > 0}
+                  onClick={() => setActivePopup(activePopup === "range" ? null : "range")}
+                />
+
+                <FilterButton
+                  icon={Store}
+                  label="Prodavač"
+                  count={counts.seller}
+                  active={counts.seller > 0}
+                  onClick={() => setActivePopup(activePopup === "seller" ? null : "seller")}
+                />
+
+                {customFields && customFields.length > 0 && (
+                  <FilterButton
+                    icon={SlidersHorizontal}
+                    label="Detalji"
+                    count={counts.details}
+                    active={counts.details > 0}
+                    onClick={() => setActivePopup(activePopup === "details" ? null : "details")}
+                  />
+                )}
+
+                {/* Dugme "Poništi" - pojavljuje se samo ako ima aktivnih filtera */}
+                {totalActive > 0 && (
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.94 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                    onClick={clearAllFilters}
+                    className={cn(
+                      "group ml-auto flex-shrink-0 rounded-full border transition-all whitespace-nowrap",
+                      isCompactMobile
+                        ? "grid h-10 w-10 place-items-center border-red-200/80 bg-red-50 text-red-500 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
+                        : "flex items-center gap-1.5 border-slate-200 px-3 py-2 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-red-300 dark:hover:bg-red-950/30"
+                    )}
+                    aria-label="Poništi filtere"
+                    title="Poništi filtere"
+                  >
+                    <X className="w-4 h-4 transition-transform group-hover:rotate-90" />
+                    <span className={cn("hidden sm:inline", isCompactMobile ? "hidden" : "")}>Poništi</span>
+                  </motion.button>
+                )}
+
+                <div className="w-1 flex-shrink-0" />
+              </motion.div>
+            </motion.div>
+          </motion.div>
+
         </div>
+      </div>
+
+      <div className="md:hidden">
+        <AnimatePresence initial={false} mode="wait">
+          {showMobileUtility ? (
+            <motion.div
+              key={isCompactMobile ? "mobile-utility-floating-compact" : "mobile-utility-floating-expanded"}
+              initial={{ opacity: 0, y: 16, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.985 }}
+              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed left-0 right-0 z-[66] flex justify-center px-3 sm:px-4 pointer-events-none"
+              style={{
+                bottom: "calc(var(--lmx-mobile-viewport-bottom-offset, 0px) + 12px)",
+              }}
+            >
+              <div className="w-fit max-w-[calc(100vw-1.5rem)] sm:max-w-[calc(100vw-2rem)] pointer-events-auto">
+                {mobileUtilityRenderer?.(isCompactMobile)}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
 
       {/* Popups Sekcija */}

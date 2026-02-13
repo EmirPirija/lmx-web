@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, ChevronDown, ChevronUp } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 
 const ExtraDetailsFilter = ({ customFields }) => {

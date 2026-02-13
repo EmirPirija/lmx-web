@@ -1,11 +1,11 @@
 "use client";
 import { sendMessageApi, chatListApi } from "@/utils/api";
 import { useEffect, useState, useRef } from "react";
-import { IoMdAttach, IoMdSend } from "react-icons/io";
-import { FaMicrophone, FaRegStopCircle } from "react-icons/fa";
-import { Loader2, X } from "lucide-react";
+import { IoMdAttach, IoMdSend } from "@/components/Common/UnifiedIconPack";
+import { FaMicrophone, FaRegStopCircle } from "@/components/Common/UnifiedIconPack";
+import { Loader2, X } from "@/components/Common/UnifiedIconPack";
 import { useReactMediaRecorder } from "react-media-recorder";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 import { cn } from "@/lib/utils";
@@ -138,7 +138,7 @@ const SendMessage = ({
       sendMessage(audioFile);
     } catch (err) {
       console.error("Error processing audio:", err);
-      toast.error("Failed to process recording");
+      toast.error("Obrada audio snimka nije uspjela.");
     }
   };
  
@@ -296,7 +296,7 @@ const SendMessage = ({
         setChatMessages((prev) => 
           prev.filter((msg) => msg.id !== optimisticMessage.id)
         );
-        toast.error(response?.data?.message || "Failed to send message");
+        toast.error(response?.data?.message || "Slanje poruke nije uspjelo.");
       }
     } catch (error) {
       // Remove optimistic message on error
@@ -305,7 +305,7 @@ const SendMessage = ({
       );
       console.error('Send message error:', error);
       console.error('Error response:', error?.response?.data);
-      toast.error(error?.response?.data?.message || "Error sending message");
+      toast.error(error?.response?.data?.message || "Greška pri slanju poruke.");
       
       // Restore message for retry
       setMessage(messageText);

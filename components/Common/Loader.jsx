@@ -9,14 +9,14 @@ export default function Loader({ size = 220, className = "" }) {
         display: "grid",
         placeItems: "center",
       }}
-      aria-label="Loading"
+      aria-label="Učitavanje"
       role="status"
     >
       <img
         src="/assets/lmx-loader.svg"
         width={size}
         height={height}
-        alt="Loading…"
+        alt="Učitavanje…"
         style={{ display: "block" }}
         draggable={false}
       />

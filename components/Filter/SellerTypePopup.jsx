@@ -12,7 +12,7 @@ import {
   User,
   Users,
   X,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 const SELLER_TYPE_OPTIONS = [
   {

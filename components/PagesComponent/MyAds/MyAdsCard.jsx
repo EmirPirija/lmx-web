@@ -15,6 +15,7 @@ import {
   Edit,
   Eye,
   EyeOff,
+  GitCompare,
   Home,
   Images,
   Layers3,
@@ -25,8 +26,7 @@ import {
   Trash2,
   X,
   Youtube,
-} from "lucide-react";
-import { ArrowsLeftRightIcon } from "@phosphor-icons/react";
+} from "@/components/Common/UnifiedIconPack";
 
 import CustomImage from "@/components/Common/CustomImage";
 
@@ -188,9 +188,6 @@ const getThreeDots = (total, current) => {
 
   return [current - 1, current, current + 1];
 };
-
-const ICON_PRIMARY_FILL = "#dadad5";
-const ICON_SECONDARY_FILL = "#0ab6af";
 
 const normalizeText = (value = "") =>
   String(value)
@@ -415,7 +412,7 @@ const FeaturedPlanModal = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[110] flex items-end justify-center p-0 sm:items-center sm:p-4"
+        className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4"
       >
         <button
           type="button"
@@ -428,7 +425,7 @@ const FeaturedPlanModal = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 26, scale: 0.98 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 w-full max-w-xl rounded-t-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:rounded-3xl sm:p-6"
+          className="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6"
         >
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
@@ -787,20 +784,28 @@ const SmartQuickActionsPanel = ({
                   aria-label="Zatvori panel akcija"
                 />
 
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, y: isMobile ? 22 : -10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: isMobile ? 22 : -10, scale: 0.98 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                <div
                   className={cn(
-                    "fixed z-[90] overflow-hidden border border-slate-200/90 bg-white/95 p-3 shadow-[0_32px_70px_-40px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-4",
+                    "fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2",
                     isMobile
-                      ? "inset-x-3 bottom-3 max-h-[82vh] overflow-y-auto rounded-2xl"
-                      : "left-1/2 top-1/2 w-[min(560px,calc(100vw-2.5rem))] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl"
+                      ? "w-[min(560px,calc(100vw-1.5rem))]"
+                      : "w-[min(560px,calc(100vw-2.5rem))]"
                   )}
-                  onClick={(e) => e.stopPropagation()}
                 >
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 18, scale: 0.98 }}
+                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                    className={cn(
+                      "overflow-hidden border border-slate-200/90 bg-white/95 p-3 shadow-[0_32px_70px_-40px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-4",
+                      isMobile
+                        ? "max-h-[82vh] overflow-y-auto rounded-2xl"
+                        : "max-h-[80vh] overflow-y-auto rounded-3xl"
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -896,7 +901,8 @@ const SmartQuickActionsPanel = ({
                       ))}
                     </div>
                   ) : null}
-                </motion.div>
+                  </motion.div>
+                </div>
               </>
             ) : null}
           </AnimatePresence>,
@@ -1291,16 +1297,17 @@ const MyAdsCard = ({
                   icon={Rocket}
                   className="border-amber-200 bg-amber-100/95 text-amber-700"
                 />
+                
               ) : null}
 
-              {isReserved ? (
+              {/* {isReserved ? (
                 <OverlayPill
                   icon={Clock}
                   className="border-blue-200 bg-blue-100/95 text-blue-700"
                 >
                   Rezervisano
                 </OverlayPill>
-              ) : null}
+              ) : null} */}
             </motion.div>
           ) : null}
 
@@ -1495,25 +1502,16 @@ const MyAdsCard = ({
           </motion.h3>
           {exchangePossible ? (
             <span
-              className="relative mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center"
+              className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
               title="Zamjena moguća"
               aria-label="Zamjena moguća"
             >
-              <ArrowsLeftRightIcon
-                weight="fill"
-                color={ICON_SECONDARY_FILL}
-                className="absolute inset-0 h-full w-full"
-              />
-              <ArrowsLeftRightIcon
-                weight="duotone"
-                color={ICON_SECONDARY_FILL}
-                className="absolute inset-0 h-full w-full"
-              />
-              <ArrowsLeftRightIcon
-                weight="regular"
-                color={ICON_PRIMARY_FILL}
-                className="h-full w-full"
-              />
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
+              <g fill="none" fill-rule="nonzero">
+                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" stroke-width="0.6667"></path>
+                <path fill="#0ab6af" d="M5.706666666666667 7.933333333333334a1 1 0 0 1 0 1.4133333333333333l-0.6493333333333333 0.6506666666666666H10.666666666666666a1 1 0 0 1 0 2H5.057333333333333l0.6499999999999999 0.6493333333333333a1 1 0 1 1 -1.4146666666666665 1.4146666666666665l-2.3566666666666665 -2.357333333333333a1 1 0 0 1 0 -1.414l2.3566666666666665 -2.357333333333333a1 1 0 0 1 1.4146666666666665 0Zm4.586666666666666 -6a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.3566666666666665 2.357333333333333a1 1 0 0 1 0.06866666666666665 1.338l-0.06866666666666665 0.076 -2.3566666666666665 2.357333333333333a1 1 0 0 1 -1.4833333333333334 -1.3386666666666667l0.06866666666666665 -0.076 0.6499999999999999 -0.6493333333333333H5.333333333333333a1 1 0 0 1 -0.09599999999999999 -1.996L5.333333333333333 3.9973333333333336h5.609333333333333l-0.6499999999999999 -0.6499999999999999a1 1 0 0 1 0 -1.4146666666666665Z" stroke-width="0.6667"></path>
+              </g>
+            </svg>
             </span>
           ) : null}
         </div>

@@ -13,7 +13,7 @@ import {
   IoChevronForward,
   IoStatsChartOutline,
   IoSparkles,
-} from "react-icons/io5";
+} from "@/components/Common/UnifiedIconPack";
 import Link from "next/link";
 import { itemStatisticsApi } from "@/utils/api";
 

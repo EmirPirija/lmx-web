@@ -1,22 +1,22 @@
 import {
-  IoPersonOutline,
-  IoLayersOutline,
-  IoHeartOutline,
-  IoBookmarkOutline,
-  IoCardOutline,
-  IoReceiptOutline,
-  IoNotificationsOutline,
-  IoHelpCircleOutline,
-  IoStarOutline,
-  IoTrophyOutline,
-  IoShieldCheckmarkOutline,
-  IoStorefrontOutline,
-  IoBagHandleOutline,
-  IoRibbonOutline,
-  IoSearchOutline,
-  IoChatbubbleEllipsesOutline,
-  IoChatbubbleOutline,
-} from "react-icons/io5";
+  IdentificationCard,
+  Layers,
+  Heart,
+  UserList,
+  CreditCard,
+  Receipt,
+  BellRinging,
+  Headset,
+  Star,
+  Trophy,
+  ShieldCheck,
+  Store,
+  ShoppingBag,
+  Medal,
+  Search,
+  MessageSquareMore,
+  MessageSquare,
+} from "@/components/Common/UnifiedIconPack";
 
 const matchPath = (pathname, href, mode = "exact") => {
   if (!pathname || !href) return false;
@@ -42,14 +42,14 @@ export const getProfileNavigationSections = ({
       items: [
         {
           href: "/profile",
-          icon: IoPersonOutline,
+          icon: IdentificationCard,
           label: "Moj profil",
           description: "Uredi podatke i postavke",
         },
         !isVerified
           ? {
               href: "/user-verification",
-              icon: IoShieldCheckmarkOutline,
+              icon: ShieldCheck,
               label: "Verifikacija",
               description: "Potvrdi svoj identitet",
               isNew: true,
@@ -57,7 +57,7 @@ export const getProfileNavigationSections = ({
           : null,
         {
           href: "/profile/seller-settings",
-          icon: IoStorefrontOutline,
+          icon: Store,
           label: "Postavke prodavača",
           description: "Prilagodi svoj profil prodavača",
           match: "prefix",
@@ -69,33 +69,33 @@ export const getProfileNavigationSections = ({
       items: [
         {
           href: "/my-ads",
-          icon: IoLayersOutline,
+          icon: Layers,
           label: "Moji oglasi",
           description: activeAds > 0 ? `${activeAds} aktivnih oglasa` : "Upravljaj oglasima",
           match: "prefix",
         },
         {
           href: "/favorites",
-          icon: IoHeartOutline,
+          icon: Heart,
           label: "Spašeni oglasi",
           description: "Sačuvani oglasi",
         },
         {
           href: "/profile/saved",
-          icon: IoBookmarkOutline,
+          icon: UserList,
           label: "Sačuvani prodavači",
           description: "Kolekcije, bilješke i obavijesti",
           match: "prefix",
         },
         {
           href: "/profile/saved-searches",
-          icon: IoSearchOutline,
+          icon: Search,
           label: "Spašene pretrage",
           description: "Brze prečice do tvojih filtera",
         },
         {
           href: "/purchases",
-          icon: IoBagHandleOutline,
+          icon: ShoppingBag,
           label: "Moje kupovine",
           description: "Historija kupovina",
           match: "prefix",
@@ -107,7 +107,7 @@ export const getProfileNavigationSections = ({
       items: [
         {
           href: "/chat",
-          icon: IoChatbubbleOutline,
+          icon: MessageSquare,
           label: "Poruke",
           description: "Chat sa kupcima i prodavačima",
           badge: unreadMessages,
@@ -115,7 +115,7 @@ export const getProfileNavigationSections = ({
         },
         {
           href: "/notifications",
-          icon: IoNotificationsOutline,
+          icon: BellRinging,
           label: "Notifikacije",
           description: "Sve obavijesti na jednom mjestu",
           badge: unreadNotifications,
@@ -123,7 +123,7 @@ export const getProfileNavigationSections = ({
         },
         {
           href: "/profile/public-questions",
-          icon: IoChatbubbleEllipsesOutline,
+          icon: MessageSquareMore,
           label: "Javna pitanja",
           description: "Pitanja na vašim oglasima",
         },
@@ -134,13 +134,13 @@ export const getProfileNavigationSections = ({
       items: [
         {
           href: "/user-subscription",
-          icon: IoCardOutline,
+          icon: CreditCard,
           label: "Pretplata",
           description: "Upravljaj pretplatom",
         },
         {
           href: "/transactions",
-          icon: IoReceiptOutline,
+          icon: Receipt,
           label: "Transakcije",
           description: "Historija transakcija",
           match: "prefix",
@@ -152,21 +152,21 @@ export const getProfileNavigationSections = ({
       items: [
         {
           href: "/reviews",
-          icon: IoStarOutline,
+          icon: Star,
           label: "Ocjene",
           description: "Recenzije i ocjene",
           match: "prefix",
         },
         {
           href: "/profile/badges",
-          icon: IoRibbonOutline,
+          icon: Medal,
           label: "Bedževi",
           description: "Tvoja postignuća",
           match: "prefix",
         },
         {
           href: "/leaderboard",
-          icon: IoTrophyOutline,
+          icon: Trophy,
           label: "Ljestvica",
           description: "Rangiranje korisnika",
           match: "prefix",
@@ -178,7 +178,7 @@ export const getProfileNavigationSections = ({
       items: [
         {
           href: "/contact-us",
-          icon: IoHelpCircleOutline,
+          icon: Headset,
           label: "Kontaktirajte nas",
           description: "Kontaktiraj podršku",
         },

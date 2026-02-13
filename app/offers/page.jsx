@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
@@ -44,7 +44,7 @@ import {
   Eye,
   Store,
   MapPin,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 /* =====================================================
    ANIMATION VARIANTS

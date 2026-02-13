@@ -4,7 +4,9 @@ import React, { useMemo } from "react";
 import {
   Award,
   BadgeCheck,
+  Bell,
   CalendarCheck,
+  Clock,
   Crown,
   Flame,
   Gem,
@@ -14,17 +16,20 @@ import {
   MessageCircle,
   Rocket,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Star,
   Store,
   Trophy,
+  Users,
+  Video,
   Zap,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 
 /**
  * Badge.jsx (BS ijekavica)
- * - Lucide ikonice
+ * - Unified Phosphor ikonice
  * - Minimal / premium, bez "hajpa"
  * - Podržava dinamičke bedževe: godine, prodaje, poruke, ocjene, oglasi, streak...
  */
@@ -33,7 +38,12 @@ import { cn } from "@/lib/utils";
   Utils
 ----------------------------- */
 
-const normalize = (v) => String(v || "").trim().toLowerCase();
+const normalize = (v) =>
+  String(v || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 function pickBadgeKey(badge) {
   const candidates = [
@@ -60,6 +70,15 @@ function pickBadgeKey(badge) {
   if (joined.includes("top")) return "top_seller";
   if (joined.includes("trusted") || joined.includes("pouzdan")) return "trusted";
   if (joined.includes("fast") || joined.includes("brz")) return "fast_reply";
+  if (joined.includes("video") || joined.includes("reel")) return "video_creator";
+  if (joined.includes("buyer") || joined.includes("kupac") || joined.includes("kupovin")) return "buyer";
+  if (joined.includes("profile") || joined.includes("profil") || joined.includes("avatar")) return "profile_complete";
+  if (joined.includes("community") || joined.includes("zajednic")) return "community";
+  if (joined.includes("social") || joined.includes("share") || joined.includes("dijel") || joined.includes("invite") || joined.includes("refer"))
+    return "social";
+  if (joined.includes("notification") || joined.includes("obavijest")) return "notifications";
+  if (joined.includes("consistency") || joined.includes("regular") || joined.includes("daily") || joined.includes("dnevn"))
+    return "consistency";
 
   // dynamic patterns (e.g. tenure_y3, sales_100, reviews_50, listings_25, messages_1000, streak_30)
   const raw = candidates[0] || "";
@@ -378,6 +397,48 @@ function resolveBadgeCopy(badge, locked = false) {
       Icon: Zap,
       tier: 3,
     },
+    video_creator: {
+      title: "Video aktivnost",
+      description: "Aktivan sa video/reel sadržajem.",
+      Icon: Video,
+      tier: 3,
+    },
+    buyer: {
+      title: "Aktivan kupac",
+      description: "Stabilna kupovna aktivnost na platformi.",
+      Icon: ShoppingBag,
+      tier: 3,
+    },
+    profile_complete: {
+      title: "Uređen profil",
+      description: "Profil i osnovne informacije su uredno popunjeni.",
+      Icon: Users,
+      tier: 2,
+    },
+    community: {
+      title: "Doprinos zajednici",
+      description: "Aktivnost koja pomaže kvaliteti zajednice.",
+      Icon: Users,
+      tier: 3,
+    },
+    social: {
+      title: "Društveni signal",
+      description: "Interakcija kroz dijeljenje i preporuke.",
+      Icon: MessageCircle,
+      tier: 2,
+    },
+    notifications: {
+      title: "Ažurno praćenje",
+      description: "Redovno prati aktivnosti i obavijesti.",
+      Icon: Bell,
+      tier: 2,
+    },
+    consistency: {
+      title: "Dosljedna aktivnost",
+      description: "Kontinuitet korištenja platforme kroz vrijeme.",
+      Icon: Clock,
+      tier: 2,
+    },
   };
 
   const picked = staticCatalog[key] || {
@@ -501,6 +562,55 @@ function staticMeaning(key) {
       category: "activity",
       meaning: "Prosječno vrijeme odgovora je kratko u odnosu na ostale profile.",
       how: ["Odgovaraj redovno na poruke i drži dobar prosjek vremena odgovora."],
+    };
+  }
+  if (key === "video_creator") {
+    return {
+      category: "activity",
+      meaning: "Profil aktivno koristi video/reel format za prezentaciju ponude.",
+      how: ["Objavljuj i održavaj video/reel sadržaj vezan za tvoje oglase ili profil."],
+    };
+  }
+  if (key === "buyer") {
+    return {
+      category: "business",
+      meaning: "Pokazuje kontinuitet kupovne aktivnosti na platformi.",
+      how: ["Zadrži stabilnu kupovnu aktivnost i korektan odnos u transakcijama."],
+    };
+  }
+  if (key === "profile_complete") {
+    return {
+      category: "identity",
+      meaning: "Profil je uredno popunjen i spreman za kvalitetniju interakciju.",
+      how: ["Dopuni osnovne informacije profila, avatar i relevantne sekcije."],
+    };
+  }
+  if (key === "community") {
+    return {
+      category: "reputation",
+      meaning: "Označava doprinos pozitivnom iskustvu i kvaliteti zajednice.",
+      how: ["Održavaj kvalitetnu komunikaciju i konstruktivno učešće na platformi."],
+    };
+  }
+  if (key === "social") {
+    return {
+      category: "activity",
+      meaning: "Signalizira aktivnost kroz dijeljenje i širenje sadržaja profila/oglasa.",
+      how: ["Dijeli sadržaj i održavaj organsku aktivnost kroz društvene kanale."],
+    };
+  }
+  if (key === "notifications") {
+    return {
+      category: "activity",
+      meaning: "Profil redovno prati obavijesti i reaguje na događaje na vrijeme.",
+      how: ["Prati obavijesti i reaguj na bitne promjene i poruke bez velikog kašnjenja."],
+    };
+  }
+  if (key === "consistency") {
+    return {
+      category: "loyalty",
+      meaning: "Stabilan kontinuitet korištenja platforme kroz duži period.",
+      how: ["Nastavi redovno koristiti platformu i održavaj aktivnost kroz vrijeme."],
     };
   }
   return {

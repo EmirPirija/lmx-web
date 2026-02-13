@@ -1,4 +1,4 @@
-import { FaArrowRight, FaCheck } from "react-icons/fa";
+import { FaArrowRight, FaCheck } from "@/components/Common/UnifiedIconPack";
 import { formatPriceAbbreviated, t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 

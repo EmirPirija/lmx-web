@@ -1,100 +1,89 @@
-import {
-  AcornIcon,
-  AirplaneIcon,
-  BankIcon,
-  BarbellIcon,
-  BathtubIcon,
-  BedIcon,
-  BellIcon,
-  BicycleIcon,
-  BirdIcon,
-  BoatIcon,
-  BooksIcon,
-  BriefcaseIcon,
-  BuildingApartmentIcon,
-  BusIcon,
-  CameraIcon,
-  CarProfileIcon,
-  CatIcon,
-  ChairIcon,
-  ChartLineIcon,
-  ChatCircleIcon,
-  ChefHatIcon,
-  CoinsIcon,
-  CompassIcon,
-  CookingPotIcon,
-  CouchIcon,
-  CpuIcon,
-  CreditCardIcon,
-  DesktopTowerIcon,
-  DeviceMobileIcon,
-  DogIcon,
-  DressIcon,
-  DresserIcon,
-  DroneIcon,
-  EnvelopeSimpleIcon,
-  FactoryIcon,
-  FanIcon,
-  FarmIcon,
-  FilmSlateIcon,
-  FirstAidKitIcon,
-  FishIcon,
-  ForkKnifeIcon,
-  GameControllerIcon,
-  GiftIcon,
-  GlobeIcon,
-  GraduationCapIcon,
-  HandbagIcon,
-  HardDriveIcon,
-  HeadphonesIcon,
-  HorseIcon,
-  HospitalIcon,
-  HouseSimpleIcon,
-  JoystickIcon,
-  KeyboardIcon,
-  LampIcon,
-  LaptopIcon,
-  LeafIcon,
-  LightningIcon,
-  MapPinIcon,
-  MegaphoneIcon,
-  MemoryIcon,
-  MicrophoneStageIcon,
-  MoneyIcon,
-  MotorcycleIcon,
-  NeedleIcon,
-  PackageIcon,
-  PaintRollerIcon,
-  PantsIcon,
-  PawPrintIcon,
-  PhoneCallIcon,
-  PillIcon,
-  PlugsConnectedIcon,
-  PottedPlantIcon,
-  PrinterIcon,
-  PuzzlePieceIcon,
-  RobotIcon,
-  ScissorsIcon,
-  ShirtFoldedIcon,
-  SneakerIcon,
-  SnowflakeIcon,
-  SpeakerHighIcon,
-  StethoscopeIcon,
-  StorefrontIcon,
-  TelevisionSimpleIcon,
-  TicketIcon,
-  ToiletIcon,
-  ToolboxIcon,
-  TractorIcon,
-  TruckIcon,
-  WatchIcon,
-  WrenchIcon,
-  DiamondIcon,
-  EyeglassesIcon,
-} from "@phosphor-icons/react";
+"use client";
 
-const PRIMARY_FILL = "#0ab6af";
-const SECONDARY_FILL = "#dadad5";
+import NextImage from "next/image";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Baby,
+  Bath,
+  Bed,
+  Bell,
+  Bike,
+  Bird,
+  BookOpen,
+  Briefcase,
+  Building2,
+  Bus,
+  Camera,
+  Car,
+  Cat,
+  ChefHat,
+  Coins,
+  Compass,
+  CookingPot,
+  Cpu,
+  CreditCard,
+  Dog,
+  Dumbbell,
+  Factory,
+  Film,
+  Fish,
+  Flower2,
+  Gamepad2,
+  Gem,
+  Gift,
+  Globe,
+  GraduationCap,
+  HardDrive,
+  Headphones,
+  Hospital,
+  House,
+  Keyboard,
+  Lamp,
+  Laptop,
+  Leaf,
+  Mail,
+  MapPin,
+  Megaphone,
+  MemoryStick,
+  MessageCircle,
+  Mic,
+  Monitor,
+  Package,
+  Paintbrush,
+  PaintRoller,
+  PawPrint,
+  PhoneCall,
+  Pill,
+  Plane,
+  PlugZap,
+  Printer,
+  Puzzle,
+  Rocket,
+  Scissors,
+  Shirt,
+  Ship,
+  Snowflake,
+  Sofa,
+  Smartphone,
+  Stethoscope,
+  Store,
+  Ticket,
+  Toilet,
+  Tractor,
+  TrendingUp,
+  Truck,
+  UtensilsCrossed,
+  Volume2,
+  Wrench,
+  Shapes,
+  Bot,
+  BatteryCharging,
+  Cross,
+} from "lucide-react";
+import {
+  normalizeLegacyImageUrl,
+  withCategoryImageVersion,
+} from "@/utils/categoryImage";
 
 const normalize = (value = "") =>
   String(value)
@@ -105,10 +94,41 @@ const normalize = (value = "") =>
     .trim();
 
 const includesAny = (text, terms) => terms.some((term) => text.includes(term));
-
 const WORD_BOUNDARY = (word) => new RegExp(`(^|\\s)${word}(?=\\s|$)`);
 
+const ROOT_SLUG_ICON_MAP = {
+  vozila: Car,
+  nekretnine: Building2,
+  "mobiteli-i-oprema": Smartphone,
+  "racunari-i-oprema": Laptop,
+  tehnika: Cpu,
+  "video-igre-i-konzole": Gamepad2,
+  "moj-dom": Sofa,
+  "muzika-i-audio-oprema": Headphones,
+  literatura: BookOpen,
+  "umjetnost-i-dekoracija": Paintbrush,
+  kolekcionarstvo: Gift,
+  antikviteti: Lamp,
+  "karte-i-ulaznice": Ticket,
+  "hrana-i-pice": UtensilsCrossed,
+  bebe: Baby,
+  "igre-i-igracke": Puzzle,
+  "moda-i-ljepota": Shirt,
+  "nakit-i-satovi": Gem,
+  "odjeca-i-obuca": Shirt,
+  "sport-i-rekreacija": Dumbbell,
+  "biznis-i-industrija": Factory,
+  zivotinje: Dog,
+  ostalo: Shapes,
+  "usluge-i-servisi": Wrench,
+};
+
 const pickCategoryIcon = (category) => {
+  const slug = normalize(category?.slug).replace(/\s+/g, "-");
+  if (slug && ROOT_SLUG_ICON_MAP[slug]) {
+    return ROOT_SLUG_ICON_MAP[slug];
+  }
+
   const text = normalize(
     [
       category?.search_name,
@@ -120,154 +140,170 @@ const pickCategoryIcon = (category) => {
       .join(" ")
   );
 
-  if (!text) return AcornIcon;
+  if (!text) return Shapes;
 
-  // Cooling appliances: "frizider" fallback with cooling icon.
-  if (includesAny(text, ["frizider", "hladnjak", "zamrzivac"])) return SnowflakeIcon;
+  if (includesAny(text, ["frizider", "hladnjak", "zamrzivac"])) return Snowflake;
 
-  // Vehicles
-  if (includesAny(text, ["motor", "motocikl", "skuter", "moped"])) return MotorcycleIcon;
-  if (includesAny(text, ["bicikl"])) return BicycleIcon;
-  if (includesAny(text, ["kamion", "prikolica", "teretn"])) return TruckIcon;
-  if (includesAny(text, ["autobus", "bus"])) return BusIcon;
-  if (includesAny(text, ["brod", "camac", "plov"])) return BoatIcon;
-  if (includesAny(text, ["avion", "let"])) return AirplaneIcon;
-  if (includesAny(text, ["auto", "automobil", "vozil"])) return CarProfileIcon;
+  if (includesAny(text, ["motor", "motocikl", "skuter", "moped"])) return Bike;
+  if (includesAny(text, ["bicikl"])) return Bike;
+  if (includesAny(text, ["kamion", "prikolica", "teretn"])) return Truck;
+  if (includesAny(text, ["autobus", "bus"])) return Bus;
+  if (includesAny(text, ["brod", "camac", "plov"])) return Ship;
+  if (includesAny(text, ["avion", "let"])) return Plane;
+  if (includesAny(text, ["auto", "automobil", "vozil"])) return Car;
 
-  // Real estate
   if (includesAny(text, ["nekretnin", "stan", "apartman", "kuca", "vikendic", "zemljis"])) {
-    return BuildingApartmentIcon;
+    return Building2;
   }
 
-  // Audio / media / games
-  if (includesAny(text, ["zvucnik", "soundbar", "audio", "hifi", "hi fi"])) return SpeakerHighIcon;
-  if (includesAny(text, ["mikrofon", "studio", "vokal"])) return MicrophoneStageIcon;
-  if (includesAny(text, ["slusalic", "headset", "earbud"])) return HeadphonesIcon;
+  if (includesAny(text, ["zvucnik", "soundbar", "audio", "hifi", "hi fi"])) return Volume2;
+  if (includesAny(text, ["mikrofon", "studio", "vokal"])) return Mic;
+  if (includesAny(text, ["slusalic", "headset", "earbud"])) return Headphones;
   if (includesAny(text, ["konzol", "playstation", "xbox", "nintendo", "video igra", "gaming"])) {
-    return GameControllerIcon;
+    return Gamepad2;
   }
-  if (includesAny(text, ["dzojstik", "joystick"])) return JoystickIcon;
-  if (includesAny(text, ["tv", "televizor", "televizija"])) return TelevisionSimpleIcon;
-  if (includesAny(text, ["kamera", "foto", "objektiv"])) return CameraIcon;
-  if (includesAny(text, ["film", "video produkcija", "videograf"])) return FilmSlateIcon;
-  if (includesAny(text, ["dron"])) return DroneIcon;
+  if (includesAny(text, ["tv", "televizor", "televizija"])) return Monitor;
+  if (includesAny(text, ["kamera", "foto", "objektiv"])) return Camera;
+  if (includesAny(text, ["film", "video produkcija", "videograf"])) return Film;
+  if (includesAny(text, ["dron"])) return Plane;
 
-  // Tech
-  if (includesAny(text, ["mobitel", "telefon", "smartfon", "iphone", "android"])) return DeviceMobileIcon;
-  if (includesAny(text, ["laptop", "racunar", "kompjuter", "notebook", "pc"])) return LaptopIcon;
-  if (includesAny(text, ["desktop", "monitor", "all in one"])) return DesktopTowerIcon;
-  if (includesAny(text, ["tastatur", "tipkovnic", "keyboard", "mis "])) return KeyboardIcon;
-  if (includesAny(text, ["hard disk", "ssd", "hdd", "storage"])) return HardDriveIcon;
-  if (includesAny(text, ["ram", "memorij"])) return MemoryIcon;
-  if (includesAny(text, ["procesor", "cpu"])) return CpuIcon;
-  if (includesAny(text, ["printer", "stampac", "skener"])) return PrinterIcon;
-  if (includesAny(text, ["kabal", "punjac", "adapter", "struja", "elektr"])) return PlugsConnectedIcon;
-  if (includesAny(text, ["baterij", "powerbank"])) return LightningIcon;
-  if (includesAny(text, ["robot"])) return RobotIcon;
+  if (includesAny(text, ["mobitel", "telefon", "smartfon", "iphone", "android"])) return Smartphone;
+  if (includesAny(text, ["laptop", "racunar", "kompjuter", "notebook", "pc"])) return Laptop;
+  if (includesAny(text, ["desktop", "monitor", "all in one"])) return Monitor;
+  if (includesAny(text, ["tastatur", "tipkovnic", "keyboard", "mis "])) return Keyboard;
+  if (includesAny(text, ["hard disk", "ssd", "hdd", "storage"])) return HardDrive;
+  if (includesAny(text, ["ram", "memorij"])) return MemoryStick;
+  if (includesAny(text, ["procesor", "cpu"])) return Cpu;
+  if (includesAny(text, ["printer", "stampac", "skener"])) return Printer;
+  if (includesAny(text, ["kabal", "punjac", "adapter", "struja", "elektr"])) return PlugZap;
+  if (includesAny(text, ["baterij", "powerbank"])) return BatteryCharging;
+  if (includesAny(text, ["robot"])) return Bot;
 
-  // Home
-  if (includesAny(text, ["namjestaj", "dnevni boravak", "kau", "sofa"])) return CouchIcon;
-  if (includesAny(text, ["stolic", "stolica"])) return ChairIcon;
-  if (includesAny(text, ["krevet", "madrac"])) return BedIcon;
-  if (includesAny(text, ["ormar", "komoda", "dresser"])) return DresserIcon;
-  if (includesAny(text, ["rasvjet", "lampa", "lust"])) return LampIcon;
-  if (includesAny(text, ["kupat", "kupaon", "kada"])) return BathtubIcon;
-  if (includesAny(text, ["toalet", "wc"])) return ToiletIcon;
-  if (includesAny(text, ["kuhinj", "posud"])) return CookingPotIcon;
-  if (includesAny(text, ["restoran", "hrana", "jela", "pribor"])) return ForkKnifeIcon;
-  if (includesAny(text, ["chef", "kuhar", "pecenje"])) return ChefHatIcon;
+  if (includesAny(text, ["namjestaj", "dnevni boravak", "kau", "sofa"])) return Sofa;
+  if (includesAny(text, ["stolic", "stolica"])) return Sofa;
+  if (includesAny(text, ["krevet", "madrac"])) return Bed;
+  if (includesAny(text, ["rasvjet", "lampa", "lust"])) return Lamp;
+  if (includesAny(text, ["kupat", "kupaon", "kada"])) return Bath;
+  if (includesAny(text, ["toalet", "wc"])) return Toilet;
+  if (includesAny(text, ["kuhinj", "posud"])) return CookingPot;
+  if (includesAny(text, ["restoran", "hrana", "jela", "pribor"])) return UtensilsCrossed;
+  if (includesAny(text, ["chef", "kuhar", "pecenje"])) return ChefHat;
 
-  // Fashion / accessories
-  if (includesAny(text, ["haljin"])) return DressIcon;
-  if (includesAny(text, ["pantalon", "trenerk", "hlace"])) return PantsIcon;
-  if (includesAny(text, ["patik", "cipe", "obuc"])) return SneakerIcon;
-  if (includesAny(text, ["odjec", "majic", "jakn", "kosulj"])) return ShirtFoldedIcon;
-  if (includesAny(text, ["torb", "tasn"])) return HandbagIcon;
-  if (includesAny(text, ["sat", "rucni sat"])) return WatchIcon;
-  if (includesAny(text, ["naocal", "sunce"])) return EyeglassesIcon;
-  if (includesAny(text, ["nakit", "zlat", "sreb", "prsten", "ogrlic"])) return DiamondIcon;
+  if (includesAny(text, ["haljin", "pantalon", "trenerk", "hlace", "patik", "cipe", "obuc", "odjec", "majic", "jakn", "kosulj", "torb", "tasn"])) return Shirt;
+  if (includesAny(text, ["sat", "rucni sat", "naocal", "sunce"])) return Gem;
+  if (includesAny(text, ["nakit", "zlat", "sreb", "prsten", "ogrlic"])) return Gem;
 
-  // Animals
-  if (WORD_BOUNDARY("pas").test(text) || includesAny(text, ["psi"])) return DogIcon;
-  if (WORD_BOUNDARY("macka").test(text) || includesAny(text, ["mace", "macak"])) return CatIcon;
-  if (includesAny(text, ["riba", "akvar"])) return FishIcon;
-  if (includesAny(text, ["ptic", "papag"])) return BirdIcon;
-  if (includesAny(text, ["konj"])) return HorseIcon;
-  if (includesAny(text, ["zivotinj", "ljubim"])) return PawPrintIcon;
+  if (WORD_BOUNDARY("pas").test(text) || includesAny(text, ["psi"])) return Dog;
+  if (WORD_BOUNDARY("macka").test(text) || includesAny(text, ["mace", "macak"])) return Cat;
+  if (includesAny(text, ["riba", "akvar"])) return Fish;
+  if (includesAny(text, ["ptic", "papag"])) return Bird;
+  if (includesAny(text, ["konj"])) return PawPrint;
+  if (includesAny(text, ["zivotinj", "ljubim"])) return PawPrint;
 
-  // Services / business
-  if (includesAny(text, ["uslug", "servis", "odrzavanje", "instalacija", "montaza"])) return ToolboxIcon;
-  if (includesAny(text, ["alat", "majstor", "radion"])) return WrenchIcon;
-  if (includesAny(text, ["farb", "boja", "moler"])) return PaintRollerIcon;
-  if (includesAny(text, ["trgov", "shop", "prodavn"])) return StorefrontIcon;
-  if (includesAny(text, ["posao", "karijer", "zaposl", "freelance"])) return BriefcaseIcon;
-  if (includesAny(text, ["fabrik", "proizvod"])) return FactoryIcon;
+  if (includesAny(text, ["uslug", "servis", "odrzavanje", "instalacija", "montaza"])) return Wrench;
+  if (includesAny(text, ["alat", "majstor", "radion"])) return Wrench;
+  if (includesAny(text, ["farb", "boja", "moler"])) return PaintRoller;
+  if (includesAny(text, ["trgov", "shop", "prodavn"])) return Store;
+  if (includesAny(text, ["posao", "karijer", "zaposl", "freelance"])) return Briefcase;
+  if (includesAny(text, ["fabrik", "proizvod"])) return Factory;
 
-  // Outdoor / agriculture
-  if (includesAny(text, ["traktor", "poljoprivred", "agro"])) return TractorIcon;
-  if (includesAny(text, ["farma"])) return FarmIcon;
-  if (includesAny(text, ["vrt", "saksij", "cvijec", "bilj"])) return PottedPlantIcon;
-  if (includesAny(text, ["drvo", "suma", "prirod"])) return LeafIcon;
-  if (includesAny(text, ["ventilator", "hladenje"])) return FanIcon;
+  if (includesAny(text, ["traktor", "poljoprivred", "agro"])) return Tractor;
+  if (includesAny(text, ["vrt", "saksij", "cvijec", "bilj"])) return Flower2;
+  if (includesAny(text, ["drvo", "suma", "prirod"])) return Leaf;
 
-  // Health / beauty
-  if (includesAny(text, ["doktor", "zdrav", "medic"])) return StethoscopeIcon;
-  if (includesAny(text, ["bolnic", "klinika"])) return HospitalIcon;
-  if (includesAny(text, ["lijek", "tablet", "vitamin", "suplement"])) return PillIcon;
-  if (includesAny(text, ["prva pomoc", "zavo"])) return FirstAidKitIcon;
-  if (includesAny(text, ["tetov", "injekc"])) return NeedleIcon;
-  if (includesAny(text, ["frizer", "salon", "brijac", "manikir", "pedikir"])) return ScissorsIcon;
+  if (includesAny(text, ["doktor", "zdrav", "medic"])) return Stethoscope;
+  if (includesAny(text, ["bolnic", "klinika"])) return Hospital;
+  if (includesAny(text, ["lijek", "tablet", "vitamin", "suplement"])) return Pill;
+  if (includesAny(text, ["prva pomoc", "zavo"])) return Cross;
+  if (includesAny(text, ["frizer", "salon", "brijac", "manikir", "pedikir"])) return Scissors;
 
-  // Education / books / hobbies
-  if (includesAny(text, ["knjig", "literatur", "strip", "udzbenik"])) return BooksIcon;
-  if (includesAny(text, ["edukacij", "skola", "fakultet", "kurs"])) return GraduationCapIcon;
-  if (includesAny(text, ["igrack", "slagalic", "puzzle"])) return PuzzlePieceIcon;
+  if (includesAny(text, ["knjig", "literatur", "strip", "udzbenik"])) return BookOpen;
+  if (includesAny(text, ["edukacij", "skola", "fakultet", "kurs"])) return GraduationCap;
+  if (includesAny(text, ["igrack", "slagalic", "puzzle"])) return Puzzle;
 
-  // Finance / sales
-  if (includesAny(text, ["novc", "kes", "cash"])) return MoneyIcon;
-  if (includesAny(text, ["coin", "kripto", "token"])) return CoinsIcon;
-  if (includesAny(text, ["kartic", "visa", "master"])) return CreditCardIcon;
-  if (includesAny(text, ["banka", "bank"])) return BankIcon;
-  if (includesAny(text, ["analitik", "statistik", "trend"])) return ChartLineIcon;
+  if (includesAny(text, ["novc", "kes", "cash"])) return Coins;
+  if (includesAny(text, ["coin", "kripto", "token"])) return Coins;
+  if (includesAny(text, ["kartic", "visa", "master"])) return CreditCard;
+  if (includesAny(text, ["analitik", "statistik", "trend"])) return TrendingUp;
 
-  // Comms / media / places
-  if (includesAny(text, ["telefonij", "poziv", "call centar"])) return PhoneCallIcon;
-  if (includesAny(text, ["mail", "email", "posta"])) return EnvelopeSimpleIcon;
-  if (includesAny(text, ["chat", "poruk"])) return ChatCircleIcon;
-  if (includesAny(text, ["oglasa", "reklam", "promoc"])) return MegaphoneIcon;
-  if (includesAny(text, ["notifik", "alarm", "obavijest"])) return BellIcon;
-  if (includesAny(text, ["lokacij", "adresa", "mapa"])) return MapPinIcon;
-  if (includesAny(text, ["putov", "turizam", "svijet"])) return GlobeIcon;
-  if (includesAny(text, ["kompas", "navig"])) return CompassIcon;
+  if (includesAny(text, ["telefonij", "poziv", "call centar"])) return PhoneCall;
+  if (includesAny(text, ["mail", "email", "posta"])) return Mail;
+  if (includesAny(text, ["chat", "poruk"])) return MessageCircle;
+  if (includesAny(text, ["oglasa", "reklam", "promoc"])) return Megaphone;
+  if (includesAny(text, ["notifik", "alarm", "obavijest"])) return Bell;
+  if (includesAny(text, ["lokacij", "adresa", "mapa"])) return MapPin;
+  if (includesAny(text, ["putov", "turizam", "svijet"])) return Globe;
+  if (includesAny(text, ["kompas", "navig"])) return Compass;
 
-  // Generic commerce
-  if (includesAny(text, ["karta", "ulaznic", "ticket"])) return TicketIcon;
-  if (includesAny(text, ["poklon", "gift"])) return GiftIcon;
-  if (includesAny(text, ["paket", "pakovanje", "dostav"])) return PackageIcon;
-  if (includesAny(text, ["sport", "fitness", "trening", "rekre"])) return BarbellIcon;
-  if (includesAny(text, ["dom", "kucanstvo"])) return HouseSimpleIcon;
+  if (includesAny(text, ["karta", "ulaznic", "ticket"])) return Ticket;
+  if (includesAny(text, ["poklon", "gift"])) return Gift;
+  if (includesAny(text, ["paket", "pakovanje", "dostav"])) return Package;
+  if (includesAny(text, ["sport", "fitness", "trening", "rekre"])) return Dumbbell;
+  if (includesAny(text, ["dom", "kucanstvo"])) return House;
 
-  return AcornIcon;
+  return Shapes;
 };
 
-const CategorySemanticIcon = ({ category, className = "w-6 h-6" }) => {
+const CategorySemanticIcon = ({
+  category,
+  className = "w-6 h-6",
+  preferBackendImage = true,
+}) => {
   const Icon = pickCategoryIcon(category);
+  const categoryLabel =
+    category?.translated_name ||
+    category?.name ||
+    category?.search_name ||
+    "Kategorija";
+
+  const backendImageSrc = useMemo(() => {
+    if (!preferBackendImage) return "";
+    const normalized = normalizeLegacyImageUrl(category?.image);
+    if (!normalized) return "";
+    return withCategoryImageVersion(normalized, category);
+  }, [
+    preferBackendImage,
+    category?.image,
+    category?.updated_at,
+    category?.image_updated_at,
+    category?.image_updated_at_timestamp,
+    category?.image_version,
+  ]);
+
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [backendImageSrc]);
+
+  const shouldRenderBackendImage = Boolean(backendImageSrc) && !imageFailed;
 
   return (
-    <span className={`relative inline-flex items-center justify-center ${className}`} aria-hidden="true">
-      <Icon
-        weight="duotone"
-        color={SECONDARY_FILL}
-        className="absolute inset-0 h-full w-full"
-      />
-      <Icon
-        weight="regular"
-        color={PRIMARY_FILL}
-        className="h-full w-full"
-      />
+    <span
+      className={`relative inline-flex items-center justify-center ${className}`}
+      aria-label={categoryLabel}
+      title={categoryLabel}
+      role="img"
+    >
+      {shouldRenderBackendImage ? (
+        <NextImage
+          src={backendImageSrc}
+          alt={categoryLabel}
+          fill
+          sizes="48px"
+          className="h-full w-full object-contain"
+          onError={() => setImageFailed(true)}
+          unoptimized
+        />
+      ) : (
+        <Icon
+          className="h-full w-full"
+          color="var(--lmx-icon-duotone-line)"
+          strokeWidth={1.9}
+        />
+      )}
     </span>
   );
 };
 
 export default CategorySemanticIcon;
-

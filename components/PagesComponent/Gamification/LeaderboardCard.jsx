@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Flame, BarChart3, Video, Store, ShoppingBag } from "lucide-react";
+import { Flame, BarChart3, Video, Store, ShoppingBag } from "@/components/Common/UnifiedIconPack";
 
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { cn } from "@/lib/utils";

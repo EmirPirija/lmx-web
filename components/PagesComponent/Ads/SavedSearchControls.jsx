@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 
 import { useNavigate } from "@/components/Common/useNavigate";
 import { useSavedSearches } from "@/hooks/useSavedSearches";
@@ -15,7 +16,6 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 
@@ -23,7 +23,6 @@ import {
   IconBookmark,
   IconBookmarkFilled,
   IconChevronDown,
-  IconStar,
   IconStarFilled,
   IconSettings,
   IconExternalLink,
@@ -33,7 +32,7 @@ import {
   IconEdit,
   IconSearch,
   IconSparkles,
-} from "@tabler/icons-react";
+} from "@/components/Common/UnifiedIconPack";
 
 // ═══════════════════════════════════════════════════════════════════
 // HOOK: Click outside detection
@@ -127,12 +126,12 @@ const DesktopDropdown = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="absolute top-full left-0 mt-2 w-[340px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50"
+          className="absolute top-full left-0 z-[82] mt-2 w-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-900/15 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-black/40"
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <IconBookmark size={18} className="text-[#1A4B8C]" />
+          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
+            <h3 className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
+              <IconBookmark size={18} className="text-primary" />
               Sačuvane pretrage
             </h3>
           </div>
@@ -141,15 +140,15 @@ const DesktopDropdown = ({
           <div className="max-h-[320px] overflow-y-auto">
             {isLoading ? (
               <div className="p-4 space-y-2">
-                <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
-                <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="h-12 rounded-xl bg-slate-100 animate-pulse dark:bg-slate-800" />
+                <div className="h-12 rounded-xl bg-slate-100 animate-pulse dark:bg-slate-800" />
               </div>
             ) : savedSearches.length === 0 ? (
               <div className="p-6 text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-[#1A4B8C]/10 to-[#00A19B]/10 flex items-center justify-center">
-                  <IconSparkles size={24} className="text-[#1A4B8C]" />
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
+                  <IconSparkles size={24} className="text-primary" />
                 </div>
-                <p className="text-sm text-gray-500">Nemaš sačuvanih pretraga</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Nemaš sačuvanih pretraga</p>
               </div>
             ) : (
               <div className="p-2">
@@ -167,15 +166,15 @@ const DesktopDropdown = ({
                       className={`
                         w-full text-left p-3 rounded-xl transition-all duration-150 group
                         ${isActive
-                          ? "bg-gradient-to-r from-[#1A4B8C]/10 to-[#00A19B]/10 border-2 border-[#1A4B8C]/30"
-                          : "hover:bg-gray-50 border-2 border-transparent"
+                          ? "border-2 border-primary/30 bg-primary/10 dark:border-primary/40 dark:bg-primary/20"
+                          : "border-2 border-transparent hover:border-slate-200 hover:bg-slate-100/80 dark:hover:border-slate-700 dark:hover:bg-slate-800/80"
                         }
                       `}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="font-medium text-gray-900 truncate flex items-center gap-2">
+                        <span className="flex items-center gap-2 truncate font-medium text-slate-900 dark:text-slate-100">
                           {isActive && (
-                            <span className="w-5 h-5 rounded-full bg-[#1A4B8C] flex items-center justify-center">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
                               <IconCheck size={12} className="text-white" strokeWidth={3} />
                             </span>
                           )}
@@ -183,7 +182,7 @@ const DesktopDropdown = ({
                         </span>
                         <IconExternalLink
                           size={16}
-                          className="text-gray-400 group-hover:text-[#1A4B8C] transition-colors shrink-0"
+                          className="shrink-0 text-slate-400 transition-colors group-hover:text-primary dark:text-slate-500 dark:group-hover:text-primary"
                         />
                       </div>
 
@@ -192,13 +191,13 @@ const DesktopDropdown = ({
                           {pairs.slice(0, 3).map((p, idx) => (
                             <span
                               key={`${p.key}-${idx}`}
-                              className="inline-flex text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full"
+                              className="inline-flex rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                             >
                               {p.key}: {p.value.slice(0, 15)}{p.value.length > 15 ? "..." : ""}
                             </span>
                           ))}
                           {pairs.length > 3 && (
-                            <span className="text-[10px] text-[#F7941D] font-medium">
+                            <span className="text-[10px] font-medium text-primary">
                               +{pairs.length - 3}
                             </span>
                           )}
@@ -212,14 +211,14 @@ const DesktopDropdown = ({
           </div>
 
           {/* Footer actions */}
-          <div className="p-2 border-t border-gray-100 bg-gray-50 space-y-1">
+          <div className="space-y-1 border-t border-slate-100 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/90">
             {hasAnyRealParams && !alreadySaved && (
               <button
                 onClick={() => {
                   onSaveClick();
                   onClose();
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-[#F7941D] hover:bg-[#F7941D]/10 transition-colors"
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
               >
                 <IconStarFilled size={16} />
                 Sačuvaj trenutnu pretragu
@@ -230,7 +229,7 @@ const DesktopDropdown = ({
                 onManageClick();
                 onClose();
               }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <IconSettings size={16} />
               Upravljaj pretragama
@@ -247,6 +246,19 @@ const DesktopDropdown = ({
 // ═══════════════════════════════════════════════════════════════════
 
 const BottomSheet = ({ isOpen, onClose, title, children }) => {
+  const [isClient, setIsClient] = useState(false);
+  const openedAtRef = useRef(0);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    openedAtRef.current =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -258,7 +270,15 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
     };
   }, [isOpen]);
 
-  return (
+  if (!isClient) return null;
+
+  const handleBackdropClick = () => {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (now - openedAtRef.current < 220) return;
+    onClose();
+  };
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -267,9 +287,9 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 md:hidden"
-            onClick={onClose}
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 z-[94] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
+            onClick={handleBackdropClick}
           />
 
           {/* Sheet */}
@@ -277,35 +297,41 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
+            transition={{ type: "spring", damping: 31, stiffness: 320, mass: 0.92 }}
+            className="fixed bottom-0 left-0 right-0 z-[95] md:hidden"
+            onClick={(event) => event.stopPropagation()}
           >
-            <div className="bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col">
+            <div className="flex max-h-[88vh] flex-col rounded-t-[1.75rem] border border-slate-200 bg-white/95 shadow-2xl shadow-slate-900/20 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-black/45">
               {/* Handle */}
               <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
               </div>
 
               {/* Header */}
-              <div className="flex items-center justify-between px-5 pb-3 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+              <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 pb-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 -mr-2 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                  className="-mr-2 rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 active:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800"
+                  aria-label="Zatvori modal"
                 >
-                  <IconX size={20} className="text-gray-500" />
+                  <IconX size={20} />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+              <div
+                className="flex-1 overflow-y-auto overscroll-contain px-5 py-4"
+                style={{ paddingBottom: "max(env(safe-area-inset-bottom), 1rem)" }}
+              >
                 {children}
               </div>
             </div>
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
@@ -348,15 +374,15 @@ const SearchCard = ({
       className={`
         relative rounded-2xl border-2 p-4 transition-all duration-200
         ${isActive 
-          ? "border-[#1A4B8C] bg-gradient-to-br from-[#1A4B8C]/5 to-[#00A19B]/5 shadow-lg shadow-[#1A4B8C]/10" 
-          : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-md"
+          ? "border-primary/35 bg-primary/10 shadow-lg shadow-slate-900/10 dark:border-primary/40 dark:bg-primary/20 dark:shadow-black/25" 
+          : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
         }
       `}
     >
       {/* Active indicator */}
       {isActive && (
         <div className="absolute -top-1 -right-1">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1A4B8C] text-white shadow-lg">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow-lg">
             <IconCheck size={12} strokeWidth={3} />
           </span>
         </div>
@@ -375,44 +401,44 @@ const SearchCard = ({
             />
             <button
               onClick={handleSaveRename}
-              className="p-2 rounded-xl bg-[#00A19B] text-white hover:bg-[#00A19B]/90 transition-colors"
+              className="rounded-xl bg-primary p-2 text-white transition-colors hover:bg-primary/90"
             >
               <IconCheck size={16} />
             </button>
-            <button
-              onClick={() => {
-                setIsEditing(false);
-                setEditValue(search.name || "");
-              }}
-              className="p-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-            >
-              <IconX size={16} />
-            </button>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditValue(search.name || "");
+                }}
+              className="rounded-xl bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <IconX size={16} />
+              </button>
           </div>
         ) : (
           <>
             <div className="flex items-center gap-2 min-w-0">
-              <div className={`p-1.5 rounded-lg ${isActive ? "bg-[#1A4B8C]/10" : "bg-gray-100"}`}>
+              <div className={`rounded-lg p-1.5 ${isActive ? "bg-primary/15 dark:bg-primary/25" : "bg-slate-100 dark:bg-slate-800"}`}>
                 {isActive ? (
-                  <IconBookmarkFilled size={16} className="text-[#1A4B8C]" />
+                  <IconBookmarkFilled size={16} className="text-primary" />
                 ) : (
-                  <IconBookmark size={16} className="text-gray-500" />
+                  <IconBookmark size={16} className="text-slate-500 dark:text-slate-400" />
                 )}
               </div>
-              <h3 className="font-semibold text-gray-900 truncate">{search.name}</h3>
+              <h3 className="truncate font-semibold text-slate-900 dark:text-slate-100">{search.name}</h3>
             </div>
 
             {isManageMode && (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="p-2 rounded-xl text-gray-400 hover:text-[#1A4B8C] hover:bg-[#1A4B8C]/10 transition-all"
+                  className="rounded-xl p-2 text-slate-400 transition-all hover:bg-primary/10 hover:text-primary dark:text-slate-500"
                 >
                   <IconEdit size={16} />
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                  className="rounded-xl p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500 dark:text-slate-500 dark:hover:bg-red-950/30 dark:hover:text-red-300"
                 >
                   <IconTrash size={16} />
                 </button>
@@ -424,7 +450,7 @@ const SearchCard = ({
 
       {/* Tags */}
       {pairs.length === 0 ? (
-        <div className="text-xs text-gray-500 bg-gray-50 rounded-xl px-3 py-2">
+        <div className="rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
           /ads (bez filtera)
         </div>
       ) : (
@@ -433,14 +459,14 @@ const SearchCard = ({
             <span
               key={`${p.key}-${p.value}-${idx}`}
               title={`${p.key}: ${p.value}`}
-              className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-[11px]"
+              className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] dark:bg-slate-800"
             >
-              <span className="font-semibold text-gray-700">{p.key}:</span>
-              <span className="truncate max-w-[100px] text-gray-500">{p.value}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200">{p.key}:</span>
+              <span className="truncate max-w-[100px] text-slate-500 dark:text-slate-400">{p.value}</span>
             </span>
           ))}
           {pairs.length > 4 && (
-            <span className="inline-flex items-center rounded-full bg-[#F7941D]/10 text-[#F7941D] px-2.5 py-1 text-[11px] font-medium">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
               +{pairs.length - 4}
             </span>
           )}
@@ -454,8 +480,8 @@ const SearchCard = ({
           className={`
             mt-3 w-full py-2.5 rounded-xl text-sm font-medium transition-all duration-200
             ${isActive 
-              ? "bg-[#1A4B8C] text-white shadow-lg shadow-[#1A4B8C]/20 hover:shadow-xl hover:shadow-[#1A4B8C]/30" 
-              : "bg-gray-100 text-gray-700 hover:bg-[#1A4B8C] hover:text-white"
+              ? "bg-primary text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35" 
+              : "bg-slate-100 text-slate-700 hover:bg-primary hover:text-white dark:bg-slate-800 dark:text-slate-300"
             }
           `}
         >
@@ -467,7 +493,7 @@ const SearchCard = ({
       {isManageMode && !isEditing && (
         <button
           onClick={() => onApply(search.id)}
-          className="mt-3 w-full py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-[#1A4B8C] to-[#00A19B] text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-medium text-white shadow-lg shadow-primary/20 transition-all duration-200 hover:bg-primary/90 hover:shadow-xl"
         >
           <IconExternalLink size={16} />
           Otvori pretragu
@@ -482,14 +508,14 @@ const SearchCard = ({
 // ═══════════════════════════════════════════════════════════════════
 
 const SkeletonCard = () => (
-  <div className="rounded-2xl border-2 border-gray-100 p-4 animate-pulse">
+  <div className="animate-pulse rounded-2xl border-2 border-slate-200 p-4 dark:border-slate-700">
     <div className="flex items-center gap-2 mb-3">
-      <div className="w-8 h-8 bg-gray-200 rounded-lg" />
-      <div className="h-5 w-32 bg-gray-200 rounded-lg" />
+      <div className="h-8 w-8 rounded-lg bg-slate-200 dark:bg-slate-700" />
+      <div className="h-5 w-32 rounded-lg bg-slate-200 dark:bg-slate-700" />
     </div>
     <div className="flex gap-1.5">
-      <div className="h-6 w-20 bg-gray-100 rounded-full" />
-      <div className="h-6 w-24 bg-gray-100 rounded-full" />
+      <div className="h-6 w-20 rounded-full bg-slate-100 dark:bg-slate-800" />
+      <div className="h-6 w-24 rounded-full bg-slate-100 dark:bg-slate-800" />
     </div>
   </div>
 );
@@ -500,19 +526,19 @@ const SkeletonCard = () => (
 
 const EmptyState = ({ onSave, canSave }) => (
   <div className="text-center py-8">
-    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#1A4B8C]/10 to-[#00A19B]/10 flex items-center justify-center">
-      <IconSparkles size={28} className="text-[#1A4B8C]" />
+    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
+      <IconSparkles size={28} className="text-primary" />
     </div>
-    <h3 className="text-base font-semibold text-gray-900 mb-1">
+    <h3 className="mb-1 text-base font-semibold text-slate-900 dark:text-slate-100">
       Nemaš sačuvanih pretraga
     </h3>
-    <p className="text-sm text-gray-500 mb-4 max-w-[250px] mx-auto">
+    <p className="mx-auto mb-4 max-w-[250px] text-sm text-slate-500 dark:text-slate-400">
       Sačuvaj filtere koje koristiš često da brže pronađeš oglase
     </p>
     {canSave && (
       <button
         onClick={onSave}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#1A4B8C] to-[#00A19B] text-white text-sm font-medium shadow-lg hover:shadow-xl transition-all"
+        className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl"
       >
         <IconStarFilled size={16} />
         Sačuvaj trenutnu
@@ -525,7 +551,11 @@ const EmptyState = ({ onSave, canSave }) => (
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════
 
-export default function SavedSearchControls() {
+export default function SavedSearchControls({
+  iconOnly = false,
+  openSignal = 0,
+  onMobileSheetOpenChange,
+}) {
   const searchParams = useSearchParams();
   const { navigate } = useNavigate();
 
@@ -544,6 +574,7 @@ export default function SavedSearchControls() {
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [naziv, setNaziv] = useState("");
   const triggerRef = useRef(null);
+  const lastOpenSignalRef = useRef(openSignal);
 
   const currentQueryString = useMemo(
     () => normalizeQueryString(searchParams),
@@ -635,6 +666,18 @@ export default function SavedSearchControls() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  useEffect(() => {
+    if (!onMobileSheetOpenChange) return;
+    onMobileSheetOpenChange(isMobile ? isSheetOpen : false);
+  }, [isMobile, isSheetOpen, onMobileSheetOpenChange]);
+
+  useEffect(
+    () => () => {
+      onMobileSheetOpenChange?.(false);
+    },
+    [onMobileSheetOpenChange]
+  );
+
   const handleTriggerClick = () => {
     if (isMobile) {
       setIsSheetOpen(true);
@@ -642,6 +685,15 @@ export default function SavedSearchControls() {
       setIsDropdownOpen((prev) => !prev);
     }
   };
+
+  useEffect(() => {
+    if (!openSignal || openSignal === lastOpenSignalRef.current) return;
+
+    if (isMobile) setIsSheetOpen(true);
+    else setIsDropdownOpen(true);
+
+    lastOpenSignalRef.current = openSignal;
+  }, [openSignal, isMobile]);
 
   return (
     <>
@@ -652,46 +704,63 @@ export default function SavedSearchControls() {
         <button
           onClick={handleTriggerClick}
           className={`
-            group relative h-11 w-full sm:w-auto sm:min-w-[220px] px-4
-            flex items-center justify-between gap-3
-            rounded-xl border-2 transition-all duration-200
-            ${currentSaved
-              ? "border-[#1A4B8C] bg-gradient-to-r from-[#1A4B8C]/5 to-[#00A19B]/5"
-              : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md"
+            group relative transition-all duration-200
+            ${
+              iconOnly
+                ? `grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/80 p-1 transition-all duration-200 hover:scale-105 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/75 dark:hover:bg-slate-800
+                   ${currentSaved
+                     ? "border-primary/45 bg-primary/10 text-primary dark:border-primary/50 dark:bg-primary/20 dark:text-primary"
+                     : "text-slate-600 dark:text-slate-300"}`
+                : `h-11 w-full sm:w-auto sm:min-w-[220px] px-4 flex items-center justify-between gap-3 rounded-xl border-2
+                   ${currentSaved
+                     ? "border-primary/40 bg-primary/10"
+                     : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"}`
             }
           `}
+          aria-label="Sačuvane pretrage"
+          title="Sačuvane pretrage"
         >
-          <span className="flex items-center gap-2.5 min-w-0">
-            <span
-              className={`
-                p-1.5 rounded-lg transition-colors
-                ${currentSaved ? "bg-[#1A4B8C]/10" : "bg-gray-100 group-hover:bg-gray-200"}
-              `}
-            >
-              {currentSaved ? (
-                <IconBookmarkFilled size={16} className="text-[#1A4B8C]" />
-              ) : (
-                <IconBookmark size={16} className="text-gray-500" />
-              )}
-            </span>
-            <span className="truncate text-sm font-medium text-gray-900">
-              {isLoading
-                ? "Učitavam..."
-                : currentSaved?.name || "Sačuvane pretrage"}
-            </span>
-          </span>
+          {iconOnly ? (
+            currentSaved ? (
+              <IconBookmarkFilled size={18} className="text-primary" />
+            ) : (
+              <IconBookmark size={18} className="text-slate-600" />
+            )
+          ) : (
+            <>
+              <span className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className={`
+                    p-1.5 rounded-lg transition-colors
+                    ${currentSaved ? "bg-primary/10 dark:bg-primary/20" : "bg-slate-100 group-hover:bg-slate-200 dark:bg-slate-800 dark:group-hover:bg-slate-700"}
+                  `}
+                >
+                  {currentSaved ? (
+                    <IconBookmarkFilled size={16} className="text-primary" />
+                  ) : (
+                    <IconBookmark size={16} className="text-slate-500 dark:text-slate-400" />
+                  )}
+                </span>
+                <span className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {isLoading
+                    ? "Učitavam..."
+                    : currentSaved?.name || "Sačuvane pretrage"}
+                </span>
+              </span>
 
-          <IconChevronDown
-            size={18}
-            className={`
-              text-gray-400 transition-transform duration-200
-              ${isSheetOpen || isDropdownOpen ? "rotate-180" : ""}
-            `}
-          />
+              <IconChevronDown
+                size={18}
+                className={`
+                  text-slate-400 transition-transform duration-200 dark:text-slate-500
+                  ${isSheetOpen || isDropdownOpen ? "rotate-180" : ""}
+                `}
+              />
+            </>
+          )}
 
           {/* Badge for saved count */}
           {!isLoading && savedSearches.length > 0 && !currentSaved && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-[#F7941D] text-white text-[10px] font-bold shadow-lg">
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white shadow-lg">
               {savedSearches.length}
             </span>
           )}
@@ -753,14 +822,14 @@ export default function SavedSearchControls() {
         </div>
 
         {/* Bottom actions */}
-        <div className="mt-6 pt-4 border-t border-gray-100 space-y-2">
+        <div className="mt-6 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
           {hasAnyRealParams && !alreadySaved && (
             <button
               onClick={() => {
                 setIsSheetOpen(false);
                 setIsSaveOpen(true);
               }}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#F7941D] to-[#F7941D]/80 text-white font-medium flex items-center justify-center gap-2 shadow-lg shadow-[#F7941D]/20"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-medium text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30"
             >
               <IconStarFilled size={18} />
               Sačuvaj trenutnu pretragu
@@ -772,7 +841,7 @@ export default function SavedSearchControls() {
               setIsSheetOpen(false);
               setIsManageOpen(true);
             }}
-            className="w-full py-3 rounded-xl bg-gray-100 text-gray-700 font-medium flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 py-3 font-medium text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             <IconSettings size={18} />
             Upravljaj pretragama
@@ -784,14 +853,14 @@ export default function SavedSearchControls() {
           SAVE DIALOG
           ═══════════════════════════════════════════════════════════════ */}
       <Dialog open={isSaveOpen} onOpenChange={setIsSaveOpen}>
-        <DialogContent className="sm:max-w-[480px] rounded-2xl p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[480px] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-0 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
           {/* Header with gradient */}
-          <div className="bg-gradient-to-r from-[#1A4B8C] to-[#00A19B] px-6 py-5">
-            <DialogTitle className="text-white text-lg font-semibold flex items-center gap-2">
-              <IconStarFilled size={20} />
+          <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5 dark:from-slate-900 dark:to-slate-900/90">
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <IconStarFilled size={20} className="text-primary" />
               Sačuvaj pretragu
             </DialogTitle>
-            <p className="text-white/80 text-sm mt-1">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Brzo pristupi omiljenim filterima
             </p>
           </div>
@@ -799,35 +868,35 @@ export default function SavedSearchControls() {
           <div className="p-6 space-y-4">
             {/* Name input */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Naziv pretrage
               </label>
               <Input
                 value={naziv}
                 onChange={(e) => setNaziv(e.target.value)}
                 placeholder="npr. Stanovi do 250000 KM u Sarajevu"
-                className="h-12 rounded-xl border-2 border-gray-200 focus:border-[#1A4B8C] focus:ring-[#1A4B8C]/20"
+                className="h-12 rounded-xl border-2 border-slate-200 focus:border-primary focus:ring-primary/20 dark:border-slate-700"
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
               />
             </div>
 
             {/* Current filters preview */}
-            <div className="rounded-xl bg-gray-50 border border-gray-200 p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/70">
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                 <IconSearch size={16} />
                 Aktivni filteri
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {formatSavedSearchQuery(currentQueryString).length === 0 ? (
-                  <span className="text-sm text-gray-500">(bez filtera)</span>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">(bez filtera)</span>
                 ) : (
                   formatSavedSearchQuery(currentQueryString).map((p, idx) => (
                     <span
                       key={`${p.key}-${idx}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-900"
                     >
-                      <span className="font-semibold text-gray-700">{p.key}:</span>
-                      <span className="text-gray-500 truncate max-w-[120px]">
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">{p.key}:</span>
+                      <span className="max-w-[120px] truncate text-slate-500 dark:text-slate-400">
                         {p.value}
                       </span>
                     </span>
@@ -847,7 +916,7 @@ export default function SavedSearchControls() {
             </Button>
             <Button
               onClick={handleSave}
-              className="h-11 rounded-xl bg-gradient-to-r from-[#1A4B8C] to-[#00A19B] hover:opacity-90 transition-opacity"
+              className="h-11 rounded-xl bg-primary transition-colors hover:bg-primary/90"
             >
               <IconCheck size={18} className="mr-2" />
               Sačuvaj
@@ -860,14 +929,14 @@ export default function SavedSearchControls() {
           MANAGE DIALOG
           ═══════════════════════════════════════════════════════════════ */}
       <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] rounded-2xl p-0 overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-0 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#1A4B8C] to-[#00A19B] px-6 py-5 shrink-0">
-            <DialogTitle className="text-white text-lg font-semibold flex items-center gap-2">
-              <IconSettings size={20} />
+          <div className="shrink-0 bg-gradient-to-r from-slate-50 to-white px-6 py-5 dark:from-slate-900 dark:to-slate-900/90">
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <IconSettings size={20} className="text-primary" />
               Upravljaj pretragama
             </DialogTitle>
-            <p className="text-white/80 text-sm mt-1">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {savedSearches.length} sačuvan{savedSearches.length === 1 ? "a" : "e"} pretrag
               {savedSearches.length === 1 ? "a" : "e"}
             </p>
@@ -909,7 +978,7 @@ export default function SavedSearchControls() {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 shrink-0">
+          <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between gap-3">
               {hasAnyRealParams && !alreadySaved && (
                 <Button
@@ -917,7 +986,7 @@ export default function SavedSearchControls() {
                     setIsManageOpen(false);
                     setIsSaveOpen(true);
                   }}
-                  className="h-11 rounded-xl bg-[#F7941D] hover:bg-[#F7941D]/90"
+                  className="h-11 rounded-xl bg-primary hover:bg-primary/90"
                 >
                   <IconStarFilled size={16} className="mr-2" />
                   Sačuvaj trenutnu

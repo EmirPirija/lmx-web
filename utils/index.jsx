@@ -1,5 +1,5 @@
 "use client";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { store } from "../redux/store";
 import enTranslation from "./locale/en.json";
 import { generateKeywords } from "./generateKeywords";

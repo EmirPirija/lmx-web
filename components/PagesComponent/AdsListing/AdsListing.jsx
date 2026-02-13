@@ -17,7 +17,7 @@ import {
   formatPriceAbbreviated,
   isValidURL,
 } from "@/utils";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import ComponentThree from "./ComponentThree";
 import ComponentFour from "./ComponentFour";
 import ComponentFive from "./ComponentFive";
@@ -47,8 +47,8 @@ import {
   Images,
   Loader2,
   Sparkles,
-} from "lucide-react";
-import { IconRosetteDiscount } from "@tabler/icons-react";
+} from "@/components/Common/UnifiedIconPack";
+import { IconRosetteDiscount } from "@/components/Common/UnifiedIconPack";
 
 // =======================================================
 // MEDIA HELPERS (client-side)
@@ -230,6 +230,7 @@ const AdsListing = () => {
   });
 
   const [customFields, setCustomFields] = useState([]);
+  const [isCustomFieldsLoading, setIsCustomFieldsLoading] = useState(false);
   const [filePreviews, setFilePreviews] = useState({});
   const [uploadedImages, setUploadedImages] = useState([]);
   const [otherImages, setOtherImages] = useState([]);
@@ -241,6 +242,8 @@ const AdsListing = () => {
   const uploadedImagesRef = useRef(uploadedImages);
   const otherImagesRef = useRef(otherImages);
   const uploadedVideoRef = useRef(uploadedVideo);
+  const stepRailRef = useRef(null);
+  const stepNodeRefs = useRef([]);
 
   useEffect(() => {
     uploadedImagesRef.current = uploadedImages;
@@ -262,6 +265,7 @@ const AdsListing = () => {
   const [openSuccessModal, setOpenSuccessModal] = useState(false);
   const [createdAdSlug, setCreatedAdSlug] = useState("");
   const [recentCategories, setRecentCategories] = useState([]);
+  const [stepRailFill, setStepRailFill] = useState({ left: 0, width: 0 });
 
   const [allCategoriesTree, setAllCategoriesTree] = useState([]);
 
@@ -516,37 +520,30 @@ const AdsListing = () => {
     }
   }, [step, lastItemId, CurrentLanguage?.id, handleFetchCategories, preloadAllRootCategories]);
   
-  useEffect(() => {
-    if (step !== 1 && allCategoryIdsString) {
-      getCustomFieldsData();
+  const getCustomFieldsData = useCallback(async () => {
+    if (!allCategoryIdsString) {
+      setCustomFields([]);
+      setIsCustomFieldsLoading(false);
+      return;
     }
-  }, [allCategoryIdsString, CurrentLanguage?.id]);
 
-  useEffect(() => {
-    if (categoryPath.length > 0) {
-      const lastCategoryId = categoryPath[categoryPath.length - 1]?.id;
-      if (lastCategoryId) {
-        getParentCategoriesApi
-          .getPaymentCategories({ child_category_id: lastCategoryId })
-          .then((res) => {
-            const updatedPath = res?.data?.data;
-            if (updatedPath?.length > 0) setCategoryPath(updatedPath);
-          })
-          .catch((err) => console.log("Error updating category path:", err));
-      }
-    }
-  }, [CurrentLanguage?.id]);
-
-  const getCustomFieldsData = async () => {
+    setIsCustomFieldsLoading(true);
     try {
-      const res = await getCustomFieldsApi.getCustomFields({ category_ids: allCategoryIdsString });
-      const data = res?.data?.data;
-      setCustomFields(data);
+      const res = await getCustomFieldsApi.getCustomFields({
+        category_ids: allCategoryIdsString,
+      });
+      const normalizedFields = Array.isArray(res?.data?.data) ? res.data.data : [];
+      setCustomFields(normalizedFields);
 
       const initializedDetails = {};
-      languages.forEach((lang) => {
+      const languagePool =
+        Array.isArray(languages) && languages.length > 0
+          ? languages.filter((lang) => lang?.id)
+          : [{ id: defaultLangId || CurrentLanguage?.id }].filter((lang) => lang?.id);
+
+      languagePool.forEach((lang) => {
         const langFields = {};
-        data.forEach((item) => {
+        normalizedFields.forEach((item) => {
           if (lang.id !== defaultLangId && item.type !== "textbox") return;
           let initialValue = "";
           switch (item.type) {
@@ -565,17 +562,60 @@ const AdsListing = () => {
         });
         initializedDetails[lang.id] = langFields;
       });
+
+      if (defaultLangId && !initializedDetails[defaultLangId]) {
+        initializedDetails[defaultLangId] = {};
+      }
+
       setExtraDetails(initializedDetails);
     } catch (error) {
       console.log(error);
+      setCustomFields([]);
+      if (defaultLangId) {
+        setExtraDetails({ [defaultLangId]: {} });
+      }
+    } finally {
+      setIsCustomFieldsLoading(false);
     }
-  };
+  }, [CurrentLanguage?.id, allCategoryIdsString, defaultLangId, languages]);
+
+  useEffect(() => {
+    if (step !== 1 && allCategoryIdsString) {
+      getCustomFieldsData();
+      return;
+    }
+    if (step === 1) {
+      setIsCustomFieldsLoading(false);
+    }
+  }, [allCategoryIdsString, getCustomFieldsData, step]);
+
+  useEffect(() => {
+    if (categoryPath.length > 0) {
+      const lastCategoryId = categoryPath[categoryPath.length - 1]?.id;
+      if (lastCategoryId) {
+        getParentCategoriesApi
+          .getPaymentCategories({ child_category_id: lastCategoryId })
+          .then((res) => {
+            const updatedPath = res?.data?.data;
+            if (updatedPath?.length > 0) setCategoryPath(updatedPath);
+          })
+          .catch((err) => console.log("Error updating category path:", err));
+      }
+    }
+  }, [CurrentLanguage?.id]);
 
   const handleCategoryTabClick = async (category) => {
     setCategoryPath((prevPath) => [...prevPath, category]);
     saveRecentCategory(category);
 
     if (!(category?.subcategories_count > 0)) {
+      setIsCustomFieldsLoading(true);
+      setCustomFields([]);
+      if (defaultLangId) {
+        setExtraDetails({ [defaultLangId]: {} });
+      } else {
+        setExtraDetails({});
+      }
       setStep(2);
       setDisabledTab({
         categoryTab: true,
@@ -609,6 +649,7 @@ const AdsListing = () => {
 
   const handleSelectedTabClick = (id) => {
     setCustomFields([]);
+    setIsCustomFieldsLoading(false);
     setLangId(defaultLangId);
     setTranslations({
       [defaultLangId]: {
@@ -646,6 +687,10 @@ const AdsListing = () => {
   };
 
   const handleDetailsSubmit = () => {
+    if (isCustomFieldsLoading) {
+      toast.info("Pripremamo dodatna polja. Sačekajte trenutak.");
+      return;
+    }
     if (customFields?.length === 0) setStep(4);
     else setStep(3);
   };
@@ -813,23 +858,65 @@ const AdsListing = () => {
     }
   };
 
-  const handleGoBack = () => {
-    setStep((prev) => {
-      if (customFields.length === 0 && step === 4) return prev - 2;
-      return prev - 1;
-    });
-  };
+  const stepIdSequence = useMemo(() => {
+    const ids = [1, 2];
+    if (customFields?.length > 0) ids.push(3);
+    ids.push(4, 5);
+    return ids;
+  }, [customFields?.length]);
 
-  const handleTabClick = (tab) => {
-    if (tab === 1 && !disabledTab.categoryTab) setStep(1);
-    else if (tab === 2 && !disabledTab.detailTab) setStep(2);
-    else if (tab === 3 && !disabledTab.extraDetailTabl) setStep(3);
-    else if (tab === 4 && !disabledTab.images) setStep(4);
-    else if (tab === 5 && !disabledTab.location) setStep(5);
-  };
+  const resolveNearestStep = useCallback(
+    (targetStep) => {
+      if (stepIdSequence.includes(targetStep)) return targetStep;
+      if (!stepIdSequence.length) return 1;
+      return stepIdSequence.reduce((closest, candidate) => {
+        const candidateDistance = Math.abs(candidate - targetStep);
+        const closestDistance = Math.abs(closest - targetStep);
+
+        if (candidateDistance < closestDistance) return candidate;
+        if (candidateDistance === closestDistance && candidate > closest) return candidate;
+        return closest;
+      });
+    },
+    [stepIdSequence]
+  );
+
+  useEffect(() => {
+    const normalizedStep = resolveNearestStep(step);
+    if (normalizedStep !== step) {
+      setStep(normalizedStep);
+    }
+  }, [step, resolveNearestStep]);
+
+  const handleGoBack = useCallback(() => {
+    const normalizedStep = resolveNearestStep(step);
+    const currentIndex = stepIdSequence.indexOf(normalizedStep);
+    if (currentIndex <= 0) {
+      setStep(stepIdSequence[0] || 1);
+      return;
+    }
+    setStep(stepIdSequence[currentIndex - 1]);
+  }, [resolveNearestStep, step, stepIdSequence]);
+
+  const handleTabClick = useCallback(
+    (tab) => {
+      if (!stepIdSequence.includes(tab)) return;
+      const tabDisabled = {
+        1: disabledTab.categoryTab,
+        2: disabledTab.detailTab,
+        3: disabledTab.extraDetailTabl,
+        4: disabledTab.images,
+        5: disabledTab.location,
+      }[tab];
+      if (tabDisabled) return;
+      setStep(tab);
+    },
+    [disabledTab.categoryTab, disabledTab.detailTab, disabledTab.extraDetailTabl, disabledTab.images, disabledTab.location, stepIdSequence]
+  );
 
   const handleDeatilsBack = () => {
     setCustomFields([]);
+    setIsCustomFieldsLoading(false);
     setLangId(defaultLangId);
     setTranslations({
       [defaultLangId]: {
@@ -856,32 +943,132 @@ const AdsListing = () => {
   };
 
   // Stepper
-  const steps = [
-    { id: 1, label: t("selectedCategory"), icon: Circle, disabled: disabledTab.categoryTab },
-    { id: 2, label: t("details"), icon: Circle, disabled: disabledTab.detailTab },
-    ...(customFields?.length > 0
-      ? [{ id: 3, label: t("extraDetails"), icon: Circle, disabled: disabledTab.extraDetailTabl }]
-      : []),
-    { id: 4, label: "Media", icon: Circle, disabled: disabledTab.images },
-    { id: 5, label: t("location"), icon: Circle, disabled: disabledTab.location },
-  ];
+  const steps = useMemo(
+    () => [
+      { id: 1, label: t("selectedCategory"), icon: Circle, disabled: disabledTab.categoryTab },
+      { id: 2, label: t("details"), icon: Circle, disabled: disabledTab.detailTab },
+      ...(customFields?.length > 0
+        ? [{ id: 3, label: t("extraDetails"), icon: Circle, disabled: disabledTab.extraDetailTabl }]
+        : []),
+      { id: 4, label: "Media", icon: Circle, disabled: disabledTab.images },
+      { id: 5, label: t("location"), icon: Circle, disabled: disabledTab.location },
+    ],
+    [
+      customFields?.length,
+      disabledTab.categoryTab,
+      disabledTab.detailTab,
+      disabledTab.extraDetailTabl,
+      disabledTab.images,
+      disabledTab.location,
+    ]
+  );
 
-  const getStepProgress = (stepId) => {
-    const stepIndex = steps.findIndex((s) => s.id === stepId);
-    const currentIndex = steps.findIndex((s) => s.id === step);
-    if (stepIndex < currentIndex) return 100;
-    if (stepIndex === currentIndex) {
-      switch (stepId) {
-        case 1: return categoryPath.length > 0 ? 100 : 0;
-        case 2: return defaultDetails.name && defaultDetails.description ? 100 : 50;
-        case 3: return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
-        case 4: return uploadedImages.length > 0 ? 100 : 0;
-        case 5: return location?.address ? 100 : 0;
-        default: return 0;
-      }
+  const activeStepId = resolveNearestStep(step);
+  const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
+  const renderedStep = activeStepId;
+  const hasValidLocation = Boolean(
+    location?.country && location?.state && location?.city && location?.address
+  );
+
+  const syncStepRailFill = useCallback(() => {
+    const railEl = stepRailRef.current;
+    const firstNodeEl = stepNodeRefs.current[0];
+    const activeNodeEl = stepNodeRefs.current[activeStepIndex] || firstNodeEl;
+
+    if (!railEl || !firstNodeEl || !activeNodeEl) {
+      setStepRailFill({ left: 0, width: 0 });
+      return;
     }
-    return 0;
-  };
+
+    const railRect = railEl.getBoundingClientRect();
+    if (!railRect.width) {
+      setStepRailFill({ left: 0, width: 0 });
+      return;
+    }
+
+    const firstRect = firstNodeEl.getBoundingClientRect();
+    const activeRect = activeNodeEl.getBoundingClientRect();
+
+    const startX = firstRect.left + firstRect.width / 2 - railRect.left;
+    const endX = activeRect.left + activeRect.width / 2 - railRect.left;
+
+    const clampedStart = Math.max(0, Math.min(startX, railRect.width));
+    const clampedEnd = Math.max(clampedStart, Math.min(endX, railRect.width));
+    const rawWidth = clampedEnd - clampedStart;
+    const minVisibleWidth = Math.min(2, Math.max(0, railRect.width - clampedStart));
+    const nextFill = { left: clampedStart, width: rawWidth > 1 ? rawWidth : minVisibleWidth };
+
+    setStepRailFill((prev) => {
+      const deltaLeft = Math.abs(prev.left - nextFill.left);
+      const deltaWidth = Math.abs(prev.width - nextFill.width);
+      if (deltaLeft < 0.5 && deltaWidth < 0.5) return prev;
+      return nextFill;
+    });
+  }, [activeStepIndex]);
+
+  useEffect(() => {
+    stepNodeRefs.current = stepNodeRefs.current.slice(0, steps.length);
+    const rafId = requestAnimationFrame(syncStepRailFill);
+    return () => cancelAnimationFrame(rafId);
+  }, [steps.length, syncStepRailFill]);
+
+  useEffect(() => {
+    const onResize = () => syncStepRailFill();
+    window.addEventListener("resize", onResize);
+
+    let observer;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => syncStepRailFill());
+      if (stepRailRef.current) observer.observe(stepRailRef.current);
+      stepNodeRefs.current.forEach((node) => {
+        if (node) observer.observe(node);
+      });
+    }
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+      observer?.disconnect();
+    };
+  }, [activeStepIndex, steps.length, syncStepRailFill]);
+
+  const getStepProgress = useCallback(
+    (stepId) => {
+      const stepIndex = steps.findIndex((s) => s.id === stepId);
+      if (stepIndex < activeStepIndex) return 100;
+      if (stepIndex === activeStepIndex) {
+        switch (stepId) {
+          case 1:
+            return categoryPath.length > 0 ? 100 : 0;
+          case 2:
+            return defaultDetails.name && defaultDetails.description
+              ? 100
+              : defaultDetails.name || defaultDetails.description
+              ? 55
+              : 0;
+          case 3:
+            return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
+          case 4:
+            return uploadedImages.length > 0 ? 100 : 0;
+          case 5:
+            return hasValidLocation ? 100 : location?.address ? 60 : 0;
+          default:
+            return 0;
+        }
+      }
+      return 0;
+    },
+    [
+      activeStepIndex,
+      categoryPath.length,
+      currentExtraDetails,
+      defaultDetails.description,
+      defaultDetails.name,
+      hasValidLocation,
+      location?.address,
+      steps,
+      uploadedImages.length,
+    ]
+  );
 
   // Preview Logic
   const isOnSale = defaultDetails.is_on_sale;
@@ -891,6 +1078,27 @@ const AdsListing = () => {
   const previewAttributes = getPreviewAttributes(); // Dohvati atribute za prikaz
   const publishProgressPct = ((publishStageIndex + 1) / PUBLISH_STAGES.length) * 100;
   const currentPublishStage = PUBLISH_STAGES[publishStageIndex] || PUBLISH_STAGES[0];
+  const successCategoryLabel =
+    categoryPath?.[categoryPath.length - 1]?.translated_name ||
+    categoryPath?.[categoryPath.length - 1]?.name ||
+    "";
+  const successLocationLabel =
+    [location?.city, location?.state, location?.country].filter(Boolean).join(", ") ||
+    location?.address ||
+    "";
+  const successPriceLabel = is_job_category
+    ? defaultDetails?.min_salary && defaultDetails?.max_salary
+      ? `${formatPriceAbbreviated(defaultDetails.min_salary)} - ${formatPriceAbbreviated(defaultDetails.max_salary)}`
+      : defaultDetails?.min_salary
+      ? `Od ${formatPriceAbbreviated(defaultDetails.min_salary)}`
+      : defaultDetails?.max_salary
+      ? `Do ${formatPriceAbbreviated(defaultDetails.max_salary)}`
+      : ""
+    : defaultDetails?.price_on_request
+    ? t("Na upit")
+    : showDiscount
+    ? `${formatPriceAbbreviated(currentPrice)} (sniženo sa ${formatPriceAbbreviated(oldPrice)})`
+    : formatPriceAbbreviated(defaultDetails?.price);
 
   // =======================================================
   // MEDIA: kompresija + watermark odmah na selekciju
@@ -1002,64 +1210,149 @@ const AdsListing = () => {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column */}
             <div className="relative flex flex-col gap-6 lg:col-span-2">
-              <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/75 sm:p-6">
+              <div className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6">
+                <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
+                <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-300/20" />
+
+                <div className="relative mb-5 flex items-center justify-between gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/20">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Korak {activeStepIndex + 1} od {steps.length}
+                  </div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-300">
+                    Preostalo: {Math.max(steps.length - (activeStepIndex + 1), 0)}
+                  </p>
+                </div>
+
                 <div className="relative">
                   <div
-                    className="absolute left-0 right-0 top-5 h-1 rounded-full bg-slate-200 dark:bg-slate-700"
-                    style={{ zIndex: 0 }}
+                    ref={stepRailRef}
+                    className="pointer-events-none absolute inset-x-0 top-[22px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80"
                   />
+                  <motion.div
+                    className="pointer-events-none absolute top-[22px] h-1 rounded-full bg-gradient-to-r from-primary via-cyan-400 to-primary shadow-[0_0_20px_-4px_rgba(14,165,233,0.8)]"
+                    initial={false}
+                    animate={{ left: stepRailFill.left, width: stepRailFill.width }}
+                    transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
+                  />
+
                   <div
-                    className="absolute left-0 top-5 h-1 rounded-full bg-gradient-to-r from-primary via-primary/90 to-cyan-500 transition-all duration-500"
-                    style={{
-                      width: `${(steps.findIndex((s) => s.id === step) / (steps.length - 1)) * 100}%`,
-                      zIndex: 1,
-                    }}
-                  />
-                  <div className="relative flex items-start justify-between gap-2 sm:gap-4" style={{ zIndex: 2 }}>
+                    className="relative z-[2] grid gap-2 sm:gap-4"
+                    style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+                  >
                     {steps.map((s, idx) => {
                       const progress = getStepProgress(s.id);
-                      const isActive = s.id === step;
-                      const isCompleted = progress === 100 && !isActive;
+                      const isActive = idx === activeStepIndex;
+                      const isCompleted = idx < activeStepIndex;
 
                       return (
-                        <div key={s.id} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                        <motion.button
+                          key={s.id}
+                          type="button"
+                          layout
+                          onClick={() => handleTabClick(s.id)}
+                          whileTap={!s.disabled ? { scale: 0.97 } : undefined}
+                          disabled={s.disabled}
+                          className={`group flex min-w-0 flex-col items-center gap-2 text-center transition-colors ${
+                            s.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                          }`}
+                        >
                           <div
-                            className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 cursor-default
-                              ${isActive ? "scale-110 border-4 border-primary bg-white text-primary shadow-lg shadow-primary/20 dark:bg-slate-950" : ""}
-                              ${isCompleted ? "border-2 border-primary bg-primary text-white" : ""}
-                              ${!isActive && !isCompleted ? "border-2 border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300" : ""}
-                            `}
+                            ref={(node) => {
+                              stepNodeRefs.current[idx] = node;
+                            }}
+                            className="relative"
                           >
-                            {isCompleted ? (
-                              <CheckCircle2 className="h-5 w-5" />
-                            ) : (
-                              <span className="text-sm font-bold">{idx + 1}</span>
+                            {isActive && (
+                              <motion.span
+                                className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 blur-md"
+                                initial={{ opacity: 0.2, scale: 0.8 }}
+                                animate={{ opacity: 0.45, scale: 1.18 }}
+                                transition={{ duration: 0.35, ease: "easeOut" }}
+                              />
                             )}
-                            {isActive && !isCompleted && (
-                              <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                            )}
+
+                            <motion.span
+                              initial={false}
+                              animate={
+                                isActive
+                                  ? { scale: 1.08, y: -1 }
+                                  : isCompleted
+                                  ? { scale: 1 }
+                                  : { scale: 0.98 }
+                              }
+                              transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                              className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full border text-sm font-bold ${
+                                isActive
+                                  ? "border-primary bg-white text-primary shadow-[0_10px_24px_-14px_rgba(8,145,178,0.9)] dark:bg-slate-950"
+                                  : ""
+                              } ${
+                                isCompleted ? "border-primary bg-primary text-white" : ""
+                              } ${
+                                !isActive && !isCompleted
+                                  ? "border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                                  : ""
+                              }`}
+                            >
+                              <AnimatePresence mode="wait" initial={false}>
+                                {isCompleted ? (
+                                  <motion.span
+                                    key={`done-${s.id}`}
+                                    initial={{ opacity: 0, scale: 0.7, y: 4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.8, y: -4 }}
+                                    transition={{ duration: 0.2 }}
+                                  >
+                                    <CheckCircle2 className="h-5 w-5" />
+                                  </motion.span>
+                                ) : (
+                                  <motion.span
+                                    key={`index-${s.id}`}
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -4 }}
+                                    transition={{ duration: 0.18 }}
+                                  >
+                                    {idx + 1}
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
+                            </motion.span>
                           </div>
-                          <span
-                            className={`line-clamp-2 max-w-[98px] text-center text-[11px] font-medium leading-tight transition-colors duration-300 sm:text-xs
-                              ${isActive ? "font-bold text-primary" : "text-slate-500 dark:text-slate-300"}
-                            `}
+
+                          <motion.span
+                            initial={false}
+                            animate={{ y: isActive ? 0 : 1 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className={`line-clamp-2 max-w-[120px] text-[11px] font-medium leading-tight sm:text-xs ${
+                              isActive ? "font-semibold text-primary" : "text-slate-500 dark:text-slate-300"
+                            }`}
                           >
                             {s.label}
-                          </span>
-                        </div>
+                          </motion.span>
+
+                          <div className="h-[3px] w-14 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
+                            <motion.div
+                              className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400"
+                              initial={false}
+                              animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
+                              transition={{ type: "spring", stiffness: 190, damping: 24 }}
+                            />
+                          </div>
+                        </motion.button>
                       );
                     })}
                   </div>
                 </div>
               </div>
 
-              {(step == 2 || (step === 3 && hasTextbox)) && (
+              {(renderedStep === 2 || (renderedStep === 3 && hasTextbox)) && (
                 <div className="flex justify-end">
                   {/* AdLanguageSelector was here */}
                 </div>
               )}
 
-              {(step == 1 || step == 2) && categoryPath?.length > 0 && (
+              {(renderedStep === 1 || renderedStep === 2) && categoryPath?.length > 0 && (
                 <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-300">{t("selectedCategory")}</p>
@@ -1106,7 +1399,7 @@ const AdsListing = () => {
               )}
 
               <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
-                {step == 1 && (
+                {renderedStep === 1 && (
                   <ComponentOne
                     categories={categories}
                     setCategoryPath={setCategoryPath}
@@ -1121,7 +1414,7 @@ const AdsListing = () => {
                   />
                 )}
 
-                {step == 2 && (
+                {renderedStep === 2 && (
                   <ComponentTwo
                     setTranslations={setTranslations}
                     current={currentDetails}
@@ -1131,10 +1424,11 @@ const AdsListing = () => {
                     handleDeatilsBack={handleDeatilsBack}
                     is_job_category={is_job_category}
                     isPriceOptional={isPriceOptional}
+                    isNextLoading={isCustomFieldsLoading}
                   />
                 )}
 
-                {step == 3 && (
+                {renderedStep === 3 && (
                   <ComponentThree
                     customFields={customFields}
                     setExtraDetails={setExtraDetails}
@@ -1152,7 +1446,7 @@ const AdsListing = () => {
                   />
                 )}
 
-                {step == 4 && (
+                {renderedStep === 4 && (
                   <ComponentFour
                     uploadedImages={uploadedImages}
                     setUploadedImages={setUploadedImagesProcessed}
@@ -1174,7 +1468,7 @@ const AdsListing = () => {
                   />
                 )}
 
-                {step == 5 && (
+                {renderedStep === 5 && (
                   <ComponentFive
                     location={location}
                     setLocation={setLocation}
@@ -1428,6 +1722,12 @@ const AdsListing = () => {
           createdAdSlug={createdAdSlug}
           isScheduled={isScheduledAd}
           scheduledDate={scheduledAt}
+          adName={defaultDetails?.name || ""}
+          categoryLabel={successCategoryLabel}
+          priceLabel={successPriceLabel}
+          locationLabel={successLocationLabel}
+          publishToInstagram={publishToInstagram}
+          completenessScore={completenessScore}
         />
       </div>
     </Layout>

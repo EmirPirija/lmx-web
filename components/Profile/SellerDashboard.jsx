@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 import CustomLink from "@/components/Common/CustomLink";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -44,7 +45,7 @@ import {
   Sparkles,
   Package,
   ChevronRight,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 // ==================== HELPER FUNKCIJE ====================
 
@@ -494,9 +495,11 @@ export default function SellerDashboard() {
 
           <div className="flex flex-wrap items-center gap-2">
             {isPremium && (
-              <StatusBadge variant={isShop ? "shop" : "pro"}>
-                {isShop ? "🏪 SHOP" : "⭐ PRO"}
-              </StatusBadge>
+              <MembershipBadge
+                tier={isShop ? "shop" : "pro"}
+                size="sm"
+                uppercase
+              />
             )}
 
             <CustomLink href="/profile/seller-settings">
@@ -634,7 +637,7 @@ export default function SellerDashboard() {
                   <Users size={18} className="text-slate-600" />
                 </div>
                 <div className="text-2xl font-bold text-slate-900">{stats.savedCount}</div>
-                <div className="text-xs text-slate-500">Sačuvani selleri</div>
+                <div className="text-xs text-slate-500">Sačuvani prodavači</div>
                 <CustomLink
                   href="/profile/saved"
                   className="text-xs font-medium text-slate-900 hover:underline mt-2 inline-block"
@@ -765,9 +768,15 @@ export default function SellerDashboard() {
 
                 <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
                   <span className="text-sm text-slate-600">Paket</span>
-                  <StatusBadge variant={isShop ? "shop" : isPro ? "pro" : "default"}>
-                    {isShop ? "Shop" : isPro ? "Pro" : "Free"}
-                  </StatusBadge>
+                  {isPremium ? (
+                    <MembershipBadge
+                      tier={isShop ? "shop" : "pro"}
+                      size="xs"
+                      uppercase
+                    />
+                  ) : (
+                    <StatusBadge variant="default">Free</StatusBadge>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between py-2.5 border-b border-slate-100">

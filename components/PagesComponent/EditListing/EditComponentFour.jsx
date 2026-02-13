@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { BiMapPin } from "react-icons/bi";
-import { IoLocationOutline } from "react-icons/io5";
-import { toast } from "sonner";
+import { BiMapPin } from "@/components/Common/UnifiedIconPack";
+import { IoLocationOutline } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 import ManualAddress from "../AdsListing/ManualAddress";
 import PublishOptionsModal from "../AdsListing/PublishOptionsModal";
 import { t } from "@/utils";
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import { MdCheckCircle, MdEditLocation } from "react-icons/md";
+import { MdCheckCircle, MdEditLocation } from "@/components/Common/UnifiedIconPack";
+import StickyActionButtons from "@/components/Common/StickyActionButtons";
  
 // Default koordinate za BiH (Sarajevo) - backend zahtijeva lat/long
 const BIH_DEFAULT_COORDS = {
@@ -274,27 +275,13 @@ const EditComponentFour = ({
       </div>
  
       {/* Sticky Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
-          <button
-            className="bg-black text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={handleGoBack}
-          >
-            Nazad
-          </button>
-          <button
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium transition-all shadow-md flex-1 sm:flex-none ${
-              isAdPlaced
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-primary/90'
-            }`}
-            disabled={isAdPlaced}
-            onClick={handlePublishClick}
-          >
-            {isAdPlaced ? "Spremam..." : "Spremi izmjene"}
-          </button>
-        </div>
-      </div>
+      <StickyActionButtons
+        secondaryLabel="Nazad"
+        onSecondaryClick={handleGoBack}
+        primaryLabel={isAdPlaced ? "Spremam..." : "Spremi izmjene"}
+        onPrimaryClick={handlePublishClick}
+        primaryDisabled={isAdPlaced}
+      />
  
       {/* Manual Address Modal */}
       <ManualAddress

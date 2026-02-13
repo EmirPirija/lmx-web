@@ -1,7 +1,11 @@
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import MembershipBadge from "@/components/Common/MembershipBadge";
-import { MdVerified } from "react-icons/md";
+import {
+  MdVerified,
+  Star,
+  Zap,
+} from "@/components/Common/UnifiedIconPack";
 
 const SellerCard = ({
   avatarNode,
@@ -10,6 +14,9 @@ const SellerCard = ({
   badgeNodes,
   isPro,
   isShop,
+  rating,
+  ratingValue,
+  ratingText,
   joinDate,
   responseTimeText,
   showBusinessHours,
@@ -26,6 +33,16 @@ const SellerCard = ({
   const showActions = Array.isArray(actions) ? actions.length > 0 : Boolean(actions);
   const showContacts = Array.isArray(contacts) ? contacts.length > 0 : Boolean(contacts);
   const membership = resolveMembership({ is_pro: isPro, is_shop: isShop });
+  const resolvedRating = (() => {
+    if (ratingText) return ratingText;
+
+    const candidate = ratingValue ?? rating;
+    if (candidate === null || candidate === undefined || candidate === "") return "";
+
+    const parsed = Number(candidate);
+    if (!Number.isFinite(parsed)) return "";
+    return parsed.toFixed(1);
+  })();
 
   return (
     <div
@@ -47,19 +64,14 @@ const SellerCard = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">{name || "Prodavač"}</h3>
-            {Boolean(isVerified) && <MdVerified className="text-primary text-xl" title="Verificiran" />}
-          </div>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">{name || "Prodavač"}</h3>
+                {Boolean(isVerified) && <MdVerified className="text-primary text-xl" title="Verificiran" />}
+                {membership.isPremium && <MembershipBadge tier={membership.tier} size="xs" uppercase={false} />}
+              </div>
 
-          {membership.isPremium && (
-            <div className="mt-2 flex items-center gap-2">
-              <MembershipBadge tier={membership.tier} size="xs" uppercase={false} />
-            </div>
-          )}
-
-          {hasBadges && (
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              {hasBadges && (
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               {badgeNodes.map((badgeNode, index) => (
                 <div
                   key={`badge-${index}`}
@@ -71,21 +83,39 @@ const SellerCard = ({
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2 w-full">
-            <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-left">
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-200">
-                <span className="text-xs font-semibold">Član od</span>
-              </div>
-              <div className="mt-1 text-sm font-bold text-slate-900 dark:text-white">{joinDate || "—"}</div>
-            </div>
+              <div className="mt-3 w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-left">
+                {(resolvedRating || joinDate) && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {resolvedRating && (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <span className="font-semibold">{resolvedRating}</span>
+                      </span>
+                    )}
 
-            <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-left">
-              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-200">
-                <span className="text-xs font-semibold">Vrijeme odgovora</span>
+                    {resolvedRating && joinDate && (
+                      <span className="text-[10px] text-slate-300 dark:text-slate-600">•</span>
+                    )}
+
+                    {joinDate && (
+                      <span className="text-xs text-slate-500 dark:text-slate-300">
+                        Član od {joinDate}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {responseTimeText && (
+                  <div className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
+                    <Zap className="w-3 h-3 text-amber-500" />
+                    <span>Prosječno vrijeme odgovora: {responseTimeText}</span>
+                  </div>
+                )}
+
+                {!resolvedRating && !joinDate && !responseTimeText && (
+                  <div className="text-xs text-slate-400 dark:text-slate-500">—</div>
+                )}
               </div>
-              <div className="mt-1 text-sm font-bold text-slate-900 dark:text-white">{responseTimeText || "—"}</div>
-            </div>
-          </div>
 
           {showBusinessHours && (
             <div className="mt-2 w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-left">

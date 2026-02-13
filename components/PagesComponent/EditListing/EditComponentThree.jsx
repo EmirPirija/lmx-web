@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import Api from "@/api/AxiosInterceptors";
 import { 
   Upload, X, Play, Pause, Image as ImageIcon, 
   Star, Trash2, Loader2, GripVertical, Plus, CheckCircle2, MousePointerClick, Link2, ExternalLink, Instagram
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
+import StickyActionButtons from "@/components/Common/StickyActionButtons";
 
 // =======================================================
 // CONFIG
@@ -849,31 +850,13 @@ const EditComponentThree = ({
       </div>
 
       {/* FOOTER */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50">
-        <div className="container mx-auto flex items-center justify-between max-w-7xl">
-            <button
-            type="button"
-            onClick={handleGoBack}
-            className="px-6 py-3 rounded-xl text-slate-600 font-semibold hover:bg-slate-100 transition-colors"
-            >
-            Nazad
-            </button>
-
-            <button
-            type="button"
-            disabled={!uploadedImages?.length}
-            onClick={() => handleImageSubmit?.()}
-            className={cn(
-                "px-8 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all text-sm sm:text-base",
-                uploadedImages?.length
-                ? "bg-primary text-white hover:bg-primary/90 hover:scale-105 active:scale-95"
-                : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-            )}
-            >
-            Sljedeći Korak
-            </button>
-        </div>
-      </div>
+      <StickyActionButtons
+        secondaryLabel="Nazad"
+        onSecondaryClick={handleGoBack}
+        primaryLabel="Sljedeći Korak"
+        onPrimaryClick={() => handleImageSubmit?.()}
+        primaryDisabled={!uploadedImages?.length}
+      />
     </div>
   );
 };

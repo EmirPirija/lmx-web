@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import CustomLink from "@/components/Common/CustomLink";
 import { useEffect, useMemo, useRef, useState } from "react";
-import CustomImage from "@/components/Common/CustomImage";
+import CategorySemanticIcon from "@/components/Common/CategorySemanticIcon";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -21,7 +21,7 @@ import {
   Sparkles,
   TrendingUp,
   Layers,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 
 // ============================================
@@ -93,13 +93,7 @@ const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl, maxIt
         <div className="w-[300px] p-5 border-r border-border bg-muted/30">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-2xl bg-background border border-border flex items-center justify-center overflow-hidden">
-              <CustomImage
-                src={category?.image}
-                alt={category?.translated_name}
-                width={32}
-                height={32}
-                className="w-7 h-7 object-contain"
-              />
+              <CategorySemanticIcon category={category} className="w-7 h-7" />
             </div>
 
             <div className="min-w-0">
@@ -506,57 +500,53 @@ const HeaderCategories = ({ cateData = [] }) => {
                           </h4>
 
                           <div className="grid grid-cols-3 gap-x-6 gap-y-2 max-h-[36vh] overflow-y-auto pr-2 custom-scrollbar">
-                            {overflowCategories.map((c) => (
-                              <div key={c.id} className="min-w-0">
-                                <CustomLink
-                                  href={buildCategoryUrl(c.slug)}
-                                  className={cn(
-                                    "group flex items-center gap-3 rounded-xl px-3 py-2",
-                                    "border border-transparent",
-                                    "hover:border-border hover:bg-muted/30 transition-colors"
-                                  )}
-                                >
-                                  <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center overflow-hidden shrink-0">
-                                    <CustomImage
-                                      src={c?.image}
-                                      alt={c?.translated_name}
-                                      width={24}
-                                      height={24}
-                                      className="w-6 h-6 object-contain"
-                                    />
-                                  </div>
-
-                                  <div className="flex-1 min-w-0">
-                                    <span className="block text-sm font-medium text-foreground truncate">
-                                      {c.translated_name}
-                                    </span>
-                                    {getSubcatsCount(c) > 0 && (
-                                      <span className="block text-[11px] text-muted-foreground truncate">
-                                        {getSubcatsCount(c)} podkategorija
-                                      </span>
+                            {overflowCategories.map((c) => {
+                              return (
+                                <div key={c.id} className="min-w-0">
+                                  <CustomLink
+                                    href={buildCategoryUrl(c.slug)}
+                                    className={cn(
+                                      "group flex items-center gap-3 rounded-xl px-3 py-2",
+                                      "border border-transparent",
+                                      "hover:border-border hover:bg-muted/30 transition-colors"
                                     )}
-                                  </div>
+                                  >
+                                    <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center overflow-hidden shrink-0">
+                                      <CategorySemanticIcon category={c} className="w-6 h-6" />
+                                    </div>
 
-                                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </CustomLink>
+                                    <div className="flex-1 min-w-0">
+                                      <span className="block text-sm font-medium text-foreground truncate">
+                                        {c.translated_name}
+                                      </span>
+                                      {getSubcatsCount(c) > 0 && (
+                                        <span className="block text-[11px] text-muted-foreground truncate">
+                                          {getSubcatsCount(c)} podkategorija
+                                        </span>
+                                      )}
+                                    </div>
 
-                                {/* show all subcategories */}
-                                {getSubcatsCount(c) > 0 && (
-                                  <ul className="mt-1 ml-[52px] space-y-0.5">
-                                    {(c?.subcategories || []).map((sub) => (
-                                      <li key={sub?.id}>
-                                        <CustomLink
-                                          href={buildCategoryUrl(sub?.slug)}
-                                          className="block rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-                                        >
-                                          {sub?.translated_name}
-                                        </CustomLink>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            ))}
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </CustomLink>
+
+                                  {/* show all subcategories */}
+                                  {getSubcatsCount(c) > 0 && (
+                                    <ul className="mt-1 ml-[52px] space-y-0.5">
+                                      {(c?.subcategories || []).map((sub) => (
+                                        <li key={sub?.id}>
+                                          <CustomLink
+                                            href={buildCategoryUrl(sub?.slug)}
+                                            className="block rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                                          >
+                                            {sub?.translated_name}
+                                          </CustomLink>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>

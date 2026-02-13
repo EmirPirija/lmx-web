@@ -1,8 +1,8 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { GoReport } from 'react-icons/go';
-import { IoChevronDown, IoChevronUp } from 'react-icons/io5';
-import { HiOutlinePhotograph } from 'react-icons/hi';
+import { GoReport } from "@/components/Common/UnifiedIconPack";
+import { IoChevronDown, IoChevronUp } from "@/components/Common/UnifiedIconPack";
+import { HiOutlinePhotograph } from "@/components/Common/UnifiedIconPack";
 import StarRating from './StarRating';
 import ReportReviewModal from './ReportReviewModal';
 import CustomImage from '@/components/Common/CustomImage';

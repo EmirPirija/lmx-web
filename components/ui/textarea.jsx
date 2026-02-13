@@ -3,41 +3,18 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const Textarea = React.forwardRef(({ className, ...props }, ref) => {
-  const [isFocused, setIsFocused] = React.useState(false)
-  
   return (
-    <div className="relative w-full">
-      {/* Subtle glow only on focus */}
-      <div className={cn(
-        "absolute inset-0 rounded-lg transition-all duration-700 -z-10 pointer-events-none",
-        isFocused ? "opacity-30 blur-xl" : "opacity-0",
-        "bg-orange-400"
-      )} />
-      
-      {/* Bottom accent line */}
-
-      <textarea
-        className={cn(
-          "flex min-h-[120px] w-full rounded-lg border bg-background px-4 py-3 text-base transition-all duration-500 resize-none",
-          "placeholder:text-muted-foreground/60 placeholder:transition-colors placeholder:duration-500",
-          // TOTALNO uklanjanje svih outline-a
-          "outline-0 outline-none focus:outline-0 focus:outline-none focus-visible:outline-0 focus-visible:outline-none active:outline-0 active:outline-none",
-          "ring-0 focus:ring-0 focus-visible:ring-0 active:ring-0",
-          "-webkit-appearance-none appearance-none",
-          "disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-          // Minimalistički border
-          "border-gray-200 dark:border-gray-800",
-          isFocused ? "border-orange-400/50" : "border-gray-200 dark:border-gray-800",
-          // Minimalistička placeholder animacija
-          isFocused && "placeholder:text-orange-400/70",
-          className
-        )}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        ref={ref}
-        {...props}
-      />
-    </div>
+    <textarea
+      className={cn(
+        "flex min-h-[120px] w-full resize-none rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-foreground shadow-sm transition-all duration-200",
+        "placeholder:text-muted-foreground/80",
+        "outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 focus:ring-offset-0",
+        "disabled:cursor-not-allowed disabled:opacity-60",
+        className
+      )}
+      ref={ref}
+      {...props}
+    />
   );
 })
 Textarea.displayName = "Textarea"

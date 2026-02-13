@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useMediaQuery } from "usehooks-ts";
 import Filter from "../../Filter/Filter";
 import {
   allItemApi,
@@ -17,17 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TbTransferVertical } from "react-icons/tb";
+import { TbTransferVertical } from "@/components/Common/UnifiedIconPack";
 import ProductHorizontalCard from "@/components/Common/ProductHorizontalCard";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton";
 import ProductHorizontalCardSkeleton from "@/components/Common/ProductHorizontalCardSkeleton";
 import NoData from "@/components/EmptyStates/NoData";
-import { IoGrid } from "react-icons/io5";
-import { CiGrid2H } from "react-icons/ci";
+import { IoGrid } from "@/components/Common/UnifiedIconPack";
+import { CiGrid2H } from "@/components/Common/UnifiedIconPack";
 import { Badge } from "@/components/ui/badge";
-import { IoMdClose } from "react-icons/io";
+import { IoMdClose } from "@/components/Common/UnifiedIconPack";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import Layout from "@/components/Layout/Layout";
+import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import { Button } from "@/components/ui/button";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -35,9 +37,15 @@ import {
   setBreadcrumbPath,
 } from "@/redux/reducer/breadCrumbSlice";
 import { t, updateMetadata } from "@/utils";
-import { getSelectedLocation } from "@/redux/reducer/globalStateSlice";
+import { getSelectedLocation, setHideMobileBottomNav } from "@/redux/reducer/globalStateSlice";
 import { resolveMembership } from "@/lib/membership";
 import { isSellerVerified } from "@/lib/seller-verification";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowUpDown,
+  List,
+  LayoutGrid,
+} from "@/components/Common/UnifiedIconPack";
 
 // ✅ NOVO: Saved searches controls
 import SavedSearchControls from "./SavedSearchControls";
@@ -50,6 +58,8 @@ import { useSearchTracking } from "@/hooks/useItemTracking";
 const Ads = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  const mobileDock = useAdaptiveMobileDock();
   const newSearchParams = new URLSearchParams(searchParams);
   const BreadcrumbPath = useSelector(BreadcrumbPathData);
 
@@ -61,6 +71,14 @@ const Ads = () => {
   const searchIdRef = useRef(null);
 
   const [view, setView] = useState("grid");
+  const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+  const [isViewSheetOpen, setIsViewSheetOpen] = useState(false);
+  const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
+  const filterRailRef = useRef(null);
+  const hideHeaderRef = useRef(false);
+  const filterTriggerTopRef = useRef(0);
+  const filterTriggerBottomRef = useRef(0);
+  const lastEmittedMobileHeaderRef = useRef(null);
   const [advertisements, setAdvertisements] = useState({
     data: [],
     currentPage: 1,
@@ -167,7 +185,7 @@ const Ads = () => {
   const getSellerTypeLabel = () => {
     if (sellerType === "shop") return "Samo SHOP";
     if (sellerType === "pro") return "Samo PRO";
-    if (sellerType === "free") return "Samo obični";
+    if (sellerType === "free") return "Samo obični korisnici";
     if (sellerType === "premium") return "PRO + SHOP";
     return "";
   };
@@ -191,10 +209,189 @@ const Ads = () => {
   };
 
   const activeFilterCount = getActiveFilterCount();
+  const isToolbarActionSheetOpen = isSortSheetOpen || isViewSheetOpen;
   const selectedLocationLabel =
     selectedLocation?.translated_name ||
     selectedLocation?.name ||
     [area, city, state, country].filter(Boolean).join(", ");
+
+  useEffect(() => {
+    if (!mobileDock) return undefined;
+    const suspendKey = "ads-mobile-floating-utility";
+    const shouldSuspendDock = Boolean(isMobile && isMobileHeaderHidden);
+    mobileDock.setSuspended?.(suspendKey, shouldSuspendDock);
+
+    return () => {
+      mobileDock.clearSuspended?.(suspendKey);
+    };
+  }, [mobileDock, isMobile, isMobileHeaderHidden]);
+
+  useEffect(() => {
+    const shouldHideBottomNav = Boolean(isMobile && isMobileHeaderHidden);
+    dispatch(setHideMobileBottomNav(shouldHideBottomNav));
+  }, [dispatch, isMobile, isMobileHeaderHidden]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(setHideMobileBottomNav(false));
+    };
+  }, [dispatch]);
+
+  const emitMobileHeaderState = useCallback((payload) => {
+    if (typeof window === "undefined") return;
+
+    const nextDetail = {
+      enabled: true,
+      hideHeader: !!payload.hideHeader,
+      searchIconMode: !!payload.searchIconMode,
+      compactActions: !!payload.compactActions,
+      sortBy,
+      view,
+    };
+
+    const prevDetail = lastEmittedMobileHeaderRef.current;
+    if (
+      prevDetail &&
+      prevDetail.enabled === nextDetail.enabled &&
+      prevDetail.hideHeader === nextDetail.hideHeader &&
+      prevDetail.searchIconMode === nextDetail.searchIconMode &&
+      prevDetail.compactActions === nextDetail.compactActions &&
+      prevDetail.sortBy === nextDetail.sortBy &&
+      prevDetail.view === nextDetail.view
+    ) {
+      return;
+    }
+
+    lastEmittedMobileHeaderRef.current = nextDetail;
+    window.dispatchEvent(
+      new CustomEvent("lmx:ads-mobile-header-state", {
+        detail: nextDetail,
+      })
+    );
+  }, [sortBy, view]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setIsMobileHeaderHidden(false);
+      hideHeaderRef.current = false;
+      filterTriggerTopRef.current = 0;
+      filterTriggerBottomRef.current = 0;
+      if (typeof window !== "undefined") {
+        lastEmittedMobileHeaderRef.current = null;
+        window.dispatchEvent(
+          new CustomEvent("lmx:ads-mobile-header-state", {
+            detail: { enabled: false, hideHeader: false, searchIconMode: false },
+          })
+        );
+      }
+      return undefined;
+    }
+
+    if (typeof window === "undefined") return undefined;
+
+    let ticking = false;
+    hideHeaderRef.current = isMobileHeaderHidden;
+
+    const measureFilterTriggerTop = () => {
+      const rail = filterRailRef.current;
+      if (!rail) {
+        filterTriggerTopRef.current = 0;
+        filterTriggerBottomRef.current = 0;
+        return;
+      }
+
+      const railRect = rail.getBoundingClientRect();
+      const railTop = Math.max(0, Math.round(railRect.top + window.scrollY));
+      const railHeight = Math.max(0, Math.round(railRect.height || 0));
+
+      filterTriggerTopRef.current = railTop;
+      filterTriggerBottomRef.current = railTop + railHeight;
+    };
+
+    const commitMobileUi = (nextHideHeader) => {
+      if (nextHideHeader !== hideHeaderRef.current) {
+        hideHeaderRef.current = nextHideHeader;
+        setIsMobileHeaderHidden(nextHideHeader);
+      }
+
+      emitMobileHeaderState({
+        hideHeader: nextHideHeader,
+        searchIconMode: false,
+        compactActions: false,
+      });
+    };
+
+    const updateMobileUi = () => {
+      const currentScrollY = window.scrollY || 0;
+
+      const stickyStartPoint = filterTriggerBottomRef.current || filterTriggerTopRef.current;
+      const triggerY = Math.max(0, stickyStartPoint - 14);
+      const resetY = Math.max(0, filterTriggerTopRef.current - 88);
+
+      let nextHideHeader = hideHeaderRef.current;
+
+      if (isToolbarActionSheetOpen) {
+        nextHideHeader = false;
+      } else if (currentScrollY >= triggerY) {
+        nextHideHeader = true;
+      } else if (currentScrollY <= resetY) {
+        nextHideHeader = false;
+      }
+      commitMobileUi(nextHideHeader);
+    };
+
+    measureFilterTriggerTop();
+    updateMobileUi();
+    const postLayoutMeasurementId = window.requestAnimationFrame(() => {
+      measureFilterTriggerTop();
+      updateMobileUi();
+    });
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        updateMobileUi();
+        ticking = false;
+      });
+    };
+    const onResize = () => {
+      measureFilterTriggerTop();
+      updateMobileUi();
+    };
+
+    const onForceHeaderReset = () => {
+      hideHeaderRef.current = false;
+      setIsMobileHeaderHidden(false);
+      measureFilterTriggerTop();
+      emitMobileHeaderState({
+        hideHeader: false,
+        searchIconMode: false,
+        compactActions: false,
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    window.addEventListener("lmx:ads-mobile-toolbar-reset", onForceHeaderReset);
+
+    return () => {
+      window.cancelAnimationFrame(postLayoutMeasurementId);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+      window.removeEventListener("lmx:ads-mobile-toolbar-reset", onForceHeaderReset);
+      lastEmittedMobileHeaderRef.current = null;
+      filterTriggerTopRef.current = 0;
+      filterTriggerBottomRef.current = 0;
+      window.dispatchEvent(
+        new CustomEvent("lmx:ads-mobile-header-state", {
+          detail: { enabled: false, hideHeader: false, searchIconMode: false },
+        })
+      );
+    };
+  }, [emitMobileHeaderState, isMobile, isToolbarActionSheetOpen]);
 
   useEffect(() => {
     const fetchFeaturedSectionData = async () => {
@@ -476,6 +673,38 @@ const Ads = () => {
     window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
   };
 
+  const sortOptions = [
+    { value: "new-to-old", label: "Najnoviji prvo" },
+    { value: "old-to-new", label: "Najstariji prvo" },
+    { value: "price-high-to-low", label: "Cijena: od više ka nižoj" },
+    { value: "price-low-to-high", label: "Cijena: od niže ka višoj" },
+    { value: "popular_items", label: "Najpopularniji" },
+  ];
+
+  const activeSortLabel =
+    sortOptions.find((option) => option.value === sortBy)?.label || "Poredaj oglase";
+
+  const contentSectionTransition = {
+    type: "spring",
+    stiffness: 280,
+    damping: 30,
+    mass: 0.9,
+  };
+
+  const cardAnimation = {
+    hidden: { opacity: 0, y: 14, scale: 0.992 },
+    visible: (index) => ({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        delay: Math.min(index, 7) * 0.028,
+        duration: 0.26,
+        ease: [0.22, 1, 0.36, 1],
+      },
+    }),
+  };
+
   const handleLike = (id) => {
     const updatedItems = advertisements.data.map((item) => {
       if (item.id === id) {
@@ -581,17 +810,17 @@ const Ads = () => {
 
   const postedSince =
     date_posted === "all-time"
-      ? t("allTime")
+      ? "Svi oglasi"
       : date_posted === "today"
-      ? t("today")
+      ? "Danas"
       : date_posted === "within-1-week"
-      ? t("within1Week")
+      ? "U proteklih 7 dana"
       : date_posted === "within-2-week"
-      ? t("within2Weeks")
+      ? "U proteklih 14 dana"
       : date_posted === "within-1-month"
-      ? t("within1Month")
+      ? "U proteklih 30 dana"
       : date_posted === "within-3-month"
-      ? t("within3Months")
+      ? "U protekla 3 mjeseca"
       : "";
 
   const FilterTag = ({ label, onClear }) => (
@@ -608,11 +837,132 @@ const Ads = () => {
     </Badge>
   );
 
+  const MobileActionButton = ({
+    icon: Icon,
+    label,
+    active = false,
+    badge,
+    onClick,
+    iconClassName = "",
+  }) => (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.94 }}
+      transition={{ type: "spring", stiffness: 420, damping: 30 }}
+      onClick={onClick}
+      className={`relative grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/80 p-1 transition-all duration-200 hover:scale-105 dark:border-slate-700 dark:bg-slate-900/75 ${
+        active
+          ? "border-primary/45 bg-primary/10 text-primary shadow-[0_8px_20px_-12px_rgba(15,118,110,0.45)] dark:border-primary/50 dark:bg-primary/20"
+          : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+      }`}
+      aria-label={label}
+      title={label}
+    >
+      <Icon size={18} className={iconClassName} />
+      {badge ? (
+        <span className="absolute -right-1 -top-1 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-white text-[9px] font-semibold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+          {badge}
+        </span>
+      ) : null}
+    </motion.button>
+  );
+
+  const MobileActionSheet = ({ open, onClose, title, children }) => {
+    const openedAtRef = useRef(0);
+
+    useEffect(() => {
+      if (!open) return;
+      openedAtRef.current =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+    }, [open]);
+
+    const handleBackdropClick = () => {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - openedAtRef.current < 220) return;
+      onClose();
+    };
+
+    return (
+      <AnimatePresence initial={false} mode="wait">
+        {open ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Zatvori"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={handleBackdropClick}
+              className="fixed inset-0 z-[70] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.9 }}
+              className="fixed inset-x-0 bottom-0 z-[71] md:hidden"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="rounded-t-[1.75rem] border border-slate-200 bg-white/95 px-4 pb-5 pt-3 shadow-[0_-20px_50px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-[0_-20px_50px_-28px_rgba(2,6,23,0.85)]">
+                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <div className="mb-3 flex items-center justify-between border-b border-slate-100 px-1 pb-2 dark:border-slate-800">
+                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    aria-label="Zatvori"
+                  >
+                    <IoMdClose size={16} />
+                  </button>
+                </div>
+                {children}
+              </div>
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+    );
+  };
+
+  const renderMobileToolbar = (compact = false) => (
+    <motion.div
+      layout
+      initial={false}
+      animate={{
+        scale: compact ? 0.985 : 1,
+        y: compact ? 0 : 0,
+      }}
+      className={`inline-flex w-fit max-w-full items-center gap-2 rounded-[1.35rem] border px-3 py-2 ${
+        compact
+          ? "border-slate-200/85 bg-white/92 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700/85 dark:bg-slate-900/92 dark:shadow-[0_14px_28px_-24px_rgba(2,6,23,0.85)]"
+          : "border-slate-200/90 bg-white/90 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95"
+      }`}
+      transition={{ type: "spring", stiffness: 300, damping: 28, mass: 0.85 }}
+    >
+      <SavedSearchControls iconOnly />
+      <MobileActionButton
+        icon={ArrowUpDown}
+        label="Poredaj oglase"
+        active={sortBy !== "new-to-old"}
+        onClick={() => setIsSortSheetOpen(true)}
+      />
+      <MobileActionButton
+        icon={view === "grid" ? LayoutGrid : List}
+        label={view === "grid" ? "Mrežni prikaz" : "Prikaz liste"}
+        active={view === "grid"}
+        onClick={() => setIsViewSheetOpen(true)}
+      />
+    </motion.div>
+  );
+
   return (
     <Layout>
       <BreadCrumb />
 
       <Filter
+        railRef={filterRailRef}
         customFields={customFields}
         extraDetails={extraDetails}
         setExtraDetails={setExtraDetails}
@@ -621,11 +971,26 @@ const Ads = () => {
         state={state}
         city={city}
         area={area}
+        mobileCompact={isMobile && isMobileHeaderHidden}
+        mobileStickyActive={!isMobile || isMobileHeaderHidden}
+        mobileUtilityRenderer={isMobile ? renderMobileToolbar : null}
+        mobileUtilityHidden={!isMobileHeaderHidden || isToolbarActionSheetOpen}
       />
 
-      <div className="container mt-8">
+      <motion.div
+        layout
+        initial={false}
+        transition={contentSectionTransition}
+        className="container mt-8"
+      >
         <div className="flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100"
+          >
             <div>
               <p className="text-sm text-gray-500 mt-1">
                 {advertisements?.data?.length || 0}{" "}
@@ -636,8 +1001,7 @@ const Ads = () => {
               </p>
             </div>
 
-            {/* ✅ FIX: toolbar se lijepo slaže na mobitelu, ništa ne “gura” van container-a */}
-            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 md:justify-end w-full md:w-auto min-w-0">
+            <div className="hidden md:flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 md:justify-end w-full md:w-auto min-w-0">
               <div className="w-full sm:w-auto min-w-0">
                 <SavedSearchControls />
               </div>
@@ -649,23 +1013,15 @@ const Ads = () => {
                 />
                 <Select value={sortBy} onValueChange={handleSortBy}>
                   <SelectTrigger className="w-full sm:w-[170px] h-10 border-gray-200 bg-white focus:ring-1 focus:ring-primary/20 font-medium">
-                    <SelectValue placeholder={t("sortBy")} />
+                    <SelectValue placeholder="Poredaj oglase" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="new-to-old">
-                        {t("newestToOldest")}
-                      </SelectItem>
-                      <SelectItem value="old-to-new">
-                        {t("oldestToNewest")}
-                      </SelectItem>
-                      <SelectItem value="price-high-to-low">
-                        {t("priceHighToLow")}
-                      </SelectItem>
-                      <SelectItem value="price-low-to-high">
-                        {t("priceLowToHigh")}
-                      </SelectItem>
-                      <SelectItem value="popular_items">{t("popular")}</SelectItem>
+                      {sortOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -679,7 +1035,7 @@ const Ads = () => {
                       ? "bg-white text-primary shadow-sm"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                   }`}
-                  title={t("listView")}
+                  title="Prikaz liste"
                 >
                   <CiGrid2H size={20} />
                 </button>
@@ -690,81 +1046,107 @@ const Ads = () => {
                       ? "bg-white text-primary shadow-sm"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
                   }`}
-                  title={t("gridView")}
+                  title="Mrežni prikaz"
                 >
                   <IoGrid size={18} />
                 </button>
               </div>
             </div>
-          </div>
+
+          </motion.div>
 
           {activeFilterCount > 0 && (
-            <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-wrap items-center gap-2"
+            >
               <span className="text-sm font-medium text-gray-500 mr-2 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                {t("filters")}:
+                Filteri:
               </span>
 
               {category && (
-                <FilterTag
-                  label={`${t("category")}: ${category}`}
-                  onClear={handleClearCategory}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`Kategorija: ${category}`}
+                    onClear={handleClearCategory}
+                  />
+                </motion.div>
               )}
               {query && (
-                <FilterTag
-                  label={`${t("search")}: ${query}`}
-                  onClear={handleClearQuery}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`Pretraga: ${query}`}
+                    onClear={handleClearQuery}
+                  />
+                </motion.div>
               )}
 
               {(country || state || city || area) && (
-                <FilterTag
-                  label={`${t("location")}: ${selectedLocationLabel}`}
-                  onClear={handleClearLocation}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`Lokacija: ${selectedLocationLabel}`}
+                    onClear={handleClearLocation}
+                  />
+                </motion.div>
               )}
 
               {Number(km_range) > 0 && (
-                <FilterTag
-                  label={`${t("nearByRange")}: ${km_range} KM`}
-                  onClear={handleClearRange}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`U krugu: ${km_range} km`}
+                    onClear={handleClearRange}
+                  />
+                </motion.div>
               )}
 
               {date_posted && (
-                <FilterTag
-                  label={`${t("datePosted")}: ${postedSince}`}
-                  onClear={handleClearDatePosted}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`Objavljeno: ${postedSince}`}
+                    onClear={handleClearDatePosted}
+                  />
+                </motion.div>
               )}
 
               {isMinPrice && max_price && (
-                <FilterTag
-                  label={`${t("budget")}: ${min_price}-${max_price}`}
-                  onClear={handleClearBudget}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`Budžet: ${min_price}-${max_price} KM`}
+                    onClear={handleClearBudget}
+                  />
+                </motion.div>
               )}
 
               {featured_section && (
-                <FilterTag
-                  label={`${t("featuredSection")}: ${featuredTitle}`}
-                  onClear={handleClearFeaturedSection}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`Izdvojena sekcija: ${featuredTitle}`}
+                    onClear={handleClearFeaturedSection}
+                  />
+                </motion.div>
               )}
 
               {hasSellerTypeFilter && (
-                <FilterTag
-                  label={`Prodavač: ${getSellerTypeLabel()}`}
-                  onClear={handleClearSellerType}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label={`Prodavač: ${getSellerTypeLabel()}`}
+                    onClear={handleClearSellerType}
+                  />
+                </motion.div>
               )}
 
               {hasSellerVerifiedFilter && (
-                <FilterTag
-                  label="Prodavač: Samo verificirani"
-                  onClear={handleClearSellerVerified}
-                />
+                <motion.div layout>
+                  <FilterTag
+                    label="Prodavač: Samo verificirani"
+                    onClear={handleClearSellerVerified}
+                  />
+                </motion.div>
               )}
 
               {initialExtraDetails &&
@@ -785,11 +1167,12 @@ const Ads = () => {
                     : getTranslatedValue(value);
 
                   return (
-                    <FilterTag
-                      key={key}
-                      label={`${fieldName}: ${displayValue}`}
-                      onClear={() => handleClearExtraDetail(key)}
-                    />
+                    <motion.div key={key} layout>
+                      <FilterTag
+                        label={`${fieldName}: ${displayValue}`}
+                        onClear={() => handleClearExtraDetail(key)}
+                      />
+                    </motion.div>
                   );
                 })}
 
@@ -801,7 +1184,7 @@ const Ads = () => {
                   {t("clearAll")}
                 </button>
               )}
-            </div>
+            </motion.div>
           )}
 
           <div className="grid grid-cols-12 gap-6">
@@ -823,7 +1206,15 @@ const Ads = () => {
             ) : advertisements.data && advertisements.data.length > 0 ? (
               advertisements.data?.map((item, index) =>
                 view === "list" ? (
-                  <div className="col-span-12" key={index}>
+                  <motion.div
+                    className="col-span-12"
+                    key={item.id || index}
+                    variants={cardAnimation}
+                    initial="hidden"
+                    animate="visible"
+                    custom={index}
+                    layout
+                  >
                     <ProductHorizontalCard
                       item={item}
                       handleLike={handleLike}
@@ -834,11 +1225,16 @@ const Ads = () => {
                           : undefined
                       }
                     />
-                  </div>
+                  </motion.div>
                 ) : (
-                  <div
+                  <motion.div
                     className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
-                    key={index}
+                    key={item.id || index}
+                    variants={cardAnimation}
+                    initial="hidden"
+                    animate="visible"
+                    custom={index}
+                    layout
                   >
                     <ProductCard
                       item={item}
@@ -850,7 +1246,7 @@ const Ads = () => {
                           : undefined
                       }
                     />
-                  </div>
+                  </motion.div>
                 )
               )
             ) : (
@@ -873,16 +1269,83 @@ const Ads = () => {
                   {advertisements.isLoadMore ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-                      {t("loading")}...
+                      Učitavanje...
                     </span>
                   ) : (
-                    t("loadMore")
+                    "Učitaj još"
                   )}
                 </Button>
               </div>
             )}
+
+          <MobileActionSheet
+            open={isSortSheetOpen}
+            onClose={() => setIsSortSheetOpen(false)}
+            title="Poredaj oglase"
+          >
+            <div className="grid gap-2">
+              {sortOptions.map((option) => {
+                const isActive = sortBy === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      handleSortBy(option.value);
+                      setIsSortSheetOpen(false);
+                    }}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                      isActive
+                        ? "border-primary/40 bg-primary/10 text-primary dark:border-primary/50 dark:bg-primary/20"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </MobileActionSheet>
+
+          <MobileActionSheet
+            open={isViewSheetOpen}
+            onClose={() => setIsViewSheetOpen(false)}
+            title="Prikaz oglasa"
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setView("list");
+                  setIsViewSheetOpen(false);
+                }}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+                  view === "list"
+                    ? "border-primary/40 bg-primary/10 text-primary dark:border-primary/50 dark:bg-primary/20"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                }`}
+              >
+                Prikaz liste
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setView("grid");
+                  setIsViewSheetOpen(false);
+                }}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+                  view === "grid"
+                    ? "border-primary/40 bg-primary/10 text-primary dark:border-primary/50 dark:bg-primary/20"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                }`}
+              >
+                Mrežni prikaz
+              </button>
+            </div>
+          </MobileActionSheet>
+
         </div>
-      </div>
+      </motion.div>
     </Layout>
   );
 };

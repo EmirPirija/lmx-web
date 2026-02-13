@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import CustomLink from "@/components/Common/CustomLink";
 import { cn } from "@/lib/utils";
-import { IoCloseOutline, IoSearchOutline } from "react-icons/io5";
+import { IoCloseOutline, IoSearchOutline } from "@/components/Common/UnifiedIconPack";
 import {
   getProfileNavigationSections,
   isProfileNavItemActive,
@@ -17,6 +17,8 @@ function NavItem({ href, label, icon: Icon, description, isActive, badgeCount, h
       <motion.div
         whileHover={{ x: 3 }}
         whileTap={{ scale: 0.98 }}
+        title={description || label}
+        aria-label={description || label}
         className={cn(
           "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
           isActive
@@ -135,7 +137,7 @@ export default function ProfileNavigation({ badges = {} }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Pretrazi sekcije..."
+          placeholder="Pretraži sekcije..."
           className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-700 outline-none transition focus:border-primary/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         {query ? (
@@ -160,6 +162,8 @@ export default function ProfileNavigation({ badges = {} }) {
               <CustomLink
                 key={item.href}
                 href={item.href}
+                title={item.description || item.label}
+                aria-label={item.description || item.label}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold whitespace-nowrap transition",
                   isActive

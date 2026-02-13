@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="odjeca-i-obuca">
+  <defs>
+    <linearGradient id="grad" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563eb" />
+      <stop offset="1" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="56" fill="url(#grad)" />
+  <circle cx="64" cy="64" r="55" fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" />
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 86h66v-6c0-4-3-7-7-7H62L48 63c-4 5-8 8-14 8v15z" />
+    <path d="M52 73h8M60 77h8M68 81h8" />
+  </g>
+</svg>

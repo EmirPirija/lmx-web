@@ -2,11 +2,11 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { HiOutlinePhotograph, HiX } from 'react-icons/hi';
-import { IoClose } from 'react-icons/io5';
+import { HiOutlinePhotograph, HiX } from "@/components/Common/UnifiedIconPack";
+import { IoClose } from "@/components/Common/UnifiedIconPack";
 import StarRatingInput from '../../PagesComponent/Reviews/StartRatingInput';
 import { addItemReviewApi } from '@/utils/api';
-import { toast } from 'sonner';
+import { toast } from "@/utils/toastBs";
 import { cn } from '@/lib/utils';
  
 const GiveReview = ({ 

@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Check, X } from "lucide-react";
-import { toast } from "sonner";
+import { Loader2, Sparkles, Check, X } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 
 // ═══════════════════════════════════════════════════════════════════
 // AVATAR OPTIONS - FLAT MINIMALIST STYLE
@@ -616,8 +616,8 @@ export default LmxAvatarGenerator;
 // import React, { useState, useRef } from "react";
 // import { Button } from "@/components/ui/button";
 // import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-// import { Loader2, Dice5, Save, X, Check } from "lucide-react";
-// import { toast } from "sonner";
+// import { Loader2, Dice5, Save, X, Check } from "@/components/Common/UnifiedIconPack";
+// import { toast } from "@/utils/toastBs";
 
 // // --- CONFIG ---
 // const OPTIONS = {

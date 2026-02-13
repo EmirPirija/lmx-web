@@ -25,7 +25,7 @@ import {
   VolumeX,  // ✅ Dodana ikona za mute
   ShoppingBag,
   Store,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 const ChatListCard = ({ 
   chat, 

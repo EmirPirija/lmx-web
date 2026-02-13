@@ -16,7 +16,7 @@ import {
   IconArrowDown,
   IconArrowUp,
   IconFlame,
-} from "@tabler/icons-react";
+} from "@/components/Common/UnifiedIconPack";
 import {
   SlidersHorizontal,
   Search,
@@ -26,7 +26,7 @@ import {
   BadgePercent,
   Star,
   X,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import { allItemApi } from "@/utils/api";
 import ProductHorizontalCardSkeleton from "@/components/Common/ProductHorizontalCardSkeleton";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton";

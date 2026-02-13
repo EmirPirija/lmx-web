@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import Link from "next/link";
 import { useMediaQuery } from "usehooks-ts";
 
@@ -42,9 +42,9 @@ import {
   IoImageOutline,
   IoStorefrontOutline,
   IoAlertCircleOutline,
-} from "react-icons/io5";
-import { MdVerified } from "react-icons/md";
-import { Loader2, MessageSquare, Package, ExternalLink } from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
+import { MdVerified } from "@/components/Common/UnifiedIconPack";
+import { Loader2, MessageSquare, Package, ExternalLink } from "@/components/Common/UnifiedIconPack";
 
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 

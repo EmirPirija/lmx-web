@@ -3,23 +3,29 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
-import { useMediaQuery } from "usehooks-ts";
+import { motion } from "framer-motion";
 
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { logoutSuccess, userSignUpData } from "@/redux/reducer/authSlice";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import {
   membershipApi,
   getNotificationList,
   getMyItemsApi,
   getMyReviewsApi,
+  getVerificationStatusApi,
+  logoutApi,
   sellerSettingsApi,
 } from "@/utils/api";
 
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
+import { useNavigate } from "@/components/Common/useNavigate";
+import FirebaseData from "@/utils/Firebase";
 import { resolveMembership } from "@/lib/membership";
+import { resolveVerificationState } from "@/lib/verification";
 import { cn } from "@/lib/utils";
+import { toast } from "@/utils/toastBs";
 import {
   getProfileNavigationSections,
   isProfileNavItemActive,
@@ -35,9 +41,9 @@ import {
   IoSearchOutline,
   IoMenuOutline,
   IoCloseOutline,
-} from "react-icons/io5";
-import { Crown } from "lucide-react";
-import { MdVerified } from "react-icons/md";
+} from "@/components/Common/UnifiedIconPack";
+import { Crown } from "@/components/Common/UnifiedIconPack";
+import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -70,6 +76,41 @@ const extractTotal = (payload) => {
   if (typeof payload?.pagination?.total === "number") return payload.pagination.total;
   if (typeof payload?.meta?.pagination?.total === "number") return payload.meta.pagination.total;
   return 0;
+};
+
+const PROFILE_CONTEXT_COPY = {
+  "/profile": {
+    title: "Moj profil",
+    description: "Uredi lične podatke, kontakt i osnovne informacije računa.",
+  },
+  "/profile/seller-settings": {
+    title: "Postavke prodavača",
+    description: "Podešavanja javnog profila prodavača i prikaza na oglasima.",
+  },
+  "/my-ads": {
+    title: "Moji oglasi",
+    description: "Prati stanje oglasa i brzo reaguj na upite kupaca.",
+  },
+  "/notifications": {
+    title: "Obavijesti",
+    description: "Sve nove aktivnosti na jednom mjestu, bez propuštenih događaja.",
+  },
+  "/chat": {
+    title: "Poruke",
+    description: "Komunikacija sa kupcima i prodavačima u realnom vremenu.",
+  },
+  "/reviews": {
+    title: "Ocjene i recenzije",
+    description: "Prati kvalitet usluge i reputaciju profila kroz ocjene.",
+  },
+  "/transactions": {
+    title: "Transakcije",
+    description: "Pregled uplata, troškova i historije plaćanja.",
+  },
+  "/user-subscription": {
+    title: "Pretplata",
+    description: "Upravljaj planom i pogodnostima članstva.",
+  },
 };
 
 // ============================================
@@ -146,6 +187,8 @@ const MenuItem = ({
           ? "bg-primary/10 text-primary dark:bg-primary/20"
           : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
       )}
+      title={description || label}
+      aria-label={description || label}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -223,15 +266,25 @@ const MenuDivider = () => <div className="mx-3 my-1 h-px bg-slate-100 dark:bg-sl
 // ============================================
 // QUICK STAT (isti stil kao ProfileDropdown)
 // ============================================
-const QuickStat = ({ icon: Icon, value, label, color = "primary" }) => {
+const QuickStat = ({ icon: Icon, value, label, color = "primary", loading = false }) => {
   const colors = {
     primary: "text-primary bg-primary/10",
     secondary: "text-secondary bg-secondary/10",
     accent: "text-accent bg-accent/10",
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center gap-1 p-2">
+        <div className="h-8 w-8 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
+        <div className="h-4 w-8 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="h-3 w-12 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center gap-1 p-2">
+    <div className="flex flex-col items-center gap-1 p-2" title={label} aria-label={label}>
       <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", colors[color])}>
         <Icon size={16} />
       </div>
@@ -249,9 +302,11 @@ const ProfileSidebar = ({
   customAvatarUrl,
   sellerAvatarId,
   userStats,
+  isStatsLoading = false,
   navigationSections,
   pathname,
   handleLogout,
+  isLoggingOut = false,
   onClose,
   isMobile = false,
 }) => {
@@ -259,7 +314,6 @@ const ProfileSidebar = ({
     () => resolveMembership({ tier: userStats.membershipTier }),
     [userStats.membershipTier]
   );
-  const isPro = resolvedMembership.isPro;
   const isShop = resolvedMembership.isShop;
   const isPremium = resolvedMembership.isPremium;
   const [menuQuery, setMenuQuery] = useState("");
@@ -301,7 +355,11 @@ const ProfileSidebar = ({
                 <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100 max-w-[150px]">
                   {userData?.name || "Korisnik"}
                 </p>
-                <MembershipBadge tier={userStats.membershipTier} size="xs" uppercase={false} />
+                {isStatsLoading ? (
+                  <span className="inline-flex h-5 w-14 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+                ) : (
+                  <MembershipBadge tier={userStats.membershipTier} size="xs" uppercase={false} />
+                )}
               </div>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">{userData?.email}</p>
             </div>
@@ -323,14 +381,27 @@ const ProfileSidebar = ({
         {/* QUICK STATS */}
         <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/70">
           <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-100 bg-white p-2 dark:border-slate-700 dark:bg-slate-900/95">
-            <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="primary" />
+            <QuickStat
+              icon={IoLayersOutline}
+              value={userStats.activeAds}
+              label="Oglasi"
+              color="primary"
+              loading={isStatsLoading}
+            />
             <QuickStat
               icon={IoNotificationsOutline}
               value={userStats.unreadNotifications}
               label="Obavijesti"
               color="secondary"
+              loading={isStatsLoading}
             />
-            <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="accent" />
+            <QuickStat
+              icon={IoStarOutline}
+              value={userStats.rating}
+              label="Ocjena"
+              color="accent"
+              loading={isStatsLoading}
+            />
           </div>
 
           <div className="mt-2.5 relative">
@@ -342,7 +413,7 @@ const ProfileSidebar = ({
               type="text"
               value={menuQuery}
               onChange={(e) => setMenuQuery(e.target.value)}
-              placeholder="Pretrazi meni..."
+              placeholder="Pretraži meni..."
               className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-700 outline-none transition focus:border-primary/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
             {menuQuery ? (
@@ -356,18 +427,6 @@ const ProfileSidebar = ({
               </button>
             ) : null}
           </div>
-        </div>
-
-        {/* PRIMARY ACTION */}
-        <div className="px-4 py-3">
-          <CustomLink
-            href="/ad-listing"
-            onClick={onClose}
-            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-semibold text-white transition-all duration-200 hover:bg-primary/90"
-          >
-            <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-            Dodaj oglas
-          </CustomLink>
         </div>
 
         {/* MENU SECTIONS */}
@@ -405,9 +464,10 @@ const ProfileSidebar = ({
           <MenuSection>
             <MenuItem
               icon={IoLogOutOutline}
-              label="Odjava"
-              description="Odjavi se sa računa"
+              label={isLoggingOut ? "Odjavljivanje..." : "Odjava"}
+              description={isLoggingOut ? "Odjava je u toku" : "Odjavi se sa računa"}
               onClick={() => {
+                if (isLoggingOut) return;
                 handleLogout();
                 onClose?.();
               }}
@@ -417,7 +477,7 @@ const ProfileSidebar = ({
         </div>
 
         {/* UPGRADE BANNER (za free korisnike) */}
-        {userStats.membershipTier === "free" && (
+        {!isStatsLoading && userStats.membershipTier === "free" && (
           <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
             <CustomLink
               href="/membership/upgrade"
@@ -439,16 +499,16 @@ const ProfileSidebar = ({
         )}
 
         {/* PRO USER BANNER */}
-        {isPremium && (
+        {!isStatsLoading && isPremium && (
           <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
             <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-white p-3 dark:border-primary/30 dark:bg-slate-900">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                 <Crown className="text-white" size={20} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  {isShop ? "Shop" : "Pro"} član
-                </h5>
+                <div className="mb-1">
+                  <MembershipBadge tier={isShop ? "shop" : "pro"} size="xs" uppercase />
+                </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Uživaj u svim premium pogodnostima</p>
               </div>
             </div>
@@ -459,12 +519,125 @@ const ProfileSidebar = ({
   );
 };
 
+const contextHeaderVariants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.36,
+      ease: [0.22, 1, 0.36, 1],
+      staggerChildren: 0.06,
+    },
+  },
+};
+
+const contextHeaderItemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) => {
+  const verificationStatus = String(userStats.verificationStatus || "not-applied");
+  const shouldShowVerificationBlock = !userStats.isVerified;
+  const verificationText = verificationStatus === "pending"
+    ? "Verifikacija je u toku"
+    : verificationStatus === "rejected"
+    ? "Verifikacija je odbijena"
+    : "Račun nije verificiran";
+  const verificationTone = verificationStatus === "pending"
+    ? "border-amber-200 bg-amber-50/90 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
+    : verificationStatus === "rejected"
+    ? "border-rose-200 bg-rose-50/90 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300"
+    : "border-slate-200 bg-slate-50/90 text-slate-600 dark:border-slate-700 dark:bg-slate-900/75 dark:text-slate-300";
+  const verificationCtaLabel =
+    verificationStatus === "pending"
+      ? "Provjeri verifikaciju"
+      : verificationStatus === "rejected"
+      ? "Pošalji verifikaciju ponovo"
+      : "Verificiraj račun";
+  const hasContextActions = shouldShowVerificationBlock;
+  const contextCopy = PROFILE_CONTEXT_COPY[pathname] || {
+    title: "Kontekst stranice",
+    description: "Brzi pregled konteksta i radnji za trenutno otvorenu sekciju profila.",
+  };
+
+  return (
+    <motion.section
+      className="hidden lg:block"
+      variants={contextHeaderVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="sticky top-24 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.5)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85">
+        <motion.div variants={contextHeaderItemVariants} className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+              Kontekst sekcije
+            </p>
+            {isStatsLoading ? (
+              <div className="mt-2 space-y-2">
+                <div className="h-4 w-36 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+                <div className="h-3 w-[420px] max-w-full animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+              </div>
+            ) : (
+              <>
+                <h2 className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">
+                  {contextCopy.title}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  {contextCopy.description}
+                </p>
+              </>
+            )}
+          </div>
+        </motion.div>
+
+        <motion.div variants={contextHeaderItemVariants} className="flex flex-wrap items-center gap-2 px-5 py-3">
+          {isStatsLoading ? (
+            <>
+              <div className="h-9 w-32 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+              <div className="h-9 w-36 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+            </>
+          ) : hasContextActions ? (
+            <>
+              {shouldShowVerificationBlock && (
+                <>
+                  <span className={cn("inline-flex h-9 items-center rounded-xl border px-3 text-xs font-semibold", verificationTone)}>
+                    {verificationText}
+                  </span>
+                  <CustomLink
+                    href="/user-verification"
+                    className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                  >
+                    {verificationCtaLabel}
+                  </CustomLink>
+                </>
+              )}
+
+            </>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Profil je usklađen i spreman. Nema dodatnih koraka za ovu sekciju.
+            </p>
+          )}
+        </motion.div>
+      </div>
+    </motion.section>
+  );
+};
+
 // ============================================
 // MAIN PROFILE LAYOUT COMPONENT
 // ============================================
 const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   const pathname = usePathname();
-  const isMobile = useMediaQuery("(max-width: 1024px)");
+  const { navigate } = useNavigate();
+  const { signOut } = FirebaseData();
 
   const userData = useSelector(userSignUpData);
   const settings = useSelector(settingsData);
@@ -472,6 +645,8 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
   const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
 
   const [userStats, setUserStats] = useState({
     activeAds: 0,
@@ -481,6 +656,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     rating: "0.0",
     membershipTier: "free",
     isVerified: false,
+    verificationStatus: "not-applied",
   });
 
   // Custom avatar URL
@@ -503,15 +679,46 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     }
   }, []);
 
+  const handleHardLogout = useCallback(async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      const response = await logoutApi.logoutApi({
+        ...(userData?.fcm_id ? { fcm_token: userData.fcm_id } : {}),
+      });
+
+      if (response?.data?.error === false) {
+        logoutSuccess();
+        toast.success("Uspješno ste se odjavili");
+        navigate("/");
+      } else {
+        toast.error(response?.data?.message || "Greška pri odjavi");
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Greška pri odjavi");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [isLoggingOut, signOut, userData?.fcm_id, navigate]);
+
   const handleLogout = useCallback(() => {
     setMobileMenuOpen(false);
+
     if (setIsLogout) {
       setIsLogout(true);
+      return;
     }
-  }, [setIsLogout]);
 
-  const fetchAllData = useCallback(async () => {
+    void handleHardLogout();
+  }, [setIsLogout, handleHardLogout]);
+
+  const fetchAllData = useCallback(async (showLoader = false) => {
     if (!userData) return;
+    if (showLoader) {
+      setIsStatsLoading(true);
+    }
 
     try {
       const results = await Promise.allSettled([
@@ -524,9 +731,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
           limit: 1,
         }),
         getMyReviewsApi.getMyReviews({ page: 1 }),
+        getVerificationStatusApi.getVerificationStatus(),
       ]);
 
-      const [membershipRes, notifRes, adsRes, reviewsRes] = results;
+      const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] = results;
 
       let membershipTier = resolveMembership(userData).tier;
       if (membershipRes.status === "fulfilled") {
@@ -559,25 +767,41 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         toNum(userData?.rating);
 
       const rating = toRating(ratingFromReviews ?? ratingFallback);
-      const isVerified = userData?.is_verified === 1 || userData?.verified === true;
+      const verificationPayload = verificationRes?.status === "fulfilled" ? verificationRes.value : null;
 
-      setUserStats({
-        activeAds,
-        totalViews: userData?.total_views || userData?.profile_views || 0,
-        unreadNotifications,
-        unreadMessages: userData?.unread_messages || 0,
-        rating,
-        membershipTier: String(membershipTier).toLowerCase(),
-        isVerified,
+      setUserStats((prev) => {
+        const { verificationStatus, isVerified } = resolveVerificationState({
+          verificationResponse: verificationPayload,
+          userData,
+          previousStatus: prev.verificationStatus,
+        });
+
+        return {
+          activeAds,
+          totalViews: userData?.total_views || userData?.profile_views || 0,
+          unreadNotifications,
+          unreadMessages: userData?.unread_messages || 0,
+          rating,
+          membershipTier: String(membershipTier).toLowerCase(),
+          isVerified,
+          verificationStatus,
+        };
       });
     } catch (e) {
       console.error("Error fetching user stats:", e);
+    } finally {
+      if (showLoader) {
+        setIsStatsLoading(false);
+      }
     }
   }, [userData]);
 
   useEffect(() => {
-    if (!userData) return;
-    fetchAllData();
+    if (!userData) {
+      setIsStatsLoading(false);
+      return;
+    }
+    fetchAllData(true);
     getSellerSettings();
   }, [userData, fetchAllData, getSellerSettings]);
 
@@ -588,7 +812,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
       const detail = event?.detail;
       if (!detail) return;
       if (detail?.category === "notification" || detail?.category === "chat" || detail?.category === "system") {
-        fetchAllData();
+        fetchAllData(false);
       }
     };
 
@@ -611,14 +835,12 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   // Mobile sidebar (Sheet kao ProfileDropdown)
   const MobileSidebar = (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-      <SheetTrigger asChild>
-        <button
-          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 lg:hidden"
-          aria-label="Otvori meni"
-        >
-          <IoMenuOutline size={20} className="text-slate-600 dark:text-slate-300" />
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Meni</span>
-        </button>
+      <SheetTrigger
+        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 lg:hidden"
+        aria-label="Otvori meni"
+      >
+        <IoMenuOutline size={20} className="text-slate-600 dark:text-slate-300" />
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Meni</span>
       </SheetTrigger>
       <SheetContent side="left" className="w-[320px] max-w-[85vw] p-0">
         <ProfileSidebar
@@ -626,9 +848,11 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
           customAvatarUrl={customAvatarUrl}
           sellerAvatarId={sellerAvatarId}
           userStats={userStats}
+          isStatsLoading={isStatsLoading}
           navigationSections={navigationSections}
           pathname={pathname}
           handleLogout={handleLogout}
+          isLoggingOut={isLoggingOut}
           onClose={() => setMobileMenuOpen(false)}
           isMobile={true}
         />
@@ -659,32 +883,48 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         </div>
 
         {/* Main Layout */}
-        <div className="lg:grid lg:grid-cols-[minmax(300px,336px)_1fr] lg:gap-6">
+        <motion.div
+          layout
+          className="lg:grid lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start lg:gap-6"
+        >
           {/* Desktop Sidebar */}
-          {!isMobile && (
-            <aside className="hidden lg:block">
-              <div className="sticky top-24 overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-                <ProfileSidebar
-                  userData={userData}
-                  customAvatarUrl={customAvatarUrl}
-                  sellerAvatarId={sellerAvatarId}
-                  userStats={userStats}
-                  navigationSections={navigationSections}
-                  pathname={pathname}
-                  handleLogout={handleLogout}
-                  isMobile={false}
-                />
-              </div>
-            </aside>
-          )}
+          <motion.aside
+            layout
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="hidden lg:block lg:self-start"
+          >
+            <div className="sticky top-24 overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+              <ProfileSidebar
+                userData={userData}
+                customAvatarUrl={customAvatarUrl}
+                sellerAvatarId={sellerAvatarId}
+                userStats={userStats}
+                isStatsLoading={isStatsLoading}
+                navigationSections={navigationSections}
+                pathname={pathname}
+                handleLogout={handleLogout}
+                isLoggingOut={isLoggingOut}
+                isMobile={false}
+              />
+            </div>
+          </motion.aside>
 
           {/* Main Content */}
-          <main className="min-w-0 flex-1">
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/85">
+          <motion.main layout className="min-w-0 space-y-4">
+            <ProfileContextHeader userStats={userStats} pathname={pathname} isStatsLoading={isStatsLoading} />
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/85"
+            >
               <div className="p-4 sm:p-6">{children}</div>
-            </div>
-          </main>
-        </div>
+            </motion.div>
+          </motion.main>
+        </motion.div>
       </div>
     </div>
   );

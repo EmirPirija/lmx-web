@@ -7,7 +7,7 @@ import { resetBreadcrumb } from "@/redux/reducer/breadCrumbSlice";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
 import { allItemApi } from "@/utils/api";
-import { Info, X } from "lucide-react";
+import { Info, X } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 const AllItems = ({ cityData, KmRange }) => {

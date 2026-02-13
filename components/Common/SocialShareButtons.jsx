@@ -20,14 +20,14 @@ import {
   Link as LinkIcon,
   X,
   Loader2,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import {
   IoLogoWhatsapp,
   IoLogoInstagram,
   IoLogoFacebook,
-} from "react-icons/io5";
-import { FaTelegram, FaViber } from "react-icons/fa";
-import { BsTwitterX } from "react-icons/bs";
+} from "@/components/Common/UnifiedIconPack";
+import { FaTelegram, FaViber } from "@/components/Common/UnifiedIconPack";
+import { BsTwitterX } from "@/components/Common/UnifiedIconPack";
 
 // ============================================
 // PLATFORM ICONS

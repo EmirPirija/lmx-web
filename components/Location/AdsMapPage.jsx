@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import MapSearchView from "@/components/MapSearchView-Integrated";
 import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 import { t } from "@/utils";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { useRouter } from "next/navigation";
 
 const AdsMapPage = () => {

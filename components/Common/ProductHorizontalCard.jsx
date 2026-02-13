@@ -10,9 +10,8 @@ import {
   MapPin,
   Rocket,
   Youtube,
-} from "lucide-react";
-import { ArrowsLeftRightIcon } from "@phosphor-icons/react";
-import { toast } from "sonner";
+} from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 import { formatPriceAbbreviated, formatSalaryRange, t } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
@@ -94,9 +93,6 @@ const getThreeDots = (total, current) => {
   if (current === total - 1) return [total - 3, total - 2, total - 1];
   return [current - 1, current, current + 1];
 };
-
-const ICON_PRIMARY_FILL = "#dadad5";
-const ICON_SECONDARY_FILL = "#0ab6af";
 
 const normalizeText = (value = "") =>
   String(value)
@@ -642,30 +638,16 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           </h3>
           {exchangePossible ? (
             <span
-              className="relative mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center"
+              className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
               title="Zamjena moguća"
               aria-label="Zamjena moguća"
             >
-              <ArrowsLeftRightIcon
-                weight="fill"
-                color={ICON_SECONDARY_FILL}
-                className="absolute inset-0 h-full w-full"
-              />
-              <ArrowsLeftRightIcon
-                weight="duotone"
-                color={ICON_SECONDARY_FILL}
-                className="absolute inset-0 h-full w-full"
-              />
-              <ArrowsLeftRightIcon
-                weight="regular"
-                color={ICON_PRIMARY_FILL}
-                className="h-full w-full"
-              />
+              <GitCompare className="h-full w-full" />
             </span>
           ) : null}
         </div>
 
-        {(displayCity || displayAddress) ? (
+        {/* {(displayCity || displayAddress) ? (
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <MapPin className="h-3.5 w-3.5" />
             <span className="truncate">{displayCity || displayAddress}</span>
@@ -674,7 +656,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
 
         {displayCity && displayAddress ? (
           <p className="line-clamp-1 text-xs text-slate-400 dark:text-slate-500">{displayAddress}</p>
-        ) : null}
+        ) : null} */}
 
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
           <div className="flex flex-wrap gap-1">

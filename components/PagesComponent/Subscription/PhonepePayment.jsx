@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import PhonepeLogo from "../../../public/assets/phonepe-icon.png";
-import { FaAngleRight } from "react-icons/fa";
+import { FaAngleRight } from "@/components/Common/UnifiedIconPack";
 import { useSelector } from "react-redux";
 import { createPaymentIntentApi } from "@/utils/api";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 
 const PhonepePayment = ({ selectedPackage }) => {
   const [isLoading, setIsLoading] = useState(false);

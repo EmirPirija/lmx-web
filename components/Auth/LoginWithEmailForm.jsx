@@ -1,9 +1,9 @@
-import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
+import { FaRegEye, FaRegEyeSlash } from "@/components/Common/UnifiedIconPack";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import useAutoFocus from "../Common/useAutoFocus";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError, t } from "@/utils";
 import {
   getAuth,
@@ -14,7 +14,7 @@ import { userSignUpApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { Fcmtoken } from "@/redux/reducer/settingSlice";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useState } from "react";
 
 const LoginWithEmailForm = ({ OnHide }) => {
@@ -116,13 +116,20 @@ const LoginWithEmailForm = ({ OnHide }) => {
 
   return (
     <>
-      <form className="flex flex-col gap-6" onSubmit={Signin}>
+      <form
+        className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+        onSubmit={Signin}
+      >
         <div className="labelInputCont">
-          <Label className="requiredInputLabel">{t("email")}</Label>
+          <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+            {t("email")}
+          </Label>
           <Input
             type="email"
             placeholder={t("enterEmail")}
             value={email}
+            className="h-11 rounded-xl"
+            autoComplete="email"
             onChange={(e) =>
               setLoginStates((prev) => ({ ...prev, email: e.target.value }))
             }
@@ -130,13 +137,16 @@ const LoginWithEmailForm = ({ OnHide }) => {
           />
         </div>
         <div className="labelInputCont">
-          <Label className="requiredInputLabel">{t("password")}</Label>
+          <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+            {t("password")}
+          </Label>
           <div className="flex items-center relative">
             <Input
               type={IsPasswordVisible ? "text" : "password"}
               placeholder={t("enterPassword")}
-              className="ltr:pr-9 rtl:pl-9"
+              className="h-11 rounded-xl ltr:pr-10 rtl:pl-10"
               value={password}
+              autoComplete="current-password"
               onChange={(e) =>
                 setLoginStates((prev) => ({
                   ...prev,
@@ -162,7 +172,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
             </button>
           </div>
           <button
-            className="text-right font-semibold text-primary"
+            className="self-end text-xs font-semibold text-primary hover:underline"
             onClick={handleForgotModal}
             type="button"
           >
@@ -170,12 +180,12 @@ const LoginWithEmailForm = ({ OnHide }) => {
           </button>
         </div>
         <Button
-          className="text-xl text-white font-light px-4 py-2"
-          size="big"
+          className="h-11 rounded-xl text-sm font-semibold"
+          size="lg"
           disabled={showLoader}
         >
           {showLoader ? (
-            <Loader2 className="size-6 animate-spin" />
+            <Loader2 className="size-4 animate-spin" />
           ) : (
             t("signIn")
           )}

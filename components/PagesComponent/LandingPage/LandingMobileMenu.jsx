@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sheet";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { t } from "@/utils";
-import { GiHamburgerMenu } from "react-icons/gi";
+import { GiHamburgerMenu } from "@/components/Common/UnifiedIconPack";
 import { useSelector } from "react-redux";
 import LanguageDropdown from "../../Common/LanguageDropdown";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -28,13 +28,11 @@ const LandingMobileMenu = ({ isOpen, setIsOpen, activeSection }) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen} className="lg:hidden">
-      <SheetTrigger asChild className="lg:hidden">
-        <button
-          id="hamburg"
-          className="text-2xl cursor-pointer border rounded-lg p-1"
-        >
-          <GiHamburgerMenu size={25} className="text-primary" />
-        </button>
+      <SheetTrigger
+        id="hamburg"
+        className="text-2xl cursor-pointer border rounded-lg p-1 lg:hidden"
+      >
+        <GiHamburgerMenu size={25} className="text-primary" />
       </SheetTrigger>
       <SheetContent className="[&>button:first-child]:hidden] p-0">
         <SheetHeader className="py-4 px-6 border-b border">

@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
-import { IconSun, IconMoon } from "@tabler/icons-react"
+import { IconSun, IconMoon } from "@/components/Common/UnifiedIconPack"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -17,6 +17,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      type="button"
       className="
         relative flex items-center justify-center 
         w-10 h-10 rounded-full 
@@ -32,7 +33,7 @@ export function ThemeToggle() {
       {/* SUN */}
       <IconSun
         size={20}
-        stroke={2}
+        strokeWidth={2}
         className={`
           absolute text-yellow-500
           transition-all duration-300
@@ -43,7 +44,7 @@ export function ThemeToggle() {
       {/* MOON */}
       <IconMoon
         size={20}
-        stroke={2}
+        strokeWidth={2}
         className={`
           absolute text-blue-400
           transition-all duration-300

@@ -5,7 +5,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { useEffect, useState } from "react";
-import { RiArrowLeftLine, RiArrowRightLine } from "react-icons/ri";
+import { RiArrowLeftLine, RiArrowRightLine } from "@/components/Common/UnifiedIconPack";
 import Autoplay from "embla-carousel-autoplay";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { useSelector } from "react-redux";

@@ -8,7 +8,7 @@ import {
 } from "firebase/messaging";
 import firebase from "firebase/compat/app";
 import { getAuth } from "firebase/auth";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { createStickyNote, t } from ".";
 import { getFcmToken } from "@/redux/reducer/settingSlice";
 

@@ -14,7 +14,7 @@ import {
   Loader2,
   SearchX,
   History
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 import { Button } from "@/components/ui/button";
 import CustomImage from "@/components/Common/CustomImage";
@@ -80,14 +80,8 @@ const RecentPill = memo(({ category, onClick, index }) => (
       flex items-center justify-center overflow-hidden shrink-0
       group-hover:scale-110 transition-transform duration-300
     ">
-      {isRootCategory(category) && category?.image ? (
-        <CustomImage
-          src={category.image}
-          alt=""
-          width={28}
-          height={28}
-          className="w-full h-full object-cover"
-        />
+      {isRootCategory(category) ? (
+        <CategorySemanticIcon category={category} className="w-4 h-4" />
       ) : (
         <CategorySemanticIcon category={category} className="w-4 h-4" />
       )}
@@ -127,13 +121,10 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
         flex items-center justify-center 
         group-hover:bg-white group-hover:border-blue-100 transition-colors
       ">
-        {isRootCategory(category) && category?.image ? (
-          <CustomImage
-            src={category?.image}
-            alt={category?.search_name || category?.name}
-            height={32}
-            width={32}
-            className="w-6 h-6 md:w-7 md:h-7 object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-transform"
+        {isRootCategory(category) ? (
+          <CategorySemanticIcon
+            category={category}
+            className="w-6 h-6 md:w-7 md:h-7 opacity-90 group-hover:scale-110 transition-transform"
           />
         ) : (
           <CategorySemanticIcon

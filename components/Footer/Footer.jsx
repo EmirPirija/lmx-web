@@ -1,10 +1,10 @@
 "use client";
 import CustomLink from "@/components/Common/CustomLink";
-import { FaFacebook, FaLinkedin, FaPinterest } from "react-icons/fa";
-import { FaInstagram, FaSquareXTwitter } from "react-icons/fa6";
-import { SlLocationPin } from "react-icons/sl";
-import { RiMailSendFill } from "react-icons/ri";
-import { BiPhoneCall } from "react-icons/bi";
+import { FaFacebook, FaLinkedin, FaPinterest } from "@/components/Common/UnifiedIconPack";
+import { FaInstagram, FaSquareXTwitter } from "@/components/Common/UnifiedIconPack";
+import { SlLocationPin } from "@/components/Common/UnifiedIconPack";
+import { RiMailSendFill } from "@/components/Common/UnifiedIconPack";
+import { BiPhoneCall } from "@/components/Common/UnifiedIconPack";
 import { t } from "@/utils";
 import { quickLinks } from "@/utils/constants";
 import { useSelector } from "react-redux";

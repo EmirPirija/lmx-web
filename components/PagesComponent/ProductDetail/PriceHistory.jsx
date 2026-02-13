@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { MdTrendingDown, MdTrendingUp, MdHistory, MdExpandMore, MdExpandLess } from "react-icons/md";
+import { MdTrendingDown, MdTrendingUp, MdHistory, MdExpandMore, MdExpandLess } from "@/components/Common/UnifiedIconPack";
  
 // Formatiranje cijene
 const formatPrice = (price) => {

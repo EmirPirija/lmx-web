@@ -2,8 +2,10 @@
 
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
+import { overlayMotion, sideSheetMotion } from "@/components/ui/ui-motion"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -22,8 +24,13 @@ const DrawerClose = DrawerPrimitive.Close
 const DrawerOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/80", className)}
-    {...props} />
+    asChild
+    {...props}>
+    <motion.div
+      {...overlayMotion}
+      className={cn("fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px]", className)}
+    />
+  </DrawerPrimitive.Overlay>
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
@@ -32,13 +39,17 @@ const DrawerContent = React.forwardRef(({ className, children, ...props }, ref) 
     <DrawerOverlay />
     <DrawerPrimitive.Content
       ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
-        className
-      )}
+      asChild
       {...props}>
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
+      <motion.div
+        {...sideSheetMotion.bottom}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-3xl border border-border/70 bg-background shadow-xl",
+          className
+        )}>
+        <div className="mx-auto mt-4 h-1.5 w-20 rounded-full bg-muted-foreground/30" />
+        {children}
+      </motion.div>
     </DrawerPrimitive.Content>
   </DrawerPortal>
 ))
@@ -49,7 +60,7 @@ const DrawerHeader = ({
   ...props
 }) => (
   <div
-    className={cn("grid gap-1.5 p-4 text-center sm:text-left", className)}
+    className={cn("grid gap-1.5 p-5 text-center sm:text-left", className)}
     {...props} />
 )
 DrawerHeader.displayName = "DrawerHeader"
@@ -58,7 +69,7 @@ const DrawerFooter = ({
   className,
   ...props
 }) => (
-  <div className={cn("mt-auto flex flex-col gap-2 p-4", className)} {...props} />
+  <div className={cn("mt-auto flex flex-col gap-2 p-5", className)} {...props} />
 )
 DrawerFooter.displayName = "DrawerFooter"
 

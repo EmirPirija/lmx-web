@@ -38,7 +38,7 @@ import {
   ChevronUp,
   RefreshCw,
   ArrowUpDown,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 /* =====================================================
    SKELETON KOMPONENTA
@@ -214,7 +214,7 @@ const FilterSidebar = ({
             }
           />
           <FilterOption
-            label="Shop / Trgovine"
+            label="Shop / Radnje"
             icon={Store}
             checked={filters.shop === "1"}
             onChange={(e) =>
@@ -229,7 +229,7 @@ const FilterSidebar = ({
 
       <FilterSection title="Verifikacija" section="verification">
         <FilterOption
-          label="Samo verificirani"
+          label="Samo verificirani korisnici"
           icon={BadgeCheck}
           checked={filters.verified === "1"}
           onChange={(e) =>
@@ -271,7 +271,7 @@ const FilterSidebar = ({
           }
         >
           <RefreshCw className="w-4 h-4 mr-2" />
-          Resetiraj filtere
+          Poništi filtere
         </Button>
       </div>
     </div>
@@ -799,7 +799,7 @@ const SviKorisniciPage = () => {
             <p className="mt-1 text-xl font-bold text-indigo-600 dark:text-indigo-300">{directoryStats.shop}</p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Verifikovani</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Verificirani</p>
             <p className="mt-1 text-xl font-bold text-sky-600 dark:text-sky-300">{directoryStats.verified}</p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
@@ -920,7 +920,7 @@ const SviKorisniciPage = () => {
                 ))}
               </div>
             ) : users.length === 0 ? (
-              <NoData name="Nema korisnika koji odgovaraju pretrazi" />
+              <NoData name="Nema korisnika koji odgovaraju pretrazi." />
             ) : (
               <div className={cn(
                 view === "list"

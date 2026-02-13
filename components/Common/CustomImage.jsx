@@ -2,27 +2,36 @@
 
 import { getPlaceholderImage } from "@/redux/reducer/settingSlice";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
+import { normalizeLegacyImageUrl } from "@/utils/categoryImage";
 
 const CustomImage = ({ src, alt, loading = "lazy", ...props }) => {
   const placeholderImage = useSelector(getPlaceholderImage);
   const fallback = "/assets/Transperant_Placeholder.png";
-  // Initial source can be string OR object (StaticImageData)
-  const initialSrc =
-    (src && (typeof src === "string" ? src.trim() : src)) ||
-    (placeholderImage && placeholderImage.trim?.()) ||
-    fallback;
 
-  const [imgSrc, setImgSrc] = useState(initialSrc);
+  const normalizedPlaceholder = useMemo(() => {
+    if (typeof placeholderImage !== "string") return "";
+    return normalizeLegacyImageUrl(placeholderImage) || "";
+  }, [placeholderImage]);
+
+  const resolvedSrc = useMemo(() => {
+    const normalizedSrc =
+      typeof src === "string" ? normalizeLegacyImageUrl(src) : src;
+
+    return normalizedSrc || normalizedPlaceholder || fallback;
+  }, [src, normalizedPlaceholder]);
+
+  const [imgSrc, setImgSrc] = useState(resolvedSrc);
+
+  useEffect(() => {
+    setImgSrc(resolvedSrc);
+  }, [resolvedSrc]);
+
 
   const handleError = () => {
-    if (
-      imgSrc !== placeholderImage &&
-      typeof placeholderImage === "string" &&
-      placeholderImage.trim()
-    ) {
-      setImgSrc(placeholderImage);
+    if (imgSrc !== normalizedPlaceholder && normalizedPlaceholder) {
+      setImgSrc(normalizedPlaceholder);
     } else if (imgSrc !== fallback) {
       setImgSrc(fallback);
     }

@@ -15,17 +15,19 @@ import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { useRouter } from "next/navigation";
 import { resolveMembership } from "@/lib/membership";
+import StickyActionButtons from "@/components/Common/StickyActionButtons";
+import PlanGateLabel from "@/components/Common/PlanGateLabel";
+import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
 
 // Ikone za sekcije (React Icons)
 import {
   MdOutlineTitle,
   MdAttachMoney,
   MdPhoneIphone,
-  MdChevronRight,
   MdInventory,
-} from "react-icons/md";
-import { BsTextParagraph, BsTag } from "react-icons/bs";
-import { FiPercent } from "react-icons/fi";
+} from "@/components/Common/UnifiedIconPack";
+import { BsTextParagraph, BsTag } from "@/components/Common/UnifiedIconPack";
+import { FiPercent } from "@/components/Common/UnifiedIconPack";
 
 // Ikone za Editor (Lucide React)
 import {
@@ -35,7 +37,7 @@ import {
   ListOrdered,
   Link as LinkIcon,
   Type,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 // ============================================
 // ACCORDION SECTION
@@ -46,6 +48,7 @@ const AccordionSection = ({
   badge, // "required" | "optional"
   isOpen,
   onToggle,
+  planGate,
   children,
 }) => {
   return (
@@ -65,6 +68,8 @@ const AccordionSection = ({
             >
               {title}
             </h3>
+
+            {planGate ? planGate : null}
 
             {badge && (
               <span
@@ -628,6 +633,7 @@ const EditComponentOne = ({
           badge="optional"
           isOpen={stockOpen}
           onToggle={() => setStockOpen((v) => !v)}
+          planGate={<PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />}
         >
           <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50">
             <div className="flex items-start gap-3">
@@ -635,9 +641,12 @@ const EditComponentOne = ({
                 <MdInventory className="text-gray-700" size={18} />
               </div>
               <div className="flex-1">
-                <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-900">
-                  Količina na zalihi
-                </Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-900">
+                    Količina na zalihi
+                  </Label>
+                  <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+                </div>
                 <p className="text-sm text-gray-600">
                   Ostavite prazno ako prodajete samo jedan artikal.
                 </p>
@@ -669,9 +678,12 @@ const EditComponentOne = ({
             </div>
 
             <div className="mt-4">
-              <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-900">
-                Interna šifra proizvoda (SHOP)
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-900">
+                  Interna šifra proizvoda
+                </Label>
+                <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+              </div>
               <Input
                 type="text"
                 name="seller_product_code"
@@ -718,11 +730,7 @@ const EditComponentOne = ({
                   name: "phonenumber",
                   id: "phonenumber",
                 }}
-                enableLongNumbers
-                containerClass="!w-full"
-                inputClass="!w-full !h-10 !text-sm !border-2 !border-gray-200 !bg-white !rounded-xl focus:!ring-2 focus:!ring-blue-500 focus:!border-transparent"
-                buttonClass="!border-2 !border-gray-200 !bg-white !rounded-l-xl hover:!bg-gray-50"
-                dropdownClass="!bg-white !text-gray-900 !border-gray-200 !shadow-md"
+                {...LMX_PHONE_INPUT_PROPS}
               />
             </div>
           </div>
@@ -730,26 +738,12 @@ const EditComponentOne = ({
       )}
 
       {/* FOOTER DUGMAD */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between sm:justify-end gap-3">
-          <button
-            type="button"
-            className="bg-black text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors shadow-md flex-1 sm:flex-none"
-            onClick={() => router.back()}
-          >
-            Odustani
-          </button>
-
-          <button
-            type="button"
-            className="bg-primary hover:bg-primary/90 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-medium shadow-md flex-1 sm:flex-none inline-flex items-center justify-center gap-2 transition-all"
-            onClick={handleDetailsSubmit}
-          >
-            Nastavi
-            <MdChevronRight size={22} />
-          </button>
-        </div>
-      </div>
+      <StickyActionButtons
+        secondaryLabel="Odustani"
+        onSecondaryClick={() => router.back()}
+        primaryLabel="Nastavi"
+        onPrimaryClick={handleDetailsSubmit}
+      />
     </div>
   );
 };

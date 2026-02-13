@@ -9,7 +9,7 @@ import {
   IconRocket,
   IconLockSquareRounded,
   IconEyeOff,
-} from "@tabler/icons-react";
+} from "@/components/Common/UnifiedIconPack";
 
 const buildBadges = ({ status, isApprovedSort, isFeature, isJobCategory }) => {
   const badges = [];

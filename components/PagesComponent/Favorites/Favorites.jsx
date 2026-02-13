@@ -12,7 +12,7 @@ import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
 import { getFavouriteApi } from "@/utils/api";
 
-import { Loader2, Heart, ChevronDown } from "lucide-react";
+import { Loader2, Heart, ChevronDown } from "@/components/Common/UnifiedIconPack";
 
 // ============================================
 // MAIN COMPONENT

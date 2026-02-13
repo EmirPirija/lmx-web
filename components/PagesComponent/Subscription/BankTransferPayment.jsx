@@ -1,6 +1,6 @@
 import { showBankDetails } from "@/redux/reducer/globalStateSlice";
-import { FaAngleRight } from "react-icons/fa";
-import { AiOutlineBank } from "react-icons/ai"
+import { FaAngleRight } from "@/components/Common/UnifiedIconPack";
+import { AiOutlineBank } from "@/components/Common/UnifiedIconPack"
 import { t } from "@/utils";
 
 

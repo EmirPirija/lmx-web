@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { t } from "@/utils";
-import { MdArrowBack } from "react-icons/md";
+import { MdArrowBack } from "@/components/Common/UnifiedIconPack";
 
 const NoChatFound = ({ handleBack, isLargeScreen }) => {
   return (

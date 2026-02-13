@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "@/components/Common/UnifiedIconPack";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ function useCarousel() {
   const context = React.useContext(CarouselContext);
 
   if (!context) {
-    throw new Error("useCarousel must be used within a <Carousel />");
+    throw new Error("useCarousel mora biti korišten unutar <Carousel /> komponente.");
   }
 
   return context;
@@ -163,7 +163,7 @@ CarouselItem.displayName = "CarouselItem";
 
 const CarouselPrevious = React.forwardRef(
   ({ className, variant = "outline", size = "icon", ...props }, ref) => {
-    const { orientation, scrollPrev, canScrollPrev } = useCarousel();
+    const { scrollPrev, canScrollPrev } = useCarousel();
 
     return (
       <Button
@@ -182,7 +182,7 @@ const CarouselPrevious = React.forwardRef(
         {...props}
       >
         <ArrowLeft className="h-4 w-4" />
-        <span className="sr-only">Previous slide</span>
+        <span className="sr-only">Prethodni slajd</span>
       </Button>
     );
   }
@@ -191,7 +191,7 @@ CarouselPrevious.displayName = "CarouselPrevious";
 
 const CarouselNext = React.forwardRef(
   ({ className, variant = "outline", size = "icon", ...props }, ref) => {
-    const { orientation, scrollNext, canScrollNext } = useCarousel();
+    const { scrollNext, canScrollNext } = useCarousel();
 
     return (
       <Button
@@ -210,7 +210,7 @@ const CarouselNext = React.forwardRef(
         {...props}
       >
         <ArrowRight className="h-4 w-4" />
-        <span className="sr-only">Next slide</span>
+        <span className="sr-only">Sljedeći slajd</span>
       </Button>
     );
   }

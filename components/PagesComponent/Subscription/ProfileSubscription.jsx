@@ -18,7 +18,7 @@ import PaymentModal from "./PaymentModal";
 import AddListingPlanCardSkeleton from "@/components/Skeletons/AddListingPlanCardSkeleton";
 import { CurrentLanguageData, getIsRtl } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import BankDetailsModal from "./BankDetailsModal";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice";
 import { useNavigate } from "@/components/Common/useNavigate";

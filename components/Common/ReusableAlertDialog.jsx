@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { t } from "@/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 
 const ReusableAlertDialog = ({
   open,
@@ -21,16 +21,19 @@ const ReusableAlertDialog = ({
   confirmText = t("confirm"),
   confirmDisabled = false,
 }) => {
+  const isDescriptionString = typeof description === "string";
+
   return (
     <AlertDialog open={open}>
       <AlertDialogContent onInteractOutside={(e) => e.preventDefault()}>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && (
-            <AlertDialogDescription asChild={typeof description !== "string"}>
-              {typeof description === "string" ? description : description}
-            </AlertDialogDescription>
-          )}
+          {description &&
+            (isDescriptionString ? (
+              <AlertDialogDescription>{description}</AlertDialogDescription>
+            ) : (
+              <div className="text-sm text-muted-foreground">{description}</div>
+            ))}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>{cancelText}</AlertDialogCancel>

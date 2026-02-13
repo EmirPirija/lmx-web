@@ -15,7 +15,7 @@ import { t } from "@/utils";
 import { createPaymentIntentApi } from "@/utils/api";
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 const BankDetailsModal = ({ packageId, bankDetails }) => {
   const { navigate } = useNavigate();

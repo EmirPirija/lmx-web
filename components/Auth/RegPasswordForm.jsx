@@ -1,5 +1,6 @@
 
-import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
+import { FaRegEye, FaRegEyeSlash } from "@/components/Common/UnifiedIconPack";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -16,27 +17,42 @@ const RegPasswordForm = ({
   t,
 }) => {
   return (
-    <form className="flex flex-col gap-6" onSubmit={Signin}>
+    <form
+      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+      onSubmit={Signin}
+    >
+      <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+        Postavi korisničko ime i lozinku kako bi završio registraciju.
+      </div>
+
       <div className="labelInputCont">
-        <Label className="requiredInputLabel">{t("username")}</Label>
+        <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+          {t("username")}
+        </Label>
         <Input
           type="text"
           placeholder={t("typeUsername")}
           name="username"
           required
+          className="h-11 rounded-xl"
+          autoComplete="username"
           onChange={(e) => setUsername(e.target.value)}
           value={username}
         />
       </div>
 
       <div className="labelInputCont">
-        <Label className="requiredInputLabel">{t("password")}</Label>
+        <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+          {t("password")}
+        </Label>
         <div className="flex items-center relative">
           <Input
             type={IsPasswordVisible ? "text" : "password"}
             placeholder={t("enterPassword")}
             id="password"
             name="password"
+            className="h-11 rounded-xl ltr:pr-10 rtl:pl-10"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -57,13 +73,11 @@ const RegPasswordForm = ({
       <Button
         type="submit"
         disabled={showLoader}
-        className="text-xl text-white font-light px-4 py-2"
-        size="big"
+        className="h-11 rounded-xl text-sm font-semibold"
+        size="lg"
       >
         {showLoader ? (
-          <div className="loader-container-otp">
-            <div className="loader-otp"></div>
-          </div>
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <span>{t("verifyEmail")}</span>
         )}

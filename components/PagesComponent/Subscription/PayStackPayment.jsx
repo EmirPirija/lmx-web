@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import PayStackLogo from "../../../public/assets/ic_paystack.png";
-import { FaAngleRight } from "react-icons/fa";
+import { FaAngleRight } from "@/components/Common/UnifiedIconPack";
 import { createPaymentIntentApi } from "@/utils/api";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 const PayStackPayment = ({ packageSettings, selectedPackage }) => {

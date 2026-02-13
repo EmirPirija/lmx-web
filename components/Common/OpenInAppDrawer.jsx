@@ -11,7 +11,7 @@ import { settingsData } from "@/redux/reducer/settingSlice";
 import { t } from "@/utils"
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 const OpenInAppDrawer = ({ isOpenInApp, setIsOpenInApp }) => {
 

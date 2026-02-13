@@ -13,7 +13,7 @@ import {
   Star,
   ChevronDown,
   Zap,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 const tabs = [
   {

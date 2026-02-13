@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { RiArrowLeftLine, RiArrowRightLine } from "react-icons/ri";
+import { RiArrowLeftLine, RiArrowRightLine } from "@/components/Common/UnifiedIconPack";
 import {
   Carousel,
   CarouselContent,
@@ -11,7 +11,7 @@ import PopularCategoryCard from "@/components/PagesComponent/Home/PopularCategor
 import { useSelector } from "react-redux";
 import { t } from "@/utils";
 import { getIsRtl } from "@/redux/reducer/languageSlice.js";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import useGetCategories from "@/components/Layout/useGetCategories.jsx";
 
 const PopularCategories = () => {

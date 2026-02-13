@@ -10,7 +10,7 @@ import {
   Clock,
   CheckCircle2,
   X
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 import { cn } from "@/lib/utils";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
@@ -176,10 +176,7 @@ const ExistingConversationBanner = ({ itemId, seller }) => {
             </p>
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <span className="inline-flex items-center gap-1">
-                <Clock size={13} />
-                {formatLastMessageTime(conversation.lastMessageTime)}
-              </span>
+      
 
               {conversation.hasOffer && (
                 <span

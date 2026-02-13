@@ -20,7 +20,7 @@ import { useSelector } from "react-redux";
 import Layout from "@/components/Layout/Layout";
 import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import BankDetailsModal from "./BankDetailsModal";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import AdListingPublicPlanCardSkeleton from "@/components/Skeletons/AdListingPublicPlanCardSkeleton";

@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { getIsRtl } from "@/redux/reducer/languageSlice.js";
 import { Checkbox } from "@/components/ui/checkbox";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog.jsx";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import ChoosePackageModal from "./ChoosePackageModal.jsx";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice.js";
 import { useNavigate } from "@/components/Common/useNavigate";
@@ -50,7 +50,7 @@ import {
   RotateCcw,
   Loader2,
   Layers,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 // ============================================
 // COMPONENTS
@@ -308,7 +308,7 @@ const MyAds = () => {
       nextAllowed.setDate(nextAllowed.getDate() + POSITION_RENEW_COOLDOWN_DAYS);
 
       if (Date.now() >= nextAllowed.getTime()) {
-        return "Obnova pozicije trenutno nije potvrđena na serveru. Osvježi listu oglasa da se prikaže tačan termin sljedeće obnove.";
+        return "API server još nema aktiviranu obnovu pozicije za aktivne oglase. Potreban je backend deploy za endpoint renew-item.";
       }
 
       return `Oglas možeš obnoviti svakih 15 dana. Sljedeća obnova: ${nextAllowed.toLocaleString("bs-BA", {

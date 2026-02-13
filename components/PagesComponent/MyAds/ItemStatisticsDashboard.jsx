@@ -23,10 +23,10 @@ import {
   IoSparkles,
   IoVideocamOutline,
   IoCheckmarkCircleOutline,
-} from "react-icons/io5";
-import { FaWhatsapp, FaViber } from "react-icons/fa";
-import { MdOutlineEmail, MdTouchApp } from "react-icons/md";
-import { HiOutlineExternalLink } from "react-icons/hi";
+} from "@/components/Common/UnifiedIconPack";
+import { FaWhatsapp, FaViber } from "@/components/Common/UnifiedIconPack";
+import { MdOutlineEmail, MdTouchApp } from "@/components/Common/UnifiedIconPack";
+import { HiOutlineExternalLink } from "@/components/Common/UnifiedIconPack";
 import {
   AreaChart,
   Area,
@@ -1077,7 +1077,7 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
         </div>
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center">
           <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
-            Search CTR
+            CTR pretrage
           </span>
           <span className="text-lg font-bold text-slate-800">
             {summary?.period?.search_ctr || 0}%
@@ -1192,7 +1192,7 @@ const ItemStatisticsDashboard = ({ itemId, itemName }) => {
               />
               <InsightCard
                 icon={IoTrendingUp}
-                label="Search CTR"
+                label="CTR pretrage"
                 value={`${summary?.period?.search_ctr || 0}%`}
                 hint="Pretrage → klik"
                 tone="purple"

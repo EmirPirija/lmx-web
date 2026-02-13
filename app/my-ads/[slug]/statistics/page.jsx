@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { IoArrowBack, IoRefreshOutline } from "react-icons/io5";
+import { IoArrowBack, IoRefreshOutline } from "@/components/Common/UnifiedIconPack";
 import ItemStatisticsDashboard from "@/components/PagesComponent/MyAds/ItemStatisticsDashboard";
 import Layout from "@/components/Layout/Layout";
 
@@ -38,7 +38,7 @@ export default function Page() {
   useEffect(() => {
     const load = async () => {
       if (!slug) {
-        setError("Item not found");
+        setError("Oglas nije pronađen.");
         setLoading(false);
         return;
       }
@@ -46,7 +46,7 @@ export default function Page() {
       const itemData = await fetchItemBySlug(slug);
 
       if (itemData) setItem(itemData);
-      else setError("Item not found or access denied");
+      else setError("Oglas nije pronađen ili nemate pristup.");
 
       setLoading(false);
     };

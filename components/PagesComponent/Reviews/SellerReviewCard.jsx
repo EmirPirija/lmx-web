@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { IoChevronDown, IoChevronUp } from 'react-icons/io5';
-import { HiOutlinePhotograph } from 'react-icons/hi';
+import { IoChevronDown, IoChevronUp } from "@/components/Common/UnifiedIconPack";
+import { HiOutlinePhotograph } from "@/components/Common/UnifiedIconPack";
 import StarRating from './StarRating';
 import CustomImage from '@/components/Common/CustomImage';
 import { cn } from '@/lib/utils';

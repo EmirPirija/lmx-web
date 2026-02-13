@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 import {
   Phone,
@@ -20,7 +20,7 @@ import {
   Play,
   ChevronRight,
   MoreHorizontal,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
@@ -835,7 +835,7 @@ export const MinimalSellerCard = ({
                 <span className="inline-flex items-center gap-1 text-xs text-amber-600">
                   <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                   <span className="font-medium">{ratingValue}</span>
-                  <span className="text-slate-400">({ratingCount})</span>
+                  {/* <span className="text-slate-400">({ratingCount})</span> */}
                 </span>
               )}
 
@@ -843,7 +843,7 @@ export const MinimalSellerCard = ({
               {responseLabel && (
                 <span className="inline-flex items-center gap-1 text-xs text-slate-500">
                   <Zap className="w-3 h-3 text-amber-500" />
-                  {responseLabel}
+                  Prosječno vrijeme odgovora: {responseLabel}
                 </span>
               )}
 
@@ -851,7 +851,7 @@ export const MinimalSellerCard = ({
               {memberSince && (
                 <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                   <Calendar className="w-3 h-3" />
-                  {memberSince}
+                  Član od {memberSince}
                 </span>
               )}
 

@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { Trophy, Flame, Rocket, Medal, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { Trophy, Flame, Rocket, Medal, RefreshCw } from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 
 import Layout from "@/components/Layout/Layout";
 import LeaderboardCard from "@/components/PagesComponent/Gamification/LeaderboardCard";
@@ -19,8 +19,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const FILTERS = [
-  { value: "weekly", label: "Sedmicno" },
-  { value: "monthly", label: "Mjesecno" },
+  { value: "weekly", label: "Sedmično" },
+  { value: "monthly", label: "Mjesečno" },
   { value: "all-time", label: "Ukupno" },
 ];
 
@@ -56,8 +56,8 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     updateMetadata({
-      title: "Leaderboard - LMX",
-      description: "Top korisnici platforme po bodovima i aktivnosti",
+      title: "Ljestvica - LMX",
+      description: "Najaktivniji korisnici platforme po bodovima i aktivnosti",
     });
   }, []);
 
@@ -72,16 +72,16 @@ export default function LeaderboardPage() {
       });
 
       if (response?.data?.error) {
-        dispatch(setLeaderboardError(response?.data?.message || "Greska"));
-        toast.error(response?.data?.message || "Ne mogu ucitati leaderboard");
+        dispatch(setLeaderboardError(response?.data?.message || "Greška"));
+        toast.error(response?.data?.message || "Ne mogu učitati ljestvicu.");
         return;
       }
 
       dispatch(setLeaderboard(response?.data?.data || null));
     } catch (err) {
       console.error("Leaderboard fetch error", err);
-      dispatch(setLeaderboardError("Ne mogu ucitati leaderboard"));
-      toast.error("Ne mogu ucitati leaderboard");
+      dispatch(setLeaderboardError("Ne mogu učitati ljestvicu."));
+      toast.error("Ne mogu učitati ljestvicu.");
     }
   };
 
@@ -118,15 +118,15 @@ export default function LeaderboardPage() {
         >
           <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
             <Trophy className="h-4 w-4 text-amber-500" />
-            LMX Leaderboard
+            LMX ljestvica
           </div>
           <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Najaktivniji korisnici platforme</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Prodaja, kupovina, reel performanse i momentum score na jednom mjestu.</p>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <HeroBadge icon={Medal} label="Broj rangiranih" value={hero.totalUsers.toLocaleString("bs-BA")} tone="amber" />
-            <HeroBadge icon={Rocket} label="Top bodovi" value={hero.topPoints.toLocaleString("bs-BA")} tone="sky" />
-            <HeroBadge icon={Flame} label="Top streak" value={`${hero.topStreak} dana`} tone="rose" />
+            <HeroBadge icon={Rocket} label="Najviše bodova" value={hero.topPoints.toLocaleString("bs-BA")} tone="sky" />
+            <HeroBadge icon={Flame} label="Najduži niz" value={`${hero.topStreak} dana`} tone="rose" />
           </div>
         </motion.div>
 
@@ -163,7 +163,7 @@ export default function LeaderboardPage() {
                 onClick={() => fetchLeaderboard(currentFilter, page)}
                 className="mt-3 inline-flex items-center gap-2 rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:border-rose-600 dark:text-rose-300"
               >
-                <RefreshCw className="h-3.5 w-3.5" /> Pokusaj ponovo
+                <RefreshCw className="h-3.5 w-3.5" /> Pokušaj ponovo
               </button>
             </div>
           ) : users.length ? (

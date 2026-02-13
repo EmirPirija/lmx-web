@@ -3,6 +3,61 @@
 @tailwind utilities;
 
 /* ============================================
+   CONTAINER WIDTH STRATEGY
+   - Full width on all routes
+   - Keep legacy homepage width behavior
+============================================ */
+.lmx-fullwidth-container-scope .container {
+  max-width: 100% !important;
+}
+
+.lmx-home-container-scope .container {
+  max-width: 100% !important;
+}
+
+@media (min-width: 676px) {
+  .lmx-home-container-scope .container {
+    max-width: 676px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .lmx-home-container-scope .container {
+    max-width: 768px !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .lmx-home-container-scope .container {
+    max-width: 992px !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .lmx-home-container-scope .container {
+    max-width: 1200px !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .lmx-home-container-scope .container {
+    max-width: 1280px !important;
+  }
+}
+
+@media (min-width: 1360px) {
+  .lmx-home-container-scope .container {
+    max-width: 1360px !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .lmx-home-container-scope .container {
+    max-width: 1440px !important;
+  }
+}
+
+/* ============================================
    LMX BOJE (iz loga)
    - Tamno plava (l): #1B4B82
    - Narandžasta (m): #F7941D
@@ -13,6 +68,7 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 250, 250, 252;
   --background-end-rgb: 255, 255, 255;
+  --adaptive-mobile-dock-space: 0px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -57,6 +113,10 @@
     --accent: #1B4B82;
     --accent-hover: #153D6B;
     --accent-foreground: 0 0% 100%;
+
+    /* Ikone (duotone) */
+    --lmx-icon-duotone-fill: #d7f1ee;
+    --lmx-icon-duotone-line: #0f9f98;
     
     /* Neutralne */
     --muted: #F1F5F9;
@@ -127,6 +187,10 @@
     --accent: #3B82F6;
     --accent-hover: #1B4B82;
     --accent-foreground: 0 0% 100%;
+
+    /* Ikone (duotone) */
+    --lmx-icon-duotone-fill: #16423f;
+    --lmx-icon-duotone-line: #5eead4;
     
     /* Neutralne */
     --muted: #1E293B;
@@ -332,30 +396,89 @@
   background: var(--primary-hover) !important;
 }
 
-/* Phone Input Styling */
-.formWrapper .react-tel-input .special-label {
+/* Phone Input Styling (Unified) */
+.formWrapper .react-tel-input .special-label,
+.lmx-phone-field .special-label {
   display: none !important;
 }
 
-.react-tel-input .form-control {
+.lmx-phone-field.react-tel-input {
   width: 100% !important;
-  height: 48px !important;
-  border: 1px solid var(--border) !important;
+}
+
+.lmx-phone-field.react-tel-input .form-control {
+  width: 100% !important;
+  min-height: 44px !important;
+  border: 1px solid #d9e2ec !important;
   border-radius: 0.75rem !important;
-  outline: none !important;
-  font-size: 16px !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  padding-left: 4.2rem !important;
+  padding-right: 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
 }
 
-.react-tel-input .flag-dropdown {
+.lmx-phone-field.react-tel-input .form-control::placeholder {
+  color: #94a3b8 !important;
+}
+
+.lmx-phone-field.react-tel-input .flag-dropdown {
+  position: absolute !important;
+  top: 1px !important;
+  bottom: 1px !important;
+  left: 1px !important;
+  width: 3.6rem !important;
+  border: 0 !important;
+  border-radius: 0.7rem 0 0 0.7rem !important;
   background-color: transparent !important;
-  border-radius: 0.75rem 0 0 0.75rem !important;
+  overflow: hidden !important;
 }
 
-.react-tel-input .form-control:focus,
-.react-tel-input .form-control:focus-visible {
+.lmx-phone-field.react-tel-input .selected-flag {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 0 0 0.9rem !important;
+  border-radius: 0.7rem 0 0 0.7rem !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.lmx-phone-field.react-tel-input .selected-flag:hover,
+.lmx-phone-field.react-tel-input .selected-flag:focus {
+  background-color: #f1f5f9 !important;
+}
+
+.lmx-phone-field.react-tel-input .selected-flag .flag {
+  transform: scale(1.05);
+  transform-origin: center;
+}
+
+.lmx-phone-field.react-tel-input .selected-flag .arrow {
+  margin-left: 8px !important;
+}
+
+.lmx-phone-field.react-tel-input .form-control:focus,
+.lmx-phone-field.react-tel-input .form-control:focus-visible {
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(247, 148, 29, 0.15) !important;
   border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px #0ab6af2e !important;
+}
+
+.lmx-phone-field.react-tel-input .country-list {
+  margin-top: 0.4rem !important;
+  width: min(320px, calc(100vw - 2rem)) !important;
+  border: 1px solid #d9e2ec !important;
+  border-radius: 0.75rem !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 14px 35px -20px #0f172a73 !important;
+}
+
+.lmx-phone-field.react-tel-input .country-list .country:hover,
+.lmx-phone-field.react-tel-input .country-list .country.highlight {
+  background-color: #f1f5f9 !important;
 }
 
 /* Number input */
@@ -367,18 +490,45 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* RTL Support */
-[dir='rtl'] .react-tel-input .form-control {
+[dir='rtl'] .lmx-phone-field.react-tel-input .form-control {
   padding-left: inherit;
   padding-right: 48px;
 }
 
-[dir='rtl'] .react-tel-input .selected-flag {
+[dir='rtl'] .lmx-phone-field.react-tel-input .selected-flag {
   padding: 0 8px 0 0;
 }
 
-[dir='rtl'] .react-tel-input .selected-flag .arrow {
+[dir='rtl'] .lmx-phone-field.react-tel-input .selected-flag .arrow {
   left: auto;
   right: 20px;
+}
+
+.dark .lmx-phone-field.react-tel-input .form-control::placeholder {
+  color: #64748b !important;
+}
+
+.dark .lmx-phone-field.react-tel-input .form-control {
+  border-color: #334155 !important;
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+.dark .lmx-phone-field.react-tel-input .selected-flag:hover,
+.dark .lmx-phone-field.react-tel-input .selected-flag:focus {
+  background-color: #1e293b !important;
+}
+
+.dark .lmx-phone-field.react-tel-input .country-list {
+  border-color: #334155 !important;
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 16px 36px -20px #020617d6 !important;
+}
+
+.dark .lmx-phone-field.react-tel-input .country-list .country:hover,
+.dark .lmx-phone-field.react-tel-input .country-list .country.highlight {
+  background-color: #1e293b !important;
 }
 
 [dir=rtl] input[type=tel i] {

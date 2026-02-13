@@ -3,6 +3,7 @@ import "react-phone-input-2/lib/style.css";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import useAutoFocus from "../Common/useAutoFocus";
+import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
 
 const RegisterAuthInputField = ({
   type,
@@ -19,7 +20,7 @@ const RegisterAuthInputField = ({
 
   return (
     <div className="labelInputCont">
-      <Label className="requiredInputLabel">
+      <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
         {t(label)}
       </Label>
       {type === "phone" ? (
@@ -33,13 +34,14 @@ const RegisterAuthInputField = ({
             required: true,
             ref: phoneInputRef,
           }}
-          enableLongNumbers
+          {...LMX_PHONE_INPUT_PROPS}
         />
       ) : (
         <Input
           type={type}
           placeholder={t(placeholder)}
           value={value}
+          className="h-11 rounded-xl"
           onChange={(e) => handleInputChange(e.target.value)}
           required
           ref={emailInputRef}

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
@@ -13,7 +13,7 @@ import {
   MessageCircle, Phone, RefreshCw, Save, Shield, Sparkles, Store, Users, Zap,
   CheckCircle2, Link as LinkIcon, Video, Music, QrCode, Copy, Loader2, Plane,
   Star, LayoutGrid, Settings2, Truck, RotateCcw,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ import {
 } from "@/utils/api";
 import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
+import PlanGateLabel from "@/components/Common/PlanGateLabel";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
@@ -272,12 +273,13 @@ const SettingSection = ({ icon: Icon, title, description, children, defaultOpen 
   );
 };
 
-const ToggleRow = ({ title, description, checked, onCheckedChange, icon: Icon, disabled }) => (
+const ToggleRow = ({ title, description, checked, onCheckedChange, icon: Icon, disabled, gate }) => (
   <div className={cn("flex items-start justify-between gap-3 p-3 rounded-lg border transition-all", checked ? "border-primary/20 bg-primary/5" : "border-slate-100 bg-slate-50/50", disabled && "opacity-50")}>
     <div className="min-w-0 flex-1">
-      <div className="flex items-center gap-2 text-sm font-medium text-slate-900">
+      <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
         {Icon && <Icon className={cn("w-4 h-4", checked ? "text-primary" : "text-slate-400")} />}
         {title}
+        {gate ? gate : null}
       </div>
       {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
     </div>
@@ -285,9 +287,14 @@ const ToggleRow = ({ title, description, checked, onCheckedChange, icon: Icon, d
   </div>
 );
 
-const CompactToggle = ({ title, checked, onCheckedChange, disabled }) => (
+const CompactToggle = ({ title, checked, onCheckedChange, disabled, planScope, unlocked }) => (
   <div className={cn("flex items-center justify-between gap-2 p-2.5 rounded-lg border transition-all", checked ? "border-primary/20 bg-primary/5" : "border-slate-100 bg-slate-50/50", disabled && "opacity-50")}>
-    <span className="text-xs font-medium text-slate-700">{title}</span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs font-medium text-slate-700">{title}</span>
+      {planScope ? (
+        <PlanGateLabel scope={planScope} unlocked={unlocked} showStatus={false} />
+      ) : null}
+    </div>
     <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} className="scale-90" />
   </div>
 );
@@ -385,8 +392,12 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-slate-700">Premium pristup filterima</p>
+          <PlanGateLabel scope="pro_or_shop" unlocked={isProOrShop} />
+        </div>
         <p className="text-xs text-slate-600">
-          Ovi filteri se prikazuju kupcima na tvojoj seller stranici i aktivni su
+          Ovi filteri se prikazuju kupcima na tvojoj stranici prodavača i aktivni su
           samo za PRO/SHOP profile.
         </p>
       </div>
@@ -401,6 +412,7 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
         title="Uključi filtere kupcima"
         description="Kupci mogu filtrirati tvoje oglase direktno na profilu."
         icon={Settings2}
+        gate={<PlanGateLabel scope="pro_or_shop" unlocked={isProOrShop} showStatus={false} />}
         checked={filtersEnabled}
         onCheckedChange={(value) => updatePref("enable_buyer_filters", value)}
         disabled={!isProOrShop}
@@ -412,30 +424,40 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
           checked={cardPreferences.buyer_filters_show_search}
           onCheckedChange={(value) => updatePref("buyer_filters_show_search", value)}
           disabled={!isProOrShop || !filtersEnabled}
+          planScope="pro_or_shop"
+          unlocked={isProOrShop}
         />
         <CompactToggle
           title="Raspon cijene"
           checked={cardPreferences.buyer_filters_show_price}
           onCheckedChange={(value) => updatePref("buyer_filters_show_price", value)}
           disabled={!isProOrShop || !filtersEnabled}
+          planScope="pro_or_shop"
+          unlocked={isProOrShop}
         />
         <CompactToggle
           title="Samo sa videom"
           checked={cardPreferences.buyer_filters_show_video}
           onCheckedChange={(value) => updatePref("buyer_filters_show_video", value)}
           disabled={!isProOrShop || !filtersEnabled}
+          planScope="pro_or_shop"
+          unlocked={isProOrShop}
         />
         <CompactToggle
           title="Samo akcija"
           checked={cardPreferences.buyer_filters_show_on_sale}
           onCheckedChange={(value) => updatePref("buyer_filters_show_on_sale", value)}
           disabled={!isProOrShop || !filtersEnabled}
+          planScope="pro_or_shop"
+          unlocked={isProOrShop}
         />
         <CompactToggle
           title="Samo izdvojeni"
           checked={cardPreferences.buyer_filters_show_featured}
           onCheckedChange={(value) => updatePref("buyer_filters_show_featured", value)}
           disabled={!isProOrShop || !filtersEnabled}
+          planScope="pro_or_shop"
+          unlocked={isProOrShop}
         />
       </div>
     </div>
@@ -934,7 +956,7 @@ const SellerSettings = () => {
 
           <SettingSection
             icon={Settings2}
-            title="Filteri na seller stranici"
+            title="Filteri na stranici prodavača"
             description="Kontroliši filtere koje kupci vide na tvojim oglasima"
             badge="PRO/SHOP"
           >
@@ -983,7 +1005,7 @@ const SellerSettings = () => {
               </div>
 
               <p className="text-xs text-slate-500">
-                PRO otključava napredne alate i bolji istaknuti profil, dok SHOP daje proširene mogućnosti za trgovine i veći obim objava.
+                PRO otključava naprednu statistiku oglasa i filtere kupaca na profilu, a SHOP dodaje zalihe, internu šifru proizvoda i račun kupcu nakon prodaje.
               </p>
             </div>
           </SettingSection>

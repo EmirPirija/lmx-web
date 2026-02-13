@@ -177,12 +177,7 @@ const ProductMarker = ({
       </div>
     `;
 
-    marker.bindPopup(popupContent, {
-      maxWidth: 330,
-      minWidth: 286,
-      className: "custom-map-popup",
-      closeButton: false,
-    });
+
 
     marker.addTo(map);
     markerRef.current = marker;

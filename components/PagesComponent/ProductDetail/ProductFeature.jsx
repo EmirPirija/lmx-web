@@ -1,6 +1,6 @@
 import React from 'react';
-import { FaCheck, FaRegCalendarCheck } from "react-icons/fa";
-import { MdOpenInNew, MdOutlineAttachFile, MdVisibility, MdTag, MdSettings } from "react-icons/md";
+import { FaCheck, FaRegCalendarCheck } from "@/components/Common/UnifiedIconPack";
+import { MdOpenInNew, MdOutlineAttachFile, MdVisibility, MdTag, MdSettings } from "@/components/Common/UnifiedIconPack";
 import { isPdf } from "@/utils/index";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
@@ -11,6 +11,33 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
   if (!filteredFields || filteredFields.length === 0) return null;
 
   const getFieldLabel = (field) => field?.translated_name || field?.name || "Polje";
+
+  const parseDateSafe = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const resolvePublishedAt = (item = {}) => {
+    const candidates = [];
+
+    if (item?.published_at) candidates.push(item.published_at);
+    if (item?.created_at) candidates.push(item.created_at);
+    if (item?.translated_item?.created_at) candidates.push(item.translated_item.created_at);
+
+    if (Array.isArray(item?.translations)) {
+      item.translations.forEach((translation) => {
+        if (translation?.created_at) candidates.push(translation.created_at);
+      });
+    }
+
+    const parsed = candidates
+      .map((candidate) => parseDateSafe(candidate))
+      .filter(Boolean)
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    return parsed[0] || null;
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -23,6 +50,7 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
     const fieldName = (feature?.translated_name || feature?.name || '').toLowerCase();
     return fieldName.includes('stanje') || fieldName.includes('condition');
   });
+  const publishedAt = resolvePublishedAt(productDetails);
 
   const renderValue = (feature) => {
     const { type, value, translated_selected_values } = feature;
@@ -32,7 +60,7 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
       if (values.length === 0) return <span className="text-sm text-slate-400 dark:text-slate-500">—</span>;
       
       return (
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-2">
           {values.map((item, idx) => (
             <div key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30 rounded-lg">
               <FaCheck className="w-3 h-3 text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -95,13 +123,13 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
           {productDetails?.id && (
             <div className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 font-medium flex items-center gap-1"><MdTag className="text-xs" /> ID oglasa</p>
-              <div className="font-bold text-slate-800 dark:text-slate-100 text-sm">#{productDetails.id}</div>
+              <div className="font-bold text-slate-800 dark:text-slate-100 text-sm">{productDetails.id}</div>
             </div>
           )}
-          {productDetails?.created_at && (
+          {publishedAt && (
             <div className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 font-medium flex items-center gap-1"><FaRegCalendarCheck className="text-xs" /> Objavljeno</p>
-              <div className="font-bold text-slate-800 dark:text-slate-100 text-sm">{formatDate(productDetails.created_at)}</div>
+              <div className="font-bold text-slate-800 dark:text-slate-100 text-sm">{formatDate(publishedAt)}</div>
             </div>
           )}
         </div>
@@ -127,7 +155,13 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
                 return (
                   <div key={index} className={`flex ${isCheckbox ? 'flex-col gap-2 pt-2 pb-4' : 'items-center justify-between py-3.5'} border-b border-slate-100 dark:border-slate-800 last:border-b-0 ${isCheckbox ? 'md:col-span-2' : ''}`}>
                     <span className="inline-flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#0ab6af]/25 bg-[#dadad5]/35 p-1 dark:border-[#0ab6af]/30 dark:bg-[#dadad5]/15">
+                      <span
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border p-1"
+                        style={{
+                          borderColor: "var(--lmx-icon-duotone-line)",
+                          backgroundColor: "var(--lmx-icon-duotone-fill)",
+                        }}
+                      >
                         <CustomFieldSemanticIcon fieldLabel={fieldLabel} className="w-[17px] h-[17px]" />
                       </span>
                       <span>{fieldLabel}</span>

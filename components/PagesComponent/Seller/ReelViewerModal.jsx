@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { createPortal } from "react-dom";
 
 import {
@@ -27,7 +27,7 @@ import {
   MdFlag,
   MdOpenInNew,
   MdKeyboardArrowUp,
-} from "react-icons/md";
+} from "@/components/Common/UnifiedIconPack";
 
 import {
   allItemApi,
@@ -39,6 +39,7 @@ import {
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import { getYouTubeVideoId } from "@/utils";
+import MembershipBadge from "@/components/Common/MembershipBadge";
 
 /* ── helpers ────────────────────────────────────── */
 
@@ -556,7 +557,13 @@ const ReelViewerModal = ({
                   <div className="flex items-center gap-1.5">
                     <span className="text-white text-[13px] font-semibold truncate max-w-[110px]">{sName}</span>
                     {verified && <MdVerified className="w-3.5 h-3.5 text-[#3897F0] shrink-0" />}
-                    {shop && <span className="px-1.5 py-0.5 rounded bg-[#F7941D]/90 text-[7px] font-bold text-white uppercase">Shop</span>}
+                    {shop && (
+                      <MembershipBadge
+                        tier="shop"
+                        size="xs"
+                        className="shrink-0 py-0 px-1.5 text-[8px] leading-none"
+                      />
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-white/45">
                     {created && <span>{timeAgo(created)}</span>}

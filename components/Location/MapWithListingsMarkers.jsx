@@ -7,7 +7,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
-import { BiCurrentLocation } from "react-icons/bi";
+import { BiCurrentLocation } from "@/components/Common/UnifiedIconPack";
 import { t } from "@/utils";
 
 // Fix Leaflet default marker icon issue
@@ -257,12 +257,7 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
         </div>
       `;
 
-      marker.bindPopup(popupContent, {
-        maxWidth: 320,
-        minWidth: 280,
-        className: "custom-map-popup",
-        closeButton: false,
-      });
+   
 
       marker.on("click", () => {
         if (onMarkerClick) onMarkerClick(ad);

@@ -18,18 +18,24 @@ const UnauthorizedModal = () => {
     dispatch(setIsUnauthorized(false));
   };
 
+  const handleOpenChange = (nextOpen) => {
+    if (!nextOpen) {
+      dispatch(setIsUnauthorized(false));
+    }
+  };
+
   return (
-    <AlertDialog open={open}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent onInteractOutside={(e) => e.preventDefault()}>
         <AlertDialogHeader>
-          <AlertDialogTitle>Unauthorized</AlertDialogTitle>
+          <AlertDialogTitle>Niste autorizovani</AlertDialogTitle>
           <AlertDialogDescription>
-            You do not have permission to access this resource. Please log in or
-            contact the administrator.
+            Nemate dozvolu za pristup ovom sadržaju. Prijavite se ponovo ili
+            kontaktirajte podršku.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={handleOk}>OK</AlertDialogAction>
+          <AlertDialogAction onClick={handleOk}>U redu</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

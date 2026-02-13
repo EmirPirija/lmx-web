@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { IoLocationOutline, IoClose } from "react-icons/io5";
-import { MdMap, MdList, MdFilterList } from "react-icons/md";
-import { FiMaximize2, FiMinimize2 } from "react-icons/fi";
-import { BiCurrentLocation } from "react-icons/bi";
+import { IoLocationOutline, IoClose } from "@/components/Common/UnifiedIconPack";
+import { MdMap, MdList, MdFilterList } from "@/components/Common/UnifiedIconPack";
+import { FiMaximize2, FiMinimize2 } from "@/components/Common/UnifiedIconPack";
+import { BiCurrentLocation } from "@/components/Common/UnifiedIconPack";
 import Image from "next/image";
 import { useSelector } from "react-redux";
 import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";

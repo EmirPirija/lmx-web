@@ -1,7 +1,7 @@
 import * as React from "react"
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu"
 import { cva } from "class-variance-authority"
-import { ChevronDown, Sparkles } from "lucide-react"
+import { ChevronDown, Sparkles } from "@/components/Common/UnifiedIconPack"
  
 import { cn } from "@/lib/utils"
  
@@ -63,7 +63,7 @@ const navigationMenuTriggerStyle = cva(
     
     // Boje i pozadina
     "bg-transparent text-foreground/80",
-    "hover:bg-gradient-to-r hover:from-primary/10 hover:via-secondary/10 hover:to-primary/5",
+    "hover:bg-muted/70",
     "hover:text-foreground",
     
     // Focus stil
@@ -73,7 +73,7 @@ const navigationMenuTriggerStyle = cva(
     "disabled:pointer-events-none disabled:opacity-50",
     
     // Aktivan/Otvoren stil
-    "data-[state=open]:bg-gradient-to-r data-[state=open]:from-primary/15 data-[state=open]:via-secondary/10 data-[state=open]:to-primary/5",
+    "data-[state=open]:bg-muted",
     "data-[state=open]:text-primary",
     "data-[state=open]:shadow-sm",
     
@@ -82,7 +82,7 @@ const navigationMenuTriggerStyle = cva(
     
     // Podvlaka animacija
     "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2",
-    "after:h-0.5 after:w-0 after:rounded-full after:bg-gradient-to-r after:from-primary after:to-secondary",
+    "after:h-0.5 after:w-0 after:rounded-full after:bg-primary",
     "after:transition-all after:duration-300 after:ease-out",
     "hover:after:w-[calc(100%-1.5rem)]",
     "data-[state=open]:after:w-[calc(100%-1.5rem)]",
@@ -92,12 +92,12 @@ const navigationMenuTriggerStyle = cva(
       variant: {
         default: "",
         highlighted: [
-          "bg-gradient-to-r from-primary/20 to-secondary/20",
+          "bg-primary/15",
           "text-primary font-semibold",
           "border border-primary/20",
-          "hover:from-primary/30 hover:to-secondary/30",
+          "hover:bg-primary/20",
           "hover:border-primary/30",
-          "hover:shadow-lmx-primary",
+          "hover:shadow-sm",
         ],
         subtle: [
           "text-muted-foreground",
@@ -125,9 +125,9 @@ const NavigationMenuTrigger = React.forwardRef(
   ({ className, children, showChevron = true, badge, badgeVariant = "default", ...props }, ref) => {
     const badgeStyles = {
       default: "bg-primary text-white",
-      new: "bg-gradient-to-r from-green-500 to-emerald-500 text-white animate-pulse",
-      hot: "bg-gradient-to-r from-red-500 to-orange-500 text-white",
-      sale: "bg-gradient-to-r from-purple-500 to-pink-500 text-white",
+      new: "bg-primary text-white",
+      hot: "bg-destructive text-destructive-foreground",
+      sale: "bg-secondary text-secondary-foreground",
     }
  
     return (
@@ -176,7 +176,7 @@ const NavigationMenuTrigger = React.forwardRef(
         <span
           className={cn(
             "absolute inset-0 -z-10 rounded-xl opacity-0",
-            "bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20",
+            "bg-primary/20",
             "blur-xl transition-opacity duration-500",
             "group-hover:opacity-100 group-data-[state=open]:opacity-100"
           )}
@@ -368,7 +368,7 @@ const NavigationMenuCard = React.forwardRef(
               
               {/* Novo badge */}
               {isNew && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
                   <Sparkles className="h-3 w-3" />
                   Novo
                 </span>
@@ -376,8 +376,8 @@ const NavigationMenuCard = React.forwardRef(
               
               {/* Hot badge */}
               {isHot && (
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white animate-pulse">
-                  🔥 Popularno
+                <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
+                  Popularno
                 </span>
               )}
             </div>

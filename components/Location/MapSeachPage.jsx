@@ -6,9 +6,9 @@ import dynamic from "next/dynamic";
 import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 import { t } from "@/utils";
 import { mapSearchApi, transformItemsForMap } from "@/utils/api";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 
 // Dynamic import za map komponentu
 const MapSearchView = dynamic(

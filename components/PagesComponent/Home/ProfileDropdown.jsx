@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import Link from "next/link";
 import { useMediaQuery } from "usehooks-ts";
@@ -18,41 +18,43 @@ import {
 
 import { useNavigate } from "@/components/Common/useNavigate";
 import MembershipBadge from "@/components/Common/MembershipBadge";
+import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 
 // ✅ LMX avatar
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { resolveMembership } from "@/lib/membership";
+import { resolveVerificationState } from "@/lib/verification";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 // Icons
 import {
-  IoPersonOutline,
-  IoLayersOutline,
-  IoHeartOutline,
-  IoBookmarkOutline,
-  IoCardOutline,
-  IoReceiptOutline,
-  IoNotificationsOutline,
-  IoHelpCircleOutline,
+  IdentificationCard,
+  Layers,
+  Heart,
+  UserList,
+  CreditCard,
+  Receipt,
+  BellRinging,
+  Headset,
   IoLogOutOutline,
   IoChevronForward,
   IoClose,
   IoAddCircleOutline,
   IoStarOutline,
-  IoTrophyOutline,
-  IoShieldCheckmarkOutline,
-  IoStorefrontOutline,
-  IoBagHandleOutline,
-  IoRibbonOutline,
+  Trophy,
+  ShieldCheck,
+  Store,
+  ShoppingBag,
+  Medal,
   IoSparklesOutline,
-  IoSearchOutline,
-  IoChatbubbleOutline,
-  IoChatbubbleEllipsesOutline,
-} from "react-icons/io5";
-import { Sparkles, TrendingUp } from "lucide-react";
-import { MdVerified } from "react-icons/md";
+  Search,
+  MessageSquare,
+  MessageSquareMore,
+} from "@/components/Common/UnifiedIconPack";
+import { Sparkles, TrendingUp } from "@/components/Common/UnifiedIconPack";
+import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
 // ============================================
 // HELPERS
@@ -68,9 +70,6 @@ const toRating = (v) => {
   const n = toNum(v);
   return n === null ? "0.0" : n.toFixed(1);
 };
-
-const toBool = (v) => v === true || v === 1 || v === "1";
-
 
 const extractList = (payload) => {
   if (!payload) return [];
@@ -169,6 +168,8 @@ const MenuItem = ({
           ? "text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
           : "text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white"
       }`}
+      title={description || label}
+      aria-label={description || label}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -246,7 +247,7 @@ const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-1 p-2">
+    <div className="flex flex-col items-center gap-1 p-2" title={label} aria-label={label}>
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
         <Icon size={16} />
       </div>
@@ -261,8 +262,16 @@ const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
 // ============================================
 const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dockPhase, setDockPhase] = useState("idle");
   const { navigate } = useNavigate();
   const isMobile = useMediaQuery("(max-width: 1024px)");
+  const mobileDock = useAdaptiveMobileDock();
+  const setDockSuspended = mobileDock?.setSuspended;
+  const clearDockSuspended = mobileDock?.clearSuspended;
+  const transitionTimersRef = useRef({ open: null, close: null });
+  const dockSuspendKey = "profile-dropdown-sheet";
+  const DOCK_HIDE_BEFORE_OPEN_MS = 170;
+  const DOCK_SHOW_AFTER_CLOSE_MS = 250;
 
   const userData = useSelector(userSignUpData);
   const settings = useSelector(settingsData);
@@ -279,6 +288,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     rating: "0.0",
     membershipTier: "free",
     isVerified: false,
+    verificationStatus: "not-applied",
   });
 
   // ✅ same logic: if profile is placeholder -> treat as no custom image
@@ -301,24 +311,41 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     }
   }, []);
 
+  const clearTransitionTimers = useCallback(() => {
+    if (transitionTimersRef.current.open) {
+      window.clearTimeout(transitionTimersRef.current.open);
+      transitionTimersRef.current.open = null;
+    }
+    if (transitionTimersRef.current.close) {
+      window.clearTimeout(transitionTimersRef.current.close);
+      transitionTimersRef.current.close = null;
+    }
+  }, []);
+
+  const closeAndRestoreDockImmediately = useCallback(() => {
+    clearTransitionTimers();
+    setIsOpen(false);
+    setDockPhase("idle");
+    clearDockSuspended?.(dockSuspendKey);
+  }, [clearTransitionTimers, clearDockSuspended]);
+
   const handleNavigate = useCallback(
     (path) => {
-      setIsOpen(false);
+      closeAndRestoreDockImmediately();
       navigate(path);
     },
-    [navigate]
+    [closeAndRestoreDockImmediately, navigate]
   );
 
   const handleLogout = useCallback(() => {
-    setIsOpen(false);
+    closeAndRestoreDockImmediately();
     setIsLogout(true);
-  }, [setIsLogout]);
+  }, [closeAndRestoreDockImmediately, setIsLogout]);
 
   const resolvedMembership = useMemo(
     () => resolveMembership({ tier: userStats.membershipTier }),
     [userStats.membershipTier]
   );
-  const isPro = resolvedMembership.isPro;
   const isShop = resolvedMembership.isShop;
   const isPremium = resolvedMembership.isPremium;
 
@@ -360,13 +387,6 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         activeAds = extractTotal(payload) || payload?.total || 0;
       }
 
-      let verifiedByStatus = false;
-if (verificationRes?.status === "fulfilled") {
-  const statusData = verificationRes.value?.data?.data;
-  // ovdje backend daje npr: "approved", "pending", "not applied"
-  verifiedByStatus = String(statusData?.status || "").toLowerCase() === "approved";
-}
-
       let ratingFromReviews = null;
       if (reviewsRes?.status === "fulfilled") {
         const payload = getApiData(reviewsRes.value);
@@ -379,20 +399,24 @@ if (verificationRes?.status === "fulfilled") {
         toNum(userData?.rating);
 
       const rating = toRating(ratingFromReviews ?? ratingFallback);
-      const isVerified =
-      verifiedByStatus ||
-      toBool(userData?.is_verified) ||
-      toBool(userData?.verified) ||
-      toBool(userData?.is_verified_status) ||
-      toBool(userData?.isVerified);
+      const verificationPayload = verificationRes?.status === "fulfilled" ? verificationRes.value : null;
 
-      setUserStats({
-        activeAds,
-        totalViews: userData?.total_views || userData?.profile_views || 0,
-        unreadNotifications,
-        rating,
-        membershipTier: String(membershipTier).toLowerCase(),
-        isVerified,
+      setUserStats((prev) => {
+        const { verificationStatus, isVerified } = resolveVerificationState({
+          verificationResponse: verificationPayload,
+          userData,
+          previousStatus: prev.verificationStatus,
+        });
+
+        return {
+          activeAds,
+          totalViews: userData?.total_views || userData?.profile_views || 0,
+          unreadNotifications,
+          rating,
+          membershipTier: String(membershipTier).toLowerCase(),
+          isVerified,
+          verificationStatus,
+        };
       });
     } catch (e) {
       console.error("Error fetching user stats:", e);
@@ -404,6 +428,51 @@ if (verificationRes?.status === "fulfilled") {
     fetchAllData();
     getSellerSettings();
   }, [userData, fetchAllData, getSellerSettings]);
+
+  const handleOpenChange = useCallback(
+    (nextOpen) => {
+      if (!isMobile) {
+        setIsOpen(nextOpen);
+        return;
+      }
+
+      clearTransitionTimers();
+
+      if (nextOpen) {
+        if (dockPhase === "opening" || isOpen) return;
+        setDockPhase("opening");
+        setDockSuspended?.(dockSuspendKey, true);
+        transitionTimersRef.current.open = window.setTimeout(() => {
+          setIsOpen(true);
+          setDockPhase("idle");
+          transitionTimersRef.current.open = null;
+        }, DOCK_HIDE_BEFORE_OPEN_MS);
+        return;
+      }
+
+      if (!isOpen && dockPhase !== "opening") {
+        setDockPhase("idle");
+        clearDockSuspended?.(dockSuspendKey);
+        return;
+      }
+
+      setIsOpen(false);
+      setDockPhase("closing");
+      transitionTimersRef.current.close = window.setTimeout(() => {
+        clearDockSuspended?.(dockSuspendKey);
+        setDockPhase("idle");
+        transitionTimersRef.current.close = null;
+      }, DOCK_SHOW_AFTER_CLOSE_MS);
+    },
+    [isMobile, clearTransitionTimers, setDockSuspended, clearDockSuspended, dockPhase, isOpen]
+  );
+
+  useEffect(() => {
+    return () => {
+      clearTransitionTimers();
+      clearDockSuspended?.(dockSuspendKey);
+    };
+  }, [clearTransitionTimers, clearDockSuspended]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -427,26 +496,54 @@ if (verificationRes?.status === "fulfilled") {
     return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
   }, [userData, fetchAllData]);
 
-  const TriggerButton = (
-    <button
-      className="relative flex items-center justify-center rounded-full border border-slate-200/80 dark:border-slate-700 bg-white/80 dark:bg-slate-900/75 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 p-1 hover:scale-105"
-      aria-haspopup={isMobile ? "dialog" : "menu"}
-      aria-expanded={isOpen}
-      aria-label="Otvori korisnički meni"
-      type="button"
-    >
-      <UserAvatar
-        customAvatarUrl={customAvatarUrl}
-        avatarId={sellerAvatarId}
-        size={36}
-        ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
-        showVerified={userStats.isVerified}
-        verifiedSize={10}
-        showNotifBadge={true}
-        notifCount={userStats.unreadNotifications}
-      />
-    </button>
+  const renderTriggerButton = useCallback(
+    (props = {}) => (
+      <button
+        className={`relative flex touch-manipulation items-center justify-center rounded-full border border-slate-200/80 bg-white/80 p-1 transition-all duration-200 hover:scale-105 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/75 dark:hover:bg-slate-800 ${
+          dockPhase === "opening" ? "pointer-events-none opacity-80" : ""
+        }`}
+        aria-haspopup={isMobile ? "dialog" : "menu"}
+        aria-expanded={isOpen}
+        aria-label="Otvori korisnički meni"
+        disabled={dockPhase === "opening"}
+        type="button"
+        {...props}
+      >
+        <UserAvatar
+          customAvatarUrl={customAvatarUrl}
+          avatarId={sellerAvatarId}
+          size={36}
+          ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
+          showVerified={userStats.isVerified}
+          verifiedSize={10}
+          showNotifBadge={true}
+          notifCount={userStats.unreadNotifications}
+        />
+      </button>
+    ),
+    [
+      dockPhase,
+      isMobile,
+      isOpen,
+      customAvatarUrl,
+      sellerAvatarId,
+      userStats.isVerified,
+      userStats.unreadNotifications,
+    ]
   );
+
+  const handleTriggerClick = useCallback(
+    (event) => {
+      if (dockPhase === "opening") return;
+      event.stopPropagation();
+      handleOpenChange(true);
+    },
+    [handleOpenChange, dockPhase]
+  );
+
+  const preventSheetAutoFocusScroll = useCallback((event) => {
+    event.preventDefault();
+  }, []);
 
   const MenuPanel = (
     <div className="flex h-full flex-col overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
@@ -459,7 +556,7 @@ if (verificationRes?.status === "fulfilled") {
           {isMobile && (
             <button
               type="button"
-              onClick={() => setIsOpen(false)}
+              onClick={() => handleOpenChange(false)}
               className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
               aria-label="Zatvori meni"
             >
@@ -494,14 +591,14 @@ if (verificationRes?.status === "fulfilled") {
       <div
         className={[
           "overflow-y-auto overscroll-contain scrollbar-lmx pb-[max(env(safe-area-inset-bottom),0.75rem)]",
-          isMobile ? "max-h-[calc(92dvh-86px)]" : "max-h-[min(520px,70vh)]",
+          isMobile ? "max-h-[calc(100dvh-92px)]" : "max-h-[min(520px,70vh)]",
         ].join(" ")}
       >
         {/* QUICK STATS */}
         <div className="px-4 py-3 bg-gradient-to-br from-slate-50/70 to-white dark:from-slate-900/70 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800">
           <div className="grid grid-cols-3 gap-1 bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-700">
-            <QuickStat icon={IoLayersOutline} value={userStats.activeAds} label="Oglasi" color="blue" />
-            <QuickStat icon={IoNotificationsOutline} value={userStats.unreadNotifications} label="Obavijesti" color="amber" />
+            <QuickStat icon={Layers} value={userStats.activeAds} label="Oglasi" color="blue" />
+            <QuickStat icon={BellRinging} value={userStats.unreadNotifications} label="Obavijesti" color="amber" />
             <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="purple" />
           </div>
         </div>
@@ -510,7 +607,7 @@ if (verificationRes?.status === "fulfilled") {
         <div className="px-4 py-3">
           <Link
             href="/ad-listing"
-            onClick={() => setIsOpen(false)}
+            onClick={() => closeAndRestoreDockImmediately()}
             className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl font-semibold hover:scale-[1.01] transition-all duration-200 w-full group shadow-sm shadow-primary/20"
           >
             <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -522,14 +619,14 @@ if (verificationRes?.status === "fulfilled") {
         <div className="px-2 pb-3">
           <MenuSection title="Račun">
             <MenuItem
-              icon={IoPersonOutline}
+              icon={IdentificationCard}
               label={"Moj profil"}
               description="Uredi podatke i postavke"
               onClick={() => handleNavigate("/profile")}
             />
             {!userStats.isVerified && (
               <MenuItem
-                icon={IoShieldCheckmarkOutline}
+                icon={ShieldCheck}
                 label="Verifikacija"
                 description="Potvrdi svoj identitet"
                 onClick={() => handleNavigate("/user-verification")}
@@ -537,7 +634,7 @@ if (verificationRes?.status === "fulfilled") {
               />
             )}
             <MenuItem
-              icon={IoStorefrontOutline}
+              icon={Store}
               label="Postavke prodavača"
               description="Prilagodi svoj profil prodavača"
               onClick={() => handleNavigate("/profile/seller-settings")}
@@ -548,31 +645,31 @@ if (verificationRes?.status === "fulfilled") {
 
           <MenuSection title="Moji sadržaji">
             <MenuItem
-              icon={IoLayersOutline}
+              icon={Layers}
               label={"Moji oglasi"}
               description={`${userStats.activeAds} aktivnih oglasa`}
               onClick={() => handleNavigate("/my-ads")}
             />
             <MenuItem
-              icon={IoHeartOutline}
+              icon={Heart}
               label={"Spašeni oglasi"}
               description="Sačuvani oglasi"
               onClick={() => handleNavigate("/favorites")}
             />
             <MenuItem
-              icon={IoBookmarkOutline}
+              icon={UserList}
               label={"Sačuvani prodavači"}
               description="Kolekcije, bilješke i obavijesti"
               onClick={() => handleNavigate("/profile/saved")}
             />
             <MenuItem
-              icon={IoSearchOutline}
+              icon={Search}
               label="Spašene pretrage"
               description="Brze prečice do tvojih filtera"
               onClick={() => handleNavigate("/profile/saved-searches")}
             />
             <MenuItem
-              icon={IoBagHandleOutline}
+              icon={ShoppingBag}
               label="Moje kupovine"
               description="Historija kupovina"
               onClick={() => handleNavigate("/purchases")}
@@ -583,20 +680,20 @@ if (verificationRes?.status === "fulfilled") {
 
           <MenuSection title="Komunikacija">
             <MenuItem
-              icon={IoChatbubbleOutline}
+              icon={MessageSquare}
               label="Poruke"
               description="Chat sa kupcima i prodavačima"
               onClick={() => handleNavigate("/chat")}
             />
             <MenuItem
-              icon={IoNotificationsOutline}
+              icon={BellRinging}
               label={"Notifikacije"}
               description="Sve obavijesti na jednom mjestu"
               onClick={() => handleNavigate("/notifications")}
               badge={userStats.unreadNotifications}
             />
             <MenuItem
-              icon={IoChatbubbleEllipsesOutline}
+              icon={MessageSquareMore}
               label="Javna pitanja"
               description="Pitanja na vašim oglasima"
               onClick={() => handleNavigate("/profile/public-questions")}
@@ -607,13 +704,13 @@ if (verificationRes?.status === "fulfilled") {
 
           <MenuSection title="Finansije">
             <MenuItem
-              icon={IoCardOutline}
+              icon={CreditCard}
               label={"Pretplata"}
               description="Upravljaj pretplatom"
               onClick={() => handleNavigate("/user-subscription")}
             />
             <MenuItem
-              icon={IoReceiptOutline}
+              icon={Receipt}
               label={"Transakcije"}
               description="Historija transakcija"
               onClick={() => handleNavigate("/transactions")}
@@ -624,14 +721,14 @@ if (verificationRes?.status === "fulfilled") {
 
           <MenuSection title="Zajednica">
             <MenuItem icon={IoStarOutline} label={"Ocjene"} description="Recenzije i ocjene" onClick={() => handleNavigate("/reviews")} />
-            <MenuItem icon={IoRibbonOutline} label="Bedževi" description="Tvoja postignuća" onClick={() => handleNavigate("/profile/badges")} />
-            <MenuItem icon={IoTrophyOutline} label="Ljestvica" description="Rangiranje korisnika" onClick={() => handleNavigate("/leaderboard")} />
+            <MenuItem icon={Medal} label="Bedževi" description="Tvoja postignuća" onClick={() => handleNavigate("/profile/badges")} />
+            <MenuItem icon={Trophy} label="Ljestvica" description="Rangiranje korisnika" onClick={() => handleNavigate("/leaderboard")} />
           </MenuSection>
 
           <MenuDivider />
 
           <MenuSection title="Podrška">
-            <MenuItem icon={IoHelpCircleOutline} label={"Kontaktirajte nas"} description="Kontaktiraj podršku" onClick={() => handleNavigate("/contact-us")} />
+            <MenuItem icon={Headset} label={"Kontaktirajte nas"} description="Kontaktiraj podršku" onClick={() => handleNavigate("/contact-us")} />
           </MenuSection>
 
           <MenuDivider />
@@ -646,7 +743,7 @@ if (verificationRes?.status === "fulfilled") {
           <div className="p-4 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-t border-amber-100/50 dark:from-amber-500/10 dark:via-amber-400/10 dark:to-orange-500/10 dark:border-amber-500/20">
             <Link
               href="/membership/upgrade"
-              onClick={() => setIsOpen(false)}
+              onClick={() => closeAndRestoreDockImmediately()}
               className="flex items-center gap-4 p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border border-amber-200/60 dark:border-amber-400/30 hover:border-amber-300 dark:hover:border-amber-300/50 transition-all duration-200 group"
             >
               <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -672,9 +769,13 @@ if (verificationRes?.status === "fulfilled") {
                 <IoSparklesOutline className="text-white" size={20} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  {isShop ? "Shop" : "Pro"} član
-                </h5>
+                <div className="mb-1">
+                  <MembershipBadge
+                    tier={isShop ? "shop" : "pro"}
+                    size="xs"
+                    uppercase
+                  />
+                </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Uživaj u svim premium pogodnostima</p>
               </div>
             </div>
@@ -690,9 +791,14 @@ if (verificationRes?.status === "fulfilled") {
   if (isMobile) {
     return (
       <div className="relative">
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>{TriggerButton}</SheetTrigger>
-          <SheetContent side="bottom" className="p-0 overflow-hidden rounded-t-3xl border border-slate-200 dark:border-slate-700 bg-transparent max-h-[92dvh]">
+        {renderTriggerButton({ onClick: handleTriggerClick })}
+        <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+          <SheetContent
+            side="bottom"
+            onOpenAutoFocus={preventSheetAutoFocusScroll}
+            onCloseAutoFocus={preventSheetAutoFocusScroll}
+            className="z-[96] h-[calc(100dvh-0.75rem)] max-h-[calc(100dvh-0.75rem)] p-0 overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent shadow-2xl dark:border-slate-700 [&>button]:hidden"
+          >
             {MenuPanel}
           </SheetContent>
         </Sheet>
@@ -702,8 +808,28 @@ if (verificationRes?.status === "fulfilled") {
 
   return (
     <div className="relative">
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>{TriggerButton}</PopoverTrigger>
+      <Popover open={isOpen} onOpenChange={handleOpenChange}>
+        <PopoverTrigger
+          className={`relative flex touch-manipulation items-center justify-center rounded-full border border-slate-200/80 bg-white/80 p-1 transition-all duration-200 hover:scale-105 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/75 dark:hover:bg-slate-800 ${
+            dockPhase === "opening" ? "pointer-events-none opacity-80" : ""
+          }`}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label="Otvori korisnički meni"
+          disabled={dockPhase === "opening"}
+          type="button"
+        >
+          <UserAvatar
+            customAvatarUrl={customAvatarUrl}
+            avatarId={sellerAvatarId}
+            size={36}
+            ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
+            showVerified={userStats.isVerified}
+            verifiedSize={10}
+            showNotifBadge={true}
+            notifCount={userStats.unreadNotifications}
+          />
+        </PopoverTrigger>
         <PopoverContent align="end" sideOffset={10} className="w-[420px] sm:w-[440px] p-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent shadow-2xl shadow-slate-900/15 dark:shadow-black/40">
           {MenuPanel}
         </PopoverContent>

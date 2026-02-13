@@ -2,12 +2,12 @@ import { createPaymentIntentApi } from "@/utils/api";
 import { useState } from "react";
 import { useRazorpay } from "react-razorpay";
 import RazorpayLogo from "../../../public/assets/ic_razorpay.png";
-import { FaAngleRight } from "react-icons/fa";
+import { FaAngleRight } from "@/components/Common/UnifiedIconPack";
 import { useSelector } from "react-redux";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 
 const RazorpayPayment = ({
   packageSettings,

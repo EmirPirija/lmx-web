@@ -1,6 +1,6 @@
 import { t } from "@/utils";
 import { useEffect, useRef, useState } from "react";
-import { LiaUserEditSolid } from "react-icons/lia";
+import { LiaUserEditSolid } from "@/components/Common/UnifiedIconPack";
 
 const AdEditedByAdmin = ({ admin_edit_reason }) => {
   const textRef = useRef(null);

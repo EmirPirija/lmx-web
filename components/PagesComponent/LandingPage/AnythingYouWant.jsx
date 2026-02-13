@@ -1,8 +1,8 @@
 "use client";
 import { t } from "@/utils";
 import { useEffect, useState } from "react";
-import { SlLocationPin } from "react-icons/sl";
-import { IoSearchOutline } from "react-icons/io5";
+import { SlLocationPin } from "@/components/Common/UnifiedIconPack";
+import { IoSearchOutline } from "@/components/Common/UnifiedIconPack";
 import Img1 from "../../../public/assets/Image1.png";
 import Img2 from "../../../public/assets/Image2.png";
 import Img3 from "../../../public/assets/Image3.png";
@@ -18,12 +18,12 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import LocationModal from "../../Location/LocationModal";
-import { toast } from "sonner";
-import { FaLocationCrosshairs } from "react-icons/fa6";
+import { toast } from "@/utils/toastBs";
+import { FaLocationCrosshairs } from "@/components/Common/UnifiedIconPack";
 import SearchAutocomplete from "@/components/Location/SearchAutocomplete";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import CustomLink from "@/components/Common/CustomLink";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/Common/UnifiedIconPack";
 import { setIsVisitedLandingPage } from "@/redux/reducer/globalStateSlice";
 import CustomImage from "@/components/Common/CustomImage";
 import { useNavigate } from "@/components/Common/useNavigate";

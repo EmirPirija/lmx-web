@@ -7,7 +7,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { createPaymentIntentApi } from "@/utils/api";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { t } from "@/utils";
 
 const StripePayment = ({

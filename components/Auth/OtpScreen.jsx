@@ -3,7 +3,7 @@ import useAutoFocus from "../Common/useAutoFocus";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError, t } from "@/utils";
 import { getOtpApi, userSignUpApi, verifyOtpApi } from "@/utils/api";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
@@ -13,7 +13,7 @@ import {
   getIsDemoMode,
   getOtpServiceProvider,
 } from "@/redux/reducer/settingSlice";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useState } from "react";
 import { useNavigate } from "../Common/useNavigate";
 
@@ -167,9 +167,18 @@ const OtpScreen = ({
   };
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={verifyOTP}>
+    <form
+      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+      onSubmit={verifyOTP}
+    >
+      <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-700">
+        Unesi šestocifreni kod koji je poslan na tvoj broj.
+      </div>
+
       <div className="labelInputCont">
-        <Label className="requiredInputLabel">{t("otp")}</Label>
+        <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+          {t("otp")}
+        </Label>
         <Input
           type="text"
           placeholder={t("enterOtp")}
@@ -177,6 +186,8 @@ const OtpScreen = ({
           name="otp"
           value={otp}
           maxLength={6}
+          className="h-11 rounded-xl tracking-[0.3em] text-center text-base font-semibold"
+          autoComplete="one-time-code"
           onChange={(e) => setOtp(e.target.value)}
           ref={otpInputRef}
         />
@@ -184,8 +195,8 @@ const OtpScreen = ({
       <Button
         type="submit"
         disabled={showLoader}
-        className="text-xl text-white font-light px-4 py-2"
-        size="big"
+        className="h-11 rounded-xl text-sm font-semibold"
+        size="lg"
       >
         {showLoader ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -196,8 +207,9 @@ const OtpScreen = ({
 
       <Button
         type="button"
-        className="text-lg text-black font-light bg-transparent"
-        size="big"
+        className="h-11 rounded-xl border border-slate-200 bg-transparent text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        variant="ghost"
+        size="lg"
         onClick={resendOtp}
         disabled={resendOtpLoader || showLoader || resendTimer > 0}
       >

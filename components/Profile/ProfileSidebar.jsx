@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { useSelector } from "react-redux";
 
 import CustomLink from "@/components/Common/CustomLink";
 import { cn } from "@/lib/utils";
+import { isUserMarkedVerified } from "@/lib/verification";
 import {
   User,
   LogOut,
@@ -16,7 +17,7 @@ import {
   Shield,
   Zap,
   Search,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import {
   getProfileNavigationSections,
   isProfileNavItemActive,
@@ -29,12 +30,14 @@ import { deleteUser, getAuth } from "firebase/auth";
 import ReusableAlertDialog from "../Common/ReusableAlertDialog";
 import { useNavigate } from "../Common/useNavigate";
 
-function SidebarNavItem({ href, icon: Icon, label, isActive, badgeCount = 0 }) {
+function SidebarNavItem({ href, icon: Icon, label, description, isActive, badgeCount = 0 }) {
   return (
     <CustomLink href={href}>
       <motion.div
         whileHover={{ x: 2 }}
         whileTap={{ scale: 0.98 }}
+        title={description || label}
+        aria-label={description || label}
         className={cn(
           "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
           isActive
@@ -102,10 +105,7 @@ export default function ProfileSidebar({ badges = {} }) {
   const navigationSections = useMemo(
     () =>
       getProfileNavigationSections({
-        isVerified:
-          userData?.is_verified === 1 ||
-          userData?.is_verified === true ||
-          userData?.verified === true,
+        isVerified: isUserMarkedVerified(userData),
         activeAds: userData?.active_ads || 0,
         unreadNotifications: badges["/notifications"] || 0,
         unreadMessages: badges["/chat"] || 0,
@@ -236,7 +236,7 @@ export default function ProfileSidebar({ badges = {} }) {
             type="text"
             value={navQuery}
             onChange={(e) => setNavQuery(e.target.value)}
-            placeholder="Pretrazi meni..."
+            placeholder="Pretraži meni..."
             className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 text-sm text-slate-700 dark:text-slate-100 outline-none focus:border-primary/40"
           />
         </div>
@@ -257,6 +257,7 @@ export default function ProfileSidebar({ badges = {} }) {
                     href={item.href}
                     icon={item.icon}
                     label={item.label}
+                    description={item.description}
                     isActive={isProfileNavItemActive(pathname, item)}
                     badgeCount={typeof badges[item.href] === "number" ? badges[item.href] : item.badge || 0}
                   />

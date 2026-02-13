@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { AlertCircle, Package, ShoppingBag, Star } from "lucide-react";
+import { AlertCircle, Package, ShoppingBag, Star } from "@/components/Common/UnifiedIconPack";
 
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";

@@ -9,7 +9,7 @@ import {
   MdNotificationsNone,
   MdVerifiedUser,
   MdStorefront,
-} from "react-icons/md";
+} from "@/components/Common/UnifiedIconPack";
 
 const TABS = [
   { id: "user", label: "Korisničke informacije", icon: MdOutlinePerson },

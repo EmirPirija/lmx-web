@@ -14,7 +14,7 @@ import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import NoData from "@/components/EmptyStates/NoData";
 import { Badge } from "@/components/ui/badge";
 import JobApplicationSkeleton from "@/components/Skeletons/JobApplicationSkeleton";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import Pagination from "@/components/Common/Pagination";
 import { getMyJobApplicationsList } from "@/utils/api";
 import CustomLink from "@/components/Common/CustomLink";

@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { t } from "@/utils";
 import { usePathname } from "next/navigation";
@@ -25,7 +25,7 @@ import {
   IconChevronRight,
   IconWorld,
   IconStarFilled,
-} from "@tabler/icons-react";
+} from "@/components/Common/UnifiedIconPack";
 
 const SEARCH_HISTORY_KEY = "lmx_search_history";
 const SEARCH_HISTORY_ENABLED_KEY = "lmx_search_history_enabled";
@@ -154,7 +154,13 @@ const formatSavedSearchSubtitle = (qs) => {
   return parts.slice(0, 3).join(" • ");
 };
 
-const Search = () => {
+const Search = ({
+  hideBrand = false,
+  compact = false,
+  minimal = false,
+  onInputFocusChange,
+}) => {
+  const historySwitchId = useId();
   const {
     cateData,
     getCategories,
@@ -194,6 +200,7 @@ const Search = () => {
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const searchTimeoutRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -208,11 +215,6 @@ const Search = () => {
         historyEnabledRaw === null ? true : historyEnabledRaw === "true";
 
       setIsHistoryEnabled(historyEnabled);
-
-      if (!historyEnabled) {
-        setSearchHistory([]);
-        return;
-      }
 
       const history = localStorage.getItem(SEARCH_HISTORY_KEY);
       if (!history) return;
@@ -273,10 +275,13 @@ const Search = () => {
 
     try {
       localStorage.setItem(SEARCH_HISTORY_ENABLED_KEY, String(enabled));
+      if (!enabled) return;
 
-      if (!enabled) {
-        localStorage.removeItem(SEARCH_HISTORY_KEY);
-        setSearchHistory([]);
+      const history = localStorage.getItem(SEARCH_HISTORY_KEY);
+      if (!history) return;
+      const parsedHistory = JSON.parse(history);
+      if (Array.isArray(parsedHistory)) {
+        setSearchHistory(parsedHistory.filter(Boolean).slice(0, MAX_HISTORY_ITEMS));
       }
     } catch (e) {
       console.error("Failed to update history preference:", e);
@@ -597,12 +602,14 @@ const Search = () => {
   );
 
   const handleInputFocus = useCallback(() => {
+    setIsInputFocused(true);
     setShowSuggestions(true);
     setSelectedIndex(-1);
     setIsSearchFocused(true);
   }, []);
 
   const handleInputBlur = useCallback(() => {
+    setIsInputFocused(false);
     if (!searchQuery) setIsSearchFocused(false);
   }, [searchQuery]);
 
@@ -627,11 +634,21 @@ const Search = () => {
     showSuggestions &&
     (showHistoryPanel || isSearching || hasResults || showDidYouMean || showNoResults);
 
+  useEffect(() => {
+    onInputFocusChange?.(isInputFocused || shouldShowDropdown);
+  }, [isInputFocused, shouldShowDropdown, onInputFocusChange]);
+
+  useEffect(() => {
+    return () => {
+      onInputFocusChange?.(false);
+    };
+  }, [onInputFocusChange]);
+
   const isSearchActive = isSearchFocused || !!searchQuery || showSuggestions;
 
   return (
-    <div className="relative z-40 flex w-full items-center gap-2.5 sm:gap-3">
-      {settings?.header_logo && (
+    <div className={cn("relative z-40 flex w-full items-center", compact ? "gap-2" : "gap-2.5 sm:gap-3")}>
+      {settings?.header_logo && !hideBrand && (
         <div
           className={cn(
             // USPORENO: logo transition kada je search aktivan
@@ -647,7 +664,10 @@ const Search = () => {
               width={195}
               height={52}
               alt="lmx logo"
-              className="w-full h-[42px] sm:h-[70px] object-contain ltr:object-left rtl:object-right"
+              className={cn(
+                "w-full object-contain ltr:object-left rtl:object-right",
+                compact ? "h-[34px] sm:h-[42px]" : "h-[42px] sm:h-[70px]"
+              )}
             />
           </Link>
         </div>
@@ -673,10 +693,18 @@ const Search = () => {
         <form
           onSubmit={handleSearchNav}
           className={cn(
-            "w-full flex items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/95 px-3 py-1.5 shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900/90 sm:py-2",
+            "w-full flex items-center gap-2 rounded-2xl transition-all duration-200",
+            minimal
+              ? "bg-white/95 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.34)] dark:bg-slate-900/90"
+              : "border border-slate-200/90 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90",
+            compact ? "px-2.5 py-1.5" : "px-3 py-1.5 sm:py-2",
             isSearchActive
-              ? "border-primary/50 ring-2 ring-primary/20"
-              : "hover:border-slate-300 dark:hover:border-slate-600"
+              ? minimal
+                ? "shadow-[0_14px_30px_-18px_rgba(13,148,136,0.34)]"
+                : "border-primary/50 ring-2 ring-primary/20"
+              : minimal
+                ? "hover:shadow-[0_12px_26px_-19px_rgba(15,23,42,0.4)]"
+                : "hover:border-slate-300 dark:hover:border-slate-600"
           )}
           role="search"
         >
@@ -690,7 +718,10 @@ const Search = () => {
             id="lmx-search-input"
             type="text"
             placeholder={t("searchAd")}
-            className="w-full border-none bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className={cn(
+              "w-full border-none bg-transparent text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500",
+              compact ? "text-[13px]" : "text-sm"
+            )}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleInputFocus}
@@ -727,11 +758,14 @@ const Search = () => {
             </div>
           ) : (
             <button
-              className="flex items-center gap-2 rounded-xl bg-primary p-2 text-white transition-all duration-200 hover:bg-primary/90 hover:scale-[1.03] active:scale-95"
+              className={cn(
+                "flex items-center gap-2 rounded-xl bg-primary text-white transition-all duration-200 hover:bg-primary/90 hover:scale-[1.03] active:scale-95",
+                compact ? "p-1.5" : "p-2"
+              )}
               type="submit"
               aria-label={t("searchAd") || "Pretraži oglase"}
             >
-              <IconSearch size={16} className="text-white" />
+              <IconSearch size={compact ? 15 : 16} className="text-white" />
             </button>
           )}
         </form>
@@ -768,6 +802,7 @@ const Search = () => {
                     Kategorije za pronađene oglase
                   </div>
                   <button
+                    type="button"
                     onClick={handleViewAllCategories}
                     className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-all duration-200 hover:gap-2 group"
                   >
@@ -811,6 +846,7 @@ const Search = () => {
                     Spašene pretrage
                   </p>
                   <button
+                    type="button"
                     onClick={() => navigate("/profile/saved-searches")}
                     className="text-xs text-gray-700 hover:text-black"
                   >
@@ -821,6 +857,7 @@ const Search = () => {
                 <div className="space-y-1">
                   {savedSearches.slice(0, 5).map((s) => (
                     <button
+                      type="button"
                       key={s.id}
                       onClick={() => {
                         markUsed(s.id);
@@ -865,13 +902,19 @@ const Search = () => {
                     </p>
                   </div>
 
-                  <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50/90 px-2.5 py-1.5">
-                    <span className="text-[11px] font-medium text-gray-500">Pamti</span>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-gray-100/85 px-2 py-1.5">
+                    <label
+                      htmlFor={historySwitchId}
+                      className="cursor-pointer text-[11px] font-medium text-gray-500 select-none"
+                    >
+                      Pamti
+                    </label>
                     <Switch
+                      id={historySwitchId}
                       checked={isHistoryEnabled}
                       onCheckedChange={handleHistoryToggle}
                       aria-label="Pamti historiju pretrage"
-                      className="h-5 w-9 data-[state=checked]:bg-primary data-[state=unchecked]:bg-slate-300"
+                      className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-slate-300"
                     />
                   </div>
                 </div>
@@ -885,6 +928,7 @@ const Search = () => {
                           : "Još nema sačuvane historije"}
                       </p>
                       <button
+                        type="button"
                         onClick={clearAllHistory}
                         className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={searchHistory.length === 0}
@@ -907,6 +951,7 @@ const Search = () => {
                               <span className="text-sm text-gray-700 truncate">{query}</span>
                             </div>
                             <button
+                              type="button"
                               onClick={(e) => removeFromHistory(query, e)}
                               className="p-1 hover:bg-gray-200 rounded transition-all duration-200"
                               aria-label="Obriši iz historije"
@@ -946,6 +991,7 @@ const Search = () => {
                   {didYouMean.map((term, index) => (
                     <span key={term}>
                       <button
+                        type="button"
                         onClick={() => handleDidYouMeanClick(term)}
                         className="text-primary font-medium hover:underline"
                         role="option"

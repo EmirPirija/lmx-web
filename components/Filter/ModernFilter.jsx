@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
-import { X, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import { X, ChevronDown, ChevronUp, SlidersHorizontal } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 import ModernFilterTree from "./ModernFilterTree";
 import ModernLocationTree from "./ModernLocationTree";

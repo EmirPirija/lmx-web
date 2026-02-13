@@ -11,8 +11,8 @@ import {
   RefreshCcw,
   Store,
   XCircle,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "@/components/Common/UnifiedIconPack";
+import { toast } from "@/utils/toastBs";
 import Checkauth from "@/HOC/Checkauth";
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
@@ -23,6 +23,7 @@ import {
   setUserMembershipError,
   setUserMembershipLoading,
 } from "@/redux/reducer/membershipSlice";
+import { extractApiData, resolveMembership, resolveMembershipActivity } from "@/lib/membership";
 import { cn } from "@/lib/utils";
 
 const TIER_THEME = {
@@ -61,9 +62,11 @@ const MembershipManagePage = () => {
     dispatch(setUserMembershipError(null));
     try {
       const res = await membershipApi.getUserMembership();
-      dispatch(setUserMembership(res?.data?.data || null));
+      const payload = extractApiData(res);
+      const normalizedMembership = payload && typeof payload === "object" ? payload : null;
+      dispatch(setUserMembership(normalizedMembership));
     } catch (error) {
-      console.error("Error fetching membership:", error);
+      console.error("Greška pri učitavanju članstva:", error);
       dispatch(setUserMembershipError("Greška pri učitavanju članstva"));
       toast.error("Greška pri učitavanju članstva.");
     } finally {
@@ -75,20 +78,34 @@ const MembershipManagePage = () => {
     fetchMembership();
   }, [fetchMembership]);
 
+  const membershipSource = useMemo(
+    () => (membership && typeof membership === "object" ? membership : null),
+    [membership]
+  );
+
+  const resolvedMembership = useMemo(
+    () => resolveMembership(membershipSource, membershipSource?.membership),
+    [membershipSource]
+  );
+
+  const membershipActivity = useMemo(
+    () => resolveMembershipActivity(membershipSource, membershipSource?.membership),
+    [membershipSource]
+  );
+
   const normalizedTier = useMemo(() => {
-    const apiTier = String(membership?.tier || "free").toLowerCase();
-    if (apiTier.includes("shop")) return "shop";
-    if (apiTier.includes("pro")) return "pro";
-    return "free";
-  }, [membership]);
+    return resolvedMembership?.tier || "free";
+  }, [resolvedMembership]);
 
   const theme = TIER_THEME[normalizedTier] || TIER_THEME.free;
   const Icon = theme.icon;
 
   const isFreePlan = normalizedTier === "free";
   const membershipLabel = theme.label;
-  const membershipStatus = String(membership?.status || "active");
-  const isActive = membership?.is_active ?? membershipStatus === "active";
+  const membershipStatus = String(
+    membershipSource?.status || membershipSource?.membership_status || ""
+  ).toLowerCase();
+  const isActive = membershipSource?.is_active ?? membershipActivity?.isActive;
   const membershipStatusLabel = isActive
     ? "Aktivan"
     : membershipStatus.includes("cancel")
@@ -105,7 +122,7 @@ const MembershipManagePage = () => {
       return;
     }
 
-    const confirmed = window.confirm("Da li sigurno želiš otkazati aktivni plan?");
+    const confirmed = window.confirm("Da li sigurno želiš otkazati trenutno članstvo?");
     if (!confirmed) return;
 
     setIsCancelling(true);
@@ -118,7 +135,7 @@ const MembershipManagePage = () => {
       }
       toast.error(res?.data?.message || "Otkazivanje plana nije uspjelo.");
     } catch (error) {
-      console.error("Error cancelling membership:", error);
+      console.error("Greška pri otkazivanju članstva:", error);
       toast.error("Greška pri otkazivanju plana.");
     } finally {
       setIsCancelling(false);
@@ -175,13 +192,24 @@ const MembershipManagePage = () => {
                     <div>
                       <p className="text-xs uppercase tracking-wide text-white/75">Aktiviran</p>
                       <p className="mt-1 text-sm font-semibold">
-                        {formatMembershipDate(membership?.started_at)}
+                        {formatMembershipDate(
+                          membershipSource?.started_at ||
+                            membershipSource?.membership?.started_at
+                        )}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-wide text-white/75">Ističe</p>
                       <p className="mt-1 text-sm font-semibold">
-                        {membership?.expires_at ? formatMembershipDate(membership?.expires_at) : "Bez isteka"}
+                        {membershipSource?.expires_at ||
+                        membershipSource?.membership?.expires_at ||
+                        membershipActivity?.expiresAt
+                          ? formatMembershipDate(
+                              membershipSource?.expires_at ||
+                                membershipSource?.membership?.expires_at ||
+                                membershipActivity?.expiresAt
+                            )
+                          : "Bez isteka"}
                       </p>
                     </div>
                   </div>
@@ -230,13 +258,22 @@ const MembershipManagePage = () => {
                 </div>
               </div>
 
-              {membership?.expires_at ? (
+              {membershipSource?.expires_at ||
+              membershipSource?.membership?.expires_at ||
+              membershipActivity?.expiresAt ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start gap-3 text-slate-600 dark:text-slate-300">
                     <CalendarClock className="mt-0.5 h-5 w-5 text-primary" />
                     <p className="text-sm">
-                      Plan ističe <strong>{formatMembershipDate(membership.expires_at)}</strong>. Nadogradi
-                      ili promijeni plan prije isteka da zadržiš sve pogodnosti.
+                      Plan ističe{" "}
+                      <strong>
+                        {formatMembershipDate(
+                          membershipSource?.expires_at ||
+                            membershipSource?.membership?.expires_at ||
+                            membershipActivity?.expiresAt
+                        )}
+                      </strong>
+                      . Nadogradi ili promijeni plan prije isteka da zadržiš sve pogodnosti.
                     </p>
                   </div>
                 </div>

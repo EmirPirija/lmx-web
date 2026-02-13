@@ -9,7 +9,7 @@ import {
   RiZoomOutLine,
   RiVideoLine,
   RiFullscreenLine,
-} from "react-icons/ri";
+} from "@/components/Common/UnifiedIconPack";
 import { useSelector } from "react-redux";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 import ReactPlayer from "react-player";

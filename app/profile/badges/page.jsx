@@ -2,7 +2,19 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Target, Sparkles } from "lucide-react";
+import {
+  Flame,
+  ListChecks,
+  MessageCircle,
+  Rocket,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  Target,
+  Trophy,
+  Users,
+  Video,
+} from "@/components/Common/UnifiedIconPack";
 
 import BadgeList from "@/components/PagesComponent/Gamification/BadgeList";
 import UserLevel from "@/components/PagesComponent/Gamification/UserLevel";
@@ -43,7 +55,24 @@ const missionStatusClass = (status) => {
 const missionStatusLabel = (status) => {
   if (status === "completed") return "Gotovo";
   if (status === "in_progress") return "U toku";
-  return "Start";
+  return "Početak";
+};
+
+const missionIconByText = (mission) => {
+  const text = `${mission?.type || ""} ${mission?.slug || ""} ${mission?.title || ""} ${mission?.description || ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (text.match(/reel|video/)) return Video;
+  if (text.match(/poruk|message|chat/)) return MessageCircle;
+  if (text.match(/streak|niz|daily|dnev/)) return Flame;
+  if (text.match(/prodaj|sale|sell|oglas|listing/)) return ShoppingBag;
+  if (text.match(/shop|radnj|store|pro/)) return Store;
+  if (text.match(/rank|leader|top|poredak/)) return Trophy;
+  if (text.match(/level|xp|bodov|point/)) return Rocket;
+  if (text.match(/profil|avatar|user|korisnik/)) return Users;
+  return ListChecks;
 };
 
 const BadgesPage = () => {
@@ -139,17 +168,17 @@ const BadgesPage = () => {
       <UserLevel userPoints={userPoints} showProgress={true} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Sedmicni rank" value={ranks?.weekly ? `#${ranks.weekly}` : "—"} sub="Pozicija ove sedmice" />
-        <StatCard label="Mjesecni rank" value={ranks?.monthly ? `#${ranks.monthly}` : "—"} sub="Pozicija ovog mjeseca" />
-        <StatCard label="All-time rank" value={ranks?.all_time ? `#${ranks.all_time}` : "—"} sub="Ukupni poredak" />
-        <StatCard label="Streak" value={`${overview?.streak_days || 0} dana`} sub="Kontinuirana aktivnost" />
+        <StatCard label="Sedmični rang" value={ranks?.weekly ? `#${ranks.weekly}` : "—"} sub="Pozicija ove sedmice" />
+        <StatCard label="Mjesečni rang" value={ranks?.monthly ? `#${ranks.monthly}` : "—"} sub="Pozicija ovog mjeseca" />
+        <StatCard label="Ukupni rang" value={ranks?.all_time ? `#${ranks.all_time}` : "—"} sub="Ukupni poredak" />
+        <StatCard label="Niz aktivnosti" value={`${overview?.streak_days || 0} dana`} sub="Kontinuirana aktivnost" />
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <div>
-          <div className="text-2xl font-extrabold text-slate-900 dark:text-white">Postignuca</div>
+          <div className="text-2xl font-extrabold text-slate-900 dark:text-white">Postignuća</div>
           <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
-            Pregled zaradjenih i zakljucanih bedzeva. Pretraga radi po nazivu.
+            Pregled zarađenih i zaključanih bedževa. Pretraga radi po nazivu.
           </div>
         </div>
 
@@ -157,7 +186,7 @@ const BadgesPage = () => {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Pretrazi bedzeve..."
+            placeholder="Pretraži bedževe..."
             className="h-11 w-full sm:w-[260px] rounded-2xl"
           />
 
@@ -170,18 +199,18 @@ const BadgesPage = () => {
               "text-slate-800 dark:text-slate-100 hover:shadow-md"
             )}
           >
-            {showDescriptions ? "Sakrij opise" : "Prikazi opise"}
+            {showDescriptions ? "Sakrij opise" : "Prikaži opise"}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard label="Zaradjeni bedzevi" value={earnedBadges.length} sub="Tvoja dostignuca do sada" />
-        <StatCard label="Zakljucani bedzevi" value={lockedBadges.length} sub="Otkljucaj nastavkom aktivnosti" />
+        <StatCard label="Zarađeni bedževi" value={earnedBadges.length} sub="Tvoja dostignuća do sada" />
+        <StatCard label="Zaključani bedževi" value={lockedBadges.length} sub="Otključaj ih nastavkom aktivnosti" />
         <StatCard
-          label="Ukupno bedzeva"
+          label="Ukupno bedževa"
           value={Array.isArray(allBadges) ? allBadges.length : 0}
-          sub={userPointsLoading ? "Ucitavam bodove..." : "Prati napredak kroz bodove i nivoe"}
+          sub={userPointsLoading ? "Učitavam bodove..." : "Prati napredak kroz bodove i nivoe"}
         />
       </div>
 
@@ -194,14 +223,21 @@ const BadgesPage = () => {
 
           <div className="mt-3 space-y-2.5">
             {overviewLoading ? (
-              <div className="text-sm text-slate-500 dark:text-slate-300">Ucitavam misije...</div>
+              <div className="text-sm text-slate-500 dark:text-slate-300">Učitavam misije...</div>
             ) : missions.length ? (
-              missions.slice(0, 4).map((mission) => (
-                <div key={mission.id} className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800/50 p-3">
+              missions.slice(0, 4).map((mission) => {
+                const MissionIcon = missionIconByText(mission);
+                return (
+                  <div key={mission.id} className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-800/50 p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex items-start gap-2.5">
+                      <span className="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-slate-200/70 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
+                        <MissionIcon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">{mission.title}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-300 mt-0.5">{mission.description}</p>
+                      </div>
                     </div>
                     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", missionStatusClass(mission.status))}>
                       {missionStatusLabel(mission.status)}
@@ -219,7 +255,8 @@ const BadgesPage = () => {
                     {mission.progress}/{mission.target} • +{mission.reward_points} bodova
                   </div>
                 </div>
-              ))
+                );
+              })
             ) : (
               <div className="text-sm text-slate-500 dark:text-slate-300">Nema aktivnih misija.</div>
             )}
@@ -256,10 +293,10 @@ const BadgesPage = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100/70 dark:bg-slate-800/60 rounded-2xl p-1">
             <TabsTrigger value="earned" className="rounded-xl">
-              Zaradjeni ({earnedBadges.length})
+              Zarađeni ({earnedBadges.length})
             </TabsTrigger>
             <TabsTrigger value="locked" className="rounded-xl">
-              Zakljucani ({lockedBadges.length})
+              Zaključani ({lockedBadges.length})
             </TabsTrigger>
           </TabsList>
 
@@ -280,7 +317,7 @@ const BadgesPage = () => {
             ) : (
               <BadgeList
                 badges={filteredEarned}
-                emptyMessage="Jos nemas zaradjenih bedzeva."
+                emptyMessage="Još nemaš zarađenih bedževa."
                 size="lg"
                 showDescription={showDescriptions}
               />
@@ -305,7 +342,7 @@ const BadgesPage = () => {
               <BadgeList
                 badges={filteredLocked}
                 locked
-                emptyMessage="Sve si otkljucao. Svaka cast!"
+                emptyMessage="Sve si otključao/la. Svaka čast!"
                 size="lg"
                 showDescription={showDescriptions}
               />

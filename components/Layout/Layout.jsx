@@ -8,11 +8,15 @@ import { t } from "@/utils";
 import { useClientLayoutLogic } from "./useClientLayoutLogic";
 import CustomImage from "../Common/CustomImage";
 import ScrollToTopButton from "./ScrollToTopButton";
+import { AdaptiveMobileDockProvider } from "./AdaptiveMobileDock";
+import { usePathname } from "next/navigation";
 
 
 export default function Layout({ children }) {
   const { isLoading, isMaintenanceMode, isRedirectToLanding } =
     useClientLayoutLogic();
+  const pathname = usePathname();
+  const isHomepageRoute = pathname === "/";
 
   if (isLoading) {
     return <Loading />;
@@ -38,12 +42,19 @@ export default function Layout({ children }) {
 
   return (
     <PushNotificationLayout>
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <div className="flex-1 custom-lmx-bg">{children}</div>
-        <ScrollToTopButton />
-        <Footer />
-      </div>
+      <AdaptiveMobileDockProvider>
+        <div
+          className={`flex flex-col min-h-screen ${
+            isHomepageRoute ? "lmx-home-container-scope" : "lmx-fullwidth-container-scope"
+          }`}
+          style={{ paddingBottom: "var(--adaptive-mobile-dock-space, 0px)" }}
+        >
+          <Header />
+          <div className="flex-1 custom-lmx-bg">{children}</div>
+          <ScrollToTopButton />
+          <Footer />
+        </div>
+      </AdaptiveMobileDockProvider>
     </PushNotificationLayout>
   );
 }

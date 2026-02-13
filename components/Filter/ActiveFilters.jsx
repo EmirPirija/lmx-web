@@ -1,5 +1,5 @@
 import { useSearchParams } from "next/navigation";
-import { X } from "lucide-react";
+import { X } from "@/components/Common/UnifiedIconPack";
 
 const ActiveFilters = ({ country, state, city, area, extraDetails, customFields }) => {
   const searchParams = useSearchParams();

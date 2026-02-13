@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeftRight, X } from "lucide-react";
+import { ArrowLeftRight, X } from "@/components/Common/UnifiedIconPack";
 
 import { Button } from "@/components/ui/button";
 import CustomImage from "@/components/Common/CustomImage";

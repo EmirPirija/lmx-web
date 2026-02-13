@@ -1,7 +1,7 @@
 "use client";
 
 import Layout from "@/components/Layout/Layout";
-import { MapPin } from "lucide-react";
+import { MapPin } from "@/components/Common/UnifiedIconPack";
 
 export default function MapSearchPage() {
   return (

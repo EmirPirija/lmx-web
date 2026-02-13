@@ -24,10 +24,15 @@ module.exports = {
         lg: "2rem",
         "2xl": "3rem", // Povećan padding za velike ekrane da sadržaj ne "ljubi" rub
       },
-      // Ovo omogućava da container nema max-width na jako velikim ekranima ako to želiš
-      // screens: {
-      //   "2xl": "100%",
-      // },
+      screens: {
+        sm: "100%",
+        md: "100%",
+        lg: "100%",
+        xl: "100%",
+        "2xl": "100%",
+        "3xl": "100%",
+        "4xl": "100%",
+      },
     },
     extend: {
       // LMX Boje (zadržane iste)

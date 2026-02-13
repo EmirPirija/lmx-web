@@ -3,7 +3,7 @@ import { useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { getMaxRange, getMinRange } from "@/redux/reducer/settingSlice";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
-import { MapPin } from "lucide-react";
+import { MapPin } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 
 const RangeFilter = () => {

@@ -4,7 +4,12 @@ function Skeleton({
   className,
   ...props
 }) {
-  return (<div className={cn("animate-pulse rounded-md bg-gray-300", className)} {...props} />);
+  return (
+    <div
+      className={cn("animate-pulse rounded-xl border border-border/40 bg-muted/70", className)}
+      {...props}
+    />
+  );
 }
 
 export { Skeleton }

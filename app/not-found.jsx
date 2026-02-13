@@ -3,7 +3,7 @@ import CustomImage from "@/components/Common/CustomImage";
 import notFoundImg from "@/public/assets/no_data_found_illustrator.svg";
 import { t } from "@/utils";
 import Link from "next/link";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft } from "@/components/Common/UnifiedIconPack";
 
 const NotFound = () => {
   return (

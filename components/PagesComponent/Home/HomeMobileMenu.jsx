@@ -25,7 +25,7 @@ import {
   IconLogout,
   IconMapPin,
   IconLoader2,
-} from "@tabler/icons-react";
+} from "@/components/Common/UnifiedIconPack";
 
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { usePathname } from "next/navigation";

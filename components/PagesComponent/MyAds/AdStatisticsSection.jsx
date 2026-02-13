@@ -5,6 +5,8 @@ import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { itemStatisticsApi, membershipApi } from "@/utils/api";
 import { motion, AnimatePresence } from "framer-motion";
+import MembershipBadge from "@/components/Common/MembershipBadge";
+import PlanGateLabel from "@/components/Common/PlanGateLabel";
 import {
   IoChevronDown,
   IoEyeOutline,
@@ -28,10 +30,10 @@ import {
   IoStatsChartOutline,
   IoSparkles,
   IoLockClosed,
-} from "react-icons/io5";
-import { FaWhatsapp, FaViber, FaAndroid, FaApple } from "react-icons/fa";
-import { MdOutlineEmail, MdTouchApp } from "react-icons/md";
-import { Crown, Store, Sparkles } from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
+import { FaWhatsapp, FaViber, FaAndroid, FaApple } from "@/components/Common/UnifiedIconPack";
+import { MdOutlineEmail, MdTouchApp } from "@/components/Common/UnifiedIconPack";
+import { Crown, Store, Sparkles } from "@/components/Common/UnifiedIconPack";
 import {
   AreaChart,
   Area,
@@ -1281,10 +1283,25 @@ const PeriodSelector = ({ value, onChange }) => {
 // ============================================
 // SECTION HEADER
 // ============================================
-const SectionHeader = ({ icon: Icon, title, iconColor, badge, locked }) => (
+const SectionHeader = ({
+  icon: Icon,
+  title,
+  iconColor,
+  badge,
+  locked,
+  planScope,
+  unlocked = false,
+}) => (
   <div className="flex items-center gap-2 mb-4">
     <Icon className={iconColor} size={18} />
     <h4 className="font-semibold text-slate-800 text-sm">{title}</h4>
+    {planScope ? (
+      <PlanGateLabel
+        scope={planScope}
+        unlocked={unlocked}
+        showStatus={false}
+      />
+    ) : null}
     {badge && (
       <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${badge.color}`}>
         {badge.text}
@@ -1426,9 +1443,11 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
         </div>
         <div className="flex items-center gap-2">
           {isPremium && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${isShop ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
-              {isShop ? "Shop" : "Pro"}
-            </span>
+            <MembershipBadge
+              tier={isShop ? "shop" : "pro"}
+              size="xs"
+              uppercase
+            />
           )}
           <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <IoChevronDown className="text-slate-400" size={20} />
@@ -1576,6 +1595,8 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                       icon={Crown}
                       title="Pro statistika"
                       iconColor="text-amber-500"
+                      planScope="pro_or_shop"
+                      unlocked={isPremium}
                       badge={isPremium ? { text: "Aktivno", color: "bg-amber-100 text-amber-700" } : null}
                       locked={!isPremium}
                     />
@@ -1602,6 +1623,8 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                       icon={Store}
                       title="Shop statistika"
                       iconColor="text-blue-500"
+                      planScope="shop"
+                      unlocked={isShop}
                       badge={isShop ? { text: "Aktivno", color: "bg-blue-100 text-blue-700" } : null}
                       locked={!isShop}
                     />

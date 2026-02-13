@@ -3,11 +3,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { toast } from "@/utils/toastBs"
 import { itemOfferApi, tipsApi } from '@/utils/api'
 import { formatPriceAbbreviated, t } from '@/utils'
 import { Skeleton } from "@/components/ui/skeleton"
-import { FaCheck } from 'react-icons/fa'
+import { FaCheck } from "@/components/Common/UnifiedIconPack"
 import { useNavigate } from '@/components/Common/useNavigate'
 
 const MakeOfferModal = ({ isOpen, onClose, productDetails }) => {

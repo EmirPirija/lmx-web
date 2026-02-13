@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { Plus, Bell, Layers, Heart, Star, MessageSquare, Briefcase, CreditCard, Receipt } from "lucide-react";
+import { Plus, Bell, Layers, Heart, Star, MessageSquare, Briefcase, CreditCard, Receipt } from "@/components/Common/UnifiedIconPack";
 
 import Layout from "@/components/Layout/Layout";
 import ProfileLayout from "@/components/Profile/ProfileLayout";

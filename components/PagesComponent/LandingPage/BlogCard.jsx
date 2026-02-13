@@ -1,5 +1,5 @@
 "use client";
-import { FaArrowRight } from "react-icons/fa";
+import { FaArrowRight } from "@/components/Common/UnifiedIconPack";
 import CustomLink from "@/components/Common/CustomLink";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
