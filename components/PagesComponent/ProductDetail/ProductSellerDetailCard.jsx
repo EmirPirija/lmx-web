@@ -566,13 +566,6 @@ const ProductSellerDetailCard = ({
   // Extract from productDetails or use props
   const seller = sellerProp || productDetails?.user;
   const ratings = ratingsProp || productDetails?.ratings;
-  const membership = resolveMembership(
-    { is_pro: isProProp, is_shop: isShopProp },
-    seller,
-    productDetails?.user,
-    sellerProp?.membership,
-    productDetails?.membership
-  );
   const itemId = itemIdProp || productDetails?.id;
   const itemPrice = itemPriceProp || productDetails?.price;
 
@@ -585,6 +578,76 @@ const ProductSellerDetailCard = ({
       : {};
     return { ...a, ...b }; // sellerSettings override, ali ne briše a
   }, [productDetails?.user_settings, sellerSettings]);
+
+  const membership = useMemo(
+    () =>
+      resolveMembership(
+        { is_pro: isProProp, is_shop: isShopProp },
+        seller,
+        productDetails?.user,
+        sellerProp?.membership,
+        productDetails?.membership,
+        productDetails?.user?.membership,
+        productDetails?.user_settings,
+        sellerSettings,
+        settings
+      ),
+    [
+      isProProp,
+      isShopProp,
+      seller,
+      productDetails?.user,
+      sellerProp?.membership,
+      productDetails?.membership,
+      productDetails?.user?.membership,
+      productDetails?.user_settings,
+      sellerSettings,
+      settings,
+    ]
+  );
+
+  const forceShopTier = useMemo(
+    () =>
+      [
+        isShopProp,
+        seller?.is_shop,
+        seller?.isShop,
+        productDetails?.user?.is_shop,
+        productDetails?.user?.isShop,
+        sellerSettings?.is_shop,
+        sellerSettings?.isShop,
+        settings?.is_shop,
+        settings?.isShop,
+      ].some((value) => toBool(value)),
+    [isShopProp, seller, productDetails?.user, sellerSettings, settings]
+  );
+
+  const forceProTier = useMemo(
+    () =>
+      [
+        isProProp,
+        seller?.is_pro,
+        seller?.isPro,
+        seller?.is_premium,
+        seller?.premium,
+        productDetails?.user?.is_pro,
+        productDetails?.user?.isPro,
+        productDetails?.user?.is_premium,
+        productDetails?.user?.premium,
+        sellerSettings?.is_pro,
+        sellerSettings?.isPro,
+        sellerSettings?.is_premium,
+        sellerSettings?.premium,
+        settings?.is_pro,
+        settings?.isPro,
+        settings?.is_premium,
+        settings?.premium,
+      ].some((value) => toBool(value)),
+    [isProProp, seller, productDetails?.user, sellerSettings, settings]
+  );
+
+  const membershipTier = forceShopTier ? "shop" : forceProTier ? "pro" : membership?.tier;
+  const hasMembershipBadge = membershipTier === "shop" || membershipTier === "pro";
   
 
     const acceptsOffers = acceptsOffersProp || productDetails?.accepts_offers || sellerSettings?.accepts_offers;
@@ -848,12 +911,12 @@ const ProductSellerDetailCard = ({
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <span className="truncate">{seller?.name}</span>
-                    {membership.isPremium && <MembershipBadge tier={membership.tier} size="xs" />}
+                    {hasMembershipBadge && <MembershipBadge tier={membershipTier} size="xs" />}
                   </CustomLink>
                 ) : (
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                     <span className="truncate">{seller?.name}</span>
-                    {membership.isPremium && <MembershipBadge tier={membership.tier} size="xs" />}
+                    {hasMembershipBadge && <MembershipBadge tier={membershipTier} size="xs" />}
                   </span>
                 )}
                 
@@ -908,7 +971,7 @@ const ProductSellerDetailCard = ({
               )} */}
 
               {/* Gamification badges */}
-              {showBadges && badgeList.length > 0 && (
+              {/* {showBadges && badgeList.length > 0 && (
                 <div className="flex items-center gap-1 mt-1.5">
                   {badgeList.map((b) => (
                     <GamificationBadge 
@@ -924,7 +987,7 @@ const ProductSellerDetailCard = ({
                     <span className="text-[10px] text-slate-400 ml-0.5">+{badges.length - maxBadges}</span>
                   )}
                 </div>
-              )}
+              )} */}
             </div>
           </div>
 

@@ -1216,7 +1216,7 @@ export const SellerPreviewCard = ({
               </div>
 
               {/* Gamification badges */}
-              {showBadges && badgeList.length > 0 && (
+              {/* {showBadges && badgeList.length > 0 && (
                 <div className="flex items-center gap-1 mt-1.5">
                   {badgeList.map((b) => (
                     <GamificationBadge
@@ -1229,7 +1229,7 @@ export const SellerPreviewCard = ({
                     />
                   ))}
                 </div>
-              )}
+              )} */}
             </div>
           </div>
 
@@ -1763,14 +1763,14 @@ const SellerDetailCard = ({
       )}
 
       {/* LINK ZA PROFIL */}
-      <CustomLink
+      {/* <CustomLink
         href={`/seller/${mainSellerId}`}
         onClick={onProfileClick}
         className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors group"
       >
         Pogledaj kompletan profil
         <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-      </CustomLink>
+      </CustomLink> */}
 
       <ContactSheet
         open={isContactSheetOpen}

@@ -864,7 +864,7 @@ export const MinimalSellerCard = ({
             </div>
 
             {/* Gamification badges */}
-            {showBadges && badgeList.length > 0 && (
+            {/* {showBadges && badgeList.length > 0 && (
               <div className="flex items-center gap-1 mt-1.5">
                 {badgeList.map((b) => (
                   <GamificationBadge 
@@ -882,7 +882,7 @@ export const MinimalSellerCard = ({
                   </span>
                 )}
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
