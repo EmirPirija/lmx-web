@@ -1798,8 +1798,13 @@ export const setItemTotalClickApi = {
 export const socialMediaApi = {
   getConnectedAccounts: () => Api.get(SOCIAL_CONNECTED_ACCOUNTS),
 
-  connectAccount: ({ platform } = {}) => {
-    return Api.get(`${SOCIAL_CONNECT}/${platform}`);
+  connectAccount: ({ platform, mode = "oauth" } = {}) => {
+    const formData = new FormData();
+    if (mode) formData.append("mode", mode);
+
+    return Api.post(`${SOCIAL_CONNECT}/${platform}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
   },
 
   disconnectAccount: ({ platform } = {}) => {

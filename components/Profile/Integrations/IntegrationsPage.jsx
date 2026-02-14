@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { socialMediaApi } from "@/utils/api";
+import { runSocialOAuthPopup } from "@/utils/socialOAuth";
 import { toast } from "@/utils/toastBs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,26 @@ const STATUS_LABELS = {
   published: "Objavljeno",
   failed: "Greška",
   cancelled: "Otkazano",
+};
+
+const ACCOUNT_STATUS_LABELS = {
+  connected: "Povezan",
+  action_required: "Potrebna akcija",
+  token_expired: "Token istekao",
+  not_connected: "Nije povezan",
+};
+
+const getAccountStatusClassName = (status) => {
+  switch (status) {
+    case "connected":
+      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300";
+    case "token_expired":
+      return "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300";
+    case "action_required":
+      return "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300";
+    default:
+      return "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
+  }
 };
 
 const formatRelativeSync = (value) => {
@@ -122,11 +143,17 @@ export default function IntegrationsPage() {
   const handleConnect = async (platform) => {
     try {
       setMutatingPlatform(platform);
-      const res = await socialMediaApi.connectAccount({ platform });
-      toast.success(res?.data?.message || "Nalog je povezan.");
+      const res = await socialMediaApi.connectAccount({ platform, mode: "oauth" });
+      const authUrl = res?.data?.data?.auth_url;
+      if (!authUrl) {
+        throw new Error(res?.data?.message || "OAuth link nije dostupan.");
+      }
+
+      await runSocialOAuthPopup({ platform, authUrl });
+      toast.success("Nalog je uspješno povezan.");
       await fetchAccounts();
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Povezivanje nije uspjelo.");
+      toast.error(error?.response?.data?.message || error?.message || "Povezivanje nije uspjelo.");
     } finally {
       setMutatingPlatform("");
     }
@@ -193,6 +220,7 @@ export default function IntegrationsPage() {
           {Object.entries(PLATFORM_META).map(([platform, meta]) => {
             const account = accountMap.get(platform);
             const connected = Boolean(account?.connected);
+            const accountStatus = account?.status || (connected ? "connected" : "not_connected");
             const Icon = meta.icon;
             const mutating = mutatingPlatform === platform;
             const syncing = syncingPlatform === platform;
@@ -210,12 +238,10 @@ export default function IntegrationsPage() {
                   <span
                     className={cn(
                       "inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold",
-                      connected
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                        : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                      getAccountStatusClassName(accountStatus)
                     )}
                   >
-                    {connected ? "Povezan" : "Nije povezan"}
+                    {ACCOUNT_STATUS_LABELS[accountStatus] || "Nije povezan"}
                   </span>
                 </div>
 

@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { instagramApi, socialMediaApi } from "@/utils/api";
+import { runSocialOAuthPopup } from "@/utils/socialOAuth";
 
 /**
  * Social Media Integration Hook
@@ -241,9 +242,9 @@ export const AutoPostService = {
   isConfigured: async (platform) => {
     try {
       const res = await socialMediaApi.getConnectedAccounts();
-      const accounts = res?.data?.data || [];
+      const accounts = res?.data?.data?.accounts || [];
       return accounts.some(
-        (row) => row?.platform === platform && Boolean(row?.is_active)
+        (row) => row?.platform === platform && Boolean(row?.connected)
       );
     } catch {
       return false;
@@ -288,7 +289,7 @@ export const AutoPostService = {
   getConnectedAccounts: async () => {
     try {
       const res = await socialMediaApi.getConnectedAccounts();
-      return res?.data?.data || [];
+      return res?.data?.data?.accounts || [];
     } catch {
       return [];
     }
@@ -299,9 +300,16 @@ export const AutoPostService = {
    */
   connectAccount: async (platform) => {
     try {
-      const res = await socialMediaApi.connectAccount({ platform });
+      const res = await socialMediaApi.connectAccount({ platform, mode: "oauth" });
+      const authUrl = res?.data?.data?.auth_url;
+      if (!authUrl) {
+        toast.error(res?.data?.message || "OAuth link nije dostupan.");
+        return false;
+      }
+
+      await runSocialOAuthPopup({ platform, authUrl });
       if (res?.data?.error === false) {
-        toast.success(res?.data?.message || `Povezivanje: ${platform}`);
+        toast.success(`Uspješno povezano: ${platform}`);
         return true;
       }
       toast.error(res?.data?.message || "Povezivanje nije uspjelo.");
@@ -342,7 +350,7 @@ export const InstagramShopService = {
     try {
       const accounts = await AutoPostService.getConnectedAccounts();
       return accounts.some(
-        (row) => row?.platform === "instagram" && Boolean(row?.is_active)
+        (row) => row?.platform === "instagram" && Boolean(row?.connected)
       );
     } catch {
       return false;

@@ -17,6 +17,7 @@ import {
   formatPriceAbbreviated,
   isValidURL,
 } from "@/utils";
+import { runSocialOAuthPopup } from "@/utils/socialOAuth";
 import { toast } from "@/utils/toastBs";
 import ComponentThree from "./ComponentThree";
 import ComponentFour from "./ComponentFour";
@@ -782,11 +783,17 @@ const AdsListing = () => {
   const handleConnectInstagram = useCallback(async () => {
     try {
       setInstagramConnection((prev) => ({ ...prev, syncing: true }));
-      const res = await socialMediaApi.connectAccount({ platform: "instagram" });
-      toast.success(res?.data?.message || "Instagram je uspješno povezan.");
+      const res = await socialMediaApi.connectAccount({ platform: "instagram", mode: "oauth" });
+      const authUrl = res?.data?.data?.auth_url;
+      if (!authUrl) {
+        throw new Error(res?.data?.message || "OAuth link nije dostupan.");
+      }
+
+      await runSocialOAuthPopup({ platform: "instagram", authUrl });
+      toast.success("Instagram je uspješno povezan.");
       await fetchInstagramConnection();
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Povezivanje Instagrama nije uspjelo.");
+      toast.error(error?.response?.data?.message || error?.message || "Povezivanje Instagrama nije uspjelo.");
     } finally {
       setInstagramConnection((prev) => ({ ...prev, syncing: false }));
     }
