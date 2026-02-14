@@ -88,6 +88,18 @@ const PROFILE_CONTEXT_COPY = {
     title: "Postavke prodavača",
     description: "Podešavanja javnog profila prodavača i prikaza na oglasima.",
   },
+  "/profile/integrations": {
+    title: "Integracije",
+    description: "Instagram povezivanje, sinhronizacija i zakazane objave.",
+  },
+  "/profile/shop-ops": {
+    title: "Shop operacije",
+    description: "Zalihe, custom domena i operativna kontrola shopa.",
+  },
+  "/profile/gamification": {
+    title: "Gamifikacija",
+    description: "Prati score, misije i napredak kroz ključne metrike.",
+  },
   "/my-ads": {
     title: "Moji oglasi",
     description: "Prati stanje oglasa i brzo reaguj na upite kupaca.",

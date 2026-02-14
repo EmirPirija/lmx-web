@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { 
+  Box,
   CalendarDays,
   CheckCircle2,
   GitCompare,
@@ -600,6 +601,10 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const productIdLabel = productDetails?.id ? `#${productDetails.id}` : "-";
   const oldPriceNumber = Number(oldPrice);
   const currentPriceNumber = Number(currentPrice);
+  const unitPriceNumber = Number(productDetails?.price_per_unit);
+  const minOrderQty = Math.max(1, Number(productDetails?.minimum_order_quantity || 1));
+  const hasUnitPrice = !isJobCategory && Number.isFinite(unitPriceNumber) && unitPriceNumber > 0;
+  const unitPriceLabel = hasUnitPrice ? `${formatBosnianPrice(unitPriceNumber)} / kom` : null;
   const hasDiscount = isOnSale && Number.isFinite(oldPriceNumber) && Number.isFinite(currentPriceNumber) && oldPriceNumber > currentPriceNumber && currentPriceNumber > 0;
   const discountPercent = hasDiscount ? Math.round(((oldPriceNumber - currentPriceNumber) / oldPriceNumber) * 100) : 0;
   const displayPrice = isJobCategory
@@ -732,6 +737,13 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                       </button>
                     )}
                   </div>
+                  {hasUnitPrice ? (
+                    <div className="mt-2 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      <Box className="h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
+                      {unitPriceLabel}
+                      {minOrderQty > 1 ? ` • min ${minOrderQty} kom` : ""}
+                    </div>
+                  ) : null}
 
                 </div>
 

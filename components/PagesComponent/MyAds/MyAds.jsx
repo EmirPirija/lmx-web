@@ -19,6 +19,7 @@ import {
   chanegItemStatusApi,
   createFeaturedItemApi,
   inventoryApi,
+  bulkAdsApi,
 } from "@/utils/api";
 import { useSelector } from "react-redux";
 import ProductCardSkeleton from "@/components/Common/ProductCardSkeleton.jsx";
@@ -212,6 +213,84 @@ function SelectionBar({ count, onSelectAll, onCancel, allSelected, onDelete, onR
   );
 }
 
+function BulkActionsBar({
+  selectedCount,
+  totalVisible,
+  allVisibleSelected,
+  onToggleAllVisible,
+  onCancel,
+  onAction,
+  isApplying,
+}) {
+  const actions = [
+    { key: "feature", label: "Izdvoji", icon: Star, tone: "amber" },
+    { key: "renew", label: "Obnovi", icon: RotateCcw, tone: "violet" },
+    { key: "pause", label: "Pauziraj", icon: EyeOff, tone: "rose" },
+    { key: "relist", label: "Ponovo objavi", icon: RefreshCw, tone: "emerald" },
+  ];
+
+  const toneClasses = {
+    amber:
+      "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-700/60 dark:text-amber-300 dark:hover:bg-amber-950/30",
+    violet:
+      "border-violet-200 text-violet-700 hover:bg-violet-50 dark:border-violet-700/60 dark:text-violet-300 dark:hover:bg-violet-950/30",
+    rose: "border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-700/60 dark:text-rose-300 dark:hover:bg-rose-950/30",
+    emerald:
+      "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-300 dark:hover:bg-emerald-950/30",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 14 }}
+      className="sticky top-0 z-30 rounded-2xl border border-primary/30 bg-primary/5 p-3 sm:p-4 backdrop-blur"
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <Checkbox
+              checked={allVisibleSelected}
+              onCheckedChange={onToggleAllVisible}
+              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
+            />
+            Označi sve na ovoj stranici ({totalVisible})
+          </label>
+
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              Označeno: {selectedCount}
+            </span>
+            <Button variant="ghost" className="h-9 rounded-xl px-3 text-sm" onClick={onCancel}>
+              <X size={16} />
+              Otkaži
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {actions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Button
+                key={action.key}
+                type="button"
+                variant="outline"
+                disabled={selectedCount === 0 || isApplying}
+                onClick={() => onAction(action.key)}
+                className={cn("h-10 justify-center gap-2 rounded-xl text-sm font-semibold", toneClasses[action.tone])}
+              >
+                <Icon size={16} />
+                {action.label}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -298,6 +377,52 @@ const isAdEligibleForPositionRenew = (item, now = new Date()) => {
   return now >= nextAllowed;
 };
 
+const FEATURED_PLACEMENTS = new Set(["category", "home", "category_home"]);
+const FEATURED_DURATIONS = new Set([7, 15, 30, 45, 60, 90]);
+const BULK_ACTION_LABELS = {
+  feature: "izdvajanje",
+  renew: "obnova",
+  pause: "pauziranje",
+  relist: "ponovna objava",
+};
+
+const normalizeFeaturedPlacement = (value) =>
+  FEATURED_PLACEMENTS.has(value) ? value : "category_home";
+
+const normalizeFeaturedDuration = (value) => {
+  const parsed = Number(value);
+  return FEATURED_DURATIONS.has(parsed) ? parsed : 30;
+};
+
+const getApiErrorMessage = (payload, fallback) => {
+  if (!payload || typeof payload !== "object") return fallback;
+  if (typeof payload.message === "string" && payload.message.trim()) {
+    return payload.message;
+  }
+
+  const errors = payload.errors;
+  if (Array.isArray(errors) && errors.length > 0) {
+    const first = errors[0];
+    if (typeof first === "string" && first.trim()) return first;
+    if (first && typeof first.message === "string" && first.message.trim()) {
+      return first.message;
+    }
+  }
+
+  if (errors && typeof errors === "object") {
+    const firstKey = Object.keys(errors)[0];
+    const firstValue = firstKey ? errors[firstKey] : null;
+    if (Array.isArray(firstValue) && typeof firstValue[0] === "string") {
+      return firstValue[0];
+    }
+    if (typeof firstValue === "string" && firstValue.trim()) {
+      return firstValue;
+    }
+  }
+
+  return fallback;
+};
+
 const MyAds = () => {
   const { navigate } = useNavigate();
   const searchParams = useSearchParams();
@@ -320,6 +445,13 @@ const MyAds = () => {
 
   const [ItemPackages, setItemPackages] = useState([]);
   const [renewIds, setRenewIds] = useState([]);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState([]);
+  const [isBulkApplying, setIsBulkApplying] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
+  const [bulkConfirm, setBulkConfirm] = useState({ open: false, action: null });
+  const [bulkPlacement, setBulkPlacement] = useState("category_home");
+  const [bulkDuration, setBulkDuration] = useState(30);
   const [selectedIds, setSelectedIds] = useState([]);
   const [IsDeleting, setIsDeleting] = useState(false);
   const [IsDeleteDialog, setIsDeleteDialog] = useState(false);
@@ -338,6 +470,19 @@ const MyAds = () => {
 
   const expiredAds = useMemo(() => MyItems.filter((item) => item.status === "expired"), [MyItems]);
   const canMultiSelect = expiredAds.length > 1;
+  const visibleItemIds = useMemo(
+    () => MyItems.map((item) => item?.id).filter(Boolean),
+    [MyItems]
+  );
+  const bulkSelectionCount = bulkSelectedIds.length;
+  const hasBulkSelection = bulkSelectionCount > 0;
+  const areAllVisibleBulkSelected = useMemo(
+    () =>
+      bulkMode &&
+      visibleItemIds.length > 0 &&
+      visibleItemIds.every((id) => bulkSelectedIds.includes(id)),
+    [bulkMode, bulkSelectedIds, visibleItemIds]
+  );
 
   const getPositionRenewHint = useCallback(
     (itemId) => {
@@ -488,14 +633,34 @@ const MyAds = () => {
 
   useEffect(() => { getMyItemsData(1); }, [getMyItemsData]);
 
+  useEffect(() => {
+    if (!bulkMode) {
+      setBulkSelectedIds([]);
+      return;
+    }
+
+    setBulkSelectedIds((prev) => prev.filter((id) => visibleItemIds.includes(id)));
+  }, [bulkMode, visibleItemIds]);
+
   const updateURLParams = (key, value) => {
     const params = new URLSearchParams(searchParams);
     params.set(key, value);
     window.history.pushState(null, "", `?${params.toString()}`);
   };
 
-  const handleSortChange = (value) => updateURLParams("sort", value);
-  const handleStatusChange = (value) => updateURLParams("status", value);
+  const handleSortChange = (value) => {
+    setRenewIds([]);
+    setBulkSelectedIds([]);
+    setBulkResult(null);
+    updateURLParams("sort", value);
+  };
+
+  const handleStatusChange = (value) => {
+    setRenewIds([]);
+    setBulkSelectedIds([]);
+    setBulkResult(null);
+    updateURLParams("status", value);
+  };
 
   const handleAdSelection = (adId) => {
     const ad = MyItems.find((item) => item.id === adId);
@@ -505,6 +670,50 @@ const MyAds = () => {
 
   const handleSelectAll = () => renewIds.length === expiredAds.length ? setRenewIds([]) : setRenewIds(expiredAds.map((item) => item.id));
   const handleCancelSelection = () => setRenewIds([]);
+  const handleBulkSelection = useCallback(
+    (adId) => {
+      if (!bulkMode) return;
+      setBulkSelectedIds((prev) =>
+        prev.includes(adId) ? prev.filter((id) => id !== adId) : [...prev, adId]
+      );
+    },
+    [bulkMode]
+  );
+
+  const handleBulkSelectAllVisible = useCallback(() => {
+    if (!bulkMode) return;
+
+    setBulkSelectedIds((prev) => {
+      if (areAllVisibleBulkSelected) {
+        return prev.filter((id) => !visibleItemIds.includes(id));
+      }
+      const merged = new Set([...prev, ...visibleItemIds]);
+      return Array.from(merged);
+    });
+  }, [areAllVisibleBulkSelected, bulkMode, visibleItemIds]);
+
+  const exitBulkMode = useCallback(() => {
+    setBulkMode(false);
+    setBulkSelectedIds([]);
+    setBulkResult(null);
+    setBulkConfirm({ open: false, action: null });
+  }, []);
+
+  const openBulkConfirm = useCallback(
+    (action) => {
+      if (!hasBulkSelection) {
+        toast.error("Označite barem jedan oglas za bulk akciju.");
+        return;
+      }
+      setBulkConfirm({ open: true, action });
+    },
+    [hasBulkSelection]
+  );
+
+  const closeBulkConfirm = useCallback(() => {
+    if (isBulkApplying) return;
+    setBulkConfirm({ open: false, action: null });
+  }, [isBulkApplying]);
 
   const handleRemove = async () => {
     if (selectedIds.length === 0) return;
@@ -669,11 +878,12 @@ const MyAds = () => {
 
   const handleFeatureAd = async (adId, options = {}) => {
     try {
-      const placement = options?.placement || "category_home";
-      const durationDays = Number(options?.duration_days || 30);
+      const placement = normalizeFeaturedPlacement(options?.placement);
+      const durationDays = normalizeFeaturedDuration(options?.duration_days);
 
       const res = await createFeaturedItemApi.createFeaturedItem({
         item_id: adId,
+        positions: placement,
         placement,
         duration_days: durationDays,
       });
@@ -697,12 +907,25 @@ const MyAds = () => {
         } catch {}
 
         await getMyItemsData(1);
+        return true;
       } else {
-        toast.error(res?.data?.message || "Greška pri izdvajanju oglasa.");
+        toast.error(
+          getApiErrorMessage(
+            res?.data,
+            "Izdvajanje nije uspjelo. Provjeri paket/limite i pokušaj ponovo."
+          )
+        );
+        return false;
       }
     } catch (error) {
       console.error(error);
-      toast.error("Greška pri izdvajanju oglasa.");
+      toast.error(
+        getApiErrorMessage(
+          error?.response?.data,
+          error?.message || "Greška pri izdvajanju oglasa."
+        )
+      );
+      return false;
     }
   };
 
@@ -754,14 +977,78 @@ const MyAds = () => {
     }
   };
 
+  const handleApplyBulkAction = async () => {
+    if (!bulkConfirm.action) return;
+    if (!hasBulkSelection) {
+      toast.error("Nema označenih oglasa za akciju.");
+      return;
+    }
+
+    try {
+      setIsBulkApplying(true);
+
+      const payload = {
+        action: bulkConfirm.action,
+        item_ids: bulkSelectedIds,
+      };
+
+      if (bulkConfirm.action === "feature") {
+        payload.placement = normalizeFeaturedPlacement(bulkPlacement);
+        payload.duration_days = normalizeFeaturedDuration(bulkDuration);
+      }
+
+      if (bulkConfirm.action === "renew" && selectedPackageId) {
+        payload.package_id = selectedPackageId;
+      }
+
+      const res = await bulkAdsApi.applyBulkAction(payload);
+      if (res?.data?.error === false) {
+        const resultData = res?.data?.data || {};
+        const summary = resultData?.summary || {};
+        const success = Number(summary?.success || 0);
+        const failed = Number(summary?.failed || 0);
+
+        setBulkResult(resultData);
+        setBulkSelectedIds([]);
+        setBulkConfirm({ open: false, action: null });
+
+        if (failed > 0) {
+          toast.warning(`Akcija završena. Uspješno: ${success} • Neuspješno: ${failed}`);
+        } else {
+          toast.success(`Akcija završena. Uspješno: ${success}`);
+        }
+
+        await getMyItemsData(1);
+      } else {
+        toast.error(getApiErrorMessage(res?.data, "Bulk akcija nije uspjela."));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        getApiErrorMessage(
+          error?.response?.data,
+          error?.message || "Greška pri bulk akciji."
+        )
+      );
+    } finally {
+      setIsBulkApplying(false);
+    }
+  };
+
   const handleContextMenuAction = (action, adId, payload = null) => {
     switch (action) {
-      case "select": if (MyItems.find((i) => i.id === adId)?.status === "expired") handleAdSelection(adId); break;
+      case "select":
+        if (bulkMode) {
+          handleBulkSelection(adId);
+          break;
+        }
+        if (MyItems.find((i) => i.id === adId)?.status === "expired") handleAdSelection(adId);
+        break;
       case "edit": navigate(`/edit-listing/${adId}`); break;
       case "deactivate": handleDeactivateAd(adId); break;
       case "activate": handleActivateAd(adId); break;
       case "markAsSoldOut": handleMarkAsSoldOut(adId, payload || null); break;
-      case "feature": handleFeatureAd(adId, payload || {}); break;
+      case "feature": return handleFeatureAd(adId, payload || {});
       case "reserve": handleReserveAd(adId); break;
       case "unreserve": handleUnreserveAd(adId); break;
       case "renew": {
@@ -781,6 +1068,7 @@ const MyAds = () => {
         break;
       }
       case "delete": setSelectedIds([adId]); setIsDeleteDialog(true); break;
+      default: return undefined;
     }
   };
 
@@ -791,7 +1079,7 @@ const MyAds = () => {
       {/* Filter Bar */}
       <div className="space-y-3">
         <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_18px_60px_-46px_rgba(15,23,42,0.65)] p-3 sm:p-4">
-          <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_270px] lg:items-center lg:gap-3">
+          <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_270px_auto] lg:items-center lg:gap-3">
             <div className="min-w-0 overflow-x-auto scrollbar-none">
               <div className="flex w-max items-center gap-2 pr-1">
                 {tabs.map((tab) => (
@@ -807,6 +1095,28 @@ const MyAds = () => {
               </div>
             </div>
             <SortButton value={sortValue} onChange={handleSortChange} isRTL={isRTL} fullWidth />
+            <Button
+              type="button"
+              variant={bulkMode ? "outline" : "default"}
+              onClick={() => {
+                if (bulkMode) {
+                  exitBulkMode();
+                } else {
+                  setRenewIds([]);
+                  setBulkResult(null);
+                  setBulkSelectedIds([]);
+                  setBulkMode(true);
+                }
+              }}
+              className="h-11 gap-2 rounded-2xl"
+            >
+              {bulkMode ? "Zatvori bulk" : "Bulk akcije"}
+              {bulkMode && bulkSelectionCount > 0 ? (
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                  {bulkSelectionCount}
+                </span>
+              ) : null}
+            </Button>
           </div>
 
           <div className="lg:hidden space-y-3">
@@ -838,13 +1148,35 @@ const MyAds = () => {
               fullWidth
               showLabelOnMobile
             />
+            <Button
+              type="button"
+              variant={bulkMode ? "outline" : "default"}
+              onClick={() => {
+                if (bulkMode) {
+                  exitBulkMode();
+                } else {
+                  setRenewIds([]);
+                  setBulkResult(null);
+                  setBulkSelectedIds([]);
+                  setBulkMode(true);
+                }
+              }}
+              className="h-11 w-full gap-2 rounded-2xl"
+            >
+              {bulkMode ? "Zatvori bulk" : "Bulk akcije"}
+              {bulkMode && bulkSelectionCount > 0 ? (
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                  {bulkSelectionCount}
+                </span>
+              ) : null}
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Selection Bar */}
       <AnimatePresence>
-        {canMultiSelect && renewIds.length > 0 && (
+        {canMultiSelect && !bulkMode && renewIds.length > 0 && (
           <SelectionBar
             count={renewIds.length}
             allSelected={renewIds.length === expiredAds.length}
@@ -856,6 +1188,51 @@ const MyAds = () => {
           />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {bulkMode && (
+          <BulkActionsBar
+            selectedCount={bulkSelectionCount}
+            totalVisible={visibleItemIds.length}
+            allVisibleSelected={areAllVisibleBulkSelected}
+            onToggleAllVisible={handleBulkSelectAllVisible}
+            onCancel={exitBulkMode}
+            onAction={openBulkConfirm}
+            isApplying={isBulkApplying}
+          />
+        )}
+      </AnimatePresence>
+
+      {bulkResult?.summary ? (
+        <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 dark:border-slate-700 dark:bg-slate-900/80">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Rezultat bulk akcije
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-300">
+              Uspješno: {Number(bulkResult?.summary?.success || 0)} / Neuspješno:{" "}
+              {Number(bulkResult?.summary?.failed || 0)}
+            </div>
+          </div>
+
+          <div className="mt-3 max-h-44 space-y-1.5 overflow-y-auto pr-1">
+            {(bulkResult?.results || []).map((row) => (
+              <div
+                key={`${row?.item_id}-${row?.status}`}
+                className={cn(
+                  "flex items-center justify-between rounded-xl border px-3 py-2 text-xs",
+                  row?.status === "success"
+                    ? "border-emerald-200 bg-emerald-50/70 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/25 dark:text-emerald-300"
+                    : "border-rose-200 bg-rose-50/70 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/25 dark:text-rose-300"
+                )}
+              >
+                <span className="font-semibold">Oglas #{row?.item_id}</span>
+                <span className="truncate pl-3 text-right">{row?.message}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Ads Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
@@ -883,9 +1260,12 @@ const MyAds = () => {
               <AdsCard
                 data={item}
                 isApprovedSort={sortValue === "approved"}
-                isSelected={renewIds.includes(item?.id)}
-                isSelectable={renewIds.length > 0 && item.status === "expired"}
-                onSelectionToggle={() => handleAdSelection(item?.id)}
+                isSelected={bulkMode ? bulkSelectedIds.includes(item?.id) : renewIds.includes(item?.id)}
+                isSelectable={bulkMode ? true : renewIds.length > 0 && item.status === "expired"}
+                onSelectionToggle={() =>
+                  bulkMode ? handleBulkSelection(item?.id) : handleAdSelection(item?.id)
+                }
+                onFeatureAction={(id, options) => handleFeatureAd(id || item?.id, options || {})}
                 onContextMenuAction={(action, id, buyerId) => handleContextMenuAction(action, id || item?.id, buyerId)}
               />
             </motion.div>
@@ -931,6 +1311,84 @@ const MyAds = () => {
         setIsChoosePackage={setIsChoosePackage}
         handleRenew={handleRenew}
         isRenewingAd={isRenewingAd}
+      />
+
+      <ReusableAlertDialog
+        open={bulkConfirm.open}
+        onCancel={closeBulkConfirm}
+        onConfirm={handleApplyBulkAction}
+        title="Potvrda bulk akcije"
+        description={
+          <div className="space-y-3">
+            <p>
+              Potvrđujete <strong>{BULK_ACTION_LABELS[bulkConfirm.action] || "akciju"}</strong> za{" "}
+              <strong>{bulkSelectionCount}</strong> označenih oglasa.
+            </p>
+
+            {bulkConfirm.action === "feature" ? (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/70">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                    Pozicija
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: "category", label: "Samo kategorija" },
+                      { value: "home", label: "Samo naslovna" },
+                      { value: "category_home", label: "Kategorija + naslovna" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setBulkPlacement(option.value)}
+                        className={cn(
+                          "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors",
+                          bulkPlacement === option.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500"
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                    Trajanje
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[7, 15, 30, 45, 60, 90].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => setBulkDuration(days)}
+                        className={cn(
+                          "rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors",
+                          bulkDuration === days
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500"
+                        )}
+                      >
+                        {days} dana
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {bulkConfirm.action === "renew" && !isFreeAdListing ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-700/60 dark:bg-amber-950/25 dark:text-amber-300">
+                Napomena: za istekle oglase potreban je aktivan paket. Ako neki oglas ne ispunjava uslove, dobit ćete partial rezultat.
+              </p>
+            ) : null}
+          </div>
+        }
+        cancelText="Otkaži"
+        confirmText={isBulkApplying ? "Obrađujem..." : "Potvrdi akciju"}
+        confirmDisabled={isBulkApplying}
       />
 
       <ReusableAlertDialog

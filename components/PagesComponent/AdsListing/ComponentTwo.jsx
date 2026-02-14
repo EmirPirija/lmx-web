@@ -628,6 +628,60 @@ const ComponentTwo = ({
               </p>
             )}
 
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="space-y-1">
+                <Label htmlFor="price_per_unit" className="text-sm font-semibold text-gray-800">
+                  Cijena po komadu (KM)
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  name="price_per_unit"
+                  id="price_per_unit"
+                  placeholder="npr. 12.50"
+                  value={current.price_per_unit || ""}
+                  onChange={handleField("price_per_unit")}
+                  disabled={!isShopMember}
+                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="minimum_order_quantity" className="text-sm font-semibold text-gray-800">
+                  Minimalna količina
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  name="minimum_order_quantity"
+                  id="minimum_order_quantity"
+                  placeholder="1"
+                  value={current.minimum_order_quantity || ""}
+                  onChange={handleField("minimum_order_quantity")}
+                  disabled={!isShopMember}
+                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="stock_alert_threshold" className="text-sm font-semibold text-gray-800">
+                  Prag niske zalihe
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  name="stock_alert_threshold"
+                  id="stock_alert_threshold"
+                  placeholder="3"
+                  value={current.stock_alert_threshold || ""}
+                  onChange={handleField("stock_alert_threshold")}
+                  disabled={!isShopMember}
+                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
             <div className="mt-3 flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-800">

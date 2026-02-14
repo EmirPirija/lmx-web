@@ -246,6 +246,12 @@ const AdsListing = () => {
   const [addVideoToStory, setAddVideoToStory] = useState(false);
   const [publishToInstagram, setPublishToInstagram] = useState(false);
   const [instagramSourceUrl, setInstagramSourceUrl] = useState("");
+  const [instagramConnection, setInstagramConnection] = useState({
+    loading: true,
+    connected: false,
+    account: null,
+    syncing: false,
+  });
 
   const uploadedImagesRef = useRef(uploadedImages);
   const otherImagesRef = useRef(otherImages);
@@ -298,6 +304,9 @@ const AdsListing = () => {
       country_code: countryCode || "91",
       region_code: regionCode,
       inventory_count: "",
+      price_per_unit: "",
+      minimum_order_quantity: "1",
+      stock_alert_threshold: "3",
       seller_product_code: "",
     },
   });
@@ -673,6 +682,9 @@ const AdsListing = () => {
         country_code: countryCode,
         region_code: regionCode,
         inventory_count: "",
+        price_per_unit: "",
+        minimum_order_quantity: "1",
+        stock_alert_threshold: "3",
         seller_product_code: "",
       },
     });
@@ -732,6 +744,54 @@ const AdsListing = () => {
     handleVideoLinkChange(igLink);
   }, [handleVideoLinkChange, instagramSourceUrl]);
 
+  const fetchInstagramConnection = useCallback(async () => {
+    try {
+      setInstagramConnection((prev) => ({ ...prev, loading: true }));
+      const res = await socialMediaApi.getConnectedAccounts();
+      const accounts = res?.data?.data?.accounts || [];
+      const igAccount =
+        Array.isArray(accounts) && accounts.find((entry) => entry?.platform === "instagram");
+      const connected = Boolean(igAccount?.connected || igAccount?.status === "connected");
+
+      setInstagramConnection((prev) => ({
+        ...prev,
+        loading: false,
+        connected,
+        account: igAccount || null,
+      }));
+    } catch (error) {
+      setInstagramConnection((prev) => ({
+        ...prev,
+        loading: false,
+        connected: false,
+        account: null,
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInstagramConnection();
+  }, [fetchInstagramConnection]);
+
+  useEffect(() => {
+    if (!instagramConnection.connected && publishToInstagram) {
+      setPublishToInstagram(false);
+    }
+  }, [instagramConnection.connected, publishToInstagram]);
+
+  const handleConnectInstagram = useCallback(async () => {
+    try {
+      setInstagramConnection((prev) => ({ ...prev, syncing: true }));
+      const res = await socialMediaApi.connectAccount({ platform: "instagram" });
+      toast.success(res?.data?.message || "Instagram je uspješno povezan.");
+      await fetchInstagramConnection();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Povezivanje Instagrama nije uspjelo.");
+    } finally {
+      setInstagramConnection((prev) => ({ ...prev, syncing: false }));
+    }
+  }, [fetchInstagramConnection]);
+
   const handleFullSubmission = (scheduledDateTime = null) => {
     const { name, description, contact, country_code } = defaultDetails;
     const catId = categoryPath.at(-1)?.id;
@@ -760,6 +820,11 @@ const AdsListing = () => {
 
     if (!isEmpty(instagramSourceUrl) && !isValidURL(instagramSourceUrl)) {
       toast.error("Unesite ispravan Instagram link.");
+      return setStep(4);
+    }
+
+    if (publishToInstagram && !instagramConnection.connected) {
+      toast.error("Instagram nalog nije povezan. Povežite Instagram pa pokušajte ponovo.");
       return setStep(4);
     }
 
@@ -795,6 +860,24 @@ const AdsListing = () => {
         defaultDetails?.inventory_count !== null &&
         String(defaultDetails.inventory_count).trim() !== ""
           ? Number(defaultDetails.inventory_count)
+          : null,
+      price_per_unit:
+        defaultDetails?.price_per_unit !== undefined &&
+        defaultDetails?.price_per_unit !== null &&
+        String(defaultDetails.price_per_unit).trim() !== ""
+          ? Number(defaultDetails.price_per_unit)
+          : null,
+      minimum_order_quantity:
+        defaultDetails?.minimum_order_quantity !== undefined &&
+        defaultDetails?.minimum_order_quantity !== null &&
+        String(defaultDetails.minimum_order_quantity).trim() !== ""
+          ? Math.max(1, Number(defaultDetails.minimum_order_quantity))
+          : null,
+      stock_alert_threshold:
+        defaultDetails?.stock_alert_threshold !== undefined &&
+        defaultDetails?.stock_alert_threshold !== null &&
+        String(defaultDetails.stock_alert_threshold).trim() !== ""
+          ? Math.max(1, Number(defaultDetails.stock_alert_threshold))
           : null,
       seller_product_code: String(defaultDetails?.seller_product_code || "").trim(),
       video_link: trimmedVideoLink,
@@ -940,6 +1023,9 @@ const AdsListing = () => {
         country_code: countryCode,
         region_code: regionCode,
         inventory_count: "",
+        price_per_unit: "",
+        minimum_order_quantity: "1",
+        stock_alert_threshold: "3",
         seller_product_code: "",
       },
     });
@@ -1473,6 +1559,9 @@ const AdsListing = () => {
                     setAddVideoToStory={setAddVideoToStory}
                     publishToInstagram={publishToInstagram}
                     setPublishToInstagram={setPublishToInstagram}
+                    instagramConnected={instagramConnection.connected}
+                    instagramStatusLoading={instagramConnection.loading || instagramConnection.syncing}
+                    onConnectInstagram={handleConnectInstagram}
                     instagramSourceUrl={instagramSourceUrl}
                     onInstagramSourceUrlChange={setInstagramSourceUrl}
                     onUseInstagramAsVideoLink={handleUseInstagramAsVideoLink}

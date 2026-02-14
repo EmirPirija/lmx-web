@@ -13,7 +13,7 @@ import { t, truncate } from "@/utils";
 import { useNavigate } from "@/components/Common/useNavigate.jsx";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage.jsx";
-import { quickLinks } from "@/utils/constants";
+import { headerQuickLinks } from "@/utils/constants";
 
 import {
   getIsLoggedIn,
@@ -690,6 +690,14 @@ const HomeHeader = () => {
     : !membership.isShop
       ? { href: "/membership/upgrade?tier=shop", label: "Postani SHOP" }
       : null;
+  const availableHeaderQuickLinks = useMemo(
+    () =>
+      headerQuickLinks.filter((link) => {
+        if (!link.requiresAuth) return true;
+        return IsLoggedin;
+      }),
+    [IsLoggedin]
+  );
 
   const handleAvatarCta = useCallback(() => {
     if (!IsLoggedin) {
@@ -857,13 +865,13 @@ const HomeHeader = () => {
                   >
                     Svi korisnici
                   </CustomLink>
-                  {quickLinks.map((link) => (
+                  {availableHeaderQuickLinks.map((link) => (
                     <CustomLink
                       key={`desktop-quick-link-${link.id}`}
                       href={link.href}
                       className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
                     >
-                      {t(link.labelKey)}
+                      {link.label || t(link.labelKey)}
                     </CustomLink>
                   ))}
                   {!membership.isPremium && (
@@ -1215,14 +1223,14 @@ const HomeHeader = () => {
                                 {mobileUpgradeLink.label}
                               </CustomLink>
                             )}
-                            {quickLinks.map((link) => (
+                            {availableHeaderQuickLinks.map((link) => (
                               <CustomLink
                                 key={`mobile-quick-link-${link.id}`}
                                 href={link.href}
                                 onClick={closeMobileUtilityMenu}
                                 className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white/90 px-3 text-xs font-semibold text-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
                               >
-                                {t(link.labelKey)}
+                                {link.label || t(link.labelKey)}
                               </CustomLink>
                             ))}
                           </div>

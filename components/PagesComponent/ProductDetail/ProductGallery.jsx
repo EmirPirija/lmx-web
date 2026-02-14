@@ -47,8 +47,9 @@ const ProductGallery = ({
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [hasTrackedGalleryOpen, setHasTrackedGalleryOpen] = useState(false);
+  const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
 
-  const carouselApi = useRef(null);
   const isRTL = useSelector(getIsRtl);
   const placeHolderImage = useSelector(getPlaceholderImage);
 
@@ -69,6 +70,10 @@ const ProductGallery = ({
 
   const videoIndex = safeGalleryImages.length;
   const isVideoSelected = hasVideo && selectedIndex === videoIndex;
+  const normalizedTotalItems = Math.max(totalItems, 1);
+  const currentMediaNumber = totalItems > 0 ? selectedIndex + 1 : 1;
+  const mediaProgress = (currentMediaNumber / normalizedTotalItems) * 100;
+  const showMediaNavigation = totalItems > 1;
 
   // Ako se promijeni broj itema (npr. nema glavne slike), resetuj index da ne ostane na praznom itemu
   useEffect(() => {
@@ -145,6 +150,35 @@ const ProductGallery = ({
     if (onVideoPlay) onVideoPlay();
   }, [onVideoPlay]);
 
+  const handleMediaTouchStart = (event) => {
+    if (!showMediaNavigation) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchStartXRef.current = touch.clientX;
+    touchStartYRef.current = touch.clientY;
+  };
+
+  const handleMediaTouchEnd = (event) => {
+    if (!showMediaNavigation) return;
+    const touch = event.changedTouches?.[0];
+    const startX = touchStartXRef.current;
+    const startY = touchStartYRef.current;
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+
+    if (!touch || startX == null || startY == null) return;
+
+    const deltaX = touch.clientX - startX;
+    const deltaY = touch.clientY - startY;
+    const swipeThreshold = 44;
+
+    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    if (deltaX < 0) handleNextImage();
+    else handlePrevImage();
+  };
+
   return (
     <PhotoProvider
       maskOpacity={0.95}
@@ -213,197 +247,265 @@ const ProductGallery = ({
         </div>
       )}
     >
-      <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden group/main">
-        {isVideoSelected && hasVideo ? (
-          <div className="aspect-[870/500] rounded-2xl overflow-hidden bg-black relative">
-            {!isVideoPlaying && (
-              <div
-                className="absolute inset-0 z-10 cursor-pointer"
-                onClick={handleVideoPlay}
-              >
+      <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-gray-50 via-white to-gray-100 p-2.5 shadow-[0_22px_55px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:from-slate-900 dark:via-slate-900/85 dark:to-slate-800 sm:p-3">
+        <div
+          className="relative rounded-2xl overflow-hidden bg-black group/main"
+          onTouchStart={handleMediaTouchStart}
+          onTouchEnd={handleMediaTouchEnd}
+        >
+          {isVideoSelected && hasVideo ? (
+            <div className="aspect-[16/10] sm:aspect-[16/9] xl:aspect-[2/1]">
+              {!isVideoPlaying && (
                 <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${videoThumbnail})` }}
-                />
-                <div className="absolute inset-0 bg-black/30" />
+                  className="absolute inset-0 z-10 cursor-pointer"
+                  onClick={handleVideoPlay}
+                >
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${videoThumbnail})` }}
+                  />
+                  <div className="absolute inset-0 bg-black/35" />
 
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-primary/90 rounded-full flex items-center justify-center hover:scale-110 hover:bg-primary transition-all duration-300 group/play">
-                    <RiPlayCircleFill size={48} className="text-white ml-1" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 bg-primary/90 rounded-full flex items-center justify-center hover:scale-110 hover:bg-primary transition-all duration-300 group/play">
+                      <RiPlayCircleFill size={48} className="text-white ml-1" />
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-4 left-4 bg-black/65 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <span className="text-white text-sm font-medium flex items-center gap-2">
+                      <RiVideoLine size={16} />
+                      Pokreni video prikaz
+                    </span>
                   </div>
                 </div>
+              )}
 
-                <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  <span className="text-white text-sm font-medium flex items-center gap-2">
-                    <RiVideoLine size={16} />
-                    Klikni za reprodukciju
+              {isVideoPlaying && (
+                <>
+                  {!isVideoReady && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-white/70 text-sm">
+                          Učitavanje videa...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <ReactPlayer
+                    url={videoUrl}
+                    controls
+                    playing={isVideoPlaying}
+                    width="100%"
+                    height="100%"
+                    onReady={() => setIsVideoReady(true)}
+                    onError={(e) => {
+                      console.error("Video error", e);
+                      setIsVideoReady(true);
+                    }}
+                    config={{
+                      youtube: {
+                        playerVars: { modestbranding: 1, rel: 0, showinfo: 0 },
+                      },
+                      file: {
+                        attributes: {
+                          controlsList: "nodownload",
+                        },
+                      },
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="relative aspect-[16/10] sm:aspect-[16/9] xl:aspect-[2/1]">
+              {safeGalleryImages.length === 0 ? (
+                <div className="absolute inset-0">
+                  <CustomImage
+                    src={placeHolderImage}
+                    alt="Product placeholder"
+                    width={870}
+                    height={500}
+                    priority
+                    loading="eager"
+                    className="h-full w-full object-cover object-center"
+                  />
+                </div>
+              ) : (
+                safeGalleryImages.map((imageUrl, index) => {
+                  const isPriority = index === 0;
+
+                  return (
+                    <PhotoView key={index} src={imageUrl}>
+                      <div
+                        className={`absolute inset-0 cursor-zoom-in transition-opacity duration-300 ${
+                          selectedIndex === index
+                            ? "opacity-100 z-10"
+                            : "opacity-0 z-0 pointer-events-none"
+                        }`}
+                      >
+                        <CustomImage
+                          src={imageUrl}
+                          alt={`Product ${index + 1}`}
+                          width={870}
+                          height={500}
+                          priority={isPriority}
+                          loading={isPriority ? "eager" : "lazy"}
+                          className={`h-full w-full object-cover object-center transition-all duration-500 ${
+                            selectedIndex === index && imageLoaded
+                              ? "opacity-100 scale-100"
+                              : "opacity-0 scale-105"
+                          }`}
+                          onLoad={() => selectedIndex === index && setImageLoaded(true)}
+                        />
+                      </div>
+                    </PhotoView>
+                  );
+                })
+              )}
+
+              <div className="absolute inset-0 hidden sm:flex items-center justify-center opacity-0 group-hover/main:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+                <div className="bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full flex items-center gap-2">
+                  <RiFullscreenLine className="text-white" size={18} />
+                  <span className="text-white text-sm font-medium">
+                    Klikni za zoom
                   </span>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {isVideoPlaying && (
-              <>
-                {!isVideoReady && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                      <span className="text-white/70 text-sm">
-                        Učitavanje videa...
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <ReactPlayer
-                  url={videoUrl}
-                  controls
-                  playing={isVideoPlaying}
-                  width="100%"
-                  height="100%"
-                  onReady={() => setIsVideoReady(true)}
-                  onError={(e) => {
-                    console.error("Video error", e);
-                    setIsVideoReady(true);
-                  }}
-                  config={{
-                    youtube: {
-                      playerVars: { modestbranding: 1, rel: 0, showinfo: 0 },
-                    },
-                    file: {
-                      attributes: {
-                        controlsList: 'nodownload',
-                      }
-                    }
-                  }}
-                />
-              </>
+          <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
+            <div className="rounded-full bg-black/65 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white backdrop-blur-sm">
+              {isVideoSelected ? "Video" : "Galerija"}
+            </div>
+            {isReserved && (
+              <div className="rounded-full bg-amber-500/85 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white backdrop-blur-sm">
+                Rezervisano
+              </div>
             )}
           </div>
-        ) : (
-          <div className="relative aspect-[870/500] overflow-hidden">
-            {safeGalleryImages.length === 0 ? (
-              <div className="absolute inset-0">
-                <CustomImage
-                  src={placeHolderImage}
-                  alt="Product placeholder"
-                  width={870}
-                  height={500}
-                  priority
-                  loading="eager"
-                  className="h-full w-full object-cover object-center"
-                />
-              </div>
-            ) : (
-              safeGalleryImages.map((imageUrl, index) => {
-                const isPriority = index === 0;
 
-                return (
-                  <PhotoView key={index} src={imageUrl}>
-                    <div
-                      className={`absolute inset-0 cursor-zoom-in transition-opacity duration-300 ${
-                        selectedIndex === index
-                          ? "opacity-100 z-10"
-                          : "opacity-0 z-0 pointer-events-none"
-                      }`}
-                    >
-                      <CustomImage
-                        src={imageUrl}
-                        alt={`Product ${index + 1}`}
-                        width={870}
-                        height={500}
-                        priority={isPriority}
-                        loading={isPriority ? "eager" : "lazy"}
-                        className={`h-full w-full object-cover object-center transition-all duration-500 ${
-                          selectedIndex === index && imageLoaded
-                            ? "opacity-100 scale-100"
-                            : "opacity-0 scale-105"
-                        }`}
-                        onLoad={() => selectedIndex === index && setImageLoaded(true)}
-                      />
-                    </div>
-                  </PhotoView>
-                );
-              })
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-30">
+            {hasVideo && (
+              <button
+                type="button"
+                onClick={() => setSelectedIndex(videoIndex)}
+                className={`bg-black/60 backdrop-blur-xl px-3 py-2 rounded-full shadow-lg transition-all duration-300 flex items-center gap-1.5 hover:bg-black/80 ${
+                  isVideoSelected ? "ring-2 ring-primary" : ""
+                }`}
+                title="Prikaži video"
+              >
+                <RiVideoLine size={18} className="text-white" />
+                <span className="hidden sm:inline text-white text-xs font-semibold">Video</span>
+              </button>
             )}
+            <div className="bg-black/60 backdrop-blur-xl px-3.5 py-1.5 rounded-full text-white font-medium shadow-lg">
+              <p className="text-sm font-bold leading-tight">{currentMediaNumber}/{normalizedTotalItems}</p>
+            </div>
+          </div>
 
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/main:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-              <div className="bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full flex items-center gap-2">
-                <RiFullscreenLine className="text-white" size={18} />
-                <span className="text-white text-sm font-medium">
-                  Klikni za zoom
-                </span>
-              </div>
+          {showMediaNavigation && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                type="button"
+                className="absolute top-1/2 left-3 -translate-y-1/2 bg-white/90 dark:bg-black/50 backdrop-blur-sm p-2.5 rounded-full shadow-lg opacity-100 sm:opacity-0 sm:group-hover/main:opacity-100 hover:scale-110 active:scale-95 transition-all duration-300 z-30"
+                title="Prethodna slika"
+              >
+                <RiArrowLeftLine
+                  size={22}
+                  className={`text-gray-800 dark:text-white ${isRTL ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              <button
+                onClick={handleNextImage}
+                type="button"
+                className="absolute top-1/2 right-3 -translate-y-1/2 bg-white/90 dark:bg-black/50 backdrop-blur-sm p-2.5 rounded-full shadow-lg opacity-100 sm:opacity-0 sm:group-hover/main:opacity-100 hover:scale-110 active:scale-95 transition-all duration-300 z-30"
+                title="Sljedeća slika"
+              >
+                <RiArrowRightLine
+                  size={22}
+                  className={`text-gray-800 dark:text-white ${isRTL ? "rotate-180" : ""}`}
+                />
+              </button>
+            </>
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 h-1.5 bg-black/25 z-30">
+            <div
+              className="h-full bg-primary/90 transition-all duration-300"
+              style={{ width: `${mediaProgress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 ${
+              hasVideo
+                ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-700/60 dark:bg-violet-900/25 dark:text-violet-300"
+                : "border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+            }`}>
+              {hasVideo ? "Video dostupan" : "Bez videa"}
+            </span>
+          </div>
+          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            Swipe ili strelice za brzo listanje
+          </span>
+        </div>
+
+        {totalItems > 1 && (
+          <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700/80 dark:bg-slate-900/65">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+              {safeGalleryImages.map((imageUrl, index) => (
+                <button
+                  key={`gallery-thumb-${index}`}
+                  type="button"
+                  onClick={() => handleImageClick(index)}
+                  className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border transition-all duration-200 ${
+                    selectedIndex === index
+                      ? "border-primary ring-2 ring-primary/35"
+                      : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+                  }`}
+                  title="Prikaži fotografiju"
+                >
+                  <img
+                    src={imageUrl || placeHolderImage}
+                    alt={`Thumb ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              ))}
+              {hasVideo && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedIndex(videoIndex)}
+                  className={`relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border transition-all duration-200 ${
+                    isVideoSelected
+                      ? "border-primary ring-2 ring-primary/35"
+                      : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+                  }`}
+                  title="Video prikaz"
+                >
+                  <img
+                    src={videoThumbnail || placeHolderImage}
+                    alt="Video thumbnail"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30" />
+                  <div className="absolute inset-0 flex items-center justify-center gap-1 text-white">
+                    <RiPlayCircleFill size={18} />
+                    <span className="text-[11px] font-bold uppercase tracking-[0.06em]">Video</span>
+                  </div>
+                </button>
+              )}
             </div>
           </div>
         )}
-
-        {/* Navigacija */}
-        <button
-          onClick={handlePrevImage}
-          className="absolute top-1/2 left-4 -translate-y-1/2 bg-white/90 dark:bg-black/50 backdrop-blur-sm p-3 rounded-full shadow-lg opacity-0 group-hover/main:opacity-100 hover:scale-110 active:scale-95 transition-all duration-300 z-30"
-        >
-          <RiArrowLeftLine
-            size={24}
-            className={`text-gray-800 dark:text-white ${
-              isRTL ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        <button
-          onClick={handleNextImage}
-          className="absolute top-1/2 right-4 -translate-y-1/2 bg-white/90 dark:bg-black/50 backdrop-blur-sm p-3 rounded-full shadow-lg opacity-0 group-hover/main:opacity-100 hover:scale-110 active:scale-95 transition-all duration-300 z-30"
-        >
-          <RiArrowRightLine
-            size={24}
-            className={`text-gray-800 dark:text-white ${
-              isRTL ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-30">
-          {hasVideo && (
-            <button
-              onClick={() => setSelectedIndex(videoIndex)}
-              className={`bg-black/60 backdrop-blur-xl px-3 py-2 rounded-full shadow-lg transition-all duration-300 flex items-center gap-1.5 hover:bg-black/80 ${
-                isVideoSelected ? "ring-2 ring-primary" : ""
-              }`}
-            >
-              <RiVideoLine size={18} className="text-white" />
-            </button>
-          )}
-          <div className="bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full text-white font-medium shadow-lg">
-            <span className="text-sm">
-              {isVideoSelected ? `Video` : `${selectedIndex + 1} / ${safeGalleryImages.length}`}
-            </span>
-          </div>
-        </div>
-
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
-          {safeGalleryImages?.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleImageClick(idx)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                selectedIndex === idx
-                  ? "bg-white w-6"
-                  : "bg-white/50 hover:bg-white/80 w-2"
-              }`}
-            />
-          ))}
-          {hasVideo && (
-            <button
-              onClick={() => setSelectedIndex(videoIndex)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                isVideoSelected
-                  ? "bg-primary w-6"
-                  : "bg-white/50 hover:bg-white/80 w-2"
-              }`}
-            />
-          )}
-        </div>
       </div>
     </PhotoProvider>
   );

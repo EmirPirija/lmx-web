@@ -1085,6 +1085,18 @@ export const getMainDetailsTranslations = (
           listingData?.inventory_count !== undefined && listingData?.inventory_count !== null
             ? String(listingData.inventory_count)
             : "",
+        price_per_unit:
+          listingData?.price_per_unit !== undefined && listingData?.price_per_unit !== null
+            ? String(listingData.price_per_unit)
+            : "",
+        minimum_order_quantity:
+          listingData?.minimum_order_quantity !== undefined && listingData?.minimum_order_quantity !== null
+            ? String(listingData.minimum_order_quantity)
+            : "",
+        stock_alert_threshold:
+          listingData?.stock_alert_threshold !== undefined && listingData?.stock_alert_threshold !== null
+            ? String(listingData.stock_alert_threshold)
+            : "",
         seller_product_code: listingData?.seller_product_code || "",
       };
     } else {

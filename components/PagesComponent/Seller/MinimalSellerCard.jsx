@@ -808,7 +808,7 @@ export const MinimalSellerCard = ({
 
             {/* Verified badge */}
             {isVerified && (
-              <div className="absolute -bottom-0.5 -left-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
+              <div className="absolute -bottom-0.5 -right-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
                 <BadgeCheck className="w-2.5 h-2.5 text-white" />
               </div>
             )}

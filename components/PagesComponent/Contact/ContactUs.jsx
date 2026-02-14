@@ -17,7 +17,6 @@ import { RiMailSendLine } from "@/components/Common/UnifiedIconPack";
 import { useSelector } from "react-redux";
 import { TbPhoneCall } from "@/components/Common/UnifiedIconPack";
 import { FaSquareXTwitter } from "@/components/Common/UnifiedIconPack";
-import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { contactUsApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
 import { Button } from "@/components/ui/button";
@@ -26,11 +25,45 @@ import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import parse from "html-react-parser";
 
+const FALLBACK_CONTACT_HTML = `
+  <p>Imate pitanje, prijedlog ili trebate pomoć? Naš tim je tu za vas.</p>
+  <p>Pošaljite poruku kroz formu i odgovorit ćemo vam u najkraćem mogućem roku.</p>
+`;
+
+const getApiErrorMessage = (payload, fallback) => {
+  if (!payload || typeof payload !== "object") return fallback;
+  if (typeof payload.message === "string" && payload.message.trim()) {
+    return payload.message;
+  }
+
+  const errors = payload.errors;
+  if (Array.isArray(errors) && errors.length > 0) {
+    const first = errors[0];
+    if (typeof first === "string" && first.trim()) return first;
+    if (first && typeof first.message === "string" && first.message.trim()) {
+      return first.message;
+    }
+  }
+
+  if (errors && typeof errors === "object") {
+    const firstKey = Object.keys(errors)[0];
+    const firstValue = firstKey ? errors[firstKey] : null;
+    if (Array.isArray(firstValue) && typeof firstValue[0] === "string") {
+      return firstValue[0];
+    }
+    if (typeof firstValue === "string" && firstValue.trim()) {
+      return firstValue;
+    }
+  }
+
+  return fallback;
+};
+
 const ContactUs = () => {
-  const CurrentLanguage = useSelector(CurrentLanguageData);
   const settings = useSelector(settingsData);
   const [IsLoading, setIsLoading] = useState(false);
   const contactUs = settings?.contact_us;
+  const phoneNumbers = [settings?.company_tel1, settings?.company_tel2].filter(Boolean);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -53,44 +86,49 @@ const ContactUs = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
-    });
-    // Clear error when user starts typing
-    setErrors({
-      ...errors,
+    }));
+    setErrors((prev) => ({
+      ...prev,
       [name]: "",
-    });
+    }));
   };
 
   const validateForm = () => {
     let isValid = true;
     const newErrors = {};
+    const trimmedData = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      subject: formData.subject.trim(),
+      message: formData.message.trim(),
+    };
 
     // Name validation
-    if (!formData.name.trim()) {
+    if (!trimmedData.name) {
       newErrors.name = t("nameRequired");
       isValid = false;
     }
 
     // Email validation
-    if (!formData.email.trim()) {
+    if (!trimmedData.email) {
       newErrors.email = t("emailRequired");
       isValid = false;
-    } else if (!validateEmail(formData.email)) {
+    } else if (!validateEmail(trimmedData.email)) {
       newErrors.email = t("invalidEmail");
       isValid = false;
     }
 
     // Subject validation
-    if (!formData.subject.trim()) {
+    if (!trimmedData.subject) {
       newErrors.subject = t("subjectRequired");
       isValid = false;
     }
 
     // Message validation
-    if (!formData.message.trim()) {
+    if (!trimmedData.message) {
       newErrors.message = t("messageRequired");
       isValid = false;
     }
@@ -104,7 +142,13 @@ const ContactUs = () => {
     if (validateForm()) {
       try {
         setIsLoading(true);
-        const res = await contactUsApi.contactUs(formData);
+        const payload = {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          subject: formData.subject.trim(),
+          message: formData.message.trim(),
+        };
+        const res = await contactUsApi.contactUs(payload);
         if (res?.data?.error === false) {
           toast.success(t("thankForContacting"));
           setFormData({
@@ -114,10 +158,10 @@ const ContactUs = () => {
             message: "",
           });
         } else {
-          toast.error(t("errorOccurred"));
+          toast.error(getApiErrorMessage(res?.data, t("errorOccurred")));
         }
       } catch (error) {
-        toast.error(t("errorOccurred"));
+        toast.error(getApiErrorMessage(error?.response?.data, t("errorOccurred")));
         console.log(error);
       } finally {
         setIsLoading(false);
@@ -262,7 +306,7 @@ const ContactUs = () => {
             </h2>
             <div className="space-y-6">
               <div className="max-w-full prose lg:prose-lg prose-invert">
-                {parse(contactUs || "")}
+                {parse(contactUs || FALLBACK_CONTACT_HTML)}
               </div>
 
               {settings?.company_address && (
@@ -290,24 +334,21 @@ const ContactUs = () => {
                 </div>
               )}
 
-              {settings?.company_tel1 && settings?.company_tel2 && (
+              {phoneNumbers.length > 0 && (
                 <div className="flex items-center gap-4">
                   <div className="footerSocialLinks">
                     <TbPhoneCall size={24} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <CustomLink
-                      href={`tel:${settings?.company_tel1}`}
-                      className="text-sm text-white/65 hover:text-primary"
-                    >
-                      {settings?.company_tel1}
-                    </CustomLink>
-                    <CustomLink
-                      href={`tel:${settings?.company_tel2}`}
-                      className="text-sm text-white/65 hover:text-primary"
-                    >
-                      {settings?.company_tel2}
-                    </CustomLink>
+                    {phoneNumbers.map((number) => (
+                      <CustomLink
+                        key={number}
+                        href={`tel:${number}`}
+                        className="text-sm text-white/65 hover:text-primary"
+                      >
+                        {number}
+                      </CustomLink>
+                    ))}
                   </div>
                 </div>
               )}
@@ -367,6 +408,9 @@ const ContactUs = () => {
                   width="100%"
                   height="200"
                   className="aspect-[432/189] w-full rounded mt-6"
+                  title="Lokacija kompanije"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
                 />
               )}
             </div>

@@ -16,6 +16,9 @@ import {
   Search,
   MessageSquareMore,
   MessageSquare,
+  Link2,
+  Box,
+  Sparkles,
 } from "@/components/Common/UnifiedIconPack";
 
 const matchPath = (pathname, href, mode = "exact") => {
@@ -60,6 +63,20 @@ export const getProfileNavigationSections = ({
           icon: Store,
           label: "Postavke prodavača",
           description: "Prilagodi svoj profil prodavača",
+          match: "prefix",
+        },
+        {
+          href: "/profile/integrations",
+          icon: Link2,
+          label: "Integracije",
+          description: "Instagram, sync i zakazane objave",
+          match: "prefix",
+        },
+        {
+          href: "/profile/shop-ops",
+          icon: Box,
+          label: "Shop operacije",
+          description: "Zalihe, alerti i custom domena",
           match: "prefix",
         },
       ].filter(Boolean),
@@ -155,6 +172,13 @@ export const getProfileNavigationSections = ({
           icon: Star,
           label: "Ocjene",
           description: "Recenzije i ocjene",
+          match: "prefix",
+        },
+        {
+          href: "/profile/gamification",
+          icon: Sparkles,
+          label: "Gamifikacija",
+          description: "Score, misije i napredak profila",
           match: "prefix",
         },
         {

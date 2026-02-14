@@ -478,6 +478,11 @@ const FeaturedPlanModal = ({
   onConfirm,
   isSubmitting = false,
 }) => {
+  const handleClose = () => {
+    if (isSubmitting) return;
+    onClose?.();
+  };
+
   const selectedPlacementMeta = useMemo(
     () => featuredPlacementOptions.find((option) => option.value === placement),
     [placement]
@@ -508,7 +513,8 @@ const FeaturedPlanModal = ({
         <button
           type="button"
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          onClick={onClose}
+          onClick={handleClose}
+          disabled={isSubmitting}
         />
 
         <motion.div
@@ -527,7 +533,8 @@ const FeaturedPlanModal = ({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
+              disabled={isSubmitting}
               className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             >
               <X className="h-5 w-5" />
@@ -613,7 +620,7 @@ const FeaturedPlanModal = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={handleClose}
                 className="h-11 rounded-xl border-slate-300 dark:border-slate-700"
                 disabled={isSubmitting}
               >
@@ -756,7 +763,7 @@ const SmartQuickActionsPanel = ({
           label: isSelected ? "Poništi odabir" : "Odaberi za bulk",
           description: "Dodaj oglas u grupne akcije.",
           onClick: onSelect,
-          show: isExpired,
+          show: isSelectable || isExpired,
           tone: "slate",
           kind: "normal",
         },
@@ -1013,6 +1020,7 @@ const MyAdsCard = ({
   isSelectable = false,
   onSelectionToggle,
   onContextMenuAction,
+  onFeatureAction,
 }) => {
   const isJobCategory = Number(data?.category?.is_job_category) === 1;
   const translatedItem = data?.translated_item;
@@ -1032,6 +1040,8 @@ const MyAdsCard = ({
   const [isFeaturedPlanOpen, setIsFeaturedPlanOpen] = useState(false);
   const [selectedFeaturePlacement, setSelectedFeaturePlacement] = useState("category_home");
   const [selectedFeatureDuration, setSelectedFeatureDuration] = useState(30);
+  const [isFeatureSubmitting, setIsFeatureSubmitting] = useState(false);
+  const featureSubmitLockRef = useRef(false);
 
   // MODAL ZA PRODANO
   const [isSoldOutDialogOpen, setIsSoldOutDialogOpen] = useState(false);
@@ -1257,12 +1267,28 @@ const MyAdsCard = ({
     setIsSoldOutDialogOpen(false);
   };
 
-  const handleFeatureSubmit = () => {
-    onContextMenuAction?.("feature", data?.id, {
-      placement: selectedFeaturePlacement,
-      duration_days: selectedFeatureDuration,
-    });
-    setIsFeaturedPlanOpen(false);
+  const handleFeatureSubmit = async () => {
+    if (isFeatureSubmitting || featureSubmitLockRef.current) return;
+
+    featureSubmitLockRef.current = true;
+    setIsFeatureSubmitting(true);
+    try {
+      const payload = {
+        placement: selectedFeaturePlacement,
+        duration_days: selectedFeatureDuration,
+      };
+
+      const result = onFeatureAction
+        ? await onFeatureAction(data?.id, payload)
+        : await onContextMenuAction?.("feature", data?.id, payload);
+
+      if (result !== false) {
+        setIsFeaturedPlanOpen(false);
+      }
+    } finally {
+      featureSubmitLockRef.current = false;
+      setIsFeatureSubmitting(false);
+    }
   };
 
   const title = translatedItem?.name || data?.name;
@@ -1743,6 +1769,7 @@ const MyAdsCard = ({
         onPlacementChange={setSelectedFeaturePlacement}
         onDurationChange={setSelectedFeatureDuration}
         onConfirm={handleFeatureSubmit}
+        isSubmitting={isFeatureSubmitting}
       />
     </motion.div>
   );

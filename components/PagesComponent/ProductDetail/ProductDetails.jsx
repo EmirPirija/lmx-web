@@ -114,9 +114,17 @@ const MobileStickyBar = ({
             <>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Cijena</p>
               <p className="text-lg font-black text-primary truncate">
-                {Number(productDetails.price) === 0 ? "Na upit" : 
-                 new Intl.NumberFormat('bs-BA', { minimumFractionDigits: 0 }).format(productDetails.price) + " KM"}
+                {Number(productDetails.price) === 0 ? "Na upit" :
+                 new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0 }).format(productDetails.price) + " KM"}
               </p>
+              {Number(productDetails?.price_per_unit) > 0 ? (
+                <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
+                  {new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                    Number(productDetails.price_per_unit)
+                  )}{" "}
+                  KM / kom
+                </p>
+              ) : null}
             </>
           )}
         </div>
@@ -182,6 +190,47 @@ const SkeletonLoader = () => (
           <Skeleton className="h-full w-full rounded-xl" />
         </div>
       </div>
+    </div>
+  </div>
+);
+
+const FeaturedAdTriggerCard = ({ onOpen, compact = false }) => (
+  <div
+    className={cn(
+      "rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900",
+      compact ? "p-4" : "p-5"
+    )}
+  >
+    <div
+      className={cn(
+        "flex gap-3",
+        compact
+          ? "items-center justify-between"
+          : "flex-col sm:flex-row sm:items-center sm:justify-between"
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+          <MdRocketLaunch size={20} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-600 dark:text-amber-300">
+            Izdvajanje oglasa
+          </p>
+          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Povećaj vidljivost na kategoriji i naslovnoj.
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
+      >
+        <MdRocketLaunch size={16} />
+        Izdvoji oglas
+      </button>
     </div>
   </div>
 );
@@ -377,6 +426,16 @@ const ProductDetails = ({ slug }) => {
   const IsShowFeaturedAd = isMyListing && !productDetails?.is_feature && productDetails?.status === "approved";
   const hideBottomBar = showStatsModal || showStatusDrawer || showFeaturedDrawer || isDeleteOpen || isOpenInApp;
 
+  const openFeaturedModal = useCallback(() => {
+    if (!IsShowFeaturedAd || !productDetails?.id) {
+      toast.error("Izdvajanje trenutno nije dostupno za ovaj oglas.");
+      return;
+    }
+
+    setShowStatusDrawer(false);
+    setShowFeaturedDrawer(true);
+  }, [IsShowFeaturedAd, productDetails?.id]);
+
   // Loading State
   if (isLoading) return <Layout><SkeletonLoader /></Layout>;
 
@@ -469,7 +528,7 @@ const ProductDetails = ({ slug }) => {
             {/* 3. OPCIJE PRODAVAČA (Samo za moje oglase) */}
             {IsShowFeaturedAd && (
               <div className="hidden lg:block animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-                <MakeFeaturedAd item_id={productDetails?.id} setProductDetails={setProductDetails} />
+                <FeaturedAdTriggerCard onOpen={openFeaturedModal} />
               </div>
             )}
 
@@ -504,7 +563,10 @@ const ProductDetails = ({ slug }) => {
               {/* MY ADS SIDEBAR */}
               {isMyListing && (
                 <div className="hidden lg:block animate-in fade-in slide-in-from-right-4 duration-500">
-                  <MyAdsListingDetailCard productDetails={productDetails} />
+                  <MyAdsListingDetailCard
+                    productDetails={productDetails}
+                    onMakeFeatured={openFeaturedModal}
+                  />
                 </div>
               )}
 
@@ -615,12 +677,23 @@ const ProductDetails = ({ slug }) => {
               <AdsStatusChangeCards productDetails={productDetails} setProductDetails={setProductDetails} status={status} setStatus={setStatus} />
               {IsShowFeaturedAd && (
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <MakeFeaturedAd item_id={productDetails.id} setProductDetails={setProductDetails} />
+                  <FeaturedAdTriggerCard onOpen={openFeaturedModal} compact />
                 </div>
               )}
             </div>
           </div>
         </>
+      )}
+
+      {/* Featured Modal (triggered from MyAdsListingDetailCard) */}
+      {isMyListing && IsShowFeaturedAd && (
+        <MakeFeaturedAd
+          item_id={productDetails?.id}
+          setProductDetails={setProductDetails}
+          open={showFeaturedDrawer}
+          onOpenChange={setShowFeaturedDrawer}
+          hideTrigger
+        />
       )}
 
       {/* Delete Confirmation */}

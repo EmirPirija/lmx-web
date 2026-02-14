@@ -91,14 +91,20 @@ export const UPDATE_SELLER_SETTINGS = "update-seller-settings";
 export const SOCIAL_CONNECTED_ACCOUNTS = "social/connected-accounts";
 export const SOCIAL_CONNECT = "social/connect";
 export const SOCIAL_DISCONNECT = "social/disconnect";
+export const SOCIAL_SYNC = "social/sync";
 export const SOCIAL_SCHEDULE_POST = "social/schedule-post";
 export const SOCIAL_SCHEDULED_POSTS = "social/scheduled-posts";
+export const BULK_AD_ACTION = "my-ads/bulk-action";
 
 export const INSTAGRAM_PRODUCTS = "instagram/products";
 export const INSTAGRAM_IMPORT = "instagram/import";
 export const INSTAGRAM_IMPORT_HISTORY = "instagram/import-history";
 export const INSTAGRAM_SYNC = "instagram/sync";
 export const INSTAGRAM_SYNC_STATUS = "instagram/sync-status";
+
+export const SHOP_INVENTORY_ALERTS = "shop/inventory-alerts";
+export const SHOP_UPDATE_INVENTORY = "shop/update-inventory";
+export const SHOP_DOMAIN = "shop/domain";
 
 export const MANAGE_SAVED_USER = "manage-saved-user";
 export const CHECK_SAVED_USER = "check-saved-user";
@@ -713,12 +719,21 @@ export const chanegItemStatusApi = {
 export const createFeaturedItemApi = {
   createFeaturedItem: ({ item_id, positions, placement, duration_days } = {}) => {
     const formData = new FormData();
+    const normalizedPlacement = placement || positions;
+    const normalizedPositions = positions || placement;
 
-    // Append only if the value is defined and not an empty string
-    if (item_id) formData.append("item_id", item_id);
-    if (positions) formData.append("positions", positions);
-    if (placement) formData.append("placement", placement);
-    if (duration_days) formData.append("duration_days", String(duration_days));
+    if (item_id !== undefined && item_id !== null) {
+      formData.append("item_id", String(item_id));
+    }
+    if (normalizedPositions !== undefined && normalizedPositions !== null && normalizedPositions !== "") {
+      formData.append("positions", String(normalizedPositions));
+    }
+    if (normalizedPlacement !== undefined && normalizedPlacement !== null && normalizedPlacement !== "") {
+      formData.append("placement", String(normalizedPlacement));
+    }
+    if (duration_days !== undefined && duration_days !== null && duration_days !== "") {
+      formData.append("duration_days", String(duration_days));
+    }
 
     return Api.post(CREATE_FEATURED_ITEM, formData, {
       headers: {
@@ -1104,6 +1119,9 @@ export const addItemApi = {
     zamjena,
     zamena,
     inventory_count,
+    price_per_unit,
+    minimum_order_quantity,
+    stock_alert_threshold,
     seller_product_code,
     show_only_to_premium,
     add_video_to_story,
@@ -1212,6 +1230,23 @@ export const addItemApi = {
     ) {
       formData.append("inventory_count", inventory_count);
     }
+    if (price_per_unit !== undefined && price_per_unit !== null && String(price_per_unit).trim() !== "") {
+      formData.append("price_per_unit", price_per_unit);
+    }
+    if (
+      minimum_order_quantity !== undefined &&
+      minimum_order_quantity !== null &&
+      String(minimum_order_quantity).trim() !== ""
+    ) {
+      formData.append("minimum_order_quantity", minimum_order_quantity);
+    }
+    if (
+      stock_alert_threshold !== undefined &&
+      stock_alert_threshold !== null &&
+      String(stock_alert_threshold).trim() !== ""
+    ) {
+      formData.append("stock_alert_threshold", stock_alert_threshold);
+    }
     if (seller_product_code !== undefined && seller_product_code !== null) {
       formData.append("seller_product_code", String(seller_product_code).trim());
     }
@@ -1302,6 +1337,9 @@ export const editItemApi = {
     show_only_to_premium,
     add_video_to_story,
     publish_to_instagram,
+    price_per_unit,
+    minimum_order_quantity,
+    stock_alert_threshold,
     instagram_source_url,
 
     // ✅ TEMP IDS (dodaj i u edit!)
@@ -1398,6 +1436,23 @@ export const editItemApi = {
       String(inventory_count).trim() !== ""
     ) {
       formData.append("inventory_count", inventory_count);
+    }
+    if (price_per_unit !== undefined && price_per_unit !== null && String(price_per_unit).trim() !== "") {
+      formData.append("price_per_unit", price_per_unit);
+    }
+    if (
+      minimum_order_quantity !== undefined &&
+      minimum_order_quantity !== null &&
+      String(minimum_order_quantity).trim() !== ""
+    ) {
+      formData.append("minimum_order_quantity", minimum_order_quantity);
+    }
+    if (
+      stock_alert_threshold !== undefined &&
+      stock_alert_threshold !== null &&
+      String(stock_alert_threshold).trim() !== ""
+    ) {
+      formData.append("stock_alert_threshold", stock_alert_threshold);
     }
     if (seller_product_code !== undefined && seller_product_code !== null) {
       formData.append("seller_product_code", String(seller_product_code).trim());
@@ -1751,6 +1806,10 @@ export const socialMediaApi = {
     return Api.post(`${SOCIAL_DISCONNECT}/${platform}`);
   },
 
+  syncAccount: ({ platform } = {}) => {
+    return Api.post(`${SOCIAL_SYNC}/${platform}`);
+  },
+
   schedulePost: ({
     item_id,
     platforms = [],
@@ -1778,6 +1837,10 @@ export const socialMediaApi = {
 
   cancelScheduledPost: ({ id } = {}) => {
     return Api.post(`${SOCIAL_SCHEDULED_POSTS}/${id}/cancel`);
+  },
+
+  retryScheduledPost: ({ id } = {}) => {
+    return Api.post(`${SOCIAL_SCHEDULED_POSTS}/${id}/retry`);
   },
 };
 
@@ -1838,6 +1901,20 @@ export const itemStatisticsApi = {
   getSellerOverview: ({ period = 30, top = 8 } = {}) => {
     return Api.get(`${GET_ITEM_STATISTICS}/seller/overview`, {
       params: { period, top },
+    });
+  },
+
+  // SLA metrike prodavača
+  getSellerSla: ({ fast_threshold, reliable_threshold } = {}) => {
+    return Api.get(`${GET_ITEM_STATISTICS}/seller/sla`, {
+      params: { fast_threshold, reliable_threshold },
+    });
+  },
+
+  // Boost ROI overview (boost vs organik)
+  getSellerBoostRoi: ({ period = 30, category_id, top = 5 } = {}) => {
+    return Api.get(`${GET_ITEM_STATISTICS}/seller/boost-roi`, {
+      params: { period, category_id, top },
     });
   },
 
@@ -2361,6 +2438,62 @@ export const inventoryApi = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+};
+
+export const bulkAdsApi = {
+  applyBulkAction: ({
+    action,
+    item_ids = [],
+    package_id,
+    placement,
+    duration_days,
+  } = {}) => {
+    const formData = new FormData();
+    if (action) formData.append("action", action);
+
+    if (Array.isArray(item_ids) && item_ids.length > 0) {
+      formData.append("item_ids", item_ids.join(","));
+    } else if (typeof item_ids === "string" && item_ids.trim()) {
+      formData.append("item_ids", item_ids);
+    }
+
+    if (package_id) formData.append("package_id", package_id);
+    if (placement) formData.append("placement", placement);
+    if (duration_days) formData.append("duration_days", duration_days);
+
+    return Api.post(BULK_AD_ACTION, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
+export const shopOpsApi = {
+  getInventoryAlerts: ({ threshold } = {}) =>
+    Api.get(SHOP_INVENTORY_ALERTS, { params: { threshold } }),
+
+  updateInventory: ({ item_id, quantity, mode = "set", threshold } = {}) => {
+    const formData = new FormData();
+    if (item_id) formData.append("item_id", item_id);
+    if (quantity !== undefined && quantity !== null) formData.append("quantity", quantity);
+    if (mode) formData.append("mode", mode);
+    if (threshold !== undefined && threshold !== null) formData.append("threshold", threshold);
+
+    return Api.post(SHOP_UPDATE_INVENTORY, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  getDomainSettings: () => Api.get(SHOP_DOMAIN),
+
+  updateDomain: ({ domain } = {}) => {
+    const formData = new FormData();
+    if (domain) formData.append("domain", domain);
+    return Api.post(SHOP_DOMAIN, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  verifyDomain: () => Api.post(`${SHOP_DOMAIN}/verify`),
 };
  
 export const myPurchasesApi = {

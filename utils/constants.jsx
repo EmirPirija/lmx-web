@@ -49,3 +49,34 @@ export const quickLinks = [
         labelKey: "faqs",
     },
 ];
+
+export const headerQuickLinks = [
+    ...quickLinks,
+    {
+        id: 6,
+        href: "/shop",
+        label: "Shop",
+    },
+    {
+        id: 7,
+        href: "/pro",
+        label: "Pro",
+    },
+    {
+        id: 8,
+        href: "/pricing",
+        label: "Pricing",
+    },
+    {
+        id: 9,
+        href: "/profile/integrations",
+        label: "Integracije",
+        requiresAuth: true,
+    },
+    {
+        id: 10,
+        href: "/profile/shop-ops",
+        label: "Shop operacije",
+        requiresAuth: true,
+    },
+];

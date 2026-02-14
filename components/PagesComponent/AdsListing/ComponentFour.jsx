@@ -208,6 +208,9 @@ const ComponentFour = ({
   setAddVideoToStory,
   publishToInstagram,
   setPublishToInstagram,
+  instagramConnected = false,
+  instagramStatusLoading = false,
+  onConnectInstagram,
   instagramSourceUrl = "",
   onInstagramSourceUrlChange,
   onUseInstagramAsVideoLink,
@@ -454,6 +457,11 @@ const ComponentFour = ({
   };
 
   const handleInstagramToggle = (checked) => {
+    if (checked && !instagramConnected) {
+      toast.info("Instagram nije povezan. Povežite Instagram u Postavkama.");
+      setPublishToInstagram?.(false);
+      return;
+    }
     setPublishToInstagram?.(checked);
   };
 
@@ -690,9 +698,58 @@ const ComponentFour = ({
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
           <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-800 flex items-center gap-2 dark:text-slate-100">
+                <Instagram className="w-4 h-4 text-pink-500" />
+                Instagram objava kao izvor
+              </p>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                    instagramConnected
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                  )}
+                >
+                  {instagramStatusLoading
+                    ? "Provjera..."
+                    : instagramConnected
+                    ? "Povezan"
+                    : "Nije povezan"}
+                </span>
+                {!instagramConnected ? (
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Povežite Instagram u postavkama prije objave.
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {!instagramConnected ? (
+                <button
+                  type="button"
+                  onClick={() => onConnectInstagram?.()}
+                  disabled={instagramStatusLoading}
+                  className="inline-flex items-center gap-1 rounded-lg border border-pink-200 px-2.5 py-1 text-xs font-semibold text-pink-600 hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-pink-400/30 dark:text-pink-300 dark:hover:bg-pink-500/10"
+                >
+                  {instagramStatusLoading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Povezujem...
+                    </>
+                  ) : (
+                    "Poveži Instagram"
+                  )}
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-slate-800 flex items-center gap-2 dark:text-slate-100">
               <Instagram className="w-4 h-4 text-pink-500" />
-              Instagram objava kao izvor
+              Instagram link
             </p>
             {instagramSourceUrl ? (
               <button
@@ -718,6 +775,7 @@ const ComponentFour = ({
               type="checkbox"
               checked={Boolean(publishToInstagram)}
               onChange={(e) => handleInstagramToggle(e.target.checked)}
+              disabled={!instagramConnected || instagramStatusLoading}
               className="mt-0.5 h-4 w-4 rounded border-slate-300 text-pink-500 focus:ring-pink-400"
             />
             <span>
@@ -725,7 +783,9 @@ const ComponentFour = ({
                 Objavi i na Instagram
               </span>
               <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
-                Nakon objave oglasa, sadržaj će ići u red za Instagram objavu.
+                {instagramConnected
+                  ? "Nakon objave oglasa, sadržaj će ići u red za Instagram objavu."
+                  : "Opcija je zaključana dok ne povežete Instagram nalog."}
               </p>
             </span>
           </label>

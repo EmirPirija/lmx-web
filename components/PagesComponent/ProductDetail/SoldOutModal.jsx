@@ -86,11 +86,14 @@ const SoldOutModal = ({
   const parsedInventoryCount = Number(productDetails?.inventory_count);
   const hasInventory = Number.isFinite(parsedInventoryCount) && parsedInventoryCount > 0;
   const inventoryCount = hasInventory ? parsedInventoryCount : 1;
+  const rawUnitPrice = Number(productDetails?.price_per_unit ?? productDetails?.price ?? 0);
+  const unitPrice = Number.isFinite(rawUnitPrice) && rawUnitPrice > 0 ? rawUnitPrice : 0;
   const continueSellingWhenOutOfStock = sellerSettings?.continue_selling_out_of_stock || false;
   
   // Izračunaj koliko ostaje nakon prodaje
   const remainingAfterSale = Math.max(0, inventoryCount - quantitySold);
   const willBeOutOfStock = remainingAfterSale === 0;
+  const totalSalePrice = unitPrice * quantitySold;
  
   useEffect(() => {
     if (showSoldOut) {
@@ -189,7 +192,7 @@ const SoldOutModal = ({
       saleNote: saleNote,
       remainingStock: remainingAfterSale,
       willBeOutOfStock: willBeOutOfStock,
-      totalPrice: productDetails?.price * quantitySold,
+      totalPrice: totalSalePrice,
     };
 
     if (onSaleComplete) {
@@ -245,8 +248,11 @@ const SoldOutModal = ({
               {productDetails?.name}
             </h1>
             <p className="text-xl font-bold text-primary">
-              {formatPriceAbbreviated(productDetails?.price)}
+              {formatPriceAbbreviated(unitPrice)}
             </p>
+            {Number(productDetails?.price_per_unit) > 0 ? (
+              <p className="text-xs font-medium text-slate-500">Cijena po komadu</p>
+            ) : null}
           </div>
         </div>
  
@@ -603,13 +609,13 @@ const SoldOutModal = ({
               <div className="flex justify-between">
                 <span className="text-slate-500">Cijena po kom:</span>
                 <span className="font-medium text-slate-800">
-                  {formatPriceAbbreviated(productDetails?.price)}
+                  {formatPriceAbbreviated(unitPrice)}
                 </span>
               </div>
               <div className="border-t pt-2 mt-2 flex justify-between">
                 <span className="font-semibold text-slate-700">Ukupno:</span>
                 <span className="font-bold text-primary text-lg">
-                  {formatPriceAbbreviated(productDetails?.price * quantitySold)}
+                  {formatPriceAbbreviated(totalSalePrice)}
                 </span>
               </div>
             </div>
