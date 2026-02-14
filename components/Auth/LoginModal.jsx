@@ -17,7 +17,10 @@ import {
 import "react-phone-input-2/lib/style.css";
 import { Button } from "../ui/button";
 import { FcGoogle } from "@/components/Common/UnifiedIconPack";
-import { MdOutlineEmail, MdOutlineLocalPhone } from "@/components/Common/UnifiedIconPack";
+import {
+  MdOutlineEmail,
+  MdOutlineLocalPhone,
+} from "@/components/Common/UnifiedIconPack";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -71,7 +74,7 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   const email_authentication = Number(settings?.email_authentication);
 
   const [IsLoginWithEmail, setIsLoginWithEmail] = useState(
-    mobile_authentication === 0 && email_authentication === 1 ? true : false
+    mobile_authentication === 0 && email_authentication === 1 ? true : false,
   );
 
   const hasOnlyGoogleAuth =
@@ -84,7 +87,8 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
 
   const canShowCredentialForm = !hasOnlyGoogleAuth;
 
-  const canShowGoogleDivider = canShowCredentialForm && google_authentication === 1;
+  const canShowGoogleDivider =
+    canShowCredentialForm && google_authentication === 1;
 
   const getInitialLoginState = () => ({
     number: isDemoMode ? "+919876598765" : "",
@@ -99,14 +103,14 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
     setConfirmationResult(null);
     setLoginStates(getInitialLoginState());
     setIsLoginWithEmail(
-      mobile_authentication === 0 && email_authentication === 1
+      mobile_authentication === 0 && email_authentication === 1,
     );
   };
 
   useEffect(() => {
     if (IsLoginOpen) {
       setIsLoginWithEmail(
-        mobile_authentication === 0 && email_authentication === 1
+        mobile_authentication === 0 && email_authentication === 1,
       );
       return;
     }
@@ -148,7 +152,7 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
           "recaptcha-container",
           {
             size: "invisible",
-          }
+          },
         );
         return window.recaptchaVerifier;
       } catch (error) {
@@ -227,190 +231,199 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
       <Dialog open={IsLoginOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
-          className="w-[min(1040px,calc(100vw-1rem))] max-w-none max-h-[calc(100dvh-1rem)] overflow-hidden p-0 gap-0 rounded-3xl border border-slate-200 bg-white shadow-2xl"
+          className="w-[min(1020px,calc(100vw-1rem))] max-w-none max-h-[calc(100dvh-1rem)] overflow-hidden gap-0 rounded-[28px] border border-slate-200/90 bg-white p-0 shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]"
         >
-          <div className="grid h-full min-h-0 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="grid h-full min-h-0 lg:grid-cols-[0.9fr_1.1fr]">
             <AuthValuePanel mode={IsOTPScreen ? "otp" : "login"} />
 
-            <div className="min-h-0 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-              <DialogHeader>
-                <DialogTitle className="text-left text-3xl font-semibold leading-tight text-slate-900 sm:text-4xl">
+            <div className="min-h-0 overflow-y-auto bg-gradient-to-b from-white via-white to-slate-50/70 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+              <div className="mx-auto w-full max-w-[440px]">
+                <DialogHeader className="space-y-3">
+                  {!IsOTPScreen ? (
+                    <div className="inline-flex w-max items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                      {settings?.company_name || "LMX"}
+                    </div>
+                  ) : null}
+                  <DialogTitle className="text-left text-2xl font-semibold leading-tight text-slate-900 sm:text-[2rem]">
+                    {IsOTPScreen
+                      ? "Unesi verifikacijski kod"
+                      : "Prijava na korisnički račun"}
+                  </DialogTitle>
+                  <DialogDescription className="text-left text-sm leading-relaxed text-slate-600 sm:text-[15px]">
+                    {IsOTPScreen ? (
+                      <>
+                        Kod smo poslali na {`${countryCode}${formattedNumber}`}.{" "}
+                        <span
+                          onClick={() => setIsOTPScreen(false)}
+                          className="cursor-pointer font-semibold text-primary underline"
+                        >
+                          Promijeni broj
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        Pristupi svom profilu i nastavi gdje si stao. Nemaš
+                        nalog?{" "}
+                        <span
+                          className="cursor-pointer font-semibold text-primary underline"
+                          onClick={handleCreateAnAccount}
+                        >
+                          Kreiraj račun
+                        </span>
+                      </>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <AuthCompactHighlights className="mt-4" />
+
+                <AnimatePresence mode="wait" initial={false}>
                   {IsOTPScreen ? (
-                    "Potvrdi sigurnosni kod"
-                  ) : (
-                    <>
-                      Prijavi se na{" "}
-                      <span className="text-primary">{settings?.company_name || "LMX"}</span>
-                    </>
-                  )}
-                </DialogTitle>
-                <DialogDescription className="text-left text-sm text-slate-600 sm:text-base">
-                  {IsOTPScreen ? (
-                    <>
-                      Kod smo poslali na {`${countryCode}${formattedNumber}`}.{" "}
-                      <span
-                        onClick={() => setIsOTPScreen(false)}
-                        className="text-primary underline cursor-pointer"
-                      >
-                        Promijeni broj
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      Nemaš nalog?{" "}
-                      <span
-                        className="text-primary cursor-pointer underline"
-                        onClick={handleCreateAnAccount}
-                      >
-                        Kreiraj račun
-                      </span>
-                    </>
-                  )}
-                </DialogDescription>
-              </DialogHeader>
-
-              <AuthCompactHighlights className="mt-5" />
-
-              <AnimatePresence mode="wait" initial={false}>
-                {IsOTPScreen ? (
-                  <motion.div
-                    key="otp-login"
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2 }}
-                    className="mt-6"
-                  >
-                    <OtpScreen
-                      OnHide={OnHide}
-                      generateRecaptcha={generateRecaptcha}
-                      countryCode={countryCode}
-                      formattedNumber={formattedNumber}
-                      confirmationResult={confirmationResult}
-                      setConfirmationResult={setConfirmationResult}
-                      resendTimer={resendTimer}
-                      setResendTimer={setResendTimer}
-                      regionCode={loginStates.regionCode}
-                      key={IsOTPScreen + "login-otp"}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="login-methods"
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2 }}
-                    className="mt-6 flex flex-col gap-6"
-                  >
-                    {canUseBothMethods ? (
-                      <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-1.5">
-                        <button
-                          type="button"
-                          className={cn(
-                            "inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all",
-                            IsLoginWithEmail
-                              ? "bg-white text-slate-900 shadow-sm"
-                              : "text-slate-500 hover:text-slate-700"
-                          )}
-                          onClick={() => setIsLoginWithEmail(true)}
-                        >
-                          <MdOutlineEmail className="h-4 w-4" />
-                          Email
-                        </button>
-                        <button
-                          type="button"
-                          className={cn(
-                            "inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all",
-                            !IsLoginWithEmail
-                              ? "bg-white text-slate-900 shadow-sm"
-                              : "text-slate-500 hover:text-slate-700"
-                          )}
-                          onClick={() => setIsLoginWithEmail(false)}
-                        >
-                          <MdOutlineLocalPhone className="h-4 w-4" />
-                          Mobitel
-                        </button>
-                      </div>
-                    ) : null}
-
-                    <AnimatePresence mode="wait" initial={false}>
-                      {canUseBothMethods && IsLoginWithEmail ? (
-                        <motion.div
-                          key="email-login"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          transition={{ duration: 0.16 }}
-                        >
-                          <LoginWithEmailForm OnHide={OnHide} />
-                        </motion.div>
-                      ) : null}
-
-                      {canUseBothMethods && !IsLoginWithEmail ? (
-                        <motion.div
-                          key="phone-login"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
-                          transition={{ duration: 0.16 }}
-                        >
-                          <LoginWithMobileForm
-                            formattedNumber={formattedNumber}
-                            generateRecaptcha={generateRecaptcha}
-                            loginStates={loginStates}
-                            setLoginStates={setLoginStates}
-                            setIsOTPScreen={setIsOTPScreen}
-                            setConfirmationResult={setConfirmationResult}
-                            setResendTimer={setResendTimer}
-                          />
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
-
-                    {email_authentication === 1 && mobile_authentication === 0 ? (
-                      <LoginWithEmailForm OnHide={OnHide} />
-                    ) : null}
-
-                    {mobile_authentication === 1 && email_authentication === 0 ? (
-                      <LoginWithMobileForm
-                        formattedNumber={formattedNumber}
+                    <motion.div
+                      key="otp-login"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-5"
+                    >
+                      <OtpScreen
+                        OnHide={OnHide}
                         generateRecaptcha={generateRecaptcha}
-                        loginStates={loginStates}
-                        setLoginStates={setLoginStates}
-                        setIsOTPScreen={setIsOTPScreen}
+                        countryCode={countryCode}
+                        formattedNumber={formattedNumber}
+                        confirmationResult={confirmationResult}
                         setConfirmationResult={setConfirmationResult}
+                        resendTimer={resendTimer}
                         setResendTimer={setResendTimer}
+                        regionCode={loginStates.regionCode}
+                        key={IsOTPScreen + "login-otp"}
                       />
-                    ) : null}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="login-methods"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-5 flex flex-col gap-5"
+                    >
+                      {canUseBothMethods ? (
+                        <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5">
+                          <button
+                            type="button"
+                            className={cn(
+                              "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+                              IsLoginWithEmail
+                                ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
+                                : "text-slate-500 hover:bg-white/80 hover:text-slate-700",
+                            )}
+                            onClick={() => setIsLoginWithEmail(true)}
+                          >
+                            <MdOutlineEmail className="h-4 w-4" />
+                            Email
+                          </button>
+                          <button
+                            type="button"
+                            className={cn(
+                              "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+                              !IsLoginWithEmail
+                                ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
+                                : "text-slate-500 hover:bg-white/80 hover:text-slate-700",
+                            )}
+                            onClick={() => setIsLoginWithEmail(false)}
+                          >
+                            <MdOutlineLocalPhone className="h-4 w-4" />
+                            Mobitel
+                          </button>
+                        </div>
+                      ) : null}
 
-                    {canShowGoogleDivider ? (
-                      <div className="flex items-center gap-3">
-                        <hr className="w-full border-slate-200" />
-                        <p className="text-nowrap text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          ili nastavi sa
-                        </p>
-                        <hr className="w-full border-slate-200" />
-                      </div>
-                    ) : null}
+                      <AnimatePresence mode="wait" initial={false}>
+                        {canUseBothMethods && IsLoginWithEmail ? (
+                          <motion.div
+                            key="email-login"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.16 }}
+                          >
+                            <LoginWithEmailForm OnHide={OnHide} />
+                          </motion.div>
+                        ) : null}
 
-                    {google_authentication === 1 ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="lg"
-                        className="h-11 rounded-xl border-slate-200 text-sm font-semibold"
-                        onClick={handleGoogleSignup}
-                      >
-                        <FcGoogle className="!size-5" />
-                        <span>Nastavi preko Google naloga</span>
-                      </Button>
-                    ) : null}
+                        {canUseBothMethods && !IsLoginWithEmail ? (
+                          <motion.div
+                            key="phone-login"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.16 }}
+                          >
+                            <LoginWithMobileForm
+                              formattedNumber={formattedNumber}
+                              generateRecaptcha={generateRecaptcha}
+                              loginStates={loginStates}
+                              setLoginStates={setLoginStates}
+                              setIsOTPScreen={setIsOTPScreen}
+                              setConfirmationResult={setConfirmationResult}
+                              setResendTimer={setResendTimer}
+                            />
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
 
-                    <TermsAndPrivacyLinks t={t} settings={settings} OnHide={OnHide} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      {email_authentication === 1 &&
+                      mobile_authentication === 0 ? (
+                        <LoginWithEmailForm OnHide={OnHide} />
+                      ) : null}
+
+                      {mobile_authentication === 1 &&
+                      email_authentication === 0 ? (
+                        <LoginWithMobileForm
+                          formattedNumber={formattedNumber}
+                          generateRecaptcha={generateRecaptcha}
+                          loginStates={loginStates}
+                          setLoginStates={setLoginStates}
+                          setIsOTPScreen={setIsOTPScreen}
+                          setConfirmationResult={setConfirmationResult}
+                          setResendTimer={setResendTimer}
+                        />
+                      ) : null}
+
+                      {canShowGoogleDivider ? (
+                        <div className="flex items-center gap-3">
+                          <hr className="w-full border-slate-200" />
+                          <p className="text-nowrap text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            ili nastavi sa
+                          </p>
+                          <hr className="w-full border-slate-200" />
+                        </div>
+                      ) : null}
+
+                      {google_authentication === 1 ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="lg"
+                          className="h-11 rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                          onClick={handleGoogleSignup}
+                        >
+                          <FcGoogle className="!size-5" />
+                          <span>Nastavi preko Google naloga</span>
+                        </Button>
+                      ) : null}
+
+                      <TermsAndPrivacyLinks
+                        t={t}
+                        settings={settings}
+                        OnHide={OnHide}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </DialogContent>

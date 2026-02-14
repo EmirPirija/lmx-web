@@ -1,4 +1,3 @@
-
 import { FaRegEye, FaRegEyeSlash } from "@/components/Common/UnifiedIconPack";
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { Label } from "../ui/label";
@@ -18,7 +17,7 @@ const RegPasswordForm = ({
 }) => {
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+      className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
       onSubmit={Signin}
     >
       <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
@@ -34,7 +33,7 @@ const RegPasswordForm = ({
           placeholder={t("typeUsername")}
           name="username"
           required
-          className="h-11 rounded-xl"
+          className="h-11 rounded-xl border-slate-200 bg-white"
           autoComplete="username"
           onChange={(e) => setUsername(e.target.value)}
           value={username}
@@ -51,13 +50,13 @@ const RegPasswordForm = ({
             placeholder={t("enterPassword")}
             id="password"
             name="password"
-            className="h-11 rounded-xl ltr:pr-10 rtl:pl-10"
+            className="h-11 rounded-xl border-slate-200 bg-white ltr:pr-10 rtl:pl-10"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            className="absolute ltr:right-3 rtl:left-3 cursor-pointer"
+            className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-slate-500 hover:text-slate-700"
             type="button"
             onClick={() => setIsPasswordVisible((prev) => !prev)}
           >

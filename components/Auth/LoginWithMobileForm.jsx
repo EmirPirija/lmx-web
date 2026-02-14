@@ -69,7 +69,7 @@ const LoginWithMobileForm = ({
       const confirmation = await signInWithPhoneNumber(
         auth,
         PhoneNumber,
-        appVerifier
+        appVerifier,
       );
       setConfirmationResult(confirmation);
       toast.success(t("otpSentSuccess"));
@@ -110,7 +110,7 @@ const LoginWithMobileForm = ({
 
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+      className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
       onSubmit={handleMobileSubmit}
     >
       <div className="labelInputCont">

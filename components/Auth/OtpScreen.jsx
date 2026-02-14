@@ -143,7 +143,7 @@ const OtpScreen = ({
       const confirmation = await signInWithPhoneNumber(
         auth,
         PhoneNumber,
-        appVerifier
+        appVerifier,
       );
       setConfirmationResult(confirmation);
       toast.success(t("otpSentSuccess"));
@@ -168,7 +168,7 @@ const OtpScreen = ({
 
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+      className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
       onSubmit={verifyOTP}
     >
       <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-700">
@@ -186,7 +186,7 @@ const OtpScreen = ({
           name="otp"
           value={otp}
           maxLength={6}
-          className="h-11 rounded-xl tracking-[0.3em] text-center text-base font-semibold"
+          className="h-11 rounded-xl border-slate-200 bg-white text-center text-base font-semibold tracking-[0.3em]"
           autoComplete="one-time-code"
           onChange={(e) => setOtp(e.target.value)}
           ref={otpInputRef}

@@ -35,7 +35,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
       if (!userCredential?.user) {
         toast.error(t("userNotFound"));
@@ -117,7 +117,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
   return (
     <>
       <form
-        className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
+        className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
         onSubmit={Signin}
       >
         <div className="labelInputCont">
@@ -128,7 +128,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
             type="email"
             placeholder={t("enterEmail")}
             value={email}
-            className="h-11 rounded-xl"
+            className="h-11 rounded-xl border-slate-200 bg-white"
             autoComplete="email"
             onChange={(e) =>
               setLoginStates((prev) => ({ ...prev, email: e.target.value }))
@@ -144,7 +144,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
             <Input
               type={IsPasswordVisible ? "text" : "password"}
               placeholder={t("enterPassword")}
-              className="h-11 rounded-xl ltr:pr-10 rtl:pl-10"
+              className="h-11 rounded-xl border-slate-200 bg-white ltr:pr-10 rtl:pl-10"
               value={password}
               autoComplete="current-password"
               onChange={(e) =>
@@ -156,7 +156,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
             />
             <button
               type="button"
-              className="absolute ltr:right-3 rtl:left-3 cursor-pointer"
+              className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-slate-500 hover:text-slate-700"
               onClick={() =>
                 setLoginStates((prev) => ({
                   ...prev,
