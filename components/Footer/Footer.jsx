@@ -263,6 +263,9 @@ export default function Footer() {
             <CustomLink href="/privacy-policy" className="footerLabel">
               {t("privacyPolicy")}
             </CustomLink>
+            <CustomLink href="/data-deletion" className="footerLabel">
+              {t("dataDeletionPolicy")}
+            </CustomLink>
             <CustomLink href="/terms-and-condition" className="footerLabel">
               {t("termsConditions")}
             </CustomLink>

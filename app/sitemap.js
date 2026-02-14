@@ -36,6 +36,7 @@ export default async function sitemap() {
     "ads",
     "blogs",
     "contact-us",
+    "data-deletion",
     "faqs",
     "landing",
     "privacy-policy",
