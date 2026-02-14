@@ -6,9 +6,9 @@ import {
   Clock,
   GitCompare,
   Heart,
-  Images,
-  MapPin,
   Rocket,
+  Store,
+  TransferHorizontalLine,
   Youtube,
 } from "@/components/Common/UnifiedIconPack";
 import { toast } from "@/utils/toastBs";
@@ -21,6 +21,7 @@ import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/redu
 import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { resolveMembership } from "@/lib/membership";
 
 const formatRelativeTime = (dateString) => {
   if (!dateString) return "";
@@ -54,14 +55,16 @@ const getKeyAttributes = (item) => {
 
   const findValue = (keys) => {
     const field = customFields.find((f) => {
-      const name = (f?.translated_name || f?.name || "").toLowerCase();
-      return keys.includes(name);
+      const name = normalizeText(f?.translated_name || f?.name || "");
+      return keys.some((key) => name === normalizeText(key));
     });
-    return field?.translated_selected_values?.[0] || field?.value?.[0];
+    return (
+      field?.translated_selected_values?.[0] ||
+      field?.selected_values?.[0] ||
+      field?.value?.[0] ||
+      field?.value
+    );
   };
-
-  const condition = findValue(["stanje oglasa", "stanje"]);
-  if (condition) attributes.push(condition);
 
   const year = findValue(["godište", "godiste"]);
   if (year) attributes.push(year);
@@ -72,18 +75,28 @@ const getKeyAttributes = (item) => {
   const transmission = findValue(["mjenjač", "mjenjac"]);
   if (transmission) attributes.push(transmission);
 
-  if (attributes.length > 0) return attributes;
+  return attributes;
+};
 
-  const tags = [];
-  const skipFields = ["stanje", "condition", "opis", "description", "naslov", "title"];
-  for (const field of customFields) {
-    if (tags.length >= 3) break;
-    const fieldName = (field?.name || field?.translated_name || "").toLowerCase();
-    if (skipFields.some((skip) => fieldName.includes(skip))) continue;
-    const value = field?.translated_selected_values?.[0] || field?.value?.[0];
-    if (value && typeof value === "string" && value.length < 25) tags.push(value);
+const getConditionLabel = (item) => {
+  const customFields = item?.translated_custom_fields || [];
+  const field = customFields.find((f) => {
+    const name = normalizeText(f?.translated_name || f?.name || "");
+    return ["stanje oglasa", "stanje", "condition", "item condition"].includes(name);
+  });
+
+  const rawValue = field?.translated_selected_values?.[0] || field?.value?.[0] || field?.value;
+  if (!rawValue) return "";
+
+  const normalized = normalizeText(rawValue);
+  if (["novo", "new", "nekoristeno", "unused"].includes(normalized)) {
+    return "Novo";
   }
-  return tags;
+  if (["koristeno", "used", "polovno", "rabljeno"].includes(normalized)) {
+    return "Korišteno";
+  }
+
+  return String(rawValue).trim();
 };
 
 const getThreeDots = (total, current) => {
@@ -113,6 +126,9 @@ const toBoolean = (value) => {
       "true",
       "yes",
       "da",
+      "odmah",
+      "dostupno",
+      "dostupan",
       "moguce",
       "moguca",
       "moze",
@@ -131,6 +147,9 @@ const toBoolean = (value) => {
       "false",
       "no",
       "ne",
+      "nije",
+      "nedostupno",
+      "nedostupan",
       "nemoguce",
       "nemoguca",
       "ne moze",
@@ -156,8 +175,25 @@ const parseJsonSafe = (value) => {
   }
 };
 
+const readBooleanFromCandidates = (candidates = []) => {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      for (const nested of candidate) {
+        const parsedNested = toBoolean(nested);
+        if (parsedNested !== null) return parsedNested;
+      }
+      continue;
+    }
+
+    const parsed = toBoolean(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  return null;
+};
+
 const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
-  const keysSet = new Set(keys);
+  const keysSet = new Set(keys.map((key) => normalizeText(key)));
   const customFields = parseJsonSafe(customFieldsValue);
   if (!customFields || typeof customFields !== "object") return null;
 
@@ -165,8 +201,8 @@ const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
     if (!node || typeof node !== "object") return null;
 
     for (const [key, value] of Object.entries(node)) {
-      if (keysSet.has(key)) {
-        const parsed = toBoolean(value);
+      if (keysSet.has(normalizeText(key))) {
+        const parsed = readBooleanFromCandidates([value]);
         if (parsed !== null) return parsed;
       }
 
@@ -182,40 +218,85 @@ const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
   return walk(customFields);
 };
 
-const readExchangeFromTranslatedFields = (item = {}) => {
+const extractTranslatedFieldValues = (field) => {
+  const candidates = [
+    field?.translated_selected_values,
+    field?.selected_values,
+    field?.value,
+    field?.translated_value,
+    field?.selected_value,
+    field?.translated_selected_value,
+  ];
+
+  const flattened = [];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) flattened.push(...candidate);
+    else if (candidate !== undefined && candidate !== null) flattened.push(candidate);
+  }
+
+  return flattened;
+};
+
+const readBooleanFromTranslatedFields = (item = {}, fieldNameHints = []) => {
+  const hints = fieldNameHints.map((hint) => normalizeText(hint));
   const fields = [
     ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
     ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
   ];
+  if (!fields.length) return null;
 
   for (const field of fields) {
     const fieldName = normalizeText(field?.translated_name || field?.name || "");
     if (!fieldName) continue;
-    if (!["zamjen", "zamena", "exchange", "trade", "swap"].some((hint) => fieldName.includes(hint))) {
-      continue;
-    }
+    if (!hints.some((hint) => fieldName.includes(hint))) continue;
 
-    const values = [
-      field?.translated_selected_values,
-      field?.selected_values,
-      field?.value,
-      field?.translated_value,
-      field?.selected_value,
-      field?.translated_selected_value,
-    ];
-
-    for (const candidate of values) {
-      if (Array.isArray(candidate)) {
-        for (const nested of candidate) {
-          const parsedNested = toBoolean(nested);
-          if (parsedNested !== null) return parsedNested;
-        }
-      } else {
-        const parsed = toBoolean(candidate);
-        if (parsed !== null) return parsed;
-      }
-    }
+    const parsed = readBooleanFromCandidates(extractTranslatedFieldValues(field));
+    if (parsed !== null) return parsed;
   }
+
+  return null;
+};
+
+const readAvailableNow = (item = {}) => {
+  const directCandidates = [
+    item?.available_now,
+    item?.is_available,
+    item?.is_avaible,
+    item?.isAvailable,
+    item?.availableNow,
+    item?.dostupno_odmah,
+    item?.ready_for_pickup,
+    item?.translated_item?.available_now,
+    item?.translated_item?.is_available,
+    item?.translated_item?.is_avaible,
+    item?.translated_item?.isAvailable,
+    item?.translated_item?.availableNow,
+    item?.translated_item?.dostupno_odmah,
+    item?.translated_item?.ready_for_pickup,
+  ];
+
+  const direct = readBooleanFromCandidates(directCandidates);
+  if (direct !== null) return direct;
+
+  const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
+    "available_now",
+    "is_available",
+    "is_avaible",
+    "isAvailable",
+    "availableNow",
+    "dostupno_odmah",
+    "ready_for_pickup",
+  ]);
+  if (fromCustomFields !== null) return fromCustomFields;
+
+  const fromTranslatedFields = readBooleanFromTranslatedFields(item, [
+    "dostup",
+    "available",
+    "isporuk",
+    "odmah",
+    "ready",
+  ]);
+  if (fromTranslatedFields !== null) return fromTranslatedFields;
 
   return null;
 };
@@ -235,10 +316,8 @@ const readExchangePossible = (item = {}) => {
     item?.translated_item?.zamjena,
   ];
 
-  for (const candidate of directCandidates) {
-    const parsed = toBoolean(candidate);
-    if (parsed !== null) return parsed;
-  }
+  const direct = readBooleanFromCandidates(directCandidates);
+  if (direct !== null) return direct;
 
   const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
     "exchange_possible",
@@ -253,7 +332,13 @@ const readExchangePossible = (item = {}) => {
   ]);
   if (fromCustomFields !== null) return fromCustomFields;
 
-  const fromTranslatedFields = readExchangeFromTranslatedFields(item);
+  const fromTranslatedFields = readBooleanFromTranslatedFields(item, [
+    "zamjen",
+    "zamena",
+    "exchange",
+    "trade",
+    "swap",
+  ]);
   if (fromTranslatedFields !== null) return fromTranslatedFields;
 
   return false;
@@ -288,8 +373,16 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
   const translatedItem = item?.translated_item;
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
   const keyAttributes = getKeyAttributes(item);
-  const displayCity = item?.translated_city || item?.city || "";
-  const displayAddress = item?.translated_address || item?.address || "";
+  const conditionLabel = getConditionLabel(item);
+  const availableNow = readAvailableNow(item);
+  const isShopSeller = resolveMembership(
+    item,
+    item?.membership,
+    item?.user,
+    item?.user?.membership,
+    item?.seller,
+    item?.seller_settings
+  ).isShop;
   const hasVideo = Boolean(item?.video_link && String(item?.video_link).trim() !== "");
   const exchangePossible = readExchangePossible(item);
   const isReserved = item?.status === "reserved" || item?.reservation_status === "reserved";
@@ -336,7 +429,6 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
   }, [item?.image, item?.gallery_images]);
 
   const totalSlides = slides.length;
-  const totalImages = Math.max(0, totalSlides - 1);
   const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
 
   const threeDots = useMemo(
@@ -455,12 +547,12 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className="relative w-[140px] shrink-0 sm:w-[200px] md:w-[230px]"
+        className="relative w-[120px] shrink-0 self-stretch sm:w-[200px] md:w-[230px]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative aspect-square bg-slate-50 dark:bg-slate-950">
+        <div className="relative h-full min-h-[120px] bg-slate-50 dark:bg-slate-950 sm:min-h-[200px] md:min-h-[230px]">
           {slides.map((slide, index) => (
             <div
               key={`${slide.type}-${index}`}
@@ -494,10 +586,10 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           {!isViewMoreSlide ? (
             <>
               <div className="absolute left-2 top-2 z-30 flex items-center gap-1">
-                {item?.is_feature ? (
+                {isShopSeller ? (
                   <OverlayPill
-                    icon={Rocket}
-                    className="border-amber-200 bg-amber-100/95 text-amber-700"
+                    icon={Store}
+                    className="border-indigo-200 bg-indigo-100/95 text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-900/55 dark:text-indigo-200"
                   />
                 ) : null}
 
@@ -555,12 +647,6 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="border-red-200 bg-red-100/90 text-red-700">
                   Video
-                </OverlayPill>
-              ) : null}
-
-              {totalImages > 1 ? (
-                <OverlayPill icon={Images} className="border-slate-200 bg-white/90 text-slate-700">
-                  {totalImages}
                 </OverlayPill>
               ) : null}
             </div>
@@ -633,30 +719,23 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 sm:p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
-            {translatedItem?.name || item?.name}
-          </h3>
-          {exchangePossible ? (
-            <span
-              className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
-              title="Zamjena moguća"
-              aria-label="Zamjena moguća"
+          <div className="min-w-0 flex-1">
+            <h3
+              className="line-clamp-2 min-w-0 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100"
+              title={item?.is_feature ? "Istaknuti oglas" : undefined}
             >
-              <GitCompare className="h-full w-full" />
-            </span>
-          ) : null}
-        </div>
-
-        {/* {(displayCity || displayAddress) ? (
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-            <MapPin className="h-3.5 w-3.5" />
-            <span className="truncate">{displayCity || displayAddress}</span>
+              {translatedItem?.name || item?.name}
+              {item?.is_feature ? (
+                <Rocket
+                  className="ml-1 inline-block h-4 w-4 align-[-1px] text-amber-500 dark:text-amber-300"
+                  aria-label="Istaknuti oglas"
+                />
+              ) : null}
+            </h3>
           </div>
-        ) : null}
 
-        {displayCity && displayAddress ? (
-          <p className="line-clamp-1 text-xs text-slate-400 dark:text-slate-500">{displayAddress}</p>
-        ) : null} */}
+          
+        </div>
 
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
           <div className="flex flex-wrap gap-1">
@@ -675,37 +754,88 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           </div>
         ) : null}
 
+        {conditionLabel || availableNow ? (
+          <div className="flex">
+            <div className="inline-flex max-w-full flex-wrap items-center justify-end gap-1.5">
+              {conditionLabel ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
+                    "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
+                  )}
+                >
+                  {conditionLabel}
+                </span>
+              ) : null}
+
+              {availableNow ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-emerald-300 bg-emerald-100/95 text-emerald-800 shadow-sm",
+                    "dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200"
+                  )}
+                >
+                  Dostupno odmah
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">
+          
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
             <Clock className="h-3.5 w-3.5" />
             <span>{formatRelativeTime(item?.created_at)}</span>
           </div>
 
+          
+
           {!isHidePrice ? (
-            <div className="flex flex-col items-end leading-none">
-              {isOnSale && Number(oldPrice) > 0 && discountPercentage > 0 ? (
-                <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
-                  {formatPriceAbbreviated(Number(oldPrice))}
+            <div className="flex items-center gap-2">
+              {exchangePossible ? (
+                <span
+                  className={cn(
+                    "inline-flex h-7 w-7 items-center justify-center rounded-full border",
+                    "border-cyan-300 bg-cyan-100/95 text-cyan-700 shadow-sm",
+                    "dark:border-cyan-700/70 dark:bg-cyan-900/40 dark:text-cyan-200"
+                  )}
+                  title="Zamjena moguća"
+                  aria-label="Zamjena moguća"
+                >
+                  <TransferHorizontalLine className="h-4 w-4" />
                 </span>
               ) : null}
 
-              <span
-                className={cn(
-                  "text-sm font-bold tabular-nums",
-                  isOnSale && discountPercentage > 0 && Number(currentPrice) > 0
-                    ? "text-rose-600"
-                    : "text-slate-900 dark:text-slate-100"
-                )}
-                title={
-                  isJobCategory
+              <div className="flex flex-col items-end leading-none">
+                {isOnSale && Number(oldPrice) > 0 && discountPercentage > 0 ? (
+                  <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
+                    {formatPriceAbbreviated(Number(oldPrice))}
+                  </span>
+                ) : null}
+
+                <span
+                  className={cn(
+                    "text-sm font-bold tabular-nums",
+                    isOnSale && discountPercentage > 0 && Number(currentPrice) > 0
+                      ? "text-rose-600"
+                      : "text-slate-900 dark:text-slate-100"
+                  )}
+                  title={
+                    isJobCategory
+                      ? formatSalaryRange(item?.min_salary, item?.max_salary)
+                      : formatPriceOrInquiry(item?.price)
+                  }
+                >
+                  {isJobCategory
                     ? formatSalaryRange(item?.min_salary, item?.max_salary)
-                    : formatPriceOrInquiry(item?.price)
-                }
-              >
-                {isJobCategory
-                  ? formatSalaryRange(item?.min_salary, item?.max_salary)
-                  : formatPriceOrInquiry(item?.price)}
-              </span>
+                    : formatPriceOrInquiry(item?.price)}
+                </span>
+              </div>
             </div>
           ) : null}
         </div>

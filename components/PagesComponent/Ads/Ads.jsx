@@ -6,6 +6,7 @@ import Filter from "../../Filter/Filter";
 import {
   allItemApi,
   FeaturedSectionApi,
+  categoryApi,
   getCustomFieldsApi,
   getParentCategoriesApi,
 } from "@/utils/api";
@@ -55,6 +56,43 @@ import SavedSearchControls from "./SavedSearchControls";
 // ============================================
 import { useSearchTracking } from "@/hooks/useItemTracking";
 
+const buildQuickNavigationCategories = (items = [], categorySlugById = new Map()) => {
+  const categoryMap = new Map();
+
+  (items || []).forEach((item) => {
+    const category = item?.category || null;
+    const categoryId = Number(category?.id || item?.category_id);
+    const slugFromId = Number.isFinite(categoryId) ? categorySlugById.get(categoryId) : null;
+    const slug = category?.slug || item?.category_slug || slugFromId || null;
+    if (!slug) return;
+
+    const key = String(slug).toLowerCase();
+    const label =
+      category?.translated_name ||
+      category?.name ||
+      item?.translated_category_name ||
+      item?.category_name ||
+      String(slug).replace(/-/g, " ");
+
+    const existing = categoryMap.get(key);
+    if (existing) {
+      existing.count += 1;
+      return;
+    }
+
+    categoryMap.set(key, {
+      slug,
+      label,
+      count: 1,
+    });
+  });
+
+  return Array.from(categoryMap.values()).sort((a, b) => {
+    if ((b.count || 0) !== (a.count || 0)) return (b.count || 0) - (a.count || 0);
+    return String(a.label || "").localeCompare(String(b.label || ""));
+  });
+};
+
 const Ads = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
@@ -79,6 +117,7 @@ const Ads = () => {
   const filterTriggerTopRef = useRef(0);
   const filterTriggerBottomRef = useRef(0);
   const lastEmittedMobileHeaderRef = useRef(null);
+  const quickCategoryRequestIdRef = useRef(0);
   const [advertisements, setAdvertisements] = useState({
     data: [],
     currentPage: 1,
@@ -87,18 +126,28 @@ const Ads = () => {
     isLoadMore: false,
   });
   const [featuredTitle, setFeaturedTitle] = useState("");
+  const [categorySlugById, setCategorySlugById] = useState(() => new Map());
+  const [searchQuickCategories, setSearchQuickCategories] = useState([]);
+  const [isQuickCategoryLoading, setIsQuickCategoryLoading] = useState(false);
 
   const selectedLocation = useSelector(getSelectedLocation);
 
-  const query = searchParams.get("query") || "";
+  const rawQuery =
+    searchParams.get("query") ||
+    searchParams.get("search") ||
+    searchParams.get("q") ||
+    "";
+  const query = String(rawQuery).trim();
   const slug = searchParams.get("category") || "";
   const country = searchParams.get("country") || "";
   const state = searchParams.get("state") || "";
   const city = searchParams.get("city") || "";
   const area = searchParams.get("area") || "";
   const areaId = Number(searchParams.get("areaId")) || "";
-  const lat = Number(searchParams.get("lat"));
-  const lng = Number(searchParams.get("lng"));
+  const latParam = searchParams.get("lat");
+  const lngParam = searchParams.get("lng");
+  const lat = latParam === null || latParam === "" ? null : Number(latParam);
+  const lng = lngParam === null || lngParam === "" ? null : Number(lngParam);
   const min_price = searchParams.get("min_price")
     ? Number(searchParams.get("min_price"))
     : "";
@@ -134,10 +183,17 @@ const Ads = () => {
     "sort_by",
     "category",
     "query",
+    "search",
+    "q",
     "lang",
     "featured_section",
     "seller_type",
     "seller_verified",
+    "location",
+    "page",
+    "view",
+    "ref",
+    "search_id",
   ];
 
   const title = useMemo(() => {
@@ -163,7 +219,8 @@ const Ads = () => {
   const initialExtraDetails = useMemo(() => {
     const temprorayExtraDet = {};
     Array.from(searchParams.entries() || []).forEach(([key, value]) => {
-      if (!knownParams?.includes(key)) {
+      const isCustomFieldKey = /^\d+$/.test(String(key));
+      if (!knownParams?.includes(key) && isCustomFieldKey) {
         temprorayExtraDet[key] = value?.includes(",")
           ? value?.split(",")
           : value;
@@ -209,6 +266,12 @@ const Ads = () => {
   };
 
   const activeFilterCount = getActiveFilterCount();
+  const quickNavigationCategories = useMemo(() => {
+    if (!query) return [];
+    if (isQuickCategoryLoading) return searchQuickCategories;
+    if (searchQuickCategories.length > 0) return searchQuickCategories;
+    return buildQuickNavigationCategories(advertisements?.data || [], categorySlugById);
+  }, [query, isQuickCategoryLoading, searchQuickCategories, advertisements?.data, categorySlugById]);
   const isToolbarActionSheetOpen = isSortSheetOpen || isViewSheetOpen;
   const selectedLocationLabel =
     selectedLocation?.translated_name ||
@@ -225,6 +288,45 @@ const Ads = () => {
       mobileDock.clearSuspended?.(suspendKey);
     };
   }, [mobileDock, isMobile, isMobileHeaderHidden]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const mapCategoryTree = (nodes = [], map = new Map()) => {
+      (nodes || []).forEach((node) => {
+        const id = Number(node?.id);
+        const slug = node?.slug;
+        if (Number.isFinite(id) && slug) {
+          map.set(id, slug);
+        }
+        if (Array.isArray(node?.subcategories) && node.subcategories.length > 0) {
+          mapCategoryTree(node.subcategories, map);
+        }
+      });
+      return map;
+    };
+
+    const loadCategorySlugMap = async () => {
+      try {
+        const response = await categoryApi.getCategory({ page: 1, per_page: 100 });
+        const roots = response?.data?.data?.data || [];
+        const slugMap = mapCategoryTree(roots, new Map());
+        if (!cancelled) {
+          setCategorySlugById(slugMap);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCategorySlugById(new Map());
+        }
+      }
+    };
+
+    loadCategorySlugMap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const shouldHideBottomNav = Boolean(isMobile && isMobileHeaderHidden);
@@ -527,16 +629,16 @@ const Ads = () => {
     sellerVerified,
   ]);
 
-  const matchSellerType = (membership) => {
+  const matchSellerType = useCallback((membership) => {
     if (!hasSellerTypeFilter) return true;
     if (sellerType === "shop") return membership.isShop;
     if (sellerType === "pro") return membership.isPro && !membership.isShop;
     if (sellerType === "free") return !membership.isPro && !membership.isShop;
     if (sellerType === "premium") return membership.isPro || membership.isShop;
     return true;
-  };
+  }, [hasSellerTypeFilter, sellerType]);
 
-  const applySellerFilters = (items = []) => {
+  const applySellerFilters = useCallback((items = []) => {
     if (!hasSellerTypeFilter && !hasSellerVerifiedFilter) return items;
     return items.filter((item) => {
       const membership = resolveMembership(
@@ -550,7 +652,110 @@ const Ads = () => {
       if (!hasSellerVerifiedFilter) return true;
       return isSellerVerified(item, item?.user, item?.seller);
     });
-  };
+  }, [hasSellerTypeFilter, hasSellerVerifiedFilter, matchSellerType]);
+
+  useEffect(() => {
+    const normalizedQuery = String(query || "").trim();
+    if (normalizedQuery.length < 2) {
+      setSearchQuickCategories([]);
+      setIsQuickCategoryLoading(false);
+      return;
+    }
+
+    setSearchQuickCategories([]);
+    setIsQuickCategoryLoading(true);
+    const requestId = ++quickCategoryRequestIdRef.current;
+
+    const timerId = window.setTimeout(async () => {
+      try {
+        const parameters = { page: 1, limit: 120, search: normalizedQuery };
+
+        if (sortBy) parameters.sort_by = sortBy;
+        if (isMinPrice) parameters.min_price = min_price;
+        if (max_price) parameters.max_price = max_price;
+        if (date_posted) parameters.posted_since = date_posted;
+        if (extraDetails && Object.keys(extraDetails).length > 0) {
+          parameters.custom_fields = extraDetails;
+        }
+        if (featured_section) parameters.featured_section_slug = featured_section;
+
+        if (hasSellerTypeFilter) {
+          parameters.seller_type = sellerType;
+          if (sellerType === "shop") {
+            parameters.is_shop = 1;
+            parameters.shop = 1;
+          } else if (sellerType === "pro") {
+            parameters.is_pro = 1;
+            parameters.membership = "pro";
+          } else if (sellerType === "free") {
+            parameters.is_free = 1;
+          } else if (sellerType === "premium") {
+            parameters.is_premium = 1;
+          }
+        }
+
+        if (hasSellerVerifiedFilter) {
+          parameters.seller_verified = 1;
+          parameters.verified = 1;
+        }
+
+        const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+        if (Number(km_range) > 0 && hasValidCoordinates) {
+          parameters.latitude = lat;
+          parameters.longitude = lng;
+          parameters.radius = km_range;
+        } else if (areaId) {
+          parameters.area_id = areaId;
+        } else if (city) {
+          parameters.city = city;
+        } else if (state) {
+          parameters.state = state;
+        } else if (country) {
+          parameters.country = country;
+        }
+
+        const response = await allItemApi.getItems(parameters);
+        const rawItems = response?.data?.data?.data || [];
+        const filteredItems = applySellerFilters(rawItems);
+        const categories = buildQuickNavigationCategories(filteredItems, categorySlugById).slice(0, 8);
+
+        if (quickCategoryRequestIdRef.current !== requestId) return;
+        setSearchQuickCategories(categories);
+      } catch (error) {
+        if (quickCategoryRequestIdRef.current !== requestId) return;
+        setSearchQuickCategories([]);
+      } finally {
+        if (quickCategoryRequestIdRef.current === requestId) {
+          setIsQuickCategoryLoading(false);
+        }
+      }
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [
+    query,
+    sortBy,
+    isMinPrice,
+    min_price,
+    max_price,
+    date_posted,
+    extraDetails,
+    featured_section,
+    hasSellerTypeFilter,
+    sellerType,
+    hasSellerVerifiedFilter,
+    km_range,
+    lat,
+    lng,
+    areaId,
+    city,
+    state,
+    country,
+    categorySlugById,
+    applySellerFilters,
+  ]);
 
   const getSingleCatItem = async (page) => {
     try {
@@ -581,7 +786,8 @@ const Ads = () => {
         parameters.verified = 1;
       }
 
-      if (Number(km_range) > 0) {
+      const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+      if (Number(km_range) > 0 && hasValidCoordinates) {
         parameters.latitude = lat;
         parameters.longitude = lng;
         parameters.radius = km_range;
@@ -783,6 +989,8 @@ const Ads = () => {
     newSearchParams.delete("max_price");
     newSearchParams.delete("category");
     newSearchParams.delete("query");
+    newSearchParams.delete("search");
+    newSearchParams.delete("q");
     newSearchParams.delete("featured_section");
     newSearchParams.delete("seller_type");
     newSearchParams.delete("seller_verified");
@@ -795,8 +1003,22 @@ const Ads = () => {
 
   const handleClearQuery = () => {
     newSearchParams.delete("query");
+    newSearchParams.delete("search");
+    newSearchParams.delete("q");
     window.history.pushState(null, "", `/ads?${newSearchParams.toString()}`);
   };
+
+  const handleQuickCategoryNavigate = useCallback((categorySlug) => {
+    const params = new URLSearchParams(window.location.search);
+    if (categorySlug) {
+      params.set("category", categorySlug);
+    } else {
+      params.delete("category");
+    }
+    params.delete("page");
+    window.history.pushState(null, "", `/ads?${params.toString()}`);
+    window.dispatchEvent(new Event("popstate"));
+  }, []);
 
   const handleClearSellerType = () => {
     newSearchParams.delete("seller_type");
@@ -991,7 +1213,54 @@ const Ads = () => {
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100"
           >
-            <div>
+            <div className="space-y-1.5">
+              {query && (quickNavigationCategories.length > 0 || isQuickCategoryLoading) ? (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm"
+                >
+                  <span className="font-medium text-slate-500 dark:text-slate-400">
+                    Kategorije:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickCategoryNavigate("")}
+                    className={`transition-colors ${
+                      !slug
+                        ? "font-semibold text-primary"
+                        : "text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
+                    }`}
+                  >
+                    Sve
+                  </button>
+                  {quickNavigationCategories.slice(0, 8).map((cat) => (
+                    <button
+                      key={cat.slug}
+                      type="button"
+                      onClick={() => handleQuickCategoryNavigate(cat.slug)}
+                      className={`transition-colors ${
+                        slug === cat.slug
+                          ? "font-semibold text-primary"
+                          : "text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
+                      }`}
+                      title={`Otvori kategoriju: ${cat.label}`}
+                    >
+                      {cat.label}
+                      <span className="ml-1 text-[11px] text-slate-400 dark:text-slate-500">
+                        ({cat.count})
+                      </span>
+                    </button>
+                  ))}
+                  {isQuickCategoryLoading && quickNavigationCategories.length === 0 ? (
+                    <span className="text-slate-400 dark:text-slate-500">
+                      Tražim kategorije...
+                    </span>
+                  ) : null}
+                </motion.div>
+              ) : null}
               <p className="text-sm text-gray-500 mt-1">
                 {advertisements?.data?.length || 0}{" "}
                 {((advertisements?.data?.length || 0) % 10 === 1 &&
@@ -1228,7 +1497,7 @@ const Ads = () => {
                   </motion.div>
                 ) : (
                   <motion.div
-                    className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
+                    className="col-span-12 sm:col-span-3 lg:col-span-2 xl:col-span-2"
                     key={item.id || index}
                     variants={cardAnimation}
                     initial="hidden"

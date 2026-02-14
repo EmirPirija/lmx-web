@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useNavigate } from "../Common/useNavigate"; 
 import useGetCategories from "../Layout/useGetCategories"; 
 import { categoryApi } from "@/utils/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // --- HELPERI ---
 const formatAdCount = (count) => {
@@ -32,11 +33,11 @@ const flattenForLookup = (categories = []) => {
 
 // --- SKELETON ---
 const CategorySkeleton = () => (
-  <div className="space-y-4 animate-pulse p-4">
+  <div className="space-y-4 p-4">
     {[1, 2, 3].map((i) => (
       <div key={i} className="flex items-center justify-between">
-        <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-        <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
+        <Skeleton className="h-5 w-1/3" />
+        <Skeleton className="h-5 w-5 rounded-full" />
       </div>
     ))}
   </div>

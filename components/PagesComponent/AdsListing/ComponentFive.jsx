@@ -178,18 +178,18 @@ const ComponentFive = ({
         
         {/* Ako je lokacija učitana iz profila */}
         {locationSource === "profile" && location?.city && (
-          <div className="flex items-start gap-4 bg-green-50 border-2 border-green-200 rounded-xl p-4">
+          <div className="flex items-start gap-4 rounded-xl border-2 border-green-200 bg-green-50 p-4 dark:border-green-500/40 dark:bg-green-500/10">
             <div className="bg-green-500 p-2 rounded-lg">
               <MdCheckCircle className="text-white" size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-green-800">Lokacija preuzeta iz profila</h3>
-              <p className="text-sm text-green-700 mt-1">
+              <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">Lokacija je preuzeta iz profila</h3>
+              <p className="mt-1 text-sm text-green-700 dark:text-green-200">
                 {location?.address || getFormattedAddress()}
               </p>
               <button
                 onClick={handleUseManualLocation}
-                className="mt-3 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
+                className="mt-3 flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
               >
                 <MdEditLocation size={18} />
                 Koristi drugu lokaciju za ovaj oglas
@@ -200,28 +200,28 @@ const ComponentFive = ({
  
         {/* Ako je ručno odabrana lokacija */}
         {locationSource === "manual" && location?.city && (
-          <div className="flex items-start gap-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+          <div className="flex items-start gap-4 rounded-xl border-2 border-blue-200 bg-blue-50 p-4 dark:border-blue-500/40 dark:bg-blue-500/10">
             <div className="bg-blue-500 p-2 rounded-lg">
               <MdEditLocation className="text-white" size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-blue-800">Lokacija oglasa</h3>
-              <p className="text-sm text-blue-700 mt-1">
+              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">Lokacija oglasa</h3>
+              <p className="mt-1 text-sm text-blue-700 dark:text-blue-200">
                 {location?.address_translated || location?.address}
               </p>
               <div className="flex gap-3 mt-3">
                 <button
                   onClick={handleUseManualLocation}
-                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  className="text-sm text-blue-600 underline hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
                 >
                   Promijeni lokaciju
                 </button>
                 {hasLocation && (
                   <button
                     onClick={handleUseProfileLocation}
-                    className="text-sm text-green-600 hover:text-green-800 underline"
+                    className="text-sm text-green-600 underline hover:text-green-800 dark:text-green-300 dark:hover:text-green-200"
                   >
-                    Koristi profil lokaciju
+                    Koristi lokaciju iz profila
                   </button>
                 )}
               </div>
@@ -234,14 +234,14 @@ const ComponentFive = ({
           <>
             {/* Info ako ima profil lokacija */}
             {hasLocation && (
-              <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+              <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-500/40 dark:bg-green-500/10">
                 <MdCheckCircle className="text-green-600 mt-0.5 shrink-0" size={20} />
                 <div className="flex-1">
-                  <p className="text-sm text-green-800 font-medium">Imate sačuvanu lokaciju u profilu</p>
-                  <p className="text-xs text-green-700 mt-1">{getFormattedAddress()}</p>
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">Imate sačuvanu lokaciju u profilu</p>
+                  <p className="mt-1 text-xs text-green-700 dark:text-green-300">{getFormattedAddress()}</p>
                   <button
                     onClick={handleUseProfileLocation}
-                    className="mt-2 text-sm text-green-700 hover:text-green-900 font-semibold underline"
+                    className="mt-2 text-sm font-semibold text-green-700 underline hover:text-green-900 dark:text-green-200 dark:hover:text-green-100"
                   >
                     Koristi ovu lokaciju
                   </button>
@@ -250,14 +250,14 @@ const ComponentFive = ({
             )}
  
             {/* BiH Location Selector */}
-            <div className="bg-white rounded-xl border-2 border-gray-200 p-6">
+            <div className="rounded-xl border-2 border-gray-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-primary/10 p-2 rounded-lg">
                   <IoLocationOutline className="text-primary" size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">Odaberite lokaciju oglasa</h3>
-                  <p className="text-sm text-gray-500">Gdje se nalazi vaš artikal?</p>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100">Odaberite lokaciju oglasa</h3>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Gdje se nalazi vaš artikal?</p>
                 </div>
               </div>
               
@@ -269,24 +269,24 @@ const ComponentFive = ({
               />
  
               {/* Alternativa - ručni dropdown */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="mt-4 border-t border-gray-200 pt-4 dark:border-slate-700">
                 <button
                   onClick={() => setShowManualAddress(true)}
-                  className="w-full py-3 px-4 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 transition-all"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-3 font-medium text-gray-700 transition-all hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                 >
                   <IoLocationOutline size={20} />
-                  Ili odaberi putem dropdown menija (država/grad/općina)
+                  Ili odaberite putem padajućeg izbornika (država/grad/općina)
                 </button>
               </div>
             </div>
  
             {/* Info ako nema profil lokacije */}
             {!hasLocation && (
-              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
                 <MdInfoOutline className="text-amber-600 mt-0.5 shrink-0" size={20} />
                 <div>
-                  <p className="text-sm text-amber-800 font-medium">Savjet</p>
-                  <p className="text-xs text-amber-700 mt-1">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Savjet</p>
+                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                     Postavite svoju lokaciju u profilu i ona će se automatski popuniti prilikom svakog novog oglasa.
                   </p>
                 </div>
@@ -297,13 +297,13 @@ const ComponentFive = ({
  
         {/* Prikaz odabrane lokacije */}
         {location?.city && (
-          <div className="flex items-start gap-4 bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm">
-            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+          <div className="flex items-start gap-4 rounded-xl border-2 border-gray-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
               <BiMapPin className="text-blue-600" size={28} />
             </div>
             <div className="flex-1">
-              <h6 className="font-semibold text-gray-800 text-lg mb-1">Lokacija oglasa</h6>
-              <p className="text-gray-600">
+              <h6 className="mb-1 text-lg font-semibold text-gray-800 dark:text-slate-100">Lokacija oglasa</h6>
+              <p className="text-gray-600 dark:text-slate-300">
                 {location?.address_translated || location?.address}
               </p>
             </div>

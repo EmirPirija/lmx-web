@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 
 import {
-  ArrowRight,
   CalendarDays,
   CheckCircle,
   CheckSquare,
@@ -15,14 +14,13 @@ import {
   Edit,
   Eye,
   EyeOff,
-  GitCompare,
   Home,
-  Images,
   Layers3,
   MoreVertical,
   Rocket,
   RotateCcw,
   Sparkles,
+  TransferHorizontalLine,
   Trash2,
   X,
   Youtube,
@@ -43,47 +41,53 @@ import { useMediaQuery } from "usehooks-ts";
 // POMOĆNE FUNKCIJE
 // ============================================
 
-const formatRelativeTime = (dateString) => {
-  if (!dateString) return "";
-
-  const now = new Date();
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) return "";
-
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  if (diffInSeconds < 60) return "Upravo sada";
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60)
-    return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24)
-    return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30)
-    return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12)
-    return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
-};
-
 const POSITION_RENEW_COOLDOWN_DAYS = 15;
 
 const parseDateSafe = (value) => {
   if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === "number") {
+    const numeric = new Date(value);
+    if (!Number.isNaN(numeric.getTime())) return numeric;
+  }
   const parsed = new Date(value);
   if (!Number.isNaN(parsed.getTime())) return parsed;
 
   if (typeof value === "string" && value.includes(" ")) {
     const normalized = new Date(value.replace(" ", "T"));
     if (!Number.isNaN(normalized.getTime())) return normalized;
+  }
+
+  return null;
+};
+
+const getRenewBaselineDate = (item) => {
+  if (!item || typeof item !== "object") return null;
+
+  const hasLastRenewedAtField = Object.prototype.hasOwnProperty.call(item, "last_renewed_at");
+  if (hasLastRenewedAtField) {
+    return parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at);
+  }
+
+  // Backend fallback when DB does not have last_renewed_at column.
+  return parseDateSafe(item?.updated_at) || parseDateSafe(item?.created_at);
+};
+
+const getRenewNextAllowedDate = (item) => {
+  if (!item || typeof item !== "object") return null;
+
+  const candidates = [
+    item?.next_position_renew_at,
+    item?.next_renewal_at,
+    item?.position_renew_available_at,
+    item?.renew_available_at,
+    item?.renewal_available_at,
+    item?.next_refresh_at,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = parseDateSafe(candidate);
+    if (parsed) return parsed;
   }
 
   return null;
@@ -118,46 +122,23 @@ const featuredPlacementOptions = [
 
 const featuredDurationOptions = [7, 15, 30, 45, 60, 90];
 
-const getSmartTagsFallback = (item) => {
-  const tags = [];
-  const skipFields = [
-    "stanje",
-    "condition",
-    "opis",
-    "description",
-    "naslov",
-    "title",
-  ];
-  const customFields = item?.translated_custom_fields || [];
-
-  for (const field of customFields) {
-    if (tags.length >= 3) break;
-    const fieldName = (field?.name || field?.translated_name || "").toLowerCase();
-    if (skipFields.some((skip) => fieldName.includes(skip))) continue;
-
-    const value =
-      field?.translated_selected_values?.[0] || field?.value?.[0];
-    if (value && typeof value === "string" && value.length < 25) tags.push(value);
-  }
-
-  return tags;
-};
-
 const getKeyAttributes = (item) => {
   const attributes = [];
   const customFields = item?.translated_custom_fields || [];
 
   const findValue = (keys) => {
     const field = customFields.find((f) => {
-      const name = (f?.translated_name || f?.name || "").toLowerCase();
-      return keys.includes(name);
+      const name = normalizeText(f?.translated_name || f?.name || "");
+      return keys.some((key) => name === normalizeText(key));
     });
 
-    return field?.translated_selected_values?.[0] || field?.value?.[0];
+    return (
+      field?.translated_selected_values?.[0] ||
+      field?.selected_values?.[0] ||
+      field?.value?.[0] ||
+      field?.value
+    );
   };
-
-  const condition = findValue(["stanje oglasa", "stanje"]);
-  if (condition) attributes.push(condition);
 
   const year = findValue(["godište", "godiste"]);
   if (year) attributes.push(year);
@@ -168,8 +149,27 @@ const getKeyAttributes = (item) => {
   const transmission = findValue(["mjenjač", "mjenjac"]);
   if (transmission) attributes.push(transmission);
 
-  if (attributes.length === 0) return getSmartTagsFallback(item);
   return attributes;
+};
+
+const getConditionLabel = (item) => {
+  const customFields = item?.translated_custom_fields || [];
+  const field = customFields.find((f) => {
+    const name = normalizeText(f?.translated_name || f?.name || "");
+    return ["stanje oglasa", "stanje", "condition", "item condition"].includes(name);
+  });
+
+  const rawValue =
+    field?.translated_selected_values?.[0] ||
+    field?.selected_values?.[0] ||
+    field?.value?.[0] ||
+    field?.value;
+  if (!rawValue) return "";
+
+  const normalized = normalizeText(rawValue);
+  if (["novo", "new", "nekoristeno", "unused"].includes(normalized)) return "Novo";
+  if (["koristeno", "used", "polovno", "rabljeno"].includes(normalized)) return "Korišteno";
+  return String(rawValue).trim();
 };
 
 // Funkcija koja vraća najviše 3 tačke za indikaciju
@@ -208,6 +208,9 @@ const toBoolean = (value) => {
       "true",
       "yes",
       "da",
+      "odmah",
+      "dostupno",
+      "dostupan",
       "moguce",
       "moguca",
       "moze",
@@ -226,6 +229,9 @@ const toBoolean = (value) => {
       "false",
       "no",
       "ne",
+      "nije",
+      "nedostupno",
+      "nedostupan",
       "nemoguce",
       "nemoguca",
       "ne moze",
@@ -275,6 +281,84 @@ const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
   };
 
   return walk(customFields);
+};
+
+const readAvailableFromTranslatedFields = (item = {}) => {
+  const fields = [
+    ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
+    ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
+  ];
+
+  for (const field of fields) {
+    const fieldName = normalizeText(field?.translated_name || field?.name || "");
+    if (!fieldName) continue;
+    if (!["dostup", "available", "odmah", "isporuk", "ready"].some((hint) => fieldName.includes(hint))) {
+      continue;
+    }
+
+    const values = [
+      field?.translated_selected_values,
+      field?.selected_values,
+      field?.value,
+      field?.translated_value,
+      field?.selected_value,
+      field?.translated_selected_value,
+    ];
+
+    for (const candidate of values) {
+      if (Array.isArray(candidate)) {
+        for (const nested of candidate) {
+          const parsedNested = toBoolean(nested);
+          if (parsedNested !== null) return parsedNested;
+        }
+      } else {
+        const parsed = toBoolean(candidate);
+        if (parsed !== null) return parsed;
+      }
+    }
+  }
+
+  return null;
+};
+
+const readAvailableNow = (item = {}) => {
+  const directCandidates = [
+    item?.available_now,
+    item?.is_available,
+    item?.is_avaible,
+    item?.isAvailable,
+    item?.availableNow,
+    item?.dostupno_odmah,
+    item?.ready_for_pickup,
+    item?.translated_item?.available_now,
+    item?.translated_item?.is_available,
+    item?.translated_item?.is_avaible,
+    item?.translated_item?.isAvailable,
+    item?.translated_item?.availableNow,
+    item?.translated_item?.dostupno_odmah,
+    item?.translated_item?.ready_for_pickup,
+  ];
+
+  for (const candidate of directCandidates) {
+    const parsed = toBoolean(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
+    "available_now",
+    "is_available",
+    "is_avaible",
+    "isAvailable",
+    "availableNow",
+    "dostupno_odmah",
+    "ready_for_pickup",
+  ]);
+  if (fromCustomFields !== null) return fromCustomFields;
+
+  const fromTranslatedFields = readAvailableFromTranslatedFields(item);
+  if (fromTranslatedFields !== null) return fromTranslatedFields;
+
+  return null;
 };
 
 const readExchangeFromTranslatedFields = (item = {}) => {
@@ -372,6 +456,13 @@ const OverlayPill = ({ icon: Icon, children, className }) => (
     {children}
   </div>
 );
+
+const formatPriceOrInquiry = (price) => {
+  if (price === null || price === undefined) return "Na upit";
+  if (typeof price === "string" && price.trim() === "") return "Na upit";
+  if (Number(price) === 0) return "Na upit";
+  return formatPriceAbbreviated(Number(price));
+};
 
 // ============================================
 // FEATURED PLAN MODAL
@@ -927,7 +1018,9 @@ const MyAdsCard = ({
   const translatedItem = data?.translated_item;
 
   const keyAttributes = getKeyAttributes(data);
-  const displayCity = data?.translated_city || data?.city || "";
+  const conditionLabel = getConditionLabel(data);
+  const availableNow = readAvailableNow(data);
+  const topStatusCount = [Boolean(conditionLabel), Boolean(availableNow)].filter(Boolean).length;
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -978,13 +1071,16 @@ const MyAdsCard = ({
     status === "approved" || status === "featured" || status === "reserved";
   const isEditable = isApproved;
   const isFeatureAd = Boolean(data?.is_feature);
-  const baselineRenewDate = parseDateSafe(data?.last_renewed_at) || parseDateSafe(data?.created_at);
-  const nextPositionRenewAt = baselineRenewDate
-    ? new Date(
-        baselineRenewDate.getTime() +
-          POSITION_RENEW_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
-      )
-    : null;
+  const nextPositionRenewAtFromApi = getRenewNextAllowedDate(data);
+  const baselineRenewDate = getRenewBaselineDate(data);
+  const nextPositionRenewAt = nextPositionRenewAtFromApi
+    ? nextPositionRenewAtFromApi
+    : baselineRenewDate
+      ? new Date(
+          baselineRenewDate.getTime() +
+            POSITION_RENEW_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+        )
+      : null;
   const isPositionRenewWindowOpen = nextPositionRenewAt ? Date.now() >= nextPositionRenewAt.getTime() : false;
   const canPositionRenew =
     isApproved &&
@@ -1019,8 +1115,6 @@ const MyAdsCard = ({
 
   const hasVideo = !!(data?.video_link && String(data?.video_link).trim() !== "");
   const exchangePossible = readExchangePossible(data);
-  const sellerProductCode = String(data?.seller_product_code || "").trim();
-
   const isHidePrice = isJobCategory
     ? [data?.min_salary, data?.max_salary].every(
         (val) =>
@@ -1077,7 +1171,6 @@ const MyAdsCard = ({
   }, [data?.image, data?.gallery_images]);
 
   const totalSlides = slides.length;
-  const totalImages = Math.max(0, totalSlides - 1);
 
   const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
 
@@ -1218,7 +1311,7 @@ const MyAdsCard = ({
     >
       {/* MEDIJ */}
       <div
-        className={cn("relative overflow-hidden", "rounded-t-xl", "touch-pan-y")}
+        className={cn("relative overflow-visible", "rounded-t-xl", "touch-pan-y")}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -1242,14 +1335,14 @@ const MyAdsCard = ({
                   alt={title || "listing"}
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-50">
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-primary/5">
                   <motion.div
                     initial={{ scale: 0.8, rotate: -10 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ duration: 0.3, type: "spring" }}
                     className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15"
                   >
-                    <ArrowRight className="w-6 h-6" />
+                    <ChevronRight className="w-6 h-6" />
                   </motion.div>
                   <p className="text-sm font-semibold text-slate-900 text-center">Detalji</p>
                   <p className="text-xs text-slate-500 text-center mt-1">Otvori oglas</p>
@@ -1280,36 +1373,6 @@ const MyAdsCard = ({
               />
             </motion.div>
           )}
-
-          {/* Status gore-lijevo */}
-          {!isViewMoreSlide ? (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className={cn(
-                "absolute top-2 z-20 flex items-center gap-2",
-                isSelectable ? "left-9" : "left-2"
-              )}
-            >
-              {data?.is_feature ? (
-                <OverlayPill
-                  icon={Rocket}
-                  className="border-amber-200 bg-amber-100/95 text-amber-700"
-                />
-                
-              ) : null}
-
-              {/* {isReserved ? (
-                <OverlayPill
-                  icon={Clock}
-                  className="border-blue-200 bg-blue-100/95 text-blue-700"
-                >
-                  Rezervisano
-                </OverlayPill>
-              ) : null} */}
-            </motion.div>
-          ) : null}
 
           {/* Dugme za quick actions gore-desno */}
           <div className="absolute top-2 right-2 z-30">
@@ -1365,24 +1428,54 @@ const MyAdsCard = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="absolute bottom-2 left-2 z-20 flex items-center gap-2"
+              className="absolute bottom-2 right-2 z-20 flex items-center gap-2"
             >
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
                   Video
                 </OverlayPill>
               ) : null}
-
-              {totalImages > 1 ? (
-                <OverlayPill icon={Images} className="text-slate-700 bg-white/90 border-slate-200">
-                  {totalImages}
-                </OverlayPill>
-              ) : null}
             </motion.div>
           )}
 
+          {/* Status strip na prijelomu slike i donjeg bijelog dijela */}
+          {!isViewMoreSlide && (conditionLabel || availableNow) ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5"
+            >
+              {conditionLabel ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
+                    "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
+                  )}
+                >
+                  {conditionLabel}
+                </span>
+              ) : null}
+
+              {availableNow ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-emerald-300 bg-emerald-100/95 text-emerald-800 shadow-sm",
+                    "dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200"
+                  )}
+                >
+                  Dostupno
+                </span>
+              ) : null}
+            </motion.div>
+          ) : null}
+
           {/* Tačkice */}
-          {totalSlides > 1 ? (
+          {/* {totalSlides > 1 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1424,7 +1517,7 @@ const MyAdsCard = ({
                 })}
               </div>
             </motion.div>
-          ) : null}
+          ) : null} */}
 
           {/* Strelice za prethodnu/sljedeću sliku */}
           {totalSlides > 1 && (
@@ -1492,99 +1585,106 @@ const MyAdsCard = ({
       </div>
 
       {/* SADRŽAJ */}
-      <div className="flex flex-col gap-2 p-3 flex-1">
+      <div
+        className={cn(
+          "flex flex-col gap-2 p-3 flex-1",
+          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-8" : null
+        )}
+      >
         <div className="flex items-start justify-between gap-2">
           <motion.h3
             whileHover={{ color: "hsl(var(--primary))" }}
-            className="min-h-[2.5rem] text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
+            className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
           >
             {title}
           </motion.h3>
-          {exchangePossible ? (
+          {data?.is_feature ? (
             <span
               className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
+              title="Istaknuti oglas"
+              aria-label="Istaknuti oglas"
+            >
+              <Rocket className="h-4 w-4 text-amber-500 dark:text-amber-300" />
+            </span>
+          ) : null}
+        </div>
+
+        {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {keyAttributes.map((attr, index) => (
+              <motion.span
+                key={`${attr}-${index}`}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+                className={cn(
+                  "inline-flex items-center",
+                  "px-2 py-0.5 rounded-md border",
+                  "bg-slate-50 text-slate-700 border-slate-100",
+                  "text-[10px] font-semibold"
+                )}
+              >
+                {attr}
+              </motion.span>
+            ))}
+          </div>
+        ) : null}
+
+        <div
+          className={cn(
+            "mt-auto pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center",
+            exchangePossible && !isHidePrice ? "justify-between" : "justify-end"
+          )}
+        >
+          {exchangePossible && !isHidePrice ? (
+            <span
+              className={cn(
+                "inline-flex h-7 w-7 items-center justify-center rounded-full border",
+                "border-cyan-300 bg-cyan-100/95 text-cyan-700 shadow-sm",
+                "dark:border-cyan-700/70 dark:bg-cyan-900/40 dark:text-cyan-200"
+              )}
               title="Zamjena moguća"
               aria-label="Zamjena moguća"
             >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
-              <g fill="none" fill-rule="nonzero">
-                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" stroke-width="0.6667"></path>
-                <path fill="#0ab6af" d="M5.706666666666667 7.933333333333334a1 1 0 0 1 0 1.4133333333333333l-0.6493333333333333 0.6506666666666666H10.666666666666666a1 1 0 0 1 0 2H5.057333333333333l0.6499999999999999 0.6493333333333333a1 1 0 1 1 -1.4146666666666665 1.4146666666666665l-2.3566666666666665 -2.357333333333333a1 1 0 0 1 0 -1.414l2.3566666666666665 -2.357333333333333a1 1 0 0 1 1.4146666666666665 0Zm4.586666666666666 -6a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.3566666666666665 2.357333333333333a1 1 0 0 1 0.06866666666666665 1.338l-0.06866666666666665 0.076 -2.3566666666666665 2.357333333333333a1 1 0 0 1 -1.4833333333333334 -1.3386666666666667l0.06866666666666665 -0.076 0.6499999999999999 -0.6493333333333333H5.333333333333333a1 1 0 0 1 -0.09599999999999999 -1.996L5.333333333333333 3.9973333333333336h5.609333333333333l-0.6499999999999999 -0.6499999999999999a1 1 0 0 1 0 -1.4146666666666665Z" stroke-width="0.6667"></path>
-              </g>
-            </svg>
+              <TransferHorizontalLine className="h-4 w-4" />
             </span>
           ) : null}
-        </div>
-
-        <div className="min-h-6">
-          {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
-            <div className="flex h-6 flex-nowrap items-center gap-1 overflow-hidden">
-              {keyAttributes.map((attr, index) => (
-                <motion.span
-                  key={`${attr}-${index}`}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={cn(
-                    "inline-flex max-w-full shrink-0 items-center truncate",
-                    "px-2 py-0.5 rounded-md border",
-                    "bg-slate-50 text-slate-700 border-slate-100",
-                    "text-[10px] font-semibold"
-                  )}
-                >
-                  {attr}
-                </motion.span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="min-h-5">
-          {sellerProductCode ? (
-            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              Šifra: {sellerProductCode}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{formatRelativeTime(data?.last_renewed_at || data?.created_at)}</span>
-            </div>
-          </div>
 
           {!isHidePrice ? (
             isJobCategory ? (
               <motion.span 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-sm font-bold text-slate-900"
+                className="text-sm font-bold text-slate-900 dark:text-slate-100"
               >
                 {formatSalaryRange(data?.min_salary, data?.max_salary)}
               </motion.span>
-            ) : isOnSale && oldPrice && currentPrice && Number(oldPrice) > Number(currentPrice) ? (
-              <motion.div 
+            ) : (
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-end leading-none"
               >
-                <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
-                  {formatPriceAbbreviated(oldPrice)}
-                </span>
-                <span className="text-sm font-bold text-rose-600 tabular-nums">
-                  {formatPriceAbbreviated(currentPrice)}
+                {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
+                  <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
+                    {formatPriceAbbreviated(Number(oldPrice))}
+                  </span>
+                ) : null}
+                <span
+                  className={cn(
+                    "text-sm font-bold tabular-nums",
+                    isOnSale &&
+                      Number(oldPrice) > 0 &&
+                      Number(currentPrice) > 0 &&
+                      Number(oldPrice) > Number(currentPrice)
+                      ? "text-rose-600"
+                      : "text-slate-900 dark:text-slate-100"
+                  )}
+                  title={formatPriceOrInquiry(data?.price)}
+                >
+                  {formatPriceOrInquiry(data?.price)}
                 </span>
               </motion.div>
-            ) : (
-              <motion.span 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm font-bold text-slate-900 tabular-nums"
-              >
-                {formatPriceAbbreviated(data?.price)}
-              </motion.span>
             )
           ) : null}
         </div>

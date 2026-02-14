@@ -22,6 +22,7 @@ import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { gamificationApi } from "@/utils/api";
 import {
@@ -306,11 +307,11 @@ const BadgesPage = () => {
                 {Array.from({ length: 10 }).map((_, i) => (
                   <div
                     key={i}
-                    className="animate-pulse rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4"
+                    className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto" />
-                    <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mt-3" />
-                    <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded mt-2 w-3/4 mx-auto" />
+                    <Skeleton className="mx-auto h-14 w-14 rounded-2xl" />
+                    <Skeleton className="mt-3 h-4 rounded" />
+                    <Skeleton className="mx-auto mt-2 h-3 w-3/4 rounded" />
                   </div>
                 ))}
               </div>
@@ -330,11 +331,11 @@ const BadgesPage = () => {
                 {Array.from({ length: 10 }).map((_, i) => (
                   <div
                     key={i}
-                    className="animate-pulse rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4"
+                    className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto" />
-                    <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mt-3" />
-                    <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded mt-2 w-3/4 mx-auto" />
+                    <Skeleton className="mx-auto h-14 w-14 rounded-2xl" />
+                    <Skeleton className="mt-3 h-4 rounded" />
+                    <Skeleton className="mx-auto mt-2 h-3 w-3/4 rounded" />
                   </div>
                 ))}
               </div>

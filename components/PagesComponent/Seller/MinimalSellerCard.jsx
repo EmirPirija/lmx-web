@@ -37,6 +37,7 @@ import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -610,17 +611,17 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
 ===================================================== */
 
 export const MinimalSellerCardSkeleton = () => (
-  <div className="animate-pulse space-y-3">
+  <div className="space-y-3">
     <div className="flex items-center gap-3">
-      <div className="w-12 h-12 rounded-xl bg-slate-200" />
+      <Skeleton className="w-12 h-12 rounded-xl" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 bg-slate-200 rounded w-28" />
-        <div className="h-3 bg-slate-100 rounded w-20" />
+        <Skeleton className="h-4 w-28 rounded" />
+        <Skeleton className="h-3 w-20 rounded" />
       </div>
     </div>
     <div className="flex gap-2">
-      <div className="flex-1 h-10 bg-slate-200 rounded-xl" />
-      <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+      <Skeleton className="flex-1 h-10 rounded-xl" />
+      <Skeleton className="w-10 h-10 rounded-xl" />
     </div>
   </div>
 );

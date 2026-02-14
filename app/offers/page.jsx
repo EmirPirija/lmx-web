@@ -13,6 +13,7 @@ import CustomLink from "@/components/Common/CustomLink";
 import NoData from "@/components/EmptyStates/NoData";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatDate, formatPriceAbbreviated, t, truncate, extractYear } from "@/utils";
 import { itemOfferApi } from "@/utils/api";
@@ -67,16 +68,16 @@ const staggerContainer = {
 ===================================================== */
 
 const OfferCardSkeleton = () => (
-  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-pulse">
+  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
     <div className="p-4 sm:p-5">
       <div className="flex flex-col lg:flex-row gap-4">
         {/* User skeleton */}
         <div className="lg:w-64 flex-shrink-0">
           <div className="flex items-center gap-3 lg:flex-col lg:items-start">
-            <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-xl bg-slate-200 dark:bg-slate-700" />
+            <Skeleton className="w-14 h-14 lg:w-16 lg:h-16 rounded-xl" />
             <div className="flex-1 lg:w-full space-y-2">
-              <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
-              <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+              <Skeleton className="h-5 w-32 rounded" />
+              <Skeleton className="h-4 w-24 rounded" />
             </div>
           </div>
         </div>
@@ -84,16 +85,16 @@ const OfferCardSkeleton = () => (
         {/* Content skeleton */}
         <div className="flex-1 space-y-4">
           <div className="flex gap-4">
-            <div className="w-20 h-20 rounded-xl bg-slate-200 dark:bg-slate-700" />
+            <Skeleton className="w-20 h-20 rounded-xl" />
             <div className="flex-1 space-y-2">
-              <div className="h-5 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
-              <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
-              <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+              <Skeleton className="h-5 w-48 rounded" />
+              <Skeleton className="h-4 w-32 rounded" />
+              <Skeleton className="h-6 w-24 rounded" />
             </div>
           </div>
           <div className="flex gap-2">
-            <div className="h-10 w-24 bg-slate-200 dark:bg-slate-700 rounded-xl" />
-            <div className="h-10 w-24 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl" />
           </div>
         </div>
       </div>

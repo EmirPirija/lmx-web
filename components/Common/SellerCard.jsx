@@ -107,7 +107,7 @@ const SellerCard = ({
 
                 {responseTimeText && (
                   <div className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
-                    <Zap className="w-3 h-3 text-amber-500" />
+                    {/* <Zap className="w-3 h-3 text-amber-500" /> */}
                     <span>Prosječno vrijeme odgovora: {responseTimeText}</span>
                   </div>
                 )}

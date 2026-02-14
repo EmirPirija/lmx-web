@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import AllItems from "./AllItems";
 import FeaturedSections from "./FeaturedSections";
-import { FeaturedSectionApi, sliderApi } from "@/utils/api";
+import { FeaturedSectionApi, allItemApi, sliderApi } from "@/utils/api";
 import { getCurrentLangCode } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
@@ -18,6 +18,12 @@ const OfferSlider = dynamic(() => import("./OfferSlider"), {
   loading: OfferSliderSkeleton,
 });
 
+const extractItemsFromGetItemsResponse = (responseData) => {
+  const payload = responseData?.data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
 
 const Home = () => {
   const KmRange = useSelector(getKilometerRange);
@@ -64,9 +70,37 @@ const Home = () => {
             params.country = cityData.country;
           }
         }
-        const response = await FeaturedSectionApi.getFeaturedSections(params);
-        const { data } = response.data;
-        setFeaturedData(data);
+        const [featuredResponse, featuredItemsResponse] = await Promise.all([
+          FeaturedSectionApi.getFeaturedSections(params),
+          allItemApi.getItems({
+            ...params,
+            current_page: "home",
+            is_feature: 1,
+            page: 1,
+            limit: 120,
+          }),
+        ]);
+
+        const featuredSections = featuredResponse?.data?.data || [];
+        const featuredItems = extractItemsFromGetItemsResponse(featuredItemsResponse?.data);
+
+        const featuredItemsById = new Map(
+          featuredItems
+            .map((item) => [Number(item?.id), item])
+            .filter(([id]) => Number.isFinite(id) && id > 0)
+        );
+
+        const mergedFeaturedSections = featuredSections.map((section) => ({
+          ...section,
+          section_data: Array.isArray(section?.section_data)
+            ? section.section_data.map((sectionItem) => {
+                const enriched = featuredItemsById.get(Number(sectionItem?.id));
+                return enriched ? { ...sectionItem, ...enriched } : sectionItem;
+              })
+            : [],
+        }));
+
+        setFeaturedData(mergedFeaturedSections);
       } catch (error) {
         console.error("Error:", error);
       } finally {

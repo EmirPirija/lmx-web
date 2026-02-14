@@ -1023,7 +1023,9 @@ const HomeHeader = () => {
                     <motion.div
                       layout
                       transition={mobileHeaderLayoutTransition}
-                      className="min-w-0 flex-1 overflow-hidden"
+                      className={`min-w-0 flex-1 ${
+                        isMobileSearchFocused ? "overflow-visible" : "overflow-hidden"
+                      }`}
                       animate={isMobileUtilityMenuOpen ? { opacity: 0.75 } : { opacity: 1 }}
                     >
                       <AnimatePresence initial={false} mode="wait">

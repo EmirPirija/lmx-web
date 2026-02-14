@@ -135,7 +135,7 @@ const RichTextarea = ({
   const preventFocusLoss = (e) => e.preventDefault();
 
   const handleLink = () => {
-    const url = prompt("Unesite URL linka:", "https://");
+    const url = prompt("Unesite URL link:", "https://");
     if (url) {
       execCmd("createLink", url);
     }
@@ -204,7 +204,7 @@ const RichTextarea = ({
             onMouseDown={preventFocusLoss}
             onClick={() => execCmd("insertOrderedList")}
             className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
-            title="Numerisana lista"
+            title="Numerirana lista"
           >
             <ListOrdered className="w-4 h-4" />
           </button>
@@ -216,7 +216,7 @@ const RichTextarea = ({
             onMouseDown={preventFocusLoss}
             onClick={handleLink}
             className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
-            title="Dodaj Link"
+            title="Dodaj link"
           >
             <LinkIcon className="w-4 h-4" />
           </button>
@@ -361,7 +361,7 @@ const ComponentTwo = ({
     : 0;
 
   return (
-    <div className="flex flex-col w-full gap-4 pb-24">
+    <div className="flex w-full flex-col gap-4 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-50\\/50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-300]:bg-slate-600 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-blue-50]:bg-blue-500/15 dark:[&_.bg-blue-100]:bg-blue-500/20 dark:[&_.border-blue-100]:border-blue-500/30 dark:[&_.bg-red-50]:bg-red-500/10 dark:[&_.bg-amber-50]:bg-amber-500/10">
       {/* BASIC */}
       <AccordionSection
         title="Osnovno"
@@ -495,7 +495,7 @@ const ComponentTwo = ({
                     Cijena na upit
                   </Label>
                   <span className="text-xs text-gray-500">
-                    Kupci će morati kontaktirati vas za cijenu
+                    Kupci će vas morati kontaktirati za cijenu.
                   </span>
                 </div>
               </div>
@@ -570,7 +570,7 @@ const ComponentTwo = ({
                           current.price &&
                           Number(current.old_price) <= Number(current.price) && (
                             <p className="text-xs text-amber-600 flex items-center gap-1">
-                              ⚠️ Stara cijena bi trebala biti veća od trenutne.
+                              ⚠️ Stara cijena treba biti veća od trenutne.
                             </p>
                           )}
                       </div>

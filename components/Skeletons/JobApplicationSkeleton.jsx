@@ -6,28 +6,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const JobApplicationSkeleton = ({ count = 5 }) => {
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-full overflow-hidden border rounded-md">
+      <div className="min-w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white/85 p-1 dark:border-slate-700/80 dark:bg-slate-900/80">
         <Table>
-          <TableHeader className="bg-muted">
+          <TableHeader className="bg-slate-50/90 dark:bg-slate-900/80">
             <TableRow className="text-xs sm:text-sm">
               <TableHead>
-                <div className="h-5 w-[60%] bg-gray-200 rounded animate-pulse"></div>
+                <Skeleton className="h-5 w-[60%]" />
               </TableHead>
               <TableHead>
-                <div className="h-5 w-[70%] bg-gray-200 rounded animate-pulse"></div>
+                <Skeleton className="h-5 w-[70%]" />
               </TableHead>
               <TableHead>
-                <div className="h-5 w-[50%] bg-gray-200 rounded animate-pulse"></div>
+                <Skeleton className="h-5 w-[50%]" />
               </TableHead>
               <TableHead>
-                <div className="h-5 w-[70%] bg-gray-200 rounded animate-pulse"></div>
+                <Skeleton className="h-5 w-[70%]" />
               </TableHead>
               <TableHead>
-                <div className="h-5 w-[60%] bg-gray-200 rounded animate-pulse"></div>
+                <Skeleton className="h-5 w-[60%]" />
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -35,21 +36,21 @@ const JobApplicationSkeleton = ({ count = 5 }) => {
             {Array(count)
               .fill(0)
               .map((_, index) => (
-                <TableRow key={index} className="hover:bg-muted">
+                <TableRow key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
                   <TableCell>
-                    <div className="h-4 w-[85%] bg-gray-200 rounded animate-pulse"></div>
+                    <Skeleton className="h-4 w-[85%]" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-[80%] bg-gray-200 rounded animate-pulse"></div>
+                    <Skeleton className="h-4 w-[80%]" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-6 w-[75%] bg-gray-200 rounded animate-pulse"></div>
+                    <Skeleton className="h-6 w-[75%]" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-[90%] bg-gray-200 rounded animate-pulse"></div>
+                    <Skeleton className="h-4 w-[90%]" />
                   </TableCell>
                   <TableCell>
-                    <div className="h-4 w-[70%] bg-gray-200 rounded animate-pulse"></div>
+                    <Skeleton className="h-4 w-[70%]" />
                   </TableCell>
                 </TableRow>
               ))}

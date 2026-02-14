@@ -27,12 +27,12 @@ const AdLanguageSelector = ({
 
   return (
     <div className="flex items-center gap-2">
-      <p className="whitespace-nowrap text-sm font-medium hidden lg:block">
-        {"Select Language"}
+      <p className="hidden whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300 lg:block">
+        Odaberite jezik
       </p>
       <Select value={langId} onValueChange={handleLangChange}>
-        <SelectTrigger className="gap-2">
-          <SelectValue placeholder="Select language" />
+        <SelectTrigger className="gap-2 border-slate-200 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+          <SelectValue placeholder="Odaberite jezik" />
         </SelectTrigger>
         <SelectContent align={isRTL ? "start" : "end"}>
           <SelectGroup>

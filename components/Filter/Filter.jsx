@@ -159,7 +159,7 @@ const Filter = ({
       <div
         ref={railRef}
         className={cn(
-          "sticky z-[72] border-b border-slate-200/80 bg-gradient-to-r from-slate-50/95 to-white/95 backdrop-blur-xl transition-[top,background-color,border-color] duration-300 ease-out dark:border-slate-800/80 dark:from-slate-900/95 dark:to-slate-900/90",
+          "sticky z-[31] border-b border-slate-200/80 bg-gradient-to-r from-slate-50/95 to-white/95 backdrop-blur-xl transition-[top,background-color,border-color] duration-300 ease-out dark:border-slate-800/80 dark:from-slate-900/95 dark:to-slate-900/90",
           isCompactMobile
             ? "py-2"
             : "py-3"

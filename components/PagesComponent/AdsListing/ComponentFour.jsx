@@ -178,13 +178,13 @@ const compressAndWatermarkImage = async (file) => {
 
 // UI Components
 const ProgressBar = ({ progress, label }) => (
-  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm z-30 rounded-xl p-2 transition-all animate-in fade-in">
+  <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-xl bg-white/95 p-2 backdrop-blur-sm transition-all animate-in fade-in dark:bg-slate-900/90">
     <div className="w-full max-w-[90%] space-y-1 text-center">
-      <div className="flex justify-between text-[10px] font-bold text-slate-500">
+      <div className="flex justify-between text-[10px] font-bold text-slate-500 dark:text-slate-300">
         <span>{label}</span>
         <span>{Math.round(progress)}%</span>
       </div>
-      <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
         <div 
           className="h-full bg-primary transition-all duration-300 ease-out rounded-full" 
           style={{ width: `${progress}%` }} 
@@ -404,11 +404,11 @@ const ComponentFour = ({
 
   const handleVideoUpload = async (file) => {
     if (!file) return;
-    if (!file.type?.startsWith("video/")) return toast.error("Pogrešan format");
+    if (!file.type?.startsWith("video/")) return toast.error("Neispravan format videa.");
     
     console.log(`🎥 [Video Upload Start] ${file.name}`);
 
-    if (file.size > 50 * 1024 * 1024) return toast.error("Video max 50MB");
+    if (file.size > 50 * 1024 * 1024) return toast.error("Video može imati najviše 50 MB.");
 
     try {
       setIsUploadingVideo(true);
@@ -422,9 +422,9 @@ const ComponentFour = ({
       
       setUploadedVideo(data);
       onVideoSelected?.();
-      toast.success("Video postavljen");
+      toast.success("Video je postavljen.");
     } catch (e) {
-      toast.error("Upload videa nije uspio");
+      toast.error("Prijenos videa nije uspio.");
     } finally {
       setIsUploadingVideo(false);
       setIsVideoProcessing(false);
@@ -463,25 +463,25 @@ const ComponentFour = ({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-red-50]:bg-red-500/10">
       
       {/* 📸 SEKCIJA SLIKE */}
       <div className="space-y-5">
         <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
                   <ImageIcon className="w-5 h-5 text-primary" />
                   Fotografije
               </h3>
-              <p className="text-xs text-slate-500 mt-1 hidden sm:block">
+              <p className="mt-1 hidden text-xs text-slate-500 dark:text-slate-400 sm:block">
                 Prva slika je glavna. Prevucite za promjenu rasporeda.
               </p>
             </div>
-            <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-full border shadow-sm">
+            <div className="flex items-center gap-3 rounded-full border bg-white px-3 py-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <span className={cn("text-xs font-bold", currentCount >= MAX_IMAGES ? "text-red-500" : "text-primary")}>
                     {currentCount} / {MAX_IMAGES}
                 </span>
-                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
                     <div 
                         className={cn("h-full transition-all duration-500", currentCount >= MAX_IMAGES ? "bg-red-500" : "bg-primary")}
                         style={{ width: `${(currentCount / MAX_IMAGES) * 100}%` }}
@@ -496,7 +496,7 @@ const ComponentFour = ({
                 onDragLeave={() => setIsDraggingFile(false)}
                 onDrop={(e) => handleDrop(e, 'image')}
                 className={cn(
-                    "relative group flex flex-col items-center justify-center w-full rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer overflow-hidden bg-slate-50/30 hover:bg-slate-50",
+                    "relative group flex flex-col items-center justify-center w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all duration-300 hover:bg-slate-50 dark:bg-slate-800/30 dark:hover:bg-slate-800",
                     isDraggingFile ? "border-primary bg-primary/5 shadow-md" : "border-slate-300 hover:border-primary/50",
                     isCompactMode ? "h-20 flex-row gap-4" : "h-48"
                 )}
@@ -504,20 +504,22 @@ const ComponentFour = ({
                 <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleImagesUpload(e.target.files)} />
                 <div className={cn(
                     "flex items-center justify-center transition-all duration-300",
-                    isCompactMode ? "w-10 h-10 bg-primary/10 text-primary rounded-lg" : "p-4 rounded-full bg-white text-slate-400 group-hover:text-primary shadow-sm"
+                    isCompactMode
+                      ? "h-10 w-10 rounded-lg bg-primary/10 text-primary"
+                      : "rounded-full bg-white p-4 text-slate-400 shadow-sm group-hover:text-primary dark:bg-slate-900 dark:text-slate-300"
                 )}>
                     {isCompactMode ? <Plus className="w-6 h-6" /> : <Upload className="w-8 h-8" />}
                 </div>
                 <div className={cn("text-center", isCompactMode && "text-left")}>
-                    <p className="text-sm font-semibold text-slate-700">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                         {isCompactMode ? "Dodaj još fotografija" : "Klikni ili prevuci slike ovdje"}
                     </p>
                     {!isCompactMode && (
-                        <p className="text-[10px] text-slate-400 mt-1">JPG, PNG, WEBP • Max 10MB</p>
+                        <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">JPG, PNG, WEBP • Max 10MB</p>
                     )}
                 </div>
                 {Object.keys(imageUploadProgress).length > 0 && (
-                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-20">
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 backdrop-blur-sm dark:bg-slate-900/85">
                         <div className="flex items-center gap-2">
                             <Loader2 className="w-4 h-4 text-primary animate-spin" />
                             <span className="text-xs font-bold text-primary">Obrađujem...</span>
@@ -547,8 +549,10 @@ const ComponentFour = ({
                             onDragOver={(e) => e.preventDefault()}
                             onClick={(e) => toggleImageFocus(e, imgId)}
                             className={cn(
-                                "image-card-interactive group relative aspect-square rounded-2xl bg-white border shadow-sm transition-all duration-200 cursor-pointer overflow-hidden",
-                                isFocused ? "ring-2 ring-primary ring-offset-2 z-20 shadow-lg" : "hover:shadow-md border-slate-200",
+                                "image-card-interactive group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900",
+                                isFocused
+                                  ? "z-20 ring-2 ring-primary ring-offset-2 ring-offset-slate-100 shadow-lg dark:ring-offset-slate-950"
+                                  : "border-slate-200 hover:shadow-md dark:border-slate-700",
                                 isMain && !isFocused && "ring-2 ring-primary/50 border-transparent"
                             )}
                         >
@@ -584,7 +588,7 @@ const ComponentFour = ({
                             )}>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); handleDeleteImage(img); }}
-                                    className="p-1.5 bg-white/90 text-red-500 rounded-full shadow-md hover:bg-red-50 hover:text-white transition-colors"
+                                    className="rounded-full bg-white/90 p-1.5 text-red-500 shadow-md transition-colors hover:bg-red-50 hover:text-white dark:bg-slate-900/90 dark:hover:bg-red-500/20"
                                     title="Izbriši sliku"
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -598,7 +602,7 @@ const ComponentFour = ({
                                 )}>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleSetMain(img); }}
-                                        className="w-full py-2 bg-white/95 backdrop-blur text-slate-800 text-xs font-bold rounded-lg shadow-lg hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-1.5"
+                                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/95 py-2 text-xs font-bold text-slate-800 shadow-lg backdrop-blur transition-all hover:bg-primary hover:text-white dark:bg-slate-900/90 dark:text-slate-100"
                                     >
                                         <MousePointerClick className="w-3.5 h-3.5" />
                                         Postavi kao glavnu
@@ -610,7 +614,7 @@ const ComponentFour = ({
                 })}
                 
                 {Object.keys(imageUploadProgress).map((key) => (
-                    <div key={key} className="relative aspect-square rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center">
+                    <div key={key} className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70">
                         <ProgressBar progress={imageUploadProgress[key]} label="Obrada" />
                     </div>
                 ))}
@@ -619,10 +623,10 @@ const ComponentFour = ({
       </div>
 
       {/* --- VIDEO SEKCIJA --- */}
-      <div className="space-y-4 pt-8 border-t border-slate-100">
-        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+      <div className="space-y-4 border-t border-slate-100 pt-8 dark:border-slate-700">
+        <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
             <Play className="w-5 h-5 text-red-500" />
-            Video Prezentacija
+            Video prezentacija
         </h3>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
@@ -679,7 +683,7 @@ const ComponentFour = ({
             </p>
           ) : (
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Opciono: dodajte video URL za bolju konverziju oglasa.
+              Opcionalno: dodajte video URL za bolju konverziju oglasa.
             </p>
           )}
         </div>
@@ -736,9 +740,9 @@ const ComponentFour = ({
               className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
             />
             <span>
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Dodaj video na story</span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Dodaj video u Story</span>
               <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
-                Video na oglas ide automatski. Ovdje birate da li isti video ide i na story.
+                Video uz oglas ide automatski. Ovdje birate da li isti video ide i u Story objavu.
               </p>
             </span>
           </label>
@@ -750,8 +754,10 @@ const ComponentFour = ({
                 onDragLeave={() => setIsDraggingVideo(false)}
                 onDrop={(e) => handleDrop(e, 'video')}
                 className={cn(
-                    "relative flex flex-col items-center justify-center w-full h-32 rounded-2xl border-2 border-dashed transition-all cursor-pointer bg-slate-50/30",
-                    isDraggingVideo ? "border-red-400 bg-red-50 scale-[1.01]" : "border-slate-300 hover:border-red-300 hover:bg-red-50/10"
+                    "relative flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all dark:bg-slate-800/30",
+                    isDraggingVideo
+                      ? "scale-[1.01] border-red-400 bg-red-50 dark:bg-red-500/10"
+                      : "border-slate-300 hover:border-red-300 hover:bg-red-50/10 dark:border-slate-600 dark:hover:border-red-400 dark:hover:bg-red-500/10"
                 )}
             >
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoUpload(e.target.files[0])} />
@@ -759,26 +765,26 @@ const ComponentFour = ({
                     <div className="w-full max-w-xs p-4">
                         {isVideoProcessing ? (
                              <div className="text-center text-xs font-bold text-primary animate-pulse">
-                                 Obrada na serveru... (Sačekajte)
+                                 Obrada na serveru... (sačekajte)
                              </div>
                         ) : (
                              <ProgressBar progress={videoUploadProgress} label="Upload videa..." />
                         )}
                     </div>
                 ) : (
-                    <div className="flex items-center gap-4 text-slate-500">
-                        <div className="p-3 bg-white rounded-full shadow-sm">
+                    <div className="flex items-center gap-4 text-slate-500 dark:text-slate-300">
+                        <div className="rounded-full bg-white p-3 shadow-sm dark:bg-slate-900">
                             <Play className="w-6 h-6 text-red-500" />
                         </div>
                         <div className="text-left">
-                            <p className="font-semibold text-slate-700">Dodaj video (opcionalno)</p>
-                            <p className="text-xs text-slate-400">Max 50MB • MP4, WEBM</p>
+                            <p className="font-semibold text-slate-700 dark:text-slate-200">Dodaj video (opcionalno)</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">Max 50MB • MP4, WEBM</p>
                         </div>
                     </div>
                 )}
             </label>
         ) : (
-            <div className="relative rounded-2xl overflow-hidden bg-black aspect-video sm:aspect-[21/9] shadow-md group border border-slate-200">
+            <div className="group relative aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-black shadow-md dark:border-slate-700 sm:aspect-[21/9]">
                 <video id="tmp-video-preview" className="w-full h-full object-contain" src={videoPreviewUrl || undefined} playsInline muted loop controls={false} />
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                     <button onClick={() => {
@@ -797,12 +803,12 @@ const ComponentFour = ({
         <p
           className={cn(
             "text-xs",
-            addVideoToStory ? "text-primary" : "text-slate-500"
+            addVideoToStory ? "text-primary" : "text-slate-500 dark:text-slate-400"
           )}
         >
           {addVideoToStory
-            ? "Video će biti objavljen i na story."
-            : "Video će biti objavljen na oglasu, ali ne i na story."}
+            ? "Video će biti objavljen i u Story objavi."
+            : "Video će biti objavljen uz oglas, ali ne i u Story objavi."}
         </p>
 
         <p
@@ -823,7 +829,7 @@ const ComponentFour = ({
       <StickyActionButtons
         secondaryLabel="Nazad"
         onSecondaryClick={handleGoBack}
-        primaryLabel="Sljedeći Korak"
+        primaryLabel="Sljedeći korak"
         onPrimaryClick={() => setStep(5)}
         primaryDisabled={!uploadedImages?.length}
       />

@@ -30,6 +30,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { getDefaultLanguageCode, getLanguages } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
+import {
+  CategoryData,
+  getCatCurrentPage,
+  getCatLastPage,
+} from "@/redux/reducer/categorySlice";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
 import {
   CheckCircle2,
@@ -191,7 +196,7 @@ const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
 const PUBLISH_STAGES = [
   {
     title: "Pripremamo oglas",
-    subtitle: "Validiramo detalje i media sadržaj.",
+    subtitle: "Validiramo detalje i medijski sadržaj.",
   },
   {
     title: "Optimizujemo prikaz",
@@ -202,6 +207,9 @@ const PUBLISH_STAGES = [
     subtitle: "Finalizujemo objavu i aktiviramo oglas.",
   },
 ];
+
+const CATEGORY_CACHE_TTL = 1000 * 60 * 30; // 30min
+const CATEGORY_RESPONSE_CACHE = new Map();
 
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -267,11 +275,12 @@ const AdsListing = () => {
   const [recentCategories, setRecentCategories] = useState([]);
   const [stepRailFill, setStepRailFill] = useState({ left: 0, width: 0 });
 
-  const [allCategoriesTree, setAllCategoriesTree] = useState([]);
-
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
   const defaultLangId = languages?.find((lang) => lang.code === defaultLanguageCode)?.id;
+  const sharedRootCategories = useSelector(CategoryData);
+  const sharedRootCurrentPage = useSelector(getCatCurrentPage);
+  const sharedRootLastPage = useSelector(getCatLastPage);
 
   const [extraDetails, setExtraDetails] = useState({ [defaultLangId]: {} });
   const [langId, setLangId] = useState(defaultLangId);
@@ -319,11 +328,10 @@ const AdsListing = () => {
   const lastItemId = categoryPath[categoryPath.length - 1]?.id;
 
   // Caching refs
-  const categoriesCacheRef = useRef(new Map());
+  const categoriesCacheRef = useRef(CATEGORY_RESPONSE_CACHE);
   const categoriesAbortRef = useRef(null);
   const categoriesReqSeqRef = useRef(0);
 
-  const CAT_CACHE_TTL = 1000 * 60 * 30; // 30min
   const ROOT_PER_PAGE = 50; 
   const CHILD_PER_PAGE = 50;
 
@@ -334,7 +342,7 @@ const AdsListing = () => {
       const key = `${langKey}:${catKey}:${page}`;
 
       const cached = categoriesCacheRef.current.get(key);
-      if (cached && Date.now() - cached.ts < CAT_CACHE_TTL) {
+      if (cached && Date.now() - cached.ts < CATEGORY_CACHE_TTL) {
         if (!append) setCategories(cached.data);
         else setCategories((prev) => [...prev, ...cached.data]);
         setCurrentPage(cached.current_page);
@@ -376,6 +384,10 @@ const AdsListing = () => {
           current_page: cp,
           last_page: lp,
         });
+        if (categoriesCacheRef.current.size > 120) {
+          const oldestKey = categoriesCacheRef.current.keys().next().value;
+          if (oldestKey) categoriesCacheRef.current.delete(oldestKey);
+        }
 
         if (!append) setCategories(list);
         else setCategories((prev) => [...prev, ...list]);
@@ -401,33 +413,6 @@ const AdsListing = () => {
     },
     [fetchCategories, lastItemId]
   );
-
-  const preloadAllRootCategories = useCallback(async () => {
-    const res1 = await categoryApi.getCategory({
-      page: 1,
-      per_page: 50,
-      language_id: CurrentLanguage?.id,
-    });
-  
-    const payload1 = res1?.data?.data;
-    const list1 = payload1?.data || [];
-    const lp = payload1?.last_page || 1;
-  
-    let all = [...list1];
-  
-    for (let p = 2; p <= lp; p++) {
-      const resP = await categoryApi.getCategory({
-        page: p,
-        per_page: 50,
-        language_id: CurrentLanguage?.id,
-      });
-      const pay = resP?.data?.data;
-      all = all.concat(pay?.data || []);
-    }
-  
-    setAllCategoriesTree(all);
-  }, [CurrentLanguage?.id]);
-  
 
   const fetchMoreCategory = useCallback(async () => {
     if (categoriesLoading || isLoadMoreCat) return;
@@ -514,11 +499,42 @@ const AdsListing = () => {
   };
 
   useEffect(() => {
+    if (!Array.isArray(sharedRootCategories) || sharedRootCategories.length === 0) return;
+    const langKey = CurrentLanguage?.id || "lang";
+    const cacheKey = `${langKey}:root:1`;
+
+    categoriesCacheRef.current.set(cacheKey, {
+      ts: Date.now(),
+      data: sharedRootCategories,
+      current_page: sharedRootCurrentPage || 1,
+      last_page: sharedRootLastPage || 1,
+    });
+    if (categoriesCacheRef.current.size > 120) {
+      const oldestKey = categoriesCacheRef.current.keys().next().value;
+      if (oldestKey) categoriesCacheRef.current.delete(oldestKey);
+    }
+
+    if (step === 1 && !lastItemId && categories.length === 0) {
+      setCategories(sharedRootCategories);
+      setCurrentPage(sharedRootCurrentPage || 1);
+      setLastPage(sharedRootLastPage || 1);
+      setCategoriesLoading(false);
+    }
+  }, [
+    CurrentLanguage?.id,
+    sharedRootCategories,
+    sharedRootCurrentPage,
+    sharedRootLastPage,
+    step,
+    lastItemId,
+    categories.length,
+  ]);
+
+  useEffect(() => {
     if (step === 1) {
       handleFetchCategories();
-      if (!lastItemId) preloadAllRootCategories();
     }
-  }, [step, lastItemId, CurrentLanguage?.id, handleFetchCategories, preloadAllRootCategories]);
+  }, [step, lastItemId, CurrentLanguage?.id, handleFetchCategories]);
   
   const getCustomFieldsData = useCallback(async () => {
     if (!allCategoryIdsString) {
@@ -950,7 +966,7 @@ const AdsListing = () => {
       ...(customFields?.length > 0
         ? [{ id: 3, label: t("extraDetails"), icon: Circle, disabled: disabledTab.extraDetailTabl }]
         : []),
-      { id: 4, label: "Media", icon: Circle, disabled: disabledTab.images },
+      { id: 4, label: "Mediji", icon: Circle, disabled: disabledTab.images },
       { id: 5, label: t("location"), icon: Circle, disabled: disabledTab.location },
     ],
     [
@@ -1195,7 +1211,7 @@ const AdsListing = () => {
                   {t("adListing")}
                 </h1>
                 <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-                  Kreirajte oglas uz live preview, pametan media flow i jasne korake do objave.
+                  Kreirajte oglas uz prikaz uživo, pametan medijski tok i jasne korake do objave.
                 </p>
               </div>
 
@@ -1410,7 +1426,6 @@ const AdsListing = () => {
                     handleCategoryTabClick={handleCategoryTabClick}
                     categoriesLoading={categoriesLoading}
                     recentCategories={recentCategories}
-                    searchSourceCategories={allCategoriesTree}
                   />
                 )}
 
@@ -1492,7 +1507,7 @@ const AdsListing = () => {
                     </h3>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary dark:border-primary/35 dark:bg-primary/20">
-                    Live
+                    Uživo
                   </span>
                 </div>
 
@@ -1669,7 +1684,7 @@ const AdsListing = () => {
 
                   <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
                     <Sparkles className="h-3.5 w-3.5" />
-                    Publishing
+                    Objava u toku
                   </div>
 
                   <h3 className="text-xl font-semibold sm:text-2xl">{currentPublishStage.title}</h3>

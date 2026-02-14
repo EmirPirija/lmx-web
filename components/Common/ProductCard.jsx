@@ -12,51 +12,23 @@ import { toast } from "@/utils/toastBs";
 
 import {
   Heart,
-  Images,
-  MapPin,
-  Clock,
   Rocket,
   Youtube,
+  Store,
+  TransferHorizontalLine,
   ChevronLeft,
   ChevronRight,
   GitCompare,
 } from "@/components/Common/UnifiedIconPack";
+import { resolveMembership } from "@/lib/membership";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================
 // POMOĆNE FUNKCIJE
 // ============================================
-
-const formatRelativeTime = (dateString) => {
-  if (!dateString) return "";
-  const now = new Date();
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  if (diffInSeconds < 60) return "Upravo sada";
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60)
-    return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24)
-    return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30)
-    return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12)
-    return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
-};
 
 const getKeyAttributes = (item) => {
   const attributes = [];
@@ -64,14 +36,16 @@ const getKeyAttributes = (item) => {
 
   const findValue = (keys) => {
     const field = customFields.find((f) => {
-      const name = (f?.translated_name || f?.name || "").toLowerCase();
-      return keys.includes(name);
+      const name = normalizeText(f?.translated_name || f?.name || "");
+      return keys.some((key) => name === normalizeText(key));
     });
-    return field?.translated_selected_values?.[0] || field?.value?.[0];
+    return (
+      field?.translated_selected_values?.[0] ||
+      field?.selected_values?.[0] ||
+      field?.value?.[0] ||
+      field?.value
+    );
   };
-
-  const condition = findValue(["stanje oglasa", "stanje"]);
-  if (condition) attributes.push(condition);
 
   const year = findValue(["godište", "godiste"]);
   if (year) attributes.push(year);
@@ -82,20 +56,28 @@ const getKeyAttributes = (item) => {
   const transmission = findValue(["mjenjač", "mjenjac"]);
   if (transmission) attributes.push(transmission);
 
-  if (attributes.length === 0) {
-    const tags = [];
-    const skipFields = ["stanje", "condition", "opis", "description", "naslov", "title"];
-    for (const field of customFields) {
-      if (tags.length >= 3) break;
-      const fieldName = (field?.name || field?.translated_name || "").toLowerCase();
-      if (skipFields.some((skip) => fieldName.includes(skip))) continue;
-      const value = field?.translated_selected_values?.[0] || field?.value?.[0];
-      if (value && typeof value === "string" && value.length < 25) tags.push(value);
-    }
-    return tags;
+  return attributes;
+};
+
+const getConditionLabel = (item) => {
+  const customFields = item?.translated_custom_fields || [];
+  const field = customFields.find((f) => {
+    const name = normalizeText(f?.translated_name || f?.name || "");
+    return ["stanje oglasa", "stanje", "condition", "item condition"].includes(name);
+  });
+
+  const rawValue = field?.translated_selected_values?.[0] || field?.value?.[0] || field?.value;
+  if (!rawValue) return "";
+
+  const normalized = normalizeText(rawValue);
+  if (["novo", "new", "nekoristeno", "unused"].includes(normalized)) {
+    return "Novo";
+  }
+  if (["koristeno", "used", "polovno", "rabljeno"].includes(normalized)) {
+    return "Korišteno";
   }
 
-  return attributes;
+  return String(rawValue).trim();
 };
 
 const getThreeDots = (total, current) => {
@@ -133,6 +115,9 @@ const toBoolean = (value) => {
       "true",
       "yes",
       "da",
+      "odmah",
+      "dostupno",
+      "dostupan",
       "moguce",
       "moguca",
       "moze",
@@ -151,6 +136,9 @@ const toBoolean = (value) => {
       "false",
       "no",
       "ne",
+      "nije",
+      "nedostupno",
+      "nedostupan",
       "nemoguce",
       "nemoguca",
       "ne moze",
@@ -176,8 +164,25 @@ const parseJsonSafe = (value) => {
   }
 };
 
+const readBooleanFromCandidates = (candidates = []) => {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      for (const nested of candidate) {
+        const parsedNested = toBoolean(nested);
+        if (parsedNested !== null) return parsedNested;
+      }
+      continue;
+    }
+
+    const parsed = toBoolean(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  return null;
+};
+
 const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
-  const keysSet = new Set(keys);
+  const keysSet = new Set(keys.map((key) => normalizeText(key)));
   const customFields = parseJsonSafe(customFieldsValue);
   if (!customFields || typeof customFields !== "object") return null;
 
@@ -185,8 +190,8 @@ const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
     if (!node || typeof node !== "object") return null;
 
     for (const [key, value] of Object.entries(node)) {
-      if (keysSet.has(key)) {
-        const parsed = toBoolean(value);
+      if (keysSet.has(normalizeText(key))) {
+        const parsed = readBooleanFromCandidates([value]);
         if (parsed !== null) return parsed;
       }
 
@@ -202,40 +207,85 @@ const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
   return walk(customFields);
 };
 
-const readExchangeFromTranslatedFields = (item = {}) => {
+const extractTranslatedFieldValues = (field) => {
+  const candidates = [
+    field?.translated_selected_values,
+    field?.selected_values,
+    field?.value,
+    field?.translated_value,
+    field?.selected_value,
+    field?.translated_selected_value,
+  ];
+
+  const flattened = [];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) flattened.push(...candidate);
+    else if (candidate !== undefined && candidate !== null) flattened.push(candidate);
+  }
+
+  return flattened;
+};
+
+const readBooleanFromTranslatedFields = (item = {}, fieldNameHints = []) => {
+  const hints = fieldNameHints.map((hint) => normalizeText(hint));
   const fields = [
     ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
     ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
   ];
+  if (!fields.length) return null;
 
   for (const field of fields) {
     const fieldName = normalizeText(field?.translated_name || field?.name || "");
     if (!fieldName) continue;
-    if (!["zamjen", "zamena", "exchange", "trade", "swap"].some((hint) => fieldName.includes(hint))) {
-      continue;
-    }
+    if (!hints.some((hint) => fieldName.includes(hint))) continue;
 
-    const values = [
-      field?.translated_selected_values,
-      field?.selected_values,
-      field?.value,
-      field?.translated_value,
-      field?.selected_value,
-      field?.translated_selected_value,
-    ];
-
-    for (const candidate of values) {
-      if (Array.isArray(candidate)) {
-        for (const nested of candidate) {
-          const parsedNested = toBoolean(nested);
-          if (parsedNested !== null) return parsedNested;
-        }
-      } else {
-        const parsed = toBoolean(candidate);
-        if (parsed !== null) return parsed;
-      }
-    }
+    const parsed = readBooleanFromCandidates(extractTranslatedFieldValues(field));
+    if (parsed !== null) return parsed;
   }
+
+  return null;
+};
+
+const readAvailableNow = (item = {}) => {
+  const directCandidates = [
+    item?.available_now,
+    item?.is_available,
+    item?.is_avaible,
+    item?.isAvailable,
+    item?.availableNow,
+    item?.dostupno_odmah,
+    item?.ready_for_pickup,
+    item?.translated_item?.available_now,
+    item?.translated_item?.is_available,
+    item?.translated_item?.is_avaible,
+    item?.translated_item?.isAvailable,
+    item?.translated_item?.availableNow,
+    item?.translated_item?.dostupno_odmah,
+    item?.translated_item?.ready_for_pickup,
+  ];
+
+  const direct = readBooleanFromCandidates(directCandidates);
+  if (direct !== null) return direct;
+
+  const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
+    "available_now",
+    "is_available",
+    "is_avaible",
+    "isAvailable",
+    "availableNow",
+    "dostupno_odmah",
+    "ready_for_pickup",
+  ]);
+  if (fromCustomFields !== null) return fromCustomFields;
+
+  const fromTranslatedFields = readBooleanFromTranslatedFields(item, [
+    "dostup",
+    "available",
+    "isporuk",
+    "odmah",
+    "ready",
+  ]);
+  if (fromTranslatedFields !== null) return fromTranslatedFields;
 
   return null;
 };
@@ -255,10 +305,8 @@ const readExchangePossible = (item = {}) => {
     item?.translated_item?.zamjena,
   ];
 
-  for (const candidate of directCandidates) {
-    const parsed = toBoolean(candidate);
-    if (parsed !== null) return parsed;
-  }
+  const direct = readBooleanFromCandidates(directCandidates);
+  if (direct !== null) return direct;
 
   const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
     "exchange_possible",
@@ -273,7 +321,13 @@ const readExchangePossible = (item = {}) => {
   ]);
   if (fromCustomFields !== null) return fromCustomFields;
 
-  const fromTranslatedFields = readExchangeFromTranslatedFields(item);
+  const fromTranslatedFields = readBooleanFromTranslatedFields(item, [
+    "zamjen",
+    "zamena",
+    "exchange",
+    "trade",
+    "swap",
+  ]);
   if (fromTranslatedFields !== null) return fromTranslatedFields;
 
   return false;
@@ -298,6 +352,13 @@ const OverlayPill = ({ icon: Icon, children, className }) => (
   </div>
 );
 
+const formatPriceOrInquiry = (price) => {
+  if (price === null || price === undefined) return "Na upit";
+  if (typeof price === "string" && price.trim() === "") return "Na upit";
+  if (Number(price) === 0) return "Na upit";
+  return formatPriceAbbreviated(Number(price));
+};
+
 // ============================================
 // KARTICA
 // ============================================
@@ -312,7 +373,16 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
   const translated_item = item?.translated_item;
 
   const keyAttributes = getKeyAttributes(item);
-  const displayCity = item?.translated_city || item?.city || "";
+  const conditionLabel = getConditionLabel(item);
+  const availableNow = readAvailableNow(item);
+  const isShopSeller = resolveMembership(
+    item,
+    item?.membership,
+    item?.user,
+    item?.user?.membership,
+    item?.seller,
+    item?.seller_settings
+  ).isShop;
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -340,8 +410,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
 
   const hasVideo = !!(item?.video_link && String(item?.video_link).trim() !== "");
   const exchangePossible = readExchangePossible(item);
-  const isReserved =
-    item?.status === "reserved" || item?.reservation_status === "reserved";
+  const topStatusCount = [Boolean(conditionLabel), Boolean(availableNow)].filter(Boolean).length;
 
   // Priprema slajdova
   const slides = useMemo(() => {
@@ -369,7 +438,6 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
   }, [item?.image, item?.gallery_images]);
 
   const totalSlides = slides.length;
-  const totalImages = Math.max(0, totalSlides - 1);
   const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
 
   const threeDots = useMemo(
@@ -466,9 +534,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
           val === undefined ||
           (typeof val === "string" && val.trim() === "")
       )
-    : item?.price === null ||
-      item?.price === undefined ||
-      (typeof item?.price === "string" && item?.price.trim() === "");
+    : false;
 
   const productLinkBase =
     userData?.id === item?.user_id
@@ -498,7 +564,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
     >
       {/* MEDIJ */}
       <div
-        className={cn("relative overflow-hidden", "rounded-t-xl", "touch-pan-y")}
+        className={cn("relative overflow-visible", "rounded-t-xl", "touch-pan-y")}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -546,20 +612,12 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
               transition={{ delay: 0.1 }}
               className="absolute left-2 top-2 z-20 flex items-center gap-2"
             >
-              {item?.is_feature ? (
+              {isShopSeller ? (
                 <OverlayPill
-                  icon={Rocket}
-                  className="border-amber-200 bg-amber-100/95 text-amber-700"
+                  icon={Store}
+                  className="border-indigo-200 bg-indigo-100/95 text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-900/55 dark:text-indigo-200"
                 />
               ) : null}
-              {/* {isReserved ? (
-                <OverlayPill
-                  // icon={Clock}
-                  className="border-blue-200 bg-blue-100/95 text-blue-700"
-                >
-                  Rezervisano
-                </OverlayPill>
-              ) : null} */}
             </motion.div>
           ) : null}
 
@@ -630,24 +688,55 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="absolute bottom-2 left-2 z-20 flex items-center gap-2"
+              className="absolute bottom-2 right-2 z-10 flex items-center gap-2"
             >
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
                   Video
                 </OverlayPill>
               ) : null}
-
-              {totalImages > 1 ? (
-                <OverlayPill icon={Images} className="text-slate-700 bg-white/90 border-slate-200">
-                  {totalImages}
-                </OverlayPill>
-              ) : null}
             </motion.div>
           )}
 
+          {/* Status strip na prijelomu slike i donjeg bijelog dijela */}
+          {!isViewMoreSlide && (conditionLabel || availableNow) ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5"
+            >
+              {conditionLabel ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
+                    "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
+                  )}
+                >
+                  {conditionLabel}
+                </span>
+              ) : null}
+
+              {availableNow ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-emerald-300 bg-emerald-100/95 text-emerald-800 shadow-sm",
+                    "dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200"
+                  )}
+                >
+                  Dostupno
+                </span>
+              ) : null}
+
+            </motion.div>
+          ) : null}
+
           {/* Tačkice */}
-          {totalSlides > 1 ? (
+          {/* {totalSlides > 1 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -687,7 +776,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
                 })}
               </div>
             </motion.div>
-          ) : null}
+          ) : null} */}
 
           {/* Strelice za prethodnu/sljedeću sliku */}
           {totalSlides > 1 && (
@@ -753,7 +842,13 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
       </div>
 
       {/* SADRŽAJ */}
-      <div className="flex flex-col gap-2 p-3 flex-1">
+      <div
+        className={cn(
+          "flex flex-col gap-2 p-3 flex-1",
+          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-8" : null
+        )}
+      >
+
         <div className="flex items-start justify-between gap-2">
           <motion.h3 
             whileHover={{ color: "hsl(var(--primary))" }}
@@ -761,28 +856,16 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
           >
             {translated_item?.name || item?.name}
           </motion.h3>
-          {exchangePossible ? (
+          {item?.is_feature ? (
             <span
               className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
-              title="Zamjena moguća"
-              aria-label="Zamjena moguća"
+              title="Istaknuti oglas"
+              aria-label="Istaknuti oglas"
             >
-              
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Transfer-3-Fill--Streamline-Mingcute-Fill" height="16" width="16">
-              <g fill="none" fill-rule="nonzero">
-                <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" stroke-width="0.6667"></path>
-                <path fill="#0ab6af" d="M5.706666666666667 7.933333333333334a1 1 0 0 1 0 1.4133333333333333l-0.6493333333333333 0.6506666666666666H10.666666666666666a1 1 0 0 1 0 2H5.057333333333333l0.6499999999999999 0.6493333333333333a1 1 0 1 1 -1.4146666666666665 1.4146666666666665l-2.3566666666666665 -2.357333333333333a1 1 0 0 1 0 -1.414l2.3566666666666665 -2.357333333333333a1 1 0 0 1 1.4146666666666665 0Zm4.586666666666666 -6a1 1 0 0 1 1.338 -0.06933333333333333l0.076 0.06866666666666665 2.3566666666666665 2.357333333333333a1 1 0 0 1 0.06866666666666665 1.338l-0.06866666666666665 0.076 -2.3566666666666665 2.357333333333333a1 1 0 0 1 -1.4833333333333334 -1.3386666666666667l0.06866666666666665 -0.076 0.6499999999999999 -0.6493333333333333H5.333333333333333a1 1 0 0 1 -0.09599999999999999 -1.996L5.333333333333333 3.9973333333333336h5.609333333333333l-0.6499999999999999 -0.6499999999999999a1 1 0 0 1 0 -1.4146666666666665Z" stroke-width="0.6667"></path>
-              </g>
-            </svg>
+              <Rocket className="h-4 w-4 text-amber-500 dark:text-amber-300" />
             </span>
           ) : null}
         </div>
-
-        {/* Lokacija */}
-        {/* <div className="flex items-center gap-1 text-xs text-slate-500">
-          <MapPin className="w-3.5 h-3.5" />
-          <span className="truncate">{displayCity}</span>
-        </div> */}
 
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
           <div className="flex flex-wrap gap-1">
@@ -805,44 +888,60 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
           </div>
         ) : null}
 
-        <div className="mt-auto pt-2 border-t border-slate-100 flex flex-col gap-4 items-center md:flex-row md:justify-between md:gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{formatRelativeTime(item?.created_at)}</span>
-            </div>
-          </div>
-
+        <div
+          className={cn(
+            "mt-auto pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center",
+            exchangePossible && !isHidePrice ? "justify-between" : "justify-end"
+          )}
+        >
+          {exchangePossible && !isHidePrice ? (
+            <span
+              className={cn(
+                "inline-flex h-7 w-7 items-center justify-center rounded-full border",
+                "border-cyan-300 bg-cyan-100/95 text-cyan-700 shadow-sm",
+                "dark:border-cyan-700/70 dark:bg-cyan-900/40 dark:text-cyan-200"
+              )}
+              title="Zamjena moguća"
+              aria-label="Zamjena moguća"
+            >
+              <TransferHorizontalLine className="h-4 w-4" />
+            </span>
+          ) : null}
           {!isHidePrice ? (
             isJobCategory ? (
               <motion.span 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-sm font-bold text-slate-900"
+                className="text-sm font-bold text-slate-900 dark:text-slate-100"
               >
                 {formatSalaryRange(item?.min_salary, item?.max_salary)}
               </motion.span>
-            ) : isOnSale && oldPrice && currentPrice && Number(oldPrice) > Number(currentPrice) ? (
+            ) : (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-end leading-none"
               >
-                <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
-                  {formatPriceAbbreviated(oldPrice)}
-                </span>
-                <span className="text-sm font-bold text-rose-600 tabular-nums">
-                  {formatPriceAbbreviated(currentPrice)}
+                {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
+                  <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
+                    {formatPriceAbbreviated(Number(oldPrice))}
+                  </span>
+                ) : null}
+                <span
+                  className={cn(
+                    "text-sm font-bold tabular-nums",
+                    isOnSale &&
+                      Number(oldPrice) > 0 &&
+                      Number(currentPrice) > 0 &&
+                      Number(oldPrice) > Number(currentPrice)
+                      ? "text-rose-600"
+                      : "text-slate-900 dark:text-slate-100"
+                  )}
+                  title={formatPriceOrInquiry(item?.price)}
+                >
+                  {formatPriceOrInquiry(item?.price)}
                 </span>
               </motion.div>
-            ) : (
-              <motion.span 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm font-bold text-slate-900 tabular-nums"
-              >
-                {formatPriceAbbreviated(item?.price)}
-              </motion.span>
             )
           ) : null}
         </div>
@@ -854,18 +953,18 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden animate-pulse">
-      <div className="relative aspect-square bg-gray-100" />
+    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+      <Skeleton className="relative aspect-square w-full rounded-none border-0 shadow-none" />
       <div className="p-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <div className="h-3 w-16 bg-gray-100 rounded" />
-          <div className="h-3 w-12 bg-gray-100 rounded" />
+          <Skeleton className="h-3 w-16 rounded" />
+          <Skeleton className="h-3 w-12 rounded" />
         </div>
-        <div className="h-4 w-3/4 bg-gray-100 rounded" />
-        <div className="h-3 w-2/3 bg-gray-100 rounded" />
+        <Skeleton className="h-4 w-3/4 rounded" />
+        <Skeleton className="h-3 w-2/3 rounded" />
         <div className="flex gap-1">
-          <div className="h-4 w-12 bg-gray-100 rounded" />
-          <div className="h-4 w-10 bg-gray-100 rounded" />
+          <Skeleton className="h-4 w-12 rounded" />
+          <Skeleton className="h-4 w-10 rounded" />
         </div>
       </div>
     </div>

@@ -21,6 +21,8 @@ const buildIndexableParams = (searchParams) => {
   ];
 
   const params = new URLSearchParams();
+  const normalizedQuery =
+    searchParams?.query || searchParams?.search || searchParams?.q || "";
 
   const { country, state, city, areaId } = searchParams || {};
 
@@ -35,7 +37,7 @@ const buildIndexableParams = (searchParams) => {
     : null;
 
   indexableFilters.forEach((key) => {
-    let value = searchParams[key];
+    let value = key === "query" ? normalizedQuery : searchParams[key];
     if (value === undefined || value === "") return;
 
     // 🧹 Skip non-selected location levels
@@ -57,7 +59,8 @@ const buildIndexableParams = (searchParams) => {
 const buildCanonicalParams = (searchParams) => {
   const params = new URLSearchParams();
 
-  const { category, query } = searchParams || {};
+  const { category } = searchParams || {};
+  const query = searchParams?.query || searchParams?.search || searchParams?.q;
 
   if (category) params.append("category_slug", category);
   if (query) params.append("search", query);

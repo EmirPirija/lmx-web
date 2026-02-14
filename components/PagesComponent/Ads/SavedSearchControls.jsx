@@ -11,6 +11,7 @@ import { useSavedSearches } from "@/hooks/useSavedSearches";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   Dialog,
@@ -140,8 +141,8 @@ const DesktopDropdown = ({
           <div className="max-h-[320px] overflow-y-auto">
             {isLoading ? (
               <div className="p-4 space-y-2">
-                <div className="h-12 rounded-xl bg-slate-100 animate-pulse dark:bg-slate-800" />
-                <div className="h-12 rounded-xl bg-slate-100 animate-pulse dark:bg-slate-800" />
+                <Skeleton className="h-12 rounded-xl" />
+                <Skeleton className="h-12 rounded-xl" />
               </div>
             ) : savedSearches.length === 0 ? (
               <div className="p-6 text-center">
@@ -508,14 +509,14 @@ const SearchCard = ({
 // ═══════════════════════════════════════════════════════════════════
 
 const SkeletonCard = () => (
-  <div className="animate-pulse rounded-2xl border-2 border-slate-200 p-4 dark:border-slate-700">
+  <div className="rounded-2xl border-2 border-slate-200 p-4 dark:border-slate-700">
     <div className="flex items-center gap-2 mb-3">
-      <div className="h-8 w-8 rounded-lg bg-slate-200 dark:bg-slate-700" />
-      <div className="h-5 w-32 rounded-lg bg-slate-200 dark:bg-slate-700" />
+      <Skeleton className="h-8 w-8 rounded-lg" />
+      <Skeleton className="h-5 w-32 rounded-lg" />
     </div>
     <div className="flex gap-1.5">
-      <div className="h-6 w-20 rounded-full bg-slate-100 dark:bg-slate-800" />
-      <div className="h-6 w-24 rounded-full bg-slate-100 dark:bg-slate-800" />
+      <Skeleton className="h-6 w-20 rounded-full" />
+      <Skeleton className="h-6 w-24 rounded-full" />
     </div>
   </div>
 );

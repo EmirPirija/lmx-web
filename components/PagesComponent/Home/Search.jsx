@@ -411,23 +411,53 @@ const Search = ({
 
         const categoryMap = new Map();
         const flatCats = flattenCategories(cateData);
-        const catLookup = new Map(flatCats.map((c) => [c.id, c]));
+        const catById = new Map(flatCats.map((c) => [String(c.id), c]));
+        const catBySlug = new Map(
+          flatCats
+            .filter((c) => c?.slug)
+            .map((c) => [String(c.slug).toLowerCase(), c])
+        );
 
         ads.forEach((ad) => {
-          const catId = ad.category_id ?? ad.category?.id ?? null;
-          if (!catId) return;
+          const adCategory = ad?.category || null;
+          const adCategoryId = ad?.category_id ?? adCategory?.id ?? null;
+          const adCategorySlug = adCategory?.slug ?? null;
 
-          const cat = catLookup.get(catId);
-          if (!cat) return;
+          const localMatchById =
+            adCategoryId != null ? catById.get(String(adCategoryId)) : null;
+          const localMatchBySlug = adCategorySlug
+            ? catBySlug.get(String(adCategorySlug).toLowerCase())
+            : null;
+          const resolvedCategory = localMatchById || localMatchBySlug || adCategory;
 
-          const existing = categoryMap.get(cat.id);
+          const slug = resolvedCategory?.slug || adCategorySlug;
+          if (!slug) return;
+
+          const key = String(slug).toLowerCase();
+          const searchName =
+            resolvedCategory?.search_name ||
+            resolvedCategory?.translated_name ||
+            resolvedCategory?.name ||
+            adCategory?.translated_name ||
+            adCategory?.name ||
+            slug;
+
+          const nextCategory = {
+            ...(resolvedCategory || {}),
+            slug,
+            id: resolvedCategory?.id ?? adCategoryId ?? key,
+            search_name: searchName,
+            full_path: resolvedCategory?.full_path || searchName,
+          };
+
+          const existing = categoryMap.get(key);
           if (existing) existing.count += 1;
-          else categoryMap.set(cat.id, { ...cat, count: 1 });
+          else categoryMap.set(key, { ...nextCategory, count: 1 });
         });
 
-        const catResults = Array.from(categoryMap.values())
-          .sort((a, b) => (b.count || 0) - (a.count || 0))
-          .slice(0, 6);
+        const catResults = Array.from(categoryMap.values()).sort(
+          (a, b) => (b.count || 0) - (a.count || 0)
+        );
         setSuggestedCategories(catResults);
 
         const userMap = new Map();

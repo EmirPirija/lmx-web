@@ -79,7 +79,7 @@ import {
   Bot,
   BatteryCharging,
   Cross,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 import {
   normalizeLegacyImageUrl,
   withCategoryImageVersion,

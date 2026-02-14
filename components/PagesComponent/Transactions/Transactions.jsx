@@ -175,25 +175,7 @@ const Transactions = () => {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="animate-pulse p-6 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
-              <div className="flex-1 grid grid-cols-4 gap-4">
-                {[...Array(4)].map((_, j) => (
-                  <div key={j} className="space-y-2">
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16" />
-                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <TransactionSkeleton count={4} />;
   }
 
   // Empty state

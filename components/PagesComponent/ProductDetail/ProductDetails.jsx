@@ -53,6 +53,7 @@ import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsS
 import ExistingConversationBanner from "@/components/PagesComponent/ProductDetail/ExistingConversationBanner";
 import GiveReview from "@/components/PagesComponent/Chat/GiveReview";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Redux
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -163,19 +164,23 @@ const MobileStickyBar = ({
 };
 
 const SkeletonLoader = () => (
-  <div className="container mt-6 lg:mt-10 animate-pulse">
-    <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded-md mb-6" />
+  <div className="container mt-6 lg:mt-10">
+    <Skeleton className="mb-6 h-4 w-32 rounded-md" />
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div className="lg:col-span-8 space-y-6">
-        <div className="bg-slate-200 dark:bg-slate-700 aspect-[16/10] w-full rounded-2xl" />
+        <Skeleton className="aspect-[16/10] w-full rounded-2xl" />
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 h-40 rounded-2xl p-6 space-y-3">
-          <div className="h-8 w-3/4 bg-slate-200 dark:bg-slate-700 rounded-lg" />
-          <div className="h-6 w-1/4 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+          <Skeleton className="h-8 w-3/4 rounded-lg" />
+          <Skeleton className="h-6 w-1/4 rounded-lg" />
         </div>
       </div>
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 h-64 rounded-2xl" />
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 h-40 rounded-2xl" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 h-64 rounded-2xl p-4">
+          <Skeleton className="h-full w-full rounded-xl" />
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 h-40 rounded-2xl p-4">
+          <Skeleton className="h-full w-full rounded-xl" />
+        </div>
       </div>
     </div>
   </div>

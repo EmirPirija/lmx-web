@@ -546,18 +546,16 @@ const ManualAddress = ({
 
   return (
     <Dialog open={showManualAddress} onOpenChange={setShowManualAddress}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-400]:bg-slate-600 dark:[&_.bg-green-50]:bg-green-500/10 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.border-green-50]:border-green-500/20 dark:[&_.bg-red-50]:bg-red-500/10">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {t("manuAddAddress")}
+            Ručni unos adrese
           </DialogTitle>
           
           {/* 📊 Progress Indicator */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">
-                {t("completeness")}
-              </span>
+              <span className="text-sm text-muted-foreground">Dovršenost</span>
               <span className="text-sm font-semibold text-primary">
                 {[isFieldValid('country'), isFieldValid('state'), isFieldValid('city'), isFieldValid('address')].filter(Boolean).length}/4
               </span>
@@ -949,7 +947,7 @@ const ManualAddress = ({
 
         <DialogFooter className="flex justify-end gap-2">
           <button 
-            className="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="rounded-md px-4 py-2 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
             onClick={() => setShowManualAddress(false)}
           >
             {t("cancel")}

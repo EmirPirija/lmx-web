@@ -19,6 +19,7 @@ import CustomLink from "@/components/Common/CustomLink";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { handleKeyDown, inpNum, t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
@@ -28,17 +29,17 @@ import StickyActionButtons from "@/components/Common/StickyActionButtons";
 // ============================================
 const SkeletonLoader = () => {
   return (
-    <div className="p-3 space-y-3 animate-pulse">
+    <div className="p-3 space-y-3">
       {/* Search Skeleton */}
-      <div className="h-10 bg-gray-200 rounded-lg"></div>
+      <Skeleton className="h-10 rounded-lg" />
 
       {/* Options Skeleton */}
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="flex items-center gap-3 p-3">
-          <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+          <Skeleton className="w-10 h-10 rounded-full" />
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+            <Skeleton className="h-4 w-3/4 rounded" />
+            <Skeleton className="h-3 w-1/2 rounded" />
           </div>
         </div>
       ))}
@@ -215,7 +216,7 @@ const EnhancedDropdown = ({
                       />
                     </svg>
                     <p className="font-medium">Nema rezultata</p>
-                    <p className="text-sm">Pokušajte drugi pojam</p>
+                    <p className="text-sm">Pokušajte s drugim pojmom</p>
                   </div>
                 )}
               </div>
@@ -389,7 +390,7 @@ const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExc
             Dostupnost oglasa
           </h4>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Označite da li je artikal trenutno dostupan za prodaju. Ova informacija pomaže kupcima da znaju mogu li odmah preuzeti proizvod.
+            Označite je li artikal trenutno dostupan za prodaju. Ova informacija pomaže kupcima da znaju mogu li odmah preuzeti proizvod.
           </p>
         </div>
       </div>
@@ -437,7 +438,7 @@ const DisclaimerSection = ({ agreedToTerms, setAgreedToTerms }) => {
           </h4>
           <div className="space-y-2 text-sm text-gray-700">
             <p className="leading-relaxed">
-              <strong>Važno:</strong> Platforma ne garantuje sigurnost transakcija između kupaca i prodavaca. 
+              <strong>Važno:</strong> Platforma ne garantira sigurnost transakcija između kupaca i prodavača. 
               Sve transakcije se odvijaju na vlastitu odgovornost korisnika.
             </p>
             
@@ -491,7 +492,7 @@ const DisclaimerSection = ({ agreedToTerms, setAgreedToTerms }) => {
         <div className="flex-1">
           <p className={`text-sm font-medium leading-relaxed ${agreedToTerms ? 'text-green-700' : 'text-gray-700'}`}>
             Razumijem i prihvatam da platforma ne odgovara za transakcije između korisnika. 
-            Svjestan/na sam rizika i preuzimam punu odgovornost za svoju kupoprodaju.
+            Svjestan/svjesna sam rizika i preuzimam punu odgovornost za svoju kupoprodaju.
           </p>
         </div>
       </div>
@@ -499,7 +500,7 @@ const DisclaimerSection = ({ agreedToTerms, setAgreedToTerms }) => {
       {!agreedToTerms && (
         <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
           <IoAlertCircleOutline className="w-4 h-4" />
-          Morate prihvatiti uslove da biste nastavili
+          Morate prihvatiti uvjete da biste nastavili
         </p>
       )}
     </div>
@@ -664,7 +665,7 @@ const ComponentThree = ({
 
   const handleNext = () => {
     if (!agreedToTerms) {
-      toast.error("Molimo prihvatite uslove korištenja");
+      toast.error("Molimo, prihvatite uvjete korištenja.");
       setTermsOpen(true);
       return;
     }
@@ -950,7 +951,7 @@ const ComponentThree = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 pb-24">
+    <div className="flex flex-col gap-4 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-300]:bg-slate-600 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-blue-50]:bg-blue-500/15 dark:[&_.bg-blue-100]:bg-blue-500/20 dark:[&_.border-blue-100]:border-blue-500/30 dark:[&_.bg-green-50]:bg-green-500/15 dark:[&_.bg-amber-50]:bg-amber-500/10">
       {/* Required Fields Section */}
       {sortedRequiredFields.length > 0 && (
         <AccordionSection
@@ -981,8 +982,8 @@ const ComponentThree = ({
 
       {/* Availability & Terms Section */}
       <AccordionSection
-        title="Dostupnost i uslovi"
-        subtitle="Informacije o dostupnosti i prihvatanje uslova"
+        title="Dostupnost i uvjeti"
+        subtitle="Informacije o dostupnosti i prihvatanju uvjeta"
         icon={<span className="text-xl font-bold">3</span>}
         isOpen={termsOpen}
         onToggle={() => setTermsOpen(!termsOpen)}

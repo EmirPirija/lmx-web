@@ -11,6 +11,7 @@ import MyReviewsCardSkeleton from './MyReviewsCardSkeleton';
 import ReviewFilters from './ReviewFilters';
 import NoData from '@/components/EmptyStates/NoData';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CurrentLanguageData } from '@/redux/reducer/languageSlice';
 import { cn } from '@/lib/utils';
 
@@ -119,13 +120,13 @@ const Reviews = () => {
         <RatingsSummarySkeleton />
         <div className="grid gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse p-6 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+            <div key={i} className="rounded-2xl border border-slate-200/80 bg-white/85 p-6 dark:border-slate-700/80 dark:bg-slate-900/75">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                <Skeleton className="h-12 w-12 rounded-full" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/4" />
-                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full" />
-                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3" />
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
                 </div>
               </div>
             </div>

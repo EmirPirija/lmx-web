@@ -120,16 +120,70 @@ export const sliderApi = {
   },
 };
 
+const CATEGORY_REQUEST_TTL = 1000 * 60; // 1 min
+const CATEGORY_CACHE_MAX_SIZE = 100;
+const categoryResponseCache = new Map();
+const categoryInFlightRequests = new Map();
+
+const buildCategoryRequestKey = ({
+  category_id,
+  page = 1,
+  per_page = 50,
+  language_id,
+} = {}) =>
+  `${language_id || "default"}:${category_id || "root"}:${page}:${per_page}`;
+
+const getCachedCategoryResponse = (key) => {
+  const cached = categoryResponseCache.get(key);
+  if (!cached) return null;
+  if (Date.now() - cached.ts > CATEGORY_REQUEST_TTL) {
+    categoryResponseCache.delete(key);
+    return null;
+  }
+  return cached.response;
+};
+
+const setCachedCategoryResponse = (key, response) => {
+  categoryResponseCache.set(key, { ts: Date.now(), response });
+  if (categoryResponseCache.size <= CATEGORY_CACHE_MAX_SIZE) return;
+  const oldestKey = categoryResponseCache.keys().next().value;
+  if (oldestKey) categoryResponseCache.delete(oldestKey);
+};
+
 // 3. CATEGORY API
 export const categoryApi = {
-  getCategory: ({ category_id, page = 1, per_page = 50, signal } = {}) => {
+  getCategory: ({ category_id, page = 1, per_page = 50, language_id, signal } = {}) => {
     const params = { page, per_page };
     if (category_id) params.category_id = category_id;
+    if (language_id) params.language_id = language_id;
+    const requestKey = buildCategoryRequestKey({ category_id, page, per_page, language_id });
+    const cachedResponse = getCachedCategoryResponse(requestKey);
 
-    return Api.get(GET_CATEGORIES, {
+    if (cachedResponse) {
+      return Promise.resolve(cachedResponse);
+    }
+
+    if (!signal && categoryInFlightRequests.has(requestKey)) {
+      return categoryInFlightRequests.get(requestKey);
+    }
+
+    const requestPromise = Api.get(GET_CATEGORIES, {
       params,
       signal, // axios v1+ podržava AbortController signal
-    });
+    })
+      .then((response) => {
+        setCachedCategoryResponse(requestKey, response);
+        return response;
+      })
+      .finally(() => {
+        if (!signal) categoryInFlightRequests.delete(requestKey);
+      });
+
+    if (!signal) {
+      categoryInFlightRequests.set(requestKey, requestPromise);
+    }
+
+    return requestPromise;
   },
 };
 

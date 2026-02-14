@@ -3,25 +3,26 @@
 import { X, ChevronDown, Check, Trash2, Settings, Layers } from "@/components/Common/UnifiedIconPack";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // --- INTERNA KOMPONENTA: SKELETON LOADER ---
 const FilterSkeleton = () => (
-  <div className="space-y-8 animate-pulse">
+  <div className="space-y-8">
     {[1, 2].map((section) => (
       <div key={section} className="space-y-4">
         {/* Naslov sekcije */}
         <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
-           <div className="h-5 w-5 bg-gray-200 rounded"></div>
-           <div className="h-5 w-32 bg-gray-200 rounded"></div>
+           <Skeleton className="h-5 w-5 rounded" />
+           <Skeleton className="h-5 w-32 rounded" />
         </div>
         {/* Polja */}
         {[1, 2, 3].map((i) => (
           <div key={i} className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <Skeleton className="h-4 w-1/4 rounded" />
             <div className="flex gap-2 flex-wrap">
-              <div className="h-10 bg-gray-100 rounded-full w-24"></div>
-              <div className="h-10 bg-gray-100 rounded-full w-32"></div>
-              <div className="h-10 bg-gray-100 rounded-full w-20"></div>
+              <Skeleton className="h-10 w-24 rounded-full" />
+              <Skeleton className="h-10 w-32 rounded-full" />
+              <Skeleton className="h-10 w-20 rounded-full" />
             </div>
           </div>
         ))}

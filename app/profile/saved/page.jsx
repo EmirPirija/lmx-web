@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import SavedSellerRow from "@/components/Profile/SavedSellerRow";
 import { savedCollectionsApi } from "@/utils/api";
@@ -17,9 +18,9 @@ import { savedCollectionsApi } from "@/utils/api";
 function SkeletonCard() {
   return (
     <div className="rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-5 shadow-sm">
-      <div className="h-4 w-44 rounded bg-slate-200/60 dark:bg-slate-700/40 animate-pulse" />
-      <div className="mt-3 h-3 w-64 rounded bg-slate-200/50 dark:bg-slate-700/30 animate-pulse" />
-      <div className="mt-6 h-20 w-full rounded-2xl bg-slate-200/40 dark:bg-slate-700/25 animate-pulse" />
+      <Skeleton className="h-4 w-44 rounded" />
+      <Skeleton className="mt-3 h-3 w-64 rounded" />
+      <Skeleton className="mt-6 h-20 w-full rounded-2xl" />
     </div>
   );
 }

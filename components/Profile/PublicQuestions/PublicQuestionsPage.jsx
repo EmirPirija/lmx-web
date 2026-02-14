@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -377,23 +378,23 @@ const EmptyState = ({ filter }) => {
 // LOADING SKELETON
 // ============================================
 const QuestionSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-pulse">
+  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
     <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-lg bg-slate-200" />
+        <Skeleton className="w-12 h-12 rounded-lg" />
         <div className="flex-1">
-          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
-          <div className="h-3 bg-slate-200 rounded w-1/4" />
+          <Skeleton className="mb-2 h-4 w-3/4 rounded" />
+          <Skeleton className="h-3 w-1/4 rounded" />
         </div>
       </div>
     </div>
     <div className="p-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-slate-200" />
+        <Skeleton className="w-10 h-10 rounded-full" />
         <div className="flex-1">
-          <div className="h-4 bg-slate-200 rounded w-1/3 mb-3" />
-          <div className="h-3 bg-slate-200 rounded w-full mb-2" />
-          <div className="h-3 bg-slate-200 rounded w-2/3" />
+          <Skeleton className="mb-3 h-4 w-1/3 rounded" />
+          <Skeleton className="mb-2 h-3 w-full rounded" />
+          <Skeleton className="h-3 w-2/3 rounded" />
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import * as Lu from "lucide-react";
+import * as Mg from "@mingcute/react";
 
 const EXACT_MAP = {
   Filter: "Filter",
@@ -24,9 +24,24 @@ const EXACT_MAP = {
   MessageCircle: "MessageCircle",
   Grid3X3: "Grid3x3",
   Grid3x3: "Grid3x3",
+  Armchair: "Sofa",
+  Bot: "Robot",
+  Coins: "Coin",
+  Cpu: "Chip",
+  Dice5: "Game1",
+  Dumbbell: "Barbell",
+  DoorOpen: "OpenDoor",
+  Fuel: "GasStation",
+  Gamepad2: "Game1",
+  Gauge: "Dashboard",
+  GraduationCap: "School",
+  GripVertical: "BorderVertical",
+  HardDrive: "Drive",
+  Headphones: "Headphone2",
   Home: "House",
   Link2: "Link2",
   CalendarCheck: "CalendarCheck2",
+  CalendarClock: "CalendarTimeAdd",
   CalendarDays: "CalendarDays",
   ChevronLeft: "ChevronLeft",
   ChevronRight: "ChevronRight",
@@ -36,7 +51,7 @@ const EXACT_MAP = {
   ArrowUpDown: "ArrowUpDown",
   SearchX: "SearchX",
   EyeOff: "EyeOff",
-  LogOut: "LogOut",
+  LogOut: "ExitDoor",
   MoreHorizontal: "MoreHorizontal",
   MoreVertical: "MoreVertical",
   Building2: "Building2",
@@ -50,15 +65,22 @@ const EXACT_MAP = {
   Banknote: "Banknote",
   Bold: "Bold",
   Circle: "Circle",
+  CheckCheck: "Checks",
+  AiOutlineBank: "Bank",
   FiMaximize2: "Maximize2",
   FiMinimize2: "Minimize2",
+  FiPercent: "Percentage",
   Gem: "Gem",
+  Megaphone: "Announcement",
+  MemoryStick: "UsbFlashDisk",
   IconLoader2: "Loader2",
-  IconLogout: "LogOut",
+  IconLogout: "ExitDoor",
+  IconBroadcast: "Radio",
   IconRosetteDiscount: "BadgePercent",
   IconBookmarkFilled: "BookmarkCheck",
   IconStarFilled: "Star",
   IoCreateOutline: "Pencil",
+  IoDesktopOutline: "Computer",
   IoPersonOutline: "UserRound",
   IoHeartOutline: "Heart",
   IoBookmarkOutline: "Bookmark",
@@ -73,7 +95,7 @@ const EXACT_MAP = {
   IoStarOutline: "Star",
   IoTrophyOutline: "Trophy",
   IoRibbonOutline: "Medal",
-  IoLogOutOutline: "LogOut",
+  IoLogOutOutline: "ExitDoor",
   IoHelpCircleOutline: "Info",
   IoLayersOutline: "Layers",
   IoMdSend: "SendHorizontal",
@@ -87,15 +109,29 @@ const EXACT_MAP = {
   MdMoreVert: "MoreVertical",
   MdSell: "Tag",
   MdSend: "SendHorizontal",
-  MdSpeed: "Gauge",
+  MdSpeed: "Dashboard",
   MdVisibility: "Eye",
   MdVerified: "BadgeCheck",
+  Percent: "Percentage",
+  Pill: "Capsule",
+  PinOff: "Pin2",
+  Plane: "SendPlane",
+  Plug: "Plugin",
+  Printer: "Print",
+  Puzzle: "Puzzled",
   Radar: "Radar",
   RiFullscreenLine: "Maximize2",
+  RotateCcw: "RefreshAnticlockwise1",
   Save: "Save",
   Send: "Send",
+  Shapes: "Polygon",
   Smile: "Smile",
+  Smartphone: "Cellphone",
+  Toilet: "ToiletPaper",
+  Tractor: "Truck",
   Type: "Type",
+  UtensilsCrossed: "ForkKnife",
+  Wrench: "Tool",
   IoGrid: "LayoutGrid",
   CiGrid2H: "List",
   TbTransferVertical: "ArrowUpDown",
@@ -118,6 +154,12 @@ const EXACT_MAP = {
   GrLocation: "MapPin",
   RiMailSendFill: "Mail",
   RiMailSendLine: "Mail",
+  CookingPot: "SoupPot",
+  IoSwapHorizontalOutline: "TransferHorizontal",
+  Lamp: "CeilingLamp",
+  PaintRoller: "PaintBrush",
+  Paintbrush: "Paint",
+  PawPrint: "Paw",
   TbPhoneCall: "PhoneCall",
   BiPhoneCall: "PhoneCall",
   BiCurrentLocation: "LocateFixed",
@@ -129,7 +171,7 @@ const EXACT_MAP = {
   MdFilterList: "Filter",
   MdArrowBack: "ArrowLeft",
   IoArrowBack: "ArrowLeft",
-  MdOutlineAttachFile: "Paperclip",
+  MdOutlineAttachFile: "Attachment",
   HiOutlineUpload: "Upload",
   MdTouchApp: "MousePointerClick",
   MdTrendingDown: "TrendingDown",
@@ -153,7 +195,7 @@ const EXACT_MAP = {
   PiWarningOctagon: "OctagonAlert",
   MdInfoOutline: "Info",
   IoSearch: "Search",
-  IoMdAttach: "Paperclip",
+  IoMdAttach: "Attachment",
   FaMicrophone: "Mic",
   FaRegStopCircle: "CircleStop",
   FaCheck: "Check",
@@ -165,7 +207,7 @@ const EXACT_MAP = {
   FaAngleRight: "ChevronRight",
   FaRegCalendarCheck: "CalendarCheck2",
   HiOutlinePhotograph: "Image",
-  HiOutlineSortDescending: "ArrowDownWideNarrow",
+  HiOutlineSortDescending: "SortDescending",
   HiOutlineExclamationCircle: "CircleAlert",
   HiOutlineExternalLink: "ExternalLink",
   HiOutlineTrash: "Trash2",
@@ -210,7 +252,7 @@ const EXACT_MAP = {
   MdPause: "Pause",
   MdPauseCircle: "PauseCircle",
   MdPhone: "Phone",
-  MdPhoneIphone: "Smartphone",
+  MdPhoneIphone: "Cellphone",
   MdPlayArrow: "Play",
   MdQuestionAnswer: "MessageSquareMore",
   MdReceipt: "Receipt",
@@ -238,8 +280,15 @@ const EXACT_MAP = {
   RiZoomOutLine: "ZoomOut",
   IoMenuOutline: "Menu",
   GiHamburgerMenu: "Menu",
+  IoLockClosed: "Lock",
+  IoPhonePortraitOutline: "Cellphone2",
+  IoTabletPortraitOutline: "Pad",
   IconUserCircle: "CircleUser",
-  IconListDetails: "ListTree",
+  IconListDetails: "ListCheck3",
+  IconArrowsSort: "ArrowUpDown",
+  IdentificationCard: "IDcard",
+  BookOpen: "Book",
+  BsTextParagraph: "Paragraph",
   IconCurrencyDollar: "Banknote",
   IconCalendarExclamation: "CalendarX2",
   IconCirclePlus: "CirclePlus",
@@ -254,73 +303,242 @@ const EXACT_MAP = {
   IconWorld: "Globe",
 };
 
+const CANONICAL_MINGCUTE_MAP = {
+  Activity: "RadarFill",
+  AlertCircle: "AlertFill",
+  AlertTriangle: "WarningFill",
+  Archive: "ArchiveFill",
+  ArchiveRestore: "UnarchiveFill",
+  ArrowDown: "ArrowDownFill",
+  ArrowLeft: "ArrowLeftFill",
+  ArrowLeftRight: "TransferHorizontalFill",
+  ArrowRight: "ArrowRightFill",
+  ArrowUp: "ArrowUpFill",
+  ArrowUpDown: "TransferVerticalFill",
+  Award: "AwardFill",
+  BadgeCheck: "CertificateFill",
+  BadgePercent: "PercentageFill",
+  Banknote: "CurrencyDollarFill",
+  BarChart3: "ChartBarFill",
+  Bell: "BellRingingFill",
+  BellRing: "BellRingingFill",
+  BellRinging: "BellRingingFill",
+  Bold: "BoldFill",
+  Bookmark: "BookmarkFill",
+  BookmarkCheck: "BookmarkAddFill",
+  Briefcase: "BriefcaseFill",
+  Building2: "Building2Fill",
+  Calendar: "CalendarFill",
+  CalendarCheck2: "CalendarDayFill",
+  CalendarDays: "Calendar2Fill",
+  CalendarX2: "CalendarXFill",
+  Camera: "CameraFill",
+  Check: "CheckFill",
+  CheckCircle: "CheckCircleFill",
+  CheckCircle2: "CheckCircleFill",
+  CheckSquare: "CheckboxFill",
+  ChevronDown: "ArrowDownFill",
+  ChevronLeft: "ArrowLeftFill",
+  ChevronRight: "ArrowRightFill",
+  ChevronUp: "ArrowUpFill",
+  ChevronsUpDown: "TransferVerticalFill",
+  Circle: "DotCircleFill",
+  CircleAlert: "AlertFill",
+  CircleCheck: "CheckCircleFill",
+  CirclePlus: "AddCircleFill",
+  CircleStop: "StopCircleFill",
+  CircleUser: "User4Fill",
+  Clock: "Clock2Fill",
+  Clock3: "Clock2Fill",
+  Copy: "CopyFill",
+  CornerDownRight: "ArrowRightDownFill",
+  CreditCard: "BankCardFill",
+  Crown: "VIP1Fill",
+  Download: "Download2Fill",
+  ExternalLink: "ExternalLinkFill",
+  Eye: "EyeFill",
+  EyeOff: "EyeCloseFill",
+  Facebook: "FacebookFill",
+  FileText: "DocumentFill",
+  Filter: "Filter3Fill",
+  Flame: "FlameFill",
+  Gem: "DiamondFill",
+  GitCompare: "GitCompareFill",
+  Globe: "Globe2Fill",
+  Grid3x3: "Grid2Fill",
+  Handshake: "HandHeartFill",
+  Hash: "HashtagFill",
+  Headset: "Headphone2Fill",
+  Heart: "HeartFill",
+  House: "Home4Fill",
+  Image: "PicFill",
+  ImagePlay: "PlayCircleFill",
+  Inbox: "InboxFill",
+  Info: "InformationFill",
+  Instagram: "InstagramFill",
+  Layers: "LayersFill",
+  Layers3: "LayersFill",
+  LayoutGrid: "LayoutGridFill",
+  Link2: "Link2Fill",
+  List: "ListCheck3Fill",
+  ListChecks: "ListCheck2Fill",
+  Loader2: "Loading4Fill",
+  Lock: "LockFill",
+  LockOpen: "UnlockFill",
+  Mail: "MailFill",
+  MailOpen: "MailOpenFill",
+  Map: "Map2Fill",
+  MapPinned: "MapPinFill",
+  MapPin: "MapPinFill",
+  Maximize2: "Fullscreen2Fill",
+  MessageCircle: "Message1Fill",
+  MessageCircleMore: "Message2Fill",
+  MessageSquare: "Message4Fill",
+  MessageSquareMore: "Message2Fill",
+  MessagesSquare: "Message3Fill",
+  Mic: "MicFill",
+  Minimize2: "MinimizeFill",
+  Minus: "MinusCircleFill",
+  MoreHorizontal: "More4Fill",
+  MoreVertical: "DotsVerticalFill",
+  MousePointerClick: "MouseFill",
+  Music: "MusicFill",
+  Navigation: "NavigationFill",
+  OctagonAlert: "AlertOctagonFill",
+  Package: "PackageFill",
+  Pause: "PauseFill",
+  PauseCircle: "PauseCircleFill",
+  Pencil: "PencilFill",
+  Phone: "PhoneFill",
+  PhoneCall: "PhoneCallFill",
+  Pin: "PinFill",
+  Play: "PlayFill",
+  PlayCircle: "PlayCircleFill",
+  Plus: "AddFill",
+  QrCode: "QrcodeFill",
+  Radar: "RadarFill",
+  Receipt: "BillFill",
+  RefreshCcw: "RefreshAnticlockwise1Fill",
+  RefreshCw: "Refresh2Fill",
+  Rocket: "RocketFill",
+  Save: "SaveFill",
+  Search: "Search2Fill",
+  SearchX: "Search2NoneFill",
+  Send: "SendFill",
+  SendHorizontal: "SendPlaneFill",
+  Settings: "Settings4Fill",
+  Settings2: "Settings2Fill",
+  Share2: "Share2Fill",
+  Shield: "ShieldFill",
+  ShieldCheck: "SafetyCertificateFill",
+  ShoppingBag: "ShoppingBag3Fill",
+  Shuffle: "ShuffleFill",
+  Signpost: "RouteFill",
+  Smile: "HappyFill",
+  Sparkles: "SparklesFill",
+  Square: "SquareFill",
+  SquareUserRound: "User4Fill",
+  Star: "StarFill",
+  Store: "StoreLine",
+  Tag: "TagFill",
+  Target: "TargetFill",
+  ThumbsUp: "ThumbUpFill",
+  Trash2: "Delete2Fill",
+  TriangleAlert: "WarningFill",
+  TrendingDown: "TrendingDownFill",
+  TrendingUp: "TrendingUpFill",
+  Trophy: "TrophyFill",
+  Truck: "TruckFill",
+  Type: "TextFill",
+  Upload: "Upload2Fill",
+  UploadCloud: "Upload3Fill",
+  User: "User4Fill",
+  UserRound: "User4Fill",
+  UserRoundPen: "UserEditFill",
+  UserX: "UserXFill",
+  Users: "GroupFill",
+  Video: "VideoFill",
+  Volume2: "VolumeFill",
+  VolumeX: "VolumeOffFill",
+  Wallet: "WalletFill",
+  Waypoints: "RouteFill",
+  Wifi: "WifiFill",
+  X: "CloseFill",
+  XCircle: "CloseCircleFill",
+  Youtube: "YoutubeFill",
+  ZoomIn: "ZoomInFill",
+  ZoomOut: "ZoomOutFill",
+};
+
 const PREFIX_RE = /^(Icon|Io|Md|Fa|Fi|Bs|Bi|Ri|Hi|Gi|Go|Gr|Sl|Tb|Pi|Ci|Lia|Fc)/;
 const SUFFIX_RE = /(Outline|Filled|Fill|Line|Alt|Round|Circle|Square|OffAlt|Off|Logo|Solid)$/g;
 
 const KEYWORD_MAP = [
-  [/google/, "Chrome"],
-  [/facebook/, "Facebook"],
-  [/instagram/, "Instagram"],
-  [/linkedin/, "Linkedin"],
-  [/whatsapp/, "MessageCircle"],
-  [/telegram/, "Send"],
-  [/twitter|xtwitter/, "Twitter"],
-  [/youtube/, "Youtube"],
-  [/viber/, "PhoneCall"],
-  [/mail|email/, "Mail"],
-  [/location|map|pin/, "MapPin"],
-  [/phone|call/, "PhoneCall"],
-  [/camera|photo|image/, "Image"],
-  [/video/, "Video"],
-  [/reel/, "Clapperboard"],
-  [/microphone/, "Mic"],
-  [/volumeup/, "Volume2"],
-  [/volumeoff|volumex|mute/, "VolumeX"],
-  [/play/, "Play"],
-  [/pause/, "Pause"],
-  [/star|favorite/, "Star"],
-  [/heart/, "Heart"],
-  [/chat|message/, "MessageCircle"],
-  [/user|profile/, "UserRound"],
-  [/home/, "House"],
-  [/search/, "Search"],
-  [/close|\bx\b/, "X"],
-  [/check/, "Check"],
-  [/plus|add/, "Plus"],
-  [/minus|remove/, "Minus"],
-  [/arrowleft|back/, "ArrowLeft"],
-  [/arrowright|forward/, "ArrowRight"],
-  [/arrowup/, "ArrowUp"],
-  [/arrowdown/, "ArrowDown"],
-  [/refresh|sync|autorenew/, "RefreshCw"],
-  [/upload/, "Upload"],
-  [/download/, "Download"],
-  [/share/, "Share2"],
-  [/settings|gear/, "Settings"],
-  [/filter|slider|fader/, "Filter"],
-  [/menu|hamburger|list/, "Menu"],
-  [/lockopen|unlock/, "LockOpen"],
-  [/lock/, "Lock"],
-  [/warning|alert|exclamation/, "TriangleAlert"],
-  [/info/, "Info"],
-  [/bell|notification/, "Bell"],
-  [/clock|time|history/, "Clock3"],
-  [/calendar/, "CalendarDays"],
-  [/money|dollar|price/, "Banknote"],
-  [/tag|offer/, "Tag"],
-  [/store|shop|bag/, "Store"],
-  [/crown|pro/, "Crown"],
-  [/trophy|medal|award/, "Trophy"],
-  [/package|box|parcel/, "Package"],
-  [/receipt|invoice/, "Receipt"],
-  [/cloud/, "Cloud"],
-  [/wifi/, "Wifi"],
-  [/rocket|launch|zap|flash/, "Rocket"],
-  [/shield|verified/, "ShieldCheck"],
-  [/qr/, "QrCode"],
-  [/truck/, "Truck"],
-  [/music/, "Music"],
-  [/globe|world/, "Globe"],
+  [/google/, "ChromeFill"],
+  [/facebook/, "FacebookFill"],
+  [/instagram/, "InstagramFill"],
+  [/linkedin/, "LinkedinFill"],
+  [/whatsapp/, "WhatsappFill"],
+  [/telegram/, "TelegramFill"],
+  [/twitter|xtwitter/, "TwitterFill"],
+  [/youtube/, "YoutubeFill"],
+  [/viber/, "Message4Fill"],
+  [/mail|email/, "MailFill"],
+  [/location|map|pin/, "MapPinFill"],
+  [/phone|call/, "PhoneCallFill"],
+  [/camera|photo|image/, "PicFill"],
+  [/video/, "VideoFill"],
+  [/reel/, "VideoCameraFill"],
+  [/microphone|mic/, "MicFill"],
+  [/volumeup/, "VolumeFill"],
+  [/volumeoff|volumex|mute/, "VolumeOffFill"],
+  [/play/, "PlayFill"],
+  [/pause/, "PauseFill"],
+  [/star|favorite/, "StarFill"],
+  [/heart/, "HeartFill"],
+  [/chat|message/, "Message4Fill"],
+  [/user|profile/, "User4Fill"],
+  [/home/, "Home4Fill"],
+  [/search/, "Search2Fill"],
+  [/check/, "CheckFill"],
+  [/plus|add/, "AddFill"],
+  [/minus|remove/, "MinusCircleFill"],
+  [/arrowleft|back/, "ArrowLeftFill"],
+  [/arrowright|forward/, "ArrowRightFill"],
+  [/arrowup/, "ArrowUpFill"],
+  [/arrowdown/, "ArrowDownFill"],
+  [/refresh|sync|autorenew/, "Refresh2Fill"],
+  [/upload/, "Upload2Fill"],
+  [/download/, "Download2Fill"],
+  [/share/, "Share2Fill"],
+  [/settings|gear/, "Settings4Fill"],
+  [/filter|slider|fader/, "Filter3Fill"],
+  [/menu|hamburger/, "MenuFill"],
+  [/list/, "ListCheck3Fill"],
+  [/clock|time|history/, "Clock2Fill"],
+  [/calendar/, "Calendar2Fill"],
+  [/lockopen|unlock/, "UnlockFill"],
+  [/lock/, "LockFill"],
+  [/close|(^x$)/, "CloseFill"],
+  [/warning|alert|exclamation/, "WarningFill"],
+  [/info/, "InformationFill"],
+  [/bell|notification/, "BellRingingFill"],
+  [/money|dollar|price/, "CurrencyDollarFill"],
+  [/tag|offer/, "TagFill"],
+  [/store|shop/, "StoreLine"],
+  [/bag/, "ShoppingBag3Fill"],
+  [/crown|pro/, "VIP1Fill"],
+  [/trophy|medal|award/, "AwardFill"],
+  [/package|box|parcel/, "PackageFill"],
+  [/receipt|invoice/, "BillFill"],
+  [/cloud/, "CloudFill"],
+  [/wifi/, "WifiFill"],
+  [/rocket|launch|zap|flash/, "RocketFill"],
+  [/shield|verified/, "ShieldFill"],
+  [/qr/, "QrcodeFill"],
+  [/truck/, "TruckFill"],
+  [/music/, "MusicFill"],
+  [/globe|world/, "Globe2Fill"],
 ];
 
 const STOP_TOKENS = new Set([
@@ -359,13 +577,13 @@ const STOP_TOKENS = new Set([
 ]);
 
 const TOKEN_ALIASES = {
-  attach: "paperclip",
+  attach: "attachment",
   delete: "trash",
   remove: "trash",
   edit: "pencil",
-  logout: "log",
-  login: "log",
-  chevron: "chevron",
+  logout: "exit",
+  login: "enter",
+  chevron: "arrow",
   arrows: "arrow",
   stats: "chart",
   trend: "trending",
@@ -386,7 +604,35 @@ const TOKEN_ALIASES = {
   volume: "volume",
   bookmarkfilled: "bookmark",
   sparkles: "sparkle",
-  verified: "badge",
+  verified: "verify",
+  dumbbell: "barbell",
+  gamepad: "game",
+  graduation: "school",
+  harddrive: "disk",
+  memorystick: "disk",
+  megaphone: "horn",
+  paintbrush: "paint",
+  paintroller: "paint",
+  pawprint: "paw",
+  plugzap: "power",
+  utensilscrossed: "forkknife",
+  cookingpot: "pot",
+  bookopen: "book",
+  xicon: "close",
+  circlecheck: "checkcircle",
+  circleplus: "addcircle",
+  messagecirclemore: "message",
+  messagesquaremore: "message",
+  calendarcheck: "calendar",
+  imageplay: "play",
+  userround: "user",
+  squareuserround: "user",
+  listtree: "list",
+  mappinned: "mappin",
+  locatefixed: "location",
+  barchart: "chart",
+  qrcode: "qrcode",
+  maximize: "fullscreen",
 };
 
 const tokenize = (value = "") =>
@@ -397,26 +643,48 @@ const tokenize = (value = "") =>
     .split(/\s+/)
     .map((token) => token.replace(/\d+/g, ""))
     .filter(Boolean)
+    .filter((token) => token.length > 1)
     .filter((token) => !STOP_TOKENS.has(token))
     .map((token) => TOKEN_ALIASES[token] || token);
 
 const isIconComponent = (value) =>
   typeof value === "function" ||
   (value && typeof value === "object" && "$$typeof" in value);
-const getByName = (name) => (name && isIconComponent(Lu[name]) ? Lu[name] : null);
+const getByName = (name) => (name && isIconComponent(Mg[name]) ? Mg[name] : null);
 
-const LUCIDE_ICON_CANDIDATES = Object.keys(Lu)
-  .filter((name) => /^[A-Z]/.test(name) && isIconComponent(Lu[name]))
+const MINGCUTE_FILL_CANDIDATES = Object.keys(Mg)
+  .filter((name) => name.endsWith("Fill") && isIconComponent(Mg[name]))
   .map((name) => ({ name, tokens: tokenize(name) }));
 
-const chooseFuzzyLucideIcon = (sourceName) => {
+const resolveCandidateName = (name = "") => {
+  if (!name) return null;
+
+  if (getByName(name)) return name;
+
+  const canonicalName = CANONICAL_MINGCUTE_MAP[name];
+  if (canonicalName && getByName(canonicalName)) return canonicalName;
+
+  if (!name.endsWith("Fill")) {
+    const fillCandidate = `${name}Fill`;
+    if (getByName(fillCandidate)) return fillCandidate;
+  }
+
+  if (name.endsWith("Line")) {
+    const fromLineToFill = name.replace(/Line$/, "Fill");
+    if (getByName(fromLineToFill)) return fromLineToFill;
+  }
+
+  return null;
+};
+
+const chooseFuzzyMingcuteIcon = (sourceName) => {
   const sourceTokens = tokenize(sourceName);
   if (!sourceTokens.length) return null;
 
   let bestName = null;
   let bestScore = 0;
 
-  for (const candidate of LUCIDE_ICON_CANDIDATES) {
+  for (const candidate of MINGCUTE_FILL_CANDIDATES) {
     if (!candidate.tokens.length) continue;
 
     const shared = sourceTokens.filter((token) => candidate.tokens.includes(token)).length;
@@ -433,24 +701,21 @@ const chooseFuzzyLucideIcon = (sourceName) => {
     }
   }
 
-  if (bestName && bestScore >= 4) {
-    return getByName(bestName);
-  }
-
-  return null;
+  return bestName && bestScore >= 4 ? bestName : null;
 };
 
-const resolveLucideIcon = (sourceName) => {
+const resolveMingcuteIcon = (sourceName) => {
   const mapped = EXACT_MAP[sourceName];
-  if (mapped && getByName(mapped)) return getByName(mapped);
+  const mappedCandidate = resolveCandidateName(mapped);
+  if (mappedCandidate) return getByName(mappedCandidate);
 
-  const direct = getByName(sourceName);
-  if (direct) return direct;
+  const directCandidate = resolveCandidateName(sourceName);
+  if (directCandidate) return getByName(directCandidate);
 
   if (sourceName.startsWith("Icon")) {
     const droppedPrefix = sourceName.slice(4);
-    const prefixedCandidate = getByName(droppedPrefix);
-    if (prefixedCandidate) return prefixedCandidate;
+    const prefixedCandidate = resolveCandidateName(droppedPrefix);
+    if (prefixedCandidate) return getByName(prefixedCandidate);
   }
 
   const stripped = sourceName
@@ -459,35 +724,31 @@ const resolveLucideIcon = (sourceName) => {
     .replace(/\d+$/, "")
     .trim();
 
-  const strippedCandidate = getByName(stripped);
-  if (strippedCandidate) return strippedCandidate;
+  const strippedCandidate = resolveCandidateName(stripped);
+  if (strippedCandidate) return getByName(strippedCandidate);
+
+  const stripped2Candidate = resolveCandidateName(`${stripped}2`);
+  if (stripped2Candidate) return getByName(stripped2Candidate);
 
   const lower = sourceName.toLowerCase();
   for (const [pattern, iconName] of KEYWORD_MAP) {
     if (pattern.test(lower)) {
-      const icon = getByName(iconName);
-      if (icon) return icon;
+      const candidate = resolveCandidateName(iconName);
+      if (candidate) return getByName(candidate);
     }
   }
 
-  const fuzzyIcon = chooseFuzzyLucideIcon(sourceName);
-  if (fuzzyIcon) return fuzzyIcon;
+  const fuzzyName = chooseFuzzyMingcuteIcon(sourceName);
+  if (fuzzyName) return getByName(fuzzyName);
 
-  return getByName("Shapes") || getByName("Circle") || getByName("Info") || null;
-};
-
-const WEIGHT_TO_STROKE = {
-  thin: 1,
-  light: 1.5,
-  regular: 2,
-  normal: 2,
-  duotone: 2,
-  fill: 2.2,
-  bold: 2.6,
+  return getByName("QuestionFill") || getByName("InformationFill") || null;
 };
 
 const createUnifiedIcon = (name) => {
-  const IconComponent = resolveLucideIcon(name) || Lu.Shapes || Lu.Circle;
+  const IconComponent =
+    resolveMingcuteIcon(name) ||
+    getByName("QuestionFill") ||
+    getByName("InformationFill");
 
   const Wrapped = forwardRef(function UnifiedIcon(
     {
@@ -495,7 +756,7 @@ const createUnifiedIcon = (name) => {
       secondaryColor,
       size,
       className,
-      weight = "regular",
+      weight,
       style,
       strokeWidth,
       ...props
@@ -503,15 +764,14 @@ const createUnifiedIcon = (name) => {
     ref
   ) {
     void secondaryColor;
+    void weight;
+    void strokeWidth;
     const mergedClassName = className ? `${className} align-middle` : "align-middle";
-    const resolvedStrokeWidth =
-      strokeWidth ?? WEIGHT_TO_STROKE[String(weight).toLowerCase()] ?? 2;
 
     return (
       <IconComponent
         ref={ref}
         size={size}
-        strokeWidth={resolvedStrokeWidth}
         color={color}
         className={mergedClassName}
         style={style}
@@ -534,6 +794,7 @@ export const ArchiveRestore = createUnifiedIcon("ArchiveRestore");
 export const ArrowDown = createUnifiedIcon("ArrowDown");
 export const ArrowLeft = createUnifiedIcon("ArrowLeft");
 export const ArrowLeftRight = createUnifiedIcon("ArrowLeftRight");
+export const TransferHorizontalLine = createUnifiedIcon("TransferHorizontalLine");
 export const ArrowRight = createUnifiedIcon("ArrowRight");
 export const ArrowUp = createUnifiedIcon("ArrowUp");
 export const ArrowUpDown = createUnifiedIcon("ArrowUpDown");
@@ -965,3 +1226,71 @@ export const X = createUnifiedIcon("X");
 export const XCircle = createUnifiedIcon("XCircle");
 export const Youtube = createUnifiedIcon("Youtube");
 export const Zap = createUnifiedIcon("Zap");
+export const Armchair = createUnifiedIcon("Armchair");
+export const Baby = createUnifiedIcon("Baby");
+export const Bath = createUnifiedIcon("Bath");
+export const BatteryCharging = createUnifiedIcon("BatteryCharging");
+export const Bed = createUnifiedIcon("Bed");
+export const Bike = createUnifiedIcon("Bike");
+export const Bird = createUnifiedIcon("Bird");
+export const Bluetooth = createUnifiedIcon("Bluetooth");
+export const BookOpen = createUnifiedIcon("BookOpen");
+export const Bot = createUnifiedIcon("Bot");
+export const Box = createUnifiedIcon("Box");
+export const Bus = createUnifiedIcon("Bus");
+export const Car = createUnifiedIcon("Car");
+export const Cat = createUnifiedIcon("Cat");
+export const ChefHat = createUnifiedIcon("ChefHat");
+export const Coins = createUnifiedIcon("Coins");
+export const Compass = createUnifiedIcon("Compass");
+export const CookingPot = createUnifiedIcon("CookingPot");
+export const Cpu = createUnifiedIcon("Cpu");
+export const Cross = createUnifiedIcon("Cross");
+export const Dog = createUnifiedIcon("Dog");
+export const DoorOpen = createUnifiedIcon("DoorOpen");
+export const Dumbbell = createUnifiedIcon("Dumbbell");
+export const Factory = createUnifiedIcon("Factory");
+export const Film = createUnifiedIcon("Film");
+export const Fish = createUnifiedIcon("Fish");
+export const Flower2 = createUnifiedIcon("Flower2");
+export const Fuel = createUnifiedIcon("Fuel");
+export const Gamepad2 = createUnifiedIcon("Gamepad2");
+export const Gauge = createUnifiedIcon("Gauge");
+export const Gift = createUnifiedIcon("Gift");
+export const GraduationCap = createUnifiedIcon("GraduationCap");
+export const HardDrive = createUnifiedIcon("HardDrive");
+export const Headphones = createUnifiedIcon("Headphones");
+export const Hospital = createUnifiedIcon("Hospital");
+export const House = createUnifiedIcon("House");
+export const Keyboard = createUnifiedIcon("Keyboard");
+export const Lamp = createUnifiedIcon("Lamp");
+export const Laptop = createUnifiedIcon("Laptop");
+export const Leaf = createUnifiedIcon("Leaf");
+export const Megaphone = createUnifiedIcon("Megaphone");
+export const MemoryStick = createUnifiedIcon("MemoryStick");
+export const Mic = createUnifiedIcon("Mic");
+export const Monitor = createUnifiedIcon("Monitor");
+export const PaintRoller = createUnifiedIcon("PaintRoller");
+export const Paintbrush = createUnifiedIcon("Paintbrush");
+export const Palette = createUnifiedIcon("Palette");
+export const PawPrint = createUnifiedIcon("PawPrint");
+export const PhoneCall = createUnifiedIcon("PhoneCall");
+export const Pill = createUnifiedIcon("Pill");
+export const Plug = createUnifiedIcon("Plug");
+export const PlugZap = createUnifiedIcon("PlugZap");
+export const Printer = createUnifiedIcon("Printer");
+export const Puzzle = createUnifiedIcon("Puzzle");
+export const Ruler = createUnifiedIcon("Ruler");
+export const Scissors = createUnifiedIcon("Scissors");
+export const Shapes = createUnifiedIcon("Shapes");
+export const Ship = createUnifiedIcon("Ship");
+export const Shirt = createUnifiedIcon("Shirt");
+export const Smartphone = createUnifiedIcon("Smartphone");
+export const Snowflake = createUnifiedIcon("Snowflake");
+export const Sofa = createUnifiedIcon("Sofa");
+export const Stethoscope = createUnifiedIcon("Stethoscope");
+export const Ticket = createUnifiedIcon("Ticket");
+export const Toilet = createUnifiedIcon("Toilet");
+export const Tractor = createUnifiedIcon("Tractor");
+export const UtensilsCrossed = createUnifiedIcon("UtensilsCrossed");
+export const Wrench = createUnifiedIcon("Wrench");

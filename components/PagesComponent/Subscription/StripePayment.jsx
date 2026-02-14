@@ -9,6 +9,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { createPaymentIntentApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
 import { t } from "@/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const StripePayment = ({
   selectedPackage,
@@ -116,13 +117,13 @@ const StripePayment = ({
     <>
       {loading ? (
         <div className="">
-          <div className="animate-pulse">
-            <div className="w-full h-10 bg-gray-200 rounded-md mb-2"></div>
-            <div className="flex justify-between mb-4">
-              <div className="w-1/2 h-5 bg-gray-200 rounded-md"></div>
-              <div className="w-1/4 h-5 bg-gray-200 rounded-md"></div>
+          <div>
+            <Skeleton className="mb-2 h-10 w-full rounded-md" />
+            <div className="mb-4 flex justify-between">
+              <Skeleton className="h-5 w-1/2 rounded-md" />
+              <Skeleton className="h-5 w-1/4 rounded-md" />
             </div>
-            <div className="w-full h-12 bg-gray-200 rounded-md mt-6"></div>
+            <Skeleton className="mt-6 h-12 w-full rounded-md" />
           </div>
         </div>
       ) : (

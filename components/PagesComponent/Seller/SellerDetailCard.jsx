@@ -13,7 +13,6 @@ import { allItemApi } from "@/utils/api";
 // Lucide ikone
 import {
   User as UserCircle,
-  BadgeCheck as Verified,
   Star,
   Calendar,
   Clock,
@@ -1086,17 +1085,13 @@ export const SellerPreviewCard = ({
                     </div>
                   </div>
 
-                  {(showReelRing || isVerified) && (
+                  {isVerified && (
                     <motion.span
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center"
+                      className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 shadow-md flex items-center justify-center"
                     >
-                      {isVerified ? (
-                        <Verified className="w-3 h-3 text-[#0ea5e9]" />
-                      ) : (
-                        <Play className="w-3 h-3 text-[#1e3a8a]" />
-                      )}
+                      <MdVerified className="w-2.5 h-2.5 text-white" />
                     </motion.span>
                   )}
 
@@ -1209,7 +1204,7 @@ export const SellerPreviewCard = ({
 
                 {responseLabel && (
                   <div className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
-                    <Lightning className="w-3 h-3 text-amber-500" />
+                    {/* <Lightning className="w-3 h-3 text-amber-500" /> */}
                     <span>Prosječno vrijeme odgovora: {responseLabel}</span>
                   </div>
                 )}

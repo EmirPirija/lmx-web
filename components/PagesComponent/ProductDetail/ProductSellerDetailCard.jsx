@@ -16,8 +16,7 @@ import {
   Check,
   X,
   Star,
-  BadgeCheck,
-  Play,
+  MdVerified,
   ChevronRight,
   Clock,
   Shield,
@@ -38,6 +37,7 @@ import CustomImage from "@/components/Common/CustomImage";
 import CustomLink from "@/components/Common/CustomLink";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
@@ -71,8 +71,8 @@ const toBool = (v) => {
   return Boolean(v);
 };
 
-const getVerifiedStatus = (seller, settings) => {
-  return isSellerVerified(seller, settings);
+const getVerifiedStatus = (...sources) => {
+  return isSellerVerified(...sources);
 };
 
 
@@ -111,20 +111,36 @@ const parseLastSeenDate = (seller = {}) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const getBsCountForm = (value, one, few, many) => {
+  const n = Math.abs(Number(value) || 0);
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
+
 const formatSeenAgoLabel = (lastSeenDate) => {
   if (!lastSeenDate) return "";
   const diffSeconds = Math.max(0, Math.floor((Date.now() - lastSeenDate.getTime()) / 1000));
   if (diffSeconds < 60) return "upravo sada";
   const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) return diffMinutes === 1 ? "prije 1 min" : `prije ${diffMinutes} min`;
+  if (diffMinutes < 60) {
+    return `prije ${diffMinutes} ${getBsCountForm(diffMinutes, "minutu", "minute", "minuta")}`;
+  }
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return diffHours === 1 ? "prije 1 sat" : `prije ${diffHours} sati`;
+  if (diffHours < 24) {
+    return `prije ${diffHours} ${getBsCountForm(diffHours, "sat", "sata", "sati")}`;
+  }
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return diffDays === 1 ? "prije 1 dan" : `prije ${diffDays} dana`;
+  if (diffDays < 30) return `prije ${diffDays} ${getBsCountForm(diffDays, "dan", "dana", "dana")}`;
   const diffMonths = Math.floor(diffDays / 30);
-  if (diffMonths < 12) return diffMonths === 1 ? "prije 1 mjesec" : `prije ${diffMonths} mjeseci`;
+  if (diffMonths < 12) {
+    return `prije ${diffMonths} ${getBsCountForm(diffMonths, "mjesec", "mjeseca", "mjeseci")}`;
+  }
   const diffYears = Math.floor(diffMonths / 12);
-  return diffYears === 1 ? "prije 1 godinu" : `prije ${diffYears} godina`;
+  return `prije ${diffYears} ${getBsCountForm(diffYears, "godinu", "godine", "godina")}`;
 };
 
 const responseTimeLabels = {
@@ -527,16 +543,16 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
 ===================================================== */
 
 export const ProductSellerCardSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-4 animate-pulse">
+  <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 space-y-4 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.45)] dark:border-slate-700/80 dark:bg-slate-900/85">
     <div className="flex items-center gap-3">
-      <div className="w-12 h-12 rounded-xl bg-slate-200" />
+      <Skeleton className="w-12 h-12 rounded-xl" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 bg-slate-200 rounded w-32" />
-        <div className="h-3 bg-slate-100 rounded w-24" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-3 w-24" />
       </div>
     </div>
-    <div className="h-11 bg-slate-200 rounded-xl" />
-    <div className="h-11 bg-slate-100 rounded-xl" />
+    <Skeleton className="h-11 rounded-xl" />
+    <Skeleton className="h-11 rounded-xl" />
   </div>
 );
 
@@ -654,8 +670,8 @@ const ProductSellerDetailCard = ({
 
 
   const isVerified = useMemo(() => {
-      return getVerifiedStatus(seller, settings);
-    }, [seller, settings]);
+      return getVerifiedStatus(seller, settings, sellerSettings, productDetails?.user);
+    }, [seller, settings, sellerSettings, productDetails?.user]);
 
   const [hasReel, setHasReel] = useState(
     Boolean(hasItemVideo(productDetails) || hasSellerActiveReel(seller))
@@ -838,13 +854,9 @@ const ProductSellerDetailCard = ({
                       />
                     </div>
                   </motion.div>
-                  {(hasReel || isVerified) && (
-                    <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center">
-                      {isVerified ? (
-                        <BadgeCheck className="w-3 h-3 text-[#0ea5e9]" />
-                      ) : (
-                        <Play className="w-3 h-3 text-[#1e3a8a]" />
-                      )}
+                  {isVerified && (
+                    <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 shadow-md flex items-center justify-center">
+                      <MdVerified className="w-2.5 h-2.5 text-white" />
                     </div>
                   )}
                 </button>
@@ -889,13 +901,9 @@ const ProductSellerDetailCard = ({
                     />
                   </div>
                 </motion.div>
-                {(hasReel || isVerified) && (
-                  <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center">
-                    {isVerified ? (
-                      <BadgeCheck className="w-3 h-3 text-[#0ea5e9]" />
-                    ) : (
-                      <Play className="w-3 h-3 text-[#1e3a8a]" />
-                    )}
+                {isVerified && (
+                  <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 shadow-md flex items-center justify-center">
+                    <MdVerified className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}
               </div>
@@ -952,7 +960,7 @@ const ProductSellerDetailCard = ({
 
                 {responseLabel && (
                   <div className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
-                    <Zap className="w-3 h-3 text-amber-500" />
+                    {/* <Zap className="w-3 h-3 text-amber-500" /> */}
                     <span>Prosječno vrijeme odgovora: {responseLabel}</span>
                   </div>
                 )}

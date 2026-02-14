@@ -38,6 +38,7 @@ import CustomLink from "@/components/Common/CustomLink";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { handleKeyDown, inpNum, t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
@@ -366,17 +367,17 @@ const RichTextarea = ({
 // ============================================
 const SkeletonLoader = () => {
   return (
-    <div className="p-3 space-y-3 animate-pulse">
+    <div className="p-3 space-y-3">
       {/* Search Skeleton */}
-      <div className="h-10 bg-gray-200 rounded-lg"></div>
+      <Skeleton className="h-10 rounded-lg" />
 
       {/* Options Skeleton */}
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="flex items-center gap-3 p-3">
-          <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+          <Skeleton className="w-10 h-10 rounded-full" />
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+            <Skeleton className="h-4 w-3/4 rounded" />
+            <Skeleton className="h-3 w-1/2 rounded" />
           </div>
         </div>
       ))}

@@ -46,6 +46,7 @@ import { Crown } from "@/components/Common/UnifiedIconPack";
 import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================
 // HELPERS
@@ -276,9 +277,9 @@ const QuickStat = ({ icon: Icon, value, label, color = "primary", loading = fals
   if (loading) {
     return (
       <div className="flex flex-col items-center gap-1 p-2">
-        <div className="h-8 w-8 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
-        <div className="h-4 w-8 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-        <div className="h-3 w-12 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        <Skeleton className="h-8 w-8 rounded-lg" />
+        <Skeleton className="h-4 w-8 rounded" />
+        <Skeleton className="h-3 w-12 rounded" />
       </div>
     );
   }
@@ -356,7 +357,7 @@ const ProfileSidebar = ({
                   {userData?.name || "Korisnik"}
                 </p>
                 {isStatsLoading ? (
-                  <span className="inline-flex h-5 w-14 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+                  <Skeleton className="inline-flex h-5 w-14 rounded-full" />
                 ) : (
                   <MembershipBadge tier={userStats.membershipTier} size="xs" uppercase={false} />
                 )}
@@ -581,8 +582,8 @@ const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) =
             </p>
             {isStatsLoading ? (
               <div className="mt-2 space-y-2">
-                <div className="h-4 w-36 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-                <div className="h-3 w-[420px] max-w-full animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+                <Skeleton className="h-4 w-36 rounded" />
+                <Skeleton className="h-3 w-[420px] max-w-full rounded" />
               </div>
             ) : (
               <>
@@ -600,8 +601,8 @@ const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) =
         <motion.div variants={contextHeaderItemVariants} className="flex flex-wrap items-center gap-2 px-5 py-3">
           {isStatsLoading ? (
             <>
-              <div className="h-9 w-32 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
-              <div className="h-9 w-36 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+              <Skeleton className="h-9 w-32 rounded-xl" />
+              <Skeleton className="h-9 w-36 rounded-xl" />
             </>
           ) : hasContextActions ? (
             <>

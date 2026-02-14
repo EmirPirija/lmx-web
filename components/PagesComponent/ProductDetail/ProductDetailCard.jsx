@@ -553,8 +553,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const currentPrice = productDetails?.price;
   const renewalSourceDate =
     productDetails?.last_renewed_at ||
-    productDetails?.renewed_at ||
-    productDetails?.updated_at;
+    productDetails?.renewed_at;
   const renewalDateTime = formatDateTimeEu(renewalSourceDate);
   const areaName = productDetails?.area?.translated_name || productDetails?.area?.name;
   const locationLine = [areaName, productDetails?.city, productDetails?.state].filter(Boolean).join(", ") || "Lokacija nije navedena";
@@ -564,10 +563,10 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const exchangeLabel = exchangePossible === true ? "Da" : exchangePossible === false ? "Ne" : "Nije navedeno";
   const availableNowTone = availableNow === true ? "positive" : availableNow === false ? "negative" : "neutral";
   const exchangeTone = exchangePossible === true ? "positive" : exchangePossible === false ? "negative" : "neutral";
-  const renewalInfoValue = renewalDateTime || "Datum nije dostupan";
+  const renewalInfoValue = renewalDateTime || "Nije obnovljen";
   const renewalInfoTitle = renewalDateTime
     ? `Zadnja obnova: ${renewalDateTime}`
-    : "Datum zadnje obnove nije dostupan.";
+    : "Oglas još nije obnovljen.";
   const productIdLabel = productDetails?.id ? `#${productDetails.id}` : "-";
   const oldPriceNumber = Number(oldPrice);
   const currentPriceNumber = Number(currentPrice);
@@ -684,24 +683,26 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                       <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold">
                         AKCIJA
                       </span>
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-3xl font-black text-primary tracking-tight break-words">{displayPrice}</p>
-                  )}
-                </div>
 
-                {hasHistory && (
+                      {hasHistory && (
                   <button
                     type="button"
                     onClick={() => setShowHistoryModal(true)}
-                    className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
+                    className="inline-flex items-center justify-center gap-2 px-3 py-2 ml-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
                     title="Historija cijena"
                     aria-label="Prikaži historiju cijena"
                   >
                     <MdHistory className="text-base text-slate-400 dark:text-slate-400" />
-                    Historija cijena
+                    {/* Historija cijena */}
                   </button>
                 )}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-3xl font-black text-primary tracking-tight break-words">{displayPrice}</p>
+                  )}
+
+                </div>
+
               </div>
             </div>
 

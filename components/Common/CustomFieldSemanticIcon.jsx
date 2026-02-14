@@ -31,7 +31,7 @@ import {
   Wifi,
   Wrench,
   Smartphone,
-} from "lucide-react";
+} from "@/components/Common/UnifiedIconPack";
 
 const normalize = (value = "") =>
   String(value)

@@ -8,6 +8,7 @@ import { toast } from "@/utils/toastBs";
 
 import Layout from "@/components/Layout/Layout";
 import LeaderboardCard from "@/components/PagesComponent/Gamification/LeaderboardCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { gamificationApi } from "@/utils/api";
 import { updateMetadata } from "@/utils";
 import {
@@ -152,7 +153,7 @@ export default function LeaderboardPage() {
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+                <Skeleton key={i} className="h-20 rounded-2xl" />
               ))}
             </div>
           ) : error ? (

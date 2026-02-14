@@ -17,6 +17,7 @@ import {
 } from "@/components/Common/UnifiedIconPack";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import CustomImage from "@/components/Common/CustomImage";
 import CategorySemanticIcon from "@/components/Common/CategorySemanticIcon";
 
@@ -42,13 +43,13 @@ const itemVariants = {
 const SectionHeader = ({ icon: Icon, title, count, action }) => (
   <div className="flex items-center justify-between mb-3 px-1">
     <div className="flex items-center gap-2">
-      <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+      <div className="rounded-lg bg-blue-50 p-1.5 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
         <Icon size={16} />
       </div>
       <div>
-        <h3 className="font-semibold text-gray-900 text-sm md:text-base">{title}</h3>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100 md:text-base">{title}</h3>
         {count !== undefined && (
-          <p className="text-[10px] md:text-xs text-gray-500">{count} rezultata</p>
+          <p className="text-[10px] text-gray-500 dark:text-slate-400 md:text-xs">{count} rezultata</p>
         )}
       </div>
     </div>
@@ -72,12 +73,14 @@ const RecentPill = memo(({ category, onClick, index }) => (
       group shrink-0 flex items-center gap-2.5 pl-1.5 pr-4 py-1.5
       bg-white border border-gray-200 rounded-full shadow-sm
       hover:border-blue-400 hover:shadow-md hover:bg-blue-50/10
+      dark:bg-slate-900 dark:border-slate-700 dark:hover:border-blue-400 dark:hover:bg-blue-500/10
       transition-all duration-300 cursor-pointer
     "
   >
     <div className="
       w-7 h-7 rounded-full bg-gray-50 border border-gray-100 
       flex items-center justify-center overflow-hidden shrink-0
+      dark:bg-slate-800 dark:border-slate-700
       group-hover:scale-110 transition-transform duration-300
     ">
       {isRootCategory(category) ? (
@@ -86,7 +89,7 @@ const RecentPill = memo(({ category, onClick, index }) => (
         <CategorySemanticIcon category={category} className="w-4 h-4" />
       )}
     </div>
-    <span className="text-xs font-semibold text-gray-700 group-hover:text-blue-700 whitespace-nowrap max-w-[120px] truncate">
+    <span className="max-w-[120px] truncate whitespace-nowrap text-xs font-semibold text-gray-700 group-hover:text-blue-700 dark:text-slate-200 dark:group-hover:text-blue-300">
       {category.translated_name || category.name}
     </span>
   </motion.button>
@@ -109,6 +112,7 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
         group w-full flex items-center p-3 md:p-4 
         bg-white border border-gray-100 rounded-xl md:rounded-2xl
         hover:border-blue-300 hover:shadow-md hover:bg-blue-50/30
+        dark:bg-slate-900 dark:border-slate-700 dark:hover:border-blue-500 dark:hover:bg-blue-500/10
         transition-all duration-200
       "
     >
@@ -119,6 +123,7 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
         rounded-lg md:rounded-xl 
         bg-gray-50 border border-gray-100 
         flex items-center justify-center 
+        dark:bg-slate-800 dark:border-slate-700
         group-hover:bg-white group-hover:border-blue-100 transition-colors
       ">
         {isRootCategory(category) ? (
@@ -136,18 +141,18 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
 
       {/* Content */}
       <div className="flex-1 min-w-0 text-left">
-        <span className="text-sm md:text-base font-semibold text-gray-800 group-hover:text-blue-700 transition-colors line-clamp-1">
+        <span className="line-clamp-1 text-sm font-semibold text-gray-800 transition-colors group-hover:text-blue-700 dark:text-slate-100 dark:group-hover:text-blue-300 md:text-base">
           {category?.search_name || category?.translated_name || category?.name}
         </span>
         
         {showPath && category?.full_path ? (
-          <span className="text-[10px] md:text-xs text-gray-400 truncate mt-0.5 block">
+          <span className="mt-0.5 block truncate text-[10px] text-gray-400 dark:text-slate-400 md:text-xs">
             {category.full_path}
           </span>
         ) : (
           <div className="flex items-center gap-2 mt-0.5 md:mt-1">
             {hasChildren && (
-              <span className="text-[10px] md:text-xs text-gray-500">
+              <span className="text-[10px] text-gray-500 dark:text-slate-400 md:text-xs">
                 {category?.subcategories_count} podkategorija
               </span>
             )}
@@ -158,12 +163,12 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
       {/* Right Side Info & Arrow */}
       <div className="flex items-center gap-3 ml-2 shrink-0">
         {adCount !== null && adCount > 0 && (
-          <span className="px-2.5 py-1 bg-gray-100 group-hover:bg-blue-100 text-gray-600 group-hover:text-blue-700 text-xs font-medium rounded-full transition-colors">
+          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700 dark:bg-slate-800 dark:text-slate-300 dark:group-hover:bg-blue-500/20 dark:group-hover:text-blue-300">
             {adCount}
           </span>
         )}
-        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-50 group-hover:bg-blue-500 transition-colors">
-          <ChevronRight size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 transition-colors group-hover:bg-blue-500 dark:bg-slate-800 dark:group-hover:bg-blue-500">
+          <ChevronRight size={16} className="text-gray-400 transition-colors group-hover:text-white dark:text-slate-400" />
         </div>
       </div>
     </motion.button>
@@ -184,9 +189,10 @@ const UserListItem = memo(({ user, onClick }) => {
         flex items-center gap-3 p-3 w-full text-left
         bg-white border border-gray-100 rounded-xl
         hover:border-blue-200 hover:shadow-md transition-all
+        dark:bg-slate-900 dark:border-slate-700 dark:hover:border-blue-500
       "
     >
-      <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+      <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden shrink-0 border border-gray-200 dark:bg-slate-800 dark:border-slate-700">
         {user?.profile ? (
           <CustomImage
             src={user.profile}
@@ -196,23 +202,23 @@ const UserListItem = memo(({ user, onClick }) => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-slate-400">
             <User size={20} />
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 truncate">{user?.name}</p>
+        <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">{user?.name}</p>
         <div className="flex items-center gap-2">
           {user?.average_rating && (
             <div className="flex items-center gap-1 text-amber-500">
               <Star size={10} fill="currentColor" />
-              <span className="text-[10px] font-bold text-gray-600">{Number(user.average_rating).toFixed(1)}</span>
+              <span className="text-[10px] font-bold text-gray-600 dark:text-slate-300">{Number(user.average_rating).toFixed(1)}</span>
             </div>
           )}
         </div>
       </div>
-      <ChevronRight size={16} className="text-gray-300" />
+      <ChevronRight size={16} className="text-gray-300 dark:text-slate-500" />
     </motion.button>
   );
 });
@@ -231,16 +237,16 @@ const SearchBar = ({ value, onChange, isSearching }) => {
     `}>
       <div className={`
         flex items-center w-full h-12 md:h-14 px-4 
-        bg-white border-2 rounded-xl md:rounded-2xl
+        bg-white border-2 rounded-xl md:rounded-2xl dark:bg-slate-900 dark:border-slate-700
         transition-all duration-200
         ${isFocused 
-          ? 'border-blue-500 shadow-lg shadow-blue-500/10' 
-          : 'border-gray-100 shadow-sm'
+          ? 'border-blue-500 shadow-lg shadow-blue-500/10 dark:border-blue-500' 
+          : 'border-gray-100 shadow-sm dark:border-slate-700'
         }
       `}>
         <Search 
           size={20} 
-          className={`mr-3 transition-colors ${isFocused ? 'text-blue-500' : 'text-gray-400'}`} 
+          className={`mr-3 transition-colors ${isFocused ? 'text-blue-500' : 'text-gray-400 dark:text-slate-400'}`} 
         />
         
         <input
@@ -250,15 +256,15 @@ const SearchBar = ({ value, onChange, isSearching }) => {
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="flex-1 h-full bg-transparent outline-none text-sm md:text-base text-gray-800 placeholder:text-gray-400"
+          className="flex-1 h-full bg-transparent outline-none text-sm md:text-base text-gray-800 placeholder:text-gray-400 dark:text-slate-100 dark:placeholder:text-slate-500"
         />
 
         {value && (
           <button 
             onClick={() => onChange("")}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors ml-2"
+            className="ml-2 rounded-full p-1 transition-colors hover:bg-gray-100 dark:hover:bg-slate-800"
           >
-            <X size={16} className="text-gray-400" />
+            <X size={16} className="text-gray-400 dark:text-slate-400" />
           </button>
         )}
 
@@ -300,6 +306,13 @@ const isRootCategory = (category) => {
   const hasNestedPath = fullPath.includes(" > ");
   return !hasParentId && !hasNestedPath;
 };
+
+const normalizeSearchKey = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 
 const extractAds = (resultJson) => {
   const d = resultJson?.data;
@@ -365,13 +378,102 @@ const ComponentOne = ({
      
      try {
         const response = await fetch(
-          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(query)}&limit=50`,
+          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(query)}&per_page=50`,
           { signal: abortAdsRef.current.signal }
         );
         if(!response.ok) return { cats: [], usersFromAds: [] };
-        return { cats: [], usersFromAds: [] }; 
-     } catch { return { cats: [], usersFromAds: [] }; }
-  }, []);
+
+        const result = await response.json();
+        const ads = extractAds(result);
+        if (!Array.isArray(ads) || ads.length === 0) return { cats: [], usersFromAds: [] };
+
+        const catById = new Map(
+          localIndex.flattened
+            .filter((c) => c?.id != null)
+            .map((c) => [String(c.id), c])
+        );
+        const catBySlug = new Map(
+          localIndex.flattened
+            .filter((c) => c?.slug)
+            .map((c) => [String(c.slug).toLowerCase(), c])
+        );
+        const catByName = new Map(
+          localIndex.flattened
+            .filter((c) => c?.search_name || c?.translated_name || c?.name)
+            .map((c) => [
+              normalizeSearchKey(c?.search_name || c?.translated_name || c?.name),
+              c,
+            ])
+        );
+
+        const categoryMap = new Map();
+        const userMap = new Map();
+
+        ads.forEach((ad) => {
+          const adCategory = ad?.category || null;
+          const adCategoryId = ad?.category_id ?? adCategory?.id ?? null;
+          const adCategorySlug = adCategory?.slug ?? null;
+          const adCategoryName = adCategory?.translated_name || adCategory?.name || "";
+
+          const localMatchById =
+            adCategoryId != null ? catById.get(String(adCategoryId)) : null;
+          const localMatchBySlug = adCategorySlug
+            ? catBySlug.get(String(adCategorySlug).toLowerCase())
+            : null;
+          const localMatchByName = adCategoryName
+            ? catByName.get(normalizeSearchKey(adCategoryName))
+            : null;
+          const resolvedCategory = localMatchById || localMatchBySlug || localMatchByName || adCategory;
+
+          const slug = resolvedCategory?.slug || adCategorySlug || localMatchByName?.slug;
+          const fallbackName =
+            resolvedCategory?.search_name ||
+            resolvedCategory?.translated_name ||
+            resolvedCategory?.name ||
+            adCategoryName;
+          const key =
+            (slug && String(slug).toLowerCase()) ||
+            (adCategoryId != null ? `id:${String(adCategoryId)}` : "") ||
+            (fallbackName ? `name:${normalizeSearchKey(fallbackName)}` : "");
+          if (key) {
+            const searchName =
+              fallbackName || slug || "Kategorija";
+
+            const nextCategory = {
+              ...(resolvedCategory || {}),
+              slug,
+              id: resolvedCategory?.id ?? adCategoryId ?? key,
+              search_name: searchName,
+              full_path: resolvedCategory?.full_path || searchName,
+            };
+
+            const existing = categoryMap.get(key);
+            if (existing) existing.count += 1;
+            else categoryMap.set(key, { ...nextCategory, count: 1 });
+          }
+
+          if (ad?.user?.id != null) {
+            const userKey = String(ad.user.id);
+            const existingUser = userMap.get(userKey);
+            if (existingUser) existingUser.adCount = (existingUser.adCount || 0) + 1;
+            else userMap.set(userKey, { ...ad.user, adCount: 1 });
+          }
+        });
+
+        const cats = Array.from(categoryMap.values())
+          .sort((a, b) => (b.count || 0) - (a.count || 0))
+          .slice(0, 10);
+
+        const usersFromAds = Array.from(userMap.values())
+          .sort((a, b) => (b.adCount || 0) - (a.adCount || 0))
+          .slice(0, 5);
+
+        return { cats, usersFromAds };
+     } catch (error) {
+        if (error?.name === "AbortError") return { cats: [], usersFromAds: [] };
+        return { cats: [], usersFromAds: [] };
+     }
+  }, [localIndex.flattened]);
 
   const searchLocalCategories = useCallback((query) => {
       if (!fuse || query.length < 2) return [];
@@ -383,24 +485,59 @@ const ComponentOne = ({
     const q = (search || "").trim();
     
     if (q.length < 2) {
+      if (abortAdsRef.current) {
+        abortAdsRef.current.abort();
+      }
       setSuggestedCategories([]);
       setSuggestedUsers([]);
       setIsSearching(false);
       return;
     }
 
+    let isAlive = true;
     setIsSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
       const localCats = searchLocalCategories(q);
-      const [users] = await Promise.all([searchUsers(q)]);
-      
-      setSuggestedCategories(localCats);
-      setSuggestedUsers(users.slice(0, 5));
+      const [adsResult, users] = await Promise.all([
+        searchAdsAndCategories(q),
+        searchUsers(q),
+      ]);
+      if (!isAlive) return;
+
+      const mergedCategoryMap = new Map();
+      (adsResult?.cats || []).forEach((cat) => {
+        const key = String(cat?.slug || cat?.id || "").toLowerCase();
+        if (!key || mergedCategoryMap.has(key)) return;
+        mergedCategoryMap.set(key, cat);
+      });
+      localCats.forEach((cat) => {
+        const key = String(cat?.slug || cat?.id || "").toLowerCase();
+        if (!key || mergedCategoryMap.has(key)) return;
+        mergedCategoryMap.set(key, cat);
+      });
+
+      const mergedUsersMap = new Map();
+      (adsResult?.usersFromAds || []).forEach((user) => {
+        const key = String(user?.id || "");
+        if (!key || mergedUsersMap.has(key)) return;
+        mergedUsersMap.set(key, user);
+      });
+      (users || []).forEach((user) => {
+        const key = String(user?.id || "");
+        if (!key || mergedUsersMap.has(key)) return;
+        mergedUsersMap.set(key, user);
+      });
+
+      setSuggestedCategories(Array.from(mergedCategoryMap.values()).slice(0, 10));
+      setSuggestedUsers(Array.from(mergedUsersMap.values()).slice(0, 5));
       setIsSearching(false);
     }, 300);
 
-    return () => clearTimeout(searchTimeoutRef.current);
-  }, [search, searchLocalCategories, searchUsers]);
+    return () => {
+      isAlive = false;
+      clearTimeout(searchTimeoutRef.current);
+    };
+  }, [search, searchAdsAndCategories, searchLocalCategories, searchUsers]);
 
 
   const showSearchResults = (search || "").trim().length >= 2;
@@ -409,7 +546,7 @@ const ComponentOne = ({
     <div className="flex flex-col gap-6">
       
       {/* 1. Search Section */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-30 pt-2 pb-2 -mx-2 px-2 border-b border-gray-50/50">
+      <div className="sticky top-0 z-30 -mx-2 border-b border-gray-50/50 bg-white/95 px-2 pb-2 pt-2 backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-900/95">
         <SearchBar value={search} onChange={setSearch} isSearching={isSearching} />
       </div>
 
@@ -423,8 +560,8 @@ const ComponentOne = ({
             className="overflow-hidden"
           >
             <div className="flex items-center gap-2 mb-2 px-1">
-              <History size={14} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nedavno</span>
+              <History size={14} className="text-gray-400 dark:text-slate-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Nedavno</span>
             </div>
             {/* Horizontal scroll chips */}
             <div className="flex gap-2 overflow-x-auto pb-4 pt-1 px-1 -mx-2 scrollbar-hide snap-x">
@@ -443,7 +580,7 @@ const ComponentOne = ({
         {categoriesLoading ? (
           <div className="flex flex-col gap-3">
              {[1,2,3,4,5,6,7,8].map(i => (
-                 <div key={i} className="h-16 w-full bg-gray-100 rounded-xl animate-pulse" />
+                 <Skeleton key={i} className="h-16 w-full rounded-xl" />
              ))}
           </div>
         ) : showSearchResults ? (
@@ -467,7 +604,7 @@ const ComponentOne = ({
 
             {suggestedUsers.length > 0 && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                <SectionHeader icon={User} title="Prodavci" count={suggestedUsers.length} />
+                <SectionHeader icon={User} title="Prodavači" count={suggestedUsers.length} />
                 <div className="flex flex-col gap-2">
                   {suggestedUsers.map((user) => (
                     <UserListItem key={user.id} user={user} onClick={onUserClick || (() => {})} />
@@ -478,8 +615,8 @@ const ComponentOne = ({
 
             {suggestedCategories.length === 0 && suggestedUsers.length === 0 && !isSearching && (
                <div className="text-center py-12">
-                  <SearchX size={48} className="mx-auto text-gray-200 mb-3" />
-                  <p className="text-gray-500 font-medium">Nema rezultata za "{search}"</p>
+                  <SearchX size={48} className="mx-auto mb-3 text-gray-200 dark:text-slate-700" />
+                  <p className="font-medium text-gray-500 dark:text-slate-400">Nema rezultata za "{search}"</p>
                </div>
             )}
           </div>
@@ -487,8 +624,8 @@ const ComponentOne = ({
           /* CATEGORY LIST (DEFAULT) - PURE LIST VIEW */
           <motion.div variants={containerVariants} initial="hidden" animate="visible">
             <div className="flex items-center justify-between mb-4 px-1">
-               <h2 className="text-lg font-bold text-gray-800">Sve kategorije</h2>
-               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full font-medium">
+               <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Sve kategorije</h2>
+               <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500 dark:bg-slate-800 dark:text-slate-300">
                  {categories?.length}
                </span>
             </div>
@@ -511,7 +648,7 @@ const ComponentOne = ({
                   variant="outline"
                   onClick={fetchMoreCategory}
                   disabled={isLoadMoreCat}
-                  className="rounded-full px-8 border-gray-300 hover:bg-gray-50 text-gray-600 w-full md:w-auto"
+                  className="w-full rounded-full border-gray-300 px-8 text-gray-600 hover:bg-gray-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 md:w-auto"
                 >
                   {isLoadMoreCat ? (
                     <Loader2 size={16} className="animate-spin mr-2" />

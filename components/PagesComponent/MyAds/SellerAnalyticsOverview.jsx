@@ -30,6 +30,10 @@ const PERIODS = [
   { value: 90, label: "90 dana" },
 ];
 
+const SELLER_OVERVIEW_ENABLED =
+  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "").toLowerCase() === "true" ||
+  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "") === "1";
+
 const formatInt = (value) => {
   const num = Number(value || 0);
   if (!Number.isFinite(num)) return "0";
@@ -139,6 +143,7 @@ export default function SellerAnalyticsOverview() {
   }, [period]);
 
   useEffect(() => {
+    if (!SELLER_OVERVIEW_ENABLED) return;
     fetchOverview();
   }, [fetchOverview]);
 
@@ -162,6 +167,10 @@ export default function SellerAnalyticsOverview() {
       { key: "tablet", label: "Tablet", value: devices?.tablet?.value || 0, percent: devices?.tablet?.percent || 0 },
     ];
   }, [devices]);
+
+  if (!SELLER_OVERVIEW_ENABLED) {
+    return null;
+  }
 
   if (loading) {
     return (

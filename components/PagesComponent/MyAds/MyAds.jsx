@@ -218,15 +218,55 @@ function SelectionBar({ count, onSelectAll, onCancel, allSelected, onDelete, onR
 
 const RENEW_DUE_STATUS = "renew_due";
 const POSITION_RENEW_COOLDOWN_DAYS = 15;
+const SELLER_OVERVIEW_ENABLED =
+  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "").toLowerCase() === "true" ||
+  String(process.env.NEXT_PUBLIC_SELLER_OVERVIEW_ENABLED || "") === "1";
 
 const parseDateSafe = (value) => {
   if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === "number") {
+    const numeric = new Date(value);
+    if (!Number.isNaN(numeric.getTime())) return numeric;
+  }
   const parsed = new Date(value);
   if (!Number.isNaN(parsed.getTime())) return parsed;
 
   if (typeof value === "string" && value.includes(" ")) {
     const normalized = new Date(value.replace(" ", "T"));
     if (!Number.isNaN(normalized.getTime())) return normalized;
+  }
+
+  return null;
+};
+
+const getRenewBaselineDate = (item) => {
+  if (!item || typeof item !== "object") return null;
+
+  const hasLastRenewedAtField = Object.prototype.hasOwnProperty.call(item, "last_renewed_at");
+  if (hasLastRenewedAtField) {
+    return parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at);
+  }
+
+  // Backend fallback when DB does not have last_renewed_at column.
+  return parseDateSafe(item?.updated_at) || parseDateSafe(item?.created_at);
+};
+
+const getRenewNextAllowedDate = (item) => {
+  if (!item || typeof item !== "object") return null;
+
+  const candidates = [
+    item?.next_position_renew_at,
+    item?.next_renewal_at,
+    item?.position_renew_available_at,
+    item?.renew_available_at,
+    item?.renewal_available_at,
+    item?.next_refresh_at,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = parseDateSafe(candidate);
+    if (parsed) return parsed;
   }
 
   return null;
@@ -243,11 +283,18 @@ const isAdEligibleForPositionRenew = (item, now = new Date()) => {
   const expiryDate = parseDateSafe(item?.expiry_date);
   if (expiryDate && expiryDate <= now) return false;
 
-  const baseline = parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at);
-  if (!baseline) return false;
+  const nextAllowedFromApi = getRenewNextAllowedDate(item);
+  const nextAllowed = nextAllowedFromApi
+    ? nextAllowedFromApi
+    : (() => {
+        const baseline = getRenewBaselineDate(item);
+        if (!baseline) return null;
+        const computed = new Date(baseline);
+        computed.setDate(computed.getDate() + POSITION_RENEW_COOLDOWN_DAYS);
+        return computed;
+      })();
+  if (!nextAllowed) return false;
 
-  const nextAllowed = new Date(baseline);
-  nextAllowed.setDate(nextAllowed.getDate() + POSITION_RENEW_COOLDOWN_DAYS);
   return now >= nextAllowed;
 };
 
@@ -299,13 +346,19 @@ const MyAds = () => {
         return "Oglas možeš obnoviti poziciju svakih 15 dana.";
       }
 
-      const baseline = parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at);
-      if (!baseline) {
+      const nextAllowedFromApi = getRenewNextAllowedDate(item);
+      const nextAllowed = nextAllowedFromApi
+        ? nextAllowedFromApi
+        : (() => {
+            const baseline = getRenewBaselineDate(item);
+            if (!baseline) return null;
+            const computed = new Date(baseline);
+            computed.setDate(computed.getDate() + POSITION_RENEW_COOLDOWN_DAYS);
+            return computed;
+          })();
+      if (!nextAllowed) {
         return "Oglas možeš obnoviti poziciju svakih 15 dana.";
       }
-
-      const nextAllowed = new Date(baseline);
-      nextAllowed.setDate(nextAllowed.getDate() + POSITION_RENEW_COOLDOWN_DAYS);
 
       if (Date.now() >= nextAllowed.getTime()) {
         return "API server još nema aktiviranu obnovu pozicije za aktivne oglase. Potreban je backend deploy za endpoint renew-item.";
@@ -733,7 +786,7 @@ const MyAds = () => {
 
   return (
     <div className="space-y-6">
-      <SellerAnalyticsOverview />
+      {SELLER_OVERVIEW_ENABLED ? <SellerAnalyticsOverview /> : null}
 
       {/* Filter Bar */}
       <div className="space-y-3">

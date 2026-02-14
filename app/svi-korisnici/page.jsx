@@ -10,6 +10,7 @@ import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import NoData from "@/components/EmptyStates/NoData";
 import ProductSellerDetailCard from "@/components/PagesComponent/ProductDetail/ProductSellerDetailCard";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -47,29 +48,29 @@ import {
 const UserCardSkeleton = ({ view }) => {
   if (view === "list") {
     return (
-      <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 animate-pulse">
-        <div className="w-16 h-16 rounded-xl bg-slate-200 dark:bg-slate-700" />
+      <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <Skeleton className="w-16 h-16 rounded-xl" />
         <div className="flex-1 space-y-2">
-          <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
-          <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+          <Skeleton className="h-5 w-40 rounded" />
+          <Skeleton className="h-4 w-32 rounded" />
         </div>
         <div className="hidden sm:flex gap-4">
-          <div className="h-10 w-20 bg-slate-200 dark:bg-slate-700 rounded-xl" />
-          <div className="h-10 w-20 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+          <Skeleton className="h-10 w-20 rounded-xl" />
+          <Skeleton className="h-10 w-20 rounded-xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 animate-pulse">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
       <div className="flex flex-col items-center text-center">
-        <div className="w-20 h-20 rounded-2xl bg-slate-200 dark:bg-slate-700 mb-3" />
-        <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
-        <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+        <Skeleton className="mb-3 h-20 w-20 rounded-2xl" />
+        <Skeleton className="mb-2 h-5 w-32 rounded" />
+        <Skeleton className="mb-4 h-4 w-24 rounded" />
         <div className="grid grid-cols-2 gap-2 w-full">
-          <div className="h-14 bg-slate-200 dark:bg-slate-700 rounded-xl" />
-          <div className="h-14 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+          <Skeleton className="h-14 rounded-xl" />
+          <Skeleton className="h-14 rounded-xl" />
         </div>
       </div>
     </div>
