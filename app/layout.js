@@ -34,6 +34,7 @@ export default function RootLayout({ children }) {
     <html
       lang="en"
       web-version={process.env.NEXT_PUBLIC_WEB_VERSION}
+      data-scroll-behavior="smooth"
       className="scroll-smooth"
       // OBAVEZNO: Sprječava greške zbog neslaganja servera i klijenta kod tema
       suppressHydrationWarning

@@ -1138,14 +1138,21 @@ export const SellerPreviewCard = ({
 
               if (canOpenReel) {
                 return (
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={onRingClick}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onRingClick?.();
+                      }
+                    }}
                     className="flex-shrink-0 focus:outline-none"
                     aria-label="Otvori reelove"
                   >
                     {avatar}
-                  </button>
+                  </div>
                 );
               }
 

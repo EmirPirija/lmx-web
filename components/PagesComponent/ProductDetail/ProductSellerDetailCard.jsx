@@ -839,9 +839,16 @@ const ProductSellerDetailCard = ({
             {/* Avatar */}
             {sellerId ? (
               <div className="relative isolate flex-shrink-0 group cursor-pointer">
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setIsReelViewerOpen(true)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setIsReelViewerOpen(true);
+                    }
+                  }}
                   className="focus:outline-none"
                   aria-label="Otvori reelove"
                 >
@@ -873,7 +880,7 @@ const ProductSellerDetailCard = ({
                   {isVerified && (
                     <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
                   )}
-                </button>
+                </div>
                 {canManageReels && (
                   <button
                     type="button"

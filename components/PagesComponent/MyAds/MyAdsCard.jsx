@@ -667,6 +667,7 @@ const SmartQuickActionsPanel = ({
   isSoldOut,
   isInactive,
   isExpired,
+  isSelectable,
   isFeatureAd,
   isReserved,
   canPositionRenew,
@@ -786,6 +787,7 @@ const SmartQuickActionsPanel = ({
       isFeatureAd,
       isInactive,
       isReserved,
+      isSelectable,
       isSelected,
       isSoldOut,
       onActivate,
@@ -1755,6 +1757,7 @@ const MyAdsCard = ({
         isSoldOut={isSoldOut}
         isInactive={isInactive}
         isExpired={isExpired}
+        isSelectable={isSelectable}
         isFeatureAd={isFeatureAd}
         isReserved={isReserved}
         canPositionRenew={canPositionRenew}
