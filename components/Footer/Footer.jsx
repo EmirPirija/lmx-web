@@ -5,6 +5,7 @@ import { FaInstagram, FaSquareXTwitter } from "@/components/Common/UnifiedIconPa
 import { SlLocationPin } from "@/components/Common/UnifiedIconPack";
 import { RiMailSendFill } from "@/components/Common/UnifiedIconPack";
 import { BiPhoneCall } from "@/components/Common/UnifiedIconPack";
+import { ShieldCheck, Sparkles, Video } from "@/components/Common/UnifiedIconPack";
 import { t } from "@/utils";
 import { quickLinks } from "@/utils/constants";
 import { useSelector } from "react-redux";
@@ -35,6 +36,30 @@ export default function Footer() {
   return (
     <footer className={`bg-[#1a1a1a] text-white ${marginTop}`}>
       <div className="container py-12 relative">
+        <div className="mb-8 grid gap-2.5 sm:grid-cols-3">
+          <CustomLink
+            href="/profile"
+            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10"
+          >
+            <Sparkles size={15} className="text-emerald-300" />
+            Kreiraj svoj LMX avatar
+          </CustomLink>
+          <CustomLink
+            href="/ad-listing"
+            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10"
+          >
+            <Video size={15} className="text-violet-300" />
+            Objavi video oglas i boostaj domet
+          </CustomLink>
+          <CustomLink
+            href="/membership/upgrade"
+            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10"
+          >
+            <ShieldCheck size={15} className="text-cyan-300" />
+            Aktiviraj PRO/SHOP pogodnosti
+          </CustomLink>
+        </div>
+
         {showDownloadLinks && (
           <div className="relative bg-[#FF7F50] top-[-140px] lg:top-[-125px] xl:top-[-150px] p-6 xl:p-12 rounded-md flex flex-col lg:flex-row items-center justify-between">
             <h2 className="text-3xl md:text-4xl xl:text-5xl text-center lg:text-left text-balance font-light mb-4 md:mb-0 w-full">

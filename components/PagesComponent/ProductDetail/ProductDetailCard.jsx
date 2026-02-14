@@ -540,7 +540,37 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const headline = `🚀 Pogledaj ovu odličnu ponudu! "${productName}" na ${CompanyName}.`;
   
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
-  const hasHistory = !isJobCategory && productDetails?.price_history && productDetails.price_history.length > 0;
+  const normalizedPriceHistory = useMemo(() => {
+    const candidates = [
+      productDetails?.price_history,
+      productDetails?.price_histories,
+      productDetails?.priceHistory,
+      productDetails?.price_changes,
+      productDetails?.priceChanges,
+      productDetails?.history?.price_history,
+      productDetails?.history?.prices,
+    ];
+    const raw = candidates.find((entry) => {
+      if (entry == null) return false;
+      if (Array.isArray(entry)) return entry.length > 0;
+      if (typeof entry === "string") return entry.trim().length > 0;
+      return true;
+    }) ?? [];
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    if (typeof raw === "string") {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+    if (raw && typeof raw === "object" && Array.isArray(raw?.data)) {
+      return raw.data.filter(Boolean);
+    }
+    return [];
+  }, [productDetails]);
+  const hasHistory = !isJobCategory && normalizedPriceHistory.length > 0;
   
   // Statusi
   const isReserved = productDetails?.status === 'reserved' || productDetails?.reservation_status === 'reserved';
@@ -672,34 +702,36 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {isJobCategory ? "Plata" : "Cijena"}
                   </p>
-                  {hasDiscount ? (
-                    <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
-                      <span className="text-sm font-medium text-slate-400 dark:text-slate-500 line-through">
-                        {formatBosnianPrice(oldPriceNumber)}
-                      </span>
-                      <span className="text-3xl font-black text-red-600 dark:text-red-500 tracking-tight break-words">
-                        {formatBosnianPrice(currentPriceNumber)}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold">
-                        AKCIJA
-                      </span>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
+                    {hasDiscount ? (
+                      <>
+                        <span className="text-sm font-medium text-slate-400 dark:text-slate-500 line-through">
+                          {formatBosnianPrice(oldPriceNumber)}
+                        </span>
+                        <span className="text-3xl font-black text-red-600 dark:text-red-500 tracking-tight break-words">
+                          {formatBosnianPrice(currentPriceNumber)}
+                        </span>
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold">
+                          AKCIJA
+                        </span>
+                      </>
+                    ) : (
+                      <p className="text-3xl font-black text-primary tracking-tight break-words">{displayPrice}</p>
+                    )}
 
-                      {hasHistory && (
-                  <button
-                    type="button"
-                    onClick={() => setShowHistoryModal(true)}
-                    className="inline-flex items-center justify-center gap-2 px-3 py-2 ml-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
-                    title="Historija cijena"
-                    aria-label="Prikaži historiju cijena"
-                  >
-                    <MdHistory className="text-base text-slate-400 dark:text-slate-400" />
-                    {/* Historija cijena */}
-                  </button>
-                )}
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-3xl font-black text-primary tracking-tight break-words">{displayPrice}</p>
-                  )}
+                    {hasHistory && (
+                      <button
+                        type="button"
+                        onClick={() => setShowHistoryModal(true)}
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 ml-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
+                        title="Historija cijena"
+                        aria-label="Prikaži historiju cijena"
+                      >
+                        <MdHistory className="text-base text-slate-400 dark:text-slate-400" />
+                        <span className="hidden sm:inline">Historija</span>
+                      </button>
+                    )}
+                  </div>
 
                 </div>
 
@@ -745,7 +777,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
       <PriceHistoryModal 
         isOpen={showHistoryModal} 
         onClose={() => setShowHistoryModal(false)} 
-        priceHistory={productDetails?.price_history} 
+        priceHistory={normalizedPriceHistory} 
         currentPrice={productDetails?.price} 
       />
       <style jsx global>{`

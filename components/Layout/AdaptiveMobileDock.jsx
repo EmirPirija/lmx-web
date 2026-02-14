@@ -44,8 +44,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   const [suspendRegistry, setSuspendRegistry] = useState({});
   const [isNavExpanded, setIsNavExpanded] = useState(false);
   const [isDockCollapsed, setIsDockCollapsed] = useState(false);
+  const [isDockInteracting, setIsDockInteracting] = useState(false);
   const rowRef = useRef(null);
   const lastScrollYRef = useRef(0);
+  const interactionReleaseTimerRef = useRef(null);
 
   const upsertNav = useCallback((id, payload) => {
     if (!id) return;
@@ -147,7 +149,12 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   }, [isSuspended]);
 
   useEffect(() => {
-    if (!ready || !isMobile || !showDock || isSuspended || isNavExpanded) {
+    if (!isDockInteracting) return;
+    setIsDockCollapsed(false);
+  }, [isDockInteracting]);
+
+  useEffect(() => {
+    if (!ready || !isMobile || !showDock || isSuspended || isNavExpanded || isDockInteracting) {
       setIsDockCollapsed(false);
       return undefined;
     }
@@ -188,7 +195,14 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [ready, isMobile, showDock, isSuspended, isNavExpanded]);
+  }, [ready, isMobile, showDock, isSuspended, isNavExpanded, isDockInteracting]);
+
+  useEffect(() => () => {
+    if (interactionReleaseTimerRef.current) {
+      window.clearTimeout(interactionReleaseTimerRef.current);
+      interactionReleaseTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -267,6 +281,25 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
   const closeNav = useCallback(() => setIsNavExpanded(false), []);
 
+  const beginDockInteraction = useCallback(() => {
+    if (interactionReleaseTimerRef.current) {
+      window.clearTimeout(interactionReleaseTimerRef.current);
+      interactionReleaseTimerRef.current = null;
+    }
+    setIsDockInteracting(true);
+    setIsDockCollapsed(false);
+  }, []);
+
+  const endDockInteraction = useCallback(() => {
+    if (interactionReleaseTimerRef.current) {
+      window.clearTimeout(interactionReleaseTimerRef.current);
+    }
+    interactionReleaseTimerRef.current = window.setTimeout(() => {
+      setIsDockInteracting(false);
+      interactionReleaseTimerRef.current = null;
+    }, 180);
+  }, []);
+
   const contextValue = useMemo(
     () => ({
       ready,
@@ -310,6 +343,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 onClick={closeNav}
+                onPointerDown={beginDockInteraction}
+                onPointerUp={endDockInteraction}
+                onPointerCancel={endDockInteraction}
+                onPointerLeave={endDockInteraction}
                 className="fixed inset-0 z-[64] bg-slate-950/20 backdrop-blur-[1.5px] lg:hidden"
               />
             )}
@@ -345,6 +382,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                           exit={{ opacity: 0, y: 8, scale: 0.98 }}
                           transition={{ duration: 0.24 }}
                           className="pointer-events-auto absolute inset-x-0 bottom-full mb-2"
+                          onPointerDownCapture={beginDockInteraction}
+                          onPointerUpCapture={endDockInteraction}
+                          onPointerCancelCapture={endDockInteraction}
+                          onPointerLeaveCapture={endDockInteraction}
                         >
                           <motion.div
                             layoutId="adaptive-dock-nav-shell"
@@ -360,6 +401,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                       className={`rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_-12px_35px_-22px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
                         isSuspended ? "pointer-events-none" : "pointer-events-auto"
                       }`}
+                      onPointerDownCapture={beginDockInteraction}
+                      onPointerUpCapture={endDockInteraction}
+                      onPointerCancelCapture={endDockInteraction}
+                      onPointerLeaveCapture={endDockInteraction}
                     >
                       <div className="flex items-center gap-2">
                         {hasCta && (

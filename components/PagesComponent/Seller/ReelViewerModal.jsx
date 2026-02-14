@@ -26,7 +26,6 @@ import {
   MdChevronRight,
   MdFlag,
   MdOpenInNew,
-  MdKeyboardArrowUp,
 } from "@/components/Common/UnifiedIconPack";
 
 import {
@@ -100,6 +99,8 @@ const fmtCount = (v) => {
 };
 
 const YT_STORY_SECONDS = 12;
+const EDGE_TAP_RATIO = 0.14;
+const SWIPE_NAV_PX = 44;
 
 /* ── component ──────────────────────────────────── */
 
@@ -111,6 +112,7 @@ const ReelViewerModal = ({
   initialSellerIndex = 0,
   initialItemIndex = 0,
   autoAdvance = true,
+  advanceAcrossSellers = true,
 }) => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -139,10 +141,32 @@ const ReelViewerModal = ({
   const sxRef = useRef(null);
   const syRef = useRef(null);
   const ytTimerRef = useRef(null);
-  const ytProgressRef = useRef(null);
+  const ytRafRef = useRef(null);
+  const progressRafRef = useRef(null);
+  const progressValueRef = useRef(0);
+  const pendingProgressRef = useRef(0);
+  const likeAnimTimerRef = useRef(null);
+  const sIdxRef = useRef(0);
+  const iIdxRef = useRef(0);
+  const navLockRef = useRef(false);
+  const navUnlockTimerRef = useRef(null);
 
   useEffect(() => {
     setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    sIdxRef.current = sIdx;
+    iIdxRef.current = iIdx;
+  }, [sIdx, iIdx]);
+
+  useEffect(() => () => {
+    if (holdRef.current) clearTimeout(holdRef.current);
+    if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
+    if (ytRafRef.current) cancelAnimationFrame(ytRafRef.current);
+    if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current);
+    if (likeAnimTimerRef.current) clearTimeout(likeAnimTimerRef.current);
+    if (navUnlockTimerRef.current) clearTimeout(navUnlockTimerRef.current);
   }, []);
 
   /* derived */
@@ -160,6 +184,37 @@ const ReelViewerModal = ({
   const shop = !!(seller?.shop_name || seller?.is_shop);
   const nSellers = allSellers.length;
   const nItems = items.length;
+  const nextDirectUrl = useMemo(() => {
+    const sameSeller = allSellers[sIdx]?.items || [];
+    let nextItem = null;
+    if (iIdx + 1 < sameSeller.length) {
+      nextItem = sameSeller[iIdx + 1];
+    } else if (advanceAcrossSellers && sIdx + 1 < allSellers.length) {
+      nextItem = allSellers[sIdx + 1]?.items?.[0] || null;
+    }
+    const nextMeta = nextItem ? pickVideoMeta(nextItem) : null;
+    return nextMeta?.type === "direct" ? nextMeta.src : null;
+  }, [allSellers, sIdx, iIdx, advanceAcrossSellers]);
+
+  const resetProgress = useCallback(() => {
+    progressValueRef.current = 0;
+    pendingProgressRef.current = 0;
+    setProgress(0);
+  }, []);
+
+  const queueProgress = useCallback((value) => {
+    const clamped = Math.max(0, Math.min(100, value || 0));
+    if (Math.abs(clamped - progressValueRef.current) < 0.4) return;
+    pendingProgressRef.current = clamped;
+    if (progressRafRef.current) return;
+    progressRafRef.current = requestAnimationFrame(() => {
+      progressRafRef.current = null;
+      const next = pendingProgressRef.current;
+      if (Math.abs(next - progressValueRef.current) < 0.4) return;
+      progressValueRef.current = next;
+      setProgress(next);
+    });
+  }, []);
 
   /* fetch for single-seller mode */
   const fetchUser = useCallback(async () => {
@@ -173,6 +228,8 @@ const ReelViewerModal = ({
       if (list.length) {
         const s = list[0]?.user || list[0]?.seller || {};
         setAllSellers([{ seller: s, items: list }]);
+        sIdxRef.current = 0;
+        iIdxRef.current = 0;
         setSIdx(0);
         setIIdx(0);
       } else {
@@ -193,12 +250,19 @@ const ReelViewerModal = ({
       setMsgInput(false);
       setMsgText("");
       setPaused(false);
+      navLockRef.current = false;
+      sxRef.current = null;
+      syRef.current = null;
       return;
     }
     if (sellersProp?.length) {
+      const nextSellerIndex = Math.min(initialSellerIndex, sellersProp.length - 1);
+      const nextItemIndex = Math.min(initialItemIndex, (sellersProp[nextSellerIndex]?.items?.length || 1) - 1);
       setAllSellers(sellersProp);
-      setSIdx(Math.min(initialSellerIndex, sellersProp.length - 1));
-      setIIdx(Math.min(initialItemIndex, (sellersProp[initialSellerIndex]?.items?.length || 1) - 1));
+      sIdxRef.current = nextSellerIndex;
+      iIdxRef.current = nextItemIndex;
+      setSIdx(nextSellerIndex);
+      setIIdx(nextItemIndex);
     } else if (userId) {
       fetchUser();
     }
@@ -214,114 +278,197 @@ const ReelViewerModal = ({
     if (!el) return;
     el.muted = muted;
     el.currentTime = 0;
-    setProgress(0);
+    resetProgress();
     setPaused(false);
     const t = setTimeout(() => { el.play().catch(() => {}); }, 80);
     return () => clearTimeout(t);
-  }, [open, vUrl, sIdx, iIdx, isYouTube, muted]);
+  }, [open, vUrl, sIdx, iIdx, isYouTube, muted, resetProgress]);
 
   useEffect(() => {
     if (!isYouTube && vidRef.current) vidRef.current.muted = muted;
   }, [muted, isYouTube]);
 
+  const lockNavigation = useCallback(() => {
+    navLockRef.current = true;
+    if (navUnlockTimerRef.current) clearTimeout(navUnlockTimerRef.current);
+    navUnlockTimerRef.current = setTimeout(() => {
+      navLockRef.current = false;
+      navUnlockTimerRef.current = null;
+    }, 180);
+  }, []);
+
   /* navigation helpers */
-  const goNext = useCallback(() => {
-    if (iIdx < nItems - 1) {
-      setDir(1); setIIdx((p) => p + 1); setProgress(0);
-    } else if (sIdx < nSellers - 1) {
-      setDir(1); setSIdx((p) => p + 1); setIIdx(0); setProgress(0);
-    } else {
-      onOpenChange?.(false);
+  const goNext = useCallback((closeIfEnd = false) => {
+    if (navLockRef.current) return;
+    const sellerIndex = sIdxRef.current;
+    const itemIndex = iIdxRef.current;
+    const sellerItems = allSellers[sellerIndex]?.items || [];
+
+    if (itemIndex < sellerItems.length - 1) {
+      lockNavigation();
+      const nextItem = itemIndex + 1;
+      setDir(1);
+      iIdxRef.current = nextItem;
+      setIIdx(nextItem);
+      resetProgress();
+      return;
     }
-  }, [iIdx, nItems, sIdx, nSellers, onOpenChange]);
+
+    if (advanceAcrossSellers && sellerIndex < allSellers.length - 1) {
+      lockNavigation();
+      const nextSeller = sellerIndex + 1;
+      setDir(1);
+      sIdxRef.current = nextSeller;
+      iIdxRef.current = 0;
+      setSIdx(nextSeller);
+      setIIdx(0);
+      resetProgress();
+      return;
+    }
+
+    if (closeIfEnd) onOpenChange?.(false);
+  }, [allSellers, lockNavigation, onOpenChange, resetProgress, advanceAcrossSellers]);
 
   const goPrev = useCallback(() => {
+    if (navLockRef.current) return;
     const el = vidRef.current;
-    if (el && el.currentTime > 3) { el.currentTime = 0; setProgress(0); return; }
-    if (iIdx > 0) {
-      setDir(-1); setIIdx((p) => p - 1); setProgress(0);
-    } else if (sIdx > 0) {
+    if (el && el.currentTime > 3) { el.currentTime = 0; resetProgress(); return; }
+
+    const sellerIndex = sIdxRef.current;
+    const itemIndex = iIdxRef.current;
+    if (itemIndex > 0) {
+      lockNavigation();
+      const prevItem = itemIndex - 1;
       setDir(-1);
-      const prev = allSellers[sIdx - 1];
-      setSIdx((p) => p - 1);
-      setIIdx((prev?.items?.length || 1) - 1);
-      setProgress(0);
+      iIdxRef.current = prevItem;
+      setIIdx(prevItem);
+      resetProgress();
+      return;
     }
-  }, [iIdx, sIdx, allSellers]);
+
+    if (advanceAcrossSellers && sellerIndex > 0) {
+      lockNavigation();
+      const prevSellerIndex = sellerIndex - 1;
+      const prevItems = allSellers[prevSellerIndex]?.items || [];
+      const prevItemIndex = Math.max(0, prevItems.length - 1);
+      setDir(-1);
+      sIdxRef.current = prevSellerIndex;
+      iIdxRef.current = prevItemIndex;
+      setSIdx(prevSellerIndex);
+      setIIdx(prevItemIndex);
+      resetProgress();
+    }
+  }, [allSellers, lockNavigation, resetProgress, advanceAcrossSellers]);
+
+  const shiftSeller = useCallback((direction) => {
+    if (navLockRef.current) return;
+    const currentSeller = sIdxRef.current;
+    const targetSeller = currentSeller + direction;
+    if (targetSeller < 0 || targetSeller >= allSellers.length) return;
+    lockNavigation();
+    setDir(direction > 0 ? 1 : -1);
+    sIdxRef.current = targetSeller;
+    iIdxRef.current = 0;
+    setSIdx(targetSeller);
+    setIIdx(0);
+    resetProgress();
+  }, [allSellers.length, lockNavigation, resetProgress]);
 
   /* progress */
   useEffect(() => {
     if (!open || isYouTube) return;
     const el = vidRef.current;
     if (!el) return;
-    const up = () => { if (el.duration) setProgress((el.currentTime / el.duration) * 100); };
+    const up = () => {
+      if (!el.duration) return;
+      queueProgress((el.currentTime / el.duration) * 100);
+    };
     el.addEventListener("timeupdate", up);
-    return () => el.removeEventListener("timeupdate", up);
-  }, [open, sIdx, iIdx, isYouTube]);
+    el.addEventListener("loadedmetadata", up);
+    el.addEventListener("seeking", up);
+    return () => {
+      el.removeEventListener("timeupdate", up);
+      el.removeEventListener("loadedmetadata", up);
+      el.removeEventListener("seeking", up);
+    };
+  }, [open, sIdx, iIdx, isYouTube, queueProgress]);
 
   useEffect(() => {
     if (!open || !isYouTube) return;
     if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
-    if (ytProgressRef.current) clearInterval(ytProgressRef.current);
-    setProgress(0);
+    if (ytRafRef.current) cancelAnimationFrame(ytRafRef.current);
+    resetProgress();
 
-    const start = Date.now();
-    ytProgressRef.current = setInterval(() => {
-      const elapsed = (Date.now() - start) / 1000;
-      const next = Math.min((elapsed / YT_STORY_SECONDS) * 100, 100);
-      setProgress(next);
-    }, 120);
+    const start = performance.now();
+    let lastPaint = 0;
+    const tick = (now) => {
+      const elapsed = (now - start) / 1000;
+      if (now - lastPaint >= 100) {
+        queueProgress((elapsed / YT_STORY_SECONDS) * 100);
+        lastPaint = now;
+      }
+      if (elapsed < YT_STORY_SECONDS) {
+        ytRafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    ytRafRef.current = requestAnimationFrame(tick);
 
     if (autoAdvance) {
       ytTimerRef.current = setTimeout(() => {
-        goNext();
+        goNext(true);
       }, YT_STORY_SECONDS * 1000);
     }
 
     return () => {
       if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
-      if (ytProgressRef.current) clearInterval(ytProgressRef.current);
+      if (ytRafRef.current) cancelAnimationFrame(ytRafRef.current);
     };
-  }, [open, isYouTube, sIdx, iIdx, autoAdvance, goNext]);
+  }, [open, isYouTube, sIdx, iIdx, autoAdvance, goNext, queueProgress, resetProgress]);
 
   /* auto-advance */
   useEffect(() => {
     if (!open || !autoAdvance || isYouTube) return;
     const el = vidRef.current;
     if (!el) return;
-    const end = () => goNext();
+    const end = () => goNext(true);
     el.addEventListener("ended", end);
     return () => el.removeEventListener("ended", end);
   }, [open, goNext, autoAdvance, isYouTube]);
+
+  const togglePause = useCallback(() => {
+    if (isYouTube) return;
+    const el = vidRef.current;
+    if (!el) return;
+    if (el.paused) { el.play().catch(() => {}); setPaused(false); }
+    else { el.pause(); setPaused(true); }
+  }, [isYouTube]);
 
   /* keyboard */
   useEffect(() => {
     if (!open) return;
     const fn = (e) => {
       if (e.key === "Escape") onOpenChange?.(false);
-      else if (e.key === "ArrowRight" || e.key === "d") goNext();
+      else if (e.key === "ArrowRight" || e.key === "d") goNext(false);
       else if (e.key === "ArrowLeft" || e.key === "a") goPrev();
       else if (e.key === " ") { e.preventDefault(); togglePause(); }
       else if (e.key === "m") setMuted((p) => !p);
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  }, [open, goNext, goPrev]);
-
-  const togglePause = () => {
-    if (isYouTube) return;
-    const el = vidRef.current;
-    if (!el) return;
-    if (el.paused) { el.play().catch(() => {}); setPaused(false); }
-    else { el.pause(); setPaused(true); }
-  };
+  }, [open, goNext, goPrev, togglePause, onOpenChange]);
 
   /* pointer handlers */
+  const isInteractiveTarget = (target) =>
+    target?.closest?.("button,input,textarea,a,[data-reel-interactive='true']");
+
   const pDown = (e) => {
-    if (e.target.closest("button,input,textarea,a")) return;
-    sxRef.current = e.clientX ?? e.touches?.[0]?.clientX;
-    syRef.current = e.clientY ?? e.touches?.[0]?.clientY;
+    if (moreMenu || msgInput) return;
+    if (isInteractiveTarget(e.target)) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    sxRef.current = e.clientX;
+    syRef.current = e.clientY;
     if (!isYouTube) {
+      if (holdRef.current) clearTimeout(holdRef.current);
       holdRef.current = setTimeout(() => {
         const el = vidRef.current;
         if (el && !el.paused) { el.pause(); setHolding(true); }
@@ -331,28 +478,71 @@ const ReelViewerModal = ({
 
   const pUp = (e) => {
     if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; }
-    const ex = e.clientX ?? e.changedTouches?.[0]?.clientX;
-    const ey = e.clientY ?? e.changedTouches?.[0]?.clientY;
-    if (syRef.current != null && syRef.current - ey > 100) { goToDetails(); return; }
-    if (holding) { vidRef.current?.play().catch(() => {}); setHolding(false); return; }
-    if (e.target.closest("button,input,textarea,a")) return;
+    if (moreMenu || msgInput) {
+      sxRef.current = null;
+      syRef.current = null;
+      return;
+    }
+    if (e.pointerType === "mouse" && e.button !== 0) {
+      sxRef.current = null;
+      syRef.current = null;
+      return;
+    }
+    const ex = e.clientX;
+    const ey = e.clientY;
+    if (ex == null || ey == null) {
+      sxRef.current = null;
+      syRef.current = null;
+      return;
+    }
+    if (isInteractiveTarget(e.target)) {
+      sxRef.current = null;
+      syRef.current = null;
+      return;
+    }
+    if (holding) {
+      vidRef.current?.play().catch(() => {});
+      setHolding(false);
+      sxRef.current = null;
+      syRef.current = null;
+      return;
+    }
+
+    const dx = ex - (sxRef.current ?? ex);
+    const dy = ey - (syRef.current ?? ey);
+    if (Math.abs(dx) >= SWIPE_NAV_PX && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) goNext(false);
+      else goPrev();
+      sxRef.current = null;
+      syRef.current = null;
+      return;
+    }
+
     const w = e.currentTarget?.clientWidth || window.innerWidth;
     const tx = ex - (e.currentTarget?.getBoundingClientRect()?.left || 0);
-    if (tx < w * 0.3) goPrev();
-    else if (tx > w * 0.7) goNext();
+    if (tx < w * EDGE_TAP_RATIO) goPrev();
+    else if (tx > w * (1 - EDGE_TAP_RATIO)) goNext(false);
     else togglePause();
+    sxRef.current = null;
+    syRef.current = null;
   };
 
   const pLeave = () => {
-    if (holdRef.current) clearTimeout(holdRef.current);
+    if (holdRef.current) {
+      clearTimeout(holdRef.current);
+      holdRef.current = null;
+    }
     if (holding) { vidRef.current?.play().catch(() => {}); setHolding(false); }
+    sxRef.current = null;
+    syRef.current = null;
   };
 
   const dblClick = (e) => {
     if (e.target.closest("button,input")) return;
     handleLike();
     setLikeAnim(true);
-    setTimeout(() => setLikeAnim(false), 900);
+    if (likeAnimTimerRef.current) clearTimeout(likeAnimTimerRef.current);
+    likeAnimTimerRef.current = setTimeout(() => setLikeAnim(false), 900);
   };
 
   /* actions */
@@ -466,12 +656,11 @@ const ReelViewerModal = ({
             initial={{ opacity: 0, scale: 0.92, x: dir * 50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-            className="relative w-full h-full max-w-[430px] sm:max-h-[92vh] sm:rounded-[32px] overflow-hidden mx-auto bg-[#0b0b0f] sm:border sm:border-white/10 sm:shadow-2xl"
-            onMouseDown={pDown}
-            onMouseUp={pUp}
-            onMouseLeave={pLeave}
-            onTouchStart={pDown}
-            onTouchEnd={pUp}
+            className="relative w-full h-full max-w-[430px] sm:max-h-[92vh] sm:rounded-[32px] overflow-hidden mx-auto bg-[#0b0b0f] sm:border sm:border-white/10 sm:shadow-2xl touch-manipulation"
+            onPointerDown={pDown}
+            onPointerUp={pUp}
+            onPointerCancel={pLeave}
+            onPointerLeave={pLeave}
             onDoubleClick={dblClick}
           >
             {/* video */}
@@ -497,12 +686,24 @@ const ReelViewerModal = ({
                   className="absolute inset-0 w-full h-full object-cover"
                   playsInline
                   muted={muted}
+                  preload="metadata"
                 />
               )
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
                 {loading ? "Učitavam..." : "Nema videa"}
               </div>
+            )}
+            {nextDirectUrl && (
+              <video
+                key={`preload-${nextDirectUrl}`}
+                src={nextDirectUrl}
+                muted
+                playsInline
+                preload="metadata"
+                className="hidden"
+                aria-hidden="true"
+              />
             )}
 
             {/* gradient overlays */}
@@ -613,6 +814,8 @@ const ReelViewerModal = ({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="absolute inset-0 z-[120]"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); setMoreMenu(false); }}
                   />
                   <motion.div
@@ -621,6 +824,8 @@ const ReelViewerModal = ({
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
                     className="absolute top-[calc(env(safe-area-inset-top,8px)+50px)] right-3 z-[130] bg-white dark:bg-slate-900 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden min-w-[210px] border border-slate-200 dark:border-slate-700"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
                   >
                     {[
                       { icon: MdOpenInNew, label: "Pogledaj oglas", fn: goToDetails },
@@ -694,10 +899,7 @@ const ReelViewerModal = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setDir(-1);
-                      setSIdx((p) => p - 1);
-                      setIIdx(0);
-                      setProgress(0);
+                      shiftSeller(-1);
                     }}
                     className="hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white/15 backdrop-blur-md items-center justify-center text-white hover:bg-white/25 transition"
                   >
@@ -709,10 +911,7 @@ const ReelViewerModal = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setDir(1);
-                      setSIdx((p) => p + 1);
-                      setIIdx(0);
-                      setProgress(0);
+                      shiftSeller(1);
                     }}
                     className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white/15 backdrop-blur-md items-center justify-center text-white hover:bg-white/25 transition"
                   >
@@ -781,7 +980,9 @@ const ReelViewerModal = ({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 16 }}
                     className="px-3 mb-3"
-                  >
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => e.stopPropagation()}
+                    >
                     <div className="flex items-center gap-2 bg-white/12 backdrop-blur-xl rounded-full px-4 py-2.5 border border-white/15">
                       <input
                         type="text"
@@ -845,8 +1046,6 @@ const ReelViewerModal = ({
               </div>
             </motion.div>
 
-            {/* swipe hint (auto-hides) */}
-            <SwipeHint />
           </motion.div>
         </motion.div>
       )}
@@ -854,26 +1053,6 @@ const ReelViewerModal = ({
   );
 
   return createPortal(modalContent, document.body);
-};
-
-const SwipeHint = () => {
-  const [show, setShow] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setShow(false), 2500); return () => clearTimeout(t); }, []);
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-          className="absolute left-1/2 -translate-x-1/2 bottom-[120px] flex flex-col items-center pointer-events-none z-20"
-        >
-          <motion.div animate={{ y: [-3, 3, -3] }} transition={{ duration: 1.2, repeat: Infinity }}>
-            <MdKeyboardArrowUp className="w-5 h-5 text-white/60" />
-          </motion.div>
-          <span className="text-white/60 text-[11px]">Povuci za detalje</span>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
 };
 
 export default ReelViewerModal;

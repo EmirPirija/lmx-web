@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { memo, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
@@ -125,6 +125,25 @@ const fmtCount = (v) => {
   return String(n);
 };
 
+const hashString = (value) => {
+  let hash = 2166136261;
+  const input = String(value ?? "");
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+const shuffleWithSeed = (source, seed) => {
+  if (!Array.isArray(source) || source.length < 2) return source;
+  return [...source].sort((a, b) => {
+    const aKey = `${seed}:${a?.id ?? ""}:${a?.user_id ?? ""}`;
+    const bKey = `${seed}:${b?.id ?? ""}:${b?.user_id ?? ""}`;
+    return hashString(aKey) - hashString(bKey);
+  });
+};
+
 /* ── main component ─────────────────── */
 
 const HomeReels = () => {
@@ -147,9 +166,11 @@ const HomeReels = () => {
   const [autoStory, setAutoStory] = useState(true);
   const [playSpeed, setPlaySpeed] = useState(1);
   const [shuffled, setShuffled] = useState(false);
+  const [shuffleSeed, setShuffleSeed] = useState(() => Date.now());
 
   const scrollerRef = useRef(null);
   const storyScrollRef = useRef(null);
+  const scrollRafRef = useRef(0);
 
   /* fetch */
   const fetchReels = useCallback(async () => {
@@ -175,7 +196,7 @@ const HomeReels = () => {
   /* group by seller */
   const sellerGroups = useMemo(() => {
     const map = {};
-    const src = shuffled ? [...items].sort(() => Math.random() - 0.5) : items;
+    const src = shuffled ? shuffleWithSeed(items, shuffleSeed) : items;
     src.forEach((item) => {
       const sellerId = getSellerIdFromItem(item);
       if (!sellerId) return;
@@ -189,30 +210,45 @@ const HomeReels = () => {
       map[sellerId].items.push(item);
     });
     return Object.values(map);
-  }, [items, shuffled]);
+  }, [items, shuffled, shuffleSeed]);
 
   /* scroll */
   const checkScroll = useCallback(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 10);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+    const nextLeft = el.scrollLeft > 10;
+    const nextRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 10;
+    setCanScrollLeft((prev) => (prev === nextLeft ? prev : nextLeft));
+    setCanScrollRight((prev) => (prev === nextRight ? prev : nextRight));
   }, []);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    el.addEventListener("scroll", checkScroll, { passive: true });
+    const onScroll = () => {
+      if (scrollRafRef.current) return;
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = 0;
+        checkScroll();
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
     checkScroll();
-    return () => el.removeEventListener("scroll", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (scrollRafRef.current) {
+        cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = 0;
+      }
+    };
   }, [sellerGroups, checkScroll]);
 
-  const scrollBy = (dir = 1) => {
+  const scrollBy = useCallback((dir = 1) => {
     const el = scrollerRef.current;
     if (!el) return;
     const w = window.innerWidth < 640 ? 200 : 240;
     el.scrollBy({ left: dir * (w + 12) * 2, behavior: "smooth" });
-  };
+  }, []);
 
   /* like */
   const onToggleLike = async (itemId) => {
@@ -243,45 +279,46 @@ const HomeReels = () => {
   };
 
   /* open story viewer */
-  const openStory = (sellerIndex) => {
+  const openStory = useCallback((sellerIndex) => {
     setViewerSellerIdx(sellerIndex);
     setViewerItemIdx(0);
     setViewerOpen(true);
-  };
+  }, []);
 
   /* shuffle */
-  const toggleShuffle = () => {
+  const toggleShuffle = useCallback(() => {
     setShuffled((prev) => {
       const next = !prev;
+      if (next) setShuffleSeed(Date.now());
       toast.success(next ? "Pomiješano!" : "Originalni redoslijed");
       return next;
     });
-  };
+  }, []);
 
-  const toggleAutoPlay = () => {
+  const toggleAutoPlay = useCallback(() => {
     setAutoPlay((prev) => {
       const next = !prev;
       toast.success(next ? "Auto-play uključen" : "Auto-play isključen");
       return next;
     });
-  };
+  }, []);
 
-  const toggleAutoStory = () => {
+  const toggleAutoStory = useCallback(() => {
     setAutoStory((prev) => {
       const next = !prev;
       toast.success(next ? "Auto priče uključene" : "Auto priče isključene");
       return next;
     });
-  };
+  }, []);
 
   /* speed cycle */
-  const cycleSpeed = () => {
+  const cycleSpeed = useCallback(() => {
     const speeds = [1, 1.25, 1.5, 2];
     const cur = speeds.indexOf(playSpeed);
     const next = speeds[(cur + 1) % speeds.length];
     setPlaySpeed(next);
     toast.success(`Brzina: ${next}x`);
-  };
+  }, [playSpeed]);
 
   const hasAny = sellerGroups.length > 0;
 
@@ -295,6 +332,7 @@ const HomeReels = () => {
         initialSellerIndex={viewerSellerIdx}
         initialItemIndex={viewerItemIdx}
         autoAdvance={autoStory}
+        advanceAcrossSellers={false}
       />
 
       {/* ── header ── */}
@@ -465,8 +503,8 @@ const HomeReels = () => {
                   index={index}
                   isLoggedIn={isLoggedIn}
                   currentUser={currentUser}
-                  onLike={() => onToggleLike(previewItem.id)}
-                  onOpenStory={() => openStory(index)}
+                  onLike={onToggleLike}
+                  onOpenStory={openStory}
                   autoPlay={autoPlay}
                   autoStory={autoStory}
                   playSpeed={playSpeed}
@@ -491,7 +529,7 @@ export default HomeReels;
    REEL CARD
 ══════════════════════════════════════ */
 
-const ReelCard = ({
+const ReelCard = memo(({
   item,
   sellerGroup,
   index,
@@ -524,8 +562,12 @@ const ReelCard = ({
   const [showMsgInput, setShowMsgInput] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
 
   const holdTimerRef = useRef(null);
+  const likeTimerRef = useRef(null);
+  const progressRafRef = useRef(0);
+  const progressValueRef = useRef(0);
 
   const videoMeta = useMemo(() => buildVideoMeta(item), [item]);
   const videoUrl = videoMeta?.src;
@@ -551,9 +593,54 @@ const ReelCard = ({
     return idx >= 0 ? idx : 0;
   }, [sellerGroup, item?.id]);
 
+  const handleOpenStory = useCallback(() => {
+    onOpenStory?.(index);
+  }, [onOpenStory, index]);
+
+  const commitProgress = useCallback((nextValue) => {
+    const clamped = Math.max(0, Math.min(100, nextValue || 0));
+    if (Math.abs(clamped - progressValueRef.current) < 0.8) return;
+    progressValueRef.current = clamped;
+    if (progressRafRef.current) return;
+    progressRafRef.current = requestAnimationFrame(() => {
+      progressRafRef.current = 0;
+      setProgress(progressValueRef.current);
+    });
+  }, []);
+
+  useEffect(() => {
+    setShouldLoadVideo(isYouTube);
+    setProgress(0);
+    progressValueRef.current = 0;
+  }, [item?.id, isYouTube]);
+
+  useEffect(() => {
+    if (isYouTube || shouldLoadVideo) return;
+    const wr = wrapperRef.current;
+    if (!wr || typeof IntersectionObserver === "undefined") {
+      setShouldLoadVideo(true);
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (entry.isIntersecting || entry.intersectionRatio > 0) {
+          setShouldLoadVideo(true);
+          io.disconnect();
+        }
+      },
+      { root: null, rootMargin: "240px 0px", threshold: [0, 0.01] }
+    );
+    io.observe(wr);
+
+    return () => io.disconnect();
+  }, [isYouTube, shouldLoadVideo]);
+
   /* autoplay via intersection observer */
   useEffect(() => {
-    if (!videoUrl || !autoPlay || isYouTube) return;
+    if (!videoUrl || !autoPlay || isYouTube || !shouldLoadVideo) return;
     const el = videoRef.current;
     const wr = wrapperRef.current;
     if (!el || !wr) return;
@@ -575,22 +662,41 @@ const ReelCard = ({
     );
     io.observe(wr);
     return () => io.disconnect();
-  }, [videoUrl, isMuted, autoPlay, playSpeed, isYouTube]);
+  }, [videoUrl, isMuted, autoPlay, playSpeed, isYouTube, shouldLoadVideo]);
 
   /* progress */
   useEffect(() => {
-    if (isYouTube) return;
+    if (isYouTube || !shouldLoadVideo) return;
     const el = videoRef.current;
     if (!el) return;
-    const up = () => { if (el.duration) setProgress((el.currentTime / el.duration) * 100); };
+    const up = () => {
+      if (!el.duration) return;
+      commitProgress((el.currentTime / el.duration) * 100);
+    };
     el.addEventListener("timeupdate", up);
-    return () => el.removeEventListener("timeupdate", up);
-  }, [isYouTube]);
+    el.addEventListener("loadedmetadata", up);
+    el.addEventListener("seeking", up);
+    return () => {
+      el.removeEventListener("timeupdate", up);
+      el.removeEventListener("loadedmetadata", up);
+      el.removeEventListener("seeking", up);
+      if (progressRafRef.current) {
+        cancelAnimationFrame(progressRafRef.current);
+        progressRafRef.current = 0;
+      }
+    };
+  }, [isYouTube, shouldLoadVideo, commitProgress]);
 
   /* speed update */
   useEffect(() => {
-    if (!isYouTube && videoRef.current) videoRef.current.playbackRate = playSpeed;
-  }, [playSpeed, isYouTube]);
+    if (!isYouTube && shouldLoadVideo && videoRef.current) videoRef.current.playbackRate = playSpeed;
+  }, [playSpeed, isYouTube, shouldLoadVideo]);
+
+  useEffect(() => () => {
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+    if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current);
+  }, []);
 
   const toggleMute = (e) => {
     e?.stopPropagation();
@@ -604,14 +710,16 @@ const ReelCard = ({
 
   const handleDoubleTap = (e) => {
     e.stopPropagation();
-    if (!item?.is_liked) onLike?.();
+    if (!item?.is_liked && item?.id) onLike?.(item.id);
     setShowLikeAnim(true);
-    setTimeout(() => setShowLikeAnim(false), 1000);
+    if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+    likeTimerRef.current = setTimeout(() => setShowLikeAnim(false), 1000);
   };
 
   const handleHoldStart = (e) => {
     if (e.target.closest("button,input,a")) return;
-    if (isYouTube) return;
+    if (isYouTube || !shouldLoadVideo) return;
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
     holdTimerRef.current = setTimeout(() => {
       const el = videoRef.current;
       if (el && !el.paused) { el.pause(); setIsHolding(true); }
@@ -701,8 +809,8 @@ const ReelCard = ({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: index * 0.04 }}
       ref={wrapperRef}
-      className="snap-start shrink-0 w-[180px] sm:w-[220px] aspect-[9/16] rounded-2xl overflow-hidden bg-black/20 relative cursor-pointer group"
-      onClick={onOpenStory}
+      className="snap-start shrink-0 w-[180px] sm:w-[220px] aspect-[9/16] rounded-2xl overflow-hidden bg-black/20 relative cursor-pointer group touch-manipulation"
+      onClick={handleOpenStory}
       onDoubleClick={handleDoubleTap}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); handleHoldEnd(); setShowMenu(false); }}
@@ -732,6 +840,21 @@ const ReelCard = ({
             </div>
           </div>
         </div>
+      ) : !shouldLoadVideo ? (
+        <div className="absolute inset-0">
+          <img
+            src={poster || item?.image}
+            alt={item?.name || "Video"}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/15" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full border border-white/45 bg-black/25 backdrop-blur-[2px] flex items-center justify-center">
+              <MdPlayArrow className="w-7 h-7 text-white ml-0.5" />
+            </div>
+          </div>
+        </div>
       ) : (
         <video
           ref={videoRef}
@@ -741,7 +864,7 @@ const ReelCard = ({
           playsInline
           muted
           loop
-          preload="metadata"
+          preload={autoPlay ? "metadata" : "none"}
         />
       )}
 
@@ -799,7 +922,11 @@ const ReelCard = ({
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); if (seller?.id) router.push(`/seller/${seller.id}`); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const sid = seller?.id || seller?.user_id;
+            if (sid) router.push(`/seller/${sid}`);
+          }}
           className="flex items-center gap-1.5 min-w-0 hover:opacity-80 transition-opacity"
         >
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#F7941D] via-[#E1306C] to-[#833AB4] p-[1.5px] shrink-0">
@@ -919,7 +1046,7 @@ const ReelCard = ({
       {/* right actions */}
       <div className="absolute right-2 bottom-8 flex flex-col items-center gap-3">
         <motion.button whileTap={{ scale: 0.85 }} type="button"
-          onClick={(e) => { e.stopPropagation(); onLike?.(); }}
+          onClick={(e) => { e.stopPropagation(); if (item?.id) onLike?.(item.id); }}
           className="flex flex-col items-center"
         >
           <div className="w-9 h-9 flex items-center justify-center">
@@ -1075,4 +1202,6 @@ const ReelCard = ({
       </div>
     </motion.div>
   );
-};
+});
+
+ReelCard.displayName = "ReelCard";

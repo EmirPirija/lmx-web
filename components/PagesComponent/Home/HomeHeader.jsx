@@ -13,6 +13,7 @@ import { t, truncate } from "@/utils";
 import { useNavigate } from "@/components/Common/useNavigate.jsx";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage.jsx";
+import { quickLinks } from "@/utils/constants";
 
 import {
   getIsLoggedIn,
@@ -48,8 +49,11 @@ import {
   MapPin,
   Menu,
   Search as SearchIcon,
+  ShieldCheck,
+  Sparkles,
   Store,
   Users,
+  Video,
   X,
 } from "@/components/Common/UnifiedIconPack";
 import { IoIosAddCircleOutline } from "@/components/Common/UnifiedIconPack";
@@ -600,21 +604,12 @@ const HomeHeader = () => {
   useEffect(() => {
     if (isLargeScreen || !isMobileUtilityMenuOpen) return undefined;
 
-    const handlePointerDown = (event) => {
-      if (!mobileHeaderMenuRef.current) return;
-      if (!mobileHeaderMenuRef.current.contains(event.target)) {
-        closeMobileUtilityMenu();
-      }
-    };
-
     const handleEsc = (event) => {
       if (event.key === "Escape") closeMobileUtilityMenu();
     };
 
-    document.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("keydown", handleEsc);
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleEsc);
     };
   }, [isLargeScreen, isMobileUtilityMenuOpen, closeMobileUtilityMenu]);
@@ -695,6 +690,14 @@ const HomeHeader = () => {
     : !membership.isShop
       ? { href: "/membership/upgrade?tier=shop", label: "Postani SHOP" }
       : null;
+
+  const handleAvatarCta = useCallback(() => {
+    if (!IsLoggedin) {
+      setIsLoginOpen(true);
+      return;
+    }
+    navigate("/profile");
+  }, [IsLoggedin, navigate]);
 
   const handleAdsSearchShortcut = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -793,6 +796,21 @@ const HomeHeader = () => {
 
   return (
     <>
+      <AnimatePresence>
+        {!isLargeScreen && isMobileUtilityMenuOpen && (
+          <motion.button
+            type="button"
+            aria-label="Zatvori brzi meni"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={closeMobileUtilityMenu}
+            className="fixed inset-0 z-[48] bg-slate-950/25 backdrop-blur-[1.5px] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Desktop two-row header + mobile single-row quick header */}
       <header
         ref={mobileHeaderRef}
@@ -814,7 +832,7 @@ const HomeHeader = () => {
               <div className="rounded-3xl border border-slate-200/80 bg-white/85 p-3 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/75 lg:p-4">
               {/* DESKTOP: GORE quick actions */}
               <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                 {/* left: lokacija */}
                 <button
                   className="group flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
@@ -839,6 +857,15 @@ const HomeHeader = () => {
                   >
                     Svi korisnici
                   </CustomLink>
+                  {quickLinks.map((link) => (
+                    <CustomLink
+                      key={`desktop-quick-link-${link.id}`}
+                      href={link.href}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+                    >
+                      {t(link.labelKey)}
+                    </CustomLink>
+                  ))}
                   {!membership.isPremium && (
                     <CustomLink
                       href="/membership/upgrade?tier=pro"
@@ -855,6 +882,23 @@ const HomeHeader = () => {
                       Postani LMX SHOP
                     </CustomLink>
                   )}
+                  <button
+                    type="button"
+                    onClick={handleAvatarCta}
+                    className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100/70 dark:border-emerald-800/60 dark:bg-emerald-900/20 dark:text-emerald-300"
+                  >
+                    <Sparkles size={13} />
+                    Kreiraj LMX avatar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAdListing}
+                    disabled={IsAdListingClicked}
+                    className="hidden 2xl:inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-100/70 disabled:opacity-60 dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300"
+                  >
+                    <Video size={13} />
+                    Objavi video oglas
+                  </button>
                 </div>
 
                 {/* right: (od desna) Theme, Poruke, Moji oglasi, Profil */}
@@ -1171,7 +1215,54 @@ const HomeHeader = () => {
                                 {mobileUpgradeLink.label}
                               </CustomLink>
                             )}
+                            {quickLinks.map((link) => (
+                              <CustomLink
+                                key={`mobile-quick-link-${link.id}`}
+                                href={link.href}
+                                onClick={closeMobileUtilityMenu}
+                                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white/90 px-3 text-xs font-semibold text-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
+                              >
+                                {t(link.labelKey)}
+                              </CustomLink>
+                            ))}
                           </div>
+
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.24, delay: 0.05 }}
+                            className="rounded-xl border border-cyan-200/80 bg-gradient-to-r from-cyan-50 via-white to-emerald-50 p-2.5 dark:border-cyan-700/60 dark:from-cyan-900/25 dark:via-slate-900/95 dark:to-emerald-900/25"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-cyan-700 dark:text-cyan-300">
+                                  LMX Prednost
+                                </p>
+                                <p className="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">
+                                  Kreiraj svoj LMX avatar danas i aktiviraj video boost za oglase.
+                                </p>
+                              </div>
+                              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-600 dark:text-cyan-300" />
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => runMobileMenuAction(handleAvatarCta)}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-100"
+                              >
+                                <Sparkles size={13} className="text-emerald-500" />
+                                LMX avatar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => runMobileMenuAction(handleAdListing)}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-100"
+                              >
+                                <Video size={13} className="text-violet-500" />
+                                Video oglas
+                              </button>
+                            </div>
+                          </motion.div>
                         </div>
                       </motion.div>
                     )}

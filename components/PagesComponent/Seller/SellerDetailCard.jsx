@@ -102,6 +102,21 @@ const toBool = (v) => {
 const getVerifiedStatus = (seller, settings) => {
   return isSellerVerified(seller, settings);
 };
+const VerifiedAvatarBadge = ({ avatarSize = 48, verifiedSize = 10, className = "" }) => {
+  const badgeSize = Math.max(14, Math.round(avatarSize * 0.33));
+
+  return (
+    <span
+      className={cn(
+        "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md",
+        className
+      )}
+      style={{ width: badgeSize, height: badgeSize }}
+    >
+      <MdVerified className="text-white" size={verifiedSize} />
+    </span>
+  );
+};
 const shimmerCss = `
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
@@ -623,9 +638,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
                   />
                 </div>
                 {isVerified && (
-                  <div className="absolute -bottom-1 -right-1 bg-white rounded-lg p-0.5 shadow-sm">
-                    <MdVerified size={16} className="text-sky-500" />
-                  </div>
+                  <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
                 )}
               </div>
               <div>
@@ -1089,9 +1102,9 @@ export const SellerPreviewCard = ({
                     <motion.span
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 shadow-md flex items-center justify-center"
+                      className="absolute inset-0 pointer-events-none"
                     >
-                      <MdVerified className="w-2.5 h-2.5 text-white" />
+                      <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
                     </motion.span>
                   )}
 
@@ -1512,7 +1525,7 @@ const SellerDetailCard = ({
 
   // ── Verifikacija ──
   const localVerified = useMemo(
-    () => getVerifiedStatus(seller, settings),
+    () => getVerifiedStatus(seller, settings, seller?.user, seller?.seller, seller?.account),
     [seller, settings]
   );
 

@@ -75,6 +75,22 @@ const getVerifiedStatus = (...sources) => {
   return isSellerVerified(...sources);
 };
 
+const VerifiedAvatarBadge = ({ avatarSize = 48, verifiedSize = 10, className = "" }) => {
+  const badgeSize = Math.max(14, Math.round(avatarSize * 0.33));
+
+  return (
+    <span
+      className={cn(
+        "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md",
+        className
+      )}
+      style={{ width: badgeSize, height: badgeSize }}
+    >
+      <MdVerified className="text-white" size={verifiedSize} />
+    </span>
+  );
+};
+
 
 
 const formatMemberSince = (dateStr) => {
@@ -855,9 +871,7 @@ const ProductSellerDetailCard = ({
                     </div>
                   </motion.div>
                   {isVerified && (
-                    <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 shadow-md flex items-center justify-center">
-                      <MdVerified className="w-2.5 h-2.5 text-white" />
-                    </div>
+                    <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
                   )}
                 </button>
                 {canManageReels && (
@@ -902,9 +916,7 @@ const ProductSellerDetailCard = ({
                   </div>
                 </motion.div>
                 {isVerified && (
-                  <div className="absolute -bottom-1 -right-1 z-20 w-5 h-5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 shadow-md flex items-center justify-center">
-                    <MdVerified className="w-2.5 h-2.5 text-white" />
-                  </div>
+                  <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
                 )}
               </div>
             )}

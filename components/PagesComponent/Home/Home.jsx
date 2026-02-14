@@ -12,6 +12,7 @@ import PopularCategories from "./PopularCategories";
 import dynamic from "next/dynamic";
 
 import HomeReels from "./HomeReels";
+import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
 
 const OfferSlider = dynamic(() => import("./OfferSlider"), {
   ssr: false,
@@ -120,6 +121,7 @@ const Home = () => {
         )
       )}
 
+      <PlatformBenefitsStrip />
       <PopularCategories />
       <HomeReels />
       {IsFeaturedLoading ? (

@@ -248,6 +248,28 @@ const reelRingCss = `
 .reel-ring--sm { --ring-width: 2px;   --ring-gap: 1px;   }
 .reel-ring--lg { --ring-width: 3px;   --ring-gap: 2px;   }
 
+/* ── Mobile performance mode ── */
+@media (pointer: coarse), (max-width: 768px) {
+  .reel-ring {
+    animation: none;
+  }
+
+  .reel-ring::before {
+    animation: reel-border-flow 6s linear infinite;
+  }
+
+  .reel-ring::after {
+    animation: reel-border-flow 6s linear infinite;
+    filter: blur(2.5px);
+    opacity: 0.42;
+  }
+
+  .reel-ring-flash,
+  .reel-ring-bubbles {
+    display: none !important;
+  }
+}
+
 /* ── Accessibility ── */
 @media (prefers-reduced-motion: reduce) {
   .reel-ring,

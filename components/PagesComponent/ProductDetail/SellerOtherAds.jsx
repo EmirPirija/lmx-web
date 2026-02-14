@@ -18,6 +18,8 @@ import { getIsRtl } from "@/redux/reducer/languageSlice";
 
 const MAX_ITEMS = 10;
 const FETCH_LIMIT = 24;
+const carouselItemClassName =
+  "pl-2 sm:pl-3 basis-1/2 sm:basis-1/3 md:basis-1/4 xl:basis-1/5 2xl:basis-1/6";
 
 const SellerOtherAds = ({ productDetails, onItemClick }) => {
   const isRTL = useSelector(getIsRtl);
@@ -122,12 +124,12 @@ const SellerOtherAds = ({ productDetails, onItemClick }) => {
         key={isRTL ? `seller-other-rtl-${sellerId}` : `seller-other-ltr-${sellerId}`}
         opts={{ direction: isRTL ? "rtl" : "ltr" }}
       >
-        <CarouselContent>
+        <CarouselContent className="-ml-2 sm:-ml-3">
           {isLoading
-            ? Array.from({ length: 4 }).map((_, index) => (
+            ? Array.from({ length: 6 }).map((_, index) => (
                 <CarouselItem
                   key={`seller-other-skeleton-${index}`}
-                  className="basis-2/3 sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                  className={carouselItemClassName}
                 >
                   <ProductCardSkeleton />
                 </CarouselItem>
@@ -135,7 +137,7 @@ const SellerOtherAds = ({ productDetails, onItemClick }) => {
             : items.map((item) => (
                 <CarouselItem
                   key={item.id}
-                  className="basis-2/3 sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                  className={carouselItemClassName}
                 >
                   <ProductCard
                     item={item}
