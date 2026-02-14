@@ -23,7 +23,7 @@ const PopularCategoryCard = ({ item }) => {
           alt={categoryLabel}
           width={96}
           height={96}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover scale-50"
           loading="eager"
         />
       </div>
