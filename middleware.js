@@ -1,14 +1,25 @@
 import { NextResponse } from 'next/server'
 
+const MAINTENANCE_PUBLIC_PATHS = new Set([
+  '/privacy-policy',
+  '/terms-and-condition',
+  '/data-deletion',
+]);
+
 export function middleware(req) {
   const isMaintenanceMode = process.env.MAINTENANCE_MODE === 'true';
+  const normalizedPath =
+    req.nextUrl.pathname === '/'
+      ? '/'
+      : req.nextUrl.pathname.replace(/\/+$/, '');
   
   // 1. Check for the secret "backdoor" in URL OR in Cookies
   const hasSecretKey = req.nextUrl.searchParams.get('view') === 'dev';
   const hasCookie = req.cookies.has('dev_access');
+  const isPublicMaintenancePath = MAINTENANCE_PUBLIC_PATHS.has(normalizedPath);
 
   // 2. Logic: If maintenance is ON and user isn't a dev, show the page
-  if (isMaintenanceMode && !hasSecretKey && !hasCookie) {
+  if (isMaintenanceMode && !hasSecretKey && !hasCookie && !isPublicMaintenancePath) {
     return new NextResponse(
       `<!DOCTYPE html>
       <html>
