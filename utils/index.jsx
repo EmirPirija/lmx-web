@@ -633,18 +633,47 @@ const ERROR_CODES = {
   "auth/missing-email": t("addEmail"),
 };
 
-// Error handling function
-export const handleFirebaseAuthError = (errorCode) => {
-  // Check if the error code exists in the global ERROR_CODES object
-  if (ERROR_CODES.hasOwnProperty(errorCode)) {
-    // If the error code exists, log the corresponding error message
-    toast.error(ERROR_CODES[errorCode]);
-  } else {
-    // If the error code is not found, log a generic error message
-    toast.error(`${t("errorOccurred")}:${errorCode}`);
+const getFirebaseAuthErrorDetails = (errorLike) => {
+  if (!errorLike) return { code: "", message: "" };
+
+  if (typeof errorLike === "string") {
+    return { code: errorLike, message: "" };
   }
-  // Optionally, you can add additional logic here to handle the error
-  // For example, display an error message to the user, redirect to an error page, etc.
+
+  const code =
+    errorLike?.code ||
+    errorLike?.error?.code ||
+    errorLike?.customData?._tokenResponse?.error?.message ||
+    "";
+  const message =
+    errorLike?.message ||
+    errorLike?.error?.message ||
+    errorLike?.customData?._tokenResponse?.error?.message ||
+    "";
+
+  return { code, message };
+};
+
+// Error handling function
+export const handleFirebaseAuthError = (errorLike) => {
+  const { code, message } = getFirebaseAuthErrorDetails(errorLike);
+  const resolvedCode = typeof code === "string" ? code.trim() : "";
+
+  if (resolvedCode && ERROR_CODES.hasOwnProperty(resolvedCode)) {
+    toast.error(ERROR_CODES[resolvedCode]);
+    return;
+  }
+
+  // Keep the user-facing toast clean even for non-Firebase/runtime errors.
+  const fallbackMessage = t("unexpectedError") || t("errorOccurred");
+  toast.error(fallbackMessage);
+
+  // Log full details to help debug production auth issues.
+  console.error("Unhandled Firebase auth error", {
+    code: resolvedCode || null,
+    message: message || null,
+    raw: errorLike,
+  });
 };
 
 export const truncate = (text, maxLength) => {

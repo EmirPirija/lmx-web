@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -225,6 +225,7 @@ const SellerLsitings = ({
         user_id: id,
         sort_by: sortBy,
         page,
+        limit: 20,
       };
 
       if (canUseBuyerFilters) {
@@ -292,13 +293,13 @@ const SellerLsitings = ({
     }
   };
 
-  const handleLike = (itemId) => {
+  const handleLike = useCallback((itemId) => {
     setSellerItems((prev) =>
       prev.map((item) =>
         item.id === itemId ? { ...item, is_liked: !item.is_liked } : item
       )
     );
-  };
+  }, []);
 
   const handleLoadMore = () => {
     setIsSellerItemLoadMore(true);

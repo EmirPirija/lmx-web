@@ -66,6 +66,7 @@ const HomeMobileMenu = ({
   // --- LOGIKA ZA BROJANJE PORUKA ---
   useEffect(() => {
     let isMounted = true;
+    let lastRealtimeRefreshAt = 0;
 
     const extractChatData = (res) => {
       const rootData = res?.data;
@@ -118,6 +119,9 @@ const HomeMobileMenu = ({
       const detail = event?.detail;
       if (!detail) return;
       if (detail?.category === "chat" || detail?.type === "chat" || detail?.type === "new_message") {
+        const now = Date.now();
+        if (now - lastRealtimeRefreshAt < 2000) return;
+        lastRealtimeRefreshAt = now;
         fetchUnreadCount();
       }
     };
@@ -129,7 +133,7 @@ const HomeMobileMenu = ({
       clearInterval(interval);
       window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
     };
-  }, [IsLoggedin, pathname]);
+  }, [IsLoggedin]);
 
   const openLocationEditModal = () => {
     setIsOpen(false);

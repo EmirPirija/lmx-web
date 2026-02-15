@@ -1,5 +1,4 @@
-import React, { useMemo, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { memo, useMemo, useState, useRef } from "react";
 import { formatPriceAbbreviated, formatSalaryRange } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
@@ -78,22 +77,6 @@ const getConditionLabel = (item) => {
   }
 
   return String(rawValue).trim();
-};
-
-const getThreeDots = (total, current) => {
-  if (total <= 3) {
-    return Array.from({ length: total }, (_, i) => i);
-  }
-
-  if (current === 0) {
-    return [0, 1, 2];
-  }
-
-  if (current === total - 1) {
-    return [total - 3, total - 2, total - 1];
-  }
-
-  return [current - 1, current, current + 1];
 };
 
 const normalizeText = (value = "") =>
@@ -440,11 +423,6 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
   const totalSlides = slides.length;
   const isViewMoreSlide = slides[currentSlide]?.type === "viewMore";
 
-  const threeDots = useMemo(
-    () => getThreeDots(totalSlides, currentSlide),
-    [totalSlides, currentSlide]
-  );
-
   // Kontrole za slajder
   const handlePrevSlide = (e) => {
     e.preventDefault();
@@ -460,12 +438,6 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
     if (currentSlide < totalSlides - 1) {
       setCurrentSlide((prev) => prev + 1);
     }
-  };
-
-  const goToSlide = (e, index) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCurrentSlide(index);
   };
 
   // Logika za dodir
@@ -570,142 +542,96 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
         onTouchEnd={handleTouchEnd}
       >
         <div className="relative aspect-square bg-slate-50">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="absolute inset-0 w-full h-full"
-            >
-              {slides[currentSlide].type === "image" ? (
-                <CustomImage
-                  src={slides[currentSlide].src}
-                  width={420}
-                  height={420}
-                  className="w-full h-full object-cover"
-                  alt={translated_item?.name || item?.name || "listing"}
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-primary/5">
-                  <motion.div
-                    initial={{ scale: 0.8, rotate: -10 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ duration: 0.3, type: "spring" }}
-                    className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </motion.div>
-                  <p className="text-center text-sm font-semibold text-slate-900 dark:text-slate-100">Detalji</p>
-                  <p className="text-xs text-slate-500 text-center mt-1">Otvori oglas</p>
+          <div className="absolute inset-0 w-full h-full">
+            {slides[currentSlide].type === "image" ? (
+              <CustomImage
+                src={slides[currentSlide].src}
+                width={420}
+                height={420}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                className="w-full h-full object-cover"
+                alt={translated_item?.name || item?.name || "listing"}
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-primary/5">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 border border-primary/15">
+                  <ChevronRight className="w-6 h-6" />
                 </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                <p className="text-center text-sm font-semibold text-slate-900 dark:text-slate-100">Detalji</p>
+                <p className="text-xs text-slate-500 text-center mt-1">Otvori oglas</p>
+              </div>
+            )}
+          </div>
 
           {/* Status gore-lijevo */}
           {!isViewMoreSlide ? (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="absolute left-2 top-2 z-20 flex items-center gap-2"
-            >
+            <div className="absolute left-2 top-2 z-20 flex items-center gap-2">
               {isShopSeller ? (
                 <OverlayPill
                   icon={Store}
                   className="border-indigo-200 bg-indigo-100/95 text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-900/55 dark:text-indigo-200"
                 />
               ) : null}
-            </motion.div>
+            </div>
           ) : null}
 
           {/* Dugmad za akcije gore-desno */}
           <div className="absolute top-2 right-2 z-30 flex items-center gap-1">
-            <AnimatePresence>
-              {isHovered && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleCompare}
-                    className={cn(
-                      "h-8 w-8 rounded-full",
-                      "bg-white/90 backdrop-blur-sm",
-                      "border-slate-200 shadow-sm",
-                      "hover:bg-white hover:border-primary/30",
-                      isInCompare && "text-blue-600 border-blue-200 bg-blue-50/90"
-                    )}
-                    title={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
-                    aria-label={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
-                  >
-                    <GitCompare className="w-4 h-4" />
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {isHovered && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCompare}
+                className={cn(
+                  "h-8 w-8 rounded-full",
+                  "bg-white/90 backdrop-blur-sm",
+                  "border-slate-200 shadow-sm",
+                  "hover:bg-white hover:border-primary/30",
+                  isInCompare && "text-blue-600 border-blue-200 bg-blue-50/90"
+                )}
+                title={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
+                aria-label={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
+              >
+                <GitCompare className="w-4 h-4" />
+              </Button>
+            )}
 
-            <AnimatePresence>
-              {isHovered && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleLikeItem}
-                    className={cn(
-                      "h-8 w-8 rounded-full",
-                      "bg-white/90 backdrop-blur-sm",
-                      "border-slate-200 shadow-sm",
-                      "hover:bg-white hover:border-rose-300",
-                      item?.is_liked && "text-rose-600 border-rose-200 bg-rose-50/90"
-                    )}
-                    title={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
-                    aria-label={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
-                  >
-                    <Heart
-                      className={cn("w-4 h-4", item?.is_liked && "fill-rose-500")}
-                    />
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {isHovered && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleLikeItem}
+                className={cn(
+                  "h-8 w-8 rounded-full",
+                  "bg-white/90 backdrop-blur-sm",
+                  "border-slate-200 shadow-sm",
+                  "hover:bg-white hover:border-rose-300",
+                  item?.is_liked && "text-rose-600 border-rose-200 bg-rose-50/90"
+                )}
+                title={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
+                aria-label={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
+              >
+                <Heart
+                  className={cn("w-4 h-4", item?.is_liked && "fill-rose-500")}
+                />
+              </Button>
+            )}
           </div>
 
           {/* Meta informacije dolje-lijevo */}
           {!isViewMoreSlide && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="absolute bottom-2 right-2 z-10 flex items-center gap-2"
-            >
+            <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
                   Video
                 </OverlayPill>
               ) : null}
-            </motion.div>
+            </div>
           )}
 
           {/* Status strip na prijelomu slike i donjeg bijelog dijela */}
           {!isViewMoreSlide && (conditionLabel || availableNow) ? (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5"
-            >
+            <div className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5">
               {conditionLabel ? (
                 <span
                   className={cn(
@@ -732,7 +658,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
                 </span>
               ) : null}
 
-            </motion.div>
+            </div>
           ) : null}
 
           {/* Tačkice */}
@@ -782,7 +708,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
           {totalSlides > 1 && (
             <>
               {currentSlide > 0 && (
-                <motion.button
+                <button
                   type="button"
                   onClick={handlePrevSlide}
                   className={cn(
@@ -796,21 +722,13 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
                       : "opacity-0 ltr:-translate-x-3 rtl:translate-x-3"
                   )}
                   aria-label="Prethodna slika"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{
-                    opacity: isHovered ? 1 : 0,
-                    x: isHovered ? 0 : -20
-                  }}
-                  transition={{ duration: 0.2 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
                 >
                   <ChevronLeft className="w-4 h-4 text-slate-700 rtl:rotate-180" />
-                </motion.button>
+                </button>
               )}
 
               {currentSlide < totalSlides - 1 && (
-                <motion.button
+                <button
                   type="button"
                   onClick={handleNextSlide}
                   className={cn(
@@ -824,17 +742,9 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
                       : "opacity-0 ltr:translate-x-3 rtl:-translate-x-3"
                   )}
                   aria-label="Sljedeća slika"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{
-                    opacity: isHovered ? 1 : 0,
-                    x: isHovered ? 0 : 20
-                  }}
-                  transition={{ duration: 0.2 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
                 >
                   <ChevronRight className="w-4 h-4 text-slate-700 rtl:rotate-180" />
-                </motion.button>
+                </button>
               )}
             </>
           )}
@@ -850,12 +760,9 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
       >
 
         <div className="flex items-start justify-between gap-2">
-          <motion.h3 
-            whileHover={{ color: "hsl(var(--primary))" }}
-            className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100"
-          >
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
             {translated_item?.name || item?.name}
-          </motion.h3>
+          </h3>
           {item?.is_feature ? (
             <span
               className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
@@ -870,11 +777,8 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
           <div className="flex flex-wrap gap-1">
             {keyAttributes.map((attr, index) => (
-              <motion.span
+              <span
                 key={`${attr}-${index}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
                 className={cn(
                   "inline-flex items-center",
                   "px-2 py-0.5 rounded-md border",
@@ -883,7 +787,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
                 )}
               >
                 {attr}
-              </motion.span>
+              </span>
             ))}
           </div>
         ) : null}
@@ -897,9 +801,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
           {exchangePossible && !isHidePrice ? (
             <span
               className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-full border",
-                "border-cyan-300 bg-cyan-100/95 text-cyan-700 shadow-sm",
-                "dark:border-cyan-700/70 dark:bg-cyan-900/40 dark:text-cyan-200"
+                "inline-flex h-7 w-7 items-center justify-center rounded-full",
               )}
               title="Zamjena moguća"
               aria-label="Zamjena moguća"
@@ -909,19 +811,11 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
           ) : null}
           {!isHidePrice ? (
             isJobCategory ? (
-              <motion.span 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm font-bold text-slate-900 dark:text-slate-100"
-              >
+              <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 {formatSalaryRange(item?.min_salary, item?.max_salary)}
-              </motion.span>
+              </span>
             ) : (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-end leading-none"
-              >
+              <div className="flex flex-col items-end leading-none">
                 {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
                   <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
                     {formatPriceAbbreviated(Number(oldPrice))}
@@ -941,7 +835,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
                 >
                   {formatPriceOrInquiry(item?.price)}
                 </span>
-              </motion.div>
+              </div>
             )
           ) : null}
         </div>
@@ -949,6 +843,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
     </CustomLink>
   );
 };
+ProductCard.displayName = "ProductCard";
 
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
@@ -971,4 +866,4 @@ export const ProductCardSkeleton = () => {
   );
 };
 
-export default ProductCard;
+export default memo(ProductCard);

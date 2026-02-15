@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -728,9 +728,11 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   const placeholderImage = settings?.placeholder_image;
 
   const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
+  const lastStatsFetchRef = useRef(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const PROFILE_LAYOUT_FETCH_COOLDOWN_MS = 15000;
 
   const [userStats, setUserStats] = useState({
     activeAds: 0,
@@ -798,8 +800,13 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     void handleHardLogout();
   }, [setIsLogout, handleHardLogout]);
 
-  const fetchAllData = useCallback(async (showLoader = false) => {
+  const fetchAllData = useCallback(async ({ showLoader = false, force = false } = {}) => {
     if (!userData) return;
+    const now = Date.now();
+    if (!force && now - lastStatsFetchRef.current < PROFILE_LAYOUT_FETCH_COOLDOWN_MS) {
+      return;
+    }
+    lastStatsFetchRef.current = now;
     if (showLoader) {
       setIsStatsLoading(true);
     }
@@ -878,14 +885,14 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         setIsStatsLoading(false);
       }
     }
-  }, [userData]);
+  }, [userData, PROFILE_LAYOUT_FETCH_COOLDOWN_MS]);
 
   useEffect(() => {
     if (!userData) {
       setIsStatsLoading(false);
       return;
     }
-    fetchAllData(true);
+    fetchAllData({ showLoader: true, force: true });
     getSellerSettings();
   }, [userData, fetchAllData, getSellerSettings]);
 
@@ -896,7 +903,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
       const detail = event?.detail;
       if (!detail) return;
       if (detail?.category === "notification" || detail?.category === "chat" || detail?.category === "system") {
-        fetchAllData(false);
+        fetchAllData();
       }
     };
 

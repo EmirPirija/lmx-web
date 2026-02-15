@@ -94,9 +94,8 @@ const LoginWithEmailForm = ({ OnHide }) => {
         toast.error(t("verifyEmailFirst"));
       }
     } catch (error) {
-      const errorCode = error.code;
-      console.log("Error code:", errorCode);
-      handleFirebaseAuthError(errorCode);
+      console.log("Error code:", error?.code);
+      handleFirebaseAuthError(error);
     } finally {
       setLoginStates((prev) => ({ ...prev, showLoader: false }));
     }
@@ -110,7 +109,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
       })
       .catch((error) => {
         console.log("error", error);
-        handleFirebaseAuthError(error?.code);
+        handleFirebaseAuthError(error);
       });
   };
 

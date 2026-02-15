@@ -66,6 +66,10 @@ const LoginWithMobileForm = ({
   const sendOtpWithFirebase = async (PhoneNumber) => {
     try {
       const appVerifier = generateRecaptcha();
+      if (!appVerifier) {
+        handleFirebaseAuthError("auth/recaptcha-not-enabled");
+        return;
+      }
       const confirmation = await signInWithPhoneNumber(
         auth,
         PhoneNumber,
@@ -76,8 +80,7 @@ const LoginWithMobileForm = ({
       setIsOTPScreen(true);
     } catch (error) {
       console.log(error);
-      const errorCode = error.code;
-      handleFirebaseAuthError(errorCode);
+      handleFirebaseAuthError(error);
     } finally {
       setLoginStates((prev) => ({
         ...prev,

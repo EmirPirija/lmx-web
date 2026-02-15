@@ -98,7 +98,7 @@ const FaqsPage = () => {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
               Nisi pronašao odgovor? Kontaktiraj naš tim preko stranice{" "}
               <Link href="/contact-us" className="font-semibold text-primary underline-offset-2 hover:underline">
-                Kontaktirajte nas
+                Kontakt
               </Link>
               .
             </div>

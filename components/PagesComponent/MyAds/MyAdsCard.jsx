@@ -1667,9 +1667,7 @@ const MyAdsCard = ({
           {exchangePossible && !isHidePrice ? (
             <span
               className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-full border",
-                "border-cyan-300 bg-cyan-100/95 text-cyan-700 shadow-sm",
-                "dark:border-cyan-700/70 dark:bg-cyan-900/40 dark:text-cyan-200"
+                "inline-flex h-7 w-7 items-center justify-center rounded-full",
               )}
               title="Zamjena moguća"
               aria-label="Zamjena moguća"

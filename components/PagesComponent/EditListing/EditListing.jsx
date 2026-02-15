@@ -1040,12 +1040,12 @@ const EditListing = ({ id }) => {
 
   const steps = useMemo(
     () => [
-      { id: 1, label: t("details"), icon: Circle, disabled: false },
+      { id: 1, label: t("details"), mobileLabel: "Detalji", icon: Circle, disabled: false },
       ...(customFields?.length > 0
-        ? [{ id: 2, label: t("extraDetails"), icon: Circle, disabled: false }]
+        ? [{ id: 2, label: t("extraDetails"), mobileLabel: "Dodatno", icon: Circle, disabled: false }]
         : []),
-      { id: 3, label: "Media", icon: Circle, disabled: false },
-      { id: 4, label: t("location"), icon: Circle, disabled: false },
+      { id: 3, label: "Media", mobileLabel: "Mediji", icon: Circle, disabled: false },
+      { id: 4, label: t("location"), mobileLabel: "Lokacija", icon: Circle, disabled: false },
     ],
     [customFields?.length]
   );
@@ -1391,7 +1391,7 @@ const EditListing = ({ id }) => {
                     <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
                     <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-300/20" />
 
-                    <div className="relative mb-5 flex items-center justify-between gap-2">
+                    <div className="relative mb-5 flex flex-wrap items-center justify-between gap-2">
                       <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/20">
                         <Sparkles className="h-3.5 w-3.5" />
                         Korak {activeStepIndex + 1} od {steps.length}
@@ -1402,123 +1402,126 @@ const EditListing = ({ id }) => {
                     </div>
 
                     <div className="relative">
-                      <div
-                        ref={stepRailRef}
-                        className="pointer-events-none absolute inset-x-0 top-[22px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80"
-                      />
-                      <motion.div
-                        className="pointer-events-none absolute top-[22px] h-1 rounded-full bg-gradient-to-r from-primary via-cyan-400 to-primary shadow-[0_0_20px_-4px_rgba(14,165,233,0.8)]"
-                        initial={false}
-                        animate={{ left: stepRailFill.left, width: stepRailFill.width }}
-                        transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
-                      />
+                      <div className="relative">
+                        <div
+                          ref={stepRailRef}
+                          className="pointer-events-none absolute inset-x-0 top-[16px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80 sm:top-[22px]"
+                        />
+                        <motion.div
+                          className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-gradient-to-r from-primary via-cyan-400 to-primary shadow-[0_0_20px_-4px_rgba(14,165,233,0.8)] sm:top-[22px]"
+                          initial={false}
+                          animate={{ left: stepRailFill.left, width: stepRailFill.width }}
+                          transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
+                        />
 
-                      <div
-                        className="relative z-[2] grid gap-2 sm:gap-4"
-                        style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
-                      >
-                        {steps.map((s, idx) => {
-                          const progress = getStepProgress(s.id);
-                          const isActive = idx === activeStepIndex;
-                          const isCompleted = idx < activeStepIndex;
+                        <div
+                          className="relative z-[2] grid gap-1 sm:gap-4"
+                          style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+                        >
+                          {steps.map((s, idx) => {
+                            const progress = getStepProgress(s.id);
+                            const isActive = idx === activeStepIndex;
+                            const isCompleted = idx < activeStepIndex;
 
-                          return (
-                            <motion.button
-                              key={s.id}
-                              type="button"
-                              layout
-                              onClick={() => handleTabClick(s.id)}
-                              whileTap={!s.disabled ? { scale: 0.97 } : undefined}
-                              disabled={s.disabled}
-                              className={`group flex min-w-0 flex-col items-center gap-2 text-center transition-colors ${
-                                s.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-                              }`}
-                            >
-                              <div
-                                ref={(node) => {
-                                  stepNodeRefs.current[idx] = node;
-                                }}
-                                className="relative"
+                            return (
+                              <motion.button
+                                key={s.id}
+                                type="button"
+                                layout
+                                onClick={() => handleTabClick(s.id)}
+                                whileTap={!s.disabled ? { scale: 0.97 } : undefined}
+                                disabled={s.disabled}
+                                className={`group flex min-w-0 flex-col items-center gap-1.5 text-center transition-colors sm:gap-2 ${
+                                  s.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                                }`}
                               >
-                                {isActive && (
+                                <div
+                                  ref={(node) => {
+                                    stepNodeRefs.current[idx] = node;
+                                  }}
+                                  className="relative"
+                                >
+                                  {isActive && (
+                                    <motion.span
+                                      className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 blur-md"
+                                      initial={{ opacity: 0.2, scale: 0.8 }}
+                                      animate={{ opacity: 0.45, scale: 1.18 }}
+                                      transition={{ duration: 0.35, ease: "easeOut" }}
+                                    />
+                                  )}
+
                                   <motion.span
-                                    className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 blur-md"
-                                    initial={{ opacity: 0.2, scale: 0.8 }}
-                                    animate={{ opacity: 0.45, scale: 1.18 }}
-                                    transition={{ duration: 0.35, ease: "easeOut" }}
-                                  />
-                                )}
+                                    initial={false}
+                                    animate={
+                                      isActive
+                                        ? { scale: 1.08, y: -1 }
+                                        : isCompleted
+                                        ? { scale: 1 }
+                                        : { scale: 0.98 }
+                                    }
+                                    transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                                    className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold sm:h-11 sm:w-11 sm:text-sm ${
+                                      isActive
+                                        ? "border-primary bg-white text-primary shadow-[0_10px_24px_-14px_rgba(8,145,178,0.9)] dark:bg-slate-950"
+                                        : ""
+                                    } ${
+                                      isCompleted ? "border-primary bg-primary text-white" : ""
+                                    } ${
+                                      !isActive && !isCompleted
+                                        ? "border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                                        : ""
+                                    }`}
+                                  >
+                                    <AnimatePresence mode="wait" initial={false}>
+                                      {isCompleted ? (
+                                        <motion.span
+                                          key={`done-${s.id}`}
+                                          initial={{ opacity: 0, scale: 0.7, y: 4 }}
+                                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                                          exit={{ opacity: 0, scale: 0.8, y: -4 }}
+                                          transition={{ duration: 0.2 }}
+                                        >
+                                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                                        </motion.span>
+                                      ) : (
+                                        <motion.span
+                                          key={`index-${s.id}`}
+                                          initial={{ opacity: 0, y: 4 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          exit={{ opacity: 0, y: -4 }}
+                                          transition={{ duration: 0.18 }}
+                                        >
+                                          {idx + 1}
+                                        </motion.span>
+                                      )}
+                                    </AnimatePresence>
+                                  </motion.span>
+                                </div>
 
                                 <motion.span
                                   initial={false}
-                                  animate={
-                                    isActive
-                                      ? { scale: 1.08, y: -1 }
-                                      : isCompleted
-                                      ? { scale: 1 }
-                                      : { scale: 0.98 }
-                                  }
-                                  transition={{ type: "spring", stiffness: 280, damping: 22 }}
-                                  className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full border text-sm font-bold ${
-                                    isActive
-                                      ? "border-primary bg-white text-primary shadow-[0_10px_24px_-14px_rgba(8,145,178,0.9)] dark:bg-slate-950"
-                                      : ""
-                                  } ${
-                                    isCompleted ? "border-primary bg-primary text-white" : ""
-                                  } ${
-                                    !isActive && !isCompleted
-                                      ? "border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-                                      : ""
+                                  animate={{ y: isActive ? 0 : 1 }}
+                                  transition={{ duration: 0.2, ease: "easeOut" }}
+                                  className={`line-clamp-2 max-w-[58px] text-[10px] font-medium leading-[1.1] sm:max-w-[120px] sm:text-xs sm:leading-tight ${
+                                    isActive ? "font-semibold text-primary" : "text-slate-500 dark:text-slate-300"
                                   }`}
                                 >
-                                  <AnimatePresence mode="wait" initial={false}>
-                                    {isCompleted ? (
-                                      <motion.span
-                                        key={`done-${s.id}`}
-                                        initial={{ opacity: 0, scale: 0.7, y: 4 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.8, y: -4 }}
-                                        transition={{ duration: 0.2 }}
-                                      >
-                                        <CheckCircle2 className="h-5 w-5" />
-                                      </motion.span>
-                                    ) : (
-                                      <motion.span
-                                        key={`index-${s.id}`}
-                                        initial={{ opacity: 0, y: 4 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -4 }}
-                                        transition={{ duration: 0.18 }}
-                                      >
-                                        {idx + 1}
-                                      </motion.span>
-                                    )}
-                                  </AnimatePresence>
+                                  <span className="sm:hidden">{s.mobileLabel || s.label}</span>
+                                  <span className="hidden sm:inline">{s.label}</span>
                                 </motion.span>
-                              </div>
 
-                              <motion.span
-                                initial={false}
-                                animate={{ y: isActive ? 0 : 1 }}
-                                transition={{ duration: 0.2, ease: "easeOut" }}
-                                className={`line-clamp-2 max-w-[120px] text-[11px] font-medium leading-tight sm:text-xs ${
-                                  isActive ? "font-semibold text-primary" : "text-slate-500 dark:text-slate-300"
-                                }`}
-                              >
-                                {s.label}
-                              </motion.span>
-
-                              <div className="h-[3px] w-14 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
-                                <motion.div
-                                  className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400"
-                                  initial={false}
-                                  animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
-                                  transition={{ type: "spring", stiffness: 190, damping: 24 }}
-                                />
-                              </div>
-                            </motion.button>
-                          );
-                        })}
+                                <div className="hidden h-[3px] w-12 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70 sm:block sm:w-14">
+                                  <motion.div
+                                    className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400"
+                                    initial={false}
+                                    animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
+                                    transition={{ type: "spring", stiffness: 190, damping: 24 }}
+                                  />
+                                </div>
+                              </motion.button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>

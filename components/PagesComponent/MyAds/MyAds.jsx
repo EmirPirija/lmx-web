@@ -444,6 +444,7 @@ const MyAds = () => {
   const [statusCounts, setStatusCounts] = useState({
     approved: 0, inactive: 0, "sold out": 0, featured: 0, expired: 0, [RENEW_DUE_STATUS]: 0,
   });
+  const [isRenewDueCountResolved, setIsRenewDueCountResolved] = useState(false);
 
   const [ItemPackages, setItemPackages] = useState([]);
   const [renewIds, setRenewIds] = useState([]);
@@ -579,6 +580,8 @@ const MyAds = () => {
 
   // Fetch counts
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAllCounts = async () => {
       const regularTabs = tabs.filter((t) => t.value !== RENEW_DUE_STATUS);
       const promises = regularTabs.map(async (t) => {
@@ -590,16 +593,55 @@ const MyAds = () => {
       const results = await Promise.all(promises);
       const newCounts = {};
       results.forEach((item) => { newCounts[item.status] = item.count; });
-      try {
-        const renewDueItems = await fetchRenewDueItems({ sortBy: "new-to-old" });
-        newCounts[RENEW_DUE_STATUS] = renewDueItems.length;
-      } catch {
-        newCounts[RENEW_DUE_STATUS] = 0;
-      }
+      if (!isMounted) return;
       setStatusCounts((prev) => ({ ...prev, ...newCounts }));
     };
     fetchAllCounts();
-  }, [tabs, fetchRenewDueItems]);
+    return () => {
+      isMounted = false;
+    };
+  }, [tabs]);
+
+  useEffect(() => {
+    if (isRenewDueCountResolved) return;
+
+    let cancelled = false;
+    let timeoutId = null;
+    let idleId = null;
+
+    const resolveRenewDueCount = async () => {
+      try {
+        const renewDueItems = await fetchRenewDueItems({ sortBy: "new-to-old" });
+        if (cancelled) return;
+        setStatusCounts((prev) => ({ ...prev, [RENEW_DUE_STATUS]: renewDueItems.length }));
+      } catch {
+        if (cancelled) return;
+        setStatusCounts((prev) => ({ ...prev, [RENEW_DUE_STATUS]: 0 }));
+      } finally {
+        if (!cancelled) {
+          setIsRenewDueCountResolved(true);
+        }
+      }
+    };
+
+    const scheduleResolve = () => {
+      void resolveRenewDueCount();
+    };
+
+    if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(scheduleResolve, { timeout: 3000 });
+    } else {
+      timeoutId = window.setTimeout(scheduleResolve, 1000);
+    }
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
+      if (idleId && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [fetchRenewDueItems, isRenewDueCountResolved]);
 
   // Fetch items
   const getMyItemsData = useCallback(async (page = 1) => {

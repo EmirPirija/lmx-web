@@ -169,6 +169,7 @@ const HomeHeader = () => {
   // --- unread chat count ---
   useEffect(() => {
     let isMounted = true;
+    let lastRealtimeRefreshAt = 0;
 
     const extractChatData = (res) => {
       const rootData = res?.data;
@@ -219,6 +220,9 @@ const HomeHeader = () => {
       const detail = event?.detail;
       if (!detail) return;
       if (detail?.category === "chat" || detail?.type === "chat" || detail?.type === "new_message") {
+        const now = Date.now();
+        if (now - lastRealtimeRefreshAt < 2000) return;
+        lastRealtimeRefreshAt = now;
         fetchUnreadCount();
       }
     };
@@ -230,7 +234,7 @@ const HomeHeader = () => {
       clearInterval(interval);
       window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
     };
-  }, [IsLoggedin, pathname]);
+  }, [IsLoggedin]);
 
   const locationText = cityData?.formattedAddress;
 
@@ -719,6 +723,7 @@ const HomeHeader = () => {
   );
   const unifiedHeaderQuickLinks = useMemo(
     () => [
+      ...availableHeaderQuickLinks,
       {
         id: "all-users",
         href: "/svi-korisnici",
@@ -729,14 +734,13 @@ const HomeHeader = () => {
           </span>
         ),
       },
-      ...availableHeaderQuickLinks,
     ],
     [availableHeaderQuickLinks]
   );
   
   
   const primaryQuickLinkIds = useMemo(
-    () => new Set(["all-users", 2, 6, 7, 8]),
+    () => new Set([1, 5, 6, 7, 2, "all-users"]),
     []
   );
   const primaryHeaderQuickLinks = useMemo(
@@ -905,7 +909,7 @@ const HomeHeader = () => {
 
                   <div className="flex items-center gap-2">
 
-                  <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">
+                  <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none overflow-x-visible">
                     <div className="flex w-max items-center gap-2 pr-1">
                       {primaryHeaderQuickLinks.map((link) => (
                         <CustomLink
@@ -951,15 +955,6 @@ const HomeHeader = () => {
                         </DropdownMenu>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={handleAdListing}
-                        disabled={IsAdListingClicked}
-                        className={`${quickLinkChipClass} hidden 2xl:inline-flex disabled:opacity-60`}
-                      >
-                        <Video size={14} className="mr-1 text-violet-500 dark:text-violet-300" />
-                        Objavi video oglas
-                      </button>
                     </div>
                   </div>
                 </div>

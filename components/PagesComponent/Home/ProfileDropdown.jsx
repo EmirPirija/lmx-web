@@ -270,9 +270,11 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   const setDockSuspended = mobileDock?.setSuspended;
   const clearDockSuspended = mobileDock?.clearSuspended;
   const transitionTimersRef = useRef({ open: null, close: null });
+  const lastStatsFetchRef = useRef(0);
   const dockSuspendKey = "profile-dropdown-sheet";
-  const DOCK_HIDE_BEFORE_OPEN_MS = 170;
-  const DOCK_SHOW_AFTER_CLOSE_MS = 250;
+  const DOCK_HIDE_BEFORE_OPEN_MS = 120;
+  const DOCK_SHOW_AFTER_CLOSE_MS = 180;
+  const PROFILE_DROPDOWN_FETCH_COOLDOWN_MS = 15000;
 
   const userData = useSelector(userSignUpData);
   const settings = useSelector(settingsData);
@@ -351,8 +353,13 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   const isPremium = resolvedMembership.isPremium;
   const promoEnabled = isPromoFreeAccessEnabled();
 
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = useCallback(async ({ force = false } = {}) => {
     if (!userData) return;
+    const now = Date.now();
+    if (!force && now - lastStatsFetchRef.current < PROFILE_DROPDOWN_FETCH_COOLDOWN_MS) {
+      return;
+    }
+    lastStatsFetchRef.current = now;
 
     try {
       const results = await Promise.allSettled([
@@ -423,11 +430,11 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
     } catch (e) {
       console.error("Error fetching user stats:", e);
     }
-  }, [userData]);
+  }, [userData, PROFILE_DROPDOWN_FETCH_COOLDOWN_MS]);
 
   useEffect(() => {
     if (!userData) return;
-    fetchAllData();
+    fetchAllData({ force: true });
     getSellerSettings();
   }, [userData, fetchAllData, getSellerSettings]);
 
@@ -443,7 +450,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
       if (nextOpen) {
         if (dockPhase === "opening" || isOpen) return;
         setDockPhase("opening");
-        setDockSuspended?.(dockSuspendKey, true);
+        setDockSuspended?.(dockSuspendKey, true, { keepNavOpen: true });
         transitionTimersRef.current.open = window.setTimeout(() => {
           setIsOpen(true);
           setDockPhase("idle");
@@ -460,6 +467,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
 
       setIsOpen(false);
       setDockPhase("closing");
+      mobileDock?.closeNav?.();
       transitionTimersRef.current.close = window.setTimeout(() => {
         clearDockSuspended?.(dockSuspendKey);
         setDockPhase("idle");
@@ -475,6 +483,16 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
       clearDockSuspended?.(dockSuspendKey);
     };
   }, [clearTransitionTimers, clearDockSuspended]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isOpen) return;
+
+    const openDialogs = document.querySelectorAll('[role="dialog"][data-state="open"]');
+    if (openDialogs.length === 0 && document.body.style.overflow === "hidden") {
+      document.body.style.overflow = "";
+    }
+  }, [isOpen, dockPhase]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -730,7 +748,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
           <MenuDivider />
 
           <MenuSection title="Podrška">
-            <MenuItem icon={Headset} label={"Kontaktirajte nas"} description="Kontaktiraj podršku" onClick={() => handleNavigate("/contact-us")} />
+            <MenuItem icon={Headset} label={"Kontakt"} description="Kontaktiraj podršku" onClick={() => handleNavigate("/contact-us")} />
           </MenuSection>
 
           <MenuDivider />

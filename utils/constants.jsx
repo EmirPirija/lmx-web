@@ -57,11 +57,6 @@ export const headerQuickLinks = [
         labelKey: "aboutUs",
     },
     {
-        id: 2,
-        href: "/contact-us",
-        labelKey: "contactUs",
-    },
-    {
         id: 5,
         href: "/faqs",
         labelKey: "faqs",
@@ -69,12 +64,17 @@ export const headerQuickLinks = [
     {
         id: 6,
         href: "/shop",
-        label: "Shop",
+        label: "Pokreni LMX Shop",
     },
     {
         id: 7,
         href: "/pro",
-        label: "Pro",
+        label: "Postani PRO",
+    },
+    {
+        id: 2,
+        href: "/contact-us",
+        label: "Kontakt",
     },
     {
         id: 8,

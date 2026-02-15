@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -23,6 +23,7 @@ const SimilarProducts = ({ productDetails }) => {
     try {
       const response = await allItemApi.getItems({
         category_id: cateID,
+        limit: 16,
         ...(location?.lat &&
           location?.long && {
             latitude: location?.lat,
@@ -54,15 +55,13 @@ const SimilarProducts = ({ productDetails }) => {
     return null;
   }
 
-  const handleLikeAllData = (id) => {
-    const updatedItems = similarData.map((item) => {
-      if (item.id === id) {
-        return { ...item, is_liked: !item.is_liked };
-      }
-      return item;
-    });
-    setSimilarData(updatedItems);
-  };
+  const handleLikeAllData = useCallback((id) => {
+    setSimilarData((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id ? { ...item, is_liked: !item.is_liked } : item
+      )
+    );
+  }, []);
 
   return (
     <div className="flex flex-col gap-5 mt-8">

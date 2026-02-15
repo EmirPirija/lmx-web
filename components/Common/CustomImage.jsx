@@ -6,7 +6,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { normalizeLegacyImageUrl } from "@/utils/categoryImage";
 
-const CustomImage = ({ src, alt, loading = "lazy", ...props }) => {
+const CustomImage = ({
+  src,
+  alt,
+  loading = "lazy",
+  sizes,
+  decoding = "async",
+  unoptimized,
+  ...props
+}) => {
   const placeholderImage = useSelector(getPlaceholderImage);
   const fallback = "/assets/Transperant_Placeholder.png";
 
@@ -28,6 +36,10 @@ const CustomImage = ({ src, alt, loading = "lazy", ...props }) => {
     setImgSrc(resolvedSrc);
   }, [resolvedSrc]);
 
+  const shouldBypassOptimization = useMemo(
+    () => /^https?:\/\//i.test(String(imgSrc || "")),
+    [imgSrc]
+  );
 
   const handleError = () => {
     if (imgSrc !== normalizedPlaceholder && normalizedPlaceholder) {
@@ -42,8 +54,11 @@ const CustomImage = ({ src, alt, loading = "lazy", ...props }) => {
       src={imgSrc}
       alt={alt}
       onError={handleError}
-      loading={loading} // Dynamic loading: defaults to "lazy" if not provided
-      {...props} // width, height, className etc can still be passed
+      loading={loading}
+      decoding={decoding}
+      sizes={sizes || "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"}
+      unoptimized={typeof unoptimized === "boolean" ? unoptimized : shouldBypassOptimization}
+      {...props}
     />
   );
 };

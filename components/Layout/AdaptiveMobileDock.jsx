@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { Menu } from "@/components/Common/UnifiedIconPack";
 
 const AdaptiveMobileDockContext = createContext(null);
@@ -39,6 +39,7 @@ const useMobileViewport = (query = "(max-width: 991px)") => {
 
 export const AdaptiveMobileDockProvider = ({ children }) => {
   const { ready, isMobile } = useMobileViewport("(max-width: 991px)");
+  const prefersReducedMotion = useReducedMotion();
   const [navRegistry, setNavRegistry] = useState({});
   const [ctaRegistry, setCtaRegistry] = useState({});
   const [suspendRegistry, setSuspendRegistry] = useState({});
@@ -46,7 +47,13 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   const [isDockCollapsed, setIsDockCollapsed] = useState(false);
   const [isDockInteracting, setIsDockInteracting] = useState(false);
   const rowRef = useRef(null);
-  const lastScrollYRef = useRef(0);
+  const scrollStateRef = useRef({
+    lastY: 0,
+    downAccum: 0,
+    upAccum: 0,
+    lockUntil: 0,
+  });
+  const dockCollapsedRef = useRef(false);
   const interactionReleaseTimerRef = useRef(null);
 
   const upsertNav = useCallback((id, payload) => {
@@ -93,7 +100,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     });
   }, []);
 
-  const setSuspended = useCallback((id, suspended = true) => {
+  const setSuspended = useCallback((id, suspended = true, options = {}) => {
     if (!id) return;
     setSuspendRegistry((prev) => {
       if (!suspended) {
@@ -105,7 +112,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
       return {
         ...prev,
-        [id]: Date.now(),
+        [id]: {
+          at: Date.now(),
+          keepNavOpen: Boolean(options?.keepNavOpen),
+        },
       };
     });
   }, []);
@@ -123,10 +133,18 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   const activeNav = useMemo(() => pickActiveItem(navRegistry), [navRegistry]);
   const activeCta = useMemo(() => pickActiveItem(ctaRegistry), [ctaRegistry]);
   const isSuspended = useMemo(() => Object.keys(suspendRegistry).length > 0, [suspendRegistry]);
+  const keepNavDuringSuspend = useMemo(
+    () => Object.values(suspendRegistry).some((entry) => Boolean(entry?.keepNavOpen)),
+    [suspendRegistry]
+  );
 
   const hasNav = Boolean(ready && isMobile && activeNav);
   const hasCta = Boolean(ready && isMobile && activeCta);
   const showDock = hasNav || hasCta;
+
+  useEffect(() => {
+    dockCollapsedRef.current = isDockCollapsed;
+  }, [isDockCollapsed]);
 
   useEffect(() => {
     if (!hasCta || !hasNav) {
@@ -143,10 +161,12 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
   useEffect(() => {
     if (isSuspended) {
-      setIsNavExpanded(false);
+      if (!keepNavDuringSuspend) {
+        setIsNavExpanded(false);
+      }
       setIsDockCollapsed(false);
     }
-  }, [isSuspended]);
+  }, [isSuspended, keepNavDuringSuspend]);
 
   useEffect(() => {
     if (!isDockInteracting) return;
@@ -161,25 +181,60 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     if (typeof window === "undefined") return undefined;
 
     let ticking = false;
-    lastScrollYRef.current = window.scrollY || 0;
+    scrollStateRef.current.lastY = window.scrollY || 0;
+    scrollStateRef.current.downAccum = 0;
+    scrollStateRef.current.upAccum = 0;
+    scrollStateRef.current.lockUntil = 0;
 
-    const collapseEnterThreshold = 120;
-    const deltaThreshold = 6;
+    const collapseEnterY = 108;
+    const collapseDistance = 42;
+    const expandDistance = 26;
+    const topSnapY = 26;
+    const minStepDelta = 2;
+    const settleWindowMs = 140;
+
+    const setCollapsedSafely = (nextValue) => {
+      if (dockCollapsedRef.current === nextValue) return;
+      dockCollapsedRef.current = nextValue;
+      setIsDockCollapsed(nextValue);
+    };
 
     const updateCollapsedState = () => {
+      const now = performance.now();
+      const state = scrollStateRef.current;
       const currentY = window.scrollY || 0;
-      const deltaY = currentY - lastScrollYRef.current;
-      const isScrollingDown = deltaY > deltaThreshold;
-      const isScrollingUp = deltaY < -deltaThreshold;
+      const deltaY = currentY - state.lastY;
+      state.lastY = currentY;
 
-      setIsDockCollapsed((prev) => {
-        if (currentY <= 32) return false;
-        if (!prev && isScrollingDown && currentY > collapseEnterThreshold) return true;
-        if (prev && isScrollingUp) return false;
-        return prev;
-      });
+      if (Math.abs(deltaY) < minStepDelta) return;
+      if (now < state.lockUntil) return;
 
-      lastScrollYRef.current = currentY;
+      if (deltaY > 0) {
+        state.downAccum += deltaY;
+        state.upAccum = 0;
+      } else {
+        state.upAccum += Math.abs(deltaY);
+        state.downAccum = 0;
+      }
+
+      const currentlyCollapsed = dockCollapsedRef.current;
+
+      if (!currentlyCollapsed) {
+        if (currentY > collapseEnterY && state.downAccum >= collapseDistance) {
+          setCollapsedSafely(true);
+          state.downAccum = 0;
+          state.upAccum = 0;
+          state.lockUntil = now + settleWindowMs;
+        }
+        return;
+      }
+
+      if (currentY <= topSnapY || state.upAccum >= expandDistance) {
+        setCollapsedSafely(false);
+        state.downAccum = 0;
+        state.upAccum = 0;
+        state.lockUntil = now + settleWindowMs;
+      }
     };
 
     updateCollapsedState();
@@ -196,6 +251,30 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [ready, isMobile, showDock, isSuspended, isNavExpanded, isDockInteracting]);
+
+  const dockRootTransition = useMemo(
+    () =>
+      prefersReducedMotion
+        ? { duration: 0.01 }
+        : { type: "spring", stiffness: 420, damping: 36, mass: 0.85 },
+    [prefersReducedMotion]
+  );
+
+  const dockSheetTransition = useMemo(
+    () =>
+      prefersReducedMotion
+        ? { duration: 0.01 }
+        : { type: "spring", stiffness: 360, damping: 34, mass: 0.9 },
+    [prefersReducedMotion]
+  );
+
+  const dockFadeTransition = useMemo(
+    () =>
+      prefersReducedMotion
+        ? { duration: 0.01 }
+        : { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+    [prefersReducedMotion]
+  );
 
   useEffect(() => () => {
     if (interactionReleaseTimerRef.current) {
@@ -341,7 +420,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={dockFadeTransition}
                 onClick={closeNav}
                 onPointerDown={beginDockInteraction}
                 onPointerUp={endDockInteraction}
@@ -361,9 +440,13 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                     : { y: 0, opacity: 1 }
               }
               exit={{ y: 14, opacity: 0 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              transition={dockRootTransition}
               className="fixed inset-x-0 bottom-0 z-[65] pointer-events-none lg:hidden"
-              style={{ bottom: "var(--lmx-mobile-viewport-bottom-offset, 0px)" }}
+              style={{
+                bottom: "var(--lmx-mobile-viewport-bottom-offset, 0px)",
+                willChange: "transform, opacity",
+                transform: "translateZ(0)",
+              }}
             >
               <div
                 ref={rowRef}
@@ -375,12 +458,12 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 <LayoutGroup id="adaptive-mobile-dock">
                   <div className="relative">
                     <AnimatePresence>
-                      {hasCta && hasNav && isNavExpanded && !isSuspended && (
+                      {hasCta && hasNav && isNavExpanded && (!isSuspended || keepNavDuringSuspend) && (
                         <motion.div
                           initial={{ opacity: 0, y: 10, scale: 0.98 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                          transition={{ duration: 0.24 }}
+                          transition={dockSheetTransition}
                           className="pointer-events-auto absolute inset-x-0 bottom-full mb-2"
                           onPointerDownCapture={beginDockInteraction}
                           onPointerUpCapture={endDockInteraction}
@@ -420,6 +503,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                                 type="button"
                                 layoutId="adaptive-dock-nav-shell"
                                 onClick={() => setIsNavExpanded(true)}
+                                whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
                                 className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/85 dark:text-slate-200 dark:hover:bg-slate-700"
                                 aria-label="Otvori meni"
                               >

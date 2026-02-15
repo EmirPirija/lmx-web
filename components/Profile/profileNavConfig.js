@@ -212,7 +212,7 @@ export const getProfileNavigationSections = ({
         {
           href: "/contact-us",
           icon: Headset,
-          label: "Kontaktirajte nas",
+          label: "Kontakt",
           description: "Kontaktiraj podršku",
         },
       ],

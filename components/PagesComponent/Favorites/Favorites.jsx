@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 
@@ -26,7 +26,7 @@ const Favorites = () => {
   const [hasMore, setHasMore] = useState(false);
   const [IsLoadMore, setIsLoadMore] = useState(false);
 
-  const fetchFavoriteItems = async (page) => {
+  const fetchFavoriteItems = useCallback(async (page) => {
     try {
       if (page === 1) {
         setIsLoading(true);
@@ -48,20 +48,20 @@ const Favorites = () => {
       setIsLoading(false);
       setIsLoadMore(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchFavoriteItems(currentPage);
-  }, [currentPage, CurrentLanguage.id]);
+  }, [currentPage, CurrentLanguage.id, fetchFavoriteItems]);
 
   const handleLoadMore = () => {
     setIsLoadMore(true);
     setCurrentPage((prevPage) => prevPage + 1);
   };
 
-  const handleLike = (id) => {
+  const handleLike = useCallback((id) => {
     fetchFavoriteItems(1);
-  };
+  }, [fetchFavoriteItems]);
 
   // Loading state
   if (isLoading) {

@@ -7,8 +7,8 @@ import { resetBreadcrumb } from "@/redux/reducer/breadCrumbSlice";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
 import { allItemApi } from "@/utils/api";
-import { Info, X } from "@/components/Common/UnifiedIconPack";
-import { useEffect, useState } from "react";
+import { Info } from "@/components/Common/UnifiedIconPack";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 const AllItems = ({ cityData, KmRange }) => {
   const dispatch = useDispatch();
@@ -31,6 +31,7 @@ const AllItems = ({ cityData, KmRange }) => {
         page,
         current_page: "home",
         is_feature: 1,
+        limit: 20,
       };
       if (Number(KmRange) > 0 && (cityData?.areaId || cityData?.city)) {
         // Add location-based parameters for non-demo mode
@@ -70,12 +71,14 @@ const AllItems = ({ cityData, KmRange }) => {
 
       if (response?.data?.data?.data?.length > 0) {
         const data = response?.data?.data?.data;
-        console.log('First item full structure:', data[0]); // Add this line
+        const featuredOnly = Array.isArray(data)
+          ? data.filter((entry) => Boolean(entry?.is_feature))
+          : [];
 
         if (page === 1) {
-          setAllItem(data);
+          setAllItem(featuredOnly);
         } else {
-          setAllItem((prevData) => [...prevData, ...data]);
+          setAllItem((prevData) => [...prevData, ...featuredOnly]);
         }
         const currentPage = response?.data?.data?.current_page;
         const lastPage = response?.data?.data?.last_page;
@@ -106,15 +109,13 @@ const AllItems = ({ cityData, KmRange }) => {
     dispatch(resetBreadcrumb());
   }, []);
 
-  const handleLikeAllData = (id) => {
-    const updatedItems = AllItem.map((item) => {
-      if (item.id === id) {
-        return { ...item, is_liked: !item.is_liked };
-      }
-      return item;
-    });
-    setAllItem(updatedItems);
-  };
+  const handleLikeAllData = useCallback((id) => {
+    setAllItem((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id ? { ...item, is_liked: !item.is_liked } : item
+      )
+    );
+  }, []);
 
   return (
     <section className="container mt-12">
@@ -133,8 +134,7 @@ const AllItems = ({ cityData, KmRange }) => {
         {isLoading ? (
           <AllItemsSkeleton />
         ) : AllItem && AllItem.length > 0 ? (
-          // AllItem?.map((item) => (
-            AllItem?.filter(item => item.is_feature)?.map((item) => (
+            AllItem?.map((item) => (
             <ProductCard
               key={item?.id}
               item={item}

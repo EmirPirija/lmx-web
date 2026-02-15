@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { toast } from "@/utils/toastBs";
@@ -267,6 +267,8 @@ export default function SellerDashboard() {
   const userData = useSelector(userSignUpData);
 
   const [loading, setLoading] = useState(true);
+  const lastFetchRef = useRef(0);
+  const DASHBOARD_FETCH_COOLDOWN_MS = 15000;
   const [stats, setStats] = useState({
     membershipTier: "free",
     activeAds: 0,
@@ -282,10 +284,17 @@ export default function SellerDashboard() {
   const [collections, setCollections] = useState([]);
 
   // Fetch svih podataka
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async ({ force = false, showLoader = true } = {}) => {
     if (!userData) return;
+    const now = Date.now();
+    if (!force && now - lastFetchRef.current < DASHBOARD_FETCH_COOLDOWN_MS) {
+      return;
+    }
+    lastFetchRef.current = now;
 
-    setLoading(true);
+    if (showLoader) {
+      setLoading(true);
+    }
 
     try {
       const results = await Promise.allSettled([
@@ -402,12 +411,14 @@ export default function SellerDashboard() {
       console.error("Error fetching dashboard data:", error);
       toast.error("Greška pri učitavanju podataka");
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
-  }, [userData]);
+  }, [userData, DASHBOARD_FETCH_COOLDOWN_MS]);
 
   useEffect(() => {
-    fetchAll();
+    fetchAll({ force: true, showLoader: true });
   }, [fetchAll]);
 
   useEffect(() => {
@@ -417,7 +428,7 @@ export default function SellerDashboard() {
       const detail = event?.detail;
       if (!detail) return;
       if (detail?.category === "notification" || detail?.category === "chat" || detail?.category === "system") {
-        fetchAll();
+        fetchAll({ showLoader: false });
       }
     };
 

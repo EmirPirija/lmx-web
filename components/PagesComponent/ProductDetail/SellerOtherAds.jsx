@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "@/components/Common/UnifiedIconPack";
 import { useSelector } from "react-redux";
@@ -86,13 +86,13 @@ const SellerOtherAds = ({ productDetails, onItemClick }) => {
     };
   }, [sellerId, currentItemId]);
 
-  const handleLike = (itemId) => {
+  const handleLike = useCallback((itemId) => {
     setItems((prev) =>
       prev.map((item) =>
         item.id === itemId ? { ...item, is_liked: !item.is_liked } : item
       )
     );
-  };
+  }, []);
 
   if (!sellerId) return null;
   if (!isLoading && items.length === 0) return null;
