@@ -622,7 +622,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-lg bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
+      <DialogContent showCloseButton={false} className="max-w-lg bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
         <motion.div {...fadeInUp} transition={{ duration: 0.3 }} className="p-5">
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-5">
@@ -811,7 +811,7 @@ const ContactSheet = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
+      <DialogContent showCloseButton={false} className="max-w-md bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
         <motion.div {...fadeInUp} transition={{ duration: 0.3 }} className="p-5">
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-5">

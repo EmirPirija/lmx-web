@@ -226,7 +226,7 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
+      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-900">Kontakt</h3>
           <button
@@ -419,7 +419,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl">
+      <DialogContent showCloseButton={false} className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100">
@@ -547,7 +547,7 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
+      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-900">Pošalji ponudu</h3>
           <button
