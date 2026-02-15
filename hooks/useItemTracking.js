@@ -142,7 +142,8 @@ const getAttributionSource = ({ searchId, explicitSource, explicitDetail } = {})
   return { source: 'direct', source_detail: null };
 };
 
-const trackingRequest = async (endpoint, data) => {
+const trackingRequest = async (endpoint, data, options = {}) => {
+  const { returnPayload = false } = options;
   try {
     const token = getAuthToken();
     const headers = {};
@@ -197,10 +198,33 @@ const trackingRequest = async (endpoint, data) => {
     const text = await res.text();
     let payload = null;
     try { payload = JSON.parse(text); } catch {}
- 
-    return res.ok;
+
+    const isSuccess = res.ok && payload?.error !== true;
+    if (!isSuccess) {
+      console.warn("Tracking API rejected request:", endpoint, {
+        status: res.status,
+        message: payload?.message || null,
+      });
+    }
+
+    if (returnPayload) {
+      return {
+        ok: isSuccess,
+        status: res.status,
+        payload,
+      };
+    }
+
+    return isSuccess;
   } catch (e) {
     console.error("Tracking error:", endpoint, e);
+    if (returnPayload) {
+      return {
+        ok: false,
+        status: 0,
+        payload: null,
+      };
+    }
     return false;
   }
 };
@@ -439,6 +463,7 @@ export const useEngagementTracking = (itemId) => {
 export const useSearchTracking = () => {
   const impressionIdRef = useRef(null);
   const searchIdRef = useRef(null);
+  const lastSearchContextRef = useRef(null);
 
   const hashString = (value = "") => {
     let hash = 0;
@@ -476,13 +501,14 @@ export const useSearchTracking = () => {
     const sessionId = getSessionId();
     const page = searchData?.page || 1;
     const impressionKey = `imp_${sessionId}_${searchId}_${page}`;
+    lastSearchContextRef.current = {
+      search_id: searchId,
+      search_query: searchData?.search_query || null,
+      page,
+    };
 
     if (typeof window !== 'undefined' && sessionStorage.getItem(impressionKey)) {
       return searchId;
-    }
-
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem(impressionKey, '1');
     }
 
     console.log('📊 Tracking search impressions:', {
@@ -492,35 +518,65 @@ export const useSearchTracking = () => {
       page,
     });
 
-    const ok = await trackingRequest('track/search-impressions', {
+    const response = await trackingRequest('track/search-impressions', {
       item_ids: Array.isArray(itemIds) ? itemIds : [],
       search_query: searchData?.search_query || null,
+      search_type: searchData?.search_type || null,
       page,
-      results_total: searchData?.results_count || null,
+      results_total: searchData?.results_total ?? searchData?.results_count ?? null,
       filters: searchData?.filters || null,
       search_id: searchId,
-    });
+    }, { returnPayload: true });
 
-    if (!ok) {
+    if (!response?.ok) {
       impressionIdRef.current = null;
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(impressionKey);
+      }
+      return null;
     }
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(impressionKey, '1');
+    }
+
+    const trackedImpressionId = response?.payload?.data?.impression_id
+      || response?.payload?.data?.impression_ids?.[0]
+      || null;
+    impressionIdRef.current = trackedImpressionId || null;
 
     return searchId;
   }, []);
 
-  const trackSearchClick = useCallback(async (itemId, position, impressionId = null) => {
+  const trackSearchClick = useCallback(async (itemId, position, impressionId = null, searchContext = null) => {
     const impId = impressionId || impressionIdRef.current;
-    if (!impId) return;
+    const context = searchContext || lastSearchContextRef.current || {};
+
+    const payload = impId
+      ? { impression_id: impId }
+      : {
+          item_id: itemId,
+          position: Number.isFinite(position) ? position : null,
+          page: context?.page || 1,
+          search_id: context?.search_id || searchIdRef.current || null,
+          search_query: context?.search_query || null,
+        };
 
     console.log('📊 Tracking search click:', { 
       item_id: itemId, 
       position, 
-      impression_id: impId 
-    });
-    
-    await trackingRequest('track/search-click', {
       impression_id: impId,
+      fallback: !impId,
     });
+
+    const response = await trackingRequest('track/search-click', payload, { returnPayload: true });
+    if (!response?.ok) {
+      console.warn('Search click tracking failed', {
+        item_id: itemId,
+        search_id: context?.search_id || null,
+        message: response?.payload?.message || null,
+      });
+    }
   }, []);
 
   return {
@@ -529,6 +585,7 @@ export const useSearchTracking = () => {
     getLastImpressionId: () => impressionIdRef.current,
     getSearchId,
     getLastSearchId: () => searchIdRef.current,
+    getLastSearchContext: () => lastSearchContextRef.current,
   };
 };
 

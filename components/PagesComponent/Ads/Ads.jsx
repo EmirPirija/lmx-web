@@ -104,7 +104,7 @@ const Ads = () => {
   // ============================================
   // SEARCH TRACKING HOOK
   // ============================================
-  const { trackSearchImpressions, trackSearchClick, getSearchId } = useSearchTracking();
+  const { trackSearchImpressions, trackSearchClick, getSearchId, getLastImpressionId } = useSearchTracking();
   const lastImpressionIdRef = useRef(null);
   const searchIdRef = useRef(null);
 
@@ -841,7 +841,7 @@ const Ads = () => {
             results_count: items.length,
             page,
           });
-          lastImpressionIdRef.current = null;
+          lastImpressionIdRef.current = getLastImpressionId();
         }
 
         page > 1
@@ -923,7 +923,11 @@ const Ads = () => {
 
   // ✅ HANDLE ITEM CLICK - Track search click
   const handleItemClick = (itemId, position) => {
-    trackSearchClick(itemId, position, lastImpressionIdRef.current);
+    trackSearchClick(itemId, (position || 0) + 1, lastImpressionIdRef.current, {
+      search_id: searchIdRef.current || null,
+      search_query: query || null,
+      page: advertisements.currentPage || 1,
+    });
   };
 
   const handleClearLocation = () => {
