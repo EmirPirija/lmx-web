@@ -50,6 +50,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 // ============================================
 // CONSTANTS
@@ -185,6 +186,12 @@ const CustomTooltip = ({ active, payload, label }) => {
 // LOCK OVERLAY
 // ============================================
 const LockOverlay = ({ tier = "pro", feature = "" }) => {
+  const promoEnabled = isPromoFreeAccessEnabled();
+
+  if (promoEnabled) {
+    return null;
+  }
+
   const config = {
     pro: { icon: Crown, gradient: "from-amber-400 to-yellow-500", name: "LMX Pro", bg: "from-amber-50 to-yellow-50" },
     shop: { icon: Store, gradient: "from-blue-500 to-indigo-600", name: "LMX Shop", bg: "from-blue-50 to-indigo-50" },
@@ -1383,9 +1390,11 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
     }
   }, [isExpanded, fetchStatistics]);
 
+  const promoEnabled = isPromoFreeAccessEnabled();
   const isPro = membershipTier === "pro";
   const isShop = membershipTier === "shop";
-  const isPremium = isPro || isShop;
+  const isPremium = promoEnabled || isPro || isShop;
+  const hasShopAccess = promoEnabled || isShop;
   const motionFade = {
     hidden: { opacity: 0, y: 12 },
     show: (delay = 0) => ({
@@ -1624,14 +1633,14 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                       title="Shop statistika"
                       iconColor="text-blue-500"
                       planScope="shop"
-                      unlocked={isShop}
-                      badge={isShop ? { text: "Aktivno", color: "bg-blue-100 text-blue-700" } : null}
-                      locked={!isShop}
+                      unlocked={hasShopAccess}
+                      badge={hasShopAccess ? { text: "Aktivno", color: "bg-blue-100 text-blue-700" } : null}
+                      locked={!hasShopAccess}
                     />
 
                     <div className="relative">
-                      {!isShop && <LockOverlay tier="shop" feature="Shop statistika" />}
-                      <div className={`space-y-4 ${!isShop ? "blur-sm pointer-events-none select-none" : ""}`}>
+                      {!hasShopAccess && <LockOverlay tier="shop" feature="Shop statistika" />}
+                      <div className={`space-y-4 ${!hasShopAccess ? "blur-sm pointer-events-none select-none" : ""}`}>
                         <ViewsByTimeSection hourlyData={stats.hourly} />
                         <ConversionSection funnel={stats.funnel} />
                         <DetailedConversionSection data={stats.conversion_detailed} />
@@ -1647,11 +1656,11 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                   {/* Footer */}
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-[10px] text-slate-400">Ažurirano: upravo sada</span>
-                    {!isShop && (
-                      <Link href="/membership/upgrade" className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                    {!hasShopAccess && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
                         <IoSparkles size={12} />
-                        Više statistika
-                      </Link>
+                        Promo režim aktivan
+                      </span>
                     )}
                   </div>
                 </>

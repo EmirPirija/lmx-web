@@ -26,6 +26,8 @@ import { resolveMembership } from "@/lib/membership";
 import { resolveVerificationState } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 import { toast } from "@/utils/toastBs";
+import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
+import { PROMO_BENEFITS, PROMO_HEADLINE, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import {
   getProfileNavigationSections,
   isProfileNavItemActive,
@@ -90,7 +92,9 @@ const PROFILE_CONTEXT_COPY = {
   },
   "/profile/integrations": {
     title: "Integracije",
-    description: "Instagram povezivanje, sinhronizacija i zakazane objave.",
+    description: SOCIAL_POSTING_TEMP_UNAVAILABLE
+      ? "Instagram/Facebook/TikTok objave su privremeno nedostupne."
+      : "Instagram povezivanje, sinhronizacija i zakazane objave.",
   },
   "/profile/shop-ops": {
     title: "Shop operacije",
@@ -98,7 +102,15 @@ const PROFILE_CONTEXT_COPY = {
   },
   "/profile/gamification": {
     title: "Gamifikacija",
-    description: "Prati score, misije i napredak kroz ključne metrike.",
+    description: "Privremeno nedostupno.",
+  },
+  "/profile/badges": {
+    title: "Bedževi",
+    description: "Privremeno nedostupno.",
+  },
+  "/leaderboard": {
+    title: "Ljestvica",
+    description: "Privremeno nedostupno.",
   },
   "/my-ads": {
     title: "Moji oglasi",
@@ -121,8 +133,8 @@ const PROFILE_CONTEXT_COPY = {
     description: "Pregled uplata, troškova i historije plaćanja.",
   },
   "/user-subscription": {
-    title: "Pretplata",
-    description: "Upravljaj planom i pogodnostima članstva.",
+    title: "Planovi i pristup",
+    description: "Pregled promotivnog režima i dostupnih planova.",
   },
 };
 
@@ -189,23 +201,29 @@ const MenuItem = ({
   isActive,
   description,
   danger,
+  disabled = false,
+  unavailableBadge = "",
 }) => {
   const content = (
     <div
       className={cn(
-        "group flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
+        "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
+        disabled && "cursor-not-allowed opacity-65",
         danger
           ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
           : isActive
           ? "bg-primary/10 text-primary dark:bg-primary/20"
+          : disabled
+          ? "text-slate-500 bg-slate-100/70 dark:text-slate-400 dark:bg-slate-800/70"
           : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
       )}
       title={description || label}
       aria-label={description || label}
-      onClick={onClick}
+      onClick={href ? undefined : onClick}
       role="button"
-      tabIndex={0}
+      tabIndex={href ? -1 : 0}
       onKeyDown={(e) => {
+        if (href) return;
         if (e.key === "Enter" || e.key === " ") onClick?.();
       }}
     >
@@ -216,6 +234,8 @@ const MenuItem = ({
             ? "bg-red-50 group-hover:bg-red-100 dark:bg-red-500/10 dark:group-hover:bg-red-500/20"
             : isActive
             ? "bg-primary/10 dark:bg-primary/20"
+            : disabled
+            ? "bg-slate-200 dark:bg-slate-700"
             : "bg-slate-100 group-hover:bg-slate-200/70 dark:bg-slate-800 dark:group-hover:bg-slate-700"
         )}
       >
@@ -226,6 +246,8 @@ const MenuItem = ({
               ? "text-red-500 dark:text-red-400"
               : isActive
               ? "text-primary"
+              : disabled
+              ? "text-slate-400 dark:text-slate-500"
               : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
           )}
         />
@@ -244,6 +266,12 @@ const MenuItem = ({
         </span>
       )}
 
+      {disabled && unavailableBadge ? (
+        <span className="px-2 py-0.5 bg-slate-300 text-slate-700 text-[10px] font-bold rounded-full min-w-[20px] text-center dark:bg-slate-700 dark:text-slate-200">
+          {unavailableBadge}
+        </span>
+      ) : null}
+
       {isNew && (
         <span className="px-1.5 py-0.5 bg-primary text-white text-[9px] font-bold rounded uppercase tracking-wide">
           Novo
@@ -252,9 +280,21 @@ const MenuItem = ({
     </div>
   );
 
-  if (href && !onClick) {
+  if (disabled) {
     return (
-      <CustomLink href={href} className="block">
+      <button
+        type="button"
+        onClick={() => toast.info(`${label} je privremeno nedostupno.`)}
+        className="block w-full text-left"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  if (href) {
+    return (
+      <CustomLink href={href} className="block" onClick={onClick}>
         {content}
       </CustomLink>
     );
@@ -330,6 +370,7 @@ const ProfileSidebar = ({
   const isShop = resolvedMembership.isShop;
   const isPremium = resolvedMembership.isPremium;
   const [menuQuery, setMenuQuery] = useState("");
+  const promoEnabled = isPromoFreeAccessEnabled();
 
   const normalizedQuery = menuQuery.trim().toLowerCase();
   const filteredSections = useMemo(() => {
@@ -459,6 +500,8 @@ const ProfileSidebar = ({
                     badge={item.badge}
                     isNew={item.isNew}
                     danger={item.danger}
+                    disabled={Boolean(item.disabled)}
+                    unavailableBadge={item.unavailableBadge}
                   />
                 ))}
               </MenuSection>
@@ -490,7 +533,35 @@ const ProfileSidebar = ({
         </div>
 
         {/* UPGRADE BANNER (za free korisnike) */}
-        {!isStatsLoading && userStats.membershipTier === "free" && (
+        {!isStatsLoading && promoEnabled && (
+          <div className="border-t border-emerald-300/30 bg-emerald-50/70 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+            <div className="rounded-xl border border-emerald-200/80 bg-white p-3 dark:border-emerald-500/30 dark:bg-slate-900">
+              <h5 className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                Promotivni Free Access
+              </h5>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{PROMO_HEADLINE}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {PROMO_BENEFITS.map((benefit) => (
+                  <span
+                    key={benefit}
+                    className="rounded-full border border-emerald-300/80 bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"
+                  >
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+              <CustomLink
+                href="/ad-listing"
+                onClick={onClose}
+                className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-300/80 bg-emerald-100 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-800 transition-colors hover:bg-emerald-200 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-200 dark:hover:bg-emerald-500/25"
+              >
+                Istraži funkcionalnosti
+              </CustomLink>
+            </div>
+          </div>
+        )}
+
+        {!isStatsLoading && !promoEnabled && userStats.membershipTier === "free" && (
           <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
             <CustomLink
               href="/membership/upgrade"
@@ -512,7 +583,7 @@ const ProfileSidebar = ({
         )}
 
         {/* PRO USER BANNER */}
-        {!isStatsLoading && isPremium && (
+        {!isStatsLoading && !promoEnabled && isPremium && (
           <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
             <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-white p-3 dark:border-primary/30 dark:bg-slate-900">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">

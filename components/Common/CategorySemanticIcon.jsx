@@ -123,6 +123,61 @@ const ROOT_SLUG_ICON_MAP = {
   "usluge-i-servisi": Wrench,
 };
 
+const ROOT_CATEGORY_NAME_SET = new Set(
+  [
+    "Vozila",
+    "Nekretnine",
+    "Mobiteli",
+    "Računari",
+    "Tehnika",
+    "Video igre i konzole",
+    "Moj dom",
+    "Muzika i audio oprema",
+    "Literatura",
+    "Umjetnost i dekoracija",
+    "Kolekcionarstvo",
+    "Antikviteti",
+    "Karte i ulaznice",
+    "Hrana i piće",
+    "Bebe",
+    "Igre i igračke",
+    "Moda i ljepota",
+    "Nakit i satovi",
+    "Odjeća i obuća",
+    "Sport i rekreacija",
+    "Biznis i industrija",
+    "Životinje",
+    "Ostalo",
+    ...Object.keys(ROOT_SLUG_ICON_MAP).map((slug) => slug.replace(/-/g, " ")),
+  ].map((value) => normalize(value))
+);
+
+const isRootCategory = (category = {}) => {
+  const slug = normalize(category?.slug).replace(/\s+/g, "-");
+  if (slug && ROOT_SLUG_ICON_MAP[slug]) return true;
+
+  const name = normalize(
+    category?.translated_name || category?.name || category?.search_name || ""
+  );
+  if (name && ROOT_CATEGORY_NAME_SET.has(name)) return true;
+
+  return false;
+};
+
+const SubcategoryDefaultIcon = ({ className = "h-full w-full" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    className={className}
+    aria-hidden="true"
+  >
+    <path
+      fill="currentColor"
+      d="m6.525 10.85 5.5 -8.85 5.5 8.85h-11ZM17.65 22c-1.23335 0 -2.26665 -0.41665 -3.1 -1.25 -0.83335 -0.83335 -1.25 -1.86665 -1.25 -3.1 0 -1.23335 0.41665 -2.26665 1.25 -3.1 0.83335 -0.83335 1.86665 -1.25 3.1 -1.25 1.23335 0 2.26665 0.41665 3.1 1.25 0.83335 0.83335 1.25 1.86665 1.25 3.1 0 1.23335 -0.41665 2.26665 -1.25 3.1 -0.83335 0.83335 -1.86665 1.25 -3.1 1.25ZM3 21.375v-7.6h7.6v7.6H3ZM17.652 20.5c0.79865 0 1.473 -0.27565 2.023 -0.827 0.55 -0.5515 0.825 -1.2265 0.825 -2.025 0 -0.79865 -0.27565 -1.473 -0.827 -2.023 -0.5515 -0.55 -1.2265 -0.825 -2.025 -0.825 -0.79865 0 -1.473 0.27565 -2.023 0.827 -0.55 0.5515 -0.825 1.2265 -0.825 2.025 0 0.79865 0.27565 1.473 0.827 2.023 0.5515 0.55 1.2265 0.825 2.025 0.825ZM4.5 19.875h4.6v-4.6H4.5v4.6Zm4.725 -10.525h5.6l-2.8 -4.525 -2.8 4.525Z"
+    />
+  </svg>
+);
+
 const pickCategoryIcon = (category) => {
   const slug = normalize(category?.slug).replace(/\s+/g, "-");
   if (slug && ROOT_SLUG_ICON_MAP[slug]) {
@@ -152,7 +207,18 @@ const pickCategoryIcon = (category) => {
   if (includesAny(text, ["avion", "let"])) return Plane;
   if (includesAny(text, ["auto", "automobil", "vozil"])) return Car;
 
-  if (includesAny(text, ["nekretnin", "stan", "apartman", "kuca", "vikendic", "zemljis"])) {
+  if (includesAny(text, ["smjestaj na dan", "smjestaj", "apartman na dan", "dnevni najam"])) {
+    return Bed;
+  }
+
+  if (includesAny(text, ["stan", "apartman"])) return Building2;
+  if (includesAny(text, ["kuca", "vikendic"])) return House;
+  if (includesAny(text, ["soba", "room"])) return Bed;
+  if (includesAny(text, ["garaza", "garaze", "parking"])) return Car;
+  if (includesAny(text, ["zemljis", "plac", "parcela"])) return Leaf;
+  if (includesAny(text, ["poslovni prostor", "ured", "kancelarija", "office"])) return Briefcase;
+  if (includesAny(text, ["skladiste", "hala", "magacin"])) return Factory;
+  if (includesAny(text, ["nekretnin"])) {
     return Building2;
   }
 
@@ -249,7 +315,8 @@ const CategorySemanticIcon = ({
   className = "w-6 h-6",
   preferBackendImage = true,
 }) => {
-  const Icon = pickCategoryIcon(category);
+  const isRoot = isRootCategory(category);
+  const Icon = isRoot ? pickCategoryIcon(category) : Shapes;
   const categoryLabel =
     category?.translated_name ||
     category?.name ||
@@ -276,7 +343,7 @@ const CategorySemanticIcon = ({
     setImageFailed(false);
   }, [backendImageSrc]);
 
-  const shouldRenderBackendImage = Boolean(backendImageSrc) && !imageFailed;
+  const shouldRenderBackendImage = isRoot && Boolean(backendImageSrc) && !imageFailed;
 
   return (
     <span
@@ -296,11 +363,19 @@ const CategorySemanticIcon = ({
           unoptimized
         />
       ) : (
-        <Icon
-          className="h-full w-full"
-          color="var(--lmx-icon-duotone-line)"
-          strokeWidth={1.9}
-        />
+        <>
+          {isRoot ? (
+            <Icon
+              className="h-full w-full"
+              color="var(--lmx-icon-duotone-line)"
+              strokeWidth={1.9}
+            />
+          ) : (
+            <span className="h-full w-full" style={{ color: "var(--lmx-icon-duotone-line)" }}>
+              <SubcategoryDefaultIcon className="h-full w-full" />
+            </span>
+          )}
+        </>
       )}
     </span>
   );

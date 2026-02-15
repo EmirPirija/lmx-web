@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { socialMediaApi } from "@/utils/api";
 import { runSocialOAuthPopup } from "@/utils/socialOAuth";
+import {
+  SOCIAL_POSTING_TEMP_UNAVAILABLE,
+  SOCIAL_POSTING_UNAVAILABLE_MESSAGE,
+} from "@/utils/socialAvailability";
 import { toast } from "@/utils/toastBs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -102,6 +106,12 @@ export default function IntegrationsPage() {
   const [scheduledRows, setScheduledRows] = useState([]);
 
   const fetchAccounts = useCallback(async () => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      setAccounts([]);
+      setAccountsLoading(false);
+      return;
+    }
+
     try {
       setAccountsLoading(true);
       const res = await socialMediaApi.getConnectedAccounts();
@@ -116,6 +126,12 @@ export default function IntegrationsPage() {
   }, []);
 
   const fetchScheduled = useCallback(async (status = "") => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      setScheduledRows([]);
+      setScheduledLoading(false);
+      return;
+    }
+
     try {
       setScheduledLoading(true);
       const res = await socialMediaApi.getScheduledPosts({ status: status || undefined, page: 1 });
@@ -141,6 +157,11 @@ export default function IntegrationsPage() {
   }, [accounts]);
 
   const handleConnect = async (platform) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     try {
       setMutatingPlatform(platform);
       const res = await socialMediaApi.connectAccount({ platform, mode: "oauth" });
@@ -160,6 +181,11 @@ export default function IntegrationsPage() {
   };
 
   const handleDisconnect = async (platform) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     const ok = window.confirm("Jeste li sigurni da želite prekinuti povezivanje?");
     if (!ok) return;
 
@@ -176,6 +202,11 @@ export default function IntegrationsPage() {
   };
 
   const handleSync = async (platform) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     try {
       setSyncingPlatform(platform);
       const res = await socialMediaApi.syncAccount({ platform });
@@ -189,6 +220,11 @@ export default function IntegrationsPage() {
   };
 
   const handleCancelScheduled = async (id) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     try {
       const res = await socialMediaApi.cancelScheduledPost({ id });
       toast.success(res?.data?.message || "Objava je otkazana.");
@@ -199,6 +235,11 @@ export default function IntegrationsPage() {
   };
 
   const handleRetryScheduled = async (id) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     try {
       const res = await socialMediaApi.retryScheduledPost({ id });
       toast.success(res?.data?.message || "Objava je vraćena u red za slanje.");
@@ -215,6 +256,11 @@ export default function IntegrationsPage() {
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Upravljaj povezivanjem naloga, ručnom sinhronizacijom i zakazanim objavama.
         </p>
+        {SOCIAL_POSTING_TEMP_UNAVAILABLE ? (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
+            Instagram/Facebook/TikTok objave su privremeno nedostupne. Hvala na razumijevanju.
+          </div>
+        ) : null}
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {Object.entries(PLATFORM_META).map(([platform, meta]) => {
@@ -255,7 +301,16 @@ export default function IntegrationsPage() {
                 ) : null}
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {!connected ? (
+                  {SOCIAL_POSTING_TEMP_UNAVAILABLE ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 rounded-xl"
+                      disabled
+                    >
+                      Privremeno nedostupno
+                    </Button>
+                  ) : !connected ? (
                     <Button
                       size="sm"
                       className="h-8 rounded-xl"
@@ -322,8 +377,9 @@ export default function IntegrationsPage() {
                   setScheduleFilter(option.value);
                   fetchScheduled(option.value);
                 }}
+                disabled={SOCIAL_POSTING_TEMP_UNAVAILABLE}
                 className={cn(
-                  "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all",
+                  "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
                   scheduleFilter === option.value
                     ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
@@ -336,7 +392,11 @@ export default function IntegrationsPage() {
         </div>
 
         <div className="mt-4 space-y-2">
-          {scheduledLoading ? (
+          {SOCIAL_POSTING_TEMP_UNAVAILABLE ? (
+            <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
+              {SOCIAL_POSTING_UNAVAILABLE_MESSAGE}
+            </div>
+          ) : scheduledLoading ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
               Učitavanje zakazanih objava...
             </div>

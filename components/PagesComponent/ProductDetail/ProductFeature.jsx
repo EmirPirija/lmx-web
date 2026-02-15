@@ -157,10 +157,6 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
                     <span className="inline-flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">
                       <span
                         className="inline-flex h-7 w-7 items-center justify-center rounded-full border p-1"
-                        style={{
-                          borderColor: "var(--lmx-icon-duotone-line)",
-                          backgroundColor: "var(--lmx-icon-duotone-fill)",
-                        }}
                       >
                         <CustomFieldSemanticIcon fieldLabel={fieldLabel} className="w-[17px] h-[17px]" />
                       </span>

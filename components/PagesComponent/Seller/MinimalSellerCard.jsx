@@ -938,17 +938,6 @@ export const MinimalSellerCard = ({
             </button>
           )}
         </div>
-
-        {/* Profile link */}
-        {showProfileLink && (
-          <CustomLink
-            href={`/seller/${seller?.id}`}
-            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors group"
-          >
-            Pogledaj kompletan profil
-            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-          </CustomLink>
-        )}
       </div>
     </>
   );

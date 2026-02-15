@@ -51,7 +51,21 @@ export const quickLinks = [
 ];
 
 export const headerQuickLinks = [
-    ...quickLinks,
+    {
+        id: 1,
+        href: "/about-us",
+        labelKey: "aboutUs",
+    },
+    {
+        id: 2,
+        href: "/contact-us",
+        labelKey: "contactUs",
+    },
+    {
+        id: 5,
+        href: "/faqs",
+        labelKey: "faqs",
+    },
     {
         id: 6,
         href: "/shop",
@@ -65,7 +79,7 @@ export const headerQuickLinks = [
     {
         id: 8,
         href: "/pricing",
-        label: "Pricing",
+        label: "Planovi i cijene",
     },
     {
         id: 9,

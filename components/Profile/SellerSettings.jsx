@@ -25,6 +25,7 @@ import { Slider } from "@/components/ui/slider";
 
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
+import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import {
   sellerSettingsApi,
   updateProfileApi,
@@ -548,7 +549,8 @@ const SellerSettings = () => {
       ),
     [currentUser, membershipContext]
   );
-  const isProOrShop = resolvedMembership.isPremium;
+  const isPromoMode = isPromoFreeAccessEnabled();
+  const isProOrShop = resolvedMembership.isPremium || isPromoMode;
   
   useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
@@ -970,42 +972,42 @@ const SellerSettings = () => {
           <SettingSection
             icon={Sparkles}
             title="LMX članstvo i premium alati"
-            description="Brzi pristup PRO/SHOP opcijama i pogodnostima"
+            description="Promotivni režim i pristup svim naprednim funkcionalnostima"
             defaultOpen={false}
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
                 <span className="text-xs font-medium text-slate-600">Trenutni paket</span>
-                <MembershipBadge tier={resolvedMembership.tier} size="sm" uppercase={false} />
+                {isPromoMode ? (
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+                    Promo: sve otključano
+                  </span>
+                ) : (
+                  <MembershipBadge tier={resolvedMembership.tier} size="sm" uppercase={false} />
+                )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {!resolvedMembership.isPremium && (
-                  <CustomLink
-                    href="/membership/upgrade?tier=pro"
-                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition-all hover:border-amber-300 hover:bg-amber-100/70"
-                  >
-                    Postani LMX PRO
-                  </CustomLink>
-                )}
-                {!resolvedMembership.isShop && (
-                  <CustomLink
-                    href="/membership/upgrade?tier=shop"
-                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-all hover:border-blue-300 hover:bg-blue-100/70"
-                  >
-                    Postani LMX SHOP
-                  </CustomLink>
-                )}
-                <CustomLink
-                  href="/subscription"
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 sm:col-span-2"
-                >
-                  Pogledaj pakete i pogodnosti
-                </CustomLink>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                  {PROMO_HEADLINE}
+                </p>
+                <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-200/90">
+                  {PROMO_SUBHEAD}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {PROMO_BENEFITS.map((benefit) => (
+                    <span
+                      key={benefit}
+                      className="rounded-full border border-emerald-300/70 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-slate-900/60 dark:text-emerald-200"
+                    >
+                      {benefit}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <p className="text-xs text-slate-500">
-                PRO otključava naprednu statistiku oglasa i filtere kupaca na profilu, a SHOP dodaje zalihe, internu šifru proizvoda i račun kupcu nakon prodaje.
+                U promotivnom režimu svi alati su dostupni bez ograničenja. Iskoristite naprednu statistiku, zalihe, filtere i operativne opcije bez dodatnih troškova.
               </p>
             </div>
           </SettingSection>

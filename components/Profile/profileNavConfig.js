@@ -20,6 +20,7 @@ import {
   Box,
   Sparkles,
 } from "@/components/Common/UnifiedIconPack";
+import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
 
 const matchPath = (pathname, href, mode = "exact") => {
   if (!pathname || !href) return false;
@@ -69,7 +70,9 @@ export const getProfileNavigationSections = ({
           href: "/profile/integrations",
           icon: Link2,
           label: "Integracije",
-          description: "Instagram, sync i zakazane objave",
+          description: SOCIAL_POSTING_TEMP_UNAVAILABLE
+            ? "Objave na društvenim mrežama: privremeno nedostupno"
+            : "Instagram, sync i zakazane objave",
           match: "prefix",
         },
         {
@@ -152,8 +155,8 @@ export const getProfileNavigationSections = ({
         {
           href: "/user-subscription",
           icon: CreditCard,
-          label: "Pretplata",
-          description: "Upravljaj pretplatom",
+          label: "Planovi i pristup",
+          description: "Promotivni režim i pregled planova",
         },
         {
           href: "/transactions",
@@ -178,22 +181,28 @@ export const getProfileNavigationSections = ({
           href: "/profile/gamification",
           icon: Sparkles,
           label: "Gamifikacija",
-          description: "Score, misije i napredak profila",
+          description: "Privremeno nedostupno",
           match: "prefix",
+          disabled: true,
+          unavailableBadge: "Nedostupno",
         },
         {
           href: "/profile/badges",
           icon: Medal,
           label: "Bedževi",
-          description: "Tvoja postignuća",
+          description: "Privremeno nedostupno",
           match: "prefix",
+          disabled: true,
+          unavailableBadge: "Nedostupno",
         },
         {
           href: "/leaderboard",
           icon: Trophy,
           label: "Ljestvica",
-          description: "Rangiranje korisnika",
+          description: "Privremeno nedostupno",
           match: "prefix",
+          disabled: true,
+          unavailableBadge: "Nedostupno",
         },
       ],
     },

@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { resolveMembership } from "@/lib/membership";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
  
@@ -83,6 +84,7 @@ const SoldOutModal = ({
     [currentUser, productDetails]
   );
   const isShopMember = Boolean(membership?.isShop);
+  const hasShopAccess = isShopMember || isPromoFreeAccessEnabled();
   const parsedInventoryCount = Number(productDetails?.inventory_count);
   const hasInventory = Number.isFinite(parsedInventoryCount) && parsedInventoryCount > 0;
   const inventoryCount = hasInventory ? parsedInventoryCount : 1;
@@ -501,7 +503,7 @@ const SoldOutModal = ({
  
           {/* Upload računa - samo SHOP korisnici */}
           {selectedRadioValue && (
-            isShopMember ? (
+            hasShopAccess ? (
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                   <MdReceipt size={18} className="text-slate-500" />
@@ -570,7 +572,7 @@ const SoldOutModal = ({
                     <MdReceipt size={16} className="text-slate-500" />
                     <span>Priloži račun</span>
                   </div>
-                  <PlanGateLabel scope="shop" unlocked={false} />
+                  <PlanGateLabel scope="shop" unlocked={hasShopAccess} />
                 </div>
                 <p className="text-xs text-slate-500">
                   Ova opcija je zaključana. Aktiviraj LMX Shop da bi mogao slati račun kupcu u sekciju Moje kupovine.

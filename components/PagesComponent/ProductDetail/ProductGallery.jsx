@@ -443,21 +443,6 @@ const ProductGallery = ({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 ${
-              hasVideo
-                ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-700/60 dark:bg-violet-900/25 dark:text-violet-300"
-                : "border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-            }`}>
-              {hasVideo ? "Video dostupan" : "Bez videa"}
-            </span>
-          </div>
-          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-            Swipe ili strelice za brzo listanje
-          </span>
-        </div>
-
         {totalItems > 1 && (
           <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700/80 dark:bg-slate-900/65">
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">

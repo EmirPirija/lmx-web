@@ -101,9 +101,9 @@ const RecentPill = memo(({ category, onClick, index }) => (
       group-hover:scale-110 transition-transform duration-300
     ">
       {isRootCategory(category) ? (
-        <CategorySemanticIcon category={category} className="w-4 h-4" />
+        <CategorySemanticIcon category={category} className="w-4 h-4" preferBackendImage={false} />
       ) : (
-        <CategorySemanticIcon category={category} className="w-4 h-4" />
+        <CategorySemanticIcon category={category} className="w-4 h-4" preferBackendImage={false} />
       )}
     </div>
     <span className="max-w-[120px] truncate whitespace-nowrap text-xs font-semibold text-gray-700 group-hover:text-blue-700 dark:text-slate-200 dark:group-hover:text-blue-300">
@@ -147,11 +147,13 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
           <CategorySemanticIcon
             category={category}
             className="w-6 h-6 md:w-7 md:h-7 opacity-90 group-hover:scale-110 transition-transform"
+            preferBackendImage={false}
           />
         ) : (
           <CategorySemanticIcon
             category={category}
             className="w-6 h-6 md:w-7 md:h-7 opacity-90 group-hover:scale-110 transition-transform"
+            preferBackendImage={false}
           />
         )}
       </div>

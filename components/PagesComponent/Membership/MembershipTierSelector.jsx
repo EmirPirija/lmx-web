@@ -5,6 +5,7 @@ import { Check, Crown, Store } from "@/components/Common/UnifiedIconPack";
 import { formatPriceAbbreviated } from "@/utils";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PROMO_BENEFITS, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import {
   getRealMembershipBenefits,
   resolveMembershipTierSlug,
@@ -86,6 +87,8 @@ const normalizeFeatures = (tier, tierSlug) => {
 };
 
 const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
+  const promoEnabled = isPromoFreeAccessEnabled();
+
   if (!Array.isArray(tiers) || tiers.length === 0) {
     return null;
   }
@@ -139,11 +142,31 @@ const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
                 </span>
               </div>
 
-              <div className="mt-5 flex items-end gap-1">
-                <span className="text-3xl font-extrabold tabular-nums">
-                  {formatPriceAbbreviated(Number(tier?.price || 0))}
-                </span>
-                <span className="pb-1 text-sm text-white/80">/{durationLabel}</span>
+              <div className="mt-5">
+                {promoEnabled ? (
+                  <div className="space-y-1.5">
+                    <p className="text-xl font-extrabold uppercase tracking-[0.08em] text-white">
+                      Besplatno do daljnjeg
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PROMO_BENEFITS.map((benefit) => (
+                        <span
+                          key={`${tier?.id}-${benefit}`}
+                          className="rounded-full border border-white/40 bg-white/15 px-2 py-0.5 text-[10px] font-semibold text-white/90"
+                        >
+                          {benefit}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-end gap-1">
+                    <span className="text-3xl font-extrabold tabular-nums">
+                      {formatPriceAbbreviated(Number(tier?.price || 0))}
+                    </span>
+                    <span className="pb-1 text-sm text-white/80">/{durationLabel}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -184,7 +207,7 @@ const MembershipTierSelector = ({ tiers = [], selectedTier, onSelectTier }) => {
                     onSelectTier?.(tier);
                   }}
                 >
-                  {isSelected ? "Odabrano" : "Odaberi plan"}
+                  {isSelected ? "Odabrano" : promoEnabled ? "Aktivirano kroz promo" : "Odaberi plan"}
                 </Button>
               </div>
             </div>

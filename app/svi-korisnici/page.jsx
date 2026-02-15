@@ -104,7 +104,7 @@ const UserCard = ({ user, view }) => {
     <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn("h-full", view === "list" && "w-full")}
+      className={cn("h-full lmx-hide", view === "list" && "w-full")}
     >
       <ProductSellerDetailCard
         seller={user}

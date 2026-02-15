@@ -18,6 +18,10 @@ import {
   isValidURL,
 } from "@/utils";
 import { runSocialOAuthPopup } from "@/utils/socialOAuth";
+import {
+  SOCIAL_POSTING_TEMP_UNAVAILABLE,
+  SOCIAL_POSTING_UNAVAILABLE_MESSAGE,
+} from "@/utils/socialAvailability";
 import { toast } from "@/utils/toastBs";
 import ComponentThree from "./ComponentThree";
 import ComponentFour from "./ComponentFour";
@@ -746,6 +750,16 @@ const AdsListing = () => {
   }, [handleVideoLinkChange, instagramSourceUrl]);
 
   const fetchInstagramConnection = useCallback(async () => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      setInstagramConnection({
+        loading: false,
+        syncing: false,
+        connected: false,
+        account: null,
+      });
+      return;
+    }
+
     try {
       setInstagramConnection((prev) => ({ ...prev, loading: true }));
       const res = await socialMediaApi.getConnectedAccounts();
@@ -778,9 +792,17 @@ const AdsListing = () => {
     if (!instagramConnection.connected && publishToInstagram) {
       setPublishToInstagram(false);
     }
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE && publishToInstagram) {
+      setPublishToInstagram(false);
+    }
   }, [instagramConnection.connected, publishToInstagram]);
 
   const handleConnectInstagram = useCallback(async () => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     try {
       setInstagramConnection((prev) => ({ ...prev, syncing: true }));
       const res = await socialMediaApi.connectAccount({ platform: "instagram", mode: "oauth" });
@@ -827,6 +849,12 @@ const AdsListing = () => {
 
     if (!isEmpty(instagramSourceUrl) && !isValidURL(instagramSourceUrl)) {
       toast.error("Unesite ispravan Instagram link.");
+      return setStep(4);
+    }
+
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE && publishToInstagram) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      setPublishToInstagram(false);
       return setStep(4);
     }
 
@@ -892,7 +920,9 @@ const AdsListing = () => {
       temp_gallery_image_ids: (otherImages || []).map((x) => x?.id).filter(Boolean),
       ...(uploadedVideo?.id && !trimmedVideoLink ? { temp_video_id: uploadedVideo.id } : {}),
       add_video_to_story: Boolean(addVideoToStory),
-      publish_to_instagram: Boolean(publishToInstagram),
+      publish_to_instagram: SOCIAL_POSTING_TEMP_UNAVAILABLE
+        ? false
+        : Boolean(publishToInstagram),
       instagram_source_url: (instagramSourceUrl || "").trim(),
       gallery_images: otherImages,
       address: location?.address,
@@ -928,7 +958,7 @@ const AdsListing = () => {
 
       if (res?.data?.error === false) {
         const createdItemId = res?.data?.data?.[0]?.id;
-        if (publishToInstagram && createdItemId) {
+        if (!SOCIAL_POSTING_TEMP_UNAVAILABLE && publishToInstagram && createdItemId) {
           try {
             await socialMediaApi.schedulePost({
               item_id: createdItemId,
@@ -1569,6 +1599,8 @@ const AdsListing = () => {
                     instagramConnected={instagramConnection.connected}
                     instagramStatusLoading={instagramConnection.loading || instagramConnection.syncing}
                     onConnectInstagram={handleConnectInstagram}
+                    socialPostingUnavailable={SOCIAL_POSTING_TEMP_UNAVAILABLE}
+                    socialPostingUnavailableMessage={SOCIAL_POSTING_UNAVAILABLE_MESSAGE}
                     instagramSourceUrl={instagramSourceUrl}
                     onInstagramSourceUrlChange={setInstagramSourceUrl}
                     onUseInstagramAsVideoLink={handleUseInstagramAsVideoLink}

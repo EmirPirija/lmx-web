@@ -33,6 +33,7 @@ import ChoosePackageModal from "./ChoosePackageModal.jsx";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice.js";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 import {
   Clock,
@@ -427,7 +428,8 @@ const MyAds = () => {
   const { navigate } = useNavigate();
   const searchParams = useSearchParams();
   const isRTL = useSelector(getIsRtl);
-  const isFreeAdListing = useSelector(getIsFreAdListing);
+  const isFreeAdListing =
+    useSelector(getIsFreAdListing) || isPromoFreeAccessEnabled();
 
   const sortValue = searchParams.get("sort") || "new-to-old";
   const rawStatus = searchParams.get("status") || "approved";

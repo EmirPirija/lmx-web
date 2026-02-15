@@ -30,64 +30,107 @@ import { deleteUser, getAuth } from "firebase/auth";
 import ReusableAlertDialog from "../Common/ReusableAlertDialog";
 import { useNavigate } from "../Common/useNavigate";
 
-function SidebarNavItem({ href, icon: Icon, label, description, isActive, badgeCount = 0 }) {
-  return (
-    <CustomLink href={href}>
-      <motion.div
-        whileHover={{ x: 2 }}
-        whileTap={{ scale: 0.98 }}
-        title={description || label}
-        aria-label={description || label}
+function SidebarNavItem({
+  href,
+  icon: Icon,
+  label,
+  description,
+  isActive,
+  badgeCount = 0,
+  disabled = false,
+  unavailableBadge = "",
+}) {
+  const content = (
+    <motion.div
+      whileHover={disabled ? undefined : { x: 2 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
+      title={description || label}
+      aria-label={description || label}
+      className={cn(
+        "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
+        disabled
+          ? "cursor-not-allowed opacity-65 text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/70"
+          : isActive
+          ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+      )}
+    >
+      <div
         className={cn(
-          "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
-          isActive
-            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+          "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
+          disabled
+            ? "bg-slate-200 dark:bg-slate-700"
+            : isActive
+            ? "bg-white/15 dark:bg-slate-900/15"
+            : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
         )}
       >
-        <div
+        <Icon
+          size={18}
+          strokeWidth={isActive ? 2.5 : 2}
           className={cn(
-            "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
-            isActive ? "bg-white/15 dark:bg-slate-900/15" : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
+            disabled
+              ? "text-slate-400 dark:text-slate-500"
+              : isActive
+              ? "text-white dark:text-slate-900"
+              : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200"
           )}
-        >
-          <Icon
-            size={18}
-            strokeWidth={isActive ? 2.5 : 2}
-            className={cn(isActive ? "text-white dark:text-slate-900" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200")}
-          />
-        </div>
+        />
+      </div>
 
+      <span
+        className={cn(
+          "flex-1 text-sm font-semibold",
+          disabled
+            ? "text-slate-500 dark:text-slate-400"
+            : isActive
+            ? "text-white dark:text-slate-900"
+            : "text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white"
+        )}
+      >
+        {label}
+      </span>
+
+      {disabled && unavailableBadge ? (
+        <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+          {unavailableBadge}
+        </span>
+      ) : null}
+
+      {!disabled && badgeCount > 0 && (
         <span
           className={cn(
-            "flex-1 text-sm font-semibold",
-            isActive ? "text-white dark:text-slate-900" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white"
+            "min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full",
+            isActive ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100" : "bg-red-500 text-white"
           )}
         >
-          {label}
+          {badgeCount > 99 ? "99+" : badgeCount}
         </span>
+      )}
 
-        {badgeCount > 0 && (
-          <span
-            className={cn(
-              "min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full",
-              isActive ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100" : "bg-red-500 text-white"
-            )}
-          >
-            {badgeCount > 99 ? "99+" : badgeCount}
-          </span>
-        )}
-
-        {isActive && (
-          <motion.div
-            layoutId="sidebarActiveIndicator"
-            className="absolute left-0 w-1 h-6 bg-white dark:bg-slate-900 rounded-r-full"
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          />
-        )}
-      </motion.div>
-    </CustomLink>
+      {!disabled && isActive && (
+        <motion.div
+          layoutId="sidebarActiveIndicator"
+          className="absolute left-0 w-1 h-6 bg-white dark:bg-slate-900 rounded-r-full"
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        />
+      )}
+    </motion.div>
   );
+
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        onClick={() => toast.info(`${label} je privremeno nedostupno.`)}
+        className="w-full text-left"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <CustomLink href={href}>{content}</CustomLink>;
 }
 
 export default function ProfileSidebar({ badges = {} }) {
@@ -260,6 +303,8 @@ export default function ProfileSidebar({ badges = {} }) {
                     description={item.description}
                     isActive={isProfileNavItemActive(pathname, item)}
                     badgeCount={typeof badges[item.href] === "number" ? badges[item.href] : item.badge || 0}
+                    disabled={Boolean(item.disabled)}
+                    unavailableBadge={item.unavailableBadge}
                   />
                 ))}
               </div>

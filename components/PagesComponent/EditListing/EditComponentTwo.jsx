@@ -301,7 +301,7 @@ const RichTextarea = ({
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+            className="w-full resize-none rounded-xl border border-slate-300 p-4 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             style={{ minHeight: `${minHeight}px` }}
           />
         </TabsContent>
@@ -309,7 +309,7 @@ const RichTextarea = ({
         {/* Preview Tab */}
         <TabsContent value="preview" className="mt-0">
           <div
-            className="w-full p-4 border-2 border-gray-200 rounded-xl bg-gray-50 prose max-w-none"
+            className="prose max-w-none w-full rounded-xl border border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100"
             style={{ minHeight: `${minHeight}px` }}
             dangerouslySetInnerHTML={{
               __html: value ? renderMarkdown(value) : "<p class='text-gray-400'>Nema sadržaja za pregled</p>",
@@ -586,18 +586,18 @@ const EnhancedRadioGroup = ({
           <div
             key={uniqueId}
             onClick={() => onChange(option)}
-            className={`relative cursor-pointer rounded-lg border-1 p-3 transition-all duration-200 ${
+            className={`relative cursor-pointer rounded-xl border p-3 transition-colors duration-200 ${
               isSelected
-                ? "border-blue-500 bg-blue-50 shadow-md"
-                : "border-gray-200 hover:border-blue-300 hover:shadow-sm"
+                ? "border-primary bg-primary/10"
+                : "border-slate-200 bg-white hover:border-primary/50 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-primary/60"
             }`}
           >
             <div className="flex items-center gap-3">
               <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                className={`flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${
                   isSelected
-                    ? "border-blue-500 bg-blue-500"
-                    : "border-gray-300"
+                    ? "border-primary bg-primary"
+                    : "border-slate-300 dark:border-slate-600"
                 }`}
               >
                 {isSelected && (
@@ -606,7 +606,7 @@ const EnhancedRadioGroup = ({
               </div>
               <span
                 className={`text-sm font-medium ${
-                  isSelected ? "text-blue-700" : "text-gray-700"
+                  isSelected ? "text-primary" : "text-slate-700 dark:text-slate-200"
                 }`}
               >
                 {translated_value?.[index] || option}
@@ -647,18 +647,18 @@ const EnhancedCheckboxGroup = ({
           <div
             key={uniqueId}
             onClick={() => handleToggle(value)}
-            className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all duration-200 ${
+            className={`relative cursor-pointer rounded-xl border p-3 transition-colors duration-200 ${
               isChecked
-                ? "border-blue-500 bg-blue-50 shadow-md"
-                : "border-gray-200 hover:border-blue-300 hover:shadow-sm"
+                ? "border-primary bg-primary/10"
+                : "border-slate-200 bg-white hover:border-primary/50 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-primary/60"
             }`}
           >
             <div className="flex items-center gap-3">
               <div
-                className={`w-5 h-5 flex-shrink-0 rounded border-2 flex items-center justify-center transition-all ${
+                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border transition-colors ${
                   isChecked
-                    ? "border-blue-500 bg-blue-500"
-                    : "border-gray-300"
+                    ? "border-primary bg-primary"
+                    : "border-slate-300 dark:border-slate-600"
                 }`}
               >
                 {isChecked && (
@@ -677,7 +677,7 @@ const EnhancedCheckboxGroup = ({
               </div>
               <span
                 className={`text-sm font-medium break-words ${
-                  isChecked ? "text-blue-700" : "text-gray-700"
+                  isChecked ? "text-primary" : "text-slate-700 dark:text-slate-200"
                 }`}
               >
                 {translated_value?.[index] || value}
@@ -694,24 +694,27 @@ const EnhancedCheckboxGroup = ({
 // AVAILABILITY SECTION COMPONENT
 // ============================================
 const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExchange }) => {
-  const ToggleRow = ({ enabled, onToggle, activeLabel, inactiveLabel }) => (
-    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200">
-      <div className="flex items-center gap-3">
-        <div className={`w-3 h-3 rounded-full ${enabled ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></div>
-        <span className={`font-medium ${enabled ? "text-green-700" : "text-gray-600"}`}>
+  const ToggleRow = ({ enabled, onToggle, activeLabel, inactiveLabel, helper }) => (
+    <div className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 dark:border-slate-700 dark:bg-slate-800/70">
+      <div className="min-w-0">
+        <p className={`text-sm font-semibold ${enabled ? "text-emerald-700 dark:text-emerald-300" : "text-slate-700 dark:text-slate-200"}`}>
           {enabled ? activeLabel : inactiveLabel}
-        </span>
+        </p>
+        {helper ? (
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{helper}</p>
+        ) : null}
       </div>
-      
+
       <button
         type="button"
         onClick={onToggle}
-        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-          enabled ? "bg-green-500" : "bg-gray-300"
+        aria-pressed={enabled}
+        className={`relative mt-0.5 inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+          enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
         }`}
       >
         <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${
             enabled ? "translate-x-6" : "translate-x-1"
           }`}
         />
@@ -720,42 +723,40 @@ const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExc
   );
 
   return (
-    <div className="w-full bg-white border-2 border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm">
-      <div className="flex items-start gap-3 mb-4">
-        <IoShieldCheckmarkOutline className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h4 className="text-lg font-semibold text-gray-900 mb-1">
-            Dostupnost oglasa
+    <div className="w-full rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 sm:p-5">
+      <div className="mb-4 flex items-start gap-3">
+        <IoShieldCheckmarkOutline className="mt-0.5 h-6 w-6 flex-shrink-0 text-primary" />
+        <div className="min-w-0">
+          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100 sm:text-lg">
+            Dostupnost i uvjeti oglasa
           </h4>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Označite da li je artikal trenutno dostupan za prodaju.
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            Ažuriraj stanje oglasa tačno kako bi kupac odmah znao šta može očekivati.
           </p>
         </div>
       </div>
 
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-start gap-2">
-        <IoInformationCircleOutline className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-800">
-          {isAvailable 
-            ? "Kupci će vidjeti da je vaš artikal odmah dostupan"
-            : "Označite oglas kao dostupan kada artikal bude spreman za prodaju"
-          }
-        </p>
+      <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
+        <span className="font-semibold">LMX savjet:</span>{" "}
+        {isAvailable
+          ? "Aktivna dostupnost povećava šansu za brzi upit i dogovor."
+          : "Ako artikl nije spreman, ostavi ga nedostupnim da smanjiš neuspješne kontakte."}
       </div>
 
       <div className="space-y-3">
         <ToggleRow
           enabled={isAvailable}
           onToggle={() => setIsAvailable(!isAvailable)}
-          activeLabel="Artikal je dostupan"
-          inactiveLabel="Artikal nije dostupan"
+          activeLabel="Artikal je odmah dostupan"
+          inactiveLabel="Artikal trenutno nije odmah dostupan"
+          helper="Kupac vidi može li odmah organizovati preuzimanje."
         />
         <ToggleRow
           enabled={isExchange}
           onToggle={() => setIsExchange(!isExchange)}
-          activeLabel="Prihvata se zamjena"
-          inactiveLabel="Nije ponuđena zamjena"
+          activeLabel="Prihvatam zamjenu"
+          inactiveLabel="Ne nudim zamjenu"
+          helper="Uključi samo ako stvarno želiš razmatrati razmjenu."
         />
       </div>
     </div>
@@ -767,49 +768,60 @@ const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExc
 // ============================================
 const DisclaimerSection = ({ agreedToTerms, setAgreedToTerms }) => {
   return (
-    <div className="w-full bg-amber-50 border-2 border-amber-200 rounded-xl p-4 sm:p-6 shadow-sm">
-      <div className="flex items-start gap-3 mb-4">
-        <IoAlertCircleOutline className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h4 className="text-lg font-semibold text-gray-900 mb-2">
-            Sigurnost i odgovornost
+    <div className="w-full rounded-2xl border border-amber-300 bg-amber-50/80 p-4 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 sm:p-5">
+      <div className="mb-4 flex items-start gap-3">
+        <IoAlertCircleOutline className="mt-0.5 h-6 w-6 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+        <div className="min-w-0">
+          <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100 sm:text-lg">
+            Sigurnost i odgovornost <span className="text-red-500">*</span>
           </h4>
-          <div className="space-y-2 text-sm text-gray-700">
-            <p className="leading-relaxed">
-              <strong>Važno:</strong> Platforma ne garantuje sigurnost transakcija između kupaca i prodavaca.
-            </p>
-          </div>
+          <p className="mt-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+            LMX povezuje kupca i prodavača, ali nije ugovorna strana u kupoprodaji. Dogovor o plaćanju, isporuci i
+            eventualnim reklamacijama je između korisnika.
+          </p>
         </div>
       </div>
 
-      {/* Terms Agreement Checkbox */}
-      <div 
+      <div className="mb-4 rounded-xl border border-amber-200 bg-white/90 px-3 py-3 text-xs text-slate-600 dark:border-amber-500/25 dark:bg-slate-900/70 dark:text-slate-300">
+        <p className="mb-2 font-semibold text-amber-800 dark:text-amber-300">Praktični sigurnosni savjeti:</p>
+        <ul className="space-y-1">
+          <li>• Primopredaju dogovaraj na javnoj lokaciji.</li>
+          <li>• Provjeri artikal prije finalne isplate.</li>
+          <li>• Ne šalji novac unaprijed bez validne provjere.</li>
+        </ul>
+      </div>
+
+      <button
+        type="button"
         onClick={() => setAgreedToTerms(!agreedToTerms)}
-        className={`flex items-start gap-3 bg-white rounded-lg p-4 border-2 cursor-pointer transition-all duration-200 ${
-          agreedToTerms 
-            ? 'border-green-500 bg-green-50' 
-            : 'border-gray-300 hover:border-amber-400'
+        className={`flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors ${
+          agreedToTerms
+            ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200"
+            : "border-slate-300 bg-white text-slate-700 hover:border-amber-400 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-200"
         }`}
       >
-        <div className={`w-5 h-5 flex-shrink-0 rounded border-2 flex items-center justify-center transition-all mt-0.5 ${
-          agreedToTerms ? 'border-green-500 bg-green-500' : 'border-gray-400'
-        }`}>
-          {agreedToTerms && (
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+        <span
+          className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border ${
+            agreedToTerms
+              ? "border-emerald-500 bg-emerald-500 text-white"
+              : "border-slate-400 dark:border-slate-500"
+          }`}
+        >
+          {agreedToTerms ? (
+            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                 clipRule="evenodd"
               />
             </svg>
-          )}
-        </div>
-        <div className="flex-1">
-          <p className={`text-sm font-medium leading-relaxed ${agreedToTerms ? 'text-green-700' : 'text-gray-700'}`}>
-            Prihvatam uslove korištenja i razumijem rizike kupoprodaje.
-          </p>
-        </div>
-      </div>
+          ) : null}
+        </span>
+        <span className="text-sm leading-relaxed">
+          Potvrđujem da razumijem da je LMX posredni oglasni servis te da odgovornost za kupoprodaju ostaje između
+          prodavača i kupca.
+        </span>
+      </button>
     </div>
   );
 };
@@ -828,30 +840,30 @@ const AccordionSection = ({
   isCompleted 
 }) => {
   return (
-    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm overflow-visible">
+    <div className="overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
       {/* Header */}
       <div 
         onClick={onToggle}
-        className={`flex items-center justify-between p-4 sm:p-5 cursor-pointer transition-all duration-200 ${
-          isOpen ? 'bg-blue-50 border-b-2 border-blue-100' : 'hover:bg-gray-50'
+        className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
+          isOpen ? "border-b border-slate-200 bg-slate-50/90 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
         }`}
       >
-        <div className="flex items-center gap-3 sm:gap-4 flex-1">
-          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-            isOpen ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+        <div className="flex flex-1 items-center gap-3 sm:gap-4">
+          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-colors sm:h-11 sm:w-11 ${
+            isOpen ? "bg-primary text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
           }`}>
             {icon}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className={`text-base sm:text-lg font-semibold ${isOpen ? 'text-blue-700' : 'text-gray-900'}`}>
+              <h3 className={`text-base font-semibold sm:text-lg ${isOpen ? "text-primary" : "text-slate-900 dark:text-slate-100"}`}>
                 {title}
               </h3>
               {badge && (
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   badge === 'required' 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-gray-100 text-gray-600'
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                 }`}>
                   {badge === 'required' ? 'Obavezno' : 'Opcionalno'}
                 </span>
@@ -863,14 +875,14 @@ const AccordionSection = ({
               )}
             </div>
             {subtitle && (
-              <p className="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">{subtitle}</p>
+              <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 sm:text-sm">{subtitle}</p>
             )}
           </div>
         </div>
         
         {/* Arrow */}
         <svg 
-          className={`w-6 h-6 text-gray-400 transition-transform duration-300 flex-shrink-0 ml-2 ${
+          className={`ml-2 h-6 w-6 flex-shrink-0 text-slate-400 transition-transform duration-300 dark:text-slate-500 ${
             isOpen ? 'rotate-180' : 'rotate-0'
           }`}
           fill="none" 
@@ -883,7 +895,7 @@ const AccordionSection = ({
 
       {/* Content */}
       {isOpen && (
-        <div className="p-4 sm:p-6 bg-white animate-fadeIn">
+        <div className="animate-fadeIn bg-white p-4 dark:bg-slate-900/90 sm:p-5">
           {children}
         </div>
       )}
@@ -1024,7 +1036,7 @@ const EditComponentTwo = ({
               {...inputProps}
               onKeyDown={(e) => handleKeyDown(e, max_length)}
               onKeyPress={(e) => inpNum(e)}
-              className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
             {max_length && (
               <span className="self-end text-sm text-muted-foreground mt-1">
@@ -1156,7 +1168,7 @@ const EditComponentTwo = ({
         return (
           <>
             <label htmlFor={id} className="flex gap-2 items-center cursor-pointer">
-              <div className="border-2 border-gray-200 hover:border-blue-400 px-3 py-2 rounded-xl transition-all hover:shadow-sm">
+              <div className="rounded-xl border border-slate-300 px-3 py-2 transition-all hover:border-primary/50 hover:shadow-sm dark:border-slate-700 dark:hover:border-primary/60">
                 <HiOutlineUpload size={24} fontWeight="400" className="text-gray-600" />
               </div>
               {fileUrl && (
@@ -1177,7 +1189,7 @@ const EditComponentTwo = ({
                     <CustomImage
                       src={fileUrl}
                       alt="Preview"
-                      className="h-12 w-12 rounded-lg object-cover border-2 border-gray-200"
+                      className="h-12 w-12 rounded-lg border border-slate-300 object-cover dark:border-slate-700"
                       height={48}
                       width={48}
                     />
@@ -1263,7 +1275,7 @@ const EditComponentTwo = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 pb-24">
+    <div className="flex flex-col gap-4 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-300]:bg-slate-600 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-blue-50]:bg-blue-500/15 dark:[&_.bg-blue-100]:bg-blue-500/20 dark:[&_.border-blue-100]:border-blue-500/30 dark:[&_.bg-amber-50]:bg-amber-500/10">
       {/* Required Fields Section */}
       {sortedRequiredFields.length > 0 && (
         <AccordionSection
@@ -1292,10 +1304,10 @@ const EditComponentTwo = ({
         </AccordionSection>
       )}
       
-      {/* Availability & Terms Section (NEW) */}
+      {/* Availability & Terms Section */}
       <AccordionSection
-        title="Dostupnost i uslovi"
-        subtitle="Informacije o dostupnosti i prihvatanje uslova"
+        title="Dostupnost i uvjeti"
+        subtitle="Jasno označi stanje oglasa i potvrdi sigurnosnu napomenu"
         icon={<span className="text-xl font-bold">3</span>}
         isOpen={termsOpen}
         onToggle={() => setTermsOpen(!termsOpen)}

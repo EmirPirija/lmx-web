@@ -69,8 +69,8 @@ const PAGE_CONFIGS = {
     isChat: true,
   },
   "/user-subscription": {
-    title: "Pretplata",
-    subtitle: "Status pretplate i dostupni paketi",
+    title: "Planovi i pristup",
+    subtitle: "Promotivni režim i dostupni paketi",
     icon: CreditCard,
     Component: ProfileSubscription,
   },

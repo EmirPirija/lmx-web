@@ -26,11 +26,13 @@ import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import AdListingPublicPlanCardSkeleton from "@/components/Skeletons/AdListingPublicPlanCardSkeleton";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice";
 import { useNavigate } from "@/components/Common/useNavigate";
+import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 const Subscription = () => {
   const isRTL = useSelector(getIsRtl);
   const { navigate } = useNavigate();
   const CurrentLanguage = useSelector(CurrentLanguageData);
+  const promoEnabled = isPromoFreeAccessEnabled();
 
   const [listingPackages, setListingPackages] = useState([]);
   const hasListingDiscount = listingPackages?.some(
@@ -59,10 +61,10 @@ const Subscription = () => {
   }, [CurrentLanguage?.id]);
 
   useEffect(() => {
-    if (showPaymentModal) {
+    if (showPaymentModal && !promoEnabled) {
       handleFetchPaymentSetting();
     }
-  }, [showPaymentModal]);
+  }, [showPaymentModal, promoEnabled]);
 
   const handleFetchPaymentSetting = async () => {
     setIsLoading(true);
@@ -106,6 +108,10 @@ const Subscription = () => {
       setIsLoginOpen(true);
       return;
     }
+    if (promoEnabled) {
+      assignPackage(pckg.id);
+      return;
+    }
     if (pckg?.final_price === 0) {
       assignPackage(pckg.id);
     } else {
@@ -127,7 +133,7 @@ const Subscription = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(data.message);
+      toast.error(error?.response?.data?.message || "Aktivacija paketa nije uspjela.");
       console.log(error);
     }
   };
@@ -136,6 +142,23 @@ const Subscription = () => {
     <Layout>
       <BreadCrumb title2={t("subscription")} />
       <div className="container">
+        {promoEnabled ? (
+          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
+            <p className="font-semibold">{PROMO_HEADLINE}</p>
+            <p className="mt-1 text-xs">{PROMO_SUBHEAD}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {PROMO_BENEFITS.map((benefit) => (
+                <span
+                  key={benefit}
+                  className="rounded-full border border-emerald-300/80 bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"
+                >
+                  {benefit}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {isListingPackagesLoading ? (
           <AdListingPublicPlanCardSkeleton />
         ) : (
@@ -211,19 +234,23 @@ const Subscription = () => {
           </div>
         )}
 
-        <PaymentModal
-          showPaymentModal={showPaymentModal}
-          setShowPaymentModal={setShowPaymentModal}
-          selectedPackage={selectedPackage}
-          setListingPackages={setListingPackages}
-          setAdPackages={setAdPackages}
-          packageSettings={packageSettings}
-          isLoading={isLoading}
-        />
-        <BankDetailsModal
-          packageId={selectedPackage?.id}
-          bankDetails={packageSettings?.bankTransfer}
-        />
+        {!promoEnabled ? (
+          <>
+            <PaymentModal
+              showPaymentModal={showPaymentModal}
+              setShowPaymentModal={setShowPaymentModal}
+              selectedPackage={selectedPackage}
+              setListingPackages={setListingPackages}
+              setAdPackages={setAdPackages}
+              packageSettings={packageSettings}
+              isLoading={isLoading}
+            />
+            <BankDetailsModal
+              packageId={selectedPackage?.id}
+              bankDetails={packageSettings?.bankTransfer}
+            />
+          </>
+        ) : null}
       </div>
     </Layout>
   );

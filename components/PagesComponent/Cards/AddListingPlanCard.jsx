@@ -1,6 +1,7 @@
 import { FaArrowRight, FaCheck } from "@/components/Common/UnifiedIconPack";
 import { formatPriceAbbreviated, t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
   const descriptionItems =
@@ -9,6 +10,7 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
       : [];
 
   const isActive = pckg?.is_active == 1;
+  const promoEnabled = isPromoFreeAccessEnabled();
 
   return (
     <div
@@ -43,14 +45,16 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
             {pckg?.translated_name || pckg?.name}
           </h2>
           <div className="flex items-baseline gap-2">
-            {pckg?.final_price !== 0 ? (
+            {!promoEnabled && pckg?.final_price !== 0 ? (
               <p className="text-2xl font-bold">
                 {formatPriceAbbreviated(pckg?.final_price)}
               </p>
             ) : (
-              <p className="text-2xl font-bold">{t("Free")}</p>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-300">
+                Besplatno do daljnjeg
+              </p>
             )}
-            {pckg?.price > pckg?.final_price && (
+            {!promoEnabled && pckg?.price > pckg?.final_price && (
               <p className={`text-lg line-through ${isActive ? 'text-white/60' : 'text-gray-400'}`}>
                 {formatPriceAbbreviated(pckg?.price)}
               </p>
@@ -112,7 +116,11 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
         }`}
       >
         <span className="text-base">
-          {isActive ? t("currentPlan") || "Current Plan" : t("choosePlan")}
+          {isActive
+            ? t("currentPlan") || "Current Plan"
+            : promoEnabled
+            ? "Aktiviraj besplatno"
+            : t("choosePlan")}
         </span>
         {!isActive && (
           <FaArrowRight size={18} className="rtl:scale-x-[-1] group-hover:translate-x-1 transition-transform" />

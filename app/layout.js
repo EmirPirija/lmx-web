@@ -7,6 +7,7 @@ import CompareFloatingBar from "@/components/Compare/CompareFloatingBar";
 
 // --- DARK MODE IMPORTI ---
 import { ThemeProvider } from "@/components/ThemeProvider";
+import PromoWelcomeModal from "@/components/Common/PromoWelcomeModal";
 
 // Konfiguracija fonta
 const manrope = Manrope({
@@ -58,6 +59,7 @@ export default function RootLayout({ children }) {
           {/* 2. Redux Providers */}
           <Providers>
             {children}
+            <PromoWelcomeModal />
             <CompareFloatingBar />
             <Toaster position="top-center" />
           </Providers>

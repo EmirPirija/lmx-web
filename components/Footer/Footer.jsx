@@ -5,7 +5,7 @@ import { FaInstagram, FaSquareXTwitter } from "@/components/Common/UnifiedIconPa
 import { SlLocationPin } from "@/components/Common/UnifiedIconPack";
 import { RiMailSendFill } from "@/components/Common/UnifiedIconPack";
 import { BiPhoneCall } from "@/components/Common/UnifiedIconPack";
-import { ShieldCheck, Sparkles, Video } from "@/components/Common/UnifiedIconPack";
+import { ShieldCheck, Video } from "@/components/Common/UnifiedIconPack";
 import { t } from "@/utils";
 import { quickLinks } from "@/utils/constants";
 import { useSelector } from "react-redux";
@@ -37,26 +37,23 @@ export default function Footer() {
     <footer className={`bg-[#1a1a1a] text-white ${marginTop}`}>
       <div className="container py-12 relative">
         <div className="mb-8 grid gap-2.5 sm:grid-cols-3">
-          <CustomLink
-            href="/profile"
-            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10"
-          >
-            <Sparkles size={15} className="text-emerald-300" />
-            Kreiraj svoj LMX avatar
-          </CustomLink>
+          <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-100">
+            <ShieldCheck size={15} className="text-emerald-300" />
+            Svi planovi su besplatni do daljnjeg
+          </div>
           <CustomLink
             href="/ad-listing"
             className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10"
           >
             <Video size={15} className="text-violet-300" />
-            Objavi video oglas i boostaj domet
+            Objavi oglas i pokreni prodaju
           </CustomLink>
           <CustomLink
-            href="/membership/upgrade"
+            href="/shop"
             className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10"
           >
             <ShieldCheck size={15} className="text-cyan-300" />
-            Aktiviraj PRO/SHOP pogodnosti
+            Bez obaveza i bez unosa kartice
           </CustomLink>
         </div>
 

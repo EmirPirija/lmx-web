@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
+import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import {
   CheckCircle2,
   Globe,
   Layers,
   MessageCircle,
-  Rocket,
   ShieldCheck,
   Sparkles,
   Store,
@@ -18,7 +19,9 @@ const PLAN_FEATURES = {
     "Storefront za tvoje proizvode i oglase",
     "Cijena po komadu + zalihe + auto status",
     "Osnovna analitika prodaje i pregleda",
-    "Instagram povezivanje i ručni sync",
+    SOCIAL_POSTING_TEMP_UNAVAILABLE
+      ? "Instagram/Facebook/TikTok objave: privremeno nedostupno"
+      : "Instagram povezivanje i ručni sync",
   ],
   pro: [
     "Custom domena i napredni brending shopa",
@@ -35,7 +38,9 @@ const FAQ_ITEMS = [
   },
   {
     q: "Mogu li objaviti i na Instagramu?",
-    a: "Da. Povežeš Instagram u Integracijama, a zatim uključiš opciju objave direktno iz oglasa.",
+    a: SOCIAL_POSTING_TEMP_UNAVAILABLE
+      ? "Instagram/Facebook/TikTok objave su privremeno nedostupne. Hvala na razumijevanju."
+      : "Da. Povežeš Instagram u Integracijama, a zatim uključiš opciju objave direktno iz oglasa.",
   },
   {
     q: "Šta se dešava kad zaliha padne na 0?",
@@ -48,6 +53,7 @@ const FAQ_ITEMS = [
 ];
 
 export default function PlansShowcase({ mode = "pricing" }) {
+  const promoEnabled = isPromoFreeAccessEnabled();
   const isShop = mode === "shop";
   const isPro = mode === "pro";
   const activePlan = isShop ? "shop" : isPro ? "pro" : null;
@@ -59,7 +65,7 @@ export default function PlansShowcase({ mode = "pricing" }) {
           <div className="max-w-2xl space-y-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              LMX Shop & Ads
+              {promoEnabled ? "Promotivni režim" : "LMX Shop & Ads"}
             </span>
             <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 lg:text-4xl">
               {isShop
@@ -71,13 +77,34 @@ export default function PlansShowcase({ mode = "pricing" }) {
             <p className="text-sm text-slate-600 dark:text-slate-300 lg:text-base">
               Stabilna prodaja, jači branding i bolja konverzija kroz jedan workflow: objava, analitika, zalihe i promocija.
             </p>
+            {promoEnabled ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
+                <p className="font-semibold">{PROMO_HEADLINE}</p>
+                <p className="mt-1">{PROMO_SUBHEAD}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {PROMO_BENEFITS.map((benefit) => (
+                    <span
+                      key={benefit}
+                      className="rounded-full border border-emerald-300/80 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"
+                    >
+                      {benefit}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {SOCIAL_POSTING_TEMP_UNAVAILABLE ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
+                Instagram/Facebook/TikTok objave su privremeno nedostupne. Hvala na razumijevanju.
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/membership/upgrade"
+                href="/ad-listing"
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
-                <Rocket className="h-4 w-4" />
-                {isPro ? "Aktiviraj Pro" : "Pokreni Shop"}
+                <Sparkles className="h-4 w-4" />
+                Istraži funkcionalnosti
               </Link>
               <Link
                 href="/profile/integrations"
@@ -106,6 +133,11 @@ export default function PlansShowcase({ mode = "pricing" }) {
                     {plan === "shop" ? "Shop plan" : "Pro plan"}
                   </p>
                 </div>
+                {promoEnabled ? (
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-300">
+                    Besplatno do daljnjeg
+                  </p>
+                ) : null}
                 <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
                   {PLAN_FEATURES[plan].map((feature) => (
                     <li key={feature} className="flex items-start gap-2">

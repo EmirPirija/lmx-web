@@ -667,3 +667,7 @@ body {
 .flex.gap-2.items-center img.h-7.w-7.rounded-sm {
   display: none;
 }
+
+.lmx-hide button {
+  display: none !important;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useCallback, useState, useRef, useEffect } from "react";
+import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -11,10 +11,13 @@ import {
 import { generateSlug } from "@/utils";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
+import { setUserMembership } from "@/redux/reducer/membershipSlice";
 import { useRouter } from "next/navigation";
-import { resolveMembership } from "@/lib/membership";
+import { membershipApi } from "@/utils/api";
+import { extractApiData, resolveMembership } from "@/lib/membership";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
 import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
@@ -52,18 +55,18 @@ const AccordionSection = ({
   children,
 }) => {
   return (
-    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
       <div
         onClick={onToggle}
-        className={`flex items-center justify-between p-4 sm:p-5 cursor-pointer transition-all duration-200 ${
-          isOpen ? "bg-blue-50 border-b-2 border-blue-100" : "hover:bg-gray-50"
+        className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
+          isOpen ? "border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
         }`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3
               className={`text-base sm:text-lg font-semibold ${
-                isOpen ? "text-blue-700" : "text-gray-900"
+                isOpen ? "text-primary" : "text-slate-900 dark:text-slate-100"
               }`}
             >
               {title}
@@ -75,8 +78,8 @@ const AccordionSection = ({
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   badge === "required"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-100 text-gray-600"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                 }`}
               >
                 {badge === "required" ? "Obavezno" : "Opcionalno"}
@@ -85,14 +88,14 @@ const AccordionSection = ({
           </div>
 
           {subtitle ? (
-            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
               {subtitle}
             </p>
           ) : null}
         </div>
 
         <svg
-          className={`w-6 h-6 text-gray-400 transition-transform duration-300 flex-shrink-0 ml-2 ${
+          className={`ml-2 h-6 w-6 flex-shrink-0 text-slate-400 transition-transform duration-300 dark:text-slate-500 ${
             isOpen ? "rotate-180" : "rotate-0"
           }`}
           fill="none"
@@ -108,7 +111,7 @@ const AccordionSection = ({
         </svg>
       </div>
 
-      {isOpen && <div className="p-4 sm:p-6 bg-white">{children}</div>}
+      {isOpen && <div className="bg-white p-4 dark:bg-slate-900/90 sm:p-5">{children}</div>}
     </div>
   );
 };
@@ -174,7 +177,7 @@ const RichTextarea = ({
       )}
 
       <div 
-        className={`w-full border-2 rounded-xl overflow-hidden bg-white transition-all ${
+        className={`w-full border rounded-xl overflow-hidden bg-white transition-all ${
           isFocused ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200"
         }`}
       >
@@ -283,7 +286,7 @@ const RichTextarea = ({
 };
 
 const baseInput =
-  "border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white";
+  "border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
 const EditComponentOne = ({
   setTranslations,
@@ -295,11 +298,26 @@ const EditComponentOne = ({
   isPriceOptional,
 }) => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const currencyPosition = useSelector(getCurrencyPosition);
   const currencySymbol = useSelector(getCurrencySymbol);
   const currentUser = useSelector(userSignUpData);
-  const membership = resolveMembership(currentUser, currentUser?.membership);
+  const cachedMembership = useSelector((state) => state?.Membership?.userMembership?.data);
+  const [liveMembership, setLiveMembership] = useState(null);
+  const membership = useMemo(
+    () =>
+      resolveMembership(
+        currentUser,
+        currentUser?.membership,
+        cachedMembership,
+        cachedMembership?.membership,
+        liveMembership,
+        liveMembership?.membership
+      ),
+    [cachedMembership, currentUser, liveMembership]
+  );
   const isShopMember = Boolean(membership?.isShop);
+  const hasShopAccess = isShopMember || isPromoFreeAccessEnabled();
 
   const placeholderLabel =
     currencyPosition === "right" ? `00 ${currencySymbol}` : `${currencySymbol} 00`;
@@ -312,6 +330,34 @@ const EditComponentOne = ({
   const [saleOpen, setSaleOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+
+  useEffect(() => {
+    if (hasShopAccess) return;
+
+    let isCancelled = false;
+
+    const refreshMembership = async () => {
+      try {
+        const response = await membershipApi.getUserMembership({});
+        const payload = extractApiData(response);
+        const normalizedMembership =
+          payload && typeof payload === "object" ? payload : null;
+
+        if (isCancelled || !normalizedMembership) return;
+
+        setLiveMembership(normalizedMembership);
+        dispatch(setUserMembership(normalizedMembership));
+      } catch (error) {
+        console.error("Greška pri osvježavanju članstva (EditListing):", error);
+      }
+    };
+
+    refreshMembership();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dispatch, hasShopAccess]);
 
   const handleField = useCallback(
     (field) => (e) => {
@@ -381,7 +427,7 @@ const EditComponentOne = ({
     : 0;
 
   return (
-    <div className="flex flex-col gap-4 pb-24">
+    <div className="flex flex-col gap-4 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-300]:bg-slate-600 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-blue-50]:bg-blue-500/15 dark:[&_.bg-blue-100]:bg-blue-500/20 dark:[&_.border-blue-100]:border-blue-500/30 dark:[&_.bg-amber-50]:bg-amber-500/10">
       {/* OSNOVNO */}
       <AccordionSection
         title="Osnovno"
@@ -550,7 +596,7 @@ const EditComponentOne = ({
           isOpen={saleOpen}
           onToggle={() => setSaleOpen((v) => !v)}
         >
-          <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/70">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-white rounded-lg border border-gray-200">
@@ -633,9 +679,9 @@ const EditComponentOne = ({
           badge="optional"
           isOpen={stockOpen}
           onToggle={() => setStockOpen((v) => !v)}
-          planGate={<PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />}
+          planGate={<PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />}
         >
-          <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/70">
             <div className="flex items-start gap-3">
               <div className="p-2 bg-white rounded-lg border border-gray-200">
                 <MdInventory className="text-gray-700" size={18} />
@@ -645,12 +691,16 @@ const EditComponentOne = ({
                   <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-900">
                     Količina na zalihi
                   </Label>
-                  <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+                  <PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />
                 </div>
                 <p className="text-sm text-gray-600">
                   Ostavite prazno ako prodajete samo jedan artikal.
                 </p>
               </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
+              <span className="font-semibold">LMX savjet:</span> Unesite realnu zalihu i minimalnu količinu kako bi kupac odmah imao tačne informacije.
             </div>
 
             <div className="mt-3">
@@ -662,15 +712,15 @@ const EditComponentOne = ({
                 placeholder="npr. 10"
                 value={current?.inventory_count || ""}
                 onChange={handleField("inventory_count")}
-                disabled={!isShopMember}
+                disabled={!hasShopAccess}
                 className={baseInput}
               />
-              {!isShopMember && (
+              {!hasShopAccess && (
                 <p className="text-xs text-amber-700 mt-2">
                   Ova opcija je dostupna samo za LMX Shop korisnike.
                 </p>
               )}
-              {isShopMember && current?.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
+              {hasShopAccess && current?.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
                 <p className="text-xs text-gray-600 mt-2">
                   ✅ Unijeli ste više komada — zalihe možete pratiti kroz oglas.
                 </p>
@@ -691,7 +741,7 @@ const EditComponentOne = ({
                   placeholder="npr. 12.50"
                   value={current?.price_per_unit || ""}
                   onChange={handleField("price_per_unit")}
-                  disabled={!isShopMember}
+                  disabled={!hasShopAccess}
                   className={baseInput}
                 />
               </div>
@@ -708,7 +758,7 @@ const EditComponentOne = ({
                   placeholder="1"
                   value={current?.minimum_order_quantity || ""}
                   onChange={handleField("minimum_order_quantity")}
-                  disabled={!isShopMember}
+                  disabled={!hasShopAccess}
                   className={baseInput}
                 />
               </div>
@@ -725,7 +775,7 @@ const EditComponentOne = ({
                   placeholder="3"
                   value={current?.stock_alert_threshold || ""}
                   onChange={handleField("stock_alert_threshold")}
-                  disabled={!isShopMember}
+                  disabled={!hasShopAccess}
                   className={baseInput}
                 />
               </div>
@@ -736,7 +786,7 @@ const EditComponentOne = ({
                 <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-900">
                   Interna šifra proizvoda
                 </Label>
-                <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+                <PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />
               </div>
               <Input
                 type="text"
@@ -746,11 +796,15 @@ const EditComponentOne = ({
                 placeholder="npr. SKU-BT-ZV-001"
                 value={current?.seller_product_code || ""}
                 onChange={handleField("seller_product_code")}
-                disabled={!isShopMember}
+                disabled={!hasShopAccess}
                 className={`${baseInput} mt-2`}
               />
               <p className="text-xs text-gray-600 mt-2">
                 Šifra služi za internu evidenciju prodaje i praćenje artikala.
+              </p>
+
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                LMX povezuje prodavača i kupca. Dogovor o plaćanju, dostavi i reklamacijama je između korisnika.
               </p>
             </div>
           </div>

@@ -597,7 +597,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
                   >
                     <ChevronRight className="w-6 h-6" />
                   </motion.div>
-                  <p className="text-sm font-semibold text-slate-900 text-center">Detalji</p>
+                  <p className="text-center text-sm font-semibold text-slate-900 dark:text-slate-100">Detalji</p>
                   <p className="text-xs text-slate-500 text-center mt-1">Otvori oglas</p>
                 </div>
               )}
@@ -852,7 +852,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
         <div className="flex items-start justify-between gap-2">
           <motion.h3 
             whileHover={{ color: "hsl(var(--primary))" }}
-            className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
+            className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100"
           >
             {translated_item?.name || item?.name}
           </motion.h3>

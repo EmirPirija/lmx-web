@@ -231,6 +231,8 @@ const EditComponentThree = ({
   instagramConnected = false,
   instagramStatusLoading = false,
   onConnectInstagram,
+  socialPostingUnavailable = false,
+  socialPostingUnavailableMessage = "Privremeno nedostupno, hvala na razumijevanju.",
   instagramSourceUrl = "",
   onInstagramSourceUrlChange,
   onUseInstagramAsVideoLink,
@@ -508,7 +510,19 @@ const EditComponentThree = ({
     setAddVideoToStory?.(checked);
   };
 
+  useEffect(() => {
+    if (socialPostingUnavailable && publishToInstagram) {
+      setPublishToInstagram?.(false);
+    }
+  }, [socialPostingUnavailable, publishToInstagram, setPublishToInstagram]);
+
   const handleInstagramToggle = (checked) => {
+    if (socialPostingUnavailable) {
+      toast.info(socialPostingUnavailableMessage);
+      setPublishToInstagram?.(false);
+      return;
+    }
+
     if (checked && !instagramConnected) {
       toast.info("Instagram nije povezan. Povežite Instagram u Postavkama.");
       setPublishToInstagram?.(false);
@@ -755,18 +769,26 @@ const EditComponentThree = ({
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                    instagramConnected
+                    socialPostingUnavailable
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                      : instagramConnected
                       ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                       : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                   )}
                 >
-                  {instagramStatusLoading
+                  {socialPostingUnavailable
+                    ? "Privremeno nedostupno"
+                    : instagramStatusLoading
                     ? "Provjera..."
                     : instagramConnected
                     ? "Povezan"
                     : "Nije povezan"}
                 </span>
-                {!instagramConnected ? (
+                {socialPostingUnavailable ? (
+                  <span className="text-[11px] text-amber-600 dark:text-amber-300">
+                    {socialPostingUnavailableMessage}
+                  </span>
+                ) : !instagramConnected ? (
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Povežite Instagram u postavkama prije objave.
                   </span>
@@ -774,7 +796,15 @@ const EditComponentThree = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {!instagramConnected ? (
+              {socialPostingUnavailable ? (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700 opacity-70 dark:border-amber-400/30 dark:text-amber-300"
+                >
+                  Privremeno nedostupno
+                </button>
+              ) : !instagramConnected ? (
                 <button
                   type="button"
                   onClick={() => onConnectInstagram?.()}
@@ -803,7 +833,8 @@ const EditComponentThree = ({
               <button
                 type="button"
                 onClick={() => onUseInstagramAsVideoLink?.()}
-                className="inline-flex items-center gap-1 rounded-lg border border-pink-200 px-2.5 py-1 text-xs font-semibold text-pink-600 hover:bg-pink-50 dark:border-pink-400/30 dark:text-pink-300 dark:hover:bg-pink-500/10"
+                disabled={socialPostingUnavailable}
+                className="inline-flex items-center gap-1 rounded-lg border border-pink-200 px-2.5 py-1 text-xs font-semibold text-pink-600 hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-pink-400/30 dark:text-pink-300 dark:hover:bg-pink-500/10"
               >
                 Koristi kao video link
               </button>
@@ -814,8 +845,9 @@ const EditComponentThree = ({
             type="url"
             value={instagramSourceUrl}
             onChange={(e) => onInstagramSourceUrlChange?.(e.target.value)}
+            disabled={socialPostingUnavailable}
             placeholder="https://www.instagram.com/reel/... ili /p/..."
-            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200"
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200"
           />
 
           <label className="flex items-start gap-3 cursor-pointer select-none rounded-xl border border-pink-100 bg-pink-50/70 px-3 py-2.5 dark:border-pink-400/20 dark:bg-pink-500/10">
@@ -823,7 +855,7 @@ const EditComponentThree = ({
               type="checkbox"
               checked={Boolean(publishToInstagram)}
               onChange={(e) => handleInstagramToggle(e.target.checked)}
-              disabled={!instagramConnected || instagramStatusLoading}
+              disabled={socialPostingUnavailable || !instagramConnected || instagramStatusLoading}
               className="mt-0.5 h-4 w-4 rounded border-slate-300 text-pink-500 focus:ring-pink-400"
             />
             <span>
@@ -831,7 +863,9 @@ const EditComponentThree = ({
                 Objavi i na Instagram
               </span>
               <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
-                {instagramConnected
+                {socialPostingUnavailable
+                  ? socialPostingUnavailableMessage
+                  : instagramConnected
                   ? "Nakon izmjene oglasa, sadržaj će ići u red za Instagram objavu."
                   : "Opcija je zaključana dok ne povežete Instagram nalog."}
               </p>

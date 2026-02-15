@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import { RefreshCw, Package, CheckCircle2, AlertCircle } from "@/components/Common/UnifiedIconPack";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 const RenewAd = ({
   currentLanguageId,
@@ -26,7 +27,8 @@ const RenewAd = ({
   const [isRenewingAd, setIsRenewingAd] = useState(false);
   const [isLoadingPackages, setIsLoadingPackages] = useState(true);
 
-  const isFreeAdListing = useSelector(getIsFreAdListing);
+  const isFreeAdListing =
+    useSelector(getIsFreAdListing) || isPromoFreeAccessEnabled();
 
   const mapRenewToastMessage = (message) => {
     const raw = String(message || "").trim();

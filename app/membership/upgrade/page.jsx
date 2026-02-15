@@ -21,6 +21,7 @@ import { userSignUpData } from "@/redux/reducer/authSlice";
 import { extractApiData, resolveMembership, resolveMembershipActivity } from "@/lib/membership";
 import { cn } from "@/lib/utils";
 import { getRealMembershipBenefits } from "@/lib/membershipBenefits";
+import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 const PAYMENT_OPTIONS = [
   { value: "stripe", label: "Stripe" },
@@ -46,6 +47,7 @@ const MembershipUpgradePage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentMembership, setCurrentMembership] = useState(null);
   const [isMembershipResolving, setIsMembershipResolving] = useState(true);
+  const promoEnabled = isPromoFreeAccessEnabled();
 
   const hasFetchedTiers = useRef(false);
 
@@ -191,7 +193,7 @@ const MembershipUpgradePage = () => {
     if (!resolvedMembership?.isPremium) return false;
     return Boolean(membershipActivity?.isActive);
   }, [membershipActivity, resolvedMembership]);
-  const isUpgradeLocked = hasActivePaidPlan && !isMembershipResolving;
+  const isUpgradeLocked = !promoEnabled && hasActivePaidPlan && !isMembershipResolving;
 
   const activePlanExpiry = useMemo(
     () =>
@@ -214,6 +216,12 @@ const MembershipUpgradePage = () => {
   };
 
   const handleUpgrade = async () => {
+    if (promoEnabled) {
+      toast.success("Promotivni režim je aktivan. Sve funkcionalnosti su već dostupne bez plaćanja.");
+      router.push("/my-ads");
+      return;
+    }
+
     if (isUpgradeLocked) {
       toast.info(ACTIVE_PLAN_BLOCK_MESSAGE);
       return;
@@ -281,17 +289,36 @@ const MembershipUpgradePage = () => {
         <div className="mx-auto max-w-6xl">
           <div className="mb-7 text-center">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              Odaberi plan članstva
+              {promoEnabled ? "Promotivni Free Access režim" : "Odaberi plan članstva"}
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Odaberi LMX Pro ili LMX Shop plan i potvrdi nadogradnju.
+              {promoEnabled
+                ? "Svi planovi su trenutno besplatni i sve funkcionalnosti su otključane bez unosa kartice."
+                : "Odaberi LMX Pro ili LMX Shop plan i potvrdi nadogradnju."}
             </p>
           </div>
+
+          {promoEnabled ? (
+            <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
+              <p className="font-semibold">{PROMO_HEADLINE}</p>
+              <p className="mt-1 text-xs">{PROMO_SUBHEAD}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {PROMO_BENEFITS.map((benefit) => (
+                  <span
+                    key={benefit}
+                    className="rounded-full border border-emerald-300/70 bg-white/85 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900/80 dark:text-emerald-200"
+                  >
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
             {isMembershipResolving ? (
               <p>Učitavanje statusa članstva...</p>
-            ) : hasActivePaidPlan ? (
+            ) : hasActivePaidPlan && !promoEnabled ? (
               <div className="space-y-1.5">
                 <p>
                   Trenutno aktivno članstvo:{" "}
@@ -306,7 +333,11 @@ const MembershipUpgradePage = () => {
                 </p>
               </div>
             ) : (
-              <p>Trenutno nemaš aktivan plaćeni plan.</p>
+              <p>
+                {promoEnabled
+                  ? "Promotivni režim je aktivan: svi planovi i sve funkcionalnosti su dostupni bez troškova."
+                  : "Trenutno nemaš aktivan plaćeni plan."}
+              </p>
             )}
           </div>
 
@@ -379,10 +410,16 @@ const MembershipUpgradePage = () => {
                       <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
                         {selectedTier?.description || "Paket članstva"}
                       </p>
-                      <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {selectedTier?.price ? `${selectedTier.price} EUR` : "0 EUR"} /{" "}
-                        {selectedTier?.duration_days || 30} dana
-                      </p>
+                      {promoEnabled ? (
+                        <p className="mt-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                          Besplatno do daljnjeg • Bez unosa kartice
+                        </p>
+                      ) : (
+                        <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {selectedTier?.price ? `${selectedTier.price} EUR` : "0 EUR"} /{" "}
+                          {selectedTier?.duration_days || 30} dana
+                        </p>
+                      )}
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         Stavke paketa: {selectedTierBenefits.length}
                       </p>
@@ -405,34 +442,40 @@ const MembershipUpgradePage = () => {
                       )}
                     </div>
 
-                    <div>
-                      <label
-                        htmlFor="membership-payment-method"
-                        className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
-                      >
-                        Način plaćanja
-                      </label>
-                      <div className="relative">
-                        <CreditCard className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <select
-                          id="membership-payment-method"
-                          value={paymentMethod}
-                          onChange={(event) => setPaymentMethod(event.target.value)}
-                          disabled={isUpgradeLocked}
-                          className={cn(
-                            "h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none transition-all",
-                            "focus:border-primary focus:ring-2 focus:ring-primary/20",
-                            "dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-primary"
-                          )}
+                    {!promoEnabled ? (
+                      <div>
+                        <label
+                          htmlFor="membership-payment-method"
+                          className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
                         >
-                          {PAYMENT_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                          Način plaćanja
+                        </label>
+                        <div className="relative">
+                          <CreditCard className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                          <select
+                            id="membership-payment-method"
+                            value={paymentMethod}
+                            onChange={(event) => setPaymentMethod(event.target.value)}
+                            disabled={isUpgradeLocked}
+                            className={cn(
+                              "h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none transition-all",
+                              "focus:border-primary focus:ring-2 focus:ring-primary/20",
+                              "dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-primary"
+                            )}
+                          >
+                            {PAYMENT_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
+                        U promotivnom periodu nema plaćanja ni unosa kartice. Klikom na dugme ispod samo potvrđujete aktivaciju plana.
+                      </div>
+                    )}
 
                     <Button
                       size="lg"
@@ -440,7 +483,11 @@ const MembershipUpgradePage = () => {
                       onClick={handleUpgrade}
                       disabled={!selectedTier || isProcessing || isUpgradeLocked}
                     >
-                      {isProcessing ? "Obrada..." : "Nastavi na plaćanje"}
+                      {isProcessing
+                        ? "Obrada..."
+                        : promoEnabled
+                        ? "Aktiviraj besplatno"
+                        : "Nastavi na plaćanje"}
                     </Button>
                   </div>
                 ) : (

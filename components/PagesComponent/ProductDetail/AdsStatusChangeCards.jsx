@@ -487,7 +487,7 @@ const AdsStatusChangeCards = ({
                   <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="flex items-center gap-2 text-sm">
                       <MdInventory className="text-slate-500" size={18} />
-                      <span className="text-slate-600">{t("currentStock") || "Trenutno na zalihi"}:</span>
+                      <span className="text-slate-600">Trenutno na zalihi:</span>
                       <span className="font-bold text-slate-800">{inventoryCount}</span>
                     </div>
                   </div>

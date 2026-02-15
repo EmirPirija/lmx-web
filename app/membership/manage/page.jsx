@@ -25,6 +25,7 @@ import {
 } from "@/redux/reducer/membershipSlice";
 import { extractApiData, resolveMembership, resolveMembershipActivity } from "@/lib/membership";
 import { cn } from "@/lib/utils";
+import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 const TIER_THEME = {
   free: {
@@ -56,6 +57,7 @@ const MembershipManagePage = () => {
   const dispatch = useDispatch();
   const { data: membership, loading } = useSelector((state) => state.Membership.userMembership);
   const [isCancelling, setIsCancelling] = useState(false);
+  const promoEnabled = isPromoFreeAccessEnabled();
 
   const fetchMembership = useCallback(async () => {
     dispatch(setUserMembershipLoading(true));
@@ -117,6 +119,11 @@ const MembershipManagePage = () => {
     : "Neaktivan";
 
   const handleCancelMembership = async () => {
+    if (promoEnabled) {
+      toast.info("Promotivni režim je aktivan. Otkazivanje plana trenutno nije potrebno.");
+      return;
+    }
+
     if (isFreePlan) {
       toast.info("Trenutno koristiš besplatni plan.");
       return;
@@ -188,6 +195,23 @@ const MembershipManagePage = () => {
                     </span>
                   </div>
 
+                  {promoEnabled ? (
+                    <div className="mt-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                      <p className="text-sm font-semibold">{PROMO_HEADLINE}</p>
+                      <p className="mt-1 text-xs text-white/85">{PROMO_SUBHEAD}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {PROMO_BENEFITS.map((benefit) => (
+                          <span
+                            key={benefit}
+                            className="rounded-full border border-white/30 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white"
+                          >
+                            {benefit}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="grid gap-3 rounded-xl bg-white/10 p-4 backdrop-blur-sm sm:grid-cols-2">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-white/75">Aktiviran</p>
@@ -235,22 +259,34 @@ const MembershipManagePage = () => {
                     className="h-11 rounded-full"
                     onClick={() => router.push("/membership/upgrade")}
                   >
-                    {isFreePlan ? "Aktiviraj plan" : "Promijeni plan"}
+                    {promoEnabled
+                      ? "Pogledaj promotivne planove"
+                      : isFreePlan
+                      ? "Aktiviraj plan"
+                      : "Promijeni plan"}
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    className="h-11 rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-400/40 dark:text-red-300 dark:hover:bg-red-500/10"
-                    onClick={handleCancelMembership}
-                    disabled={isFreePlan || isCancelling}
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    {isFreePlan ? "Nema plana za otkazivanje" : "Otkaži plan"}
-                  </Button>
+                  {!promoEnabled ? (
+                    <Button
+                      variant="outline"
+                      className="h-11 rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-400/40 dark:text-red-300 dark:hover:bg-red-500/10"
+                      onClick={handleCancelMembership}
+                      disabled={isFreePlan || isCancelling}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      {isFreePlan ? "Nema plana za otkazivanje" : "Otkaži plan"}
+                    </Button>
+                  ) : (
+                    <div className="flex h-11 items-center justify-center rounded-full border border-emerald-300/70 bg-emerald-50 text-xs font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
+                      Plaćanja su pauzirana u promo režimu
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
-                  {isActive && !isFreePlan
+                  {promoEnabled
+                    ? "Sve funkcionalnosti su trenutno dostupne bez troškova i bez unosa kartice."
+                    : isActive && !isFreePlan
                     ? "Tvoj plan je trenutno aktivan."
                     : isFreePlan
                     ? "Trenutno koristiš besplatni plan."
@@ -258,9 +294,10 @@ const MembershipManagePage = () => {
                 </div>
               </div>
 
-              {membershipSource?.expires_at ||
+              {!promoEnabled &&
+              (membershipSource?.expires_at ||
               membershipSource?.membership?.expires_at ||
-              membershipActivity?.expiresAt ? (
+              membershipActivity?.expiresAt) ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-start gap-3 text-slate-600 dark:text-slate-300">
                     <CalendarClock className="mt-0.5 h-5 w-5 text-primary" />

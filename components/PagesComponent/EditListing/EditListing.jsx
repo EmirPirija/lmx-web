@@ -21,6 +21,10 @@ import {
   formatPriceAbbreviated,
 } from "@/utils";
 import { runSocialOAuthPopup } from "@/utils/socialOAuth";
+import {
+  SOCIAL_POSTING_TEMP_UNAVAILABLE,
+  SOCIAL_POSTING_UNAVAILABLE_MESSAGE,
+} from "@/utils/socialAvailability";
 import EditComponentOne from "./EditComponentOne";
 import EditComponentTwo from "./EditComponentTwo";
 import EditComponentThree from "./EditComponentThree";
@@ -682,6 +686,16 @@ const EditListing = ({ id }) => {
   }, [handleVideoLinkChange, instagramSourceUrl]);
 
   const fetchInstagramConnection = useCallback(async () => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      setInstagramConnection({
+        loading: false,
+        syncing: false,
+        connected: false,
+        account: null,
+      });
+      return;
+    }
+
     try {
       setInstagramConnection((prev) => ({ ...prev, loading: true }));
       const res = await socialMediaApi.getConnectedAccounts();
@@ -713,9 +727,17 @@ const EditListing = ({ id }) => {
     if (!instagramConnection.connected && publishToInstagram) {
       setPublishToInstagram(false);
     }
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE && publishToInstagram) {
+      setPublishToInstagram(false);
+    }
   }, [instagramConnection.connected, publishToInstagram]);
 
   const handleConnectInstagram = useCallback(async () => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     try {
       setInstagramConnection((prev) => ({ ...prev, syncing: true }));
       const res = await socialMediaApi.connectAccount({ platform: "instagram", mode: "oauth" });
@@ -812,6 +834,13 @@ const EditListing = ({ id }) => {
 
     if (!isEmpty(instagramSourceUrl) && !isValidURL(instagramSourceUrl)) {
       toast.error("Unesite ispravan Instagram link.");
+      setStep(3);
+      return;
+    }
+
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE && publishToInstagram) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      setPublishToInstagram(false);
       setStep(3);
       return;
     }
@@ -919,7 +948,9 @@ const EditListing = ({ id }) => {
     region_code: defaultDetails?.region_code?.toUpperCase() || "",
     video_link: trimmedVideoLink,
     instagram_source_url: (instagramSourceUrl || "").trim(),
-    publish_to_instagram: Boolean(publishToInstagram),
+    publish_to_instagram: SOCIAL_POSTING_TEMP_UNAVAILABLE
+      ? false
+      : Boolean(publishToInstagram),
   
     // ✅ OLD mode (fallback): šalji fajl samo ako je File/Blob
     image:
@@ -977,7 +1008,7 @@ const EditListing = ({ id }) => {
       setIsAdPlaced(true);
       const res = await editItemApi.editItem(allData);
       if (res?.data?.error === false) {
-        if (publishToInstagram) {
+        if (!SOCIAL_POSTING_TEMP_UNAVAILABLE && publishToInstagram) {
           try {
             await socialMediaApi.schedulePost({
               item_id: id,
@@ -1587,6 +1618,8 @@ const EditListing = ({ id }) => {
                         instagramConnected={instagramConnection.connected}
                         instagramStatusLoading={instagramConnection.loading || instagramConnection.syncing}
                         onConnectInstagram={handleConnectInstagram}
+                        socialPostingUnavailable={SOCIAL_POSTING_TEMP_UNAVAILABLE}
+                        socialPostingUnavailableMessage={SOCIAL_POSTING_UNAVAILABLE_MESSAGE}
                         instagramSourceUrl={instagramSourceUrl}
                         onInstagramSourceUrlChange={setInstagramSourceUrl}
                         onUseInstagramAsVideoLink={handleUseInstagramAsVideoLink}

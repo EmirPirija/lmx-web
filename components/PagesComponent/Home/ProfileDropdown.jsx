@@ -19,6 +19,7 @@ import {
 import { useNavigate } from "@/components/Common/useNavigate";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
+import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
 // ✅ LMX avatar
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
@@ -348,6 +349,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   );
   const isShop = resolvedMembership.isShop;
   const isPremium = resolvedMembership.isPremium;
+  const promoEnabled = isPromoFreeAccessEnabled();
 
   const fetchAllData = useCallback(async () => {
     if (!userData) return;
@@ -705,8 +707,8 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
           <MenuSection title="Finansije">
             <MenuItem
               icon={CreditCard}
-              label={"Pretplata"}
-              description="Upravljaj pretplatom"
+              label={"Planovi i pristup"}
+              description="Promotivni režim i pregled planova"
               onClick={() => handleNavigate("/user-subscription")}
             />
             <MenuItem
@@ -738,8 +740,37 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
           </MenuSection>
         </div>
 
+        {promoEnabled ? (
+          <div className="p-4 bg-gradient-to-r from-emerald-50 via-cyan-50 to-white border-t border-emerald-100/70 dark:from-emerald-500/10 dark:via-cyan-500/10 dark:to-slate-900 dark:border-emerald-500/20">
+            <Link
+              href="/membership/upgrade"
+              onClick={() => closeAndRestoreDockImmediately()}
+              className="flex items-center gap-4 p-3 bg-white/90 dark:bg-slate-900/85 backdrop-blur-sm rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 transition-all duration-200"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center">
+                <Sparkles className="text-white" size={24} />
+              </div>
+              <div className="flex-1">
+                <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">Promotivni Free Access</h5>
+                <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">{PROMO_HEADLINE}</p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{PROMO_SUBHEAD}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {PROMO_BENEFITS.map((benefit) => (
+                    <span
+                      key={benefit}
+                      className="rounded-full border border-emerald-300/80 bg-emerald-50/90 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-200"
+                    >
+                      {benefit}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+          </div>
+        ) : null}
+
         {/* UPGRADE BANNER */}
-        {userStats.membershipTier === "free" && (
+        {!promoEnabled && userStats.membershipTier === "free" && (
           <div className="p-4 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-t border-amber-100/50 dark:from-amber-500/10 dark:via-amber-400/10 dark:to-orange-500/10 dark:border-amber-500/20">
             <Link
               href="/membership/upgrade"
@@ -762,7 +793,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         )}
 
         {/* PRO USER BANNER */}
-        {isPremium && (
+        {!promoEnabled && isPremium && (
           <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100/50 dark:from-blue-500/10 dark:to-indigo-500/10 dark:border-blue-500/20">
             <div className="flex items-center gap-3 p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-xl border border-blue-200/50 dark:border-blue-400/30">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">

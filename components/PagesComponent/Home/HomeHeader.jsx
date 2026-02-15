@@ -14,6 +14,12 @@ import { useNavigate } from "@/components/Common/useNavigate.jsx";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage.jsx";
 import { headerQuickLinks } from "@/utils/constants";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import {
   getIsLoggedIn,
@@ -23,7 +29,6 @@ import {
 import { getIsFreAdListing, settingsData } from "@/redux/reducer/settingSlice";
 import { CategoryData, getIsCatLoading } from "@/redux/reducer/categorySlice.js";
 import { getCityData } from "@/redux/reducer/locationSlice";
-import { resolveMembership } from "@/lib/membership";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 
 import ProfileDropdown from "./ProfileDropdown.jsx";
@@ -44,17 +49,13 @@ import {
 } from "@/utils/api.js";
 
 import {
-  Crown,
   Loader2,
   MapPin,
   Menu,
   Search as SearchIcon,
-  ShieldCheck,
-  Sparkles,
-  Store,
-  Users,
   Video,
   X,
+  ChevronDown,
 } from "@/components/Common/UnifiedIconPack";
 import { IoIosAddCircleOutline } from "@/components/Common/UnifiedIconPack";
 
@@ -88,6 +89,33 @@ const HeaderCategoriesSkeleton = () => (
     </div>
   </div>
 );
+
+const AllUsersIcon = ({ className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 16 16"
+    id="User-Search-Fill--Streamline-Mingcute-Fill"
+    height="16"
+    width="16"
+    className={className}
+    aria-hidden="true"
+    focusable="false"
+  >
+    <desc>User Search Fill Streamline Icon: https://streamlinehq.com</desc>
+    <g fill="none" fillRule="evenodd">
+      <path
+        d="M16 0v16H0V0h16ZM8.395999999999999 15.505333333333333l-0.008 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023999999999999997c-0.006666666666666666 -0.002 -0.012666666666666666 0 -0.016 0.004l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.010666666666666666 -0.011999999999999999Zm0.176 -0.07533333333333334 -0.009333333333333332 0.0013333333333333333 -0.12266666666666666 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.005333333333333333 0.134 0.06133333333333333c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.002 -0.007333333333333332 0.011999999999999999 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z"
+        strokeWidth="0.6667"
+      />
+      <path
+        fill="#0ab6af"
+        d="M4 4.666666666666666a3.333333333333333 3.333333333333333 0 1 1 6.666666666666666 0A3.333333333333333 3.333333333333333 0 0 1 4 4.666666666666666Zm-0.7853333333333332 5.1146666666666665C4.283333333333333 9.129333333333333 5.736666666666666 8.666666666666666 7.333333333333333 8.666666666666666c0.298 0 0.5913333333333333 0.016 0.8773333333333333 0.04666666666666667a0.6666666666666666 0.6666666666666666 0 0 1 0.48 1.0379999999999998A3.9786666666666664 3.9786666666666664 0 0 0 8 12c0 0.6133333333333333 0.13799999999999998 1.1933333333333334 0.3833333333333333 1.7113333333333334a0.6666666666666666 0.6666666666666666 0 0 1 -0.5933333333333333 0.952c-0.15066666666666667 0.002 -0.30333333333333334 0.003333333333333333 -0.45666666666666667 0.003333333333333333 -1.486 0 -2.8899999999999997 -0.09333333333333334 -3.942 -0.372 -0.5233333333333333 -0.13866666666666666 -1.016 -0.3373333333333333 -1.3893333333333333 -0.6373333333333333C1.6066666666666667 13.34 1.3333333333333333 12.896666666666665 1.3333333333333333 12.333333333333332c0 -0.5246666666666666 0.23866666666666664 -1.0153333333333332 0.5626666666666666 -1.4259999999999997 0.3293333333333333 -0.41666666666666663 0.7846666666666666 -0.7999999999999999 1.3186666666666667 -1.1266666666666665ZM11.666666666666666 10.666666666666666a1 1 0 1 0 0 2 1 1 0 0 0 0 -2ZM9.333333333333332 11.666666666666666a2.333333333333333 2.333333333333333 0 1 1 4.386666666666667 1.1099999999999999l0.5559999999999999 0.5566666666666666A0.6666666666666666 0.6666666666666666 0 1 1 13.333333333333332 14.276l-0.5566666666666666 -0.5566666666666666A2.333333333333333 2.333333333333333 0 0 1 9.333333333333332 11.666666666666666Z"
+        strokeWidth="0.6667"
+      />
+    </g>
+  </svg>
+);
+
 
 const HomeHeader = () => {
   const { navigate } = useNavigate();
@@ -340,10 +368,6 @@ const HomeHeader = () => {
     adsMobileHeaderState.searchIconMode &&
     !isMobileUtilityMenuOpen &&
     !isMobileSearchFocused;
-  const membership = useMemo(
-    () => resolveMembership(userData, userData?.membership),
-    [userData]
-  );
   const mobileDock = useAdaptiveMobileDock();
   const showMobileDockNav = !isLargeScreen && !hideMobileBottomNav;
 
@@ -685,11 +709,6 @@ const HomeHeader = () => {
       manageDeleteAccount.IsDeleteAccount ||
       isMobileUtilityMenuOpen);
 
-  const mobileUpgradeLink = !membership.isPremium
-    ? { href: "/membership/upgrade?tier=pro", label: "Postani PRO" }
-    : !membership.isShop
-      ? { href: "/membership/upgrade?tier=shop", label: "Postani SHOP" }
-      : null;
   const availableHeaderQuickLinks = useMemo(
     () =>
       headerQuickLinks.filter((link) => {
@@ -698,14 +717,44 @@ const HomeHeader = () => {
       }),
     [IsLoggedin]
   );
-
-  const handleAvatarCta = useCallback(() => {
-    if (!IsLoggedin) {
-      setIsLoginOpen(true);
-      return;
-    }
-    navigate("/profile");
-  }, [IsLoggedin, navigate]);
+  const unifiedHeaderQuickLinks = useMemo(
+    () => [
+      {
+        id: "all-users",
+        href: "/svi-korisnici",
+        label: (
+          <span className="inline-flex items-center justify-center">
+            <AllUsersIcon className="h-4 w-4" />
+            <span className="sr-only">Svi korisnici</span>
+          </span>
+        ),
+      },
+      ...availableHeaderQuickLinks,
+    ],
+    [availableHeaderQuickLinks]
+  );
+  
+  
+  const primaryQuickLinkIds = useMemo(
+    () => new Set(["all-users", 2, 6, 7, 8]),
+    []
+  );
+  const primaryHeaderQuickLinks = useMemo(
+    () =>
+      unifiedHeaderQuickLinks.filter((link) =>
+        primaryQuickLinkIds.has(link.id)
+      ),
+    [primaryQuickLinkIds, unifiedHeaderQuickLinks]
+  );
+  const overflowHeaderQuickLinks = useMemo(
+    () =>
+      unifiedHeaderQuickLinks.filter(
+        (link) => !primaryQuickLinkIds.has(link.id)
+      ),
+    [primaryQuickLinkIds, unifiedHeaderQuickLinks]
+  );
+  const quickLinkChipClass =
+    "inline-flex h-9 items-center rounded-full border border-slate-200/90 bg-white px-3.5 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600";
 
   const handleAdsSearchShortcut = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -838,85 +887,94 @@ const HomeHeader = () => {
             <>
               <div className="py-3 lg:py-4">
               <div className="rounded-3xl border border-slate-200/80 bg-white/85 p-3 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/75 lg:p-4">
-              {/* DESKTOP: GORE quick actions */}
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
-                <div className="flex flex-wrap items-center gap-2">
-                {/* left: lokacija */}
-                <button
-                  className="group flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
-                  onClick={() => setIsLocationModalOpen(true)}
-                  type="button"
-                  aria-label="Lokacija"
-                  title="Lokacija"
-                >
-                  <MapPin
-                    size={18}
-                    className="text-primary"
-                  />
-                  <span className="max-w-[220px] truncate text-sm font-medium">
-                    {locationText || "Dodaj lokaciju"}
-                  </span>
-                </button>
-                  {/* Theme Toggle (desno) */}
-                  <ThemeToggle />
-                  <CustomLink
-                    href="/svi-korisnici"
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-                  >
-                    Svi korisnici
-                  </CustomLink>
-                  {availableHeaderQuickLinks.map((link) => (
-                    <CustomLink
-                      key={`desktop-quick-link-${link.id}`}
-                      href={link.href}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-                    >
-                      {link.label || t(link.labelKey)}
-                    </CustomLink>
-                  ))}
-                  {!membership.isPremium && (
-                    <CustomLink
-                      href="/membership/upgrade?tier=pro"
-                      className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100/70 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-300"
-                    >
-                      Postani LMX PRO
-                    </CustomLink>
-                  )}
-                  {!membership.isShop && (
-                    <CustomLink
-                      href="/membership/upgrade?tier=shop"
-                      className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100/70 dark:border-blue-800/60 dark:bg-blue-900/20 dark:text-blue-300"
-                    >
-                      Postani LMX SHOP
-                    </CustomLink>
-                  )}
+              {/* DESKTOP: GORE utility + quick links rail */}
+              <div className="space-y-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
+                <div className="flex items-center justify-between gap-3">
                   <button
+                    className="group inline-flex min-w-0 max-w-[220px] xl:max-w-[320px] items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
+                    onClick={() => setIsLocationModalOpen(true)}
                     type="button"
-                    onClick={handleAvatarCta}
-                    className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100/70 dark:border-emerald-800/60 dark:bg-emerald-900/20 dark:text-emerald-300"
+                    aria-label="Lokacija"
+                    title="Lokacija"
                   >
-                    <Sparkles size={13} />
-                    Kreiraj LMX avatar
+                    <MapPin size={18} className="shrink-0 text-primary" />
+                    <span className="truncate text-sm font-medium">
+                      {locationText || "Dodaj lokaciju"}
+                    </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleAdListing}
-                    disabled={IsAdListingClicked}
-                    className="hidden 2xl:inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-100/70 disabled:opacity-60 dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300"
-                  >
-                    <Video size={13} />
-                    Objavi video oglas
-                  </button>
+
+                  <div className="flex items-center gap-2">
+
+                  <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">
+                    <div className="flex w-max items-center gap-2 pr-1">
+                      {primaryHeaderQuickLinks.map((link) => (
+                        <CustomLink
+                          key={`desktop-quick-link-${link.id}`}
+                          href={link.href}
+                          className={quickLinkChipClass}
+                        >
+                          {link.label || t(link.labelKey)}
+                        </CustomLink>
+                      ))}
+
+                      {overflowHeaderQuickLinks.length > 0 && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className={quickLinkChipClass}
+                              aria-label="Prikaži ostale linkove"
+                            >
+                              Ostalo
+                              <ChevronDown size={14} className="ml-1" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            className="w-60 rounded-2xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
+                          >
+                            {overflowHeaderQuickLinks.map((link) => (
+                              <DropdownMenuItem
+                                asChild
+                                key={`desktop-overflow-link-${link.id}`}
+                                className="rounded-xl"
+                              >
+                                <CustomLink
+                                  href={link.href}
+                                  className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                                >
+                                  {link.label || t(link.labelKey)}
+                                </CustomLink>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handleAdListing}
+                        disabled={IsAdListingClicked}
+                        className={`${quickLinkChipClass} hidden 2xl:inline-flex disabled:opacity-60`}
+                      >
+                        <Video size={14} className="mr-1 text-violet-500 dark:text-violet-300" />
+                        Objavi video oglas
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* right: (od desna) Theme, Poruke, Moji oglasi, Profil */}
-                <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="grid h-10 w-10 place-items-center rounded-full border border-slate-200/90 bg-white dark:border-slate-700 dark:bg-slate-900">
+                      <ThemeToggle />
+                    </div>
+
                   {/* PROFIL (lijevo u ovom bloku) */}
                   {IsLoggedin ? (
                     <div className="flex items-center gap-2">
                       {/* ✅ Ime korisnika (desktop) */}
                       {userData?.name && (
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <span className="hidden max-w-[130px] truncate text-sm font-medium text-slate-700 dark:text-slate-300 2xl:inline">
                           {truncate(userData.name, 20)}
                         </span>
                       )}
@@ -979,7 +1037,7 @@ const HomeHeader = () => {
                   {/* MOJI OGLASI (ikonica) */}
                   <button
                     onClick={handleMyAdsClick}
-                    className={`relative flex h-10 items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${
+                    className={`relative flex h-10 items-center gap-2 rounded-full border border-slate-200/90 bg-white px-2.5 xl:px-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm active:scale-[0.98] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${
                       isMyAdsActive ? "text-primary" : "text-slate-700 dark:text-slate-300"
                     }`}
                     title="Moji oglasi"
@@ -987,11 +1045,11 @@ const HomeHeader = () => {
                     aria-label="Moji oglasi"
                   >
                     <IconListDetails size={20} strokeWidth={isMyAdsActive ? 2.5 : 1.8} />
-                    <span className="text-sm font-medium whitespace-nowrap">Moji oglasi</span>
+                    <span className="hidden whitespace-nowrap text-sm font-medium 2xl:inline">Moji oglasi</span>
                   </button>
-
-
+                  </div>
                 </div>
+
               </div>
 
               {/* DESKTOP: DOLE brand + search + CTA */}
@@ -1200,39 +1258,59 @@ const HomeHeader = () => {
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-2">
-                            <CustomLink
-                              href="/svi-korisnici"
-                              onClick={closeMobileUtilityMenu}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white/90 px-3 text-xs font-semibold text-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
-                            >
-                              <Users size={14} className="text-primary" />
-                              Svi korisnici
-                            </CustomLink>
-                            {mobileUpgradeLink && (
-                              <CustomLink
-                                href={mobileUpgradeLink.href}
-                                onClick={closeMobileUtilityMenu}
-                                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white/90 px-3 text-xs font-semibold text-amber-700 dark:bg-slate-900/90 dark:text-amber-300"
-                              >
-                                {membership.isPremium ? (
-                                  <Store size={14} className="text-amber-600 dark:text-amber-300" />
-                                ) : (
-                                  <Crown size={14} className="text-amber-600 dark:text-amber-300" />
+                          <div className="space-y-1">
+                            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
+                              Brzi linkovi
+                            </p>
+                            <div className="overflow-x-auto scrollbar-none">
+                              <div className="flex w-max items-center gap-2 pr-1">
+                                {primaryHeaderQuickLinks.map((link) => (
+                                  <CustomLink
+                                    key={`mobile-quick-link-${link.id}`}
+                                    href={link.href}
+                                    onClick={closeMobileUtilityMenu}
+                                    className="inline-flex h-9 items-center rounded-full border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
+                                  >
+                                    {link.label || t(link.labelKey)}
+                                  </CustomLink>
+                                ))}
+
+                                {overflowHeaderQuickLinks.length > 0 && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        type="button"
+                                        className="inline-flex h-9 items-center rounded-full border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
+                                        aria-label="Prikaži ostale linkove"
+                                      >
+                                        Ostalo
+                                        <ChevronDown size={13} className="ml-1" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      align="start"
+                                      className="w-56 rounded-2xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
+                                    >
+                                      {overflowHeaderQuickLinks.map((link) => (
+                                        <DropdownMenuItem
+                                          asChild
+                                          key={`mobile-overflow-link-${link.id}`}
+                                          className="rounded-xl"
+                                        >
+                                          <CustomLink
+                                            href={link.href}
+                                            onClick={closeMobileUtilityMenu}
+                                            className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                                          >
+                                            {link.label || t(link.labelKey)}
+                                          </CustomLink>
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 )}
-                                {mobileUpgradeLink.label}
-                              </CustomLink>
-                            )}
-                            {availableHeaderQuickLinks.map((link) => (
-                              <CustomLink
-                                key={`mobile-quick-link-${link.id}`}
-                                href={link.href}
-                                onClick={closeMobileUtilityMenu}
-                                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white/90 px-3 text-xs font-semibold text-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
-                              >
-                                {link.label || t(link.labelKey)}
-                              </CustomLink>
-                            ))}
+                              </div>
+                            </div>
                           </div>
 
                           <motion.div
@@ -1244,30 +1322,22 @@ const HomeHeader = () => {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-cyan-700 dark:text-cyan-300">
-                                  LMX Prednost
+                                  Promotivni režim
                                 </p>
                                 <p className="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">
-                                  Kreiraj svoj LMX avatar danas i aktiviraj video boost za oglase.
+                                  Svi planovi su trenutno besplatni i sve funkcionalnosti su otključane bez unosa kartice.
                                 </p>
                               </div>
-                              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-cyan-600 dark:text-cyan-300" />
+                              <Video size={16} className="mt-0.5 shrink-0 text-cyan-600 dark:text-cyan-300" />
                             </div>
                             <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => runMobileMenuAction(handleAvatarCta)}
-                                className="inline-flex h-8 items-center gap-1 rounded-lg bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-100"
-                              >
-                                <Sparkles size={13} className="text-emerald-500" />
-                                LMX avatar
-                              </button>
                               <button
                                 type="button"
                                 onClick={() => runMobileMenuAction(handleAdListing)}
                                 className="inline-flex h-8 items-center gap-1 rounded-lg bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-100"
                               >
                                 <Video size={13} className="text-violet-500" />
-                                Video oglas
+                                Objavi oglas
                               </button>
                             </div>
                           </motion.div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -21,9 +21,12 @@ import {
 import { generateSlug } from "@/utils";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
-import { resolveMembership } from "@/lib/membership";
+import { setUserMembership } from "@/redux/reducer/membershipSlice";
+import { membershipApi } from "@/utils/api";
+import { extractApiData, resolveMembership } from "@/lib/membership";
+import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
 import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
@@ -41,18 +44,18 @@ const AccordionSection = ({
   children,
 }) => {
   return (
-    <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
       <div
         onClick={onToggle}
-        className={`flex items-center justify-between p-4 sm:p-5 cursor-pointer transition-all duration-200 ${
-          isOpen ? "bg-blue-50 border-b-2 border-blue-100" : "hover:bg-gray-50"
+        className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
+          isOpen ? "border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
         }`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3
               className={`text-base sm:text-lg font-semibold ${
-                isOpen ? "text-blue-700" : "text-gray-900"
+                isOpen ? "text-primary" : "text-slate-900 dark:text-slate-100"
               }`}
             >
               {title}
@@ -64,8 +67,8 @@ const AccordionSection = ({
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   badge === "required"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-100 text-gray-600"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                 }`}
               >
                 {badge === "required" ? "Obavezno" : "Opcionalno"}
@@ -74,14 +77,14 @@ const AccordionSection = ({
           </div>
 
           {subtitle ? (
-            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
               {subtitle}
             </p>
           ) : null}
         </div>
 
         <svg
-          className={`w-6 h-6 text-gray-400 transition-transform duration-300 flex-shrink-0 ml-2 ${
+          className={`ml-2 h-6 w-6 flex-shrink-0 text-slate-400 transition-transform duration-300 dark:text-slate-500 ${
             isOpen ? "rotate-180" : "rotate-0"
           }`}
           fill="none"
@@ -92,7 +95,7 @@ const AccordionSection = ({
         </svg>
       </div>
 
-      {isOpen && <div className="p-4 sm:p-6 bg-white">{children}</div>}
+      {isOpen && <div className="bg-white p-4 dark:bg-slate-900/90 sm:p-5">{children}</div>}
     </div>
   );
 };
@@ -156,7 +159,7 @@ const RichTextarea = ({
       )}
 
       <div 
-        className={`w-full border-2 rounded-xl overflow-hidden bg-white transition-all ${
+        className={`w-full border rounded-xl overflow-hidden bg-white transition-all ${
           isFocused ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200"
         }`}
       >
@@ -279,11 +282,26 @@ const ComponentTwo = ({
   defaultLangId,
   isNextLoading = false,
 }) => {
+  const dispatch = useDispatch();
   const currencyPosition = useSelector(getCurrencyPosition);
   const currencySymbol = useSelector(getCurrencySymbol);
   const currentUser = useSelector(userSignUpData);
-  const membership = resolveMembership(currentUser, currentUser?.membership);
+  const cachedMembership = useSelector((state) => state?.Membership?.userMembership?.data);
+  const [liveMembership, setLiveMembership] = useState(null);
+  const membership = useMemo(
+    () =>
+      resolveMembership(
+        currentUser,
+        currentUser?.membership,
+        cachedMembership,
+        cachedMembership?.membership,
+        liveMembership,
+        liveMembership?.membership
+      ),
+    [cachedMembership, currentUser, liveMembership]
+  );
   const isShopMember = Boolean(membership?.isShop);
+  const hasShopAccess = isShopMember || isPromoFreeAccessEnabled();
 
   const placeholderLabel =
     currencyPosition === "right" ? `${currencySymbol}` : `${currencySymbol}`;
@@ -295,6 +313,34 @@ const ComponentTwo = ({
   const [contactOpen, setContactOpen] = useState(false);
 
   const isDefaultLang = langId === defaultLangId;
+
+  useEffect(() => {
+    if (hasShopAccess) return;
+
+    let isCancelled = false;
+
+    const refreshMembership = async () => {
+      try {
+        const response = await membershipApi.getUserMembership({});
+        const payload = extractApiData(response);
+        const normalizedMembership =
+          payload && typeof payload === "object" ? payload : null;
+
+        if (isCancelled || !normalizedMembership) return;
+
+        setLiveMembership(normalizedMembership);
+        dispatch(setUserMembership(normalizedMembership));
+      } catch (error) {
+        console.error("Greška pri osvježavanju članstva (AdsListing):", error);
+      }
+    };
+
+    refreshMembership();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dispatch, hasShopAccess]);
 
   const handleField = (field) => (e) => {
     const value = e.target.value;
@@ -386,7 +432,7 @@ const ComponentTwo = ({
     value={current.name || ""}
     onChange={handleField("name")}
     maxLength={86} // 👈 OGRANIČENJE
-    className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
   />
   {/* 👇 Opcionalno: Brojač karaktera */}
   <div className="flex justify-end">
@@ -437,7 +483,7 @@ const ComponentTwo = ({
                   placeholder={placeholderLabel}
                   value={current.min_salary || ""}
                   onChange={handleField("min_salary")}
-                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
@@ -451,7 +497,7 @@ const ComponentTwo = ({
                   placeholder={placeholderLabel}
                   value={current.max_salary || ""}
                   onChange={handleField("max_salary")}
-                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -474,7 +520,7 @@ const ComponentTwo = ({
                   value={current.price || ""}
                   onChange={handleField("price")}
                   disabled={current.price_on_request}
-                  className={`border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                  className={`border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 transition-colors ${
                     current.price_on_request ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
                   }`}
                 />
@@ -556,7 +602,7 @@ const ComponentTwo = ({
                             value={current.old_price || ""}
                             onChange={handleField("old_price")}
                             min={0}
-                            className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                           />
 
                           {showDiscount && discountPct > 0 && (
@@ -591,18 +637,22 @@ const ComponentTwo = ({
           isOpen={stockOpen}
           onToggle={() => setStockOpen((v) => !v)}
           badge="optional"
-          planGate={<PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />}
+          planGate={<PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />}
         >
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-800">
                 Količina na zalihi
               </Label>
-              <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+              <PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />
             </div>
             <p className="text-sm text-gray-600">
               Ostavite prazno ako prodajete samo jedan artikal. Zalihe su dostupne isključivo za LMX Shop članove.
             </p>
+
+            <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
+              <span className="font-semibold">LMX savjet:</span> Ako prodajete više komada, precizna zaliha i cijena po komadu podižu povjerenje kupca.
+            </div>
 
             <Input
               type="number"
@@ -612,17 +662,17 @@ const ComponentTwo = ({
               placeholder="npr. 10"
               value={current.inventory_count || ""}
               onChange={handleField("inventory_count")}
-              disabled={!isShopMember}
-              className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={!hasShopAccess}
+              className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
 
-            {!isShopMember && (
+            {!hasShopAccess && (
               <p className="text-xs text-amber-600 mt-1">
                 Ova opcija je dostupna samo za LMX Shop korisnike.
               </p>
             )}
 
-            {isShopMember && current.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
+            {hasShopAccess && current.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
               <p className="text-xs text-blue-600 mt-1">
                 ✨ Moći ćete pratiti prodaju i zalihe za ovaj oglas!
               </p>
@@ -642,8 +692,8 @@ const ComponentTwo = ({
                   placeholder="npr. 12.50"
                   value={current.price_per_unit || ""}
                   onChange={handleField("price_per_unit")}
-                  disabled={!isShopMember}
-                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={!hasShopAccess}
+                  className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
@@ -659,8 +709,8 @@ const ComponentTwo = ({
                   placeholder="1"
                   value={current.minimum_order_quantity || ""}
                   onChange={handleField("minimum_order_quantity")}
-                  disabled={!isShopMember}
-                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={!hasShopAccess}
+                  className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
@@ -676,8 +726,8 @@ const ComponentTwo = ({
                   placeholder="3"
                   value={current.stock_alert_threshold || ""}
                   onChange={handleField("stock_alert_threshold")}
-                  disabled={!isShopMember}
-                  className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={!hasShopAccess}
+                  className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -687,7 +737,7 @@ const ComponentTwo = ({
                 <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-800">
                   Interna šifra proizvoda
                 </Label>
-                <PlanGateLabel scope="shop" unlocked={isShopMember} showStatus={false} />
+                <PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />
               </div>
               <Input
                 type="text"
@@ -697,11 +747,14 @@ const ComponentTwo = ({
                 placeholder="npr. SKU-BT-ZV-001"
                 value={current.seller_product_code || ""}
                 onChange={handleField("seller_product_code")}
-                disabled={!isShopMember}
-                className="border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={!hasShopAccess}
+                className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
               <p className="text-xs text-gray-500">
                 Šifra je za internu evidenciju prodavača i neće biti javno istaknuta kupcima.
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                LMX je posredni oglasni servis: plaćanje, dostava i reklamacije su dogovor između prodavača i kupca.
               </p>
             </div>
           </div>

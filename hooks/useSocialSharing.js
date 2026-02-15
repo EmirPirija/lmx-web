@@ -4,6 +4,10 @@ import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { instagramApi, socialMediaApi } from "@/utils/api";
 import { runSocialOAuthPopup } from "@/utils/socialOAuth";
+import {
+  SOCIAL_POSTING_TEMP_UNAVAILABLE,
+  SOCIAL_POSTING_UNAVAILABLE_MESSAGE,
+} from "@/utils/socialAvailability";
 
 /**
  * Social Media Integration Hook
@@ -240,6 +244,7 @@ export const AutoPostService = {
    * Check if auto-post is configured for a platform
    */
   isConfigured: async (platform) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) return false;
     try {
       const res = await socialMediaApi.getConnectedAccounts();
       const accounts = res?.data?.data?.accounts || [];
@@ -255,6 +260,10 @@ export const AutoPostService = {
    * Schedule auto-post for a new listing
    */
   schedulePost: async ({ item, platforms, scheduledTime }) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      return { success: false, message: SOCIAL_POSTING_UNAVAILABLE_MESSAGE };
+    }
+
     try {
       if (!item?.id) {
         return { success: false, message: "Nedostaje ID oglasa." };
@@ -287,6 +296,7 @@ export const AutoPostService = {
    * Get connected social accounts for user
    */
   getConnectedAccounts: async () => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) return [];
     try {
       const res = await socialMediaApi.getConnectedAccounts();
       return res?.data?.data?.accounts || [];
@@ -299,6 +309,11 @@ export const AutoPostService = {
    * Connect a social account (initiates OAuth flow)
    */
   connectAccount: async (platform) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return false;
+    }
+
     try {
       const res = await socialMediaApi.connectAccount({ platform, mode: "oauth" });
       const authUrl = res?.data?.data?.auth_url;
@@ -324,6 +339,11 @@ export const AutoPostService = {
    * Disconnect a social account
    */
   disconnectAccount: async (platform) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      toast.info(SOCIAL_POSTING_UNAVAILABLE_MESSAGE);
+      return false;
+    }
+
     try {
       const res = await socialMediaApi.disconnectAccount({ platform });
       return res?.data?.error === false;
@@ -347,6 +367,7 @@ export const InstagramShopService = {
    * Check if Instagram Shop is connected
    */
   isConnected: async () => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) return false;
     try {
       const accounts = await AutoPostService.getConnectedAccounts();
       return accounts.some(
@@ -361,6 +382,10 @@ export const InstagramShopService = {
    * Get products from Instagram Shop
    */
   getProducts: async ({ page = 1, limit = 20, search } = {}) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      return { products: [], total: 0, hasMore: false };
+    }
+
     try {
       const res = await instagramApi.getProducts({
         page,
@@ -382,6 +407,15 @@ export const InstagramShopService = {
    * Import selected products as listings
    */
   importProducts: async (sourceUrls = []) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) {
+      return {
+        success: false,
+        imported: 0,
+        failed: 0,
+        message: SOCIAL_POSTING_UNAVAILABLE_MESSAGE,
+      };
+    }
+
     try {
       const res = await instagramApi.importProducts({
         source_urls: sourceUrls,
@@ -409,6 +443,7 @@ export const InstagramShopService = {
    * Sync existing listing with Instagram product
    */
   syncProduct: async (listingId, instagramProductId) => {
+    if (SOCIAL_POSTING_TEMP_UNAVAILABLE) return false;
     try {
       const res = await instagramApi.syncProduct({
         item_id: listingId,
