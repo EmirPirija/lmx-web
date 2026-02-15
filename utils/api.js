@@ -1854,13 +1854,15 @@ export const instagramApi = {
     return Api.get(INSTAGRAM_PRODUCTS, { params: { page, per_page, search } });
   },
 
-  importProducts: ({ source_url, source_urls = [], category_id } = {}) => {
+  importProducts: ({ source_url, source_urls = [], category_id, feed_file, format } = {}) => {
     const formData = new FormData();
     if (source_url) formData.append("source_url", source_url);
     if (Array.isArray(source_urls) && source_urls.length > 0) {
       formData.append("source_urls", JSON.stringify(source_urls));
     }
     if (category_id) formData.append("category_id", category_id);
+    if (feed_file) formData.append("feed_file", feed_file);
+    if (format) formData.append("format", format);
 
     return Api.post(INSTAGRAM_IMPORT, formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -1887,6 +1889,18 @@ export const instagramApi = {
   getSyncStatus: ({ itemId } = {}) => {
     return Api.get(`${INSTAGRAM_SYNC_STATUS}/${itemId}`);
   },
+};
+
+// Alias za shop feed import workflow (API/CSV/XML).
+// Backend trenutno koristi instagram/* rute za import/sync.
+export const shopFeedApi = {
+  importFeed: ({ source_url, source_urls = [], category_id, feed_file, format } = {}) =>
+    instagramApi.importProducts({ source_url, source_urls, category_id, feed_file, format }),
+
+  getImportHistory: ({ page } = {}) => instagramApi.getImportHistory({ page }),
+
+  syncFeedProduct: ({ item_id, instagram_product_id, source_url } = {}) =>
+    instagramApi.syncProduct({ item_id, instagram_product_id, source_url }),
 };
 
 // ============================================
