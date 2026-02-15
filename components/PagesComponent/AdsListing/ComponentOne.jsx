@@ -21,6 +21,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CustomImage from "@/components/Common/CustomImage";
 import CategorySemanticIcon from "@/components/Common/CategorySemanticIcon";
 
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://admin.lmx.ba").replace(/\/+$/, "");
+const API_ENDPOINT_PREFIX = (process.env.NEXT_PUBLIC_END_POINT || "/api/")
+  .replace(/^\/?/, "/")
+  .replace(/\/?$/, "/");
+
+const buildApiUrl = (path, params = {}) => {
+  const normalizedPath = String(path || "").replace(/^\/+/, "");
+  const url = new URL(`${API_BASE_URL}${API_ENDPOINT_PREFIX}${normalizedPath}`);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    url.searchParams.set(key, String(value));
+  });
+
+  return url.toString();
+};
+
 // ═══════════════════════════════════════════════════════════════════
 // ANIMATION VARIANTS
 // ═══════════════════════════════════════════════════════════════════
@@ -361,15 +378,26 @@ const ComponentOne = ({
 
   const searchUsers = useCallback(async (query) => {
     try {
-        const token = localStorage.getItem("token");
-        if (!token) return [];
-        const res = await fetch(`https://admin.lmx.ba/customer/id?search=${encodeURIComponent(query)}`, {
-            headers: { Accept: "application/json", Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data?.rows || [];
-    } catch { return []; }
+      const response = await fetch(
+        buildApiUrl("users", {
+          search: query,
+          per_page: 5,
+        }),
+        { headers: { Accept: "application/json" } }
+      );
+
+      if (!response.ok) return [];
+
+      const payload = await response.json();
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+
+      return rows.map((user) => ({
+        ...user,
+        profile: user?.profile || user?.avatar || user?.svg_avatar || null,
+      }));
+    } catch {
+      return [];
+    }
   }, []);
 
   const searchAdsAndCategories = useCallback(async (query) => {
@@ -378,7 +406,7 @@ const ComponentOne = ({
      
      try {
         const response = await fetch(
-          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(query)}&per_page=50`,
+          buildApiUrl("get-item", { search: query, per_page: 50 }),
           { signal: abortAdsRef.current.signal }
         );
         if(!response.ok) return { cats: [], usersFromAds: [] };
