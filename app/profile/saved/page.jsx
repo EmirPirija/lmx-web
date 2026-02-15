@@ -137,7 +137,7 @@ export default function SavedPage() {
               ))
             ) : (
               <div className="text-sm text-slate-500 dark:text-slate-400">
-                Nema listi. Kreiraj listu kroz dugme "Sačuvaj" na profilu prodavača.
+                Nema listi. Kreiraj listu klikom na ikonu sačuvaj na profilu prodavača.
               </div>
             )}
           </div>
@@ -184,7 +184,7 @@ export default function SavedPage() {
             <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-10 text-center shadow-sm">
               <div className="text-lg font-extrabold text-slate-900 dark:text-white">Lista je prazna</div>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Idi na prodavača i klikni "Sačuvaj" → odaberi kolekciju.
+                Idi na prodavača i klikni ikonu sačuvaj → odaberi kolekciju.
               </div>
             </div>
           )}

@@ -1284,7 +1284,6 @@ export const SellerPreviewCard = ({
             <SavedToListButton
               sellerId={sellerId}
               sellerName={seller?.name}
-              variant="pill"
             />
 
             {contactStyle === "sheet" ? (

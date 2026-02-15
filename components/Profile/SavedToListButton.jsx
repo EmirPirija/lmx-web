@@ -42,7 +42,6 @@ export default function SavedToListButton({
   sellerId,
   sellerName,
   className,
-  variant = "pill", // pill|icon
 }) {
   const { lists, loadingLists, refreshLists, createList } = useSavedCollections();
 
@@ -120,9 +119,10 @@ export default function SavedToListButton({
   };
 
   const title = useMemo(() => {
-    if (sellerName) return `Spasi ${sellerName} u listu`;
-    return "Spasi u listu";
-  }, [sellerName]);
+    if (hasAny) return sellerName ? `Sačuvan prodavač: ${sellerName}` : "Prodavač je sačuvan";
+    if (sellerName) return `Sačuvaj prodavača: ${sellerName}`;
+    return "Sačuvaj prodavača";
+  }, [hasAny, sellerName]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -135,13 +135,13 @@ export default function SavedToListButton({
             hasAny
               ? "bg-slate-900 text-white border-slate-900"
               : "bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700",
-            variant === "icon" && "p-2.5 w-10 h-10 justify-center",
+            "p-2.5 w-10 h-10 justify-center",
             className
           )}
           aria-label={title}
+          title={title}
         >
           <BookmarkIcon active={hasAny} />
-          {variant !== "icon" ? <span>{hasAny ? "Sačuvan" : "Sačuvaj"}</span> : null}
         </button>
       </PopoverTrigger>
 

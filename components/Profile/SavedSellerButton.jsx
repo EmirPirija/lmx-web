@@ -21,6 +21,7 @@ function BookmarkIcon({ filled }) {
 export default function SavedSellerButton({ sellerId, className }) {
   const { saved, loading, booting, toggle } = useSavedUser(sellerId, { enabled: true });
   const [pulse, setPulse] = useState(false);
+  const buttonLabel = saved ? "Prodavač je sačuvan" : "Sačuvaj prodavača";
 
   useEffect(() => {
     if (!booting) {
@@ -36,7 +37,7 @@ export default function SavedSellerButton({ sellerId, className }) {
       onClick={toggle}
       disabled={loading || !sellerId}
       className={cn(
-        "group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold",
+        "group inline-flex items-center justify-center rounded-full border p-2.5 w-10 h-10 text-sm font-semibold",
         "transition-all duration-200 active:scale-[0.98]",
         saved
           ? "bg-slate-900 text-white border-slate-900 shadow-sm"
@@ -44,23 +45,11 @@ export default function SavedSellerButton({ sellerId, className }) {
         pulse && "animate-in zoom-in-95",
         className
       )}
+      aria-label={buttonLabel}
+      title={buttonLabel}
     >
       <span className={cn("transition-transform duration-200", saved && "scale-[1.02]")}>
         <BookmarkIcon filled={saved} />
-      </span>
-
-      <span className="whitespace-nowrap">
-        {saved ? "Sačuvan" : "Sačuvaj"}
-      </span>
-
-      {/* mini inline feedback bez toasta */}
-      <span
-        className={cn(
-          "ml-1 text-xs opacity-0 translate-x-[-2px] transition-all duration-200",
-          saved && "opacity-100 translate-x-0"
-        )}
-      >
-        ✓
       </span>
     </button>
   );
