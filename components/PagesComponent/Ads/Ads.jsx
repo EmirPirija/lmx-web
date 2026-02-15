@@ -117,7 +117,7 @@ const Ads = () => {
   const filterTriggerTopRef = useRef(0);
   const filterTriggerBottomRef = useRef(0);
   const lastEmittedMobileHeaderRef = useRef(null);
-  const quickCategoryRequestIdRef = useRef(0);
+  const latestItemsRequestRef = useRef(0);
   const [advertisements, setAdvertisements] = useState({
     data: [],
     currentPage: 1,
@@ -662,102 +662,15 @@ const Ads = () => {
       return;
     }
 
-    setSearchQuickCategories([]);
-    setIsQuickCategoryLoading(true);
-    const requestId = ++quickCategoryRequestIdRef.current;
-
-    const timerId = window.setTimeout(async () => {
-      try {
-        const parameters = { page: 1, limit: 120, search: normalizedQuery };
-
-        if (sortBy) parameters.sort_by = sortBy;
-        if (isMinPrice) parameters.min_price = min_price;
-        if (max_price) parameters.max_price = max_price;
-        if (date_posted) parameters.posted_since = date_posted;
-        if (extraDetails && Object.keys(extraDetails).length > 0) {
-          parameters.custom_fields = extraDetails;
-        }
-        if (featured_section) parameters.featured_section_slug = featured_section;
-
-        if (hasSellerTypeFilter) {
-          parameters.seller_type = sellerType;
-          if (sellerType === "shop") {
-            parameters.is_shop = 1;
-            parameters.shop = 1;
-          } else if (sellerType === "pro") {
-            parameters.is_pro = 1;
-            parameters.membership = "pro";
-          } else if (sellerType === "free") {
-            parameters.is_free = 1;
-          } else if (sellerType === "premium") {
-            parameters.is_premium = 1;
-          }
-        }
-
-        if (hasSellerVerifiedFilter) {
-          parameters.seller_verified = 1;
-          parameters.verified = 1;
-        }
-
-        const hasValidCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
-        if (Number(km_range) > 0 && hasValidCoordinates) {
-          parameters.latitude = lat;
-          parameters.longitude = lng;
-          parameters.radius = km_range;
-        } else if (areaId) {
-          parameters.area_id = areaId;
-        } else if (city) {
-          parameters.city = city;
-        } else if (state) {
-          parameters.state = state;
-        } else if (country) {
-          parameters.country = country;
-        }
-
-        const response = await allItemApi.getItems(parameters);
-        const rawItems = response?.data?.data?.data || [];
-        const filteredItems = applySellerFilters(rawItems);
-        const categories = buildQuickNavigationCategories(filteredItems, categorySlugById).slice(0, 8);
-
-        if (quickCategoryRequestIdRef.current !== requestId) return;
-        setSearchQuickCategories(categories);
-      } catch (error) {
-        if (quickCategoryRequestIdRef.current !== requestId) return;
-        setSearchQuickCategories([]);
-      } finally {
-        if (quickCategoryRequestIdRef.current === requestId) {
-          setIsQuickCategoryLoading(false);
-        }
-      }
-    }, 220);
-
-    return () => {
-      window.clearTimeout(timerId);
-    };
-  }, [
-    query,
-    sortBy,
-    isMinPrice,
-    min_price,
-    max_price,
-    date_posted,
-    extraDetails,
-    featured_section,
-    hasSellerTypeFilter,
-    sellerType,
-    hasSellerVerifiedFilter,
-    km_range,
-    lat,
-    lng,
-    areaId,
-    city,
-    state,
-    country,
-    categorySlugById,
-    applySellerFilters,
-  ]);
+    // Fast path: derive quick categories from already loaded cards
+    // instead of triggering a second network request.
+    setIsQuickCategoryLoading(false);
+    const categories = buildQuickNavigationCategories(advertisements?.data || [], categorySlugById).slice(0, 8);
+    setSearchQuickCategories(categories);
+  }, [query, advertisements?.data, categorySlugById]);
 
   const getSingleCatItem = async (page) => {
+    const requestId = ++latestItemsRequestRef.current;
     try {
       const parameters = { page, limit: 12 };
       if (sortBy) parameters.sort_by = sortBy;
@@ -806,15 +719,30 @@ const Ads = () => {
         parameters.search = query;
       }
       page === 1
-        ? setAdvertisements((prev) => ({ ...prev, isLoading: true }))
+        ? setAdvertisements((prev) => ({ ...prev, isLoading: !prev?.data?.length }))
         : setAdvertisements((prev) => ({ ...prev, isLoadMore: true }));
 
       const res = await allItemApi.getItems(parameters);
+      if (requestId !== latestItemsRequestRef.current) return;
       const data = res?.data;
 
       if (data.error === false) {
         const rawItems = data?.data?.data || [];
         const items = applySellerFilters(rawItems);
+
+        page > 1
+          ? setAdvertisements((prev) => ({
+              ...prev,
+              data: [...prev.data, ...items],
+              currentPage: data?.data?.current_page,
+              hasMore: data?.data?.last_page > data?.data?.current_page,
+            }))
+          : setAdvertisements((prev) => ({
+              ...prev,
+              data: items,
+              currentPage: data?.data?.current_page,
+              hasMore: data?.data?.last_page > data?.data?.current_page,
+            }));
 
         // ✅ TRACK SEARCH IMPRESSIONS
         if (items.length > 0) {
@@ -836,31 +764,21 @@ const Ads = () => {
           };
           const searchId = getSearchId(searchContext);
           searchIdRef.current = searchId;
-          await trackSearchImpressions(itemIds, {
+
+          // Do not block cards rendering on tracking endpoint latency.
+          void trackSearchImpressions(itemIds, {
             ...searchContext,
             results_count: items.length,
             page,
+          }).then(() => {
+            lastImpressionIdRef.current = getLastImpressionId();
           });
-          lastImpressionIdRef.current = getLastImpressionId();
         }
-
-        page > 1
-          ? setAdvertisements((prev) => ({
-              ...prev,
-              data: [...prev.data, ...items],
-              currentPage: data?.data?.current_page,
-              hasMore: data?.data?.last_page > data?.data?.current_page,
-            }))
-          : setAdvertisements((prev) => ({
-              ...prev,
-              data: items,
-              currentPage: data?.data?.current_page,
-              hasMore: data?.data?.last_page > data?.data?.current_page,
-            }));
       }
     } catch (error) {
       console.log(error);
     } finally {
+      if (requestId !== latestItemsRequestRef.current) return;
       setAdvertisements((prev) => ({
         ...prev,
         isLoading: false,

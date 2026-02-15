@@ -130,6 +130,33 @@ const CATEGORY_REQUEST_TTL = 1000 * 60; // 1 min
 const CATEGORY_CACHE_MAX_SIZE = 100;
 const categoryResponseCache = new Map();
 const categoryInFlightRequests = new Map();
+const ITEMS_REQUEST_TTL = 1000 * 15; // 15s
+const ITEMS_CACHE_MAX_SIZE = 120;
+const itemsResponseCache = new Map();
+const itemsInFlightRequests = new Map();
+
+const stableSerialize = (value) => {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableSerialize(entry)).join(",")}]`;
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value)
+      .filter(([, entryValue]) => entryValue !== undefined && entryValue !== null && entryValue !== "")
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([entryKey, entryValue]) => `${entryKey}:${stableSerialize(entryValue)}`);
+    return `{${entries.join("|")}}`;
+  }
+  return String(value);
+};
+
+const setItemsCache = (key, response) => {
+  itemsResponseCache.set(key, { response, timestamp: Date.now() });
+  if (itemsResponseCache.size > ITEMS_CACHE_MAX_SIZE) {
+    const oldestKey = itemsResponseCache.keys().next().value;
+    if (oldestKey) itemsResponseCache.delete(oldestKey);
+  }
+};
 
 const buildCategoryRequestKey = ({
   category_id,
@@ -278,46 +305,79 @@ export const allItemApi = {
     membership,
     verified,
     shop,
+    no_cache,
   } = {}) => {
-    return Api.get(GET_ITEM, {
-      params: {
-        id,
-        custom_fields,
-        category_id,
-        min_price,
-        max_price,
-        sort_by,
-        posted_since,
-        featured_section_id,
-        status,
-        page,
-        search,
-        country,
-        state,
-        city,
-        slug,
-        category_slug,
-        featured_section_slug,
-        area_id,
-        latitude,
-        longitude,
-        radius,
-        user_id,
-        popular_items,
-        limit,
-        current_page,
-        has_video,
-        seller_type,
-        seller_verified,
-        is_pro,
-        is_shop,
-        is_free,
-        is_premium,
-        membership,
-        verified,
-        shop,
-      },
-    });
+    const params = {
+      id,
+      custom_fields,
+      category_id,
+      min_price,
+      max_price,
+      sort_by,
+      posted_since,
+      featured_section_id,
+      status,
+      page,
+      search,
+      country,
+      state,
+      city,
+      slug,
+      category_slug,
+      featured_section_slug,
+      area_id,
+      latitude,
+      longitude,
+      radius,
+      user_id,
+      popular_items,
+      limit,
+      current_page,
+      has_video,
+      seller_type,
+      seller_verified,
+      is_pro,
+      is_shop,
+      is_free,
+      is_premium,
+      membership,
+      verified,
+      shop,
+    };
+
+    const shouldUseCache = !no_cache;
+    const requestKey = stableSerialize(params);
+
+    if (shouldUseCache) {
+      const cached = itemsResponseCache.get(requestKey);
+      const isFresh = cached && Date.now() - cached.timestamp <= ITEMS_REQUEST_TTL;
+      if (isFresh) {
+        return Promise.resolve(cached.response);
+      }
+
+      if (itemsInFlightRequests.has(requestKey)) {
+        return itemsInFlightRequests.get(requestKey);
+      }
+    }
+
+    const request = Api.get(GET_ITEM, { params })
+      .then((response) => {
+        if (shouldUseCache) {
+          setItemsCache(requestKey, response);
+        }
+        return response;
+      })
+      .finally(() => {
+        if (shouldUseCache) {
+          itemsInFlightRequests.delete(requestKey);
+        }
+      });
+
+    if (shouldUseCache) {
+      itemsInFlightRequests.set(requestKey, request);
+    }
+
+    return request;
   },
 };
 
