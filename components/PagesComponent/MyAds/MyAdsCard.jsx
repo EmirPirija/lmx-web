@@ -1294,6 +1294,7 @@ const MyAdsCard = ({
   };
 
   const title = translatedItem?.name || data?.name;
+  const internalCode = String(data?.seller_product_code || "").trim();
 
   const cardContent = (
     <div
@@ -1636,6 +1637,13 @@ const MyAdsCard = ({
             </span>
           ) : null}
         </div>
+
+        {internalCode ? (
+          <div className="flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-slate-50/90 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900/70">
+            <span className="font-medium text-slate-500 dark:text-slate-400">Interna šifra:</span>
+            <span className="truncate font-semibold text-slate-800 dark:text-slate-100">{internalCode}</span>
+          </div>
+        ) : null}
 
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
           <div className="flex flex-wrap gap-1">

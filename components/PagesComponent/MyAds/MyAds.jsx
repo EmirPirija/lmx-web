@@ -34,6 +34,14 @@ import { getIsFreAdListing } from "@/redux/reducer/settingSlice.js";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
 import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import {
+  LivePhotoFill as MgLivePhotoFill,
+  EyeCloseFill as MgEyeCloseFill,
+  TagFill as MgTagFill,
+  RocketFill as MgRocketFill,
+  HistoryFill as MgHistoryFill,
+  RefreshAnticlockwise1Fill as MgRefreshAnticlockwise1Fill,
+} from "@mingcute/react";
 
 import {
   Clock,
@@ -41,11 +49,8 @@ import {
   TrendingDown,
   TrendingUp,
   Flame,
-  CheckCircle,
   EyeOff,
-  ShoppingBag,
   Star,
-  AlertTriangle,
   RefreshCw,
   X,
   Trash2,
@@ -60,13 +65,13 @@ import {
 
 function StatusTab({ item, count, isActive, onClick, compact = false, scope = "desktop" }) {
   const icons = {
-    approved: CheckCircle,
-    inactive: EyeOff,
-    "sold out": ShoppingBag,
-    featured: Star,
-    expired: AlertTriangle,
-    resubmitted: RefreshCw,
-    renew_due: RefreshCw,
+    approved: MgLivePhotoFill,
+    inactive: MgEyeCloseFill,
+    "sold out": MgTagFill,
+    featured: MgRocketFill,
+    expired: MgHistoryFill,
+    resubmitted: MgRefreshAnticlockwise1Fill,
+    renew_due: MgRefreshAnticlockwise1Fill,
   };
   const Icon = icons[item.value] || Layers;
   const tones = {
@@ -1123,44 +1128,48 @@ const MyAds = () => {
       {/* Filter Bar */}
       <div className="space-y-3">
         <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_18px_60px_-46px_rgba(15,23,42,0.65)] p-3 sm:p-4">
-          <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_270px_auto] lg:items-center lg:gap-3">
-            <div className="min-w-0 overflow-x-auto scrollbar-none">
-              <div className="flex w-max items-center gap-2 pr-1">
-                {tabs.map((tab) => (
-                  <StatusTab
-                    key={tab.value}
-                    item={tab}
-                    count={statusCounts[tab.value] || 0}
-                    isActive={status === tab.value}
-                    onClick={() => handleStatusChange(tab.value)}
-                    scope="desktop"
-                  />
-                ))}
-              </div>
+          <div className="hidden lg:flex lg:flex-col lg:gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {tabs.map((tab) => (
+                <StatusTab
+                  key={tab.value}
+                  item={tab}
+                  count={statusCounts[tab.value] || 0}
+                  isActive={status === tab.value}
+                  onClick={() => handleStatusChange(tab.value)}
+                  compact
+                  scope="desktop"
+                />
+              ))}
             </div>
-            <SortButton value={sortValue} onChange={handleSortChange} isRTL={isRTL} fullWidth />
-            <Button
-              type="button"
-              variant={bulkMode ? "outline" : "default"}
-              onClick={() => {
-                if (bulkMode) {
-                  exitBulkMode();
-                } else {
-                  setRenewIds([]);
-                  setBulkResult(null);
-                  setBulkSelectedIds([]);
-                  setBulkMode(true);
-                }
-              }}
-              className="h-11 gap-2 rounded-2xl"
-            >
-              {bulkMode ? "Zatvori bulk" : "Bulk akcije"}
-              {bulkMode && bulkSelectionCount > 0 ? (
-                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
-                  {bulkSelectionCount}
-                </span>
-              ) : null}
-            </Button>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="w-full lg:max-w-[360px]">
+                <SortButton value={sortValue} onChange={handleSortChange} isRTL={isRTL} fullWidth />
+              </div>
+              <Button
+                type="button"
+                variant={bulkMode ? "outline" : "default"}
+                onClick={() => {
+                  if (bulkMode) {
+                    exitBulkMode();
+                  } else {
+                    setRenewIds([]);
+                    setBulkResult(null);
+                    setBulkSelectedIds([]);
+                    setBulkMode(true);
+                  }
+                }}
+                className="h-11 gap-2 rounded-2xl"
+              >
+                {bulkMode ? "Zatvori bulk" : "Bulk akcije"}
+                {bulkMode && bulkSelectionCount > 0 ? (
+                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                    {bulkSelectionCount}
+                  </span>
+                ) : null}
+              </Button>
+            </div>
           </div>
 
           <div className="lg:hidden space-y-3">
@@ -1279,7 +1288,7 @@ const MyAds = () => {
       ) : null}
 
       {/* Ads Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-6 items-stretch gap-4 lg:gap-6">
         {IsLoading ? (
           [...Array(8)].map((_, i) => (
             <motion.div

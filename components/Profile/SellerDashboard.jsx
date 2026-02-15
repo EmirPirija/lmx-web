@@ -19,6 +19,7 @@ import {
   sellerSettingsApi,
   chatListApi,
   savedCollectionsApi,
+  itemStatisticsApi,
 } from "@/utils/api";
 
 import {
@@ -49,21 +50,64 @@ import {
 
 // ==================== HELPER FUNKCIJE ====================
 
-const getApiData = (res) => res?.data?.data ?? null;
+const unwrapPayload = (res) => {
+  if (!res) return null;
+  const root = res?.data ?? res;
+  if (root === null || root === undefined) return null;
+  if (typeof root !== "object") return root;
+  if (root?.data !== undefined && root?.data !== null) return root.data;
+  return root;
+};
 
 const extractList = (payload) => {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
+
+  const candidates = [
+    payload?.data,
+    payload?.items,
+    payload?.rows,
+    payload?.results,
+    payload?.list,
+    payload?.notifications,
+    payload?.collections,
+    payload?.chats,
+    payload?.reviews,
+    payload?.records,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+
+  if (payload?.data && typeof payload.data === "object") {
+    const nested = extractList(payload.data);
+    if (nested.length > 0) return nested;
+  }
+
   return [];
 };
 
 const extractTotal = (payload) => {
-  if (!payload) return 0;
-  if (typeof payload?.total === "number") return payload.total;
-  if (typeof payload?.meta?.total === "number") return payload.meta.total;
-  if (typeof payload?.pagination?.total === "number") return payload.pagination.total;
-  if (typeof payload?.meta?.pagination?.total === "number") return payload.meta.pagination.total;
+  if (!payload || typeof payload !== "object") return 0;
+
+  const candidates = [
+    payload?.total,
+    payload?.count,
+    payload?.total_count,
+    payload?.meta?.total,
+    payload?.pagination?.total,
+    payload?.meta?.pagination?.total,
+    payload?.data?.total,
+    payload?.data?.count,
+    payload?.data?.meta?.total,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = Number(candidate);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
   return 0;
 };
 
@@ -313,47 +357,105 @@ export default function SellerDashboard() {
           chatListApi.chatList({ type: "seller", page: 1 }),
         ]),
         savedCollectionsApi.lists(),
+        itemStatisticsApi.getSellerOverview({ period: 30, top: 8 }),
       ]);
 
-      const [membershipRes, notifRes, adsRes, reviewsRes, sellerRes, chatRes, collectionsRes] = results;
+      const [membershipRes, notifRes, adsRes, reviewsRes, sellerRes, chatRes, collectionsRes, overviewRes] = results;
+
+      const getCountSafe = (...values) => {
+        for (const value of values) {
+          const parsed = toNum(value);
+          if (parsed !== null) return parsed;
+        }
+        return 0;
+      };
 
       // Membership
       let membershipTier = String(userData?.membership_tier || "free").toLowerCase();
       if (membershipRes.status === "fulfilled") {
-        const membershipData = getApiData(membershipRes.value);
+        const membershipData = unwrapPayload(membershipRes.value);
         membershipTier = String(
           membershipData?.tier || membershipData?.membership_tier || membershipTier
         ).toLowerCase();
       }
 
+      // Seller overview (optional endpoint)
+      let overviewSummary = null;
+      if (overviewRes.status === "fulfilled") {
+        const overviewPayload = unwrapPayload(overviewRes.value);
+        overviewSummary = overviewPayload?.summary || overviewPayload || null;
+      }
+
       // Notifications
       let unreadNotifications = 0;
       if (notifRes.status === "fulfilled") {
-        const payload = getApiData(notifRes.value);
+        const payload = unwrapPayload(notifRes.value);
         const list = extractList(payload);
-        unreadNotifications = list.filter((n) => !n?.read_at && !n?.is_read).length;
+        unreadNotifications = getCountSafe(
+          payload?.unread_count,
+          payload?.meta?.unread_count,
+          payload?.data?.unread_count,
+          list.filter((n) => !n?.read_at && !n?.is_read).length
+        );
       }
 
       // Ads
       let activeAds = 0;
       let totalViews = 0;
       if (adsRes.status === "fulfilled") {
-        const payload = getApiData(adsRes.value);
-        activeAds = extractTotal(payload) || payload?.total || 0;
+        const payload = unwrapPayload(adsRes.value);
+        activeAds = getCountSafe(extractTotal(payload), payload?.total);
 
         const adsList = extractList(payload);
-        totalViews = adsList.reduce((sum, ad) => sum + (Number(ad?.total_clicks) || 0), 0);
+        totalViews = getCountSafe(
+          overviewSummary?.views,
+          overviewSummary?.total_views,
+          payload?.totals?.views,
+          payload?.summary?.views,
+          adsList.reduce(
+            (sum, ad) =>
+              sum +
+              getCountSafe(
+                ad?.total_clicks,
+                ad?.views,
+                ad?.total_views
+              ),
+            0
+          )
+        );
+      }
+
+      // ako overview vrati preciznije brojke, koristi njih
+      if (overviewSummary) {
+        activeAds = getCountSafe(
+          overviewSummary?.active_ads,
+          overviewSummary?.active_items,
+          overviewSummary?.ads_active,
+          activeAds
+        );
+        totalViews = getCountSafe(
+          overviewSummary?.views,
+          overviewSummary?.total_views,
+          totalViews
+        );
       }
 
       // Rating
       let ratingFromReviews = null;
       let reviewCount = 0;
       if (reviewsRes.status === "fulfilled") {
-        const payload = getApiData(reviewsRes.value);
+        const payload = unwrapPayload(reviewsRes.value);
         const reviews = extractList(payload);
-        reviewCount = reviews.length;
+        reviewCount = getCountSafe(extractTotal(payload), reviews.length);
 
-        if (reviews.length > 0) {
+        const averageFromPayload = toNum(
+          payload?.average_rating ?? payload?.avg_rating ?? payload?.summary?.average_rating
+        );
+        if (averageFromPayload !== null) {
+          ratingFromReviews = averageFromPayload;
+        }
+
+        if (ratingFromReviews === null && reviews.length > 0) {
           const validRatings = reviews.map((r) => toNum(r?.ratings)).filter((n) => n !== null);
           if (validRatings.length > 0) {
             const avg = validRatings.reduce((a, b) => a + b, 0) / validRatings.length;
@@ -366,26 +468,42 @@ export default function SellerDashboard() {
       let unreadMessages = 0;
       if (chatRes.status === "fulfilled") {
         const [buyerChats, sellerChats] = chatRes.value;
-        const buyerData = getApiData(buyerChats);
-        const sellerData = getApiData(sellerChats);
+        const buyerData = unwrapPayload(buyerChats);
+        const sellerData = unwrapPayload(sellerChats);
         const buyerList = extractList(buyerData);
         const sellerList = extractList(sellerData);
-        unreadMessages = [...buyerList, ...sellerList].filter(
-          (c) => c?.unseen_messages_count > 0 || c?.unread_count > 0
-        ).length;
+
+        unreadMessages = getCountSafe(
+          buyerData?.unread_count,
+          buyerData?.meta?.unread_count,
+          0
+        ) + getCountSafe(
+          sellerData?.unread_count,
+          sellerData?.meta?.unread_count,
+          0
+        );
+
+        if (unreadMessages === 0) {
+          unreadMessages = [...buyerList, ...sellerList].reduce(
+            (sum, chat) =>
+              sum +
+              getCountSafe(chat?.unseen_messages_count, chat?.unread_count, 0),
+            0
+          );
+        }
       }
 
       // Seller settings
       let sellerData = null;
       if (sellerRes.status === "fulfilled") {
-        sellerData = getApiData(sellerRes.value) || null;
+        sellerData = unwrapPayload(sellerRes.value) || null;
         setSeller(sellerData);
       }
 
       // Collections
       let collectionsData = [];
       if (collectionsRes.status === "fulfilled") {
-        const data = getApiData(collectionsRes.value);
+        const data = unwrapPayload(collectionsRes.value);
         collectionsData = extractList(data);
         setCollections(collectionsData);
       }
@@ -399,13 +517,13 @@ export default function SellerDashboard() {
 
       setStats({
         membershipTier,
-        activeAds,
-        totalViews,
-        unreadNotifications,
-        unreadMessages,
+        activeAds: getCountSafe(activeAds, 0),
+        totalViews: getCountSafe(totalViews, 0),
+        unreadNotifications: getCountSafe(unreadNotifications, 0),
+        unreadMessages: getCountSafe(unreadMessages, 0),
         rating: finalRating,
-        savedCount: collectionsData.reduce((sum, c) => sum + (c?.items_count || 0), 0),
-        reviewCount,
+        savedCount: collectionsData.reduce((sum, c) => sum + getCountSafe(c?.items_count, 0), 0),
+        reviewCount: getCountSafe(reviewCount, 0),
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -418,8 +536,12 @@ export default function SellerDashboard() {
   }, [userData, DASHBOARD_FETCH_COOLDOWN_MS]);
 
   useEffect(() => {
+    if (!userData) {
+      setLoading(false);
+      return;
+    }
     fetchAll({ force: true, showLoader: true });
-  }, [fetchAll]);
+  }, [fetchAll, userData]);
 
   useEffect(() => {
     if (!userData) return;
@@ -519,6 +641,15 @@ export default function SellerDashboard() {
                 Postavke
               </Button>
             </CustomLink>
+
+            {userData?.id ? (
+              <CustomLink href={`/seller/${userData.id}`}>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <ArrowRight size={16} />
+                  Javni profil
+                </Button>
+              </CustomLink>
+            ) : null}
 
             <CustomLink href="/ad-listing">
               <Button size="sm" className="gap-2 bg-slate-900 hover:bg-slate-800">

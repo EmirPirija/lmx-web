@@ -199,6 +199,7 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
   if (!productDetails) return null;
 
   const productName = productDetails?.translated_item?.name || productDetails?.name || "Oglas";
+  const internalCode = String(productDetails?.seller_product_code || "").trim();
   const statusInfo = getStatusInfo(productDetails?.status);
   const StatusIcon = statusInfo.icon;
 
@@ -229,7 +230,40 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+        <div className="px-3 pt-3">
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/50 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{productName}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  <span>ID: #{productDetails?.id}</span>
+                  {productDetails?.created_at ? <span>Kreiran: {formatDate(productDetails.created_at)}</span> : null}
+                </div>
+              </div>
+
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold whitespace-nowrap",
+                  statusInfo.borderColor,
+                  statusInfo.bgColor,
+                  statusInfo.color
+                )}
+              >
+                <StatusIcon size={12} />
+                {statusInfo.label}
+              </span>
+            </div>
+
+            {internalCode ? (
+              <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-[11px]">
+                <span className="font-medium text-slate-500 dark:text-slate-400">Interna šifra:</span>
+                <span className="truncate font-semibold text-slate-800 dark:text-slate-100">{internalCode}</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
         {/* HEADER */}
         {/* <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <div className="min-w-0">
