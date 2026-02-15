@@ -20,6 +20,14 @@ const MAX_IMAGES = 10;
 // MEDIA HELPERS
 // =======================================================
 const isFileLike = (v) => typeof File !== "undefined" && (v instanceof File || v instanceof Blob);
+const isBlobUrl = (v) => typeof v === "string" && v.startsWith("blob:");
+const isLikelyImageFile = (file) => {
+  if (!file) return false;
+  const type = String(file.type || "").toLowerCase();
+  const name = String(file.name || "").toLowerCase();
+  if (type.startsWith("image/")) return true;
+  return /\.(jpe?g|png|webp|heic|heif|avif)$/i.test(name);
+};
 
 // ✅ FIX: Ažurirana funkcija da podržava sve formate (kao u EditComponentThree)
 const safeObjectUrl = (v) => {
@@ -128,8 +136,17 @@ const compressAndWatermarkImage = async (file) => {
   let img;
   try {
     img = await loadImageElement(src);
+  } catch (e) {
+    // Mobile browseri ponekad ne mogu dekodirati određene image formate u canvas.
+    // U tom slučaju vraćamo original i puštamo server-side obradu.
+    console.warn("Image decode fallback:", e);
+    return file;
   } finally {
-    try { URL.revokeObjectURL(src); } catch {}
+    if (isBlobUrl(src)) {
+      try {
+        URL.revokeObjectURL(src);
+      } catch {}
+    }
   }
 
   const srcW = img.naturalWidth || img.width;
@@ -278,9 +295,10 @@ const ComponentFour = ({
     const fd = new FormData();
     fd.append(type, file);
     const res = await Api.post(`/upload-temp/${type}`, fd, {
-      headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
-        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        const loaded = Number(progressEvent?.loaded || 0);
+        const total = Number(progressEvent?.total || loaded || 1);
+        const percent = Math.min(100, Math.round((loaded * 100) / total));
         if(onProgress) onProgress(percent);
       },
     });
@@ -295,7 +313,7 @@ const ComponentFour = ({
 
   // Handlers
   const handleImagesUpload = async (files) => {
-    const rawArr = Array.from(files || []).filter(f => f?.type?.startsWith("image/"));
+    const rawArr = Array.from(files || []).filter((f) => isLikelyImageFile(f));
     if (!rawArr.length) return toast.error("Odaberite validne slike");
 
     const remainingSlots = MAX_IMAGES - currentCount;
@@ -326,7 +344,11 @@ const ComponentFour = ({
 
       } catch (e) {
         console.error(e);
-        toast.error(`Greška: ${file.name}`);
+        const errorMsg =
+          e?.response?.data?.message ||
+          e?.message ||
+          "Upload slike nije uspio.";
+        toast.error(`Greška (${file.name}): ${errorMsg}`);
       } finally {
         setTimeout(() => {
           setImageUploadProgress(prev => {
