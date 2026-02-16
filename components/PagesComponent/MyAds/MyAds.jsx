@@ -8,7 +8,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AdsCard from "./MyAdsCard.jsx";
 import SellerAnalyticsOverview from "./SellerAnalyticsOverview";
@@ -466,6 +466,7 @@ const MyAds = () => {
   const [IsChoosePackage, setIsChoosePackage] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [isRenewingAd, setIsRenewingAd] = useState(false);
+  const actionLocksRef = useRef(new Set());
 
   const tabs = useMemo(() => [
     { value: "approved", label: "Aktivni" },
@@ -583,29 +584,43 @@ const MyAds = () => {
     [sortValue]
   );
 
+  const refreshStatusCounts = useCallback(async () => {
+    const regularTabs = tabs.filter((t) => t.value !== RENEW_DUE_STATUS);
+    const promises = regularTabs.map(async (t) => {
+      try {
+        const res = await getMyItemsApi.getMyItems({
+          status: t.value,
+          page: 1,
+          sort_by: "new-to-old",
+        });
+        return { status: t.value, count: res?.data?.data?.total || 0 };
+      } catch {
+        return { status: t.value, count: 0 };
+      }
+    });
+
+    const results = await Promise.all(promises);
+    const newCounts = {};
+    results.forEach((item) => {
+      newCounts[item.status] = item.count;
+    });
+    setStatusCounts((prev) => ({ ...prev, ...newCounts }));
+  }, [tabs]);
+
   // Fetch counts
   useEffect(() => {
     let isMounted = true;
-
-    const fetchAllCounts = async () => {
-      const regularTabs = tabs.filter((t) => t.value !== RENEW_DUE_STATUS);
-      const promises = regularTabs.map(async (t) => {
-        try {
-          const res = await getMyItemsApi.getMyItems({ status: t.value, page: 1, sort_by: "new-to-old" });
-          return { status: t.value, count: res?.data?.data?.total || 0 };
-        } catch { return { status: t.value, count: 0 }; }
-      });
-      const results = await Promise.all(promises);
-      const newCounts = {};
-      results.forEach((item) => { newCounts[item.status] = item.count; });
-      if (!isMounted) return;
-      setStatusCounts((prev) => ({ ...prev, ...newCounts }));
-    };
-    fetchAllCounts();
+    (async () => {
+      try {
+        await refreshStatusCounts();
+      } catch {
+        if (!isMounted) return;
+      }
+    })();
     return () => {
       isMounted = false;
     };
-  }, [tabs]);
+  }, [refreshStatusCounts]);
 
   useEffect(() => {
     if (isRenewDueCountResolved) return;
@@ -679,6 +694,27 @@ const MyAds = () => {
     } catch (error) { console.error(error); }
     finally { setIsLoading(false); setIsLoadMore(false); }
   }, [sortValue, status, fetchRenewDueItems]);
+
+  const refreshAfterMutation = useCallback(async () => {
+    await getMyItemsData(1);
+    await refreshStatusCounts();
+    setIsRenewDueCountResolved(false);
+  }, [getMyItemsData, refreshStatusCounts]);
+
+  const withActionLock = useCallback(async (adId, action, callback) => {
+    const lockKey = `${action}:${adId}`;
+    if (actionLocksRef.current.has(lockKey)) {
+      toast.info("Akcija je već u toku. Sačekaj završetak.");
+      return false;
+    }
+
+    actionLocksRef.current.add(lockKey);
+    try {
+      return await callback();
+    } finally {
+      actionLocksRef.current.delete(lockKey);
+    }
+  }, []);
 
   useEffect(() => { getMyItemsData(1); }, [getMyItemsData]);
 
@@ -774,7 +810,7 @@ const MyAds = () => {
         setIsDeleteDialog(false);
         setSelectedIds([]);
         setRenewIds([]);
-        await getMyItemsData(1);
+        await refreshAfterMutation();
       } else toast.error(res?.data?.message);
     } catch (error) { console.error(error); }
     finally { setIsDeleting(false); }
@@ -792,7 +828,7 @@ const MyAds = () => {
         toast.success(res?.data?.message);
         setIsChoosePackage(false);
         setRenewIds([]);
-        await getMyItemsData(1);
+        await refreshAfterMutation();
       } else {
         toast.error(
           mapRenewErrorMessage(
@@ -825,139 +861,114 @@ const MyAds = () => {
     }
   };
 
-  const handleDeactivateAd = async (adId) => {
-    try {
-      const res = await chanegItemStatusApi.changeItemStatus({ item_id: adId, status: "inactive" });
-      if (res?.data?.error === false) {
-        toast.success("Oglas je skriven.");
-        const currentItem = MyItems.find((item) => item.id === adId);
-        if (status === "approved" || status === "featured") {
-          setMyItems((prev) => prev.filter((item) => item.id !== adId));
-        } else {
-          setMyItems((prev) => prev.map((item) => item.id === adId ? { ...item, status: "inactive" } : item));
+  const handleDeactivateAd = async (adId) =>
+    withActionLock(adId, "deactivate", async () => {
+      try {
+        const res = await chanegItemStatusApi.changeItemStatus({
+          item_id: adId,
+          status: "inactive",
+        });
+        if (res?.data?.error === false) {
+          toast.success(res?.data?.message || "Oglas je skriven.");
+          await refreshAfterMutation();
+          return true;
         }
-        setStatusCounts((prev) => ({
-          ...prev,
-          approved: Math.max(0, prev.approved - 1),
-          featured: currentItem?.is_feature ? Math.max(0, prev.featured - 1) : prev.featured,
-          inactive: prev.inactive + 1,
-        }));
-      } else toast.error(res?.data?.message || "Greška pri skrivanju oglasa.");
-    } catch (error) { console.error(error); toast.error("Greška pri skrivanju oglasa."); }
-  };
-
-  const handleActivateAd = async (adId) => {
-    try {
-      const res = await chanegItemStatusApi.changeItemStatus({ item_id: adId, status: "active" });
-      if (res?.data?.error === false) {
-        toast.success("Oglas je aktiviran.");
-        if (status === "inactive") setMyItems((prev) => prev.filter((item) => item.id !== adId));
-        else setMyItems((prev) => prev.map((item) => item.id === adId ? { ...item, status: "approved" } : item));
-        setStatusCounts((prev) => ({ ...prev, inactive: Math.max(0, prev.inactive - 1), approved: prev.approved + 1 }));
-      } else toast.error(res?.data?.message || "Greška pri aktiviranju oglasa.");
-    } catch (error) { console.error(error); toast.error("Greška pri aktiviranju oglasa."); }
-  };
-
-  const handleMarkAsSoldOut = async (adId, salePayload = null) => {
-    try {
-      const buyerId = salePayload?.buyerId ?? null;
-      const payload = {
-        item_id: adId,
-        status: "sold out",
-        ...(buyerId ? { sold_to: buyerId } : {}),
-      };
-
-      if (salePayload?.quantitySold) {
-        payload.quantity_sold = salePayload.quantitySold;
+        toast.error(res?.data?.message || "Greška pri skrivanju oglasa.");
+        return false;
+      } catch (error) {
+        console.error(error);
+        toast.error("Greška pri skrivanju oglasa.");
+        return false;
       }
-      if (salePayload?.receiptFile) {
-        payload.sale_receipt = salePayload.receiptFile;
-      }
-      if (salePayload?.saleNote !== undefined && salePayload?.saleNote !== null) {
-        payload.sale_note = salePayload.saleNote;
-      }
-      if (salePayload?.totalPrice !== undefined && salePayload?.totalPrice !== null) {
-        payload.sale_price = salePayload.totalPrice;
-      }
+    });
 
-      const res = await chanegItemStatusApi.changeItemStatus(payload);
-      if (res?.data?.error === false) {
-        const responseData = res?.data?.data || {};
-        const newStatus = responseData?.status || "sold out";
-        const newInventory =
-          responseData?.inventory_count !== undefined && responseData?.inventory_count !== null
-            ? Number(responseData.inventory_count)
-            : undefined;
-        const currentItem = MyItems.find((item) => item.id === adId);
-        const isJob = Number(currentItem?.category?.is_job_category) === 1;
-        toast.success(
-          res?.data?.message ||
-            (isJob ? "Pozicija je uspješno ažurirana." : "Prodaja je uspješno evidentirana.")
-        );
-        setMyItems((prev) =>
-          prev.map((item) =>
-            item.id === adId
-              ? {
-                  ...item,
-                  status: newStatus,
-                  sold_to: buyerId,
-                  ...(newInventory !== undefined ? { inventory_count: newInventory } : {}),
-                }
-              : item
-          )
-        );
-        setStatusCounts((prev) => ({
-          ...prev,
-          approved: Math.max(
-            0,
-            prev.approved - (newStatus === "sold out" ? 1 : 0)
-          ),
-          featured: currentItem?.is_feature ? Math.max(0, prev.featured - 1) : prev.featured,
-          "sold out": Math.max(
-            0,
-            prev["sold out"] + (newStatus === "sold out" ? 1 : 0)
-          ),
-        }));
-        if (newStatus === "sold out" && status !== "sold out") {
-          updateURLParams("status", "sold out");
+  const handleActivateAd = async (adId) =>
+    withActionLock(adId, "activate", async () => {
+      try {
+        const res = await chanegItemStatusApi.changeItemStatus({
+          item_id: adId,
+          status: "active",
+        });
+        if (res?.data?.error === false) {
+          toast.success(res?.data?.message || "Oglas je aktiviran.");
+          await refreshAfterMutation();
+          return true;
         }
-      } else toast.error(res?.data?.message || "Greška pri označavanju oglasa.");
-    } catch (error) { console.error(error); toast.error("Greška pri označavanju oglasa."); }
-  };
+        toast.error(res?.data?.message || "Greška pri aktiviranju oglasa.");
+        return false;
+      } catch (error) {
+        console.error(error);
+        toast.error("Greška pri aktiviranju oglasa.");
+        return false;
+      }
+    });
 
-  const handleFeatureAd = async (adId, options = {}) => {
-    try {
-      const placement = normalizeFeaturedPlacement(options?.placement);
-      const durationDays = normalizeFeaturedDuration(options?.duration_days);
+  const handleMarkAsSoldOut = async (adId, salePayload = null) =>
+    withActionLock(adId, "sold", async () => {
+      try {
+        const buyerId = salePayload?.buyerId ?? null;
+        const payload = {
+          item_id: adId,
+          status: "sold out",
+          ...(buyerId ? { sold_to: buyerId } : {}),
+        };
 
-      const res = await createFeaturedItemApi.createFeaturedItem({
-        item_id: adId,
-        positions: placement,
-        placement,
-        duration_days: durationDays,
-      });
+        if (salePayload?.quantitySold) {
+          payload.quantity_sold = salePayload.quantitySold;
+        }
+        if (salePayload?.receiptFile) {
+          payload.sale_receipt = salePayload.receiptFile;
+        }
+        if (salePayload?.saleNote !== undefined && salePayload?.saleNote !== null) {
+          payload.sale_note = salePayload.saleNote;
+        }
+        if (salePayload?.totalPrice !== undefined && salePayload?.totalPrice !== null) {
+          payload.sale_price = salePayload.totalPrice;
+        }
 
-      if (res?.data?.error === false) {
-        toast.success(res?.data?.message || "Oglas je uspješno izdvojen.");
-        setMyItems((prev) =>
-          prev.map((item) => (item.id === adId ? { ...item, is_feature: true } : item))
-        );
-
-        try {
-          const featuredRes = await getMyItemsApi.getMyItems({
-            status: "featured",
-            page: 1,
-            sort_by: "new-to-old",
-          });
-          const featuredCount = Number(featuredRes?.data?.data?.total);
-          if (Number.isFinite(featuredCount)) {
-            setStatusCounts((prev) => ({ ...prev, featured: featuredCount }));
+        const res = await chanegItemStatusApi.changeItemStatus(payload);
+        if (res?.data?.error === false) {
+          const currentItem = MyItems.find((item) => item.id === adId);
+          const isJob = Number(currentItem?.category?.is_job_category) === 1;
+          toast.success(
+            res?.data?.message ||
+              (isJob
+                ? "Pozicija je uspješno ažurirana."
+                : "Prodaja je uspješno evidentirana.")
+          );
+          await refreshAfterMutation();
+          if (status !== "sold out") {
+            updateURLParams("status", "sold out");
           }
-        } catch {}
+          return true;
+        }
+        toast.error(res?.data?.message || "Greška pri označavanju oglasa.");
+        return false;
+      } catch (error) {
+        console.error(error);
+        toast.error("Greška pri označavanju oglasa.");
+        return false;
+      }
+    });
 
-        await getMyItemsData(1);
-        return true;
-      } else {
+  const handleFeatureAd = async (adId, options = {}) =>
+    withActionLock(adId, "feature", async () => {
+      try {
+        const placement = normalizeFeaturedPlacement(options?.placement);
+        const durationDays = normalizeFeaturedDuration(options?.duration_days);
+
+        const res = await createFeaturedItemApi.createFeaturedItem({
+          item_id: adId,
+          positions: placement,
+          placement,
+          duration_days: durationDays,
+        });
+
+        if (res?.data?.error === false) {
+          toast.success(res?.data?.message || "Oglas je uspješno izdvojen.");
+          await refreshAfterMutation();
+          return true;
+        }
         toast.error(
           getApiErrorMessage(
             res?.data,
@@ -965,66 +976,53 @@ const MyAds = () => {
           )
         );
         return false;
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        getApiErrorMessage(
-          error?.response?.data,
-          error?.message || "Greška pri izdvajanju oglasa."
-        )
-      );
-      return false;
-    }
-  };
-
-  const handleReserveAd = async (adId) => {
-    try {
-      const res = await inventoryApi.reserveItem({ item_id: adId });
-      if (res?.data?.error === false) {
-        toast.success(res?.data?.message || "Oglas je označen kao rezervisan.");
-        setMyItems((prev) =>
-          prev.map((item) =>
-            item.id === adId
-              ? {
-                  ...item,
-                  reservation_status: "reserved",
-                }
-              : item
+      } catch (error) {
+        console.error(error);
+        toast.error(
+          getApiErrorMessage(
+            error?.response?.data,
+            error?.message || "Greška pri izdvajanju oglasa."
           )
         );
-      } else {
+        return false;
+      }
+    });
+
+  const handleReserveAd = async (adId) =>
+    withActionLock(adId, "reserve", async () => {
+      try {
+        const res = await inventoryApi.reserveItem({ item_id: adId });
+        if (res?.data?.error === false) {
+          toast.success(res?.data?.message || "Oglas je označen kao rezervisan.");
+          await refreshAfterMutation();
+          return true;
+        }
         toast.error(res?.data?.message || "Greška pri rezervaciji oglasa.");
+        return false;
+      } catch (error) {
+        console.error(error);
+        toast.error("Greška pri rezervaciji oglasa.");
+        return false;
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Greška pri rezervaciji oglasa.");
-    }
-  };
+    });
 
-  const handleUnreserveAd = async (adId) => {
-    try {
-      const res = await inventoryApi.removeReservation({ item_id: adId });
-      if (res?.data?.error === false) {
-        toast.success(res?.data?.message || "Rezervacija je uklonjena.");
-        setMyItems((prev) =>
-          prev.map((item) =>
-            item.id === adId
-              ? {
-                  ...item,
-                  reservation_status: "none",
-                }
-              : item
-          )
-        );
-      } else {
+  const handleUnreserveAd = async (adId) =>
+    withActionLock(adId, "unreserve", async () => {
+      try {
+        const res = await inventoryApi.removeReservation({ item_id: adId });
+        if (res?.data?.error === false) {
+          toast.success(res?.data?.message || "Rezervacija je uklonjena.");
+          await refreshAfterMutation();
+          return true;
+        }
         toast.error(res?.data?.message || "Greška pri uklanjanju rezervacije.");
+        return false;
+      } catch (error) {
+        console.error(error);
+        toast.error("Greška pri uklanjanju rezervacije.");
+        return false;
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Greška pri uklanjanju rezervacije.");
-    }
-  };
+    });
 
   const handleApplyBulkAction = async () => {
     if (!bulkConfirm.action) return;
@@ -1067,7 +1065,7 @@ const MyAds = () => {
           toast.success(`Akcija završena. Uspješno: ${success}`);
         }
 
-        await getMyItemsData(1);
+        await refreshAfterMutation();
       } else {
         toast.error(getApiErrorMessage(res?.data, "Bulk akcija nije uspjela."));
       }
@@ -1085,38 +1083,94 @@ const MyAds = () => {
   };
 
   const handleContextMenuAction = (action, adId, payload = null) => {
+    const currentItem = MyItems.find((item) => String(item?.id) === String(adId));
+    const currentStatus = String(currentItem?.status || "").toLowerCase();
+    const isExpired = currentStatus === "expired";
+    const isInactive = currentStatus === "inactive";
+    const isSoldOut = currentStatus === "sold out";
+    const isReserved =
+      currentStatus === "reserved" || currentItem?.reservation_status === "reserved";
+    const isApproved =
+      currentStatus === "approved" ||
+      currentStatus === "featured" ||
+      currentStatus === "reserved";
+    const isFeatured = Boolean(currentItem?.is_feature);
+    const needsItemForAction = !["delete", "edit"].includes(action);
+
+    if (!currentItem && needsItemForAction) {
+      toast.error("Oglas nije pronađen. Osvježi stranicu i pokušaj ponovo.");
+      return false;
+    }
+
     switch (action) {
       case "select":
         if (bulkMode) {
           handleBulkSelection(adId);
           break;
         }
-        if (MyItems.find((i) => i.id === adId)?.status === "expired") handleAdSelection(adId);
-        break;
-      case "edit": navigate(`/edit-listing/${adId}`); break;
-      case "deactivate": handleDeactivateAd(adId); break;
-      case "activate": handleActivateAd(adId); break;
-      case "markAsSoldOut": handleMarkAsSoldOut(adId, payload || null); break;
-      case "feature": return handleFeatureAd(adId, payload || {});
-      case "reserve": handleReserveAd(adId); break;
-      case "unreserve": handleUnreserveAd(adId); break;
+        if (isExpired) {
+          handleAdSelection(adId);
+          return true;
+        }
+        return false;
+      case "edit":
+        navigate(`/edit-listing/${adId}`);
+        return true;
+      case "deactivate":
+        if (!isApproved || isInactive) {
+          toast.info("Sakrivanje je dostupno samo za aktivan oglas.");
+          return false;
+        }
+        return handleDeactivateAd(adId);
+      case "activate":
+        if (!isInactive) {
+          toast.info("Aktivacija je dostupna samo za skriven oglas.");
+          return false;
+        }
+        return handleActivateAd(adId);
+      case "markAsSoldOut":
+        if (!isApproved || isInactive || isSoldOut) {
+          toast.info("Označavanje kao prodano nije dostupno za ovaj oglas.");
+          return false;
+        }
+        return handleMarkAsSoldOut(adId, payload || null);
+      case "feature":
+        if (!isApproved || isInactive || isSoldOut || isExpired || isFeatured || isReserved) {
+          toast.info("Izdvajanje trenutno nije dostupno za ovaj oglas.");
+          return false;
+        }
+        return handleFeatureAd(adId, payload || {});
+      case "reserve":
+        if (!isApproved || isInactive || isSoldOut || isReserved) {
+          toast.info("Rezervacija nije dostupna za ovaj oglas.");
+          return false;
+        }
+        return handleReserveAd(adId);
+      case "unreserve":
+        if (!isReserved) {
+          toast.info("Oglas nije rezervisan.");
+          return false;
+        }
+        return handleUnreserveAd(adId);
       case "renew": {
-        const currentItem = MyItems.find((i) => i.id === adId);
-        const isExpired = currentItem?.status === "expired";
         if (isExpired) {
           isFreeAdListing
             ? handleRenew([adId], { contextItemId: adId })
             : (setRenewIds([adId]), setIsChoosePackage(true));
+          return true;
         } else {
           if (!isAdEligibleForPositionRenew(currentItem)) {
             toast.error(getPositionRenewHint(adId));
-            break;
+            return false;
           }
           handleRenew([adId], { allowWithoutPackage: true, contextItemId: adId });
+          return true;
         }
-        break;
       }
-      case "delete": setSelectedIds([adId]); setIsDeleteDialog(true); break;
+      case "delete":
+        setSelectedIds([adId]);
+        setIsDeleteDialog(true);
+        return true;
       default: return undefined;
     }
   };
@@ -1288,7 +1342,7 @@ const MyAds = () => {
       ) : null}
 
       {/* Ads Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-6 items-stretch gap-4 lg:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
         {IsLoading ? (
           [...Array(8)].map((_, i) => (
             <motion.div

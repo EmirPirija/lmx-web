@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 
 import HomeReels from "./HomeReels";
 import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
+import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
 
 const OfferSlider = dynamic(() => import("./OfferSlider"), {
   ssr: false,
@@ -77,13 +78,17 @@ const Home = () => {
             ...params,
             current_page: "home",
             is_feature: 1,
+            placement: "home",
+            positions: "home",
             page: 1,
             limit: 120,
           }),
         ]);
 
         const featuredSections = featuredResponse?.data?.data || [];
-        const featuredItems = extractItemsFromGetItemsResponse(featuredItemsResponse?.data);
+        const featuredItems = extractItemsFromGetItemsResponse(featuredItemsResponse?.data).filter((item) =>
+          isHomeFeaturedItem(item)
+        );
 
         const featuredItemsById = new Map(
           featuredItems

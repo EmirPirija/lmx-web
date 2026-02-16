@@ -305,6 +305,9 @@ export const allItemApi = {
     membership,
     verified,
     shop,
+    is_feature,
+    placement,
+    positions,
     no_cache,
   } = {}) => {
     const params = {
@@ -343,6 +346,9 @@ export const allItemApi = {
       membership,
       verified,
       shop,
+      is_feature,
+      placement,
+      positions,
     };
 
     const shouldUseCache = !no_cache;

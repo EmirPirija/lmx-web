@@ -7,7 +7,6 @@ import { createPortal } from "react-dom";
 import {
   CalendarDays,
   CheckCircle,
-  CheckSquare,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -651,7 +650,6 @@ const SmartQuickActionsPanel = ({
   isVisible,
   isMobile,
   onClose,
-  onSelect,
   onFeature,
   onReserve,
   onRemoveReservation,
@@ -661,13 +659,11 @@ const SmartQuickActionsPanel = ({
   onSold,
   onActivate,
   onRenew,
-  isSelected,
   isApproved,
   isEditable,
   isSoldOut,
   isInactive,
   isExpired,
-  isSelectable,
   isFeatureAd,
   isReserved,
   canPositionRenew,
@@ -714,7 +710,7 @@ const SmartQuickActionsPanel = ({
           label: "Izdvoji oglas",
           description: "Povećaj vidljivost na kategoriji i/ili naslovnoj.",
           onClick: onFeature,
-          show: isApproved && !isSoldOut && !isFeatureAd,
+          show: isApproved && !isSoldOut && !isFeatureAd && !isReserved && !isInactive,
           tone: "amber",
           kind: "normal",
         },
@@ -759,16 +755,6 @@ const SmartQuickActionsPanel = ({
           kind: "normal",
         },
         {
-          key: "select",
-          icon: CheckSquare,
-          label: isSelected ? "Poništi odabir" : "Odaberi za bulk",
-          description: "Dodaj oglas u grupne akcije.",
-          onClick: onSelect,
-          show: isSelectable || isExpired,
-          tone: "slate",
-          kind: "normal",
-        },
-        {
           key: "delete",
           icon: Trash2,
           label: "Izbriši oglas",
@@ -787,8 +773,6 @@ const SmartQuickActionsPanel = ({
       isFeatureAd,
       isInactive,
       isReserved,
-      isSelectable,
-      isSelected,
       isSoldOut,
       onActivate,
       onDelete,
@@ -798,7 +782,6 @@ const SmartQuickActionsPanel = ({
       onRemoveReservation,
       onRenew,
       onReserve,
-      onSelect,
       onSold,
     ]
   );
@@ -809,47 +792,51 @@ const SmartQuickActionsPanel = ({
       ? "activate"
       : isReserved
         ? "unreserve"
-      : isApproved && !isSoldOut && !isFeatureAd
-        ? "feature"
-      : isApproved && !isSoldOut && isEditable
-        ? "edit"
-        : canPositionRenew
-          ? "renew"
-          : "delete";
+        : isApproved && !isSoldOut && !isFeatureAd
+          ? "feature"
+          : isApproved && !isSoldOut && isEditable
+            ? "edit"
+            : canPositionRenew
+              ? "renew"
+              : "delete";
 
   const recommendedAction =
     actions.find((action) => action.key === recommendedActionKey) || actions[0] || null;
 
-  const secondaryActions = actions.filter(
-    (action) => action.key !== recommendedAction?.key && action.kind !== "danger"
-  );
+  const secondaryOrder = ["hide", "reserve", "unreserve", "edit", "sold", "activate", "renew"];
+  const secondaryActions = secondaryOrder
+    .map((key) => actions.find((action) => action.key === key))
+    .filter((action) => action && action.key !== recommendedAction?.key && action.kind !== "danger");
   const dangerActions = actions.filter((action) => action.kind === "danger");
 
-  const panelHint = isExpired
-    ? "Oglas je istekao, obnova je sada najvažnija."
-    : isInactive
-      ? "Oglas je skriven, aktiviraj ga kad budeš spreman."
-      : "Biraj akcije prema cilju: uređivanje, prodaja ili optimizacija pozicije.";
+  const panelHint = "Biraj akcije prema cilju: uređivanje, prodaja ili optimizacija pozicije.";
+  const renewInfoText =
+    renewAvailabilityHint ||
+    (canPositionRenew || isExpired
+      ? "Besplatna obnova pozicije je dostupna odmah."
+      : `Besplatna obnova pozicije za ${POSITION_RENEW_COOLDOWN_DAYS} dana.`);
 
   const toneClass = {
-    blue: "border-blue-200/80 bg-blue-50/90 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/80 dark:bg-blue-950/45 dark:text-blue-200 dark:hover:bg-blue-900/45",
+    blue: "border-blue-200 bg-blue-50/85 text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900/70 dark:bg-blue-950/35 dark:text-blue-200 dark:hover:bg-blue-900/35",
     emerald:
-      "border-emerald-200/80 bg-emerald-50/90 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/80 dark:bg-emerald-950/45 dark:text-emerald-200 dark:hover:bg-emerald-900/45",
+      "border-emerald-200 bg-emerald-50/85 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/70 dark:bg-emerald-950/35 dark:text-emerald-200 dark:hover:bg-emerald-900/35",
     amber:
-      "border-amber-200/80 bg-amber-50/90 text-amber-700 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-900/80 dark:bg-amber-950/45 dark:text-amber-200 dark:hover:bg-amber-900/45",
+      "border-amber-200 bg-amber-50/85 text-amber-800 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-900/70 dark:bg-amber-950/35 dark:text-amber-200 dark:hover:bg-amber-900/35",
     violet:
-      "border-violet-200/80 bg-violet-50/90 text-violet-700 hover:border-violet-300 hover:bg-violet-100 dark:border-violet-900/80 dark:bg-violet-950/45 dark:text-violet-200 dark:hover:bg-violet-900/45",
-    teal: "border-teal-200/80 bg-teal-50/90 text-teal-700 hover:border-teal-300 hover:bg-teal-100 dark:border-teal-900/80 dark:bg-teal-950/45 dark:text-teal-200 dark:hover:bg-teal-900/45",
+      "border-violet-200 bg-violet-50/85 text-violet-700 hover:border-violet-300 hover:bg-violet-100 dark:border-violet-900/70 dark:bg-violet-950/35 dark:text-violet-200 dark:hover:bg-violet-900/35",
+    teal: "border-teal-200 bg-teal-50/85 text-teal-800 hover:border-teal-300 hover:bg-teal-100 dark:border-teal-900/70 dark:bg-teal-950/35 dark:text-teal-200 dark:hover:bg-teal-900/35",
     slate:
-      "border-slate-200/90 bg-slate-50/90 text-slate-700 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700/80",
-    rose: "border-rose-200/80 bg-rose-50/90 text-rose-700 hover:border-rose-300 hover:bg-rose-100 dark:border-rose-900/80 dark:bg-rose-950/45 dark:text-rose-200 dark:hover:bg-rose-900/45",
+      "border-slate-200 bg-slate-50/90 text-slate-700 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700/80 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/70",
+    rose: "border-rose-200 bg-rose-50/85 text-rose-700 hover:border-rose-300 hover:bg-rose-100 dark:border-rose-900/70 dark:bg-rose-950/35 dark:text-rose-200 dark:hover:bg-rose-900/35",
   };
 
-  const runAction = (event, action) => {
+  const runAction = async (event, action) => {
     event.preventDefault();
     event.stopPropagation();
-    action.onClick?.();
-    onClose();
+    const result = await action.onClick?.();
+    if (result !== false) {
+      onClose();
+    }
   };
 
   useEffect(() => {
@@ -888,8 +875,8 @@ const SmartQuickActionsPanel = ({
                   className={cn(
                     "fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2",
                     isMobile
-                      ? "w-[min(560px,calc(100vw-1.5rem))]"
-                      : "w-[min(560px,calc(100vw-2.5rem))]"
+                      ? "w-[min(680px,calc(100vw-1rem))]"
+                      : "w-[min(1040px,calc(100vw-3rem))]"
                   )}
                 >
                   <motion.div
@@ -899,108 +886,120 @@ const SmartQuickActionsPanel = ({
                     exit={{ opacity: 0, y: 18, scale: 0.98 }}
                     transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                     className={cn(
-                      "overflow-hidden border border-slate-200/90 bg-white/95 p-3 shadow-[0_32px_70px_-40px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-4",
+                      "overflow-hidden border border-slate-200 bg-white/95 p-5 shadow-[0_35px_80px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-6",
                       isMobile
-                        ? "max-h-[82vh] overflow-y-auto rounded-2xl"
-                        : "max-h-[80vh] overflow-y-auto rounded-3xl"
+                        ? "max-h-[88vh] overflow-y-auto rounded-[28px]"
+                        : "max-h-[88vh] overflow-y-auto rounded-[34px]"
                     )}
                     onClick={(e) => e.stopPropagation()}
                   >
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        Pametne akcije oglasa
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{panelHint}</p>
-                      {renewAvailabilityHint ? (
-                        <p className="mt-1 text-[11px] font-medium text-violet-600 dark:text-violet-300">
-                          {renewAvailabilityHint}
+                    <div className="mb-5 flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                          Pametne akcije oglasa
                         </p>
-                      ) : null}
+                        <p className="mt-1 text-[clamp(15px,1.25vw,24px)] text-slate-600 dark:text-slate-300">
+                          {panelHint}
+                        </p>
+                        <p className="mt-2 text-xl font-semibold text-violet-600 dark:text-violet-300">
+                          {renewInfoText}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onClose();
+                        }}
+                        className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-600 transition-all hover:scale-[1.03] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                        aria-label="Zatvori brze akcije"
+                      >
+                        <X className="h-7 w-7" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onClose();
-                      }}
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all hover:scale-105 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                      aria-label="Zatvori brze akcije"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
 
-                  {recommendedAction ? (
-                    <button
-                      type="button"
-                      onClick={(e) => runAction(e, recommendedAction)}
-                      className={cn(
-                        "group mb-3 flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                        toneClass[recommendedAction.tone]
-                      )}
-                    >
-                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/80 shadow-sm dark:bg-slate-900/70">
-                        <recommendedAction.icon className="h-[18px] w-[18px]" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold">Preporučeno: {recommendedAction.label}</span>
-                        <span className="block text-xs opacity-80">{recommendedAction.description}</span>
-                      </span>
-                    </button>
-                  ) : null}
+                    {recommendedAction ? (
+                      <button
+                        type="button"
+                        onClick={(e) => runAction(e, recommendedAction)}
+                        className={cn(
+                          "group mb-4 flex w-full items-start gap-4 rounded-[28px] border px-5 py-5 text-left transition-all duration-200",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                          toneClass[recommendedAction.tone]
+                        )}
+                      >
+                        <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                          <recommendedAction.icon className="h-7 w-7" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[clamp(21px,1.65vw,31px)] font-semibold leading-tight">
+                            Preporučeno: {recommendedAction.label}
+                          </span>
+                          <span className="mt-1 block text-[clamp(14px,0.95vw,19px)] opacity-90">
+                            {recommendedAction.description}
+                          </span>
+                        </span>
+                      </button>
+                    ) : null}
 
-                  {secondaryActions.length ? (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {secondaryActions.map((action) => (
-                        <button
-                          key={action.key}
-                          type="button"
-                          onClick={(e) => runAction(e, action)}
-                          className={cn(
-                            "group flex items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                            toneClass[action.tone]
-                          )}
-                        >
-                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 shadow-sm dark:bg-slate-900/70">
-                            <action.icon className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block text-sm font-semibold leading-tight">{action.label}</span>
-                            <span className="block text-[11px] opacity-80">{action.description}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                    {secondaryActions.length ? (
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {secondaryActions.map((action) => (
+                          <button
+                            key={action.key}
+                            type="button"
+                            onClick={(e) => runAction(e, action)}
+                            className={cn(
+                              "group flex min-h-[124px] items-start gap-4 rounded-[28px] border px-5 py-5 text-left transition-all duration-200",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                              toneClass[action.tone]
+                            )}
+                          >
+                            <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                              <action.icon className="h-6 w-6" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-[clamp(18px,1.35vw,26px)] font-semibold leading-tight">
+                                {action.label}
+                              </span>
+                              <span className="mt-1 block text-[clamp(13px,0.9vw,17px)] opacity-90">
+                                {action.description}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
 
-                  {dangerActions.length ? (
-                    <div className="mt-3 border-t border-slate-200/80 pt-3 dark:border-slate-700">
-                      {dangerActions.map((action) => (
-                        <button
-                          key={action.key}
-                          type="button"
-                          onClick={(e) => runAction(e, action)}
-                          className={cn(
-                            "group flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50",
-                            toneClass[action.tone]
-                          )}
-                        >
-                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 shadow-sm dark:bg-slate-900/70">
-                            <action.icon className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block text-sm font-semibold leading-tight">{action.label}</span>
-                            <span className="block text-[11px] opacity-80">{action.description}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                    {dangerActions.length ? (
+                      <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-700">
+                        {dangerActions.map((action) => (
+                          <button
+                            key={action.key}
+                            type="button"
+                            onClick={(e) => runAction(e, action)}
+                            className={cn(
+                              "group flex w-full items-start gap-4 rounded-[24px] border px-5 py-4 text-left transition-all duration-200",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50",
+                              toneClass[action.tone]
+                            )}
+                          >
+                            <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                              <action.icon className="h-6 w-6" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-[clamp(19px,1.4vw,27px)] font-semibold leading-tight">
+                                {action.label}
+                              </span>
+                              <span className="mt-1 block text-[clamp(13px,0.9vw,17px)] opacity-90">
+                                {action.description}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </motion.div>
                 </div>
               </>
@@ -1744,7 +1743,6 @@ const MyAdsCard = ({
         isVisible={showQuickActions}
         isMobile={isMobile}
         onClose={() => setShowQuickActions(false)}
-        onSelect={() => onContextMenuAction?.("select", data?.id)}
         onFeature={() => {
           setShowQuickActions(false);
           setIsFeaturedPlanOpen(true);
@@ -1757,13 +1755,11 @@ const MyAdsCard = ({
         onActivate={() => onContextMenuAction?.("activate", data?.id)}
         onSold={handleSoldOutClick}
         onRenew={() => onContextMenuAction?.("renew", data?.id)}
-        isSelected={isSelected}
         isApproved={isApproved}
         isEditable={isEditable}
         isSoldOut={isSoldOut}
         isInactive={isInactive}
         isExpired={isExpired}
-        isSelectable={isSelectable}
         isFeatureAd={isFeatureAd}
         isReserved={isReserved}
         canPositionRenew={canPositionRenew}

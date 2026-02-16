@@ -7,6 +7,7 @@ import { resetBreadcrumb } from "@/redux/reducer/breadCrumbSlice";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { t } from "@/utils";
 import { allItemApi } from "@/utils/api";
+import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
 import { Info } from "@/components/Common/UnifiedIconPack";
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -31,6 +32,8 @@ const AllItems = ({ cityData, KmRange }) => {
         page,
         current_page: "home",
         is_feature: 1,
+        placement: "home",
+        positions: "home",
         limit: 20,
       };
       if (Number(KmRange) > 0 && (cityData?.areaId || cityData?.city)) {
@@ -72,20 +75,38 @@ const AllItems = ({ cityData, KmRange }) => {
       if (response?.data?.data?.data?.length > 0) {
         const data = response?.data?.data?.data;
         const featuredOnly = Array.isArray(data)
-          ? data.filter((entry) => Boolean(entry?.is_feature))
+          ? data.filter((entry) => isHomeFeaturedItem(entry))
           : [];
 
         if (page === 1) {
           setAllItem(featuredOnly);
         } else {
-          setAllItem((prevData) => [...prevData, ...featuredOnly]);
+          setAllItem((prevData) => {
+            const mergedById = new Map();
+            (prevData || []).forEach((entry) => {
+              const id = Number(entry?.id);
+              if (Number.isFinite(id) && id > 0) {
+                mergedById.set(id, entry);
+              }
+            });
+            (featuredOnly || []).forEach((entry) => {
+              const id = Number(entry?.id);
+              if (Number.isFinite(id) && id > 0) {
+                mergedById.set(id, entry);
+              }
+            });
+            return Array.from(mergedById.values());
+          });
         }
         const currentPage = response?.data?.data?.current_page;
         const lastPage = response?.data?.data?.last_page;
         setHasMore(currentPage < lastPage);
         setCurrentPage(currentPage);
       } else {
-        setAllItem([]);
+        if (page === 1) {
+          setAllItem([]);
+        }
+        setHasMore(false);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -119,7 +140,7 @@ const AllItems = ({ cityData, KmRange }) => {
 
   return (
     <section className="container mt-12">
-      <h5 className="text-xl sm:text-2xl font-medium">{t("allItems")}</h5>
+      <h5 className="text-xl sm:text-2xl font-medium">Izdvojeni oglasi</h5>
 
       {/* Location Alert - shows when items are from different location */}
       {locationAlertMessage && AllItem.length > 0 && (
