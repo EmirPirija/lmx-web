@@ -8,13 +8,16 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/reducer/compareSlice";
 import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
+import { getScarcityCopy, getScarcityState } from "@/utils/scarcity";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 import {
+  Clock2Fill,
   Heart,
   Rocket,
   Youtube,
   Store,
-  TransferHorizontalLine,
+  TransferFill,
   ChevronLeft,
   ChevronRight,
   GitCompare,
@@ -29,9 +32,37 @@ import { Skeleton } from "@/components/ui/skeleton";
 // POMOĆNE FUNKCIJE
 // ============================================
 
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return "";
+
+  const now = new Date();
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  if (diffInSeconds < 60) return "Upravo sada";
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
+
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
+};
+
 const getKeyAttributes = (item) => {
   const attributes = [];
   const customFields = item?.translated_custom_fields || [];
+  const realEstatePricing = resolveRealEstateDisplayPricing(item || {});
+  const isRealEstate = Boolean(realEstatePricing?.isRealEstate);
 
   const findValue = (keys) => {
     const field = customFields.find((f) => {
@@ -46,14 +77,102 @@ const getKeyAttributes = (item) => {
     );
   };
 
+  const formatAreaNoSpace = (rawValue) => {
+    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    const cleaned = String(rawValue).trim().replace(/\s*(m2|m²)$/i, "");
+    if (!cleaned) return null;
+    return `${cleaned.replace(/\s/g, "")}m2`;
+  };
+
+  const formatMileageNoSpace = (rawValue) => {
+    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    const cleaned = String(rawValue)
+      .trim()
+      .replace(/^kilometraza\s*\(km\)\s*[:\-]?\s*/i, "")
+      .replace(/^kilometraža\s*\(km\)\s*[:\-]?\s*/i, "")
+      .replace(/^mileage\s*[:\-]?\s*/i, "")
+      .replace(/\s*(km|kilometraza|kilometraža)$/i, "");
+    if (!cleaned) return null;
+    return `${cleaned.replace(/\s/g, "")}km`;
+  };
+
+  const pushUnique = (value) => {
+    if (!value) return;
+    const normalized = String(value).trim();
+    if (!normalized) return;
+    if (attributes.some((entry) => normalizeText(entry) === normalizeText(normalized))) return;
+    attributes.push(normalized);
+  };
+
+  if (isRealEstate) {
+    const listingType = findValue([
+      "tip oglasa",
+      "tip nekretnine",
+      "tip ponude",
+      "vrsta ponude",
+      "offer type",
+      "listing type",
+      "type",
+    ]);
+    const rooms = findValue([
+      "broj soba",
+      "sobe",
+      "broj prostorija",
+      "rooms",
+      "room count",
+    ]);
+    const propertyType = findValue([
+      "vrsta objekta",
+      "tip objekta",
+      "objekat",
+      "object type",
+      "property type",
+    ]);
+    const areaRaw =
+      realEstatePricing?.areaM2 ??
+      findValue([
+        "kvadratura",
+        "kvadratura (m2)",
+        "povrsina",
+        "površina",
+        "m2",
+        "m²",
+        "quadrature",
+        "surface",
+        "area",
+      ]);
+    const area = formatAreaNoSpace(areaRaw);
+
+    pushUnique(listingType);
+    pushUnique(rooms);
+    pushUnique(propertyType);
+    pushUnique(area);
+
+    if (attributes.length > 0) {
+      return attributes;
+    }
+  }
+
   const year = findValue(["godište", "godiste"]);
-  if (year) attributes.push(year);
+  pushUnique(year);
 
   const fuel = findValue(["gorivo"]);
-  if (fuel) attributes.push(fuel);
+  pushUnique(fuel);
 
   const transmission = findValue(["mjenjač", "mjenjac"]);
-  if (transmission) attributes.push(transmission);
+  pushUnique(transmission);
+
+  const mileageRaw = findValue([
+    "kilometraza (km)",
+    "kilometraža (km)",
+    "kilometraza",
+    "kilometraža",
+    "predena kilometraza",
+    "pređena kilometraža",
+    "mileage",
+    "km",
+  ]);
+  pushUnique(formatMileageNoSpace(mileageRaw));
 
   return attributes;
 };
@@ -346,14 +465,25 @@ const formatPriceOrInquiry = (price) => {
 // KARTICA
 // ============================================
 
-const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) => {
+const ProductCard = ({
+  item,
+  handleLike,
+  isLoading,
+  onClick,
+  trackingParams,
+  showScarcityMeta = false,
+  scarcityCopy: scarcityCopyOverride = null,
+}) => {
   const dispatch = useDispatch();
   const userData = useSelector(userSignUpData);
   const compareList = useSelector(selectCompareList);
   const isInCompare = compareList?.some((i) => i.id === item?.id);
 
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
+  const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(item), [item]);
+  const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
   const translated_item = item?.translated_item;
+  const publishedAgo = formatRelativeTime(item?.created_at || translated_item?.created_at);
 
   const keyAttributes = getKeyAttributes(item);
   const conditionLabel = getConditionLabel(item);
@@ -393,7 +523,19 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
 
   const hasVideo = !!(item?.video_link && String(item?.video_link).trim() !== "");
   const exchangePossible = readExchangePossible(item);
-  const topStatusCount = [Boolean(conditionLabel), Boolean(availableNow)].filter(Boolean).length;
+  const scarcityState = useMemo(() => getScarcityState(item), [item]);
+  const scarcityCopy = useMemo(
+    () => scarcityCopyOverride || getScarcityCopy(scarcityState),
+    [scarcityCopyOverride, scarcityState]
+  );
+  const showActiveScarcity = showScarcityMeta && scarcityState?.isEligible;
+  const showOutOfStockLabel = showScarcityMeta && scarcityState?.isOutOfStock;
+  const showPopularHint = showActiveScarcity && scarcityState?.popularity?.hasSignal;
+  const topStatusCount = [
+    Boolean(conditionLabel),
+    Boolean(availableNow),
+    Boolean(showActiveScarcity || showOutOfStockLabel),
+  ].filter(Boolean).length;
 
   // Priprema slajdova
   const slides = useMemo(() => {
@@ -541,7 +683,7 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative aspect-square bg-slate-50">
+        <div className="relative aspect-[16/10] bg-slate-50">
           <div className="absolute inset-0 w-full h-full">
             {slides[currentSlide].type === "image" ? (
               <CustomImage
@@ -623,15 +765,41 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
             <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
-                  Video
+                  {/* Video */}
                 </OverlayPill>
               ) : null}
             </div>
           )}
 
           {/* Status strip na prijelomu slike i donjeg bijelog dijela */}
-          {!isViewMoreSlide && (conditionLabel || availableNow) ? (
+          {!isViewMoreSlide && (conditionLabel || availableNow || showActiveScarcity || showOutOfStockLabel) ? (
             <div className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5">
+              {showActiveScarcity ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-amber-300 bg-amber-100/95 text-amber-900 shadow-sm",
+                    "dark:border-amber-600/70 dark:bg-amber-900/45 dark:text-amber-100"
+                  )}
+                >
+                  {scarcityCopy?.badge || "Do isteka zaliha"}
+                </span>
+              ) : null}
+
+              {showOutOfStockLabel ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
+                    "text-[10px] font-semibold leading-none",
+                    "border-rose-300 bg-rose-100/95 text-rose-800 shadow-sm",
+                    "dark:border-rose-700/70 dark:bg-rose-900/40 dark:text-rose-200"
+                  )}
+                >
+                  Rasprodano
+                </span>
+              ) : null}
+
               {conditionLabel ? (
                 <span
                   className={cn(
@@ -792,49 +960,84 @@ const ProductCard = ({ item, handleLike, isLoading, onClick, trackingParams }) =
           </div>
         ) : null}
 
-        <div
-          className={cn(
-            "mt-auto pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center",
-            exchangePossible && !isHidePrice ? "justify-between" : "justify-end"
-          )}
-        >
-          {exchangePossible && !isHidePrice ? (
-            <span
-              className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-full",
-              )}
-              title="Zamjena moguća"
-              aria-label="Zamjena moguća"
-            >
-              <TransferHorizontalLine className="h-4 w-4" />
+        {showActiveScarcity ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800 dark:border-amber-600/40 dark:bg-amber-500/10 dark:text-amber-200">
+              {scarcityCopy?.quantity}
             </span>
+            {showPopularHint ? (
+              <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-[10px] font-semibold text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
+                Popularno
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div
+          className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800"
+        >
+          {publishedAgo ? (
+            <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+              <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="truncate">{publishedAgo}</span>
+            </div>
+          ) : !isHidePrice ? (
+            <span className="w-px" aria-hidden="true" />
           ) : null}
+
           {!isHidePrice ? (
             isJobCategory ? (
-              <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                {formatSalaryRange(item?.min_salary, item?.max_salary)}
-              </span>
-            ) : (
-              <div className="flex flex-col items-end leading-none">
-                {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
-                  <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
-                    {formatPriceAbbreviated(Number(oldPrice))}
+              <div className="flex items-center gap-2">
+                {exchangePossible ? (
+                  <span
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
+                    title="Zamjena moguća"
+                    aria-label="Zamjena moguća"
+                  >
+                    <TransferFill className="h-4 w-4 text-primary" />
                   </span>
                 ) : null}
-                <span
-                  className={cn(
-                    "text-sm font-bold tabular-nums",
-                    isOnSale &&
-                      Number(oldPrice) > 0 &&
-                      Number(currentPrice) > 0 &&
-                      Number(oldPrice) > Number(currentPrice)
-                      ? "text-rose-600"
-                      : "text-slate-900 dark:text-slate-100"
-                  )}
-                  title={formatPriceOrInquiry(item?.price)}
-                >
-                  {formatPriceOrInquiry(item?.price)}
+                <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  {formatSalaryRange(item?.min_salary, item?.max_salary)}
                 </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                {exchangePossible ? (
+                  <span
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
+                    title="Zamjena moguća"
+                    aria-label="Zamjena moguća"
+                  >
+                    <TransferFill className="h-4 w-4 text-primary" />
+                  </span>
+                ) : null}
+                <div className="flex flex-col items-end leading-none">
+                  {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
+                    <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
+                      {formatPriceAbbreviated(Number(oldPrice))}
+                    </span>
+                  ) : null}
+                  <span
+                    className={cn(
+                      "text-sm font-bold tabular-nums",
+                      isOnSale &&
+                        Number(oldPrice) > 0 &&
+                        Number(currentPrice) > 0 &&
+                        Number(oldPrice) > Number(currentPrice)
+                        ? "text-rose-600"
+                        : "text-slate-900 dark:text-slate-100"
+                    )}
+                    title={formatPriceOrInquiry(item?.price)}
+                  >
+                    {formatPriceOrInquiry(item?.price)}
+                  </span>
+                  {showRealEstatePerM2 ? (
+                    <span className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300">
+                      {formatPriceAbbreviated(Number(realEstatePricing.perM2Value))} / m²
+                    </span>
+                  ) : null}
+                </div>
               </div>
             )
           ) : null}
@@ -849,7 +1052,7 @@ ProductCard.displayName = "ProductCard";
 export const ProductCardSkeleton = () => {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-      <Skeleton className="relative aspect-square w-full rounded-none border-0 shadow-none" />
+      <Skeleton className="relative aspect-[16/10] w-full rounded-none border-0 shadow-none" />
       <div className="p-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <Skeleton className="h-3 w-16 rounded" />

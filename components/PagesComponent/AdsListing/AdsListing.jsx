@@ -22,10 +22,17 @@ import {
   SOCIAL_POSTING_TEMP_UNAVAILABLE,
   SOCIAL_POSTING_UNAVAILABLE_MESSAGE,
 } from "@/utils/socialAvailability";
+import {
+  extractAreaM2FromCustomFieldValues,
+  isRealEstateCategoryPath,
+  REAL_ESTATE_PRICE_MODE_MANUAL,
+  resolveRealEstatePerSquareValue,
+} from "@/utils/realEstatePricing";
 import { toast } from "@/utils/toastBs";
 import ComponentThree from "./ComponentThree";
 import ComponentFour from "./ComponentFour";
 import ComponentFive from "./ComponentFive";
+import ProductCard from "@/components/Common/ProductCard";
 import { useSelector } from "react-redux";
 import AdSuccessModal from "./AdSuccessModal";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
@@ -48,17 +55,12 @@ import {
   TrendingUp,
   Zap,
   Star,
-  Upload,
-  MapPin,
   ArrowLeft,
   X,
   ChevronRight,
-  Clock,
-  Images,
   Loader2,
   Sparkles,
 } from "@/components/Common/UnifiedIconPack";
-import { IconRosetteDiscount } from "@/components/Common/UnifiedIconPack";
 
 // =======================================================
 // MEDIA HELPERS (client-side)
@@ -310,9 +312,12 @@ const AdsListing = () => {
       region_code: regionCode,
       inventory_count: "",
       price_per_unit: "",
+      show_price_per_m2: false,
+      price_per_m2_mode: "auto",
       minimum_order_quantity: "1",
       stock_alert_threshold: "3",
       seller_product_code: "",
+      scarcity_enabled: false,
     },
   });
 
@@ -337,6 +342,34 @@ const AdsListing = () => {
 
   const is_job_category = Number(categoryPath[categoryPath.length - 1]?.is_job_category) === 1;
   const isPriceOptional = Number(categoryPath[categoryPath.length - 1]?.price_optional) === 1;
+  const is_real_estate = useMemo(
+    () => isRealEstateCategoryPath(categoryPath),
+    [categoryPath]
+  );
+  const realEstateAreaM2 = useMemo(
+    () =>
+      extractAreaM2FromCustomFieldValues({
+        customFields,
+        extraDetails,
+        languageId: langId,
+        fallbackLanguageId: defaultLangId,
+      }),
+    [customFields, defaultLangId, extraDetails, langId]
+  );
+  const realEstatePriceState = useMemo(
+    () =>
+      resolveRealEstatePerSquareValue({
+        details: defaultDetails,
+        areaM2: realEstateAreaM2,
+        totalPrice: defaultDetails?.price,
+      }),
+    [defaultDetails, realEstateAreaM2]
+  );
+  const effectiveRealEstateTotalPrice = useMemo(() => {
+    if (!is_real_estate || !realEstatePriceState.enabled) return null;
+    if (realEstatePriceState.mode !== REAL_ESTATE_PRICE_MODE_MANUAL) return null;
+    return realEstatePriceState.derivedTotalPrice;
+  }, [is_real_estate, realEstatePriceState]);
 
   const allCategoryIdsString = categoryPath.map((category) => category.id).join(",");
   const lastItemId = categoryPath[categoryPath.length - 1]?.id;
@@ -345,6 +378,7 @@ const AdsListing = () => {
   const categoriesCacheRef = useRef(CATEGORY_RESPONSE_CACHE);
   const categoriesAbortRef = useRef(null);
   const categoriesReqSeqRef = useRef(0);
+  const customFieldsLoadedForCategoriesRef = useRef("");
 
   const ROOT_PER_PAGE = 50; 
   const CHILD_PER_PAGE = 50;
@@ -466,38 +500,6 @@ const AdsListing = () => {
     return Math.round(score);
   }, [categoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, otherImages, location]);
 
-  // 🔴 NOVO: Funkcija za izvlačenje ključnih atributa za Preview
-  const getPreviewAttributes = () => {
-    const attributes = [];
-    const targetFields = [
-      ["stanje oglasa", "stanje", "condition"],
-      ["godište", "godiste", "year"],
-      ["gorivo", "fuel"],
-      ["mjenjač", "mjenjac", "transmission"]
-    ];
-
-    targetFields.forEach(keys => {
-      // Nađi definiciju polja
-      const fieldDef = customFields.find(f => {
-        const name = (f.translated_name || f.name || "").toLowerCase();
-        return keys.some(key => name.includes(key));
-      });
-
-      if (fieldDef) {
-        // Izvuci vrijednost iz trenutno popunjenih podataka
-        const val = currentExtraDetails[fieldDef.id];
-        
-        if (Array.isArray(val) && val.length > 0) {
-          attributes.push(val[0]);
-        } else if (val && typeof val === 'string') {
-          attributes.push(val);
-        }
-      }
-    });
-
-    return attributes;
-  };
-
   useEffect(() => {
     const stored = localStorage.getItem("recentCategories");
     if (stored) setRecentCategories(JSON.parse(stored));
@@ -550,8 +552,8 @@ const AdsListing = () => {
     }
   }, [step, lastItemId, CurrentLanguage?.id, handleFetchCategories]);
   
-  const getCustomFieldsData = useCallback(async () => {
-    if (!allCategoryIdsString) {
+  const getCustomFieldsData = useCallback(async (categoryIds) => {
+    if (!categoryIds) {
       setCustomFields([]);
       setIsCustomFieldsLoading(false);
       return;
@@ -560,7 +562,7 @@ const AdsListing = () => {
     setIsCustomFieldsLoading(true);
     try {
       const res = await getCustomFieldsApi.getCustomFields({
-        category_ids: allCategoryIdsString,
+        category_ids: categoryIds,
       });
       const normalizedFields = Array.isArray(res?.data?.data) ? res.data.data : [];
       setCustomFields(normalizedFields);
@@ -607,17 +609,23 @@ const AdsListing = () => {
     } finally {
       setIsCustomFieldsLoading(false);
     }
-  }, [CurrentLanguage?.id, allCategoryIdsString, defaultLangId, languages]);
+  }, [CurrentLanguage?.id, defaultLangId, languages]);
 
   useEffect(() => {
-    if (step !== 1 && allCategoryIdsString) {
-      getCustomFieldsData();
+    if (!allCategoryIdsString) {
+      customFieldsLoadedForCategoriesRef.current = "";
+      setCustomFields([]);
+      setIsCustomFieldsLoading(false);
       return;
     }
-    if (step === 1) {
-      setIsCustomFieldsLoading(false);
+
+    if (customFieldsLoadedForCategoriesRef.current === allCategoryIdsString) {
+      return;
     }
-  }, [allCategoryIdsString, getCustomFieldsData, step]);
+
+    customFieldsLoadedForCategoriesRef.current = allCategoryIdsString;
+    getCustomFieldsData(allCategoryIdsString);
+  }, [allCategoryIdsString, getCustomFieldsData]);
 
   useEffect(() => {
     if (categoryPath.length > 0) {
@@ -688,9 +696,12 @@ const AdsListing = () => {
         region_code: regionCode,
         inventory_count: "",
         price_per_unit: "",
+        show_price_per_m2: false,
+        price_per_m2_mode: "auto",
         minimum_order_quantity: "1",
         stock_alert_threshold: "3",
         seller_product_code: "",
+        scarcity_enabled: false,
       },
     });
     setExtraDetails({ [defaultLangId]: {} });
@@ -824,6 +835,9 @@ const AdsListing = () => {
   const handleFullSubmission = (scheduledDateTime = null) => {
     const { name, description, contact, country_code } = defaultDetails;
     const catId = categoryPath.at(-1)?.id;
+    const scarcityEnabled = !is_real_estate && Boolean(defaultDetails?.scarcity_enabled);
+    const inventoryCount = Number(defaultDetails?.inventory_count || 0);
+    const lowThreshold = Math.max(1, Number(defaultDetails?.stock_alert_threshold || 3));
 
     if (!catId) {
       toast.error(t("selectCategory"));
@@ -868,6 +882,40 @@ const AdsListing = () => {
       return;
     }
 
+    if (is_real_estate && realEstatePriceState.enabled && !realEstatePriceState.hasArea) {
+      toast.error("Unesite površinu nekretnine (m²) prije prikaza cijene po m².");
+      return setStep(customFields?.length ? 3 : 2);
+    }
+
+    if (
+      is_real_estate &&
+      realEstatePriceState.enabled &&
+      realEstatePriceState.mode === "auto" &&
+      (defaultDetails?.price_on_request || !Number(defaultDetails?.price))
+    ) {
+      toast.error("Za automatsku cijenu po m² prvo unesite ukupnu cijenu oglasa.");
+      return setStep(2);
+    }
+
+    if (
+      is_real_estate &&
+      realEstatePriceState.enabled &&
+      realEstatePriceState.mode === "manual" &&
+      !realEstatePriceState.manualValue
+    ) {
+      toast.error("Unesite ručno cijenu po m² veću od 0.");
+      return setStep(2);
+    }
+
+    if (scarcityEnabled && (!Number.isFinite(inventoryCount) || inventoryCount <= 0)) {
+      toast.error("Za opciju 'Do isteka zaliha' unesite količinu na zalihi veću od 0.");
+      return setStep(2);
+    }
+
+    if (scarcityEnabled && inventoryCount > lowThreshold) {
+      toast.info("Oznaka 'Do isteka zaliha' će se automatski aktivirati kada zaliha padne na zadani prag.");
+    }
+
     postAd(scheduledDateTime);
   };
 
@@ -884,37 +932,48 @@ const AdsListing = () => {
       description: defaultDetails?.description,
       category_id: catId,
       all_category_ids: allCategoryIdsString,
-      price: defaultDetails.price,
+      price:
+        is_real_estate && effectiveRealEstateTotalPrice
+          ? effectiveRealEstateTotalPrice
+          : defaultDetails.price,
       contact: defaultDetails.contact,
       available_now: Boolean(availableNow),
       exchange_possible: Boolean(exchangePossible),
       is_exchange: Boolean(exchangePossible),
       allow_exchange: Boolean(exchangePossible),
       inventory_count:
+        !is_real_estate &&
         defaultDetails?.inventory_count !== undefined &&
         defaultDetails?.inventory_count !== null &&
         String(defaultDetails.inventory_count).trim() !== ""
           ? Number(defaultDetails.inventory_count)
           : null,
       price_per_unit:
-        defaultDetails?.price_per_unit !== undefined &&
-        defaultDetails?.price_per_unit !== null &&
-        String(defaultDetails.price_per_unit).trim() !== ""
+        is_real_estate
+          ? realEstatePriceState.resolvedValue
+          : defaultDetails?.price_per_unit !== undefined &&
+            defaultDetails?.price_per_unit !== null &&
+            String(defaultDetails.price_per_unit).trim() !== ""
           ? Number(defaultDetails.price_per_unit)
           : null,
       minimum_order_quantity:
+        !is_real_estate &&
         defaultDetails?.minimum_order_quantity !== undefined &&
         defaultDetails?.minimum_order_quantity !== null &&
         String(defaultDetails.minimum_order_quantity).trim() !== ""
           ? Math.max(1, Number(defaultDetails.minimum_order_quantity))
           : null,
       stock_alert_threshold:
+        !is_real_estate &&
         defaultDetails?.stock_alert_threshold !== undefined &&
         defaultDetails?.stock_alert_threshold !== null &&
         String(defaultDetails.stock_alert_threshold).trim() !== ""
           ? Math.max(1, Number(defaultDetails.stock_alert_threshold))
           : null,
-      seller_product_code: String(defaultDetails?.seller_product_code || "").trim(),
+      seller_product_code: is_real_estate
+        ? ""
+        : String(defaultDetails?.seller_product_code || "").trim(),
+      scarcity_enabled: is_real_estate ? false : Boolean(defaultDetails?.scarcity_enabled),
       video_link: trimmedVideoLink,
       temp_main_image_id: uploadedImages?.[0]?.id ?? null,
       temp_gallery_image_ids: (otherImages || []).map((x) => x?.id).filter(Boolean),
@@ -1061,9 +1120,12 @@ const AdsListing = () => {
         region_code: regionCode,
         inventory_count: "",
         price_per_unit: "",
+        show_price_per_m2: false,
+        price_per_m2_mode: "auto",
         minimum_order_quantity: "1",
         stock_alert_threshold: "3",
         seller_product_code: "",
+        scarcity_enabled: false,
       },
     });
     setExtraDetails({ [defaultLangId]: {} });
@@ -1232,9 +1294,13 @@ const AdsListing = () => {
   // Preview Logic
   const isOnSale = defaultDetails.is_on_sale;
   const oldPrice = Number(defaultDetails.old_price);
-  const currentPrice = Number(defaultDetails.price);
+  const currentPrice = Number(
+    is_real_estate && effectiveRealEstateTotalPrice
+      ? effectiveRealEstateTotalPrice
+      : defaultDetails.price
+  );
+  const hasCurrentPrice = Number.isFinite(currentPrice) && currentPrice > 0;
   const showDiscount = isOnSale && oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice;
-  const previewAttributes = getPreviewAttributes(); // Dohvati atribute za prikaz
   const publishProgressPct = ((publishStageIndex + 1) / PUBLISH_STAGES.length) * 100;
   const currentPublishStage = PUBLISH_STAGES[publishStageIndex] || PUBLISH_STAGES[0];
   const successCategoryLabel =
@@ -1257,7 +1323,9 @@ const AdsListing = () => {
     ? t("Na upit")
     : showDiscount
     ? `${formatPriceAbbreviated(currentPrice)} (sniženo sa ${formatPriceAbbreviated(oldPrice)})`
-    : formatPriceAbbreviated(defaultDetails?.price);
+    : hasCurrentPrice
+    ? formatPriceAbbreviated(currentPrice)
+    : "";
 
   // =======================================================
   // MEDIA: kompresija + watermark odmah na selekciju
@@ -1334,6 +1402,125 @@ const AdsListing = () => {
     const first = uploadedImages?.[0];
     return safeObjectUrl(first);
   }, [uploadedImages]);
+
+  const previewCustomFields = useMemo(() => {
+    if (!Array.isArray(customFields) || customFields.length === 0) return [];
+
+    return customFields.reduce((acc, field) => {
+      const rawValue = currentExtraDetails?.[field?.id];
+      if (
+        rawValue === undefined ||
+        rawValue === null ||
+        (typeof rawValue === "string" && rawValue.trim() === "")
+      ) {
+        return acc;
+      }
+
+      const normalizedValues = (Array.isArray(rawValue) ? rawValue : [rawValue])
+        .map((entry) => {
+          if (entry === null || entry === undefined) return "";
+          if (typeof entry === "object") {
+            if (typeof entry?.label === "string") return entry.label.trim();
+            if (typeof entry?.value === "string") return entry.value.trim();
+            if (typeof entry?.value === "number") return String(entry.value);
+            return "";
+          }
+          return String(entry).trim();
+        })
+        .filter(Boolean);
+
+      if (!normalizedValues.length) return acc;
+
+      acc.push({
+        name: field?.name || field?.translated_name || "",
+        translated_name: field?.translated_name || field?.name || "",
+        selected_values: normalizedValues,
+        translated_selected_values: normalizedValues,
+        value: normalizedValues,
+      });
+
+      return acc;
+    }, []);
+  }, [customFields, currentExtraDetails]);
+
+  const previewGalleryImages = useMemo(() => {
+    const urls = [];
+    const pushUrl = (entry) => {
+      const resolved = safeObjectUrl(entry?.image || entry);
+      if (!resolved || urls.includes(resolved)) return;
+      urls.push(resolved);
+    };
+
+    uploadedImages?.slice(1)?.forEach(pushUrl);
+    otherImages?.forEach(pushUrl);
+
+    return urls.map((image) => ({ image }));
+  }, [uploadedImages, otherImages]);
+
+  const previewCardItem = useMemo(() => {
+    const previewName = defaultDetails?.name || t("Vaš naslov oglasa ovdje");
+    const primaryImage = getPreviewImage();
+    const previewPrice = defaultDetails?.price_on_request
+      ? 0
+      : hasCurrentPrice
+      ? Number(currentPrice)
+      : Number(defaultDetails?.price || 0);
+
+    return {
+      id: -1,
+      slug: "preview-oglas",
+      name: previewName,
+      translated_item: {
+        name: previewName,
+      },
+      category: {
+        is_job_category: is_job_category ? 1 : 0,
+      },
+      image: primaryImage,
+      gallery_images: previewGalleryImages,
+      price: previewPrice,
+      old_price: showDiscount ? Number(oldPrice) : null,
+      is_on_sale: Boolean(showDiscount),
+      min_salary: defaultDetails?.min_salary,
+      max_salary: defaultDetails?.max_salary,
+      created_at: new Date().toISOString(),
+      translated_custom_fields: previewCustomFields,
+      available_now: Boolean(availableNow),
+      exchange_possible: Boolean(exchangePossible),
+      is_exchange: Boolean(exchangePossible),
+      allow_exchange: Boolean(exchangePossible),
+      area_m2: realEstateAreaM2,
+      show_price_per_m2: Boolean(is_real_estate && realEstatePriceState.enabled),
+      price_per_m2_mode: realEstatePriceState?.mode || "auto",
+      price_per_unit:
+        realEstatePriceState?.mode === REAL_ESTATE_PRICE_MODE_MANUAL
+          ? Number(realEstatePriceState?.manualValue || 0)
+          : Number(realEstatePriceState?.resolvedValue || 0),
+      real_estate_price_per_m2: Number(realEstatePriceState?.resolvedValue || 0),
+    };
+  }, [
+    availableNow,
+    currentPrice,
+    defaultDetails?.max_salary,
+    defaultDetails?.min_salary,
+    defaultDetails?.name,
+    defaultDetails?.price,
+    defaultDetails?.price_on_request,
+    exchangePossible,
+    getPreviewImage,
+    hasCurrentPrice,
+    is_job_category,
+    is_real_estate,
+    oldPrice,
+    previewCustomFields,
+    previewGalleryImages,
+    realEstateAreaM2,
+    realEstatePriceState?.enabled,
+    realEstatePriceState?.manualValue,
+    realEstatePriceState?.mode,
+    realEstatePriceState?.resolvedValue,
+    showDiscount,
+  ]);
 
   return (
     <Layout>
@@ -1584,6 +1771,8 @@ const AdsListing = () => {
                     handleDetailsSubmit={handleDetailsSubmit}
                     handleDeatilsBack={handleDeatilsBack}
                     is_job_category={is_job_category}
+                    is_real_estate={is_real_estate}
+                    real_estate_area_m2={realEstateAreaM2}
                     isPriceOptional={isPriceOptional}
                     isNextLoading={isCustomFieldsLoading}
                   />
@@ -1662,100 +1851,8 @@ const AdsListing = () => {
                   </span>
                 </div>
 
-                <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-                  {/* Image Area */}
-                  <div className="relative aspect-square bg-slate-100 dark:bg-slate-800">
-                    {/* ✅ FIX 2: Provjeravamo da li imamo URL prije renderovanja img taga */}
-                    {uploadedImages.length > 0 && getPreviewImage() ? (
-                      <img
-                        src={getPreviewImage()}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-slate-400 dark:text-slate-500">
-                        <Upload className="h-12 w-12" />
-                      </div>
-                    )}
-
-                    {/* SALE BADGE */}
-                    {showDiscount && (
-                      <div className="absolute right-2 top-2 z-10 flex h-[28px] w-[28px] items-center justify-center rounded-md bg-red-600 shadow-sm backdrop-blur-sm">
-                        <IconRosetteDiscount size={18} stroke={2} className="text-white" />
-                      </div>
-                    )}
-
-                    {/* Image Counter with Icon */}
-                    {(uploadedImages.length > 0 || otherImages.length > 0) && (
-                      <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-black/55 px-1.5 py-0.5 text-[12px] font-medium text-white backdrop-blur-md">
-                        <Images size={12} />
-                        <span className="text-xs">
-                          {uploadedImages.length + otherImages.length}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content Area */}
-                  <div className="flex flex-grow flex-col gap-1.5 p-3">
-                    <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-slate-900 dark:text-slate-100">
-                      {defaultDetails.name || t("Vaš naslov oglasa ovdje")}
-                    </h3>
-
-                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
-                      <MapPin size={12} />
-                      <span className="truncate max-w-[150px]">{location?.city || t("Lokacija")}</span>
-                    </div>
-
-                    {/* 🔥 ATRIBUTI ZA PREVIEW (Stanje, Godište, itd.) */}
-                    {previewAttributes.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-0.5">
-                        {previewAttributes.map((attr, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                          >
-                            {attr}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="mt-1.5 border-t border-slate-100 dark:border-slate-700" />
-
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
-                        <Clock size={12} />
-                        <span className="text-[10px]">{t("Upravo sada")}</span>
-                      </div>
-
-                      <div className="flex flex-col items-end">
-                        {/* Stara cijena (Prekrižena) */}
-                        {showDiscount && (
-                          <span className="text-[10px] text-slate-400 line-through decoration-red-400 dark:text-slate-500">
-                            {formatPriceAbbreviated(oldPrice)}
-                          </span>
-                        )}
-
-                        {/* Nova cijena */}
-                        {!is_job_category ? (
-                          <span className={`text-sm font-bold ${showDiscount ? "text-red-600" : "text-slate-900 dark:text-slate-100"}`}>
-                            {defaultDetails.price_on_request 
-                              ? "Na upit" 
-                              : defaultDetails.price 
-                                ? formatPriceAbbreviated(currentPrice) 
-                                : "0 KM"
-                            }
-                          </span>
-                        ) : (
-                          <div className="flex gap-1 text-sm font-bold text-slate-900 dark:text-slate-100">
-                            {defaultDetails.min_salary && <span>{defaultDetails.min_salary}</span>}
-                            {defaultDetails.max_salary && <span>- {defaultDetails.max_salary} KM</span>}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                <div className="pointer-events-none select-none">
+                  <ProductCard item={previewCardItem} />
                 </div>
 
                 <div className="mt-6 space-y-4">

@@ -1419,7 +1419,7 @@ const Ads = () => {
                   </motion.div>
                 ) : (
                   <motion.div
-                    className="col-span-12 sm:col-span-3 lg:col-span-2 xl:col-span-2"
+                    className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
                     key={item.id || index}
                     variants={cardAnimation}
                     initial="hidden"

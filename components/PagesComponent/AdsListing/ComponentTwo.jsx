@@ -19,6 +19,10 @@ import {
   getCurrencySymbol,
 } from "@/redux/reducer/settingSlice";
 import { generateSlug } from "@/utils";
+import {
+  REAL_ESTATE_PRICE_MODE_MANUAL,
+  resolveRealEstatePerSquareValue,
+} from "@/utils/realEstatePricing";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useDispatch, useSelector } from "react-redux";
@@ -278,6 +282,8 @@ const ComponentTwo = ({
   handleDetailsSubmit,
   handleDeatilsBack,
   is_job_category,
+  is_real_estate = false,
+  real_estate_area_m2 = null,
   isPriceOptional,
   defaultLangId,
   isNextLoading = false,
@@ -313,6 +319,95 @@ const ComponentTwo = ({
   const [contactOpen, setContactOpen] = useState(false);
 
   const isDefaultLang = langId === defaultLangId;
+  const parsedInventoryCount = Number(current?.inventory_count || 0);
+  const parsedLowThreshold = Math.max(1, Number(current?.stock_alert_threshold || 3));
+  const parsedLastUnitsThreshold = Math.max(1, Math.min(2, parsedLowThreshold));
+  const scarcityEnabled = Boolean(current?.scarcity_enabled);
+  const scarcityHasInventory = Number.isFinite(parsedInventoryCount) && parsedInventoryCount > 0;
+  const scarcityIsLow = scarcityHasInventory && parsedInventoryCount <= parsedLowThreshold;
+  const scarcityIsLastUnits = scarcityHasInventory && parsedInventoryCount <= parsedLastUnitsThreshold;
+  const scarcityLockedUntilRaw = current?.scarcity_toggle_locked_until;
+  const scarcityLockedUntil = scarcityLockedUntilRaw ? new Date(scarcityLockedUntilRaw) : null;
+  const scarcityLastToggledRaw = current?.scarcity_last_toggled_at;
+  const scarcityLastToggled = scarcityLastToggledRaw ? new Date(scarcityLastToggledRaw) : null;
+  const SERVER_SCARCITY_COOLDOWN_MS = 15 * 60 * 1000;
+  const CLIENT_SCARCITY_COOLDOWN_MS = 10 * 1000;
+  const [scarcityClientLockUntilTs, setScarcityClientLockUntilTs] = useState(0);
+  const scarcityServerLockUntilTs = useMemo(() => {
+    if (scarcityLockedUntil && !Number.isNaN(scarcityLockedUntil.getTime())) {
+      return scarcityLockedUntil.getTime();
+    }
+    if (scarcityLastToggled && !Number.isNaN(scarcityLastToggled.getTime())) {
+      return scarcityLastToggled.getTime() + SERVER_SCARCITY_COOLDOWN_MS;
+    }
+    return 0;
+  }, [scarcityLastToggled, scarcityLockedUntil]);
+  const scarcityEffectiveLockUntilTs = Math.max(scarcityServerLockUntilTs, scarcityClientLockUntilTs);
+  const scarcityToggleLocked = scarcityEffectiveLockUntilTs > Date.now();
+  const scarcityLockRemainingSeconds = scarcityToggleLocked
+    ? Math.max(1, Math.ceil((scarcityEffectiveLockUntilTs - Date.now()) / 1000))
+    : 0;
+  const realEstatePricing = useMemo(
+    () =>
+      resolveRealEstatePerSquareValue({
+        details: current,
+        areaM2: real_estate_area_m2,
+        totalPrice: current?.price,
+      }),
+    [current, real_estate_area_m2]
+  );
+  const isManualPerSquareMode =
+    is_real_estate &&
+    Boolean(current?.show_price_per_m2) &&
+    (current?.price_per_m2_mode || "auto") === REAL_ESTATE_PRICE_MODE_MANUAL;
+  const manualDerivedTotalPrice = useMemo(() => {
+    if (!isManualPerSquareMode) return null;
+    return realEstatePricing?.derivedTotalPrice || null;
+  }, [isManualPerSquareMode, realEstatePricing]);
+  const shouldDisableMainPriceInput = Boolean(current?.price_on_request) || isManualPerSquareMode;
+
+  const formatCurrencyInline = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return "";
+    const formatted = numeric.toLocaleString("bs-BA", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    return currencyPosition === "left"
+      ? `${currencySymbol} ${formatted}`
+      : `${formatted} ${currencySymbol}`;
+  };
+
+  const formatAreaInline = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return null;
+    return numeric.toLocaleString("bs-BA", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  useEffect(() => {
+    if (!isDefaultLang || !isManualPerSquareMode) return;
+
+    const nextPrice = manualDerivedTotalPrice ? String(manualDerivedTotalPrice) : "";
+    setTranslations((prev) => {
+      const prevLang = prev?.[langId] || {};
+      const prevPrice = String(prevLang?.price ?? "");
+      if (prevPrice === nextPrice && prevLang?.price_on_request === false) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [langId]: {
+          ...prevLang,
+          price: nextPrice,
+          price_on_request: false,
+        },
+      };
+    });
+  }, [isDefaultLang, isManualPerSquareMode, langId, manualDerivedTotalPrice, setTranslations]);
 
   useEffect(() => {
     if (hasShopAccess) return;
@@ -363,6 +458,8 @@ const ComponentTwo = ({
   };
 
   const handlePriceOnRequest = (checked) => {
+    if (checked && isManualPerSquareMode) return;
+
     setTranslations((prev) => ({
       ...prev,
       [langId]: {
@@ -394,7 +491,11 @@ const ComponentTwo = ({
   };
 
   // Helper za izračun popusta
-  const priceNum = Number(current.price || 0);
+  const priceNum = Number(
+    isManualPerSquareMode && manualDerivedTotalPrice
+      ? manualDerivedTotalPrice
+      : current.price || 0
+  );
   const oldPriceNum = Number(current.old_price || 0);
   const showDiscount =
     current.is_on_sale &&
@@ -507,7 +608,11 @@ const ComponentTwo = ({
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor="price"
-                  className={!current.price_on_request ? "requiredInputLabel" : ""}
+                  className={
+                    !current.price_on_request && !isManualPerSquareMode
+                      ? "requiredInputLabel"
+                      : ""
+                  }
                 >
                   Cijena
                 </Label>
@@ -516,14 +621,29 @@ const ComponentTwo = ({
                   name="price"
                   id="price"
                   min={0}
-                  placeholder={current.price_on_request ? "Cijena na upit" : placeholderLabel}
-                  value={current.price || ""}
+                  placeholder={
+                    current.price_on_request
+                      ? "Cijena na upit"
+                      : isManualPerSquareMode
+                      ? "Automatski izračun iz m²"
+                      : placeholderLabel
+                  }
+                  value={
+                    isManualPerSquareMode
+                      ? manualDerivedTotalPrice || ""
+                      : current.price || ""
+                  }
                   onChange={handleField("price")}
-                  disabled={current.price_on_request}
+                  disabled={shouldDisableMainPriceInput}
                   className={`border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 transition-colors ${
-                    current.price_on_request ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                    shouldDisableMainPriceInput ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
                   }`}
                 />
+                {isManualPerSquareMode ? (
+                  <p className="text-xs text-cyan-700 dark:text-cyan-300">
+                    Ukupna cijena se računa automatski iz ručne cijene po m² i površine.
+                  </p>
+                ) : null}
               </div>
 
               {/* 2. SWITCH: CIJENA NA UPIT */}
@@ -532,6 +652,7 @@ const ComponentTwo = ({
                   id="price-on-request"
                   checked={current.price_on_request || false}
                   onCheckedChange={handlePriceOnRequest}
+                  disabled={isManualPerSquareMode}
                 />
                 <div className="flex flex-col">
                   <Label 
@@ -541,10 +662,131 @@ const ComponentTwo = ({
                     Cijena na upit
                   </Label>
                   <span className="text-xs text-gray-500">
-                    Kupci će vas morati kontaktirati za cijenu.
+                    {isManualPerSquareMode
+                      ? "Isključeno dok je aktivan ručni unos po m²."
+                      : "Kupci će vas morati kontaktirati za cijenu."}
                   </span>
                 </div>
               </div>
+
+              {is_real_estate ? (
+                <div className="rounded-xl border border-cyan-200 bg-cyan-50/70 p-3 dark:border-cyan-500/30 dark:bg-cyan-500/10">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">
+                        Cijena po m²
+                      </p>
+                      <p className="mt-0.5 text-xs text-cyan-700 dark:text-cyan-200">
+                        Uključite prikaz cijene po m² za nekretnine.
+                      </p>
+                    </div>
+                    <Switch
+                      id="show_price_per_m2"
+                      checked={Boolean(current?.show_price_per_m2)}
+                      onCheckedChange={(checked) => {
+                        setTranslations((prev) => ({
+                          ...prev,
+                          [langId]: {
+                            ...prev[langId],
+                            show_price_per_m2: checked,
+                            price_per_m2_mode: prev?.[langId]?.price_per_m2_mode || "auto",
+                          },
+                        }));
+                      }}
+                    />
+                  </div>
+
+                  {current?.show_price_per_m2 ? (
+                    <div className="mt-3 space-y-3">
+                      <div className="flex items-center justify-between rounded-xl border border-cyan-200 bg-white px-3 py-2.5 dark:border-cyan-500/40 dark:bg-slate-900/70">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            Ručni unos po m²
+                          </p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300">
+                            {isManualPerSquareMode
+                              ? "Aktivno: ručno unosite cijenu po m²."
+                              : "Isključeno: cijena po m² se računa automatski."}
+                          </p>
+                        </div>
+                        <Switch
+                          id="price_per_m2_mode_manual"
+                          checked={isManualPerSquareMode}
+                          onCheckedChange={(checked) =>
+                            setTranslations((prev) => ({
+                              ...prev,
+                              [langId]: {
+                                ...prev[langId],
+                                price_per_m2_mode: checked ? REAL_ESTATE_PRICE_MODE_MANUAL : "auto",
+                                ...(checked ? { price_on_request: false } : {}),
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+
+                      <p className="text-xs text-slate-700 dark:text-slate-300">
+                        Površina iz detalja oglasa:{" "}
+                        <span className="font-semibold">
+                          {formatAreaInline(real_estate_area_m2)
+                            ? `${formatAreaInline(real_estate_area_m2)} m²`
+                            : "nije unesena"}
+                        </span>
+                      </p>
+
+                      {isManualPerSquareMode ? (
+                        <div className="space-y-1">
+                          <Label htmlFor="price_per_unit" className="text-sm font-semibold text-gray-800">
+                            Ručna cijena po m² (KM)
+                          </Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            name="price_per_unit"
+                            id="price_per_unit"
+                            placeholder="npr. 1.950"
+                            value={current.price_per_unit || ""}
+                            onChange={handleField("price_per_unit")}
+                            className="border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <Label htmlFor="price_per_m2_auto" className="text-sm font-semibold text-gray-800">
+                            Automatska cijena po m²
+                          </Label>
+                          <Input
+                            type="text"
+                            id="price_per_m2_auto"
+                            readOnly
+                            value={realEstatePricing?.autoValue ? formatCurrencyInline(realEstatePricing.autoValue) : ""}
+                            placeholder="Unesite cijenu i površinu"
+                            className="border border-slate-300 rounded-xl bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                          />
+                        </div>
+                      )}
+
+                      {!real_estate_area_m2 ? (
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          Cijena po m² će biti dostupna nakon unosa površine (m²) u detaljima oglasa.
+                        </p>
+                      ) : null}
+
+                      {realEstatePricing?.canDisplay ? (
+                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                          Prikaz na oglasu: {formatCurrencyInline(realEstatePricing.resolvedValue)} / m²
+                        </p>
+                      ) : null}
+                      {isManualPerSquareMode && manualDerivedTotalPrice ? (
+                        <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                          Izračunata ukupna cijena: {formatCurrencyInline(manualDerivedTotalPrice)}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {/* 3. SEKCIJA: AKCIJA / POPUST (Samo ako nije cijena na upit) */}
               {!current.price_on_request && (
@@ -630,7 +872,7 @@ const ComponentTwo = ({
       )}
 
       {/* STOCK */}
-      {isDefaultLang && (
+      {isDefaultLang && !is_real_estate && (
         <AccordionSection
           title="Zalihe"
           subtitle="Shop može voditi zalihe i internu šifru artikla"
@@ -756,6 +998,70 @@ const ComponentTwo = ({
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 LMX je posredni oglasni servis: plaćanje, dostava i reklamacije su dogovor između prodavača i kupca.
               </p>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    Oznaka \"Do isteka zaliha\"
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+                    Oglas će dobiti scarcity prikaz samo kada je zaliha stvarno niska.
+                  </p>
+                </div>
+                <Switch
+                  id="scarcity_enabled"
+                  checked={scarcityEnabled}
+                  onCheckedChange={(checked) => {
+                    if (scarcityToggleLocked) return;
+                    setTranslations((prev) => ({
+                      ...prev,
+                      [langId]: {
+                        ...prev[langId],
+                        scarcity_enabled: checked,
+                      },
+                    }));
+                    setScarcityClientLockUntilTs(Date.now() + CLIENT_SCARCITY_COOLDOWN_MS);
+                  }}
+                  disabled={!hasShopAccess || scarcityToggleLocked}
+                  className="data-[state=checked]:bg-amber-500"
+                />
+              </div>
+
+              {!hasShopAccess ? (
+                <p className="mt-2 text-xs text-amber-700">
+                  Ova opcija je dostupna samo za LMX Shop korisnike.
+                </p>
+              ) : null}
+
+              {hasShopAccess && scarcityToggleLocked ? (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                  Privremeno zaključano zbog čestih promjena. Pokušajte ponovo za{" "}
+                  {scarcityLockRemainingSeconds >= 60
+                    ? `oko ${Math.ceil(scarcityLockRemainingSeconds / 60)} min`
+                    : `${scarcityLockRemainingSeconds} s`}
+                  .
+                </p>
+              ) : null}
+
+              {hasShopAccess && scarcityEnabled && !scarcityHasInventory ? (
+                <p className="mt-2 text-xs text-rose-700 dark:text-rose-300">
+                  Unesite količinu na zalihi veću od 0 da bi oznaka postala aktivna.
+                </p>
+              ) : null}
+
+              {hasShopAccess && scarcityEnabled && scarcityHasInventory && !scarcityIsLow ? (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                  Oznaka će se automatski aktivirati kad zaliha padne na {parsedLowThreshold} ili manje.
+                </p>
+              ) : null}
+
+              {hasShopAccess && scarcityEnabled && scarcityIsLow ? (
+                <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
+                  Aktivno: {scarcityIsLastUnits ? "Posljednji komadi." : `Još ${parsedInventoryCount} komada dostupno.`}
+                </p>
+              ) : null}
             </div>
           </div>
         </AccordionSection>

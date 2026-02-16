@@ -308,6 +308,10 @@ export const allItemApi = {
     is_feature,
     placement,
     positions,
+    scarcity_only,
+    scarcity_enabled,
+    low_inventory_only,
+    inventory_lte,
     no_cache,
   } = {}) => {
     const params = {
@@ -349,6 +353,10 @@ export const allItemApi = {
       is_feature,
       placement,
       positions,
+      scarcity_only,
+      scarcity_enabled,
+      low_inventory_only,
+      inventory_lte,
     };
 
     const shouldUseCache = !no_cache;
@@ -443,6 +451,11 @@ export const FeaturedSectionApi = {
     longitude,
     radius,
     area_id,
+    current_page,
+    placement,
+    positions,
+    category_id,
+    category_slug,
   } = {}) => {
     return Api.get(GET_FEATURED_SECTION, {
       params: {
@@ -454,6 +467,11 @@ export const FeaturedSectionApi = {
         longitude,
         radius,
         area_id,
+        current_page,
+        placement,
+        positions,
+        category_id,
+        category_slug,
       },
     });
   },
@@ -1189,6 +1207,7 @@ export const addItemApi = {
     minimum_order_quantity,
     stock_alert_threshold,
     seller_product_code,
+    scarcity_enabled,
     show_only_to_premium,
     add_video_to_story,
     publish_to_instagram,
@@ -1316,6 +1335,11 @@ export const addItemApi = {
     if (seller_product_code !== undefined && seller_product_code !== null) {
       formData.append("seller_product_code", String(seller_product_code).trim());
     }
+    if (scarcity_enabled !== undefined && scarcity_enabled !== null) {
+      const scarcityEnabled01 = scarcity_enabled ? 1 : 0;
+      formData.append("scarcity_enabled", scarcityEnabled01);
+      formData.append("is_scarcity_enabled", scarcityEnabled01);
+    }
 
     if (custom_field_translations)
       formData.append("custom_field_translations", custom_field_translations);
@@ -1406,6 +1430,7 @@ export const editItemApi = {
     price_per_unit,
     minimum_order_quantity,
     stock_alert_threshold,
+    scarcity_enabled,
     instagram_source_url,
 
     // ✅ TEMP IDS (dodaj i u edit!)
@@ -1522,6 +1547,11 @@ export const editItemApi = {
     }
     if (seller_product_code !== undefined && seller_product_code !== null) {
       formData.append("seller_product_code", String(seller_product_code).trim());
+    }
+    if (scarcity_enabled !== undefined && scarcity_enabled !== null) {
+      const scarcityEnabled01 = scarcity_enabled ? 1 : 0;
+      formData.append("scarcity_enabled", scarcityEnabled01);
+      formData.append("is_scarcity_enabled", scarcityEnabled01);
     }
 
     if (isFileLike(video)) {

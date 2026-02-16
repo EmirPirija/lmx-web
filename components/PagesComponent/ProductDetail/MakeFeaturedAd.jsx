@@ -87,6 +87,9 @@ const MakeFeaturedAd = ({
   onOpenChange,
   hideTrigger = false,
   onSuccess,
+  initialPlacement = DEFAULT_PLACEMENT,
+  initialDuration = DEFAULT_DURATION,
+  isAlreadyFeatured = false,
 }) => {
   const [internalModalOpen, setInternalModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -147,6 +150,12 @@ const MakeFeaturedAd = ({
     [selectedPlacement]
   );
 
+  useEffect(() => {
+    if (!isModalOpen) return;
+    setSelectedPlacement(normalizePlacement(initialPlacement));
+    setSelectedDuration(normalizeDuration(initialDuration));
+  }, [initialDuration, initialPlacement, isModalOpen]);
+
   const handleCreateFeaturedAd = async () => {
     if (isSubmitting || submitLockRef.current) return;
     if (!item_id) {
@@ -170,11 +179,30 @@ const MakeFeaturedAd = ({
 
       if (res?.data?.error === false) {
         toast.success(res?.data?.message || "Oglas je uspješno izdvojen.");
+        const featuredPayload = res?.data?.data || {};
+        const featuredUntil = featuredPayload?.featured_until || null;
+        const featuredExpiresAt = featuredPayload?.featured_expires_at || null;
+        const remainingDaysRaw = Number(featuredPayload?.featured_days_left);
+        const remainingSecondsRaw = Number(featuredPayload?.featured_seconds_left);
+        const remainingDays = Number.isFinite(remainingDaysRaw) ? Math.max(remainingDaysRaw, 0) : null;
+        const remainingSeconds = Number.isFinite(remainingSecondsRaw) ? Math.max(remainingSecondsRaw, 0) : null;
         setProductDetails((prev) => ({
           ...prev,
           is_feature: true,
+          is_feature_any: true,
+          is_feature_home: normalizedPlacement === "home" || normalizedPlacement === "category_home",
+          is_feature_category:
+            normalizedPlacement === "category" || normalizedPlacement === "category_home",
           featured_placement: normalizedPlacement,
+          positions,
           featured_duration_days: normalizedDuration,
+          featured_end_date: featuredUntil,
+          featured_until: featuredUntil,
+          featured_expires_at:
+            featuredExpiresAt ||
+            (featuredUntil ? `${featuredUntil}T23:59:59` : prev?.featured_expires_at || null),
+          featured_days_left: remainingDays,
+          featured_seconds_left: remainingSeconds,
         }));
         onSuccess?.(res?.data?.data || null, {
           positions,
@@ -219,7 +247,9 @@ const MakeFeaturedAd = ({
                   Izdvajanje oglasa
                 </p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 sm:text-base">
-                  Podigni oglas na vrh i povećaj vidljivost.
+                  {isAlreadyFeatured
+                    ? "Uredi postojeće izdvajanje i produži trajanje."
+                    : "Podigni oglas na vrh i povećaj vidljivost."}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
                   Limiti: standard korisnik do 8 izdvojenih, Pro/Shop do 20 aktivnih oglasa.
@@ -232,7 +262,7 @@ const MakeFeaturedAd = ({
               className="h-11 w-full rounded-xl bg-amber-500 font-semibold text-white hover:bg-amber-600 sm:w-auto"
             >
               <MdRocketLaunch className="mr-2 text-lg" />
-              Izdvoji oglas
+              {isAlreadyFeatured ? "Uredi izdvajanje" : "Izdvoji oglas"}
             </Button>
           </div>
         </div>
@@ -255,7 +285,9 @@ const MakeFeaturedAd = ({
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Postavke izdvajanja</h3>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Odaberi gdje će oglas biti istaknut i koliko dugo.
+                    {isAlreadyFeatured
+                      ? "Promijeni poziciju i produži trajanje trenutnog izdvajanja."
+                      : "Odaberi gdje će oglas biti istaknut i koliko dugo."}
                   </p>
                 </div>
                 <button
@@ -359,7 +391,11 @@ const MakeFeaturedAd = ({
                     className="h-11 rounded-xl bg-amber-500 font-semibold text-white hover:bg-amber-600"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Aktiviram..." : "Objavi izdvajanje"}
+                    {isSubmitting
+                      ? "Spremam..."
+                      : isAlreadyFeatured
+                      ? "Sačuvaj izdvajanje"
+                      : "Objavi izdvajanje"}
                   </Button>
                 </div>
               </div>

@@ -19,7 +19,7 @@ import { getIsRtl } from "@/redux/reducer/languageSlice";
 const MAX_ITEMS = 10;
 const FETCH_LIMIT = 24;
 const carouselItemClassName =
-  "pl-2 sm:pl-3 basis-1/2 sm:basis-1/3 md:basis-1/4 xl:basis-1/5 2xl:basis-1/6";
+  "pl-2 sm:pl-3 basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4 2xl:basis-1/4";
 
 const SellerOtherAds = ({ productDetails, onItemClick }) => {
   const isRTL = useSelector(getIsRtl);

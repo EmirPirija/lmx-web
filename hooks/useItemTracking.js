@@ -105,11 +105,33 @@ const getAttributionSource = ({ searchId, explicitSource, explicitDetail } = {})
   const utmSource = params.get('utm_source');
   const utmMedium = params.get('utm_medium');
   const utmCampaign = params.get('utm_campaign');
+  const ref = params.get('ref');
+  const sourceDetailParam = params.get('source_detail');
   const referrer = getReferrer();
   const currentHost = window.location.host;
 
   if (searchId) {
     return { source: 'search', source_detail: `search:${searchId}`.slice(0, 100) };
+  }
+
+  if (ref) {
+    const refMap = {
+      featured: "featured",
+      scarcity: "featured_section",
+      similar: "similar",
+      seller: "seller_profile",
+      favorites: "favorites",
+      category: "category",
+      search: "search",
+      chat: "direct",
+      notification: "direct",
+      home: "direct",
+    };
+    const normalizedSource = refMap[ref] || "direct";
+    return {
+      source: normalizedSource,
+      source_detail: (sourceDetailParam || ref || null)?.slice(0, 100),
+    };
   }
 
   if (utmSource || utmMedium || utmCampaign) {

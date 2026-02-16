@@ -76,7 +76,7 @@ const SimilarProducts = ({ productDetails }) => {
           {similarData?.map((item) => (
             <CarouselItem
               key={item.id}
-              className="md:basis-1/3 lg:basis-[25%] basis-2/3 sm:basis-1/2"
+              className="basis-[82%] sm:basis-1/2 md:basis-1/3 xl:basis-1/4"
             >
               <ProductCard
                 item={item}

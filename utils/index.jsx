@@ -4,6 +4,11 @@ import { store } from "../redux/store";
 import enTranslation from "./locale/en.json";
 import { generateKeywords } from "./generateKeywords";
 import { getCountryCallingCode } from "react-phone-number-input";
+import {
+  extractAreaM2FromItem,
+  inferRealEstatePerSquareMode,
+  toPositiveNumber,
+} from "@/utils/realEstatePricing";
 
 export const t = (label) => {
   if (typeof store.getState !== "function") {
@@ -1087,6 +1092,13 @@ export const getMainDetailsTranslations = (
   defaultLangId
 ) => {
   const translations = {};
+  const areaM2 = extractAreaM2FromItem(listingData);
+  const initialPerSquare = toPositiveNumber(listingData?.price_per_unit);
+  const inferredPerSquareMode = inferRealEstatePerSquareMode({
+    perSquarePrice: listingData?.price_per_unit,
+    totalPrice: listingData?.price,
+    areaM2,
+  });
 
   // Fill translations for all languages
   languages.forEach((lang) => {
@@ -1118,6 +1130,8 @@ export const getMainDetailsTranslations = (
           listingData?.price_per_unit !== undefined && listingData?.price_per_unit !== null
             ? String(listingData.price_per_unit)
             : "",
+        show_price_per_m2: Boolean(initialPerSquare),
+        price_per_m2_mode: initialPerSquare ? inferredPerSquareMode : "auto",
         minimum_order_quantity:
           listingData?.minimum_order_quantity !== undefined && listingData?.minimum_order_quantity !== null
             ? String(listingData.minimum_order_quantity)
@@ -1127,6 +1141,20 @@ export const getMainDetailsTranslations = (
             ? String(listingData.stock_alert_threshold)
             : "",
         seller_product_code: listingData?.seller_product_code || "",
+        scarcity_enabled: Boolean(
+          listingData?.scarcity_enabled ??
+          listingData?.is_scarcity_enabled ??
+          listingData?.translated_item?.scarcity_enabled ??
+          false
+        ),
+        scarcity_toggle_locked_until:
+          listingData?.scarcity_toggle_locked_until ||
+          listingData?.translated_item?.scarcity_toggle_locked_until ||
+          "",
+        scarcity_last_toggled_at:
+          listingData?.scarcity_last_toggled_at ||
+          listingData?.translated_item?.scarcity_last_toggled_at ||
+          "",
       };
     } else {
       // Other languages: get translation if available

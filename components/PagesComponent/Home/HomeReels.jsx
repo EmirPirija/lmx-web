@@ -19,6 +19,7 @@ import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal"
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import { getYouTubeVideoId } from "@/utils";
 import { cn } from "@/lib/utils";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 import {
   MdFavorite,
@@ -578,6 +579,12 @@ const ReelCard = memo(({
   const city = item?.translated_city || item?.city || null;
   const createdAt = item?.created_at || null;
   const negotiable = isNeg(item?.price);
+  const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(item), [item]);
+  const perM2Label = realEstatePricing?.showPerM2
+    ? `${new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(
+        Number(realEstatePricing.perM2Value)
+      )} KM / m²`
+    : null;
 
   const sellerStoryCount = Math.max(1, sellerGroup?.items?.length || 0);
 
@@ -1178,7 +1185,14 @@ const ReelCard = memo(({
                 <MdLocalOffer className="w-3 h-3" /> Po dogovoru
               </span>
             ) : (
-              <span className="text-white font-bold text-sm drop-shadow-lg">{fmtPrice(item?.price)}</span>
+              <>
+                <span className="text-white font-bold text-sm drop-shadow-lg">{fmtPrice(item?.price)}</span>
+                {perM2Label ? (
+                  <span className="inline-flex items-center rounded-full bg-white/18 px-2 py-0.5 text-[10px] font-semibold text-white/90 backdrop-blur-sm">
+                    {perM2Label}
+                  </span>
+                ) : null}
+              </>
             )}
           </div>
           {city && (

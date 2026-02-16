@@ -25,6 +25,7 @@ import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import { useNavigate } from "@/components/Common/useNavigate";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
 import { cn } from "@/lib/utils";
+import { getFeaturedMeta } from "@/utils/featuredPlacement";
 
 // ============================================
 // HELPERI
@@ -202,12 +203,14 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
   const internalCode = String(productDetails?.seller_product_code || "").trim();
   const statusInfo = getStatusInfo(productDetails?.status);
   const StatusIcon = statusInfo.icon;
+  const featuredMeta = getFeaturedMeta(productDetails);
 
   // Provjeri da li je moguće uređivati
   const isEditable = productDetails?.status && !["permanent rejected", "inactive", "sold out", "expired"].includes(productDetails.status);
   
   // Provjeri da li može biti izdvojen
-  const canBeFeatured = productDetails?.status === "approved" && !productDetails?.is_feature;
+  const normalizedStatus = String(productDetails?.status || "").toLowerCase();
+  const canManageFeatured = ["approved", "featured"].includes(normalizedStatus);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -233,32 +236,34 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
         <div className="px-3 pt-3">
           <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/50 p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{productName}</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  <span>ID: #{productDetails?.id}</span>
-                  {productDetails?.created_at ? <span>Kreiran: {formatDate(productDetails.created_at)}</span> : null}
-                </div>
-              </div>
-
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold whitespace-nowrap",
-                  statusInfo.borderColor,
-                  statusInfo.bgColor,
-                  statusInfo.color
-                )}
-              >
-                <StatusIcon size={12} />
-                {statusInfo.label}
-              </span>
-            </div>
 
             {internalCode ? (
               <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-[11px]">
                 <span className="font-medium text-slate-500 dark:text-slate-400">Interna šifra:</span>
                 <span className="truncate font-semibold text-slate-800 dark:text-slate-100">{internalCode}</span>
+              </div>
+            ) : null}
+
+            {productDetails?.is_feature ? (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-700 dark:border-amber-800/70 dark:bg-amber-950/40 dark:text-amber-300">
+                  <IoRocketOutline size={12} />
+                  {featuredMeta?.placementLabel || "Izdvojeno"}
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold",
+                    featuredMeta?.isExpired
+                      ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/40 dark:text-rose-300"
+                      : "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800/70 dark:bg-sky-950/40 dark:text-sky-300"
+                  )}
+                  title={featuredMeta?.endAtLabel ? `Ističe: ${featuredMeta.endAtLabel}` : "Izdvojeno bez isteka"}
+                >
+                  <IoTimeOutline size={12} />
+                  {featuredMeta?.isUnlimited
+                    ? "Bez isteka"
+                    : `Preostalo: ${featuredMeta?.remainingLabel || "-"}`}
+                </span>
               </div>
             ) : null}
           </div>
@@ -327,11 +332,15 @@ const MyAdsListingDetailCard = ({ productDetails, onMakeFeatured }) => {
               />
             )}
             
-            {canBeFeatured && (
+            {canManageFeatured && (
               <MenuItem
                 icon={IoRocketOutline}
-                label="Izdvoji oglas"
-                description="Povećaj vidljivost oglasa"
+                label={productDetails?.is_feature ? "Uredi izdvajanje" : "Izdvoji oglas"}
+                description={
+                  productDetails?.is_feature
+                    ? "Promijeni poziciju ili produži trajanje izdvajanja."
+                    : "Povećaj vidljivost oglasa"
+                }
                 onClick={onMakeFeatured}
                 highlighted
               />

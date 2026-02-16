@@ -94,6 +94,16 @@ const formatDuration = (seconds) => {
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 };
 
+const readMetricValue = (source, keys = [], fallback = 0) => {
+  if (!source || typeof source !== "object") return fallback;
+  for (const key of keys) {
+    const value = source?.[key];
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+};
+
 const getTopSource = (sources) => {
   const data = [...(sources?.internal || []), ...(sources?.external || [])];
   if (!data.length) return null;
@@ -556,6 +566,213 @@ const EngagementRatesSection = ({ summary }) => {
           <br />
           znači jači interes kupaca
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// SCARCITY PERFORMANCE
+// ============================================
+const ScarcityPerformanceSection = ({ scarcity }) => {
+  if (!scarcity || typeof scarcity !== "object") return null;
+
+  const withUi = scarcity?.with_ui || scarcity?.with_scarcity || scarcity?.with || {};
+  const withoutUi = scarcity?.without_ui || scarcity?.without_scarcity || scarcity?.without || {};
+  const homepageSection = scarcity?.homepage_section || scarcity?.homepage || scarcity?.section || {};
+  const trendRaw = Array.isArray(scarcity?.trend) ? scarcity.trend : [];
+  const insights = Array.isArray(scarcity?.insights)
+    ? scarcity.insights.filter(Boolean).slice(0, 2)
+    : [];
+
+  const readMetricsBundle = (bucket = {}) => {
+    const views = readMetricValue(bucket, ["views", "total_views"], 0);
+    const uniqueViews = readMetricValue(bucket, ["unique_views", "unique", "unique_visitors"], 0);
+    const messages = readMetricValue(bucket, ["messages", "message_count"], 0);
+    const favorites = readMetricValue(bucket, ["favorites", "favourite_count"], 0);
+    const callClicks = readMetricValue(bucket, ["calls", "call_clicks", "phone_clicks"], 0);
+    const whatsappClicks = readMetricValue(bucket, ["whatsapp_clicks", "whatsapp"], 0);
+    const viberClicks = readMetricValue(bucket, ["viber_clicks", "viber"], 0);
+    const emailClicks = readMetricValue(bucket, ["email_clicks", "email"], 0);
+    const calls = callClicks + whatsappClicks + viberClicks;
+    const contacts = readMetricValue(bucket, ["contacts", "contact_count"], messages + calls + emailClicks);
+    const contactRate = views > 0 ? (contacts / views) * 100 : 0;
+
+    return {
+      views,
+      uniqueViews,
+      messages,
+      calls,
+      favorites,
+      contacts,
+      contactRate,
+    };
+  };
+
+  const withMetrics = readMetricsBundle(withUi);
+  const withoutMetrics = readMetricsBundle(withoutUi);
+  const homepageMetrics = readMetricsBundle(homepageSection);
+  const homepageEngagement = readMetricValue(homepageSection, ["engagement", "engagement_rate"], 0);
+  const uplift = withMetrics.contactRate - withoutMetrics.contactRate;
+
+  const trend = trendRaw
+    .map((entry, index) => ({
+      label: entry?.formatted_date || entry?.date || `Dan ${index + 1}`,
+      views: readMetricValue(entry, ["views", "total_views"], 0),
+      contacts: readMetricValue(entry, ["contacts", "messages", "contact_count"], 0),
+      state: entry?.state || entry?.inventory_state || "",
+    }))
+    .slice(-14);
+
+  const trendStateBreakdown = trend.reduce((acc, entry) => {
+    const key = String(entry?.state || "").toLowerCase();
+    if (key.includes("last")) {
+      acc.last_units += 1;
+      return acc;
+    }
+    if (key.includes("low")) {
+      acc.low_stock += 1;
+      return acc;
+    }
+    if (key.includes("normal")) {
+      acc.normal += 1;
+      return acc;
+    }
+    if (key.includes("out")) {
+      acc.out_of_stock += 1;
+      return acc;
+    }
+    return acc;
+  }, {
+    normal: 0,
+    low_stock: 0,
+    last_units: 0,
+    out_of_stock: 0,
+  });
+
+  const fallbackInsights = [
+    uplift > 0
+      ? `Kada je scarcity UI aktivan, stopa kontakta je veća za ${formatPercent(Math.abs(uplift))}.`
+      : "Kad se aktivira scarcity UI, možete pratiti da li stopa kontakta raste u odnosu na standardni prikaz.",
+    homepageMetrics.views > 0
+      ? `Sekcija \"Do isteka zaliha\" trenutno donosi ${formatNumber(homepageMetrics.views)} pregleda ovog oglasa.`
+      : "Sekcija \"Do isteka zaliha\" će prikazati učinak čim oglas uđe u low inventory režim.",
+  ];
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+      <h4 className="font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2 text-sm">
+        <IoAlertCircleOutline className="text-amber-500" />
+        Učinak oznake \"Do isteka zaliha\"
+      </h4>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pregledi sa oznakom</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatNumber(withMetrics.views)}</p>
+        </div>
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pregledi bez oznake</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatNumber(withoutMetrics.views)}</p>
+        </div>
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Stopa kontakta (sa)</p>
+          <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{formatPercent(withMetrics.contactRate)}</p>
+        </div>
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Pregledi iz sekcije</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatNumber(homepageMetrics.views)}</p>
+          {homepageEngagement > 0 ? (
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Engagement {formatPercent(homepageEngagement)}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3">
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Sa scarcity UI</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <p className="text-slate-600 dark:text-slate-300">Pregledi: <span className="font-semibold">{formatNumber(withMetrics.views)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Jedinstveni: <span className="font-semibold">{formatNumber(withMetrics.uniqueViews)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Poruke: <span className="font-semibold">{formatNumber(withMetrics.messages)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Pozivi: <span className="font-semibold">{formatNumber(withMetrics.calls)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Favoriti: <span className="font-semibold">{formatNumber(withMetrics.favorites)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Stopa kontakta: <span className="font-semibold">{formatPercent(withMetrics.contactRate)}</span></p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3">
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Bez scarcity UI</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <p className="text-slate-600 dark:text-slate-300">Pregledi: <span className="font-semibold">{formatNumber(withoutMetrics.views)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Jedinstveni: <span className="font-semibold">{formatNumber(withoutMetrics.uniqueViews)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Poruke: <span className="font-semibold">{formatNumber(withoutMetrics.messages)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Pozivi: <span className="font-semibold">{formatNumber(withoutMetrics.calls)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Favoriti: <span className="font-semibold">{formatNumber(withoutMetrics.favorites)}</span></p>
+            <p className="text-slate-600 dark:text-slate-300">Stopa kontakta: <span className="font-semibold">{formatPercent(withoutMetrics.contactRate)}</span></p>
+          </div>
+        </div>
+      </div>
+
+      {homepageMetrics.views > 0 || homepageMetrics.contacts > 0 ? (
+        <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-700/50 dark:bg-sky-900/20">
+          <p className="text-xs font-semibold text-sky-800 dark:text-sky-200">Sekcija \"Do isteka zaliha\"</p>
+          <div className="mt-1 grid grid-cols-3 gap-2 text-xs text-sky-800/90 dark:text-sky-200">
+            <p>Pregledi: <span className="font-semibold">{formatNumber(homepageMetrics.views)}</span></p>
+            <p>Kontakti: <span className="font-semibold">{formatNumber(homepageMetrics.contacts)}</span></p>
+            <p>Stopa kontakta: <span className="font-semibold">{formatPercent(homepageMetrics.contactRate)}</span></p>
+          </div>
+        </div>
+      ) : null}
+
+      {trend.length > 0 ? (
+        <div className="mt-4 rounded-xl border border-slate-100 dark:border-slate-700 p-3">
+          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">Trend nakon prelaska na nisku zalihu</p>
+          <div className="h-[170px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={trend} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="views" name="Pregledi" fill={COLORS.primary} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="contacts" name="Kontakti" fill={COLORS.success} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {trendStateBreakdown.normal > 0 ? (
+              <span className="rounded-full border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[11px] text-slate-600 dark:text-slate-300">
+                Normalno: {trendStateBreakdown.normal}
+              </span>
+            ) : null}
+            {trendStateBreakdown.low_stock > 0 ? (
+              <span className="rounded-full border border-amber-300 dark:border-amber-700 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300">
+                Niska zaliha: {trendStateBreakdown.low_stock}
+              </span>
+            ) : null}
+            {trendStateBreakdown.last_units > 0 ? (
+              <span className="rounded-full border border-orange-300 dark:border-orange-700 px-2 py-0.5 text-[11px] text-orange-700 dark:text-orange-300">
+                Posljednji komadi: {trendStateBreakdown.last_units}
+              </span>
+            ) : null}
+            {trendStateBreakdown.out_of_stock > 0 ? (
+              <span className="rounded-full border border-rose-300 dark:border-rose-700 px-2 py-0.5 text-[11px] text-rose-700 dark:text-rose-300">
+                Rasprodano: {trendStateBreakdown.out_of_stock}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-4 space-y-2">
+        {(insights.length ? insights : fallbackInsights).map((insight, index) => (
+          <div
+            key={`scarcity-insight-${index}`}
+            className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-700 dark:text-slate-200"
+          >
+            {insight}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1548,6 +1765,12 @@ const AdStatisticsSection = ({ itemId, itemName }) => {
                         <HighlightsSection sources={stats.sources} devices={stats.devices} daily={stats.daily} />
                       </div>
                     </motion.div>
+
+                    {(stats.scarcity || stats.scarcity_overview) && (
+                      <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.28}>
+                        <ScarcityPerformanceSection scarcity={stats.scarcity || stats.scarcity_overview} />
+                      </motion.div>
+                    )}
 
                     <motion.div variants={motionFade} initial="hidden" animate="show" custom={0.3}>
                       <div className="grid lg:grid-cols-2 gap-4">

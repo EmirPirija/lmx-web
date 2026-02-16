@@ -39,6 +39,7 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import { getYouTubeVideoId } from "@/utils";
 import MembershipBadge from "@/components/Common/MembershipBadge";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 /* ── helpers ────────────────────────────────────── */
 
@@ -638,6 +639,12 @@ const ReelViewerModal = ({
   const neg = item ? (item.price == null || Number(item.price) === 0) : false;
   const views = num(item?.total_video_plays) || num(item?.clicks);
   const likes = num(item?.total_likes);
+  const realEstatePricing = resolveRealEstateDisplayPricing(item || {});
+  const perM2Label = realEstatePricing?.showPerM2
+    ? `${new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(
+        Number(realEstatePricing.perM2Value)
+      )} KM / m²`
+    : null;
 
   const modalContent = (
     <AnimatePresence mode="wait">
@@ -1022,9 +1029,16 @@ const ReelViewerModal = ({
                         <MdLocalOffer className="w-3 h-3" /> Po dogovoru
                       </span>
                     ) : (
-                      <span className="px-2.5 py-1 rounded-full bg-white/18 backdrop-blur-sm text-white font-bold text-sm">
-                        {fmtPrice(item?.price)}
-                      </span>
+                      <>
+                        <span className="px-2.5 py-1 rounded-full bg-white/18 backdrop-blur-sm text-white font-bold text-sm">
+                          {fmtPrice(item?.price)}
+                        </span>
+                        {perM2Label ? (
+                          <span className="inline-flex items-center rounded-full bg-white/14 px-2 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm">
+                            {perM2Label}
+                          </span>
+                        ) : null}
+                      </>
                     )}
                     {city && (
                       <span className="inline-flex items-center gap-1 text-white/65 text-xs">

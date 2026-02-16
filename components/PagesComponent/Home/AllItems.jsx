@@ -75,7 +75,7 @@ const AllItems = ({ cityData, KmRange }) => {
       if (response?.data?.data?.data?.length > 0) {
         const data = response?.data?.data?.data;
         const featuredOnly = Array.isArray(data)
-          ? data.filter((entry) => isHomeFeaturedItem(entry))
+          ? data.filter((entry) => isHomeFeaturedItem(entry, { strict: true }))
           : [];
 
         if (page === 1) {
@@ -151,7 +151,7 @@ const AllItems = ({ cityData, KmRange }) => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 gap-3 sm:gap-6 mt-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-6 mt-6">
         {isLoading ? (
           <AllItemsSkeleton />
         ) : AllItem && AllItem.length > 0 ? (

@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import { getCityData, getKilometerRange } from "@/redux/reducer/locationSlice";
 import { t } from "@/utils";
 import { cn } from "@/lib/utils";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 // Dynamic import za mapu
 const MapWithListingsMarkers = dynamic(() => import("./MapWithListingsMarkers"), {
@@ -316,6 +317,14 @@ const AdCard = ({
   onMouseLeave,
   formatPrice,
 }) => {
+  const realEstatePricing = resolveRealEstateDisplayPricing(ad || {});
+  const perM2Label = realEstatePricing?.showPerM2
+    ? `${new Intl.NumberFormat("bs-BA", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(Number(realEstatePricing.perM2Value))} KM / m²`
+    : null;
+
   return (
     <div
       id={`ad-card-${ad.id}`}
@@ -374,10 +383,15 @@ const AdCard = ({
           </span>
         </div>
 
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-lg font-bold text-primary">
-            {formatPrice(ad.price)}
-          </p>
+        <div className="mb-2 flex items-center justify-between">
+          <div className="min-w-0">
+            <p className="truncate text-lg font-bold text-primary">
+              {formatPrice(ad.price)}
+            </p>
+            {perM2Label ? (
+              <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">{perM2Label}</p>
+            ) : null}
+          </div>
           {ad.area && (
             <span className="text-xs text-slate-500">
               {ad.area} m²

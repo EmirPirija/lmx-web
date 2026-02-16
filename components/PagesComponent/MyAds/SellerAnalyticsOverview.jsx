@@ -56,6 +56,15 @@ const formatCurrencyKm = (value) => {
   return `${num.toLocaleString("bs-BA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM`;
 };
 
+const readMetric = (source, keys = [], fallback = 0) => {
+  if (!source || typeof source !== "object") return fallback;
+  for (const key of keys) {
+    const parsed = Number(source?.[key]);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+};
+
 const StatCard = ({ icon: Icon, label, value, hint, tone = "slate" }) => {
   const tones = {
     slate: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-100",
@@ -234,6 +243,34 @@ export default function SellerAnalyticsOverview() {
 
   const boostSummary = boostRoiData?.summary || {};
   const boostTrend = boostRoiData?.trend || [];
+  const scarcityData = data?.scarcity || data?.scarcity_overview || {};
+  const scarcityWith = scarcityData?.with_ui || scarcityData?.with_scarcity || scarcityData?.with || {};
+  const scarcityWithout = scarcityData?.without_ui || scarcityData?.without_scarcity || scarcityData?.without || {};
+  const scarcityHomepage = scarcityData?.homepage_section || scarcityData?.homepage || scarcityData?.section || {};
+  const scarcityWithViews = readMetric(scarcityWith, ["views", "total_views"], 0);
+  const scarcityWithContacts = readMetric(scarcityWith, ["contacts", "messages", "contact_count"], 0);
+  const scarcityWithoutViews = readMetric(scarcityWithout, ["views", "total_views"], 0);
+  const scarcityWithoutContacts = readMetric(scarcityWithout, ["contacts", "messages", "contact_count"], 0);
+  const scarcityHomepageViews = readMetric(scarcityHomepage, ["views", "total_views"], 0);
+  const scarcityWithRate = scarcityWithViews > 0 ? (scarcityWithContacts / scarcityWithViews) * 100 : 0;
+  const scarcityWithoutRate = scarcityWithoutViews > 0 ? (scarcityWithoutContacts / scarcityWithoutViews) * 100 : 0;
+  const scarcityRateDelta = scarcityWithRate - scarcityWithoutRate;
+  const scarcityInsights =
+    Array.isArray(scarcityData?.insights) && scarcityData.insights.length
+      ? scarcityData.insights.slice(0, 2)
+      : [
+          scarcityRateDelta > 0
+            ? `Kad je aktivna oznaka \"Do isteka zaliha\", stopa kontakta je veća za ${formatPercent(Math.abs(scarcityRateDelta))}.`
+            : "Pratite period niske zalihe: cilj je da stopa kontakta bude veća nego u standardnom prikazu.",
+          scarcityHomepageViews > 0
+            ? `Sekcija \"Do isteka zaliha\" donijela je ${formatInt(scarcityHomepageViews)} pregleda u odabranom periodu.`
+            : "Sekcija \"Do isteka zaliha\" će prikazati učinak čim oglas uđe u low inventory režim.",
+        ];
+  const hasScarcityMetrics =
+    scarcityWithViews > 0 ||
+    scarcityWithoutViews > 0 ||
+    scarcityHomepageViews > 0 ||
+    (Array.isArray(scarcityData?.insights) && scarcityData.insights.length > 0);
 
   const gamification = useMemo(() => {
     if (gamificationData) {
@@ -461,6 +498,35 @@ export default function SellerAnalyticsOverview() {
         <StatCard icon={PlayCircle} label="Reel play" value={formatInt(summary.video_plays)} hint={formatPercent(summary.reel_completion_rate)} tone="amber" />
         <StatCard icon={Target} label="CTR pretrage" value={formatPercent(summary.search_ctr)} hint={`${formatInt(summary.ads_with_video)} s videom`} tone="slate" />
       </div>
+
+      {hasScarcityMetrics ? (
+        <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 dark:border-slate-700/70 dark:bg-slate-900/60">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-bold text-slate-900 dark:text-slate-100">Učinak \"Do isteka zaliha\"</div>
+            <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              Scarcity
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard icon={Eye} label="Pregledi sa UI" value={formatInt(scarcityWithViews)} tone="amber" />
+            <StatCard icon={Eye} label="Pregledi bez UI" value={formatInt(scarcityWithoutViews)} tone="slate" />
+            <StatCard icon={MessageCircle} label="Stopa kontakta (sa UI)" value={formatPercent(scarcityWithRate)} tone="emerald" />
+            <StatCard icon={Search} label="Pregledi iz sekcije" value={formatInt(scarcityHomepageViews)} tone="blue" />
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {scarcityInsights.map((insight, index) => (
+              <div
+                key={`scarcity-insight-${index}`}
+                className="rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-2 text-xs text-slate-700 dark:border-slate-700/70 dark:bg-slate-800/60 dark:text-slate-200"
+              >
+                {insight}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {boostTrend.length > 0 ? (
         <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 dark:border-slate-700/70 dark:bg-slate-900/60">

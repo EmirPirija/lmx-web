@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   allItemApi,
   getMyItemsApi,
@@ -68,6 +68,9 @@ import {
   useContactTracking,
   useEngagementTracking,
 } from "@/hooks/useItemTracking";
+import { getFeaturedMeta } from "@/utils/featuredPlacement";
+import { getScarcityState } from "@/utils/scarcity";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 // ============================================
 // HELPER COMPONENTS
@@ -80,9 +83,25 @@ const MobileStickyBar = ({
   onPhoneClick, 
   onChatClick, 
   onDeleteClick, 
-  onStatusClick
+  onStatusClick,
+  disableContactActions = false,
+  contactBlockedMessage = "",
 }) => {
   if (!productDetails) return null;
+  const realEstatePricing = resolveRealEstateDisplayPricing(productDetails);
+  const showRealEstatePerM2 = !isMyListing && realEstatePricing?.showPerM2;
+  const formattedPerM2 = showRealEstatePerM2
+    ? `${new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(
+        Number(realEstatePricing?.perM2Value)
+      )} KM / m²`
+    : null;
+  const formattedAreaM2 =
+    showRealEstatePerM2 && Number(realEstatePricing?.areaM2) > 0
+      ? new Intl.NumberFormat("bs-BA", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        }).format(Number(realEstatePricing.areaM2))
+      : null;
 
   return (
     <div
@@ -112,19 +131,33 @@ const MobileStickyBar = ({
             </>
           ) : (
             <>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Cijena</p>
-              <p className="text-lg font-black text-primary truncate">
-                {Number(productDetails.price) === 0 ? "Na upit" :
-                 new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0 }).format(productDetails.price) + " KM"}
-              </p>
-              {Number(productDetails?.price_per_unit) > 0 ? (
-                <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
-                  {new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
-                    Number(productDetails.price_per_unit)
-                  )}{" "}
-                  KM / kom
-                </p>
-              ) : null}
+              {disableContactActions ? (
+                <>
+                  <p className="text-[10px] text-rose-500 dark:text-rose-300 font-bold uppercase tracking-wide">Status</p>
+                  <p className="text-base font-black text-rose-600 dark:text-rose-300 truncate">Rasprodano</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Cijena</p>
+                  <p className="text-lg font-black text-primary truncate">
+                    {Number(productDetails.price) === 0 ? "Na upit" :
+                     new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0 }).format(productDetails.price) + " KM"}
+                  </p>
+                  {formattedPerM2 ? (
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
+                      {formattedPerM2}
+                      {formattedAreaM2 ? ` • ${formattedAreaM2} m²` : ""}
+                    </p>
+                  ) : Number(productDetails?.price_per_unit) > 0 ? (
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
+                      {new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(
+                        Number(productDetails.price_per_unit)
+                      )}{" "}
+                      KM / kom
+                    </p>
+                  ) : null}
+                </>
+              )}
             </>
           )}
         </div>
@@ -152,13 +185,15 @@ const MobileStickyBar = ({
             <>
               <button 
                 onClick={onPhoneClick}
+                disabled={disableContactActions}
                 className="w-11 h-11 flex items-center justify-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/30 rounded-xl active:scale-95 transition-all"
               >
                 <MdPhone size={22} />
               </button>
               <button 
                 onClick={onChatClick}
-                className="flex-1 px-5 h-11 flex items-center justify-center gap-2 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                disabled={disableContactActions}
+                className="flex-1 px-5 h-11 flex items-center justify-center gap-2 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <MdChat size={20} />
                 <span>Poruka</span>
@@ -167,6 +202,11 @@ const MobileStickyBar = ({
           )}
         </div>
       </div>
+      {!isMyListing && disableContactActions ? (
+        <p className="container mt-1 text-center text-[11px] text-rose-600 dark:text-rose-300">
+          {contactBlockedMessage || "Oglas je rasprodan i kontakt je privremeno onemogućen."}
+        </p>
+      ) : null}
     </div>
   );
 };
@@ -194,7 +234,12 @@ const SkeletonLoader = () => (
   </div>
 );
 
-const FeaturedAdTriggerCard = ({ onOpen, compact = false }) => (
+const FeaturedAdTriggerCard = ({
+  onOpen,
+  compact = false,
+  isFeatured = false,
+  featuredMeta = null,
+}) => (
   <div
     className={cn(
       "rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900",
@@ -218,8 +263,17 @@ const FeaturedAdTriggerCard = ({ onOpen, compact = false }) => (
             Izdvajanje oglasa
           </p>
           <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Povećaj vidljivost na kategoriji i naslovnoj.
+            {isFeatured
+              ? `Aktivno: ${featuredMeta?.placementLabel || "Izdvojeno"}`
+              : "Povećaj vidljivost na kategoriji i naslovnoj."}
           </p>
+          {isFeatured ? (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {featuredMeta?.isUnlimited
+                ? "Trajanje bez isteka."
+                : `Preostalo do isteka: ${featuredMeta?.remainingLabel || "-"}.`}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -229,7 +283,7 @@ const FeaturedAdTriggerCard = ({ onOpen, compact = false }) => (
         className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
       >
         <MdRocketLaunch size={16} />
-        Izdvoji oglas
+        {isFeatured ? "Uredi izdvajanje" : "Izdvoji oglas"}
       </button>
     </div>
   </div>
@@ -395,6 +449,7 @@ const ProductDetails = ({ slug }) => {
       search: "search",
       category: "category",
       featured: "featured",
+      scarcity: "featured_section",
       similar: "similar",
       seller: "seller",
       favorites: "favorites",
@@ -423,18 +478,24 @@ const ProductDetails = ({ slug }) => {
 
   // Helper consts
   const filteredFields = getFilteredCustomFields(productDetails?.all_translated_custom_fields, CurrentLanguage?.id);
-  const IsShowFeaturedAd = isMyListing && !productDetails?.is_feature && productDetails?.status === "approved";
+  const featuredMeta = useMemo(() => getFeaturedMeta(productDetails), [productDetails]);
+  const normalizedProductStatus = String(productDetails?.status || "").toLowerCase();
+  const scarcityState = useMemo(() => getScarcityState(productDetails), [productDetails]);
+  const isInventoryOutOfStock = Boolean(scarcityState?.isOutOfStock || normalizedProductStatus === "sold out");
+  const canManageFeaturedAd = Boolean(
+    isMyListing && ["approved", "featured"].includes(normalizedProductStatus)
+  );
   const hideBottomBar = showStatsModal || showStatusDrawer || showFeaturedDrawer || isDeleteOpen || isOpenInApp;
 
   const openFeaturedModal = useCallback(() => {
-    if (!IsShowFeaturedAd || !productDetails?.id) {
+    if (!canManageFeaturedAd || !productDetails?.id) {
       toast.error("Izdvajanje trenutno nije dostupno za ovaj oglas.");
       return;
     }
 
     setShowStatusDrawer(false);
     setShowFeaturedDrawer(true);
-  }, [IsShowFeaturedAd, productDetails?.id]);
+  }, [canManageFeaturedAd, productDetails?.id]);
 
   // Loading State
   if (isLoading) return <Layout><SkeletonLoader /></Layout>;
@@ -485,6 +546,7 @@ const ProductDetails = ({ slug }) => {
               setProductDetails={setProductDetails}
               onFavoriteToggle={trackFavorite}
               onShareClick={trackShare}
+              onPriceHistoryView={trackPriceHistoryView}
             />
 
             {/* 2.5 POSTOJEĆI RAZGOVOR (Za kupce) */}
@@ -526,9 +588,13 @@ const ProductDetails = ({ slug }) => {
             )}
 
             {/* 3. OPCIJE PRODAVAČA (Samo za moje oglase) */}
-            {IsShowFeaturedAd && (
+            {canManageFeaturedAd && (
               <div className="hidden lg:block animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-                <FeaturedAdTriggerCard onOpen={openFeaturedModal} />
+                <FeaturedAdTriggerCard
+                  onOpen={openFeaturedModal}
+                  isFeatured={Boolean(productDetails?.is_feature)}
+                  featuredMeta={featuredMeta}
+                />
               </div>
             )}
 
@@ -585,6 +651,8 @@ const ProductDetails = ({ slug }) => {
                     onMessageClick={trackMessage}
                     onEmailClick={trackEmail}
                     onProfileClick={trackSellerProfileClick}
+                    disableContactActions={isInventoryOutOfStock}
+                    contactBlockedMessage="Oglas je rasprodan. Kontakt opcije su trenutno onemogućene dok prodavač ne dopuni zalihu."
                   />
                 </div>
               )}
@@ -675,9 +743,14 @@ const ProductDetails = ({ slug }) => {
             </div>
             <div className="p-5 overflow-y-auto pb-8">
               <AdsStatusChangeCards productDetails={productDetails} setProductDetails={setProductDetails} status={status} setStatus={setStatus} />
-              {IsShowFeaturedAd && (
+              {canManageFeaturedAd && (
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <FeaturedAdTriggerCard onOpen={openFeaturedModal} compact />
+                  <FeaturedAdTriggerCard
+                    onOpen={openFeaturedModal}
+                    compact
+                    isFeatured={Boolean(productDetails?.is_feature)}
+                    featuredMeta={featuredMeta}
+                  />
                 </div>
               )}
             </div>
@@ -686,12 +759,15 @@ const ProductDetails = ({ slug }) => {
       )}
 
       {/* Featured Modal (triggered from MyAdsListingDetailCard) */}
-      {isMyListing && IsShowFeaturedAd && (
+      {isMyListing && canManageFeaturedAd && (
         <MakeFeaturedAd
           item_id={productDetails?.id}
           setProductDetails={setProductDetails}
           open={showFeaturedDrawer}
           onOpenChange={setShowFeaturedDrawer}
+          initialPlacement={featuredMeta?.placement || "category_home"}
+          initialDuration={featuredMeta?.durationDays || 30}
+          isAlreadyFeatured={Boolean(productDetails?.is_feature)}
           hideTrigger
         />
       )}
@@ -746,6 +822,8 @@ const ProductDetails = ({ slug }) => {
         onChatClick={() => { trackMessage(); document.querySelector("[data-chat-button]") ? document.querySelector("[data-chat-button]").click() : document.querySelector("[data-seller-card]")?.scrollIntoView({ behavior: "smooth" }); }}
         onDeleteClick={() => setIsDeleteOpen(true)}
         onStatusClick={() => setShowStatusDrawer(true)}
+        disableContactActions={isInventoryOutOfStock}
+        contactBlockedMessage="Oglas je rasprodan. Kontakt opcije su trenutno onemogućene dok prodavač ne dopuni zalihu."
       />
 
     </Layout>

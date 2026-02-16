@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import HomeReels from "./HomeReels";
 import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
+import LowInventoryItems from "./LowInventoryItems";
 
 const OfferSlider = dynamic(() => import("./OfferSlider"), {
   ssr: false,
@@ -73,7 +74,12 @@ const Home = () => {
           }
         }
         const [featuredResponse, featuredItemsResponse] = await Promise.all([
-          FeaturedSectionApi.getFeaturedSections(params),
+          FeaturedSectionApi.getFeaturedSections({
+            ...params,
+            current_page: "home",
+            placement: "home",
+            positions: "home",
+          }),
           allItemApi.getItems({
             ...params,
             current_page: "home",
@@ -87,7 +93,7 @@ const Home = () => {
 
         const featuredSections = featuredResponse?.data?.data || [];
         const featuredItems = extractItemsFromGetItemsResponse(featuredItemsResponse?.data).filter((item) =>
-          isHomeFeaturedItem(item)
+          isHomeFeaturedItem(item, { strict: true })
         );
 
         const featuredItemsById = new Map(
@@ -96,15 +102,25 @@ const Home = () => {
             .filter(([id]) => Number.isFinite(id) && id > 0)
         );
 
-        const mergedFeaturedSections = featuredSections.map((section) => ({
-          ...section,
-          section_data: Array.isArray(section?.section_data)
-            ? section.section_data.map((sectionItem) => {
-                const enriched = featuredItemsById.get(Number(sectionItem?.id));
-                return enriched ? { ...sectionItem, ...enriched } : sectionItem;
-              })
-            : [],
-        }));
+        const mergedFeaturedSections = featuredSections.map((section) => {
+          const sectionItems = Array.isArray(section?.section_data) ? section.section_data : [];
+          const isFeaturedAdsSection = String(section?.filter || "").toLowerCase() === "featured_ads";
+
+          const hydratedItems = sectionItems
+            .map((sectionItem) => {
+              const enriched = featuredItemsById.get(Number(sectionItem?.id));
+              return enriched ? { ...sectionItem, ...enriched } : sectionItem;
+            })
+            .filter((entry) => {
+              if (!isFeaturedAdsSection) return true;
+              return featuredItemsById.has(Number(entry?.id));
+            });
+
+          return {
+            ...section,
+            section_data: hydratedItems,
+          };
+        });
 
         setFeaturedData(mergedFeaturedSections);
       } catch (error) {
@@ -138,6 +154,7 @@ const Home = () => {
           allEmpty={allEmpty}
         />
       )}
+      <LowInventoryItems cityData={cityData} KmRange={KmRange} />
       <AllItems cityData={cityData} KmRange={KmRange} />
     </>
   );

@@ -591,6 +591,8 @@ const ProductSellerDetailCard = ({
   itemPrice: itemPriceProp,
   acceptsOffers: acceptsOffersProp = false,
   enableOwnerReelControls = true,
+  disableContactActions = false,
+  contactBlockedMessage = "",
 }) => {
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
@@ -777,8 +779,14 @@ const ProductSellerDetailCard = ({
 
   // Has contact options
   const hasContactOptions = settings?.show_phone || settings?.show_whatsapp || settings?.show_viber || settings?.show_email;
+  const blockedContactCopy =
+    contactBlockedMessage || "Oglas je rasprodan. Kontakt opcije su trenutno onemogućene.";
 
   const handleChatClick = () => {
+    if (disableContactActions) {
+      toast.info(blockedContactCopy);
+      return;
+    }
     if (onChatClick) {
       onChatClick();
     } else {
@@ -787,8 +795,20 @@ const ProductSellerDetailCard = ({
   };
 
   const handleContactClick = () => {
+    if (disableContactActions) {
+      toast.info(blockedContactCopy);
+      return;
+    }
     onPhoneReveal?.();
     setIsContactOpen(true);
+  };
+
+  const handleOfferClick = () => {
+    if (disableContactActions) {
+      toast.info(blockedContactCopy);
+      return;
+    }
+    setIsOfferOpen(true);
   };
 
   return (
@@ -1040,11 +1060,17 @@ const ProductSellerDetailCard = ({
           )}
 
           {/* Actions — inline like MinimalSellerCard */}
+          {disableContactActions ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-700/60 dark:bg-rose-900/30 dark:text-rose-200">
+              {blockedContactCopy}
+            </div>
+          ) : null}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleChatClick}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-xl transition-colors"
+              disabled={disableContactActions}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-900 dark:disabled:hover:bg-slate-100"
             >
               <MessageCircle className="w-4 h-4" />
               Pošalji poruku
@@ -1053,8 +1079,14 @@ const ProductSellerDetailCard = ({
             {canMakeOffer && itemId && (
               <button
                 type="button"
-                onClick={() => setIsOfferOpen(true)}
-                className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors"
+                onClick={handleOfferClick}
+                disabled={disableContactActions}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition-colors",
+                  disableContactActions
+                    ? "bg-emerald-300 cursor-not-allowed"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                )}
               >
                 Ponuda
               </button>
@@ -1064,11 +1096,14 @@ const ProductSellerDetailCard = ({
               <button
                 type="button"
                 onClick={handleContactClick}
+                disabled={disableContactActions}
                 className={cn(
                   "flex items-center justify-center w-10 h-10 rounded-xl border transition-colors",
-                  highlightContactButton
-                    ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+                  disableContactActions
+                    ? "opacity-50 cursor-not-allowed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500"
+                    : highlightContactButton
+                      ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
                 )}
               >
                 <Phone className="w-4 h-4" />

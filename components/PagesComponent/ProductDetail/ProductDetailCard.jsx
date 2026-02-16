@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useId } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { 
@@ -25,16 +25,236 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { manageFavouriteApi } from "@/utils/api";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import { createPortal } from "react-dom";
+import { getScarcityCopy, getScarcityState } from "@/utils/scarcity";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 // ============================================
 // HELPER FUNKCIJE
 // ============================================
-const formatBosnianPrice = (price) => {
-  if (!price || Number(price) === 0) return "Na upit";
-  return new Intl.NumberFormat('bs-BA', {
+const formatCurrencyValue = (price) =>
+  new Intl.NumberFormat('bs-BA', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price) + ' KM';
+
+const formatBosnianPrice = (price) => {
+  if (!price || Number(price) === 0) return "Na upit";
+  return formatCurrencyValue(price);
+};
+
+const toPriceNumber = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed > 0 ? parsed : null;
+};
+
+const formatSignedPriceDelta = (value) => {
+  if (!Number.isFinite(value) || value === 0) return "0 KM";
+  const sign = value > 0 ? "+" : "-";
+  return `${sign}${formatCurrencyValue(Math.abs(value))}`;
+};
+
+const pluralizeBosnian = (count, one, few, many) => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
+
+const formatTimeAgoBs = (value) => {
+  if (!value) return "nije dostupno";
+
+  const date = typeof value === "number" ? new Date(value) : new Date(String(value));
+  if (isNaN(date.getTime())) return "nije dostupno";
+
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return "upravo sada";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `prije ${minutes} ${pluralizeBosnian(minutes, "minute", "minute", "minuta")}`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `prije ${hours} ${pluralizeBosnian(hours, "sat", "sata", "sati")}`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) {
+    return `prije ${days} ${pluralizeBosnian(days, "dan", "dana", "dana")}`;
+  }
+
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) {
+    return `prije ${weeks} ${pluralizeBosnian(weeks, "sedmicu", "sedmice", "sedmica")}`;
+  }
+
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `prije ${months} ${pluralizeBosnian(months, "mjesec", "mjeseca", "mjeseci")}`;
+  }
+
+  const years = Math.floor(days / 365);
+  return `prije ${years} ${pluralizeBosnian(years, "godinu", "godine", "godina")}`;
+};
+
+const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
+  const rawHistory = Array.isArray(priceHistory) ? priceHistory : [];
+  const timeline = rawHistory
+    .map((entry, index) => {
+      const price = toPriceNumber(entry?.price ?? entry?.old_price ?? entry?.value ?? entry?.amount);
+      if (price === null) return null;
+
+      const dateValue =
+        entry?.created_at ??
+        entry?.updated_at ??
+        entry?.date ??
+        entry?.changed_at ??
+        entry?.changedAt ??
+        null;
+
+      const timestamp = dateValue ? new Date(dateValue).getTime() : NaN;
+      return {
+        key: entry?.id ? `history-${entry.id}` : `history-${index}`,
+        price,
+        dateValue,
+        timestamp: Number.isFinite(timestamp) ? timestamp : null,
+        index,
+        synthetic: false,
+      };
+    })
+    .filter(Boolean);
+
+  timeline.sort((a, b) => {
+    if (a.timestamp !== null && b.timestamp !== null) return a.timestamp - b.timestamp;
+    return a.index - b.index;
+  });
+
+  const currentPriceNumber = toPriceNumber(currentPrice);
+  const latestPoint = timeline[timeline.length - 1];
+  if (currentPriceNumber !== null) {
+    if (!latestPoint || latestPoint.price !== currentPriceNumber) {
+      timeline.push({
+        key: "history-current",
+        price: currentPriceNumber,
+        dateValue: latestPoint?.dateValue || new Date().toISOString(),
+        timestamp: Date.now(),
+        index: timeline.length,
+        synthetic: true,
+      });
+    }
+  }
+
+  if (!timeline.length) {
+    return {
+      hasAnyPrice: false,
+      points: [],
+      timelineDesc: [],
+      initialPrice: null,
+      latestPrice: null,
+      totalChange: 0,
+      changeCount: 0,
+      increaseCount: 0,
+      decreaseCount: 0,
+      trend: "stable",
+      isCurrentLowest: false,
+      summaryText: "Cijena nije mijenjana",
+      totalText: "Ukupna promjena: 0 KM",
+      lastChangeText: "Zadnja promjena: nije bilo promjena",
+      lastChangeAt: null,
+      badges: [{ key: "stable", tone: "neutral", label: "Stabilna cijena" }],
+    };
+  }
+
+  let increaseCount = 0;
+  let decreaseCount = 0;
+  let lastChangeAt = null;
+
+  for (let i = 1; i < timeline.length; i += 1) {
+    const diff = timeline[i].price - timeline[i - 1].price;
+    if (diff > 0) increaseCount += 1;
+    if (diff < 0) decreaseCount += 1;
+    if (diff !== 0) {
+      lastChangeAt = timeline[i].timestamp || timeline[i].dateValue || null;
+    }
+  }
+
+  const changeCount = increaseCount + decreaseCount;
+  const initialPrice = timeline[0].price;
+  const latestPrice = timeline[timeline.length - 1].price;
+  const totalChange = latestPrice - initialPrice;
+  const allPrices = timeline.map((point) => point.price);
+  const lowestPrice = Math.min(...allPrices);
+  const isCurrentLowest = latestPrice === lowestPrice && changeCount > 0;
+
+  let trend = "stable";
+  if (totalChange < 0) trend = "down";
+  else if (totalChange > 0) trend = "up";
+  else if (changeCount > 0) trend = "mixed";
+
+  let summaryText = "Cijena nije mijenjana";
+  if (decreaseCount > 0 && increaseCount === 0) {
+    summaryText = `Cijena snižena ${decreaseCount} ${pluralizeBosnian(decreaseCount, "put", "puta", "puta")}`;
+  } else if (increaseCount > 0 && decreaseCount === 0) {
+    summaryText = `Cijena povećana ${increaseCount} ${pluralizeBosnian(increaseCount, "put", "puta", "puta")}`;
+  } else if (changeCount > 0) {
+    summaryText = `Cijena korigovana ${changeCount} ${pluralizeBosnian(changeCount, "put", "puta", "puta")}`;
+  }
+
+  const totalText =
+    totalChange < 0
+      ? `Ukupno sniženje: ${formatSignedPriceDelta(totalChange)}`
+      : totalChange > 0
+      ? `Ukupno povećanje: ${formatSignedPriceDelta(totalChange)}`
+      : "Ukupna promjena: 0 KM";
+
+  const badges = [];
+  if (changeCount === 0) {
+    badges.push({ key: "stable", tone: "neutral", label: "Stabilna cijena" });
+  } else if (trend === "down") {
+    badges.push({ key: "down", tone: "positive", label: "Cijena snižena" });
+  } else if (trend === "up") {
+    badges.push({ key: "up", tone: "negative", label: "Cijena povećana" });
+  } else {
+    badges.push({ key: "mixed", tone: "neutral", label: "Promjenjiva cijena" });
+  }
+
+  if (isCurrentLowest) {
+    badges.push({ key: "lowest", tone: "highlight", label: "Najniža cijena do sada" });
+  }
+
+  const timelineDesc = [...timeline]
+    .reverse()
+    .map((point, index, list) => {
+      const olderPoint = list[index + 1];
+      const delta = olderPoint ? point.price - olderPoint.price : 0;
+      return {
+        ...point,
+        delta,
+        isCurrent: index === 0,
+      };
+    });
+
+  return {
+    hasAnyPrice: true,
+    points: timeline,
+    timelineDesc,
+    initialPrice,
+    latestPrice,
+    totalChange,
+    changeCount,
+    increaseCount,
+    decreaseCount,
+    trend,
+    isCurrentLowest,
+    summaryText,
+    totalText,
+    lastChangeText: lastChangeAt ? `Zadnja promjena: ${formatTimeAgoBs(lastChangeAt)}` : "Zadnja promjena: nije bilo promjena",
+    lastChangeAt,
+    badges,
+  };
 };
 
 const formatBosnianSalary = (min, max) => {
@@ -414,108 +634,238 @@ const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className,
   );
 };
 
+const HISTORY_BADGE_STYLES = {
+  positive:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-300",
+  negative:
+    "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/60 dark:bg-rose-900/30 dark:text-rose-300",
+  neutral:
+    "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700/60 dark:bg-slate-800 dark:text-slate-300",
+  highlight:
+    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/30 dark:text-amber-200",
+};
+
+const PriceHistoryBadge = ({ badge }) => (
+  <span
+    className={cn(
+      "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+      HISTORY_BADGE_STYLES[badge?.tone] || HISTORY_BADGE_STYLES.neutral
+    )}
+  >
+    {badge?.label}
+  </span>
+);
+
+const PriceHistorySparkline = ({ points = [], trend = "stable" }) => {
+  const gradientId = useId().replace(/:/g, "");
+
+  if (!Array.isArray(points) || points.length === 0) {
+    return null;
+  }
+
+  const width = 260;
+  const height = 72;
+  const paddingX = 8;
+  const paddingY = 8;
+
+  const values = points.map((point) => point.price);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const step = points.length > 1 ? (width - paddingX * 2) / (points.length - 1) : 0;
+
+  const coordinates = points.map((point, index) => {
+    const x = paddingX + step * index;
+    const normalized = (point.price - min) / range;
+    const y = height - paddingY - normalized * (height - paddingY * 2);
+    return { x, y };
+  });
+
+  const linePath = coordinates.map((coord) => `${coord.x},${coord.y}`).join(" ");
+  const areaPath = `M ${coordinates[0].x} ${height - paddingY} L ${coordinates
+    .map((coord) => `${coord.x} ${coord.y}`)
+    .join(" L ")} L ${coordinates[coordinates.length - 1].x} ${height - paddingY} Z`;
+
+  const palette =
+    trend === "down"
+      ? { stroke: "#10b981", fill: "rgba(16, 185, 129, 0.16)" }
+      : trend === "up"
+      ? { stroke: "#f43f5e", fill: "rgba(244, 63, 94, 0.16)" }
+      : trend === "mixed"
+      ? { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.14)" }
+      : { stroke: "#64748b", fill: "rgba(100, 116, 139, 0.14)" };
+
+  const last = coordinates[coordinates.length - 1];
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-[72px] w-full" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={palette.fill} />
+          <stop offset="100%" stopColor="rgba(15, 23, 42, 0.02)" />
+        </linearGradient>
+      </defs>
+
+      <path d={areaPath} fill={`url(#${gradientId})`} />
+      <polyline
+        fill="none"
+        stroke={palette.stroke}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={linePath}
+      />
+      <circle cx={last.x} cy={last.y} r="4.2" fill={palette.stroke} />
+      <circle cx={last.x} cy={last.y} r="6.8" fill={palette.fill} />
+    </svg>
+  );
+};
+
 // ============================================
 // MODAL ZA HISTORIJU CIJENA (Desktop & Mobile)
 // ============================================
-const PriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice }) => {
+const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
   const modalRef = useRef(null);
 
-  const sortedHistory = useMemo(() => {
-    if (!priceHistory) return [];
-    return [...priceHistory].sort(
-      (a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
-    );
-  }, [priceHistory]);
-
   useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e) => e.key === "Escape" && onClose();
+    if (!isOpen) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen || !priceHistory) return null;
+  if (!isOpen || !insights?.hasAnyPrice) return null;
   if (typeof window === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Overlay */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5">
+      <div
+        className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
-      
-      {/* Content */}
+
       <div
         ref={modalRef}
-        className="relative bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+        className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-3 duration-300 dark:border-slate-800 dark:bg-slate-900"
       >
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50 dark:from-slate-900 to-white dark:to-slate-900">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
-              <MdHistory className="text-primary text-xl" />
-            </div>
+        <div className="flex items-start justify-between border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 py-4 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900 sm:px-5">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-primary dark:border-slate-700 dark:bg-slate-800">
+              <MdHistory className="text-lg" />
+            </span>
             <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Historija cijena</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Pregled promjena vrijednosti</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">Historija cijene</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Mini trend, ključne promjene i vremenski slijed.
+              </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            aria-label="Zatvori historiju cijene"
           >
-            <IoClose size={22} />
+            <IoClose size={20} />
           </button>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-thin dark:scrollbar-thumb-slate-700">
-          {sortedHistory.length > 0 ? (
-            sortedHistory.map((item, index) => {
-              const itemPrice = item.price || item.old_price;
-              const itemDate = item.created_at || item.date;
-              const prevPrice = index < sortedHistory.length - 1
-                  ? sortedHistory[index + 1]?.price || sortedHistory[index + 1]?.old_price
-                  : itemPrice;
-              const itemChange = index === 0 ? currentPrice - itemPrice : itemPrice - prevPrice;
-              const isChangeDown = itemChange < 0;
-              const isChangeUp = itemChange > 0;
+        <div className="max-h-[78vh] space-y-4 overflow-y-auto p-4 sm:p-5">
+          <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/30 sm:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Trenutna cijena: <span className="text-primary">{formatBosnianPrice(insights.latestPrice)}</span>
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {insights.badges.map((badge) => (
+                  <PriceHistoryBadge key={badge.key} badge={badge} />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white px-2 py-2 dark:border-slate-700 dark:bg-slate-900/70">
+              <PriceHistorySparkline points={insights.points} trend={insights.trend} />
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-2">
+              <p>Početna cijena: <span className="font-semibold text-slate-900 dark:text-slate-100">{formatBosnianPrice(insights.initialPrice)}</span></p>
+              <p>{insights.totalText}</p>
+              <p>{insights.summaryText}</p>
+              <p>{insights.lastChangeText}</p>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900/40 sm:p-3">
+            <div className="mb-2 px-2 pt-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Hronologija promjena
+              </p>
+            </div>
+
+            {insights.timelineDesc.map((point) => {
+              const isUp = point.delta > 0;
+              const isDown = point.delta < 0;
+              const deltaLabel = point.delta === 0 ? "0 KM" : formatSignedPriceDelta(point.delta);
 
               return (
-                <div key={index} className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center border transition-colors",
-                      isChangeDown ? "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/30 text-green-600 dark:text-green-400" :
-                      isChangeUp ? "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400" :
-                      "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500"
-                    )}>
-                      {isChangeDown ? <MdTrendingDown size={20} /> : isChangeUp ? <MdTrendingUp size={20} /> : <MdHistory size={20} />}
-                    </div>
+                <div
+                  key={point.key}
+                  className="group flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={cn(
+                        "inline-flex h-8 w-8 items-center justify-center rounded-lg border",
+                        isDown
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-700/50 dark:bg-emerald-900/25 dark:text-emerald-300"
+                          : isUp
+                          ? "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-700/50 dark:bg-rose-900/25 dark:text-rose-300"
+                          : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      )}
+                    >
+                      {isDown ? <MdTrendingDown size={16} /> : isUp ? <MdTrendingUp size={16} /> : <MdHistory size={16} />}
+                    </span>
                     <div>
-                      <p className="font-bold text-slate-800 dark:text-slate-200">{formatBosnianPrice(itemPrice)}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{formatShortDate(itemDate)}</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatBosnianPrice(point.price)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {point.dateValue ? formatShortDate(point.dateValue) : "Datum nije dostupan"}
+                      </p>
                     </div>
                   </div>
 
-                  {(isChangeDown || isChangeUp) && index > 0 && (
-                    <span className={cn(
-                      "text-xs font-bold px-2 py-1 rounded-md",
-                      isChangeDown ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                    )}>
-                      {isChangeDown ? "" : "+"}{formatBosnianPrice(Math.abs(itemChange))}
-                    </span>
-                  )}
-                  {index === 0 && (
-                    <span className="text-[10px] uppercase font-bold text-primary bg-primary/10 dark:bg-primary/20 px-2 py-1 rounded-md">
-                      Trenutna
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {point.isCurrent ? (
+                      <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-primary dark:bg-primary/20">
+                        Trenutna
+                      </span>
+                    ) : (
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-1 text-[11px] font-semibold",
+                          isDown
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                            : isUp
+                            ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        )}
+                      >
+                        {deltaLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
-            })
-          ) : (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">Nema zabilježenih promjena cijena.</div>
-          )}
+            })}
+
+            {insights.changeCount === 0 ? (
+              <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                Cijena nije mijenjana. Oglas ima stabilnu cijenu.
+              </div>
+            ) : null}
+          </section>
         </div>
       </div>
     </div>,
@@ -526,7 +876,13 @@ const PriceHistoryModal = ({ isOpen, onClose, priceHistory, currentPrice }) => {
 // ============================================
 // GLAVNA KOMPONENTA
 // ============================================
-const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle, onShareClick }) => {
+const ProductDetailCard = ({
+  productDetails,
+  setProductDetails,
+  onFavoriteToggle,
+  onShareClick,
+  onPriceHistoryView,
+}) => {
   const dispatch = useDispatch();
   const path = usePathname();
   const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${path}`;
@@ -571,8 +927,6 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
     }
     return [];
   }, [productDetails]);
-  const hasHistory = !isJobCategory && normalizedPriceHistory.length > 0;
-  
   // Statusi
   const isReserved = productDetails?.status === 'reserved' || productDetails?.reservation_status === 'reserved';
   const isSoldOut = productDetails?.status === 'sold out';
@@ -582,6 +936,13 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
   const oldPrice = productDetails?.old_price;
   const currentPrice = productDetails?.price;
+  const oldPriceNumber = Number(oldPrice);
+  const currentPriceNumber = Number(currentPrice);
+  const historyInsights = useMemo(
+    () => buildPriceHistoryInsights(normalizedPriceHistory, currentPrice),
+    [normalizedPriceHistory, currentPrice]
+  );
+  const showHistorySection = !isJobCategory && historyInsights.hasAnyPrice;
   const renewalSourceDate =
     productDetails?.last_renewed_at ||
     productDetails?.renewed_at;
@@ -598,19 +959,42 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
   const renewalInfoTitle = renewalDateTime
     ? `Zadnja obnova: ${renewalDateTime}`
     : "Oglas još nije obnovljen.";
-  const productIdLabel = productDetails?.id ? `#${productDetails.id}` : "-";
-  const oldPriceNumber = Number(oldPrice);
-  const currentPriceNumber = Number(currentPrice);
-  const unitPriceNumber = Number(productDetails?.price_per_unit);
+  const realEstatePricing = useMemo(
+    () => resolveRealEstateDisplayPricing(productDetails),
+    [productDetails]
+  );
+  const unitPriceNumber = realEstatePricing?.isRealEstate
+    ? Number(realEstatePricing?.perM2Value)
+    : Number(productDetails?.price_per_unit);
   const minOrderQty = Math.max(1, Number(productDetails?.minimum_order_quantity || 1));
   const hasUnitPrice = !isJobCategory && Number.isFinite(unitPriceNumber) && unitPriceNumber > 0;
-  const unitPriceLabel = hasUnitPrice ? `${formatBosnianPrice(unitPriceNumber)} / kom` : null;
+  const unitPriceLabel = hasUnitPrice
+    ? realEstatePricing?.isRealEstate
+      ? `${formatBosnianPrice(unitPriceNumber)} / m²`
+      : `${formatBosnianPrice(unitPriceNumber)} / kom`
+    : null;
+  const realEstateAreaLabel =
+    realEstatePricing?.isRealEstate && Number(realEstatePricing?.areaM2) > 0
+      ? Number(realEstatePricing.areaM2).toLocaleString("bs-BA", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        })
+      : null;
   const hasDiscount = isOnSale && Number.isFinite(oldPriceNumber) && Number.isFinite(currentPriceNumber) && oldPriceNumber > currentPriceNumber && currentPriceNumber > 0;
-  const discountPercent = hasDiscount ? Math.round(((oldPriceNumber - currentPriceNumber) / oldPriceNumber) * 100) : 0;
   const displayPrice = isJobCategory
     ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
     : formatBosnianPrice(productDetails?.price);
-  
+  const scarcityState = useMemo(() => getScarcityState(productDetails), [productDetails]);
+  const scarcityCopy = useMemo(() => getScarcityCopy(scarcityState), [scarcityState]);
+  const showScarcityUi = Boolean(scarcityState?.isEligible && !isSoldOut && !isReserved);
+  const showOutOfStockUi = Boolean(!isSoldOut && scarcityState?.isOutOfStock);
+  const showPopularityHint = showScarcityUi && scarcityState?.popularity?.hasSignal;
+
+  const handleOpenHistoryModal = () => {
+    setShowHistoryModal(true);
+    onPriceHistoryView?.();
+  };
+
   const handleLikeItem = async () => {
     if (!isLoggedIn) {
       dispatch(setIsLoginOpen(true));
@@ -659,6 +1043,16 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
             {isFeatured && !isReserved && !isSoldOut && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold shadow-sm">
                 <MdStar className="text-sm" /> Istaknuto
+              </span>
+            )}
+            {showScarcityUi && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider border border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700/60">
+                <MdInfoOutline className="text-sm" /> Do isteka zaliha
+              </span>
+            )}
+            {showOutOfStockUi && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-100 text-rose-800 text-xs font-bold uppercase tracking-wider border border-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-700/60">
+                <MdInfoOutline className="text-sm" /> Rasprodano
               </span>
             )}
           </div>
@@ -724,10 +1118,10 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                       <p className="text-3xl font-black text-primary tracking-tight break-words">{displayPrice}</p>
                     )}
 
-                    {hasHistory && (
+                    {showHistorySection && (
                       <button
                         type="button"
-                        onClick={() => setShowHistoryModal(true)}
+                        onClick={handleOpenHistoryModal}
                         className="inline-flex items-center justify-center gap-2 px-3 py-2 ml-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
                         title="Historija cijena"
                         aria-label="Prikaži historiju cijena"
@@ -741,7 +1135,38 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
                     <div className="mt-2 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                       <Box className="h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
                       {unitPriceLabel}
-                      {minOrderQty > 1 ? ` • min ${minOrderQty} kom` : ""}
+                      {realEstatePricing?.isRealEstate
+                        ? realEstateAreaLabel
+                          ? ` • ${realEstateAreaLabel} m²`
+                          : ""
+                        : minOrderQty > 1
+                        ? ` • min ${minOrderQty} kom`
+                        : ""}
+                    </div>
+                  ) : null}
+
+                  {showScarcityUi ? (
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 p-3 dark:border-amber-700/50 dark:bg-amber-900/20">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                        {scarcityCopy?.priceHint || "Cijena važi do isteka zaliha"}
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-amber-900 dark:text-amber-100">
+                        {scarcityCopy?.quantity}
+                      </p>
+                      {showPopularityHint ? (
+                        <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                          Popularno: ovaj oglas trenutno ima iznadprosječan interes kupaca.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {showOutOfStockUi ? (
+                    <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/90 p-3 dark:border-rose-700/50 dark:bg-rose-900/20">
+                      <p className="text-sm font-bold text-rose-800 dark:text-rose-200">Rasprodano</p>
+                      <p className="mt-1 text-xs text-rose-700 dark:text-rose-300">
+                        Artikal trenutno nije dostupan. Nakon dopune zalihe, status se automatski ažurira.
+                      </p>
                     </div>
                   ) : null}
 
@@ -789,8 +1214,7 @@ const ProductDetailCard = ({ productDetails, setProductDetails, onFavoriteToggle
       <PriceHistoryModal 
         isOpen={showHistoryModal} 
         onClose={() => setShowHistoryModal(false)} 
-        priceHistory={normalizedPriceHistory} 
-        currentPrice={productDetails?.price} 
+        insights={historyInsights}
       />
       <style jsx global>{`
         @keyframes product-detail-pill-marquee-keyframes {

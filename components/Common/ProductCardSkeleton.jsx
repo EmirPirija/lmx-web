@@ -3,7 +3,7 @@ import { Skeleton } from "../ui/skeleton";
 const ProductCardSkeleton = () => {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-      <Skeleton className="w-full aspect-square" />
+      <Skeleton className="w-full aspect-[16/10]" />
       <div className="p-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <Skeleton className="w-16 h-3" />

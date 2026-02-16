@@ -799,7 +799,7 @@ const SellerLsitings = ({
               </div>
             ) : (
               <div
-                className="col-span-6 sm:col-span-4 xl:col-span-3"
+                className="col-span-6 lg:col-span-4 2xl:col-span-3"
                 key={item.id || index}
               >
                 <ProductCard item={item} handleLike={handleLike} trackingParams={{ ref: "seller" }} />

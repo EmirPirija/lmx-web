@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Clock2Fill,
   Edit,
   Eye,
   EyeOff,
@@ -19,7 +20,7 @@ import {
   Rocket,
   RotateCcw,
   Sparkles,
-  TransferHorizontalLine,
+  TransferFill,
   Trash2,
   X,
   Youtube,
@@ -34,6 +35,8 @@ import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import { formatPriceAbbreviated, formatSalaryRange } from "@/utils";
+import { getFeaturedMeta } from "@/utils/featuredPlacement";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 import { useMediaQuery } from "usehooks-ts";
 
 // ============================================
@@ -98,6 +101,32 @@ const formatBosnianDays = (days) => {
   return `${days} dana`;
 };
 
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return "";
+
+  const now = new Date();
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  if (diffInSeconds < 60) return "Upravo sada";
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
+
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
+};
+
 const featuredPlacementOptions = [
   {
     value: "category",
@@ -120,10 +149,23 @@ const featuredPlacementOptions = [
 ];
 
 const featuredDurationOptions = [7, 15, 30, 45, 60, 90];
+const featuredDurationOptionsSet = new Set(featuredDurationOptions);
+
+const normalizeFeaturedPlacementValue = (value) =>
+  ["category", "home", "category_home"].includes(String(value || "").toLowerCase())
+    ? String(value).toLowerCase()
+    : "category_home";
+
+const normalizeFeaturedDurationValue = (value) => {
+  const parsed = Number(value);
+  return featuredDurationOptionsSet.has(parsed) ? parsed : 30;
+};
 
 const getKeyAttributes = (item) => {
   const attributes = [];
   const customFields = item?.translated_custom_fields || [];
+  const realEstatePricing = resolveRealEstateDisplayPricing(item || {});
+  const isRealEstate = Boolean(realEstatePricing?.isRealEstate);
 
   const findValue = (keys) => {
     const field = customFields.find((f) => {
@@ -139,14 +181,102 @@ const getKeyAttributes = (item) => {
     );
   };
 
+  const formatAreaNoSpace = (rawValue) => {
+    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    const cleaned = String(rawValue).trim().replace(/\s*(m2|m²)$/i, "");
+    if (!cleaned) return null;
+    return `${cleaned.replace(/\s/g, "")}m2`;
+  };
+
+  const formatMileageNoSpace = (rawValue) => {
+    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    const cleaned = String(rawValue)
+      .trim()
+      .replace(/^kilometraza\s*\(km\)\s*[:\-]?\s*/i, "")
+      .replace(/^kilometraža\s*\(km\)\s*[:\-]?\s*/i, "")
+      .replace(/^mileage\s*[:\-]?\s*/i, "")
+      .replace(/\s*(km|kilometraza|kilometraža)$/i, "");
+    if (!cleaned) return null;
+    return `${cleaned.replace(/\s/g, "")}km`;
+  };
+
+  const pushUnique = (value) => {
+    if (!value) return;
+    const normalized = String(value).trim();
+    if (!normalized) return;
+    if (attributes.some((entry) => normalizeText(entry) === normalizeText(normalized))) return;
+    attributes.push(normalized);
+  };
+
+  if (isRealEstate) {
+    const listingType = findValue([
+      "tip oglasa",
+      "tip nekretnine",
+      "tip ponude",
+      "vrsta ponude",
+      "offer type",
+      "listing type",
+      "type",
+    ]);
+    const rooms = findValue([
+      "broj soba",
+      "sobe",
+      "broj prostorija",
+      "rooms",
+      "room count",
+    ]);
+    const propertyType = findValue([
+      "vrsta objekta",
+      "tip objekta",
+      "objekat",
+      "object type",
+      "property type",
+    ]);
+    const areaRaw =
+      realEstatePricing?.areaM2 ??
+      findValue([
+        "kvadratura",
+        "kvadratura (m2)",
+        "povrsina",
+        "površina",
+        "m2",
+        "m²",
+        "quadrature",
+        "surface",
+        "area",
+      ]);
+    const area = formatAreaNoSpace(areaRaw);
+
+    pushUnique(listingType);
+    pushUnique(rooms);
+    pushUnique(propertyType);
+    pushUnique(area);
+
+    if (attributes.length > 0) {
+      return attributes;
+    }
+  }
+
   const year = findValue(["godište", "godiste"]);
-  if (year) attributes.push(year);
+  pushUnique(year);
 
   const fuel = findValue(["gorivo"]);
-  if (fuel) attributes.push(fuel);
+  pushUnique(fuel);
 
   const transmission = findValue(["mjenjač", "mjenjac"]);
-  if (transmission) attributes.push(transmission);
+  pushUnique(transmission);
+
+  const mileageRaw = findValue([
+    "kilometraza (km)",
+    "kilometraža (km)",
+    "kilometraza",
+    "kilometraža",
+    "predena kilometraza",
+    "pređena kilometraža",
+    "mileage",
+    "km",
+  ]);
+  pushUnique(formatMileageNoSpace(mileageRaw));
 
   return attributes;
 };
@@ -472,6 +602,8 @@ const FeaturedPlanModal = ({
   onClose,
   placement,
   duration,
+  featuredMeta,
+  isFeatureAd = false,
   onPlacementChange,
   onDurationChange,
   onConfirm,
@@ -541,6 +673,65 @@ const FeaturedPlanModal = ({
           </div>
 
           <div className="space-y-5">
+            <div
+              className={cn(
+                "rounded-2xl border p-3",
+                isFeatureAd
+                  ? featuredMeta?.isExpired
+                    ? "border-rose-200 bg-rose-50/70 dark:border-rose-800/70 dark:bg-rose-950/30"
+                    : "border-emerald-200 bg-emerald-50/70 dark:border-emerald-800/70 dark:bg-emerald-950/30"
+                  : "border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/70"
+              )}
+            >
+              {isFeatureAd ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <Rocket className="h-4 w-4 text-amber-500 dark:text-amber-300" />
+                    Trenutni status izdvajanja
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
+                      <p className="text-slate-500 dark:text-slate-400">Pozicija</p>
+                      <p className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
+                        {featuredMeta?.placementLabel || "Nije određeno"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
+                      <p className="text-slate-500 dark:text-slate-400">Status</p>
+                      <p
+                        className={cn(
+                          "mt-0.5 font-semibold",
+                          featuredMeta?.isExpired
+                            ? "text-rose-700 dark:text-rose-300"
+                            : "text-emerald-700 dark:text-emerald-300"
+                        )}
+                      >
+                        {featuredMeta?.isExpired ? "Isteklo" : "Aktivno"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
+                      <p className="text-slate-500 dark:text-slate-400">Preostalo</p>
+                      <p className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
+                        {featuredMeta?.isUnlimited
+                          ? "Bez isteka"
+                          : featuredMeta?.remainingLabel || "-"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
+                      <p className="text-slate-500 dark:text-slate-400">Ističe</p>
+                      <p className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
+                        {featuredMeta?.endAtLabel || "Nema vremenskog ograničenja"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-slate-600 dark:text-slate-300">
+                  Ovaj oglas trenutno nije izdvojen. Odaberi poziciju i trajanje da ga istakneš.
+                </div>
+              )}
+            </div>
+
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
                 Pozicija izdvajanja
@@ -707,10 +898,12 @@ const SmartQuickActionsPanel = ({
         {
           key: "feature",
           icon: Rocket,
-          label: "Izdvoji oglas",
-          description: "Povećaj vidljivost na kategoriji i/ili naslovnoj.",
+          label: isFeatureAd ? "Uredi izdvajanje" : "Izdvoji oglas",
+          description: isFeatureAd
+            ? "Promijeni poziciju izdvajanja ili produži trajanje."
+            : "Povećaj vidljivost na kategoriji i/ili naslovnoj.",
           onClick: onFeature,
-          show: isApproved && !isSoldOut && !isFeatureAd && !isReserved && !isInactive,
+          show: isApproved && !isSoldOut && !isReserved && !isInactive,
           tone: "amber",
           kind: "normal",
         },
@@ -792,7 +985,7 @@ const SmartQuickActionsPanel = ({
       ? "activate"
       : isReserved
         ? "unreserve"
-        : isApproved && !isSoldOut && !isFeatureAd
+        : isApproved && !isSoldOut && !isInactive && !isReserved
           ? "feature"
           : isApproved && !isSoldOut && isEditable
             ? "edit"
@@ -1025,6 +1218,7 @@ const MyAdsCard = ({
 }) => {
   const isJobCategory = Number(data?.category?.is_job_category) === 1;
   const translatedItem = data?.translated_item;
+  const publishedAgo = formatRelativeTime(data?.created_at || translatedItem?.created_at);
 
   const keyAttributes = getKeyAttributes(data);
   const conditionLabel = getConditionLabel(data);
@@ -1035,12 +1229,26 @@ const MyAdsCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const cardShellRef = useRef(null);
   const isMobile = useMediaQuery("(max-width: 639px)");
+  const defaultFeaturePlacement = useMemo(
+    () =>
+      normalizeFeaturedPlacementValue(
+        data?.featured_placement || data?.positions || data?.placement || "category_home"
+      ),
+    [data?.featured_placement, data?.placement, data?.positions]
+  );
+  const defaultFeatureDuration = useMemo(
+    () =>
+      normalizeFeaturedDurationValue(
+        data?.featured_duration_days || data?.duration_days || data?.featured_days
+      ),
+    [data?.duration_days, data?.featured_days, data?.featured_duration_days]
+  );
   
   // NOVI STATE ZA QUICK ACTIONS
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [isFeaturedPlanOpen, setIsFeaturedPlanOpen] = useState(false);
-  const [selectedFeaturePlacement, setSelectedFeaturePlacement] = useState("category_home");
-  const [selectedFeatureDuration, setSelectedFeatureDuration] = useState(30);
+  const [selectedFeaturePlacement, setSelectedFeaturePlacement] = useState(defaultFeaturePlacement);
+  const [selectedFeatureDuration, setSelectedFeatureDuration] = useState(defaultFeatureDuration);
   const [isFeatureSubmitting, setIsFeatureSubmitting] = useState(false);
   const featureSubmitLockRef = useRef(false);
 
@@ -1072,6 +1280,17 @@ const MyAdsCard = ({
     };
   }, [showQuickActions]);
 
+  useEffect(() => {
+    if (!isFeaturedPlanOpen) {
+      setSelectedFeaturePlacement(defaultFeaturePlacement);
+      setSelectedFeatureDuration(defaultFeatureDuration);
+      return;
+    }
+
+    setSelectedFeaturePlacement(defaultFeaturePlacement);
+    setSelectedFeatureDuration(defaultFeatureDuration);
+  }, [defaultFeatureDuration, defaultFeaturePlacement, isFeaturedPlanOpen]);
+
   const status = data?.status;
   const isExpired = status === "expired";
   const isInactive = status === "inactive";
@@ -1082,6 +1301,7 @@ const MyAdsCard = ({
     status === "approved" || status === "featured" || status === "reserved";
   const isEditable = isApproved;
   const isFeatureAd = Boolean(data?.is_feature);
+  const featuredMeta = useMemo(() => getFeaturedMeta(data), [data]);
   const nextPositionRenewAtFromApi = getRenewNextAllowedDate(data);
   const baselineRenewDate = getRenewBaselineDate(data);
   const nextPositionRenewAt = nextPositionRenewAtFromApi
@@ -1141,6 +1361,8 @@ const MyAdsCard = ({
   const isOnSale = data?.is_on_sale === true || data?.is_on_sale === 1;
   const oldPrice = data?.old_price;
   const currentPrice = data?.price;
+  const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(data), [data]);
+  const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
 
   const discountPercentage = useMemo(() => {
     const explicit = Number(data?.discount_percentage || 0);
@@ -1274,9 +1496,11 @@ const MyAdsCard = ({
     featureSubmitLockRef.current = true;
     setIsFeatureSubmitting(true);
     try {
+      const normalizedPlacement = normalizeFeaturedPlacementValue(selectedFeaturePlacement);
+      const normalizedDuration = normalizeFeaturedDurationValue(selectedFeatureDuration);
       const payload = {
-        placement: selectedFeaturePlacement,
-        duration_days: selectedFeatureDuration,
+        placement: normalizedPlacement,
+        duration_days: normalizedDuration,
       };
 
       const result = onFeatureAction
@@ -1344,7 +1568,7 @@ const MyAdsCard = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative aspect-square bg-slate-50">
+        <div className="relative aspect-[16/10] bg-slate-50">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
@@ -1666,58 +1890,79 @@ const MyAdsCard = ({
         ) : null}
 
         <div
-          className={cn(
-            "mt-auto pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center",
-            exchangePossible && !isHidePrice ? "justify-between" : "justify-end"
-          )}
+          className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800"
         >
-          {exchangePossible && !isHidePrice ? (
-            <span
-              className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-full",
-              )}
-              title="Zamjena moguća"
-              aria-label="Zamjena moguća"
-            >
-              <TransferHorizontalLine className="h-4 w-4" />
-            </span>
+          {publishedAgo ? (
+            <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+              <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="truncate">{publishedAgo}</span>
+            </div>
+          ) : !isHidePrice ? (
+            <span className="w-px" aria-hidden="true" />
           ) : null}
 
           {!isHidePrice ? (
             isJobCategory ? (
-              <motion.span 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm font-bold text-slate-900 dark:text-slate-100"
-              >
-                {formatSalaryRange(data?.min_salary, data?.max_salary)}
-              </motion.span>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-end leading-none"
-              >
-                {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
-                  <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
-                    {formatPriceAbbreviated(Number(oldPrice))}
+              <div className="flex items-center gap-2">
+                {exchangePossible ? (
+                  <span
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
+                    title="Zamjena moguća"
+                    aria-label="Zamjena moguća"
+                  >
+                    <TransferFill className="h-4 w-4 text-primary" />
                   </span>
                 ) : null}
-                <span
-                  className={cn(
-                    "text-sm font-bold tabular-nums",
-                    isOnSale &&
-                      Number(oldPrice) > 0 &&
-                      Number(currentPrice) > 0 &&
-                      Number(oldPrice) > Number(currentPrice)
-                      ? "text-rose-600"
-                      : "text-slate-900 dark:text-slate-100"
-                  )}
-                  title={formatPriceOrInquiry(data?.price)}
+                <motion.span 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm font-bold text-slate-900 dark:text-slate-100"
                 >
-                  {formatPriceOrInquiry(data?.price)}
-                </span>
-              </motion.div>
+                  {formatSalaryRange(data?.min_salary, data?.max_salary)}
+                </motion.span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                {exchangePossible ? (
+                  <span
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
+                    title="Zamjena moguća"
+                    aria-label="Zamjena moguća"
+                  >
+                    <TransferFill className="h-4 w-4 text-primary" />
+                  </span>
+                ) : null}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-end leading-none"
+                >
+                  {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
+                    <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
+                      {formatPriceAbbreviated(Number(oldPrice))}
+                    </span>
+                  ) : null}
+                  <span
+                    className={cn(
+                      "text-sm font-bold tabular-nums",
+                      isOnSale &&
+                        Number(oldPrice) > 0 &&
+                        Number(currentPrice) > 0 &&
+                        Number(oldPrice) > Number(currentPrice)
+                        ? "text-rose-600"
+                        : "text-slate-900 dark:text-slate-100"
+                    )}
+                    title={formatPriceOrInquiry(data?.price)}
+                  >
+                    {formatPriceOrInquiry(data?.price)}
+                  </span>
+                  {showRealEstatePerM2 ? (
+                    <span className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300">
+                      {formatPriceAbbreviated(Number(realEstatePricing.perM2Value))} / m²
+                    </span>
+                  ) : null}
+                </motion.div>
+              </div>
             )
           ) : null}
         </div>
@@ -1771,6 +2016,8 @@ const MyAdsCard = ({
         onClose={() => setIsFeaturedPlanOpen(false)}
         placement={selectedFeaturePlacement}
         duration={selectedFeatureDuration}
+        featuredMeta={featuredMeta}
+        isFeatureAd={isFeatureAd}
         onPlacementChange={setSelectedFeaturePlacement}
         onDurationChange={setSelectedFeatureDuration}
         onConfirm={handleFeatureSubmit}

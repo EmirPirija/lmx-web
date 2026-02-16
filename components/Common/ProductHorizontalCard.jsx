@@ -4,11 +4,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Clock2Fill,
   GitCompare,
   Heart,
   Rocket,
   Store,
-  TransferHorizontalLine,
+  TransferFill,
   Youtube,
 } from "@/components/Common/UnifiedIconPack";
 import { toast } from "@/utils/toastBs";
@@ -22,6 +23,7 @@ import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { resolveMembership } from "@/lib/membership";
+import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 const formatRelativeTime = (dateString) => {
   if (!dateString) return "";
@@ -52,6 +54,8 @@ const formatRelativeTime = (dateString) => {
 const getKeyAttributes = (item) => {
   const attributes = [];
   const customFields = item?.translated_custom_fields || [];
+  const realEstatePricing = resolveRealEstateDisplayPricing(item || {});
+  const isRealEstate = Boolean(realEstatePricing?.isRealEstate);
 
   const findValue = (keys) => {
     const field = customFields.find((f) => {
@@ -66,14 +70,102 @@ const getKeyAttributes = (item) => {
     );
   };
 
+  const formatAreaNoSpace = (rawValue) => {
+    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    const cleaned = String(rawValue).trim().replace(/\s*(m2|m²)$/i, "");
+    if (!cleaned) return null;
+    return `${cleaned.replace(/\s/g, "")}m2`;
+  };
+
+  const formatMileageNoSpace = (rawValue) => {
+    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    const cleaned = String(rawValue)
+      .trim()
+      .replace(/^kilometraza\s*\(km\)\s*[:\-]?\s*/i, "")
+      .replace(/^kilometraža\s*\(km\)\s*[:\-]?\s*/i, "")
+      .replace(/^mileage\s*[:\-]?\s*/i, "")
+      .replace(/\s*(km|kilometraza|kilometraža)$/i, "");
+    if (!cleaned) return null;
+    return `${cleaned.replace(/\s/g, "")}km`;
+  };
+
+  const pushUnique = (value) => {
+    if (!value) return;
+    const normalized = String(value).trim();
+    if (!normalized) return;
+    if (attributes.some((entry) => normalizeText(entry) === normalizeText(normalized))) return;
+    attributes.push(normalized);
+  };
+
+  if (isRealEstate) {
+    const listingType = findValue([
+      "tip oglasa",
+      "tip nekretnine",
+      "tip ponude",
+      "vrsta ponude",
+      "offer type",
+      "listing type",
+      "type",
+    ]);
+    const rooms = findValue([
+      "broj soba",
+      "sobe",
+      "broj prostorija",
+      "rooms",
+      "room count",
+    ]);
+    const propertyType = findValue([
+      "vrsta objekta",
+      "tip objekta",
+      "objekat",
+      "object type",
+      "property type",
+    ]);
+    const areaRaw =
+      realEstatePricing?.areaM2 ??
+      findValue([
+        "kvadratura",
+        "kvadratura (m2)",
+        "povrsina",
+        "površina",
+        "m2",
+        "m²",
+        "quadrature",
+        "surface",
+        "area",
+      ]);
+    const area = formatAreaNoSpace(areaRaw);
+
+    pushUnique(listingType);
+    pushUnique(rooms);
+    pushUnique(propertyType);
+    pushUnique(area);
+
+    if (attributes.length > 0) {
+      return attributes;
+    }
+  }
+
   const year = findValue(["godište", "godiste"]);
-  if (year) attributes.push(year);
+  pushUnique(year);
 
   const fuel = findValue(["gorivo"]);
-  if (fuel) attributes.push(fuel);
+  pushUnique(fuel);
 
   const transmission = findValue(["mjenjač", "mjenjac"]);
-  if (transmission) attributes.push(transmission);
+  pushUnique(transmission);
+
+  const mileageRaw = findValue([
+    "kilometraza (km)",
+    "kilometraža (km)",
+    "kilometraza",
+    "kilometraža",
+    "predena kilometraza",
+    "pređena kilometraža",
+    "mileage",
+    "km",
+  ]);
+  pushUnique(formatMileageNoSpace(mileageRaw));
 
   return attributes;
 };
@@ -407,6 +499,8 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
 
     return Math.round(((oldN - currentN) / oldN) * 100);
   }, [item?.discount_percentage, isOnSale, oldPrice, currentPrice]);
+  const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(item), [item]);
+  const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
 
   const slides = useMemo(() => {
     const s = [];
@@ -789,7 +883,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">
           
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-            <Clock className="h-3.5 w-3.5" />
+            <Clock2Fill className="h-3.5 w-3.5 text-primary" />
             <span>{formatRelativeTime(item?.created_at)}</span>
           </div>
 
@@ -805,7 +899,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                   title="Zamjena moguća"
                   aria-label="Zamjena moguća"
                 >
-                  <TransferHorizontalLine className="h-4 w-4" />
+                  <TransferFill className="h-4 w-4 text-primary" />
                 </span>
               ) : null}
 
@@ -833,6 +927,11 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                     ? formatSalaryRange(item?.min_salary, item?.max_salary)
                     : formatPriceOrInquiry(item?.price)}
                 </span>
+                {showRealEstatePerM2 ? (
+                  <span className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300">
+                    {formatPriceAbbreviated(Number(realEstatePricing.perM2Value))} / m²
+                  </span>
+                ) : null}
               </div>
             </div>
           ) : null}

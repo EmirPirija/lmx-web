@@ -1094,7 +1094,6 @@ const MyAds = () => {
       currentStatus === "approved" ||
       currentStatus === "featured" ||
       currentStatus === "reserved";
-    const isFeatured = Boolean(currentItem?.is_feature);
     const needsItemForAction = !["delete", "edit"].includes(action);
 
     if (!currentItem && needsItemForAction) {
@@ -1135,7 +1134,7 @@ const MyAds = () => {
         }
         return handleMarkAsSoldOut(adId, payload || null);
       case "feature":
-        if (!isApproved || isInactive || isSoldOut || isExpired || isFeatured || isReserved) {
+        if (!isApproved || isInactive || isSoldOut || isExpired || isReserved) {
           toast.info("Izdvajanje trenutno nije dostupno za ovaj oglas.");
           return false;
         }
@@ -1342,7 +1341,7 @@ const MyAds = () => {
       ) : null}
 
       {/* Ads Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch gap-4 lg:gap-6">
         {IsLoading ? (
           [...Array(8)].map((_, i) => (
             <motion.div
