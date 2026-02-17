@@ -710,11 +710,15 @@ const ProductCard = ({
               {isShopSeller ? (
                 <OverlayPill
                   icon={Store}
-                  className="border-indigo-200 bg-indigo-100/95 text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-900/55 dark:text-indigo-200"
-                />
+                  iconClassName="h-3 w-3"
+                  className="border-indigo-200 text-[9px] bg-indigo-100/95 text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-900/55 dark:text-indigo-200"
+                >
+                  LMX Shop
+                </OverlayPill>
               ) : null}
             </div>
           ) : null}
+
 
           {/* Dugmad za akcije gore-desno */}
           <div className="absolute top-2 right-2 z-30 flex items-center gap-1">
