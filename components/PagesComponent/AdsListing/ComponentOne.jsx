@@ -580,31 +580,6 @@ const ComponentOne = ({
         <SearchBar value={search} onChange={setSearch} isSearching={isSearching} />
       </div>
 
-      {/* 2. Recent Categories - COMPACT CHIPS */}
-      <AnimatePresence>
-        {!showSearchResults && recentCategories?.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <History size={14} className="text-gray-400 dark:text-slate-400" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">Nedavno</span>
-            </div>
-            {/* Horizontal scroll chips */}
-            <div className="flex gap-2 overflow-x-auto pb-4 pt-1 px-1 -mx-2 scrollbar-hide snap-x">
-              {recentCategories.slice(0, 8).map((c, index) => (
-                <div key={c.id} className="snap-start">
-                  <RecentPill category={c} onClick={handleCategoryTabClick} index={index} />
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* 3. Main Content Area */}
       <div>
         {categoriesLoading ? (

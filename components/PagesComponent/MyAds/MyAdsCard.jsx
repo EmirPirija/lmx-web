@@ -239,7 +239,6 @@ const getKeyAttributes = (item) => {
         "kvadratura (m2)",
         "povrsina",
         "površina",
-        "m2",
         "m²",
         "quadrature",
         "surface",
@@ -1684,7 +1683,7 @@ const MyAdsCard = ({
             >
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
-                  Video
+                  {/* Video */}
                 </OverlayPill>
               ) : null}
             </motion.div>
@@ -1840,13 +1839,13 @@ const MyAdsCard = ({
       <div
         className={cn(
           "flex flex-col gap-2 p-3 flex-1",
-          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-8" : null
+          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-5" : null
         )}
       >
         <div className="flex items-start justify-between gap-2">
           <motion.h3
             whileHover={{ color: "hsl(var(--primary))" }}
-            className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
+            className="text-sm font-semibold text-slate-900 dark:text-slate-300 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
           >
             {title}
           </motion.h3>

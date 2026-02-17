@@ -84,6 +84,39 @@ const getYouTubeEmbedUrl = (input) => {
   return "";
 };
 
+const extractTempUploadId = (value) => {
+  if (!value || typeof value !== "object") return null;
+  return (
+    value?.id ??
+    value?.temp_id ??
+    value?.tempId ??
+    value?.upload_id ??
+    value?.uploadId ??
+    value?.media_id ??
+    value?.mediaId ??
+    value?.file_id ??
+    value?.fileId ??
+    null
+  );
+};
+
+const normalizeTempUploadEntity = (value) => {
+  if (!value || typeof value !== "object") return value;
+  const id = extractTempUploadId(value);
+  const url =
+    value?.url ||
+    value?.image ||
+    value?.original_url ||
+    value?.path ||
+    value?.file_url ||
+    "";
+  return {
+    ...value,
+    ...(id !== null && id !== undefined ? { id } : {}),
+    ...(url ? { url } : {}),
+  };
+};
+
 const isInstagramUrl = (input) => {
   if (!input) return false;
   try {
@@ -309,7 +342,8 @@ const EditComponentThree = ({
       },
     });
     if (res?.data?.error !== false) throw new Error(res?.data?.message || `Upload nije uspio`);
-    return res.data.data;
+    const raw = Array.isArray(res?.data?.data) ? res.data.data?.[0] : res?.data?.data;
+    return normalizeTempUploadEntity(raw);
   };
 
   const deleteTemp = async (id) => {
@@ -319,7 +353,8 @@ const EditComponentThree = ({
 
   // --- Edit-specific helpers ---
   // Temp upload (upload-temp endpoint) obično vraća { id, url }
-  const isTempUpload = (v) => !!(v && typeof v === "object" && v.url && !v.image);
+  const isTempUpload = (v) =>
+    Boolean(v && typeof v === "object" && extractTempUploadId(v) && v?.url && !v?.image);
   // Postojeća slika iz DB-a (najčešće { id, image: "https://..." })
   const isExistingDbImage = (v) => !!(v && typeof v === "object" && v.id && (v.image || v.original_url || v.path));
   const pushDeleteId = (id) => {
@@ -385,11 +420,13 @@ const EditComponentThree = ({
     }
 
     if (newUploadsBatch.length > 0) {
+        const normalizedBatch = newUploadsBatch.map(normalizeTempUploadEntity).filter(Boolean);
+        if (!normalizedBatch.length) return;
         if (uploadedImages.length === 0) {
-            setUploadedImages([newUploadsBatch[0]]);
-            setOtherImages(prev => [...(prev || []), ...newUploadsBatch.slice(1)]);
+            setUploadedImages([normalizedBatch[0]]);
+            setOtherImages(prev => [...(prev || []), ...normalizedBatch.slice(1)]);
         } else {
-            setOtherImages(prev => [...(prev || []), ...newUploadsBatch]);
+            setOtherImages(prev => [...(prev || []), ...normalizedBatch]);
         }
     }
   };
@@ -430,13 +467,18 @@ const EditComponentThree = ({
       // ✅ Edit fix:
       // - temp upload slike brišemo sa /upload-temp/:id
       // - postojeće DB slike samo označimo za brisanje (setDeleteImagesId)
-      if (isTempUpload(targetImg) && targetImg?.id) {
-        await deleteTemp(targetImg.id);
+      const targetId = extractTempUploadId(targetImg);
+      if (isTempUpload(targetImg) && targetId) {
+        await deleteTemp(targetId);
       } else if (isExistingDbImage(targetImg) && targetImg?.id) {
         pushDeleteId(targetImg.id);
       }
       
-      const newAll = allImages.filter(img => img !== targetImg && img.id !== targetImg.id);
+      const newAll = allImages.filter((img) => {
+        const imgId = extractTempUploadId(img);
+        if (targetId && imgId) return String(imgId) !== String(targetId);
+        return img !== targetImg;
+      });
       
       if (newAll.length > 0) {
         setUploadedImages([newAll[0]]);
@@ -451,7 +493,15 @@ const EditComponentThree = ({
   };
 
   const handleSetMain = (targetImg) => {
-    const newAll = [targetImg, ...allImages.filter(i => i !== targetImg && i.id !== targetImg.id)];
+    const targetId = extractTempUploadId(targetImg);
+    const newAll = [
+      targetImg,
+      ...allImages.filter((img) => {
+        const imgId = extractTempUploadId(img);
+        if (targetId && imgId) return String(imgId) !== String(targetId);
+        return img !== targetImg;
+      }),
+    ];
     setUploadedImages([newAll[0]]);
     setOtherImages(newAll.slice(1));
     setFocusedImageId(null);
@@ -476,7 +526,7 @@ const EditComponentThree = ({
         if(p === 100) setIsVideoProcessing(true);
       });
       
-      setUploadedVideo(data);
+      setUploadedVideo(normalizeTempUploadEntity(data));
       onVideoSelected?.();
       toast.success("Video postavljen");
     } catch (e) {
@@ -489,7 +539,8 @@ const EditComponentThree = ({
 
   const handleRemoveVideo = async () => {
     // Ukloni temp video sa servera, a za postojeći (string / DB) samo očisti state
-    if (isTempUpload(uploadedVideo) && uploadedVideo?.id) await deleteTemp(uploadedVideo.id);
+    const videoTempId = extractTempUploadId(uploadedVideo);
+    if (isTempUpload(uploadedVideo) && videoTempId) await deleteTemp(videoTempId);
     setUploadedVideo(null);
     onVideoDeleted?.();
     setVideoPreviewUrl(null);
@@ -608,7 +659,7 @@ const EditComponentThree = ({
                     const isMain = index === 0;
                     // ✅ Koristimo ispravljenu safeObjectUrl funkciju
                     const imgSrc = safeObjectUrl(img);
-                    const imgId = img.id || index; // Fallback key
+                    const imgId = extractTempUploadId(img) ?? img?.id ?? img?.url ?? index;
                     const isFocused = focusedImageId === imgId;
 
                     return (

@@ -44,6 +44,7 @@ import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
+import ExistingConversationBanner from "@/components/PagesComponent/ProductDetail/ExistingConversationBanner";
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -441,6 +442,14 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
         </div>
 
         <div className="p-4 space-y-3">
+          {itemId ? (
+            <ExistingConversationBanner
+              itemId={itemId}
+              seller={seller}
+              className="mb-1"
+              showDismiss={false}
+            />
+          ) : null}
           <textarea
             value={message}
             onChange={(e) => { setMessage(e.target.value); setError(""); }}

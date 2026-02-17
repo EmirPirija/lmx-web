@@ -128,7 +128,6 @@ const getKeyAttributes = (item) => {
         "kvadratura (m2)",
         "povrsina",
         "površina",
-        "m2",
         "m²",
         "quadrature",
         "surface",

@@ -1171,6 +1171,8 @@ export const addItemApi = {
     video,
 
     address,
+    formatted_address,
+    address_translated,
     latitude,
     longitude,
     custom_field_files = [],
@@ -1287,9 +1289,29 @@ export const addItemApi = {
     }
 
     // ostala polja
-    if (address) formData.append("address", address);
-    if (latitude) formData.append("latitude", latitude);
-    if (longitude) formData.append("longitude", longitude);
+    if (address !== undefined && address !== null) {
+      formData.append("address", String(address));
+    }
+    if (formatted_address !== undefined && formatted_address !== null) {
+      formData.append("formatted_address", String(formatted_address));
+    }
+    if (address_translated !== undefined && address_translated !== null) {
+      formData.append("address_translated", String(address_translated));
+    }
+    if (
+      latitude !== undefined &&
+      latitude !== null &&
+      String(latitude).trim() !== ""
+    ) {
+      formData.append("latitude", latitude);
+    }
+    if (
+      longitude !== undefined &&
+      longitude !== null &&
+      String(longitude).trim() !== ""
+    ) {
+      formData.append("longitude", longitude);
+    }
 
     custom_field_files.forEach(({ key, files }) => {
       if (Array.isArray(files)) {
@@ -1301,10 +1323,18 @@ export const addItemApi = {
       }
     });
 
-    if (country) formData.append("country", country);
-    if (state) formData.append("state", state);
-    if (city) formData.append("city", city);
-    if (area_id) formData.append("area_id", area_id);
+    if (country !== undefined && country !== null) {
+      formData.append("country", String(country));
+    }
+    if (state !== undefined && state !== null) {
+      formData.append("state", String(state));
+    }
+    if (city !== undefined && city !== null) {
+      formData.append("city", String(city));
+    }
+    if (area_id !== undefined && area_id !== null) {
+      formData.append("area_id", String(area_id));
+    }
     if (min_salary) formData.append("min_salary", min_salary);
     if (max_salary) formData.append("max_salary", max_salary);
     if (region_code) formData.append("region_code", region_code);
@@ -1394,6 +1424,8 @@ export const editItemApi = {
     video,
 
     address,
+    formatted_address,
+    address_translated,
     latitude,
     longitude,
     custom_field_files = [],
@@ -1452,8 +1484,20 @@ export const editItemApi = {
     if (instagram_source_url) {
       formData.append("instagram_source_url", instagram_source_url);
     }
-    if (latitude) formData.append("latitude", latitude);
-    if (longitude) formData.append("longitude", longitude);
+    if (
+      latitude !== undefined &&
+      latitude !== null &&
+      String(latitude).trim() !== ""
+    ) {
+      formData.append("latitude", latitude);
+    }
+    if (
+      longitude !== undefined &&
+      longitude !== null &&
+      String(longitude).trim() !== ""
+    ) {
+      formData.append("longitude", longitude);
+    }
 
     if (delete_item_image_id) {
       formData.append("delete_item_image_id", delete_item_image_id);
@@ -1485,11 +1529,27 @@ export const editItemApi = {
       formData.append("custom_fields", cfToSend);
     }
 
-    if (address) formData.append("address", address);
-    if (country) formData.append("country", country);
-    if (state) formData.append("state", state);
-    if (area_id) formData.append("area_id", area_id);
-    if (city) formData.append("city", city);
+    if (address !== undefined && address !== null) {
+      formData.append("address", String(address));
+    }
+    if (formatted_address !== undefined && formatted_address !== null) {
+      formData.append("formatted_address", String(formatted_address));
+    }
+    if (address_translated !== undefined && address_translated !== null) {
+      formData.append("address_translated", String(address_translated));
+    }
+    if (country !== undefined && country !== null) {
+      formData.append("country", String(country));
+    }
+    if (state !== undefined && state !== null) {
+      formData.append("state", String(state));
+    }
+    if (area_id !== undefined && area_id !== null) {
+      formData.append("area_id", String(area_id));
+    }
+    if (city !== undefined && city !== null) {
+      formData.append("city", String(city));
+    }
 
     // ✅ BITNO: ne šalji image ako je "" / string / object
     // (tvoj stari `if (image != null)` je znao poslati "" i obrisati main image)
@@ -1860,9 +1920,25 @@ export const getOtpApi = {
 };
 
 export const getLocationApi = {
-  getLocation: ({ lat, lng, lang, search, place_id, session_id } = {}) => {
+  getLocation: ({ lat, lng, long, longitude, lang, search, place_id, session_id } = {}) => {
+    const resolvedLng =
+      lng !== undefined && lng !== null
+        ? lng
+        : long !== undefined && long !== null
+        ? long
+        : longitude;
+
     return Api.get(GET_LOCATION, {
-      params: { lat, lng, lang, search, place_id, session_id },
+      params: {
+        lat,
+        lng: resolvedLng,
+        long: resolvedLng,
+        longitude: resolvedLng,
+        lang,
+        search,
+        place_id,
+        session_id,
+      },
     });
   },
 };
@@ -2836,92 +2912,469 @@ export const mapSearchApi = {
   },
 };
 
+const CITY_COORDINATE_FALLBACK = [
+  { key: "sarajevo", lat: 43.8563, lng: 18.4131 },
+  { key: "ilidza", lat: 43.8295, lng: 18.3010 },
+  { key: "mostar", lat: 43.3438, lng: 17.8078 },
+  { key: "banja luka", lat: 44.7722, lng: 17.1910 },
+  { key: "banjaluka", lat: 44.7722, lng: 17.1910 },
+  { key: "tuzla", lat: 44.5384, lng: 18.6671 },
+  { key: "zenica", lat: 44.2034, lng: 17.9077 },
+  { key: "bijeljina", lat: 44.7587, lng: 19.2144 },
+  { key: "brcko", lat: 44.8728, lng: 18.8102 },
+  { key: "br\u010dko", lat: 44.8728, lng: 18.8102 },
+  { key: "trebinje", lat: 42.7119, lng: 18.3436 },
+  { key: "prijedor", lat: 44.9799, lng: 16.7140 },
+  { key: "doboj", lat: 44.7310, lng: 18.0878 },
+  { key: "gorazde", lat: 43.6674, lng: 18.9775 },
+  { key: "gora\u017ede", lat: 43.6674, lng: 18.9775 },
+  { key: "cazin", lat: 44.9676, lng: 15.9431 },
+  { key: "biha\u0107", lat: 44.8167, lng: 15.8700 },
+  { key: "bihac", lat: 44.8167, lng: 15.8700 },
+  { key: "travnik", lat: 44.2269, lng: 17.6658 },
+  { key: "konjic", lat: 43.6519, lng: 17.9614 },
+  { key: "capljina", lat: 43.1217, lng: 17.6849 },
+  { key: "\u010dapljina", lat: 43.1217, lng: 17.6849 },
+  { key: "gracanica", lat: 44.7034, lng: 18.3101 },
+  { key: "gra\u010danica", lat: 44.7034, lng: 18.3101 },
+  { key: "grude", lat: 43.3722, lng: 17.4131 },
+  { key: "siroki brijeg", lat: 43.3829, lng: 17.5942 },
+  { key: "\u0161iroki brijeg", lat: 43.3829, lng: 17.5942 },
+  { key: "vitez", lat: 44.1543, lng: 17.7901 },
+];
+
+const toFiniteNumber = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const normalized = trimmed.includes(",") && !trimmed.includes(".")
+      ? trimmed.replace(",", ".")
+      : trimmed;
+    const numericCandidate = normalized.replace(/[^0-9+-.]/g, "");
+    if (!numericCandidate) return null;
+    const parsed = Number(numericCandidate);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const normalizeText = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const isValidLatitude = (lat) => lat !== null && lat >= -90 && lat <= 90;
+const isValidLongitude = (lng) => lng !== null && lng >= -180 && lng <= 180;
+
+const toReadableText = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value).trim();
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => toReadableText(entry))
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (typeof value === "object") {
+    const candidateKeys = [
+      "translated_name",
+      "name",
+      "title",
+      "label",
+      "full_name",
+      "formatted",
+      "address",
+      "city",
+      "state",
+      "country",
+    ];
+    for (const key of candidateKeys) {
+      const candidate = value?.[key];
+      if (typeof candidate === "string" || typeof candidate === "number") {
+        const text = String(candidate).trim();
+        if (text) return text;
+      }
+    }
+  }
+  return "";
+};
+
+const collectLocationTextCandidates = (...values) => {
+  const candidates = [];
+  const seen = new Set();
+
+  const pushCandidate = (text) => {
+    const normalized = normalizeText(text);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    candidates.push(text);
+  };
+
+  const walk = (value, depth = 0) => {
+    if (value === null || value === undefined || depth > 2) return;
+
+    if (typeof value === "string" || typeof value === "number") {
+      const text = String(value).trim();
+      if (text) pushCandidate(text);
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => walk(entry, depth + 1));
+      return;
+    }
+
+    if (typeof value === "object") {
+      const preferred = toReadableText(value);
+      if (preferred) pushCandidate(preferred);
+      Object.values(value).forEach((entry) => walk(entry, depth + 1));
+    }
+  };
+
+  values.forEach((entry) => walk(entry));
+  return candidates;
+};
+
+const resolveCoordinatesFromCoordinateArray = (coordinates, precision) => {
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const lng = toFiniteNumber(coordinates[0]);
+  const lat = toFiniteNumber(coordinates[1]);
+  if (isValidLatitude(lat) && isValidLongitude(lng)) {
+    return { latitude: lat, longitude: lng, precision };
+  }
+  return null;
+};
+
+const resolveCoordinatesFromObject = (source, precision) => {
+  if (!source || typeof source !== "object") return null;
+  const candidates = [
+    [source?.latitude, source?.longitude],
+    [source?.lat, source?.lng],
+    [source?.lat, source?.lon],
+    [source?.lat, source?.long],
+    [source?.y, source?.x],
+  ];
+
+  for (const [latValue, lngValue] of candidates) {
+    const lat = toFiniteNumber(latValue);
+    const lng = toFiniteNumber(lngValue);
+    if (isValidLatitude(lat) && isValidLongitude(lng)) {
+      return { latitude: lat, longitude: lng, precision };
+    }
+  }
+
+  const coordinateArrays = [
+    source?.coordinates,
+    source?.coordinate,
+    source?.center,
+    source?.centroid,
+    source?.geometry?.coordinates,
+    source?.geojson?.coordinates,
+  ];
+
+  for (const coordinateArray of coordinateArrays) {
+    const resolved = resolveCoordinatesFromCoordinateArray(coordinateArray, precision);
+    if (resolved) return resolved;
+  }
+
+  return null;
+};
+
+const resolveCoordinatesFromNestedObjects = (root) => {
+  if (!root || typeof root !== "object") return null;
+
+  const queue = [{ node: root, depth: 0, label: "nested" }];
+  const visited = new Set();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current?.node || typeof current.node !== "object") continue;
+    if (visited.has(current.node)) continue;
+    visited.add(current.node);
+
+    const resolved = resolveCoordinatesFromObject(current.node, current.label);
+    if (resolved) return resolved;
+
+    if (current.depth >= 2) continue;
+
+    Object.entries(current.node).forEach(([key, value]) => {
+      if (!value || typeof value !== "object") return;
+      queue.push({
+        node: value,
+        depth: current.depth + 1,
+        label: `nested_${key}`,
+      });
+    });
+  }
+
+  return null;
+};
+
+const parseExtraDetailsSafe = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === "object" ? value : null;
+};
+
+const resolveCoordinatesFromLocationText = (...chunks) => {
+  const merged = normalizeText(collectLocationTextCandidates(...chunks).join(" | "));
+  if (!merged) return null;
+
+  const match = CITY_COORDINATE_FALLBACK.find((entry) => merged.includes(entry.key));
+  if (!match) return null;
+
+  return {
+    latitude: match.lat,
+    longitude: match.lng,
+    precision: "approx_city",
+  };
+};
+
+const resolveCoordinatesFromItem = (item, extraDetails) => {
+  const candidates = [
+    [item?.latitude, item?.longitude, "exact"],
+    [item?.lat, item?.lng, "exact"],
+    [item?.lat, item?.long, "exact"],
+    [item?.translated_item?.latitude, item?.translated_item?.longitude, "exact_translated"],
+    [item?.translated_item?.lat, item?.translated_item?.lng, "exact_translated"],
+    [item?.latitude_value, item?.longitude_value, "exact"],
+    [item?.location?.latitude, item?.location?.longitude, "exact_location"],
+    [item?.location?.lat, item?.location?.lng, "exact_location"],
+    [item?.location?.lat, item?.location?.long, "exact_location"],
+    [item?.location?.center?.lat, item?.location?.center?.lng, "exact_location"],
+    [item?.location_latitude, item?.location_longitude, "exact"],
+    [item?.location_lat, item?.location_lng, "exact"],
+    [item?.coordinates?.latitude, item?.coordinates?.longitude, "exact_coordinates"],
+    [item?.coordinates?.lat, item?.coordinates?.lng, "exact_coordinates"],
+    [item?.geo?.latitude, item?.geo?.longitude, "exact_geo"],
+    [item?.geo?.lat, item?.geo?.lng, "exact_geo"],
+    [item?.area?.latitude, item?.area?.longitude, "exact_area"],
+    [item?.area?.lat, item?.area?.lng, "exact_area"],
+    [item?.city?.latitude, item?.city?.longitude, "exact_city"],
+    [item?.city?.lat, item?.city?.lng, "exact_city"],
+    [item?.city_latitude, item?.city_longitude, "exact_city"],
+    [item?.state?.latitude, item?.state?.longitude, "exact_state"],
+    [item?.state?.lat, item?.state?.lng, "exact_state"],
+    [item?.country?.latitude, item?.country?.longitude, "exact_country"],
+    [item?.country?.lat, item?.country?.lng, "exact_country"],
+    [extraDetails?.latitude, extraDetails?.longitude, "exact_extra"],
+    [extraDetails?.lat, extraDetails?.lng, "exact_extra"],
+    [extraDetails?.lat, extraDetails?.long, "exact_extra"],
+    [extraDetails?.location?.latitude, extraDetails?.location?.longitude, "exact_extra_location"],
+    [extraDetails?.location?.lat, extraDetails?.location?.lng, "exact_extra_location"],
+  ];
+
+  for (const [latValue, lngValue, precision] of candidates) {
+    const lat = toFiniteNumber(latValue);
+    const lng = toFiniteNumber(lngValue);
+    if (isValidLatitude(lat) && isValidLongitude(lng)) {
+      return { latitude: lat, longitude: lng, precision };
+    }
+  }
+
+  const coordinateArrayCandidates = [
+    item?.coordinates,
+    item?.location?.coordinates,
+    item?.geo?.coordinates,
+    item?.geometry?.coordinates,
+    extraDetails?.coordinates,
+    extraDetails?.location?.coordinates,
+    extraDetails?.geometry?.coordinates,
+  ];
+  for (const coordinateArray of coordinateArrayCandidates) {
+    const resolved = resolveCoordinatesFromCoordinateArray(coordinateArray, "exact_coordinates_array");
+    if (resolved) return resolved;
+  }
+
+  const nestedResolved = resolveCoordinatesFromNestedObjects({
+    item,
+    extraDetails,
+  });
+  if (nestedResolved) return nestedResolved;
+
+  return resolveCoordinatesFromLocationText(
+    item?.name,
+    item?.title,
+    item?.translated_item?.name,
+    item?.city,
+    item?.translated_item?.city,
+    item?.state,
+    item?.translated_item?.state,
+    item?.address,
+    item?.translated_item?.address,
+    item?.translated_item?.location,
+    item?.location,
+    item?.area?.name,
+    item?.area?.translated_name,
+    extraDetails?.city,
+    extraDetails?.state,
+    extraDetails?.address,
+    extraDetails?.location
+  );
+};
+
 // Helper funkcija za transformaciju API response-a u format za mapu
 export const transformItemsForMap = (items) => {
   if (!items || !Array.isArray(items)) return [];
-  
+
   return items
-    .filter(item => item.latitude && item.longitude) // Samo items sa koordinatama
-    .map(item => {
+    .map((item) => {
+      const extraDetails = parseExtraDetailsSafe(item?.extra_details);
+      const coordinates = resolveCoordinatesFromItem(item, extraDetails);
+      if (!coordinates) return null;
+
+      const explicitAddressLabel =
+        toReadableText(item?.address) ||
+        toReadableText(item?.translated_item?.address) ||
+        toReadableText(item?.translated_address) ||
+        toReadableText(item?.formatted_address) ||
+        toReadableText(item?.address_translated) ||
+        toReadableText(extraDetails?.address_translated) ||
+        toReadableText(extraDetails?.formattedAddress) ||
+        toReadableText(extraDetails?.address);
+
+      const cityLabel =
+        toReadableText(item?.city) ||
+        toReadableText(item?.translated_item?.city) ||
+        toReadableText(item?.city_translation) ||
+        toReadableText(extraDetails?.city);
+      const stateLabel =
+        toReadableText(item?.state) ||
+        toReadableText(item?.translated_item?.state) ||
+        toReadableText(item?.state_translation) ||
+        toReadableText(extraDetails?.state);
+      const countryLabel =
+        toReadableText(item?.country) ||
+        toReadableText(item?.translated_item?.country) ||
+        toReadableText(item?.country_translation) ||
+        toReadableText(extraDetails?.country);
+      const addressLabel = explicitAddressLabel;
+      const areaNameLabel =
+        toReadableText(item?.area?.translated_name) ||
+        toReadableText(item?.area?.name) ||
+        toReadableText(item?.area_name) ||
+        toReadableText(extraDetails?.area_name) ||
+        toReadableText(extraDetails?.naselje);
+
       // Extract room type from extra_details if available
       let roomType = null;
-      let extractedArea = item.area || item.total_area;
-      let extractedRooms = item.bedrooms || item.rooms;
-      
-      // Try to get extra details
-      if (item.extra_details) {
-        const extraDetails = typeof item.extra_details === 'string'
-          ? JSON.parse(item.extra_details)
-          : item.extra_details;
-        
-        // Common field names for room type
-        roomType = extraDetails?.tip_stana ||
-                   extraDetails?.room_type ||
-                   extraDetails?.tip_nekretnine ||
-                   extraDetails?.property_type;
-        
-        // Try to get area from extra_details
-        if (!extractedArea) {
-          extractedArea = extraDetails?.povrsina ||
-                          extraDetails?.quadrature ||
-                          extraDetails?.m2 ||
-                          extraDetails?.area;
-        }
-        
-        // Try to get rooms from extra_details
-        if (!extractedRooms) {
-          extractedRooms = extraDetails?.broj_soba ||
-                          extraDetails?.sobe ||
-                          extraDetails?.rooms ||
-                          extraDetails?.bedrooms;
-        }
+      let extractedArea =
+        item?.total_area ||
+        item?.area_total ||
+        item?.surface ||
+        item?.surface_area ||
+        item?.quadrature ||
+        item?.m2;
+      let extractedRooms = item?.bedrooms || item?.rooms;
+
+      // Common field names for room type
+      roomType =
+        extraDetails?.tip_stana ||
+        extraDetails?.room_type ||
+        extraDetails?.tip_nekretnine ||
+        extraDetails?.property_type;
+
+      // Try to get area from extra_details
+      if (!extractedArea) {
+        extractedArea =
+          extraDetails?.povrsina ||
+          extraDetails?.quadrature ||
+          extraDetails?.m2 ||
+          extraDetails?.area;
       }
-      
+
+      // Try to get rooms from extra_details
+      if (!extractedRooms) {
+        extractedRooms =
+          extraDetails?.broj_soba ||
+          extraDetails?.sobe ||
+          extraDetails?.rooms ||
+          extraDetails?.bedrooms;
+      }
+
+      if (typeof roomType === "object") {
+        roomType = toReadableText(roomType) || null;
+      }
+      if (typeof extractedArea === "object") {
+        extractedArea = toReadableText(extractedArea) || null;
+      }
+      if (typeof extractedRooms === "object") {
+        extractedRooms = toReadableText(extractedRooms) || null;
+      }
+
       return {
         // Required fields
-        id: item.id,
-        title: item.name || item.title || item.translated_item?.name,
-        price: parseFloat(item.price) || 0,
-        latitude: parseFloat(item.latitude),
-        longitude: parseFloat(item.longitude),
-        
+        id: item?.id,
+        title: item?.name || item?.title || item?.translated_item?.name,
+        slug: item?.slug || item?.translated_item?.slug || null,
+        price: parseFloat(item?.price) || 0,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        coordinate_precision: coordinates.precision,
+
         // Location info
-        location: item.city || item.address,
-        address: item.address || item.translated_item?.address,
-        city: item.city,
-        state: item.state,
-        country: item.country,
+        location:
+          explicitAddressLabel ||
+          [areaNameLabel, cityLabel, stateLabel, countryLabel].filter(Boolean).join(", ") ||
+          [cityLabel, stateLabel, countryLabel].filter(Boolean).join(", ") ||
+          toReadableText(item?.location) ||
+          addressLabel ||
+          "",
+        address: addressLabel,
+        city: cityLabel,
+        state: stateLabel,
+        country: countryLabel,
         area: extractedArea,
-        
+        area_name: areaNameLabel,
+
         // Images
-        image: item.image || item.gallery_images?.[0]?.image || item.gallery?.[0],
-        images: item.gallery_images?.map(g => g.image) || item.gallery || (item.image ? [item.image] : []),
-        
+        image: item?.image || item?.gallery_images?.[0]?.image || item?.gallery?.[0],
+        images: item?.gallery_images?.map((g) => g.image) || item?.gallery || (item?.image ? [item.image] : []),
+
         // Additional info
-        category: item.category?.translated_name || item.category?.name || item.category_name,
-        category_id: item.category_id,
-        status: item.status,
-        featured: item.is_featured || item.is_feature || false,
-        
+        currency_symbol: item?.currency_symbol || item?.currency || "KM",
+        category: item?.category?.translated_name || item?.category?.name || item?.category_name,
+        category_id: item?.category_id,
+        status: item?.status,
+        featured: item?.is_featured || item?.is_feature || false,
+        is_promoted: item?.is_promoted || item?.is_featured || false,
+
         // Property details
         total_area: extractedArea,
         rooms: extractedRooms,
-        room_type: roomType, // e.g., "Trosoban", "Dvosoban"
-        bathrooms: item.bathrooms,
-        
+        room_type: roomType,
+        bathrooms: item?.bathrooms,
+
         // Meta
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        views: item.total_clicks,
-        
+        created_at: item?.created_at,
+        updated_at: item?.updated_at,
+        views: item?.total_clicks,
+
         // User info
-        user_id: item.user_id,
-        seller: item.seller || item.user,
-        
+        user_id: item?.user_id,
+        seller: item?.seller || item?.user,
+
         // Extra details for custom fields
-        extra_details: item.extra_details,
+        extra_details: item?.extra_details,
+        translated_custom_fields: item?.translated_custom_fields || item?.custom_fields || [],
       };
-    });
+    })
+    .filter(Boolean);
 };
 
 // Export za lakse koriscenje

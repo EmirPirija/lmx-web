@@ -50,7 +50,6 @@ import AdEditedByAdmin from "./AdEditedByAdmin";
 import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog";
 import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
 import AdStatisticsSection from "@/components/PagesComponent/MyAds/AdStatisticsSection";
-import ExistingConversationBanner from "@/components/PagesComponent/ProductDetail/ExistingConversationBanner";
 import GiveReview from "@/components/PagesComponent/Chat/GiveReview";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -312,6 +311,7 @@ const ProductDetails = ({ slug }) => {
   const [videoData, setVideoData] = useState({ url: "", thumbnail: "" });
   const [directVideo, setDirectVideo] = useState(null);
   const [status, setStatus] = useState("");
+  const latestProductFetchRef = useRef(0);
   
   // UI State
   const [isLoading, setIsLoading] = useState(true);
@@ -333,10 +333,13 @@ const ProductDetails = ({ slug }) => {
 
   // 1. Fetch Logic
   const fetchProductDetails = async () => {
+    const fetchToken = latestProductFetchRef.current + 1;
+    latestProductFetchRef.current = fetchToken;
     try {
       setIsLoading(true);
       setVideoData({ url: "", thumbnail: "" });
       setDirectVideo(null);
+      setGalleryImages([]);
 
       // Use path-based check for API call since we don't have product data yet
       const apiCall = isMyListingPath ? getMyItemsApi.getMyItems : allItemApi.getItems;
@@ -349,6 +352,7 @@ const ProductDetails = ({ slug }) => {
       }
 
       if (!product) throw new Error("Oglas nije pronađen");
+      if (latestProductFetchRef.current !== fetchToken) return;
 
       // Setup Data
       setProductDetails(product);
@@ -386,7 +390,9 @@ const ProductDetails = ({ slug }) => {
     } catch (error) {
       console.error(error);
     } finally {
-      setIsLoading(false);
+      if (latestProductFetchRef.current === fetchToken) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -548,16 +554,6 @@ const ProductDetails = ({ slug }) => {
               onShareClick={trackShare}
               onPriceHistoryView={trackPriceHistoryView}
             />
-
-            {/* 2.5 POSTOJEĆI RAZGOVOR (Za kupce) */}
-            {!isMyListing && productDetails?.id && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-                <ExistingConversationBanner
-                  itemId={productDetails.id}
-                  seller={productDetails?.user}
-                />
-              </div>
-            )}
 
             {!isMyListing && productDetails?.status === "sold out" && isSoldToCurrentUser && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">

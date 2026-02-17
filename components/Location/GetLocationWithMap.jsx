@@ -4,7 +4,7 @@ import {
   getDefaultLongitude,
 } from "@/redux/reducer/settingSlice";
 import { getCityData } from "@/redux/reducer/locationSlice";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   Circle,
   MapContainer,
@@ -14,6 +14,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { useLeafletTileTheme } from "@/hooks/useLeafletTileTheme";
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -35,11 +36,12 @@ const MapClickHandler = ({ onMapClick }) => {
   return null;
 };
 
-const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
+const GetLocationWithMap = ({ position, getLocationWithMap, KmRange, locationLabel = "" }) => {
   const latitude = useSelector(getDefaultLatitude);
   const longitude = useSelector(getDefaultLongitude);
   const globalPos = useSelector(getCityData);
   const mapRef = useRef();
+  const tileTheme = useLeafletTileTheme();
 
   const placeHolderPos = {
     lat: globalPos?.lat,
@@ -54,11 +56,6 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
     Number.isFinite(Number(markerLatLong?.lat)) &&
     Number.isFinite(Number(markerLatLong?.lng));
   const radiusLabel = KmRange ? `${KmRange} km` : "Bez radijusa";
-  const formattedCoords = useMemo(() => {
-    if (!displayLat || !displayLng) return null;
-    return `${Number(displayLat).toFixed(4)}, ${Number(displayLng).toFixed(4)}`;
-  }, [displayLat, displayLng]);
-
   useEffect(() => {
     if (mapRef.current && markerLatLong.lat && markerLatLong.lng) {
       mapRef.current.flyTo(
@@ -84,8 +81,9 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative isolate z-0 lmx-location-map">
       <MapContainer
+        className="z-0"
         style={containerStyle}
         center={[displayLat, displayLng]}
         zoom={6}
@@ -95,8 +93,10 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
         }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={tileTheme.attribution}
+          url={tileTheme.url}
+          subdomains={tileTheme.subdomains}
+          maxZoom={tileTheme.maxZoom}
         />
         <MapClickHandler onMapClick={handleMapClick} />
         <Marker position={[displayLat, displayLng]}></Marker>
@@ -114,11 +114,11 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
           }}
         />
       </MapContainer>
-      <div className="pointer-events-none absolute top-4 left-4 right-4 flex flex-wrap gap-2">
+      <div className="pointer-events-none absolute top-4 left-4 right-4 z-[5] flex flex-wrap gap-2">
         <div className="bg-white/95 border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
-          <p className="text-xs text-slate-500">Odabrana tačka</p>
+          <p className="text-xs text-slate-500">Odabrana lokacija</p>
           <p className="text-sm font-semibold text-slate-800">
-            {formattedCoords || "Nije postavljeno"}
+            {locationLabel || "Nije odabrano područje"}
           </p>
         </div>
         <div className="bg-white/95 border border-slate-200 rounded-xl px-3 py-2 shadow-sm">

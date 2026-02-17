@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useMediaQuery } from "usehooks-ts";
 import Filter from "../../Filter/Filter";
 import {
@@ -8,7 +9,9 @@ import {
   FeaturedSectionApi,
   categoryApi,
   getCustomFieldsApi,
+  getLocationApi,
   getParentCategoriesApi,
+  transformItemsForMap,
 } from "@/utils/api";
 import ProductCard from "@/components/Common/ProductCard";
 import {
@@ -37,7 +40,7 @@ import {
   BreadcrumbPathData,
   setBreadcrumbPath,
 } from "@/redux/reducer/breadCrumbSlice";
-import { t, updateMetadata } from "@/utils";
+import { formatPriceAbbreviated, t, updateMetadata } from "@/utils";
 import { getSelectedLocation, setHideMobileBottomNav } from "@/redux/reducer/globalStateSlice";
 import { resolveMembership } from "@/lib/membership";
 import { isSellerVerified } from "@/lib/seller-verification";
@@ -46,7 +49,14 @@ import {
   ArrowUpDown,
   List,
   LayoutGrid,
+  MapPin,
+  Clock2Fill,
 } from "@/components/Common/UnifiedIconPack";
+import {
+  isRealEstateCategoryPath,
+  isRealEstateItem,
+  toPositiveNumber,
+} from "@/utils/realEstatePricing";
 
 // ✅ NOVO: Saved searches controls
 import SavedSearchControls from "./SavedSearchControls";
@@ -55,6 +65,16 @@ import SavedSearchControls from "./SavedSearchControls";
 // TRACKING IMPORT
 // ============================================
 import { useSearchTracking } from "@/hooks/useItemTracking";
+
+const MapWithListingsMarkers = dynamic(
+  () => import("@/components/Location/MapWithListingsMarkers"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800" />
+    ),
+  }
+);
 
 const buildQuickNavigationCategories = (items = [], categorySlugById = new Map()) => {
   const categoryMap = new Map();
@@ -93,6 +113,158 @@ const buildQuickNavigationCategories = (items = [], categorySlugById = new Map()
   });
 };
 
+const normalizeMapText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const tryParseObject = (value) => {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  if (typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const formatMapPrice = (value) => {
+  const numeric = toPositiveNumber(value);
+  if (!numeric) return "Na upit";
+  return formatPriceAbbreviated(numeric) || "Na upit";
+};
+
+const formatMapTimeAgo = (dateString) => {
+  if (!dateString) return "Objavljeno nedavno";
+  const now = new Date();
+  const then = new Date(dateString);
+  if (Number.isNaN(then.getTime())) return "Objavljeno nedavno";
+
+  const diffMs = now.getTime() - then.getTime();
+  const mins = Math.max(1, Math.floor(diffMs / 60000));
+  if (mins < 60) return `prije ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `prije ${hours} ${hours === 1 ? "sat" : "sati"}`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `prije ${days} ${days === 1 ? "dan" : "dana"}`;
+  const months = Math.floor(days / 30);
+  return `prije ${months} ${months === 1 ? "mjesec" : "mjeseci"}`;
+};
+
+const buildMapCardDetails = (ad, pinLocationLabel = "") => {
+  if (!ad) return null;
+  const customFields = Array.isArray(ad?.translated_custom_fields)
+    ? ad.translated_custom_fields
+    : [];
+  const extra = tryParseObject(ad?.extra_details);
+
+  const extractFromCustomFields = (candidateKeys = []) => {
+    const normalizedCandidates = candidateKeys.map((key) => normalizeMapText(key));
+    const field = customFields.find((entry) => {
+      const fieldName = normalizeMapText(entry?.translated_name || entry?.name || "");
+      return normalizedCandidates.includes(fieldName);
+    });
+    if (!field) return null;
+    return (
+      field?.translated_selected_values?.[0] ||
+      field?.selected_values?.[0] ||
+      field?.value?.[0] ||
+      field?.value ||
+      null
+    );
+  };
+
+  const extractFromExtra = (candidateKeys = []) => {
+    const normalizedCandidates = candidateKeys.map((key) => normalizeMapText(key));
+    const entries = Object.entries(extra || {});
+    for (const [rawKey, rawValue] of entries) {
+      if (!normalizedCandidates.includes(normalizeMapText(rawKey))) continue;
+      if (rawValue === null || rawValue === undefined || rawValue === "") continue;
+      return rawValue;
+    }
+    return null;
+  };
+
+  const pickValue = (keys = []) =>
+    extractFromCustomFields(keys) ||
+    extractFromExtra(keys) ||
+    null;
+
+  const listingType =
+    pickValue(["tip oglasa", "tip ponude", "vrsta ponude", "listing type", "offer type"]) ||
+    null;
+  const roomType =
+    ad?.room_type ||
+    pickValue(["broj soba", "sobe", "rooms", "room count"]) ||
+    null;
+  const propertyType =
+    pickValue(["vrsta objekta", "tip objekta", "property type", "object type"]) ||
+    null;
+  const condition =
+    pickValue(["stanje oglasa", "stanje", "condition", "item condition"]) ||
+    ad?.status ||
+    null;
+  const areaRaw =
+    ad?.area ||
+    ad?.total_area ||
+    pickValue(["kvadratura", "kvadratura (m2)", "povrsina", "površina", "m2", "m²", "area"]) ||
+    null;
+  const areaClean = areaRaw
+    ? String(areaRaw)
+        .trim()
+        .replace(/\s*(m2|m²)$/i, "")
+    : null;
+  const areaValue = areaClean ? `${areaClean}m2` : null;
+
+  const availableRaw =
+    pickValue(["available_now", "is_available", "is_avaible", "isavailable", "dostupno"]) ||
+    null;
+  const availableText =
+    availableRaw === null
+      ? null
+      : ["1", "true", "da", "dostupno", "yes", "on"].includes(
+          normalizeMapText(String(availableRaw))
+        )
+      ? "Dostupno"
+      : "Nedostupno";
+
+  const attributes = [listingType, roomType, propertyType, areaValue]
+    .filter(Boolean)
+    .slice(0, 4);
+
+  const rawLocationText =
+    ad?.location ||
+    [ad?.area_name, ad?.city, ad?.state].filter(Boolean).join(", ") ||
+    ad?.city ||
+    "";
+  const hasCoordinates =
+    Number.isFinite(Number(ad?.latitude)) && Number.isFinite(Number(ad?.longitude));
+  const locationText = pinLocationLabel ||
+    (hasCoordinates ? "Lokacija označena na mapi" : rawLocationText || "Lokacija nije navedena");
+  const locationSecondary = null;
+
+  return {
+    title: ad?.title || "Oglas",
+    image: ad?.image || ad?.images?.[0] || null,
+    price: formatMapPrice(ad?.price),
+    timeAgo: formatMapTimeAgo(ad?.created_at),
+    condition: condition ? String(condition) : null,
+    availability: availableText,
+    attributes,
+    category: ad?.category || null,
+    views: Number.isFinite(Number(ad?.views)) ? Number(ad.views) : null,
+    location: locationText,
+    locationSecondary,
+    slug: ad?.slug || null,
+    latitude: Number(ad?.latitude),
+    longitude: Number(ad?.longitude),
+  };
+};
+
 const Ads = () => {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
@@ -129,6 +301,10 @@ const Ads = () => {
   const [categorySlugById, setCategorySlugById] = useState(() => new Map());
   const [searchQuickCategories, setSearchQuickCategories] = useState([]);
   const [isQuickCategoryLoading, setIsQuickCategoryLoading] = useState(false);
+  const [mapSelectedAd, setMapSelectedAd] = useState(null);
+  const [mapSelectedLocationByPin, setMapSelectedLocationByPin] = useState("");
+  const [mapHoveredAd, setMapHoveredAd] = useState(null);
+  const [isListMapOpen, setIsListMapOpen] = useState(false);
 
   const selectedLocation = useSelector(getSelectedLocation);
 
@@ -213,6 +389,102 @@ const Ads = () => {
   const category =
     BreadcrumbPath.length > 1 &&
     BreadcrumbPath[BreadcrumbPath.length - 1]?.name;
+
+  const isRealEstateSearch = useMemo(() => {
+    if (!slug) return false;
+
+    const categoryPathCandidates = (BreadcrumbPath || [])
+      .filter((entry) => !entry?.isAllCategories)
+      .map((entry) => ({
+        name: entry?.name || "",
+        translated_name: entry?.name || "",
+        slug: entry?.key || entry?.slug || "",
+      }));
+
+    if (isRealEstateCategoryPath(categoryPathCandidates)) return true;
+
+    const normalizedSlug = String(slug).toLowerCase();
+    if (
+      normalizedSlug.includes("nekretnin") ||
+      normalizedSlug.includes("real-estate") ||
+      normalizedSlug.includes("property")
+    ) {
+      return true;
+    }
+
+    return (advertisements?.data || []).some((item) => isRealEstateItem(item));
+  }, [BreadcrumbPath, slug, advertisements?.data]);
+
+  const realEstateMapAds = useMemo(() => {
+    if (!isRealEstateSearch) return [];
+    const sourceItems = advertisements?.data || [];
+    return transformItemsForMap(sourceItems);
+  }, [advertisements?.data, isRealEstateSearch]);
+
+  const realEstateMapAdsWithCoords = useMemo(
+    () =>
+      (realEstateMapAds || []).filter((item) => {
+        const itemLat = Number(item?.latitude);
+        const itemLng = Number(item?.longitude);
+        return Number.isFinite(itemLat) && Number.isFinite(itemLng);
+      }),
+    [realEstateMapAds]
+  );
+
+  const realEstateMapById = useMemo(() => {
+    const entries = realEstateMapAdsWithCoords.map((entry) => [Number(entry?.id), entry]);
+    return new Map(entries);
+  }, [realEstateMapAdsWithCoords]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveSelectedMapLocation = async () => {
+      const latNum = Number(mapSelectedAd?.latitude);
+      const lngNum = Number(mapSelectedAd?.longitude);
+      const hasCoordinates = Number.isFinite(latNum) && Number.isFinite(lngNum);
+
+      if (!mapSelectedAd || !hasCoordinates) {
+        setMapSelectedLocationByPin("");
+        return;
+      }
+
+      try {
+        const response = await getLocationApi.getLocation({
+          lat: latNum,
+          lng: lngNum,
+          lang: langCode || "bs",
+        });
+        if (cancelled || response?.data?.error === true) return;
+
+        const payload = response?.data?.data;
+        const result = Array.isArray(payload) ? payload[0] || {} : payload || {};
+        const resolvedLabel = [
+          result?.area_translation || result?.area,
+          result?.city_translation || result?.city,
+          result?.state_translation || result?.state,
+          result?.country_translation || result?.country,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        setMapSelectedLocationByPin(resolvedLabel);
+      } catch {
+        if (!cancelled) setMapSelectedLocationByPin("");
+      }
+    };
+
+    resolveSelectedMapLocation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [langCode, mapSelectedAd]);
+
+  const mapCardDetails = useMemo(
+    () => buildMapCardDetails(mapSelectedAd, mapSelectedLocationByPin),
+    [mapSelectedAd, mapSelectedLocationByPin]
+  );
 
   const [customFields, setCustomFields] = useState([]);
 
@@ -848,6 +1120,47 @@ const Ads = () => {
     });
   };
 
+  useEffect(() => {
+    if (!isRealEstateSearch) {
+      setMapSelectedAd(null);
+      setMapHoveredAd(null);
+      return;
+    }
+
+    if (!mapSelectedAd?.id) return;
+    const stillExists = realEstateMapAdsWithCoords.some((item) => Number(item?.id) === Number(mapSelectedAd.id));
+    if (!stillExists) {
+      setMapSelectedAd(null);
+      setMapHoveredAd(null);
+    }
+  }, [isRealEstateSearch, mapSelectedAd?.id, realEstateMapAdsWithCoords]);
+
+  useEffect(() => {
+    if (!isRealEstateSearch) {
+      setIsListMapOpen(false);
+    }
+  }, [isRealEstateSearch]);
+
+  const handleMapMarkerClick = useCallback((ad) => {
+    setMapSelectedAd(ad || null);
+    if (!ad?.id || typeof window === "undefined") return;
+
+    const selector = `[data-search-item-id="${ad.id}"]`;
+    const target = document.querySelector(selector);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
+
+  const focusSelectedMapAdInList = useCallback(() => {
+    if (!mapSelectedAd?.id || typeof window === "undefined") return;
+    const selector = `[data-search-item-id="${mapSelectedAd.id}"]`;
+    const target = document.querySelector(selector);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [mapSelectedAd?.id]);
+
   const handleClearLocation = () => {
     newSearchParams.delete("country");
     newSearchParams.delete("state");
@@ -1098,7 +1411,104 @@ const Ads = () => {
         active={view === "grid"}
         onClick={() => setIsViewSheetOpen(true)}
       />
+      {isRealEstateSearch ? (
+        <MobileActionButton
+          icon={MapPin}
+          label={isListMapOpen ? "Sakrij mapu" : "Prikaži mapu"}
+          active={isListMapOpen}
+          onClick={() => setIsListMapOpen((prev) => !prev)}
+        />
+      ) : null}
     </motion.div>
+  );
+
+  const renderedAdsContent = advertisements?.isLoading ? (
+    Array.from({ length: 12 }).map((_, index) =>
+      view === "list" ? (
+        <div className="col-span-12" key={index}>
+          <ProductHorizontalCardSkeleton />
+        </div>
+      ) : (
+        <div
+          className="col-span-6 sm:col-span-6 lg:col-span-4 xl:col-span-3"
+          key={index}
+        >
+          <ProductCardSkeleton />
+        </div>
+      )
+    )
+  ) : advertisements.data && advertisements.data.length > 0 ? (
+    advertisements.data?.map((item, index) =>
+      view === "list" ? (
+        <motion.div
+          className="col-span-12"
+          key={item.id || index}
+          variants={cardAnimation}
+          initial="hidden"
+          animate="visible"
+          custom={index}
+          layout
+          data-search-item-id={item.id || ""}
+          onMouseEnter={() => {
+            if (!isRealEstateSearch) return;
+            const markerCandidate = realEstateMapById.get(Number(item?.id));
+            if (markerCandidate?.latitude && markerCandidate?.longitude) {
+              setMapHoveredAd(markerCandidate || null);
+            }
+          }}
+          onMouseLeave={() => {
+            setMapHoveredAd(null);
+          }}
+        >
+          <ProductHorizontalCard
+            item={item}
+            handleLike={handleLike}
+            onClick={() => handleItemClick(item.id, index)}
+            trackingParams={
+              searchIdRef.current
+                ? { search_id: searchIdRef.current, ref: "search" }
+                : undefined
+            }
+          />
+        </motion.div>
+      ) : (
+        <motion.div
+          className="col-span-6 sm:col-span-6 lg:col-span-4 xl:col-span-3"
+          key={item.id || index}
+          variants={cardAnimation}
+          initial="hidden"
+          animate="visible"
+          custom={index}
+          layout
+          data-search-item-id={item.id || ""}
+          onMouseEnter={() => {
+            if (!isRealEstateSearch) return;
+            const markerCandidate = realEstateMapById.get(Number(item?.id));
+            if (markerCandidate?.latitude && markerCandidate?.longitude) {
+              setMapHoveredAd(markerCandidate || null);
+            }
+          }}
+          onMouseLeave={() => {
+            setMapHoveredAd(null);
+          }}
+        >
+          <ProductCard
+            item={item}
+            handleLike={handleLike}
+            onClick={() => handleItemClick(item.id, index)}
+            trackingParams={
+              searchIdRef.current
+                ? { search_id: searchIdRef.current, ref: "search" }
+                : undefined
+            }
+          />
+        </motion.div>
+      )
+    )
+  ) : (
+    <div className="col-span-12 py-12 flex justify-center">
+      <NoData name={t("ads")} />
+    </div>
   );
 
   return (
@@ -1142,7 +1552,7 @@ const Ads = () => {
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm"
+                  className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm items-baseline"
                 >
                   <span className="font-medium text-slate-500 dark:text-slate-400">
                     Kategorije:
@@ -1242,6 +1652,18 @@ const Ads = () => {
                   <IoGrid size={18} />
                 </button>
               </div>
+
+              {isRealEstateSearch ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsListMapOpen((prev) => !prev)}
+                  className="h-10 gap-2 border-slate-300 bg-white/95 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                >
+                  <MapPin size={16} />
+                  {isListMapOpen ? "Sakrij mapu" : "Prikaži mapu"}
+                </Button>
+              ) : null}
             </div>
 
           </motion.div>
@@ -1378,74 +1800,210 @@ const Ads = () => {
             </motion.div>
           )}
 
-          <div className="grid grid-cols-12 gap-6">
-            {advertisements?.isLoading ? (
-              Array.from({ length: 12 }).map((_, index) =>
-                view === "list" ? (
-                  <div className="col-span-12" key={index}>
-                    <ProductHorizontalCardSkeleton />
-                  </div>
-                ) : (
-                  <div
-                    className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
-                    key={index}
-                  >
-                    <ProductCardSkeleton />
-                  </div>
-                )
-              )
-            ) : advertisements.data && advertisements.data.length > 0 ? (
-              advertisements.data?.map((item, index) =>
-                view === "list" ? (
-                  <motion.div
-                    className="col-span-12"
-                    key={item.id || index}
-                    variants={cardAnimation}
-                    initial="hidden"
-                    animate="visible"
-                    custom={index}
-                    layout
-                  >
-                    <ProductHorizontalCard
-                      item={item}
-                      handleLike={handleLike}
-                      onClick={() => handleItemClick(item.id, index)}
-                      trackingParams={
-                        searchIdRef.current
-                          ? { search_id: searchIdRef.current, ref: "search" }
-                          : undefined
-                      }
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
-                    key={item.id || index}
-                    variants={cardAnimation}
-                    initial="hidden"
-                    animate="visible"
-                    custom={index}
-                    layout
-                  >
-                    <ProductCard
-                      item={item}
-                      handleLike={handleLike}
-                      onClick={() => handleItemClick(item.id, index)}
-                      trackingParams={
-                        searchIdRef.current
-                          ? { search_id: searchIdRef.current, ref: "search" }
-                          : undefined
-                      }
-                    />
-                  </motion.div>
-                )
-              )
-            ) : (
-              <div className="col-span-12 py-12 flex justify-center">
-                <NoData name={t("ads")} />
+          {isRealEstateSearch ? (
+            <motion.section
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-[0_18px_45px_-32px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/90"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Mapa nekretnina u pretrazi
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Mapa se otvara na dugme i prikazuje lijevo, a oglasi desno.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsListMapOpen((prev) => !prev)}
+                  className="h-9 gap-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                >
+                  <MapPin size={15} />
+                  {isListMapOpen ? "Sakrij mapu" : "Prikaži mapu"}
+                </Button>
               </div>
-            )}
-          </div>
+            </motion.section>
+          ) : null}
+
+          {isRealEstateSearch ? (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[repeat(16,minmax(0,1fr))] lg:items-start">
+
+              {isListMapOpen ? (
+                <motion.section
+                  layout
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/90 lg:col-span-6 lg:sticky lg:top-24"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      Mapa nekretnina
+                    </h3>
+                    <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary dark:border-primary/40 dark:bg-primary/20">
+                      {realEstateMapAdsWithCoords.length} na mapi
+                    </span>
+                  </div>
+                  <div className="relative h-[320px] w-full sm:h-[380px] lg:h-[calc(100vh-220px)]">
+                    <MapWithListingsMarkers
+                      ads={realEstateMapAdsWithCoords}
+                      selectedAd={mapSelectedAd}
+                      hoveredAd={mapHoveredAd}
+                      onMarkerClick={handleMapMarkerClick}
+                      showCurrentLocationButton={false}
+                      showMarkerPopup={false}
+                    />
+                    {mapCardDetails ? (
+                      <div className="pointer-events-none absolute left-3 top-3 z-[550] w-[min(460px,calc(100%-1.5rem))]">
+                        <div className="pointer-events-auto rounded-2xl border border-slate-200/90 bg-white/95 p-3 shadow-[0_24px_50px_-30px_rgba(15,23,42,0.6)] backdrop-blur-md dark:border-slate-700/90 dark:bg-slate-900/95">
+                          <button
+                            type="button"
+                            onClick={() => setMapSelectedAd(null)}
+                            className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                            aria-label="Zatvori detalje markera"
+                          >
+                            <IoMdClose size={14} />
+                          </button>
+
+                          <div className="grid grid-cols-[112px,minmax(0,1fr)] items-stretch gap-3 pr-8 sm:grid-cols-[132px,minmax(0,1fr)]">
+                            <div className="relative self-stretch overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+                              {mapCardDetails.image ? (
+                                <img
+                                  src={mapCardDetails.image}
+                                  alt={mapCardDetails.title}
+                                  className="absolute inset-0 h-full w-full object-cover object-center"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="flex h-full min-h-[138px] w-full items-center justify-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                  Bez slike
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <h4 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">
+                                {mapCardDetails.title}
+                              </h4>
+
+                              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                {mapCardDetails.condition ? (
+                                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                    {mapCardDetails.condition}
+                                  </span>
+                                ) : null}
+                                {mapCardDetails.availability ? (
+                                  <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-600/70 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                    {mapCardDetails.availability}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              {mapCardDetails.attributes.length > 0 ? (
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                  {mapCardDetails.attributes.map((attribute, attributeIndex) => (
+                                    <span
+                                      key={`${attribute}-${attributeIndex}`}
+                                      className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
+                                    >
+                                      {attribute}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+
+                              <div className="mt-2 flex items-end justify-between gap-2">
+                                <div>
+                                  <p className="whitespace-nowrap text-lg font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+                                    {mapCardDetails.price}
+                                  </p>
+                                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                    <Clock2Fill size={12} />
+                                    {mapCardDetails.timeAgo}
+                                  </p>
+                                  {Number.isFinite(mapCardDetails.views) ? (
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                      {mapCardDetails.views} pregleda
+                                    </p>
+                                  ) : null}
+                                </div>
+
+                                <div className="flex flex-wrap justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={focusSelectedMapAdInList}
+                                    className="inline-flex h-8 items-center rounded-lg border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                                  >
+                                    U listi
+                                  </button>
+
+                                  {mapCardDetails.slug ? (
+                                    <a
+                                      href={`/ad-details/${encodeURI(String(mapCardDetails.slug).replace(/^\/+/, ""))}`}
+                                      className="inline-flex h-8 items-center rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-white hover:bg-primary/90"
+                                    >
+                                      Otvori oglas
+                                    </a>
+                                  ) : null}
+
+                                  {Number.isFinite(mapCardDetails.latitude) &&
+                                  Number.isFinite(mapCardDetails.longitude) ? (
+                                    <a
+                                      href={`https://www.google.com/maps/dir/?api=1&destination=${mapCardDetails.latitude},${mapCardDetails.longitude}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex h-8 items-center rounded-lg bg-slate-800 px-2.5 text-[11px] font-semibold text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
+                                    >
+                                      Ruta
+                                    </a>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              {mapCardDetails.location ? (
+                                <p className="mt-1.5 line-clamp-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                  {mapCardDetails.location}
+                                </p>
+                              ) : null}
+                              {mapCardDetails.locationSecondary ? (
+                                <p className="line-clamp-1 text-[10px] text-slate-400 dark:text-slate-500">
+                                  {mapCardDetails.locationSecondary}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  {!advertisements?.isLoading && realEstateMapAdsWithCoords.length === 0 ? (
+                    <div className="border-t border-slate-200 px-4 py-3 text-xs text-amber-700 dark:border-slate-800 dark:text-amber-300">
+                      Trenutni rezultati nemaju dovoljno podataka o lokaciji za prikaz markera.
+                    </div>
+                  ) : null}
+                </motion.section>
+              ) : null}
+
+              <div
+                className={`grid grid-cols-5 gap-6 ${
+                  isListMapOpen ? "lg:col-span-6" : "lg:col-span-6"
+                }`}
+              >
+                {renderedAdsContent}
+              </div>
+            </div>
+          ) : (
+            <div className="grid [grid-template-columns:repeat(12,minmax(0,1fr))] gap-6">
+              {renderedAdsContent}
+            </div>
+            
+          )}
 
           {advertisements.data &&
             advertisements.data.length > 0 &&

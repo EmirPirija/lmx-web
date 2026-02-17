@@ -200,6 +200,22 @@ const processImagesArray = async (files, opts) => {
 
 const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
 
+const extractTempMediaId = (value) => {
+  if (!value || typeof value !== "object") return null;
+  return (
+    value?.id ??
+    value?.temp_id ??
+    value?.tempId ??
+    value?.upload_id ??
+    value?.uploadId ??
+    value?.media_id ??
+    value?.mediaId ??
+    value?.file_id ??
+    value?.fileId ??
+    null
+  );
+};
+
 const PUBLISH_STAGES = [
   {
     title: "Pripremamo oglas",
@@ -643,10 +659,32 @@ const AdsListing = () => {
   }, [CurrentLanguage?.id]);
 
   const handleCategoryTabClick = async (category) => {
-    setCategoryPath((prevPath) => [...prevPath, category]);
-    saveRecentCategory(category);
+    const clickedCategoryId = Number(category?.id);
+    let nextPath = [...categoryPath, category];
 
-    if (!(category?.subcategories_count > 0)) {
+    if (Number.isFinite(clickedCategoryId) && clickedCategoryId > 0) {
+      try {
+        const res = await getParentCategoriesApi.getPaymentCategories({
+          child_category_id: clickedCategoryId,
+        });
+        const resolvedPath = Array.isArray(res?.data?.data)
+          ? res.data.data.filter(Boolean)
+          : [];
+        if (resolvedPath.length > 0) {
+          nextPath = resolvedPath;
+        }
+      } catch (error) {
+        console.log("Error resolving category path:", error);
+      }
+    }
+
+    setCategoryPath(nextPath);
+    saveRecentCategory(nextPath[nextPath.length - 1] || category);
+
+    const activeCategory = nextPath[nextPath.length - 1] || category;
+    const hasChildren = Number(activeCategory?.subcategories_count ?? category?.subcategories_count ?? 0) > 0;
+
+    if (!hasChildren) {
       setIsCustomFieldsLoading(true);
       setCustomFields([]);
       if (defaultLangId) {
@@ -882,6 +920,19 @@ const AdsListing = () => {
       return;
     }
 
+    const realEstateLocationSource = String(location?.location_source || "").toLowerCase();
+    const hasPreciseRealEstatePin =
+      Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.long));
+    const usesRealEstateProfileLocation =
+      is_real_estate &&
+      (realEstateLocationSource === "profile" ||
+        (!hasPreciseRealEstatePin && realEstateLocationSource !== "map"));
+
+    if (is_real_estate && !usesRealEstateProfileLocation && !hasPreciseRealEstatePin) {
+      toast.error("Za nekretninu označite tačnu lokaciju na mapi.");
+      return setStep(5);
+    }
+
     if (is_real_estate && realEstatePriceState.enabled && !realEstatePriceState.hasArea) {
       toast.error("Unesite površinu nekretnine (m²) prije prikaza cijene po m².");
       return setStep(customFields?.length ? 3 : 2);
@@ -925,6 +976,16 @@ const AdsListing = () => {
     const customFieldFiles = prepareCustomFieldFiles(extraDetails, defaultLangId);
     const nonDefaultTranslations = filterNonDefaultTranslations(translations, defaultLangId);
     const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
+    const mainTempId = extractTempMediaId(uploadedImages?.[0]);
+    const galleryTempIds = (otherImages || []).map(extractTempMediaId).filter(Boolean);
+    const tempVideoId = extractTempMediaId(uploadedVideo);
+    const mainImageFallback =
+      uploadedImages?.[0] instanceof File || uploadedImages?.[0] instanceof Blob
+        ? uploadedImages?.[0]
+        : null;
+    const galleryFallbackFiles = (otherImages || []).filter(
+      (entry) => entry instanceof File || entry instanceof Blob
+    );
 
     const allData = {
       name: defaultDetails.name,
@@ -975,23 +1036,37 @@ const AdsListing = () => {
         : String(defaultDetails?.seller_product_code || "").trim(),
       scarcity_enabled: is_real_estate ? false : Boolean(defaultDetails?.scarcity_enabled),
       video_link: trimmedVideoLink,
-      temp_main_image_id: uploadedImages?.[0]?.id ?? null,
-      temp_gallery_image_ids: (otherImages || []).map((x) => x?.id).filter(Boolean),
-      ...(uploadedVideo?.id && !trimmedVideoLink ? { temp_video_id: uploadedVideo.id } : {}),
+      ...(mainTempId ? { temp_main_image_id: mainTempId } : {}),
+      ...(galleryTempIds.length ? { temp_gallery_image_ids: galleryTempIds } : {}),
+      ...(tempVideoId && !trimmedVideoLink ? { temp_video_id: tempVideoId } : {}),
+      ...(mainImageFallback ? { image: mainImageFallback } : {}),
+      ...(galleryFallbackFiles.length ? { gallery_images: galleryFallbackFiles } : {}),
       add_video_to_story: Boolean(addVideoToStory),
       publish_to_instagram: SOCIAL_POSTING_TEMP_UNAVAILABLE
         ? false
         : Boolean(publishToInstagram),
       instagram_source_url: (instagramSourceUrl || "").trim(),
-      gallery_images: otherImages,
       address: location?.address,
+      formatted_address: location?.formattedAddress || location?.address || "",
+      address_translated: location?.address_translated || location?.address || "",
       latitude: location?.lat,
       longitude: location?.long,
+      location_source: is_real_estate
+        ? String(location?.location_source || "").toLowerCase() === "profile"
+          ? "profile"
+          : "map"
+        : String(location?.location_source || "manual").toLowerCase(),
       custom_field_files: customFieldFiles,
       country: location?.country,
       state: location?.state,
       city: location?.city,
-      ...(location?.area_id ? { area_id: Number(location?.area_id) } : {}),
+      ...(
+        is_real_estate
+          ? { area_id: location?.area_id ? Number(location?.area_id) : "" }
+          : location?.area_id
+          ? { area_id: Number(location?.area_id) }
+          : {}
+      ),
       ...(Object.keys(nonDefaultTranslations).length > 0 && { translations: nonDefaultTranslations }),
       ...(Object.keys(customFieldTranslations).length > 0 && {
         custom_field_translations: customFieldTranslations,
@@ -1039,6 +1114,12 @@ const AdsListing = () => {
         await new Promise((resolve) => setTimeout(resolve, 900));
         setIsScheduledAd(!!scheduledDateTime);
         setScheduledAt(scheduledDateTime);
+        setUploadedImages([]);
+        setOtherImages([]);
+        setUploadedVideo(null);
+        setAddVideoToStory(false);
+        setPublishToInstagram(false);
+        setInstagramSourceUrl("");
         setOpenSuccessModal(true);
         setCreatedAdSlug(res?.data?.data[0]?.slug);
       } else {
@@ -1187,9 +1268,17 @@ const AdsListing = () => {
   const activeStepId = resolveNearestStep(step);
   const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
   const renderedStep = activeStepId;
-  const hasValidLocation = Boolean(
+  const hasBaseLocation = Boolean(
     location?.country && location?.state && location?.city && location?.address
   );
+  const hasPreciseLocation = Boolean(
+    Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.long))
+  );
+  const usesProfileLocation =
+    is_real_estate &&
+    (String(location?.location_source || "").toLowerCase() === "profile" ||
+      (!hasPreciseLocation && String(location?.location_source || "").toLowerCase() !== "map"));
+  const hasValidLocation = hasBaseLocation && (!is_real_estate || usesProfileLocation || hasPreciseLocation);
 
   const syncStepRailFill = useCallback(() => {
     const railEl = stepRailRef.current;
@@ -1271,7 +1360,9 @@ const AdsListing = () => {
           case 4:
             return uploadedImages.length > 0 ? 100 : 0;
           case 5:
-            return hasValidLocation ? 100 : location?.address ? 60 : 0;
+            if (hasValidLocation) return 100;
+            if (is_real_estate && hasBaseLocation) return 70;
+            return location?.address ? 60 : 0;
           default:
             return 0;
         }
@@ -1285,6 +1376,8 @@ const AdsListing = () => {
       defaultDetails.description,
       defaultDetails.name,
       hasValidLocation,
+      hasBaseLocation,
+      is_real_estate,
       location?.address,
       steps,
       uploadedImages.length,
@@ -1695,12 +1788,6 @@ const AdsListing = () => {
                 </div>
               </div>
 
-              {(renderedStep === 2 || (renderedStep === 3 && hasTextbox)) && (
-                <div className="flex justify-end">
-                  {/* AdLanguageSelector was here */}
-                </div>
-              )}
-
               {(renderedStep === 1 || renderedStep === 2) && categoryPath?.length > 0 && (
                 <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75">
                   <div className="flex items-center justify-between">
@@ -1818,6 +1905,8 @@ const AdsListing = () => {
                     onUseInstagramAsVideoLink={handleUseInstagramAsVideoLink}
                     videoLink={defaultDetails?.video_link || ""}
                     onVideoLinkChange={handleVideoLinkChange}
+                    isRealEstate={is_real_estate}
+                    location={location}
                     setStep={setStep}
                     handleGoBack={handleGoBack}
                   />
@@ -1831,6 +1920,7 @@ const AdsListing = () => {
                     isAdPlaced={isAdPlaced}
                     handleGoBack={handleGoBack}
                     setScheduledAt={setScheduledAt}
+                    isRealEstate={is_real_estate}
                   />
                 )}
               </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import { Circle, MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { useLeafletTileTheme } from "@/hooks/useLeafletTileTheme";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -199,6 +200,7 @@ const Map = ({
   privacyMode = false,
   approximateRadiusMeters = 0,
 }) => {
+  const tileTheme = useLeafletTileTheme();
   const containerStyle = {
     width: "100%",
     height: "100%",
@@ -517,8 +519,10 @@ const Map = ({
         attributionControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={tileTheme.attribution}
+          url={tileTheme.url}
+          subdomains={tileTheme.subdomains}
+          maxZoom={tileTheme.maxZoom}
         />
 
         {privacyMode && approximateRadiusMeters > 0 && (

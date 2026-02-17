@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SlidersHorizontal, MapPin, DollarSign, Calendar, Tag, X, Waypoints, Store } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import RangePopup from "./RangePopup";
 import ExtraDetailsPopup from "./ExtraDetailsPopup";
 import SellerTypePopup from "./SellerTypePopup";
 import { useSearchParams } from "next/navigation";
+import useGetCategories from "../Layout/useGetCategories";
 
 const LocationModal = dynamic(
   () => import("@/components/Location/LocationModal.jsx"),
@@ -37,6 +38,7 @@ const Filter = ({
   const searchParams = useSearchParams();
   const [activePopup, setActivePopup] = useState(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const { cateData, getCategories } = useGetCategories();
 
   const selectedCategory = searchParams.get("category") || "";
   const minPrice = searchParams.get("min_price");
@@ -48,6 +50,17 @@ const Filter = ({
   const isCompactMobile = Boolean(mobileCompact);
   const isMobileStickyActive = Boolean(mobileStickyActive);
   const showMobileUtility = Boolean(mobileUtilityRenderer) && !mobileUtilityHidden;
+  const categoriesCount = Array.isArray(cateData) ? cateData.length : 0;
+
+  useEffect(() => {
+    if (categoriesCount > 0) return;
+    getCategories(1);
+  }, [categoriesCount, getCategories]);
+
+  const prefetchCategories = useCallback(() => {
+    if (categoriesCount > 0) return;
+    getCategories(1);
+  }, [categoriesCount, getCategories]);
 
   // Brojanje aktivnih filtera
   const getFilterCount = () => {
@@ -113,12 +126,14 @@ const Filter = ({
   };
 
   // Komponenta za dugme sa modernim dizajnom i animacijama
-  const FilterButton = ({ icon: Icon, label, count, onClick, active }) => (
+  const FilterButton = ({ icon: Icon, label, count, onClick, active, onPointerEnter }) => (
     <motion.button
       type="button"
       whileTap={{ scale: 0.94 }}
       transition={{ type: "spring", stiffness: 420, damping: 30 }}
       onClick={onClick}
+      onMouseEnter={onPointerEnter}
+      onFocus={onPointerEnter}
       className={cn(
         "group relative flex items-center gap-2 rounded-full border transition-all duration-200 whitespace-nowrap outline-none select-none",
         isCompactMobile ? "h-10 w-10 justify-center p-0" : "px-3 py-2",
@@ -214,6 +229,7 @@ const Filter = ({
                   label="Kategorija"
                   count={counts.category}
                   active={counts.category > 0}
+                  onPointerEnter={prefetchCategories}
                   onClick={() => setActivePopup(activePopup === "category" ? null : "category")}
                 />
 

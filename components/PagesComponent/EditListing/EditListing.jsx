@@ -75,6 +75,12 @@ const isFileLike = (v) =>
 const safeObjectUrl = (v) => {
   try {
     if (typeof v === "string") return v;
+    if (v && typeof v === "object") {
+      if (v?.url) return v.url;
+      if (v?.image) return v.image;
+      if (v?.original_url) return v.original_url;
+      if (v?.path) return v.path;
+    }
     if (isFileLike(v)) return URL.createObjectURL(v);
   } catch {}
   return "";
@@ -196,6 +202,22 @@ const processImagesArray = async (files, opts) => {
 };
 
 const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
+
+const extractTempMediaId = (value) => {
+  if (!value || typeof value !== "object") return null;
+  return (
+    value?.id ??
+    value?.temp_id ??
+    value?.tempId ??
+    value?.upload_id ??
+    value?.uploadId ??
+    value?.media_id ??
+    value?.mediaId ??
+    value?.file_id ??
+    value?.fileId ??
+    null
+  );
+};
 
 const parseJsonSafe = (value) => {
   if (typeof value !== "string") return value;
@@ -430,6 +452,7 @@ const EditListing = ({ id }) => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [OtherImages, setOtherImages] = useState([]);
   const otherImagesRef = useRef([]);
+  const latestListingFetchRef = useRef(0);
   const stepRailRef = useRef(null);
   const stepNodeRefs = useRef([]);
   useEffect(() => {
@@ -549,7 +572,7 @@ const EditListing = ({ id }) => {
 
   useEffect(() => {
     getSingleListingData();
-  }, [CurrentLanguage.id]);
+  }, [CurrentLanguage.id, id]);
 
   const fetchCategoryPath = async (childCategoryId) => {
     try {
@@ -585,9 +608,19 @@ const EditListing = ({ id }) => {
   };
 
   const getSingleListingData = async () => {
+    const listingId = Number(id);
+    if (!listingId) return;
+    const fetchToken = latestListingFetchRef.current + 1;
+    latestListingFetchRef.current = fetchToken;
     try {
       setIsLoading(true);
-      const res = await getMyItemsApi.getMyItems({ id: Number(id) });
+      setUploadedImages([]);
+      setOtherImages([]);
+      setVideo(null);
+      setDeleteImagesId("");
+      setDeleteVideo(false);
+      const res = await getMyItemsApi.getMyItems({ id: listingId });
+      if (latestListingFetchRef.current !== fetchToken) return;
       const listingData = res?.data?.data?.[0];
       
       if (!listingData) {
@@ -635,15 +668,29 @@ const EditListing = ({ id }) => {
         country: listingData?.country,
         state: listingData?.state,
         city: listingData?.city,
-        address: listingData?.address,
+        address: listingData?.address || listingData?.formatted_address,
+        formattedAddress: listingData?.formatted_address || listingData?.address,
+        address_translated:
+          listingData?.address_translated ||
+          listingData?.translated_address ||
+          listingData?.address ||
+          listingData?.formatted_address,
         lat: listingData?.latitude,
         long: listingData?.longitude,
         area_id: listingData?.area_id ? listingData?.area_id : null,
+        location_source:
+          String(listingData?.location_source || "").toLowerCase() ||
+          (Number.isFinite(Number(listingData?.latitude)) &&
+          Number.isFinite(Number(listingData?.longitude))
+            ? "map"
+            : "profile"),
       });
     } catch (error) {
       console.log(error);
     } finally {
-      setIsLoading(false);
+      if (latestListingFetchRef.current === fetchToken) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -928,6 +975,19 @@ const EditListing = ({ id }) => {
       return;
     }
 
+    const realEstateLocationSource = String(Location?.location_source || "").toLowerCase();
+    const hasPreciseRealEstatePin =
+      Number.isFinite(Number(Location?.lat)) && Number.isFinite(Number(Location?.long));
+    const usesRealEstateProfileLocation =
+      is_real_estate &&
+      (realEstateLocationSource === "profile" ||
+        (!hasPreciseRealEstatePin && realEstateLocationSource !== "map"));
+
+    if (is_real_estate && !usesRealEstateProfileLocation && !hasPreciseRealEstatePin) {
+      toast.error("Za nekretninu označite tačnu lokaciju na mapi.");
+      return setStep(4);
+    }
+
     if (is_real_estate && realEstatePriceState.enabled && !realEstatePriceState.hasArea) {
       toast.error("Unesite površinu nekretnine (m²) prije prikaza cijene po m².");
       return setStep(customFields?.length ? 2 : 1);
@@ -978,17 +1038,13 @@ const EditListing = ({ id }) => {
       defaultLangId
     );
  
-    const mainTempId =
-    uploadedImages?.[0] && typeof uploadedImages?.[0] === "object"
-      ? uploadedImages?.[0]?.id
-      : null;
+  const mainTempId = extractTempMediaId(uploadedImages?.[0]);
   
   const galleryTempIds = (OtherImages || [])
-    .map((x) => (x && typeof x === "object" ? x.id : null))
+    .map((x) => extractTempMediaId(x))
     .filter(Boolean);
   
-  const videoTempId =
-    video && typeof video === "object" ? video.id : null;
+  const videoTempId = extractTempMediaId(video);
   const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
   
   const allData = {
@@ -1064,13 +1120,26 @@ const EditListing = ({ id }) => {
     ...(deleteVideo ? { delete_video: 1 } : {}),
   
     address: Location?.address,
+    formatted_address: Location?.formattedAddress || Location?.address || "",
+    address_translated: Location?.address_translated || Location?.address || "",
     latitude: Location?.lat,
     longitude: Location?.long,
+    location_source: is_real_estate
+      ? String(Location?.location_source || "").toLowerCase() === "profile"
+        ? "profile"
+        : "map"
+      : String(Location?.location_source || "manual").toLowerCase(),
     custom_field_files: customFieldFiles,
     country: Location?.country,
     state: Location?.state,
     city: Location?.city,
-    ...(Location?.area_id ? { area_id: Number(Location?.area_id) } : {}),
+    ...(
+      is_real_estate
+        ? { area_id: Location?.area_id ? Number(Location?.area_id) : "" }
+        : Location?.area_id
+        ? { area_id: Number(Location?.area_id) }
+        : {}
+    ),
   
     delete_item_image_id: deleteImagesId,
   
@@ -1717,17 +1786,6 @@ const EditListing = ({ id }) => {
                     </div>
                   </div>
 
-                  {(renderedStep === 1 || (renderedStep === 2 && hasTextbox)) && (
-                    <div className="flex justify-end">
-                      <AdLanguageSelector
-                        langId={langId}
-                        setLangId={setLangId}
-                        languages={languages}
-                        setTranslations={setTranslations}
-                      />
-                    </div>
-                  )}
-
                   {renderedStep === 1 && selectedCategoryPath?.length > 0 && (
                     <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                       <div className="flex items-center justify-between">
@@ -1832,6 +1890,7 @@ const EditListing = ({ id }) => {
                         handleFullSubmission={handleFullSubmission}
                         isAdPlaced={isAdPlaced}
                         setScheduledAt={setScheduledAt}
+                        isRealEstate={is_real_estate}
                       />
                     )}
                   </div>

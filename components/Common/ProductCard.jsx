@@ -135,7 +135,6 @@ const getKeyAttributes = (item) => {
         "kvadratura (m2)",
         "povrsina",
         "površina",
-        "m2",
         "m²",
         "quadrature",
         "surface",
@@ -923,7 +922,7 @@ const ProductCard = ({
       <div
         className={cn(
           "flex flex-col gap-2 p-3 flex-1",
-          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-8" : null
+          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-5" : null
         )}
       >
 

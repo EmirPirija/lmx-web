@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import { manageFavouriteApi } from "@/utils/api";
+import { getLocationApi, manageFavouriteApi } from "@/utils/api";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import { createPortal } from "react-dom";
 import { getScarcityCopy, getScarcityState } from "@/utils/scarcity";
@@ -890,6 +890,7 @@ const ProductDetailCard = ({
   const CompanyName = useSelector(getCompanyName);
   
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [resolvedLocationByPin, setResolvedLocationByPin] = useState("");
 
   const translated_item = productDetails?.translated_item;
   const productName = translated_item?.name || productDetails?.name;
@@ -947,8 +948,64 @@ const ProductDetailCard = ({
     productDetails?.last_renewed_at ||
     productDetails?.renewed_at;
   const renewalDateTime = formatDateTimeEu(renewalSourceDate);
+  const preciseLat = Number(productDetails?.latitude);
+  const preciseLng = Number(productDetails?.longitude);
+  const hasPreciseCoordinates =
+    Number.isFinite(preciseLat) && Number.isFinite(preciseLng);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveLocationByPin = async () => {
+      if (!hasPreciseCoordinates) {
+        setResolvedLocationByPin("");
+        return;
+      }
+
+      try {
+        const response = await getLocationApi.getLocation({
+          lat: preciseLat,
+          lng: preciseLng,
+          lang: "bs",
+        });
+
+        if (cancelled || response?.data?.error === true) return;
+
+        const payload = response?.data?.data;
+        const result = Array.isArray(payload) ? payload[0] || {} : payload || {};
+        const locationLabel = [
+          result?.area_translation || result?.area,
+          result?.city_translation || result?.city,
+          result?.state_translation || result?.state,
+          result?.country_translation || result?.country,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        setResolvedLocationByPin(locationLabel);
+      } catch {
+        if (!cancelled) setResolvedLocationByPin("");
+      }
+    };
+
+    resolveLocationByPin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasPreciseCoordinates, preciseLat, preciseLng, productDetails?.id]);
   const areaName = productDetails?.area?.translated_name || productDetails?.area?.name;
-  const locationLine = [areaName, productDetails?.city, productDetails?.state].filter(Boolean).join(", ") || "Lokacija nije navedena";
+  const textualLocationLine =
+    productDetails?.address ||
+    productDetails?.formatted_address ||
+    productDetails?.address_translated ||
+    productDetails?.translated_address ||
+    productDetails?.translated_item?.address ||
+    [areaName, productDetails?.city, productDetails?.state].filter(Boolean).join(", ");
+  const locationLine =
+    resolvedLocationByPin ||
+    textualLocationLine ||
+    (hasPreciseCoordinates ? "Lokacija označena na mapi" : "Lokacija nije navedena");
   const availableNow = readAvailableNow(productDetails);
   const exchangePossible = readExchangePossible(productDetails);
   const availableNowLabel = availableNow === true ? "Da" : availableNow === false ? "Ne" : "Nije navedeno";

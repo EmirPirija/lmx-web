@@ -4,11 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import "leaflet.markercluster";
 import { BiCurrentLocation } from "@/components/Common/UnifiedIconPack";
 import { t } from "@/utils";
+import { useLeafletTileTheme } from "@/hooks/useLeafletTileTheme";
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -49,6 +47,104 @@ const toApproximateLocationLabel = (locationValue) => {
   if (!parts.length) return "";
   if (parts.length === 1) return parts[0];
   return parts.slice(-2).join(", ");
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const getClusterRadiusByZoom = (zoom) => {
+  if (zoom <= 7) return 105;
+  if (zoom <= 9) return 90;
+  if (zoom <= 11) return 72;
+  if (zoom <= 13) return 56;
+  if (zoom <= 14) return 44;
+  return 0;
+};
+
+const createClusterMarker = (count, isActive = false) =>
+  L.divIcon({
+    className: "custom-cluster-marker",
+    html: `
+      <div class="cluster-marker-shell ${isActive ? "cluster-marker-shell-active" : ""}">
+        <span class="cluster-marker-count">${count}</span>
+      </div>
+    `,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+  });
+
+const clusterAdsForCurrentZoom = (ads, map) => {
+  const zoom = map.getZoom();
+  const radiusPx = getClusterRadiusByZoom(zoom);
+
+  const points = (ads || [])
+    .map((ad) => {
+      const lat = Number(ad?.latitude);
+      const lng = Number(ad?.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      const projected = map.project([lat, lng], zoom);
+      return {
+        ad,
+        projected,
+      };
+    })
+    .filter(Boolean);
+
+  if (radiusPx <= 0 || points.length <= 1) {
+    return points.map((point) => ({
+      type: "single",
+      ads: [point.ad],
+      lat: Number(point.ad.latitude),
+      lng: Number(point.ad.longitude),
+    }));
+  }
+
+  const clusters = [];
+
+  points.forEach((point) => {
+    let targetCluster = null;
+
+    for (const cluster of clusters) {
+      if (point.projected.distanceTo(cluster.centerPoint) <= radiusPx) {
+        targetCluster = cluster;
+        break;
+      }
+    }
+
+    if (!targetCluster) {
+      clusters.push({
+        ads: [point.ad],
+        points: [point.projected],
+        centerPoint: point.projected,
+      });
+      return;
+    }
+
+    targetCluster.ads.push(point.ad);
+    targetCluster.points.push(point.projected);
+
+    const sumX = targetCluster.points.reduce((acc, p) => acc + p.x, 0);
+    const sumY = targetCluster.points.reduce((acc, p) => acc + p.y, 0);
+    targetCluster.centerPoint = L.point(
+      sumX / targetCluster.points.length,
+      sumY / targetCluster.points.length
+    );
+  });
+
+  return clusters.map((cluster) => {
+    const clusterLatLng = map.unproject(cluster.centerPoint, zoom);
+    return {
+      type: cluster.ads.length > 1 ? "cluster" : "single",
+      ads: cluster.ads,
+      lat: clusterLatLng.lat,
+      lng: clusterLatLng.lng,
+    };
+  });
 };
 
 // Custom marker sa cijenom - novi dizajn
@@ -138,35 +234,74 @@ const CurrentLocationButton = ({ onClick }) => {
 };
 
 // Marker updater component
-const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroupRef }) => {
+const MarkerUpdater = ({
+  ads,
+  selectedAd,
+  hoveredAd,
+  onMarkerClick,
+  layerGroupRef,
+  showMarkerPopup = true,
+}) => {
   const map = useMap();
+  const lastAutoFitSignatureRef = useRef("");
 
   useEffect(() => {
-    if (!map || !clusterGroupRef.current) return;
+    if (!map || !layerGroupRef.current) return;
 
-    const clusterGroup = clusterGroupRef.current;
+    const layerGroup = layerGroupRef.current;
     
     // Clear existing markers
-    clusterGroup.clearLayers();
+    layerGroup.clearLayers();
 
-    // Add new markers
-    const bounds = [];
-    ads.forEach((ad) => {
-      if (!ad.latitude || !ad.longitude) return;
+    // Add new markers / clusters
+    const mapPointsBounds = [];
+    let markerToOpen = null;
+    const clusteredGroups = clusterAdsForCurrentZoom(ads, map);
 
-      const position = [parseFloat(ad.latitude), parseFloat(ad.longitude)];
-      
-      // Validate coordinates
-      if (isNaN(position[0]) || isNaN(position[1])) return;
-      
-      bounds.push(position);
+    clusteredGroups.forEach((group) => {
+      const groupLat = Number(group?.lat);
+      const groupLng = Number(group?.lng);
+      if (!Number.isFinite(groupLat) || !Number.isFinite(groupLng)) return;
 
+      const position = [groupLat, groupLng];
+      mapPointsBounds.push(position);
+
+      if (group.type === "cluster") {
+        const containsSelected = group.ads.some(
+          (entry) => Number(entry?.id) === Number(selectedAd?.id)
+        );
+        const clusterMarker = L.marker(position, {
+          icon: createClusterMarker(group.ads.length, containsSelected),
+          zIndexOffset: containsSelected ? 1400 : 700,
+        });
+
+        clusterMarker.on("click", () => {
+          const nextZoom = Math.min((map.getZoom() || 12) + 2, 18);
+          map.setView(position, nextZoom, { animate: true });
+        });
+
+        clusterMarker.bindTooltip(`${group.ads.length} oglasa`, {
+          direction: "top",
+          offset: [0, -12],
+          opacity: 0.9,
+        });
+
+        layerGroup.addLayer(clusterMarker);
+        return;
+      }
+
+      const ad = group.ads[0];
+      const parsedLat = Number(ad?.latitude);
+      const parsedLng = Number(ad?.longitude);
+      if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return;
+
+      const adPosition = [parsedLat, parsedLng];
       const isSelected = selectedAd?.id === ad.id;
       const isHovered = hoveredAd?.id === ad.id;
 
-      const marker = L.marker(position, {
+      const marker = L.marker(adPosition, {
         icon: createPriceMarker(ad.price, isSelected, isHovered),
-        zIndexOffset: isSelected ? 1000 : isHovered ? 500 : 0,
+        zIndexOffset: isSelected ? 1600 : isHovered ? 900 : 0,
       });
 
       // Helper za formatiranje cijene
@@ -198,33 +333,55 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
       const timeAgo = formatTimeAgo(ad.created_at);
       const imageUrl = ad.image || ad.images?.[0];
       const rawLocationLabel = ad.location || ad.address || ad.city || ad.state || ad.country;
-      const locationLabel = toApproximateLocationLabel(rawLocationLabel);
+      const approximateLocationLabel = toApproximateLocationLabel(rawLocationLabel);
+      const locationLabel = approximateLocationLabel || "Lokacija sa mape";
+      const locationSecondaryLabel = "";
       const hasViews = typeof ad.views === "number" && ad.views >= 0;
       const statusLabel = ad.status ? String(ad.status) : null;
-      const locationPrivacyHint = locationLabel ? "Lokacija je prikazana okvirno." : "";
+      const isApproximateCoordinate = String(ad?.coordinate_precision || "").startsWith("approx");
+      const locationPrivacyHint = isApproximateCoordinate
+        ? "Lokacija je prikazana okvirno prema zoni."
+        : locationLabel
+          ? "Lokacija je prikazana prema pinu oglasa."
+          : "";
       const popupHint = locationPrivacyHint
         ? `${locationPrivacyHint} Klikni marker za detalje u listi.`
         : "Klikni marker za detalje u listi.";
+      const safeTitle = escapeHtml(ad.title || ad.name || "Oglas");
+      const safeImage = imageUrl ? escapeHtml(imageUrl) : "";
+      const safeCategory = ad.category ? escapeHtml(ad.category) : "";
+      const safeStatus = statusLabel ? escapeHtml(statusLabel) : "";
+      const safeArea = ad.area ? escapeHtml(ad.area) : "";
+      const safeRoomType = roomType ? escapeHtml(roomType) : "";
+      const safeLocationLabel = locationLabel ? escapeHtml(locationLabel) : "";
+      const safeLocationSecondary = locationSecondaryLabel
+        ? escapeHtml(locationSecondaryLabel)
+        : "";
+      const safePrice = escapeHtml(formatPopupPrice(ad.price));
+      const safeTimeAgo = timeAgo ? escapeHtml(timeAgo) : "";
+      const safePopupHint = escapeHtml(popupHint);
+      const listingUrl = ad?.slug
+        ? `/ad-details/${encodeURI(String(ad.slug).replace(/^\/+/, ""))}`
+        : "";
+      const safeListingUrl = listingUrl ? escapeHtml(listingUrl) : "";
 
-      // Popup content - horizontalni card dizajn kao na slici
+      // Popup content - mini product card dizajn
       const popupContent = `
         <div class="map-popup-card">
-          <button class="popup-close-btn" onclick="this.closest('.leaflet-popup').querySelector('.leaflet-popup-close-button').click()">
+          <button class="popup-close-btn" onclick="this.closest('.leaflet-popup')?.querySelector('.leaflet-popup-close-button')?.click()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
           </button>
           <div class="popup-content">
-            ${imageUrl ? `
-              <div class="popup-image">
+            <div class="popup-media">
+              ${safeImage ? `
                 <img
-                  src="${imageUrl}"
-                  alt="${ad.title || ad.name}"
+                  src="${safeImage}"
+                  alt="${safeTitle}"
                   onerror="this.parentElement.innerHTML='<div class=\\'popup-no-image\\'><svg width=\\'24\\' height=\\'24\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'m21 15-5-5L5 21\\'/></svg></div>'"
                 />
-              </div>
-            ` : `
-              <div class="popup-image">
+              ` : `
                 <div class="popup-no-image">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -232,50 +389,93 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
                     <path d="m21 15-5-5L5 21"/>
                   </svg>
                 </div>
-              </div>
-            `}
+              `}
+              ${ad.featured ? `<span class="popup-pill popup-pill-featured">Istaknuto</span>` : ""}
+            </div>
             <div class="popup-info">
-              <div class="popup-header-row">
-                <h3 class="popup-title">${ad.title || ad.name}</h3>
-                ${ad.featured ? `<span class="popup-pill popup-pill-featured">Istaknuto</span>` : ""}
-              </div>
+              <h3 class="popup-title">${safeTitle}</h3>
               <div class="popup-tags">
-                ${ad.category ? `<span class="popup-tag popup-tag-category">${ad.category}</span>` : ""}
-                ${statusLabel ? `<span class="popup-tag popup-tag-status">${statusLabel}</span>` : ""}
-                ${ad.area ? `<span class="popup-tag">${ad.area}m²</span>` : ""}
-                ${roomType ? `<span class="popup-tag">${roomType}</span>` : ""}
+                ${safeCategory ? `<span class="popup-tag popup-tag-category">${safeCategory}</span>` : ""}
+                ${safeStatus ? `<span class="popup-tag popup-tag-status">${safeStatus}</span>` : ""}
+                ${safeArea ? `<span class="popup-tag">${safeArea}m²</span>` : ""}
+                ${safeRoomType ? `<span class="popup-tag">${safeRoomType}</span>` : ""}
               </div>
-              ${locationLabel ? `<p class="popup-location"><span class="popup-location-label">Lokacija:</span> ${locationLabel}</p>` : ""}
+              ${safeLocationLabel ? `<p class="popup-location"><span class="popup-location-label">Lokacija:</span> ${safeLocationLabel}</p>` : ""}
+              ${safeLocationSecondary ? `<p class="popup-location popup-location-secondary">${safeLocationSecondary}</p>` : ""}
               <div class="popup-meta-row">
-                <p class="popup-price">${formatPopupPrice(ad.price)}</p>
-                ${hasViews ? `<span class="popup-views">👀 ${ad.views} pregleda</span>` : ""}
+                <p class="popup-price">${safePrice}</p>
+                ${hasViews ? `<span class="popup-views">${ad.views} pregleda</span>` : ""}
               </div>
-              ${timeAgo ? `<p class="popup-time">${timeAgo}</p>` : ""}
-              <div class="popup-hint">${popupHint}</div>
+              <div class="popup-bottom-row">
+                ${safeTimeAgo ? `<p class="popup-time">${safeTimeAgo}</p>` : `<p class="popup-time">Objavljeno nedavno</p>`}
+                <div class="popup-action-group">
+                  ${
+                    safeListingUrl
+                      ? `<a href="${safeListingUrl}" class="popup-open-link">Otvori oglas</a>`
+                      : `<span class="popup-open-link popup-open-link-disabled">Detalji uskoro</span>`
+                  }
+                  <a
+                    href="https://www.google.com/maps/dir/?api=1&destination=${parsedLat},${parsedLng}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="popup-open-link popup-open-link-route"
+                  >
+                    Ruta
+                  </a>
+                </div>
+              </div>
+              <div class="popup-hint">${safePopupHint}</div>
             </div>
           </div>
         </div>
       `;
 
-   
+      if (showMarkerPopup) {
+        marker.bindPopup(popupContent, {
+          className: "custom-map-popup",
+          maxWidth: 330,
+          minWidth: 280,
+          closeButton: true,
+          autoPanPadding: [24, 24],
+        });
+      }
 
       marker.on("click", () => {
+        if (showMarkerPopup) {
+          marker.openPopup();
+        }
         if (onMarkerClick) onMarkerClick(ad);
       });
 
       // Tooltip on hover
-      marker.bindTooltip(ad.title || ad.name, {
+      marker.bindTooltip(ad.title || ad.name || "Oglas", {
         direction: "top",
         offset: [0, -15],
         opacity: 0.9,
       });
 
-      clusterGroup.addLayer(marker);
+      layerGroup.addLayer(marker);
+
+      if (isSelected && showMarkerPopup) {
+        markerToOpen = marker;
+      }
     });
 
-    // Fit bounds if we have markers and no specific selection
-    if (bounds.length > 0 && !selectedAd) {
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    // Fit bounds samo kada se lista oglasa promijeni (ne na hover)
+    const adsSignature = (ads || [])
+      .map((entry) => Number(entry?.id))
+      .filter((id) => Number.isFinite(id))
+      .sort((a, b) => a - b)
+      .join("|");
+
+    if (
+      mapPointsBounds.length > 0 &&
+      !selectedAd &&
+      adsSignature &&
+      adsSignature !== lastAutoFitSignatureRef.current
+    ) {
+      map.fitBounds(mapPointsBounds, { padding: [50, 50], maxZoom: 14 });
+      lastAutoFitSignatureRef.current = adsSignature;
     }
 
     // Center on selected marker
@@ -285,7 +485,11 @@ const MarkerUpdater = ({ ads, selectedAd, hoveredAd, onMarkerClick, clusterGroup
         map.setView(selectedPos, 14, { animate: true });
       }
     }
-  }, [ads, selectedAd, hoveredAd, map, clusterGroupRef, onMarkerClick]);
+
+    if (markerToOpen) {
+      markerToOpen.openPopup();
+    }
+  }, [ads, selectedAd, hoveredAd, map, layerGroupRef, onMarkerClick, showMarkerPopup]);
 
   return null;
 };
@@ -300,9 +504,11 @@ const MapWithListingsMarkers = ({
   kmRange = 0,
   showCurrentLocationButton = true,
   onCurrentLocationClick,
+  showMarkerPopup = true,
 }) => {
-  const clusterGroupRef = useRef(null);
+  const layerGroupRef = useRef(null);
   const [map, setMap] = useState(null);
+  const tileTheme = useLeafletTileTheme();
 
   // Default center (Sarajevo ili iz cityData)
   const defaultCenter = [
@@ -310,43 +516,17 @@ const MapWithListingsMarkers = ({
     cityData?.long || 18.4131,
   ];
 
-  // Initialize cluster group when map is ready
+  // Initialize marker layer when map is ready
   useEffect(() => {
     if (!map) return;
 
-    const clusterGroup = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      spiderfyOnMaxZoom: true,
-      removeOutsideVisibleBounds: true,
-      maxClusterRadius: 60,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount();
-        return L.divIcon({
-          html: `
-            <div class="cluster-marker">
-              <div class="
-                w-12 h-12 rounded-full bg-primary text-white 
-                flex items-center justify-center font-bold text-sm
-                shadow-lg border-4 border-white
-                hover:scale-110 transition-transform cursor-pointer
-              ">
-                ${count}
-              </div>
-            </div>
-          `,
-          className: "custom-cluster",
-          iconSize: [48, 48],
-        });
-      },
-    });
-
-    map.addLayer(clusterGroup);
-    clusterGroupRef.current = clusterGroup;
+    const layerGroup = L.layerGroup();
+    map.addLayer(layerGroup);
+    layerGroupRef.current = layerGroup;
 
     return () => {
-      if (clusterGroup) {
-        map.removeLayer(clusterGroup);
+      if (layerGroup) {
+        map.removeLayer(layerGroup);
       }
     };
   }, [map]);
@@ -417,13 +597,42 @@ const MapWithListingsMarkers = ({
         .price-text {
           font-family: system-ui, -apple-system, sans-serif;
         }
-        
-        /* Cluster Styles */
-        .custom-cluster {
+
+        .custom-cluster-marker {
           background: transparent !important;
           border: none !important;
         }
 
+        .cluster-marker-shell {
+          width: 42px;
+          height: 42px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+          color: #ffffff;
+          border: 3px solid rgba(255, 255, 255, 0.95);
+          box-shadow: 0 10px 22px -14px rgba(124, 58, 237, 0.7);
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .cluster-marker-shell:hover {
+          transform: scale(1.06);
+          box-shadow: 0 14px 26px -14px rgba(124, 58, 237, 0.75);
+        }
+
+        .cluster-marker-shell-active {
+          background: linear-gradient(135deg, #0ea5e9, #2563eb);
+          box-shadow: 0 14px 28px -16px rgba(37, 99, 235, 0.8);
+        }
+
+        .cluster-marker-count {
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1;
+          font-family: system-ui, -apple-system, sans-serif;
+        }
+        
         /* Popup Styles */
         .custom-map-popup .leaflet-popup-content-wrapper {
           padding: 0;
@@ -449,8 +658,10 @@ const MapWithListingsMarkers = ({
         .map-popup-card {
           position: relative;
           background: white;
-          min-width: 280px;
-          max-width: 320px;
+          min-width: 260px;
+          max-width: 300px;
+          border-radius: 12px;
+          overflow: hidden;
         }
         
         .popup-close-btn {
@@ -479,20 +690,17 @@ const MapWithListingsMarkers = ({
         }
         
         .popup-content {
-          display: flex;
-          gap: 12px;
-          padding: 0;
+          display: block;
         }
         
-        .popup-image {
-          width: 100px;
-          min-width: 100px;
-          height: 100px;
+        .popup-media {
+          position: relative;
+          width: 100%;
+          height: 150px;
           overflow: hidden;
-          flex-shrink: 0;
         }
         
-        .popup-image img {
+        .popup-media img {
           width: 100%;
           height: 100%;
           object-fit: cover;
@@ -507,28 +715,36 @@ const MapWithListingsMarkers = ({
           background: #f1f5f9;
           color: #94a3b8;
         }
-        
-        .popup-info {
-          flex: 1;
-          padding: 10px 12px 10px 0;
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
+
+        .popup-pill {
+          position: absolute;
+          left: 10px;
+          top: 10px;
+          z-index: 2;
+          font-size: 10px;
+          padding: 3px 8px;
+          border-radius: 999px;
+          background: #fef3c7;
+          color: #92400e;
+          font-weight: 700;
+          border: 1px solid #fde68a;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
 
-        .popup-header-row {
+        .popup-info {
+          padding: 10px 12px 12px 12px;
           display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 8px;
+          flex-direction: column;
+          gap: 6px;
         }
         
         .popup-title {
           font-weight: 700;
-          font-size: 13px;
+          font-size: 14px;
           line-height: 1.3;
           color: #1e293b;
-          margin: 0 0 6px 0;
+          margin: 0;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -569,18 +785,6 @@ const MapWithListingsMarkers = ({
           text-transform: capitalize;
         }
 
-        .popup-pill {
-          font-size: 10px;
-          padding: 3px 8px;
-          border-radius: 999px;
-          background: #fef3c7;
-          color: #92400e;
-          font-weight: 700;
-          border: 1px solid #fde68a;
-          text-transform: uppercase;
-          letter-spacing: 0.4px;
-        }
-
         .popup-pill-featured {
           background: #ffedd5;
           border-color: #fed7aa;
@@ -600,6 +804,12 @@ const MapWithListingsMarkers = ({
           margin: 0 0 6px 0;
         }
 
+        .popup-location-secondary {
+          margin-top: -4px;
+          color: #94a3b8;
+          font-size: 10px;
+        }
+
         .popup-location-label {
           font-weight: 700;
           color: #334155;
@@ -610,6 +820,19 @@ const MapWithListingsMarkers = ({
           align-items: center;
           justify-content: space-between;
           gap: 8px;
+        }
+
+        .popup-bottom-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .popup-action-group {
+          display: inline-flex;
+          gap: 6px;
+          align-items: center;
         }
 
         .popup-views {
@@ -625,11 +848,45 @@ const MapWithListingsMarkers = ({
         .popup-time {
           font-size: 11px;
           color: #94a3b8;
-          margin: 4px 0 0 0;
+          margin: 0;
+          white-space: nowrap;
+        }
+
+        .popup-open-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 30px;
+          padding: 0 10px;
+          border-radius: 8px;
+          background: #0f766e;
+          color: #ffffff;
+          font-size: 11px;
+          font-weight: 700;
+          text-decoration: none;
+          white-space: nowrap;
+          transition: background 0.2s ease;
+        }
+
+        .popup-open-link:hover {
+          background: #115e59;
+        }
+
+        .popup-open-link-route {
+          background: #334155;
+        }
+
+        .popup-open-link-route:hover {
+          background: #1e293b;
+        }
+
+        .popup-open-link-disabled {
+          background: #e2e8f0;
+          color: #64748b;
         }
 
         .popup-hint {
-          margin-top: 6px;
+          margin-top: 2px;
           font-size: 10px;
           color: #94a3b8;
         }
@@ -648,8 +905,10 @@ const MapWithListingsMarkers = ({
         ref={setMap}
       >
         <TileLayer
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={tileTheme.attribution}
+          url={tileTheme.url}
+          subdomains={tileTheme.subdomains}
+          maxZoom={tileTheme.maxZoom}
         />
 
         {/* User location circle */}
@@ -686,13 +945,14 @@ const MapWithListingsMarkers = ({
         )}
 
         {/* Markers updater */}
-        {clusterGroupRef.current && (
+        {layerGroupRef.current && (
           <MarkerUpdater
             ads={ads}
             selectedAd={selectedAd}
             hoveredAd={hoveredAd}
             onMarkerClick={onMarkerClick}
-            clusterGroupRef={clusterGroupRef}
+            layerGroupRef={layerGroupRef}
+            showMarkerPopup={showMarkerPopup}
           />
         )}
       </MapContainer>

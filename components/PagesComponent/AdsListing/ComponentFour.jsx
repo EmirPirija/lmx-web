@@ -84,6 +84,39 @@ const getYouTubeEmbedUrl = (input) => {
   return "";
 };
 
+const extractTempUploadId = (value) => {
+  if (!value || typeof value !== "object") return null;
+  return (
+    value?.id ??
+    value?.temp_id ??
+    value?.tempId ??
+    value?.upload_id ??
+    value?.uploadId ??
+    value?.media_id ??
+    value?.mediaId ??
+    value?.file_id ??
+    value?.fileId ??
+    null
+  );
+};
+
+const normalizeTempUploadEntity = (value) => {
+  if (!value || typeof value !== "object") return value;
+  const id = extractTempUploadId(value);
+  const url =
+    value?.url ||
+    value?.image ||
+    value?.original_url ||
+    value?.path ||
+    value?.file_url ||
+    "";
+  return {
+    ...value,
+    ...(id !== null && id !== undefined ? { id } : {}),
+    ...(url ? { url } : {}),
+  };
+};
+
 const isInstagramUrl = (input) => {
   if (!input) return false;
   try {
@@ -237,6 +270,8 @@ const ComponentFour = ({
   onVideoLinkChange,
   onVideoSelected,
   onVideoDeleted,
+  isRealEstate = false,
+  location = null,
   setStep,
   handleGoBack,
 }) => {
@@ -305,7 +340,8 @@ const ComponentFour = ({
       },
     });
     if (res?.data?.error !== false) throw new Error(res?.data?.message || `Upload nije uspio`);
-    return res.data.data;
+    const raw = Array.isArray(res?.data?.data) ? res.data.data?.[0] : res?.data?.data;
+    return normalizeTempUploadEntity(raw);
   };
 
   const deleteTemp = async (id) => {
@@ -363,11 +399,13 @@ const ComponentFour = ({
     }
 
     if (newUploadsBatch.length > 0) {
+        const normalizedBatch = newUploadsBatch.map(normalizeTempUploadEntity).filter(Boolean);
+        if (!normalizedBatch.length) return;
         if (uploadedImages.length === 0) {
-            setUploadedImages([newUploadsBatch[0]]);
-            setOtherImages(prev => [...(prev || []), ...newUploadsBatch.slice(1)]);
+            setUploadedImages([normalizedBatch[0]]);
+            setOtherImages(prev => [...(prev || []), ...normalizedBatch.slice(1)]);
         } else {
-            setOtherImages(prev => [...(prev || []), ...newUploadsBatch]);
+            setOtherImages(prev => [...(prev || []), ...normalizedBatch]);
         }
     }
   };
@@ -405,9 +443,14 @@ const ComponentFour = ({
 
   const handleDeleteImage = async (targetImg) => {
     try {
-      if(targetImg.id) await deleteTemp(targetImg.id);
+      const targetId = extractTempUploadId(targetImg);
+      if (targetId) await deleteTemp(targetId);
       
-      const newAll = allImages.filter(img => img !== targetImg && img.id !== targetImg.id);
+      const newAll = allImages.filter((img) => {
+        const imgId = extractTempUploadId(img);
+        if (targetId && imgId) return String(imgId) !== String(targetId);
+        return img !== targetImg;
+      });
       
       if (newAll.length > 0) {
         setUploadedImages([newAll[0]]);
@@ -422,7 +465,15 @@ const ComponentFour = ({
   };
 
   const handleSetMain = (targetImg) => {
-    const newAll = [targetImg, ...allImages.filter(i => i !== targetImg && i.id !== targetImg.id)];
+    const targetId = extractTempUploadId(targetImg);
+    const newAll = [
+      targetImg,
+      ...allImages.filter((img) => {
+        const imgId = extractTempUploadId(img);
+        if (targetId && imgId) return String(imgId) !== String(targetId);
+        return img !== targetImg;
+      }),
+    ];
     setUploadedImages([newAll[0]]);
     setOtherImages(newAll.slice(1));
     setFocusedImageId(null);
@@ -447,7 +498,7 @@ const ComponentFour = ({
         if(p === 100) setIsVideoProcessing(true);
       });
       
-      setUploadedVideo(data);
+      setUploadedVideo(normalizeTempUploadEntity(data));
       onVideoSelected?.();
       toast.success("Video je postavljen.");
     } catch (e) {
@@ -459,7 +510,8 @@ const ComponentFour = ({
   };
 
   const handleRemoveVideo = async () => {
-    if (uploadedVideo?.id) await deleteTemp(uploadedVideo.id);
+    const videoTempId = extractTempUploadId(uploadedVideo);
+    if (videoTempId) await deleteTemp(videoTempId);
     setUploadedVideo(null);
     onVideoDeleted?.();
     setVideoPreviewUrl(null);
@@ -580,7 +632,7 @@ const ComponentFour = ({
                     const isMain = index === 0;
                     // ✅ Koristimo ispravljenu safeObjectUrl funkciju
                     const imgSrc = safeObjectUrl(img);
-                    const imgId = img.id || index; // Fallback key
+                    const imgId = extractTempUploadId(img) ?? img?.id ?? img?.url ?? index;
                     const isFocused = focusedImageId === imgId;
 
                     return (
@@ -943,6 +995,22 @@ const ComponentFour = ({
             ? "Objava je uključena za Instagram."
             : "Instagram objava trenutno nije uključena."}
         </p>
+
+        {isRealEstate ? (
+          <div className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-4 dark:border-cyan-500/30 dark:bg-cyan-500/10">
+            <p className="text-sm font-semibold text-cyan-900 dark:text-cyan-200">
+              Lokacija nekretnine
+            </p>
+            <p className="mt-1 text-xs text-cyan-800 dark:text-cyan-300">
+              U sljedećem koraku postavite tačnu lokaciju nekretnine na mapi. Lokacija profila se ne koristi automatski, a kupcima se prikazuje okvirna zona.
+            </p>
+            {location?.address ? (
+              <p className="mt-2 text-xs text-cyan-700 dark:text-cyan-300">
+                Trenutno odabrano: {location?.address_translated || location?.address}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {/* FOOTER */}

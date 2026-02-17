@@ -341,9 +341,17 @@ const isRealEstateName = (value) => {
 
 export const isRealEstateCategoryPath = (categoryPath = []) => {
   if (!Array.isArray(categoryPath) || !categoryPath.length) return false;
-  return categoryPath.some((category) =>
-    isRealEstateName(category?.translated_name || category?.name || category?.slug || "")
-  );
+  return categoryPath.some((category) => {
+    const categoryNameCandidate =
+      category?.translated_name ||
+      category?.name ||
+      category?.slug ||
+      category?.full_path ||
+      category?.path ||
+      category?.breadcrumbs ||
+      "";
+    return isRealEstateName(categoryNameCandidate);
+  });
 };
 
 export const isRealEstateItem = (item = {}) => {

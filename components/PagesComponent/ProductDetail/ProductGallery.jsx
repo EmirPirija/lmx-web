@@ -399,7 +399,7 @@ const ProductGallery = ({
                 title="Prikaži video"
               >
                 <RiVideoLine size={18} className="text-white" />
-                <span className="hidden sm:inline text-white text-xs font-semibold">Video</span>
+                {/* <span className="hidden sm:inline text-white text-xs font-semibold">Video</span> */}
               </button>
             )}
             <div className="bg-black/60 backdrop-blur-xl px-3.5 py-1.5 rounded-full text-white font-medium shadow-lg">
