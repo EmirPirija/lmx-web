@@ -281,6 +281,8 @@ const AdsListing = () => {
   const uploadedVideoRef = useRef(uploadedVideo);
   const stepRailRef = useRef(null);
   const stepNodeRefs = useRef([]);
+  const wizardTopRef = useRef(null);
+  const hasInitializedStepRef = useRef(false);
 
   useEffect(() => {
     uploadedImagesRef.current = uploadedImages;
@@ -1337,6 +1339,60 @@ const AdsListing = () => {
   const activeStepId = resolveNearestStep(step);
   const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
   const renderedStep = activeStepId;
+
+  const dismissActiveField = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const activeEl = document.activeElement;
+    if (!activeEl) return;
+    const tag = String(activeEl.tagName || "").toUpperCase();
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+      activeEl.blur?.();
+    }
+  }, []);
+
+  const scrollWizardToTop = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    const behavior = prefersReducedMotion ? "auto" : "smooth";
+    const topOffset = 12;
+    const targetRect = wizardTopRef.current?.getBoundingClientRect?.();
+    const targetTop =
+      typeof targetRect?.top === "number" ? window.scrollY + targetRect.top - topOffset : 0;
+
+    window.scrollTo({
+      top: Math.max(0, targetTop),
+      left: 0,
+      behavior,
+    });
+
+    // Defanzivno resetujemo horizontalni pomak nakon prelaza koraka.
+    if (document?.documentElement) document.documentElement.scrollLeft = 0;
+    if (document?.body) document.body.scrollLeft = 0;
+  }, []);
+
+  useEffect(() => {
+    if (!hasInitializedStepRef.current) {
+      hasInitializedStepRef.current = true;
+      return;
+    }
+
+    let timeoutId;
+    const rafId = window.requestAnimationFrame(() => {
+      dismissActiveField();
+      scrollWizardToTop();
+      timeoutId = window.setTimeout(() => {
+        if (document?.documentElement) document.documentElement.scrollLeft = 0;
+        if (document?.body) document.body.scrollLeft = 0;
+      }, 120);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [activeStepId, dismissActiveField, scrollWizardToTop]);
+
   const hasBaseLocation = Boolean(
     location?.country && location?.state && location?.city && location?.address
   );
@@ -1687,8 +1743,8 @@ const AdsListing = () => {
   return (
     <Layout>
       <BreadCrumb title2={t("adListing")} />
-      <div className="container relative">
-        <div className="relative mt-8 flex flex-col gap-8 pb-10">
+      <div className="container relative overflow-x-hidden">
+        <div className="relative mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden pb-10">
           <div className="pointer-events-none absolute -top-14 left-0 h-52 w-52 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
           <div className="pointer-events-none absolute -right-10 top-8 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/30" />
 
@@ -1715,10 +1771,13 @@ const AdsListing = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column */}
-            <div className="relative flex flex-col gap-6 lg:col-span-2">
-              <div className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6">
+            <div className="relative flex min-w-0 flex-col gap-6 lg:col-span-2">
+              <div
+                ref={wizardTopRef}
+                className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
+              >
                 <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
                 <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-300/20" />
 
@@ -1903,7 +1962,7 @@ const AdsListing = () => {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
+              <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
                 {renderedStep === 1 && (
                   <ComponentOne
                     categories={categories}
@@ -1996,8 +2055,8 @@ const AdsListing = () => {
             </div>
 
             {/* 📱 Right Column - Live Preview */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:from-slate-900/80 dark:to-slate-950/85">
+            <div className="min-w-0 lg:col-span-1">
+              <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:from-slate-900/80 dark:to-slate-950/85">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-primary" />

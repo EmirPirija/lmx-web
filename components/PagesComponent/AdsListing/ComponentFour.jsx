@@ -14,7 +14,7 @@ import StickyActionButtons from "@/components/Common/StickyActionButtons";
 // CONFIG
 // =======================================================
 // const WATERMARK_URL = "/assets/ad_icon.svg";
-const MAX_IMAGES = 10;
+const MAX_IMAGES = 15;
 
 // =======================================================
 // MEDIA HELPERS
@@ -293,6 +293,9 @@ const ComponentFour = ({
   const youtubeEmbedUrl = getYouTubeEmbedUrl(videoLink);
   const instagramEmbedUrl =
     getInstagramEmbedUrl(videoLink) || getInstagramEmbedUrl(instagramSourceUrl);
+  const hasAnyVideoSource = Boolean(
+    (videoLink && String(videoLink).trim()) || videoPreviewUrl
+  );
 
   useEffect(() => {
     // ✅ FIX: Robusnije rukovanje videom
@@ -529,8 +532,18 @@ const ComponentFour = ({
   }, [allImages]);
 
   const handleStoryToggle = (checked) => {
+    if (checked && !hasAnyVideoSource) {
+      toast.info("Story objava je dostupna tek kada dodate video ili video URL.");
+      return;
+    }
     setAddVideoToStory?.(checked);
   };
+
+  useEffect(() => {
+    if (!hasAnyVideoSource && addVideoToStory) {
+      setAddVideoToStory?.(false);
+    }
+  }, [hasAnyVideoSource, addVideoToStory, setAddVideoToStory]);
 
   useEffect(() => {
     if (socialPostingUnavailable && publishToInstagram) {
@@ -725,63 +738,122 @@ const ComponentFour = ({
             Video URL
         </h3>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-800 flex items-center gap-2 dark:text-slate-100">
-              <Link2 className="w-4 h-4 text-primary" />
-              Video URL (YouTube ili direktni link)
-            </p>
-            {videoLink ? (
-              <a
-                href={videoLink}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                Otvori link
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            ) : null}
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate-800 flex items-center gap-2 dark:text-slate-100">
+                <Link2 className="w-4 h-4 text-primary" />
+                Video URL (YouTube ili direktni link)
+              </p>
+              {videoLink ? (
+                <a
+                  href={videoLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  Otvori link
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ) : null}
+            </div>
+
+            <input
+              type="url"
+              value={videoLink}
+              onChange={(e) => onVideoLinkChange?.(e.target.value)}
+              placeholder="https://youtube.com/watch?v=... ili https://..."
+              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200"
+            />
+
+            {youtubeEmbedUrl ? (
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-black/90 aspect-video dark:border-slate-700">
+                <iframe
+                  src={youtubeEmbedUrl}
+                  title="YouTube preview"
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              </div>
+            ) : instagramEmbedUrl ? (
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white aspect-video dark:border-slate-700 dark:bg-slate-950">
+                <iframe
+                  src={instagramEmbedUrl}
+                  title="Instagram preview"
+                  className="h-full w-full"
+                  allow="encrypted-media; clipboard-write"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </div>
+            ) : videoLink ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Link će biti prikazan na oglasu nakon objave.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Opcionalno: dodajte video URL za bolju konverziju oglasa.
+              </p>
+            )}
           </div>
 
-          <input
-            type="url"
-            value={videoLink}
-            onChange={(e) => onVideoLinkChange?.(e.target.value)}
-            placeholder="https://youtube.com/watch?v=... ili https://..."
-            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200"
-          />
-
-          {youtubeEmbedUrl ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-black/90 aspect-video dark:border-slate-700">
-              <iframe
-                src={youtubeEmbedUrl}
-                title="YouTube preview"
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
-            </div>
-          ) : instagramEmbedUrl ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white aspect-video dark:border-slate-700 dark:bg-slate-950">
-              <iframe
-                src={instagramEmbedUrl}
-                title="Instagram preview"
-                className="h-full w-full"
-                allow="encrypted-media; clipboard-write"
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
-            </div>
-          ) : videoLink ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Link će biti prikazan na oglasu nakon objave.
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Upload videa (MP4/WEBM)
             </p>
-          ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Opcionalno: dodajte video URL za bolju konverziju oglasa.
-            </p>
-          )}
+            {!uploadedVideo ? (
+              <label
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
+                onDragLeave={() => setIsDraggingVideo(false)}
+                onDrop={(e) => handleDrop(e, 'video')}
+                className={cn(
+                    "relative flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all dark:bg-slate-800/30",
+                    isDraggingVideo
+                      ? "scale-[1.01] border-red-400 bg-red-50 dark:bg-red-500/10"
+                      : "border-slate-300 hover:border-red-300 hover:bg-red-50/10 dark:border-slate-600 dark:hover:border-red-400 dark:hover:bg-red-500/10"
+                )}
+              >
+                <input type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoUpload(e.target.files[0])} />
+                {isUploadingVideo ? (
+                  <div className="w-full max-w-xs p-4">
+                    {isVideoProcessing ? (
+                      <div className="text-center text-xs font-bold text-primary animate-pulse">
+                        Obrada na serveru... (sačekajte)
+                      </div>
+                    ) : (
+                      <ProgressBar progress={videoUploadProgress} label="Upload videa..." />
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 text-slate-500 dark:text-slate-300">
+                    <div className="rounded-full bg-white p-3 shadow-sm dark:bg-slate-900">
+                      <Play className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-slate-700 dark:text-slate-200">Dodaj video (opcionalno)</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">Max 50MB • MP4, WEBM</p>
+                    </div>
+                  </div>
+                )}
+              </label>
+            ) : (
+              <div className="group relative aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-black shadow-md dark:border-slate-700 sm:aspect-[21/9]">
+                <video id="tmp-video-preview" className="w-full h-full object-contain" src={videoPreviewUrl || undefined} playsInline muted loop controls={false} />
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <button onClick={() => {
+                            const el = document.getElementById("tmp-video-preview");
+                            if(el.paused) { el.play(); setIsPlaying(true); } else { el.pause(); setIsPlaying(false); }
+                        }} className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition-all hover:scale-110">
+                        {isPlaying ? <Pause className="fill-current w-6 h-6" /> : <Play className="fill-current w-6 h-6 ml-1" />}
+                    </button>
+                </div>
+                <button onClick={handleRemoveVideo} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm opacity-0 group-hover:opacity-100" title="Ukloni video">
+                    <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
@@ -899,74 +971,24 @@ const ComponentFour = ({
           </label>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
-          <label className="flex items-start gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={Boolean(addVideoToStory)}
-              onChange={(e) => handleStoryToggle(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-            />
-            <span>
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Dodaj video u Story</span>
-              <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
-                Video uz oglas ide automatski. Ovdje birate da li isti video ide i u Story objavu.
-              </p>
-            </span>
-          </label>
-        </div>
-
-        {!uploadedVideo ? (
-            <label
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
-                onDragLeave={() => setIsDraggingVideo(false)}
-                onDrop={(e) => handleDrop(e, 'video')}
-                className={cn(
-                    "relative flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all dark:bg-slate-800/30",
-                    isDraggingVideo
-                      ? "scale-[1.01] border-red-400 bg-red-50 dark:bg-red-500/10"
-                      : "border-slate-300 hover:border-red-300 hover:bg-red-50/10 dark:border-slate-600 dark:hover:border-red-400 dark:hover:bg-red-500/10"
-                )}
-            >
-                <input type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoUpload(e.target.files[0])} />
-                {isUploadingVideo ? (
-                    <div className="w-full max-w-xs p-4">
-                        {isVideoProcessing ? (
-                             <div className="text-center text-xs font-bold text-primary animate-pulse">
-                                 Obrada na serveru... (sačekajte)
-                             </div>
-                        ) : (
-                             <ProgressBar progress={videoUploadProgress} label="Upload videa..." />
-                        )}
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-4 text-slate-500 dark:text-slate-300">
-                        <div className="rounded-full bg-white p-3 shadow-sm dark:bg-slate-900">
-                            <Play className="w-6 h-6 text-red-500" />
-                        </div>
-                        <div className="text-left">
-                            <p className="font-semibold text-slate-700 dark:text-slate-200">Dodaj video (opcionalno)</p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500">Max 50MB • MP4, WEBM</p>
-                        </div>
-                    </div>
-                )}
+        {hasAnyVideoSource ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={Boolean(addVideoToStory)}
+                onChange={(e) => handleStoryToggle(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+              />
+              <span>
+                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Objavi video i na story</span>
+                <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
+                  Maksimalno 5 aktivnih story objava po profilu.
+                </p>
+              </span>
             </label>
-        ) : (
-            <div className="group relative aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-black shadow-md dark:border-slate-700 sm:aspect-[21/9]">
-                <video id="tmp-video-preview" className="w-full h-full object-contain" src={videoPreviewUrl || undefined} playsInline muted loop controls={false} />
-                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <button onClick={() => {
-                            const el = document.getElementById("tmp-video-preview");
-                            if(el.paused) { el.play(); setIsPlaying(true); } else { el.pause(); setIsPlaying(false); }
-                        }} className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition-all hover:scale-110">
-                        {isPlaying ? <Pause className="fill-current w-6 h-6" /> : <Play className="fill-current w-6 h-6 ml-1" />}
-                    </button>
-                </div>
-                <button onClick={handleRemoveVideo} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm opacity-0 group-hover:opacity-100" title="Ukloni video">
-                    <X className="w-5 h-5" />
-                </button>
-            </div>
-        )}
+          </div>
+        ) : null}
 
         <p
           className={cn(
@@ -974,9 +996,11 @@ const ComponentFour = ({
             addVideoToStory ? "text-primary" : "text-slate-500 dark:text-slate-400"
           )}
         >
-          {addVideoToStory
+          {hasAnyVideoSource && addVideoToStory
             ? "Video će biti objavljen i u Story objavi."
-            : "Video će biti objavljen uz oglas, ali ne i u Story objavi."}
+            : hasAnyVideoSource
+            ? "Video će biti objavljen uz oglas, ali ne i u Story objavi."
+            : "Dodajte video da biste mogli uključiti story objavu."}
         </p>
 
         <p

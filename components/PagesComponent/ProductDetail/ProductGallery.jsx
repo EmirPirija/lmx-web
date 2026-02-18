@@ -366,7 +366,7 @@ const ProductGallery = ({
                 })
               )}
 
-              <div className="absolute inset-0 hidden sm:flex items-center justify-center opacity-0 group-hover/main:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+              <div className="absolute inset-0 hidden sm:flex items-center justify-center opacity-0 group-hover/main:opacity-100 transition-opacity duration-300 pointer-events-none">
                 <div className="bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full flex items-center gap-2">
                   <RiFullscreenLine className="text-white" size={18} />
                   <span className="text-white text-sm font-medium">

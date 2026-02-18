@@ -491,10 +491,11 @@ const HomeHeader = () => {
           <div className="flex flex-col items-center justify-center gap-0.5">
             {IsLoggedin ? (
               <>
-                <div className="scale-[0.92]">
+                <div className="relative flex items-center justify-center">
                   <ProfileDropdown
                     setIsLogout={setIsLogout}
                     IsLogout={IsLogout}
+                    dockOpenMode="instant"
                   />
                 </div>
                 <span
@@ -1115,7 +1116,7 @@ const HomeHeader = () => {
                           }}                          
                           exit={{ width: 0, opacity: 0, scale: 0.9 }}
                           onClick={() => navigate("/")}
-                          className="grid h-10 shrink-0 place-items-center overflow-hidden rounded-xl text-[14px] font-bold uppercase tracking-[0.08em] text-slate-600 dark:bg-slate-800/90 dark:text-slate-300"
+                          className="grid shrink-0 place-items-center overflow-hidden rounded-xl text-[14px] font-bold uppercase tracking-[0.08em] text-slate-600 dark:bg-slate-800/90 dark:text-slate-300"
                           aria-label="Početna"
                         >
                           {settings?.header_logo ? (
@@ -1124,7 +1125,7 @@ const HomeHeader = () => {
                               alt="lmx logo"
                               width={190}
                               height={42}
-                              className="h-8 w-auto object-contain"
+                              className="h-12 w-auto object-contain"
                             />
                           ) : (
                             <span>LMX</span>

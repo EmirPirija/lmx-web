@@ -455,6 +455,8 @@ const EditListing = ({ id }) => {
   const latestListingFetchRef = useRef(0);
   const stepRailRef = useRef(null);
   const stepNodeRefs = useRef([]);
+  const wizardTopRef = useRef(null);
+  const hasInitializedStepRef = useRef(false);
   useEffect(() => {
     otherImagesRef.current = OtherImages;
   }, [OtherImages]);
@@ -1313,6 +1315,58 @@ const EditListing = ({ id }) => {
   const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
   const renderedStep = activeStepId;
 
+  const dismissActiveField = useCallback(() => {
+    if (typeof document === "undefined") return;
+    const activeEl = document.activeElement;
+    if (!activeEl) return;
+    const tag = String(activeEl.tagName || "").toUpperCase();
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+      activeEl.blur?.();
+    }
+  }, []);
+
+  const scrollWizardToTop = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    const behavior = prefersReducedMotion ? "auto" : "smooth";
+    const topOffset = 12;
+    const targetRect = wizardTopRef.current?.getBoundingClientRect?.();
+    const targetTop =
+      typeof targetRect?.top === "number" ? window.scrollY + targetRect.top - topOffset : 0;
+
+    window.scrollTo({
+      top: Math.max(0, targetTop),
+      left: 0,
+      behavior,
+    });
+
+    if (document?.documentElement) document.documentElement.scrollLeft = 0;
+    if (document?.body) document.body.scrollLeft = 0;
+  }, []);
+
+  useEffect(() => {
+    if (!hasInitializedStepRef.current) {
+      hasInitializedStepRef.current = true;
+      return;
+    }
+
+    let timeoutId;
+    const rafId = window.requestAnimationFrame(() => {
+      dismissActiveField();
+      scrollWizardToTop();
+      timeoutId = window.setTimeout(() => {
+        if (document?.documentElement) document.documentElement.scrollLeft = 0;
+        if (document?.body) document.body.scrollLeft = 0;
+      }, 120);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [activeStepId, dismissActiveField, scrollWizardToTop]);
+
   const syncStepRailFill = useCallback(() => {
     const railEl = stepRailRef.current;
     const firstNodeEl = stepNodeRefs.current[0];
@@ -1699,8 +1753,8 @@ const EditListing = ({ id }) => {
       ) : (
         <>
           <BreadCrumb title2={t("editListing")} />
-          <div className="container">
-            <div className="flex flex-col gap-8 mt-8">
+          <div className="container relative overflow-x-hidden">
+            <div className="mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-medium">{t("editListing")}</h1>
                 <div className="flex items-center gap-4">
@@ -1712,11 +1766,14 @@ const EditListing = ({ id }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
                 
-                <div className="lg:col-span-2 flex flex-col gap-6">
+                <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
                   
-                  <div className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6">
+                  <div
+                    ref={wizardTopRef}
+                    className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
+                  >
                     <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
                     <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-300/20" />
 
@@ -1966,8 +2023,8 @@ const EditListing = ({ id }) => {
                 </div>
 
                 {/* 📱 DESNA STRANA - LIVE PREVIEW */}
-                <div className="lg:col-span-1">
-                  <div className="sticky top-4 border rounded-2xl p-4 bg-gradient-to-br from-gray-50 to-white shadow-sm">
+                <div className="min-w-0 lg:col-span-1">
+                  <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-4 px-1">
                       <Zap className="w-5 h-5 text-primary" />
                       <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>

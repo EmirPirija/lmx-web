@@ -247,7 +247,7 @@ const FeaturedAdTriggerCard = ({
   >
     <div
       className={cn(
-        "flex gap-3",
+        "flex gap-3 flex-col",
         compact
           ? "items-center justify-between"
           : "flex-col sm:flex-row sm:items-center sm:justify-between"

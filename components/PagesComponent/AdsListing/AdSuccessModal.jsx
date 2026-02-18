@@ -39,7 +39,7 @@ const SummaryItem = ({ icon: Icon, label, value }) => (
       <Icon className="h-3.5 w-3.5 text-primary" />
       <span>{label}</span>
     </div>
-    <p className="mt-1.5 truncate text-sm font-semibold text-slate-900 dark:text-slate-100" title={value}>
+    <p className="mt-1.5 line-clamp-2 break-words text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100 sm:line-clamp-1" title={value}>
       {value}
     </p>
   </div>
@@ -165,93 +165,95 @@ const AdSuccessModal = ({
     <Dialog open={openSuccessModal} onOpenChange={closeSuccessModal}>
       <DialogContent
         showCloseButton={false}
-        className="w-[calc(100vw-1rem)] max-w-[480px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 dark:border-slate-700 dark:bg-slate-900"
+        className="w-[min(96vw,560px)] max-h-[92dvh] overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl sm:rounded-3xl dark:border-slate-700 dark:bg-slate-900"
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-4 py-4 dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              {isScheduled ? <Calendar className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-              {isScheduled ? "Zakazana objava" : "Uspješna objava"}
+        <div className="flex max-h-[92dvh] flex-col">
+          <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-4 py-4 dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 sm:px-5 sm:py-5">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                {isScheduled ? <Calendar className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                {isScheduled ? "Zakazana objava" : "Uspješna objava"}
+              </div>
+              <button
+                type="button"
+                onClick={closeSuccessModal}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                aria-label="Zatvori modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={closeSuccessModal}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-              aria-label="Zatvori modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
+
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{title}</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+
+            {scheduledDateLabel ? (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
+                <Clock className="h-3.5 w-3.5" />
+                {scheduledDateLabel}
+              </div>
+            ) : null}
           </div>
 
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{title}</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+          <div className="min-h-0 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+            {summary.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {summary.map((item) => (
+                  <SummaryItem key={`${item.label}-${item.value}`} icon={item.icon} label={item.label} value={item.value} />
+                ))}
+              </div>
+            ) : null}
 
-          {scheduledDateLabel ? (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
-              <Clock className="h-3.5 w-3.5" />
-              {scheduledDateLabel}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {createdAdSlug ? (
+                <CustomLink
+                  href={`/my-listing/${createdAdSlug}`}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Pregledaj oglas
+                </CustomLink>
+              ) : (
+                <CustomLink
+                  href="/my-ads"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Moji oglasi
+                </CustomLink>
+              )}
+
+              <CustomLink
+                href="/"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                <Home className="h-4 w-4" />
+                Početna
+              </CustomLink>
             </div>
-          ) : null}
-        </div>
 
-        <div className="space-y-4 px-4 py-4">
-          {summary.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {summary.map((item) => (
-                <SummaryItem key={`${item.label}-${item.value}`} icon={item.icon} label={item.label} value={item.value} />
-              ))}
-            </div>
-          ) : null}
-
-          <div className="grid gap-2 sm:grid-cols-2">
             {createdAdSlug ? (
-              <CustomLink
-                href={`/my-listing/${createdAdSlug}`}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Pregledaj oglas
-              </CustomLink>
-            ) : (
-              <CustomLink
-                href="/my-ads"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95"
-              >
-                <Sparkles className="h-4 w-4" />
-                Moji oglasi
-              </CustomLink>
-            )}
-
-            <CustomLink
-              href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            >
-              <Home className="h-4 w-4" />
-              Početna
-            </CustomLink>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  <Copy className={cn("h-4 w-4", copied && "text-emerald-500")} />
+                  {copied ? "Kopirano" : "Kopiraj link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Podijeli
+                </button>
+              </div>
+            ) : null}
           </div>
-
-          {createdAdSlug ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              >
-                <Copy className={cn("h-4 w-4", copied && "text-emerald-500")} />
-                {copied ? "Kopirano" : "Kopiraj link"}
-              </button>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              >
-                <Share2 className="h-4 w-4" />
-                Podijeli
-              </button>
-            </div>
-          ) : null}
         </div>
       </DialogContent>
     </Dialog>

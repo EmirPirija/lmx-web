@@ -256,7 +256,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () =>
       prefersReducedMotion
         ? { duration: 0.01 }
-        : { type: "spring", stiffness: 420, damping: 36, mass: 0.85 },
+        : { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
     [prefersReducedMotion]
   );
 
@@ -264,7 +264,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () =>
       prefersReducedMotion
         ? { duration: 0.01 }
-        : { type: "spring", stiffness: 360, damping: 34, mass: 0.9 },
+        : { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
     [prefersReducedMotion]
   );
 
@@ -272,7 +272,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () =>
       prefersReducedMotion
         ? { duration: 0.01 }
-        : { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+        : { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
     [prefersReducedMotion]
   );
 
@@ -376,7 +376,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     interactionReleaseTimerRef.current = window.setTimeout(() => {
       setIsDockInteracting(false);
       interactionReleaseTimerRef.current = null;
-    }, 180);
+    }, 110);
   }, []);
 
   const contextValue = useMemo(
@@ -436,7 +436,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 isSuspended
                   ? { y: "120%", opacity: 0 }
                   : isDockCollapsed && !isNavExpanded
-                    ? { y: "115%", opacity: 0 }
+                    ? { y: "104%", opacity: 0 }
                     : { y: 0, opacity: 1 }
               }
               exit={{ y: 14, opacity: 0 }}

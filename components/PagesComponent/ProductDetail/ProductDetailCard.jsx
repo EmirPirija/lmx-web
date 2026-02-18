@@ -48,6 +48,48 @@ const toPriceNumber = (value) => {
   return parsed > 0 ? parsed : null;
 };
 
+const isPriceRequestToken = (value) => {
+  if (value == null) return false;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return false;
+  return (
+    normalized === "na upit" ||
+    normalized.includes("na upit") ||
+    normalized.includes("price on request") ||
+    normalized === "por"
+  );
+};
+
+const toBooleanFlag = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  if (value == null) return null;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return null;
+  if (["true", "yes", "da", "on", "enabled"].includes(normalized)) return true;
+  if (["false", "no", "ne", "off", "disabled"].includes(normalized)) return false;
+  return null;
+};
+
+const resolvePriceOnRequestState = (item = {}) => {
+  const candidates = [
+    item?.price_on_request,
+    item?.is_price_on_request,
+    item?.isPriceOnRequest,
+    item?.translated_item?.price_on_request,
+    item?.translated_item?.is_price_on_request,
+    item?.translated_item?.isPriceOnRequest,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = toBooleanFlag(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  return isPriceRequestToken(item?.price) || isPriceRequestToken(item?.translated_item?.price);
+};
+
 const formatSignedPriceDelta = (value) => {
   if (!Number.isFinite(value) || value === 0) return "0 KM";
   const sign = value > 0 ? "+" : "-";
@@ -100,12 +142,17 @@ const formatTimeAgoBs = (value) => {
   return `prije ${years} ${pluralizeBosnian(years, "godinu", "godine", "godina")}`;
 };
 
-const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
+const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnRequest = false) => {
   const rawHistory = Array.isArray(priceHistory) ? priceHistory : [];
   const timeline = rawHistory
     .map((entry, index) => {
-      const price = toPriceNumber(entry?.price ?? entry?.old_price ?? entry?.value ?? entry?.amount);
-      if (price === null) return null;
+      const rawPrice = entry?.price ?? entry?.old_price ?? entry?.value ?? entry?.amount;
+      const price = toPriceNumber(rawPrice);
+      const onRequest =
+        toBooleanFlag(entry?.price_on_request) === true ||
+        toBooleanFlag(entry?.is_price_on_request) === true ||
+        isPriceRequestToken(rawPrice);
+      if (price === null && !onRequest) return null;
 
       const dateValue =
         entry?.created_at ??
@@ -119,6 +166,7 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
       return {
         key: entry?.id ? `history-${entry.id}` : `history-${index}`,
         price,
+        onRequest,
         dateValue,
         timestamp: Number.isFinite(timestamp) ? timestamp : null,
         index,
@@ -133,18 +181,44 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
   });
 
   const currentPriceNumber = toPriceNumber(currentPrice);
+  const isCurrentOnRequest = Boolean(currentPriceOnRequest) || isPriceRequestToken(currentPrice);
   const latestPoint = timeline[timeline.length - 1];
-  if (currentPriceNumber !== null) {
-    if (!latestPoint || latestPoint.price !== currentPriceNumber) {
+  if (isCurrentOnRequest) {
+    if (!latestPoint || latestPoint.onRequest !== true) {
       timeline.push({
-        key: "history-current",
-        price: currentPriceNumber,
+        key: "history-current-on-request",
+        price: latestPoint?.price ?? null,
+        onRequest: true,
         dateValue: latestPoint?.dateValue || new Date().toISOString(),
         timestamp: Date.now(),
         index: timeline.length,
         synthetic: true,
       });
     }
+  } else if (currentPriceNumber !== null) {
+    if (!latestPoint || latestPoint.price !== currentPriceNumber) {
+      timeline.push({
+        key: "history-current",
+        price: currentPriceNumber,
+        onRequest: false,
+        dateValue: latestPoint?.dateValue || new Date().toISOString(),
+        timestamp: Date.now(),
+        index: timeline.length,
+        synthetic: true,
+      });
+    }
+  }
+
+  if (!timeline.length && isCurrentOnRequest) {
+    timeline.push({
+      key: "history-current-on-request",
+      price: null,
+      onRequest: true,
+      dateValue: new Date().toISOString(),
+      timestamp: Date.now(),
+      index: 0,
+      synthetic: true,
+    });
   }
 
   if (!timeline.length) {
@@ -165,6 +239,42 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
       lastChangeText: "Zadnja promjena: nije bilo promjena",
       lastChangeAt: null,
       badges: [{ key: "stable", tone: "neutral", label: "Stabilna cijena" }],
+      currentOnRequest: false,
+    };
+  }
+
+  const numericTimeline = timeline.filter(
+    (point) => Number.isFinite(point?.price) && point?.onRequest !== true
+  );
+
+  if (!numericTimeline.length) {
+    const latestEvent = timeline[timeline.length - 1];
+    const timelineDesc = [...timeline].reverse().map((point, index) => ({
+      ...point,
+      delta: null,
+      isCurrent: index === 0,
+    }));
+
+    return {
+      hasAnyPrice: true,
+      points: [],
+      timelineDesc,
+      initialPrice: null,
+      latestPrice: null,
+      totalChange: 0,
+      changeCount: 0,
+      increaseCount: 0,
+      decreaseCount: 0,
+      trend: "stable",
+      isCurrentLowest: false,
+      summaryText: "Cijena je na upit",
+      totalText: "Trenutna cijena: Na upit",
+      lastChangeText: latestEvent?.timestamp
+        ? `Zadnja promjena: ${formatTimeAgoBs(latestEvent.timestamp)}`
+        : "Zadnja promjena: nije bilo promjena",
+      lastChangeAt: latestEvent?.timestamp || latestEvent?.dateValue || null,
+      badges: [{ key: "on-request", tone: "neutral", label: "Cijena na upit" }],
+      currentOnRequest: true,
     };
   }
 
@@ -172,22 +282,23 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
   let decreaseCount = 0;
   let lastChangeAt = null;
 
-  for (let i = 1; i < timeline.length; i += 1) {
-    const diff = timeline[i].price - timeline[i - 1].price;
+  for (let i = 1; i < numericTimeline.length; i += 1) {
+    const diff = numericTimeline[i].price - numericTimeline[i - 1].price;
     if (diff > 0) increaseCount += 1;
     if (diff < 0) decreaseCount += 1;
     if (diff !== 0) {
-      lastChangeAt = timeline[i].timestamp || timeline[i].dateValue || null;
+      lastChangeAt = numericTimeline[i].timestamp || numericTimeline[i].dateValue || null;
     }
   }
 
   const changeCount = increaseCount + decreaseCount;
-  const initialPrice = timeline[0].price;
-  const latestPrice = timeline[timeline.length - 1].price;
-  const totalChange = latestPrice - initialPrice;
-  const allPrices = timeline.map((point) => point.price);
+  const initialPrice = numericTimeline[0].price;
+  const latestNumericPrice = numericTimeline[numericTimeline.length - 1].price;
+  const latestPrice = isCurrentOnRequest ? null : latestNumericPrice;
+  const totalChange = latestNumericPrice - initialPrice;
+  const allPrices = numericTimeline.map((point) => point.price);
   const lowestPrice = Math.min(...allPrices);
-  const isCurrentLowest = latestPrice === lowestPrice && changeCount > 0;
+  const isCurrentLowest = latestNumericPrice === lowestPrice && changeCount > 0;
 
   let trend = "stable";
   if (totalChange < 0) trend = "down";
@@ -210,6 +321,13 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
       ? `Ukupno povećanje: ${formatSignedPriceDelta(totalChange)}`
       : "Ukupna promjena: 0 KM";
 
+  const effectiveSummaryText = isCurrentOnRequest
+    ? changeCount > 0
+      ? `${summaryText} · trenutno na upit`
+      : "Cijena je trenutno na upit"
+    : summaryText;
+  const effectiveTotalText = isCurrentOnRequest ? "Trenutna cijena: Na upit" : totalText;
+
   const badges = [];
   if (changeCount === 0) {
     badges.push({ key: "stable", tone: "neutral", label: "Stabilna cijena" });
@@ -224,12 +342,24 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
   if (isCurrentLowest) {
     badges.push({ key: "lowest", tone: "highlight", label: "Najniža cijena do sada" });
   }
+  if (isCurrentOnRequest) {
+    badges.unshift({ key: "on-request", tone: "neutral", label: "Cijena na upit" });
+  }
 
   const timelineDesc = [...timeline]
     .reverse()
     .map((point, index, list) => {
       const olderPoint = list[index + 1];
-      const delta = olderPoint ? point.price - olderPoint.price : 0;
+      let delta = null;
+      if (
+        olderPoint &&
+        point?.onRequest !== true &&
+        olderPoint?.onRequest !== true &&
+        Number.isFinite(point?.price) &&
+        Number.isFinite(olderPoint?.price)
+      ) {
+        delta = point.price - olderPoint.price;
+      }
       return {
         ...point,
         delta,
@@ -239,7 +369,7 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
 
   return {
     hasAnyPrice: true,
-    points: timeline,
+    points: numericTimeline,
     timelineDesc,
     initialPrice,
     latestPrice,
@@ -249,11 +379,12 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice) => {
     decreaseCount,
     trend,
     isCurrentLowest,
-    summaryText,
-    totalText,
+    summaryText: effectiveSummaryText,
+    totalText: effectiveTotalText,
     lastChangeText: lastChangeAt ? `Zadnja promjena: ${formatTimeAgoBs(lastChangeAt)}` : "Zadnja promjena: nije bilo promjena",
     lastChangeAt,
     badges,
+    currentOnRequest: isCurrentOnRequest,
   };
 };
 
@@ -786,9 +917,11 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
               </div>
             </div>
 
-            <div className="mt-3 rounded-xl border border-slate-200 bg-white px-2 py-2 dark:border-slate-700 dark:bg-slate-900/70">
-              <PriceHistorySparkline points={insights.points} trend={insights.trend} />
-            </div>
+            {Array.isArray(insights.points) && insights.points.length > 0 ? (
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white px-2 py-2 dark:border-slate-700 dark:bg-slate-900/70">
+                <PriceHistorySparkline points={insights.points} trend={insights.trend} />
+              </div>
+            ) : null}
 
             <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-2">
               <p>Početna cijena: <span className="font-semibold text-slate-900 dark:text-slate-100">{formatBosnianPrice(insights.initialPrice)}</span></p>
@@ -806,9 +939,17 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
             </div>
 
             {insights.timelineDesc.map((point) => {
-              const isUp = point.delta > 0;
-              const isDown = point.delta < 0;
-              const deltaLabel = point.delta === 0 ? "0 KM" : formatSignedPriceDelta(point.delta);
+              const hasDelta = Number.isFinite(point?.delta);
+              const isUp = hasDelta && point.delta > 0;
+              const isDown = hasDelta && point.delta < 0;
+              const isOnRequestPoint = point?.onRequest === true;
+              const deltaLabel = isOnRequestPoint
+                ? "Na upit"
+                : !hasDelta
+                ? "—"
+                : point.delta === 0
+                ? "0 KM"
+                : formatSignedPriceDelta(point.delta);
 
               return (
                 <div
@@ -819,17 +960,29 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
                     <span
                       className={cn(
                         "inline-flex h-8 w-8 items-center justify-center rounded-lg border",
-                        isDown
+                        isOnRequestPoint
+                          ? "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          : isDown
                           ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-700/50 dark:bg-emerald-900/25 dark:text-emerald-300"
                           : isUp
                           ? "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-700/50 dark:bg-rose-900/25 dark:text-rose-300"
                           : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                       )}
                     >
-                      {isDown ? <MdTrendingDown size={16} /> : isUp ? <MdTrendingUp size={16} /> : <MdHistory size={16} />}
+                      {isOnRequestPoint ? (
+                        <MdInfoOutline size={16} />
+                      ) : isDown ? (
+                        <MdTrendingDown size={16} />
+                      ) : isUp ? (
+                        <MdTrendingUp size={16} />
+                      ) : (
+                        <MdHistory size={16} />
+                      )}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatBosnianPrice(point.price)}</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {isOnRequestPoint ? "Na upit" : formatBosnianPrice(point.price)}
+                      </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         {point.dateValue ? formatShortDate(point.dateValue) : "Datum nije dostupan"}
                       </p>
@@ -839,13 +992,15 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
                   <div className="flex items-center gap-2">
                     {point.isCurrent ? (
                       <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-primary dark:bg-primary/20">
-                        Trenutna
+                        {isOnRequestPoint ? "Trenutna · na upit" : "Trenutna"}
                       </span>
                     ) : (
                       <span
                         className={cn(
                           "rounded-full px-2 py-1 text-[11px] font-semibold",
-                          isDown
+                          isOnRequestPoint
+                            ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                            : isDown
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                             : isUp
                             ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
@@ -862,7 +1017,9 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
 
             {insights.changeCount === 0 ? (
               <div className="px-3 py-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                Cijena nije mijenjana. Oglas ima stabilnu cijenu.
+                {insights.currentOnRequest
+                  ? "Cijena je trenutno na upit."
+                  : "Cijena nije mijenjana. Oglas ima stabilnu cijenu."}
               </div>
             ) : null}
           </section>
@@ -937,11 +1094,15 @@ const ProductDetailCard = ({
   const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
   const oldPrice = productDetails?.old_price;
   const currentPrice = productDetails?.price;
+  const currentPriceOnRequest = useMemo(
+    () => resolvePriceOnRequestState(productDetails),
+    [productDetails]
+  );
   const oldPriceNumber = Number(oldPrice);
   const currentPriceNumber = Number(currentPrice);
   const historyInsights = useMemo(
-    () => buildPriceHistoryInsights(normalizedPriceHistory, currentPrice),
-    [normalizedPriceHistory, currentPrice]
+    () => buildPriceHistoryInsights(normalizedPriceHistory, currentPrice, currentPriceOnRequest),
+    [normalizedPriceHistory, currentPrice, currentPriceOnRequest]
   );
   const showHistorySection = !isJobCategory && historyInsights.hasAnyPrice;
   const renewalSourceDate =

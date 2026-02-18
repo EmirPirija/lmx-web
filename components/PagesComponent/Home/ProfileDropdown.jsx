@@ -261,7 +261,7 @@ const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
 // ============================================
 // GLAVNA KOMPONENTA
 // ============================================
-const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
+const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dockPhase, setDockPhase] = useState("idle");
   const { navigate } = useNavigate();
@@ -272,8 +272,9 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
   const transitionTimersRef = useRef({ open: null, close: null });
   const lastStatsFetchRef = useRef(0);
   const dockSuspendKey = "profile-dropdown-sheet";
-  const DOCK_HIDE_BEFORE_OPEN_MS = 120;
-  const DOCK_SHOW_AFTER_CLOSE_MS = 180;
+  const isInstantDockOpen = dockOpenMode === "instant";
+  const DOCK_HIDE_BEFORE_OPEN_MS = isInstantDockOpen ? 0 : 120;
+  const DOCK_SHOW_AFTER_CLOSE_MS = isInstantDockOpen ? 120 : 180;
   const PROFILE_DROPDOWN_FETCH_COOLDOWN_MS = 15000;
 
   const userData = useSelector(userSignUpData);
@@ -449,8 +450,15 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
 
       if (nextOpen) {
         if (dockPhase === "opening" || isOpen) return;
-        setDockPhase("opening");
         setDockSuspended?.(dockSuspendKey, true, { keepNavOpen: true });
+
+        if (DOCK_HIDE_BEFORE_OPEN_MS <= 0) {
+          setIsOpen(true);
+          setDockPhase("idle");
+          return;
+        }
+
+        setDockPhase("opening");
         transitionTimersRef.current.open = window.setTimeout(() => {
           setIsOpen(true);
           setDockPhase("idle");
@@ -474,7 +482,17 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
         transitionTimersRef.current.close = null;
       }, DOCK_SHOW_AFTER_CLOSE_MS);
     },
-    [isMobile, clearTransitionTimers, setDockSuspended, clearDockSuspended, dockPhase, isOpen]
+    [
+      isMobile,
+      clearTransitionTimers,
+      setDockSuspended,
+      clearDockSuspended,
+      dockPhase,
+      isOpen,
+      DOCK_HIDE_BEFORE_OPEN_MS,
+      DOCK_SHOW_AFTER_CLOSE_MS,
+      mobileDock,
+    ]
   );
 
   useEffect(() => {
