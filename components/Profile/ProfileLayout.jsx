@@ -21,6 +21,7 @@ import MembershipBadge from "@/components/Common/MembershipBadge";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { useNavigate } from "@/components/Common/useNavigate";
+import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import FirebaseData from "@/utils/Firebase";
 import { resolveMembership } from "@/lib/membership";
 import { resolveVerificationState } from "@/lib/verification";
@@ -47,7 +48,7 @@ import {
 import { Crown } from "@/components/Common/UnifiedIconPack";
 import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================
@@ -133,8 +134,8 @@ const PROFILE_CONTEXT_COPY = {
     description: "Pregled uplata, troškova i historije plaćanja.",
   },
   "/user-subscription": {
-    title: "Planovi i pristup",
-    description: "Pregled promotivnog režima i dostupnih planova.",
+    title: "Promo pristup",
+    description: "Svi planovi su trenutno aktivni kroz promo režim.",
   },
 };
 
@@ -281,10 +282,23 @@ const MenuItem = ({
   );
 
   if (disabled) {
+    const promoItem =
+      String(unavailableBadge || "")
+        .toLowerCase()
+        .includes("promo") ||
+      String(label || "")
+        .toLowerCase()
+        .includes("promo");
     return (
       <button
         type="button"
-        onClick={() => toast.info(`${label} je privremeno nedostupno.`)}
+        onClick={() =>
+          toast.info(
+            promoItem
+              ? "Promo pristup je aktivan: svi planovi su trenutno dostupni bez troškova."
+              : `${label} je privremeno nedostupno.`
+          )
+        }
         className="block w-full text-left"
       >
         {content}
@@ -722,6 +736,9 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   const pathname = usePathname();
   const { navigate } = useNavigate();
   const { signOut } = FirebaseData();
+  const mobileDock = useAdaptiveMobileDock();
+  const setDockSuspended = mobileDock?.setSuspended;
+  const clearDockSuspended = mobileDock?.clearSuspended;
 
   const userData = useSelector(userSignUpData);
   const settings = useSelector(settingsData);
@@ -729,10 +746,15 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
   const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
   const lastStatsFetchRef = useRef(0);
+  const mobileMenuTimersRef = useRef({ open: null, close: null });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuPhase, setMobileMenuPhase] = useState("idle");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const PROFILE_LAYOUT_FETCH_COOLDOWN_MS = 15000;
+  const MOBILE_MENU_DOCK_KEY = "profile-layout-sheet";
+  const DOCK_HIDE_BEFORE_OPEN_MS = 120;
+  const DOCK_SHOW_AFTER_CLOSE_MS = 180;
 
   const [userStats, setUserStats] = useState({
     activeAds: 0,
@@ -765,6 +787,68 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     }
   }, []);
 
+  const clearMobileMenuTimers = useCallback(() => {
+    if (mobileMenuTimersRef.current.open) {
+      window.clearTimeout(mobileMenuTimersRef.current.open);
+      mobileMenuTimersRef.current.open = null;
+    }
+    if (mobileMenuTimersRef.current.close) {
+      window.clearTimeout(mobileMenuTimersRef.current.close);
+      mobileMenuTimersRef.current.close = null;
+    }
+  }, []);
+
+  const closeMobileMenuImmediately = useCallback(() => {
+    clearMobileMenuTimers();
+    setMobileMenuOpen(false);
+    setMobileMenuPhase("idle");
+    clearDockSuspended?.(MOBILE_MENU_DOCK_KEY);
+  }, [clearMobileMenuTimers, clearDockSuspended]);
+
+  const handleMobileMenuOpenChange = useCallback(
+    (nextOpen) => {
+      clearMobileMenuTimers();
+
+      if (nextOpen) {
+        if (mobileMenuPhase === "opening" || mobileMenuOpen) return;
+        setMobileMenuPhase("opening");
+        setDockSuspended?.(MOBILE_MENU_DOCK_KEY, true, { keepNavOpen: true });
+        mobileMenuTimersRef.current.open = window.setTimeout(() => {
+          setMobileMenuOpen(true);
+          setMobileMenuPhase("idle");
+          mobileMenuTimersRef.current.open = null;
+        }, DOCK_HIDE_BEFORE_OPEN_MS);
+        return;
+      }
+
+      if (!mobileMenuOpen && mobileMenuPhase !== "opening") {
+        setMobileMenuPhase("idle");
+        clearDockSuspended?.(MOBILE_MENU_DOCK_KEY);
+        return;
+      }
+
+      setMobileMenuOpen(false);
+      setMobileMenuPhase("closing");
+      mobileDock?.closeNav?.();
+      mobileMenuTimersRef.current.close = window.setTimeout(() => {
+        clearDockSuspended?.(MOBILE_MENU_DOCK_KEY);
+        setMobileMenuPhase("idle");
+        mobileMenuTimersRef.current.close = null;
+      }, DOCK_SHOW_AFTER_CLOSE_MS);
+    },
+    [
+      clearMobileMenuTimers,
+      mobileMenuPhase,
+      mobileMenuOpen,
+      setDockSuspended,
+      clearDockSuspended,
+      mobileDock,
+      DOCK_HIDE_BEFORE_OPEN_MS,
+      DOCK_SHOW_AFTER_CLOSE_MS,
+      MOBILE_MENU_DOCK_KEY,
+    ]
+  );
+
   const handleHardLogout = useCallback(async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
@@ -790,7 +874,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   }, [isLoggingOut, signOut, userData?.fcm_id, navigate]);
 
   const handleLogout = useCallback(() => {
-    setMobileMenuOpen(false);
+    closeMobileMenuImmediately();
 
     if (setIsLogout) {
       setIsLogout(true);
@@ -798,7 +882,28 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     }
 
     void handleHardLogout();
-  }, [setIsLogout, handleHardLogout]);
+  }, [setIsLogout, handleHardLogout, closeMobileMenuImmediately]);
+
+  const preventSheetAutoFocusScroll = useCallback((event) => {
+    event.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearMobileMenuTimers();
+      clearDockSuspended?.(MOBILE_MENU_DOCK_KEY);
+    };
+  }, [clearMobileMenuTimers, clearDockSuspended, MOBILE_MENU_DOCK_KEY]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (mobileMenuOpen) return;
+
+    const openDialogs = document.querySelectorAll('[role="dialog"][data-state="open"]');
+    if (openDialogs.length === 0 && document.body.style.overflow === "hidden") {
+      document.body.style.overflow = "";
+    }
+  }, [mobileMenuOpen, mobileMenuPhase]);
 
   const fetchAllData = useCallback(async ({ showLoader = false, force = false } = {}) => {
     if (!userData) return;
@@ -923,32 +1028,149 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     [userStats]
   );
 
-  // Mobile sidebar (Sheet kao ProfileDropdown)
+  const mobileFlatNavItems = useMemo(
+    () =>
+      navigationSections.flatMap((section) =>
+        section.items.map((item) => ({
+          ...item,
+          sectionTitle: section.title,
+        }))
+      ),
+    [navigationSections]
+  );
+
+  const mobileActiveNavItem = useMemo(() => {
+    const matched = mobileFlatNavItems.find((item) => isProfileNavItemActive(pathname, item));
+    return matched || mobileFlatNavItems[0] || null;
+  }, [mobileFlatNavItems, pathname]);
+  const MobileActiveNavIcon = mobileActiveNavItem?.icon || IoMenuOutline;
+
+  // Mobile sidebar (isti pattern kao ProfileDropdown: bottom sheet + dock phase)
   const MobileSidebar = (
-    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-      <SheetTrigger
-        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 lg:hidden"
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => handleMobileMenuOpenChange(true)}
+        disabled={mobileMenuPhase === "opening"}
+        className={cn(
+          "flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 lg:hidden",
+          mobileMenuPhase === "opening" && "pointer-events-none opacity-80"
+        )}
         aria-label="Otvori meni"
+        aria-expanded={mobileMenuOpen}
       >
         <IoMenuOutline size={20} className="text-slate-600 dark:text-slate-300" />
         <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Meni</span>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-[320px] max-w-[85vw] p-0">
-        <ProfileSidebar
-          userData={userData}
-          customAvatarUrl={customAvatarUrl}
-          sellerAvatarId={sellerAvatarId}
-          userStats={userStats}
-          isStatsLoading={isStatsLoading}
-          navigationSections={navigationSections}
-          pathname={pathname}
-          handleLogout={handleLogout}
-          isLoggingOut={isLoggingOut}
-          onClose={() => setMobileMenuOpen(false)}
-          isMobile={true}
+        <IoChevronForward
+          size={14}
+          className={cn(
+            "text-slate-500 transition-transform duration-200 dark:text-slate-400",
+            mobileMenuOpen && "rotate-90"
+          )}
         />
-      </SheetContent>
-    </Sheet>
+      </button>
+
+      <Sheet open={mobileMenuOpen} onOpenChange={handleMobileMenuOpenChange}>
+        <SheetContent
+          side="bottom"
+          onOpenAutoFocus={preventSheetAutoFocusScroll}
+          onCloseAutoFocus={preventSheetAutoFocusScroll}
+          className="z-[96] h-[calc(100dvh-0.75rem)] max-h-[calc(100dvh-0.75rem)] overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent p-0 shadow-2xl dark:border-slate-700 [&>button]:hidden"
+        >
+          <div className="flex h-full flex-col overflow-hidden bg-white/95 backdrop-blur-xl dark:bg-slate-900/95">
+            <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-3 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Meni prodavača
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleMobileMenuOpenChange(false)}
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  aria-label="Zatvori meni"
+                >
+                  <IoCloseOutline size={18} />
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                  Odabrano
+                </p>
+                {mobileActiveNavItem ? (
+                  <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <MobileActiveNavIcon size={15} className="shrink-0 text-slate-600 dark:text-slate-300" />
+                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {mobileActiveNavItem.label}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                      {mobileActiveNavItem.description || mobileActiveNavItem.sectionTitle}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400">
+                    Odaberite sekciju.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain p-2 scrollbar-lmx">
+              <div className="space-y-2">
+                {navigationSections.map((section) => (
+                  <div key={`mobile-menu-${section.title}`}>
+                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+                      {section.title}
+                    </p>
+                    <div className="space-y-0.5">
+                      {section.items.map((item) => (
+                        <MenuItem
+                          key={`mobile-menu-item-${item.href || item.label}`}
+                          icon={item.icon}
+                          label={item.label}
+                          description={item.description}
+                          href={item.href}
+                          onClick={
+                            item.onClick
+                              ? () => {
+                                  item.onClick();
+                                  closeMobileMenuImmediately();
+                                }
+                              : closeMobileMenuImmediately
+                          }
+                          isActive={isProfileNavItemActive(pathname, item)}
+                          badge={item.badge}
+                          isNew={item.isNew}
+                          danger={item.danger}
+                          disabled={Boolean(item.disabled)}
+                          unavailableBadge={item.unavailableBadge}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 p-2 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                  <IoLogOutOutline size={18} className="text-slate-500 dark:text-slate-300" />
+                </div>
+                <span>{isLoggingOut ? "Odjava..." : "Odjavi se"}</span>
+              </button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 
   return (

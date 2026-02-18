@@ -928,7 +928,7 @@ const SellerSettings = () => {
               </div>
 
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-2">LMX avatar set</p>
+                {/* <p className="text-xs font-medium text-slate-500 mb-2">LMX avatar set</p>
                 <div className="grid grid-cols-8 gap-2">
                   {AVATAR_IDS.map((avatarId) => (
                     <button
@@ -946,7 +946,7 @@ const SellerSettings = () => {
                       <LmxAvatarSvg avatarId={avatarId} className="w-6 h-6" />
                     </button>
                   ))}
-                </div>
+                </div> */}
               </div>
             </div>
           </SettingSection>

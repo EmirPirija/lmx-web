@@ -146,6 +146,7 @@ const HomeHeader = () => {
   const [isMobileHeaderCollapsed, setIsMobileHeaderCollapsed] = useState(false);
   const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false);
   const [isMobileUtilityMenuOpen, setIsMobileUtilityMenuOpen] = useState(false);
+  const [isMobileOverflowLinksOpen, setIsMobileOverflowLinksOpen] = useState(false);
   const [adsMobileHeaderState, setAdsMobileHeaderState] = useState({
     enabled: false,
     hideHeader: false,
@@ -341,6 +342,7 @@ const HomeHeader = () => {
 
   const closeMobileUtilityMenu = useCallback(() => {
     setIsMobileUtilityMenuOpen(false);
+    setIsMobileOverflowLinksOpen(false);
   }, []);
 
   const toggleMobileUtilityMenu = useCallback(() => {
@@ -349,10 +351,12 @@ const HomeHeader = () => {
       if (next) setIsMobileSearchFocused(false);
       return next;
     });
+    setIsMobileOverflowLinksOpen(false);
   }, []);
 
   const runMobileMenuAction = useCallback((callback) => {
     setIsMobileUtilityMenuOpen(false);
+    setIsMobileOverflowLinksOpen(false);
     setIsMobileSearchFocused(false);
     window.requestAnimationFrame(() => callback?.());
   }, []);
@@ -374,6 +378,9 @@ const HomeHeader = () => {
     !isMobileSearchFocused;
   const mobileDock = useAdaptiveMobileDock();
   const showMobileDockNav = !isLargeScreen && !hideMobileBottomNav;
+  const mobileProfileLabel = userData?.name
+    ? truncate(userData.name, 10)
+    : "Profil";
 
   const renderDockCompactNav = useCallback(
     ({ isExpanded }) => (
@@ -491,13 +498,13 @@ const HomeHeader = () => {
                   />
                 </div>
                 <span
-                  className={`text-[10px] ${
+                  className={`max-w-[70px] truncate text-[10px] text-center ${
                     pathname.startsWith("/profile")
                       ? "font-semibold text-primary"
                       : "text-slate-600 dark:text-slate-400"
                   }`}
                 >
-                  Profil
+                  {mobileProfileLabel}
                 </span>
               </>
             ) : (
@@ -542,6 +549,7 @@ const HomeHeader = () => {
       setIsLoginOpen,
       setIsLogout,
       totalUnreadMessages,
+      mobileProfileLabel,
     ]
   );
 
@@ -909,8 +917,8 @@ const HomeHeader = () => {
 
                   <div className="flex items-center gap-2">
 
-                  <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none overflow-x-visible">
-                    <div className="flex w-max items-center gap-2 pr-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 pr-1">
                       {primaryHeaderQuickLinks.map((link) => (
                         <CustomLink
                           key={`desktop-quick-link-${link.id}`}
@@ -1257,8 +1265,8 @@ const HomeHeader = () => {
                             <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
                               Brzi linkovi
                             </p>
-                            <div className="overflow-x-auto scrollbar-none">
-                              <div className="flex w-max items-center gap-2 pr-1">
+                            <div className="space-y-2 pr-1">
+                              <div className="flex flex-wrap items-center gap-2">
                                 {primaryHeaderQuickLinks.map((link) => (
                                   <CustomLink
                                     key={`mobile-quick-link-${link.id}`}
@@ -1271,40 +1279,51 @@ const HomeHeader = () => {
                                 ))}
 
                                 {overflowHeaderQuickLinks.length > 0 && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <button
-                                        type="button"
-                                        className="inline-flex h-9 items-center rounded-full border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
-                                        aria-label="Prikaži ostale linkove"
-                                      >
-                                        Ostalo
-                                        <ChevronDown size={13} className="ml-1" />
-                                      </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                      align="start"
-                                      className="w-56 rounded-2xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setIsMobileOverflowLinksOpen((prev) => !prev)
+                                    }
+                                    className="inline-flex h-9 items-center rounded-full border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
+                                    aria-label="Prikaži ostale linkove"
+                                    aria-expanded={isMobileOverflowLinksOpen}
+                                  >
+                                    Ostalo
+                                    <ChevronDown
+                                      size={13}
+                                      className={`ml-1 transition-transform duration-200 ${
+                                        isMobileOverflowLinksOpen ? "rotate-180" : ""
+                                      }`}
+                                    />
+                                  </button>
+                                )}
+                              </div>
+
+                              <AnimatePresence initial={false}>
+                                {isMobileOverflowLinksOpen &&
+                                  overflowHeaderQuickLinks.length > 0 && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: -4, height: 0 }}
+                                      animate={{ opacity: 1, y: 0, height: "auto" }}
+                                      exit={{ opacity: 0, y: -4, height: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                      className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
                                     >
-                                      {overflowHeaderQuickLinks.map((link) => (
-                                        <DropdownMenuItem
-                                          asChild
-                                          key={`mobile-overflow-link-${link.id}`}
-                                          className="rounded-xl"
-                                        >
+                                      <div className="grid grid-cols-1 gap-1">
+                                        {overflowHeaderQuickLinks.map((link) => (
                                           <CustomLink
+                                            key={`mobile-overflow-link-${link.id}`}
                                             href={link.href}
                                             onClick={closeMobileUtilityMenu}
-                                            className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                                            className="w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                                           >
                                             {link.label || t(link.labelKey)}
                                           </CustomLink>
-                                        </DropdownMenuItem>
-                                      ))}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
-                              </div>
+                                        ))}
+                                      </div>
+                                    </motion.div>
+                                  )}
+                              </AnimatePresence>
                             </div>
                           </div>
 

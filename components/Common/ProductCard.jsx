@@ -8,16 +8,13 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/reducer/compareSlice";
 import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
-import { getScarcityCopy, getScarcityState } from "@/utils/scarcity";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 import {
   Clock2Fill,
   Heart,
-  Rocket,
   Youtube,
   Store,
-  TransferFill,
   ChevronLeft,
   ChevronRight,
   GitCompare,
@@ -158,9 +155,6 @@ const getKeyAttributes = (item) => {
   const fuel = findValue(["gorivo"]);
   pushUnique(fuel);
 
-  const transmission = findValue(["mjenjač", "mjenjac"]);
-  pushUnique(transmission);
-
   const mileageRaw = findValue([
     "kilometraza (km)",
     "kilometraža (km)",
@@ -190,11 +184,7 @@ const getConditionLabel = (item) => {
   if (["novo", "new", "nekoristeno", "unused"].includes(normalized)) {
     return "Novo";
   }
-  if (["koristeno", "used", "polovno", "rabljeno"].includes(normalized)) {
-    return "Korišteno";
-  }
-
-  return String(rawValue).trim();
+  return "";
 };
 
 const normalizeText = (value = "") =>
@@ -391,47 +381,46 @@ const readAvailableNow = (item = {}) => {
   return null;
 };
 
-const readExchangePossible = (item = {}) => {
-  const directCandidates = [
-    item?.exchange_possible,
-    item?.is_exchange,
-    item?.is_exchange_possible,
-    item?.allow_exchange,
-    item?.exchange,
-    item?.zamjena,
-    item?.zamena,
-    item?.translated_item?.exchange_possible,
-    item?.translated_item?.is_exchange,
-    item?.translated_item?.allow_exchange,
-    item?.translated_item?.zamjena,
-  ];
+const getListingStatusMeta = (item = {}, availableNow = null) => {
+  const status = normalizeText(item?.status || item?.translated_item?.status || "");
+  const reservationStatus = normalizeText(item?.reservation_status || item?.translated_item?.reservation_status || "");
+  const hasReservedUser = Boolean(item?.reserved_for_user_id);
 
-  const direct = readBooleanFromCandidates(directCandidates);
-  if (direct !== null) return direct;
+  const isSold = ["soldout", "sold out", "sold", "prodano", "rasprodano"].includes(status);
+  const isReserved =
+    ["reserved", "rezervisano"].includes(status) ||
+    ["reserved", "rezervisano"].includes(reservationStatus) ||
+    hasReservedUser;
 
-  const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
-    "exchange_possible",
-    "is_exchange",
-    "is_exchange_possible",
-    "allow_exchange",
-    "exchange",
-    "zamjena",
-    "zamena",
-    "trade",
-    "swap",
-  ]);
-  if (fromCustomFields !== null) return fromCustomFields;
+  if (isSold) {
+    return {
+      label: "Prodano",
+      className:
+        "border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-700/70 dark:bg-rose-900/40 dark:text-rose-200",
+    };
+  }
 
-  const fromTranslatedFields = readBooleanFromTranslatedFields(item, [
-    "zamjen",
-    "zamena",
-    "exchange",
-    "trade",
-    "swap",
-  ]);
-  if (fromTranslatedFields !== null) return fromTranslatedFields;
+  if (isReserved) {
+    return {
+      label: "Rezervisano",
+      className:
+        "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200",
+    };
+  }
 
-  return false;
+  if (availableNow === false && status && !["approved", "active", "featured"].includes(status)) {
+    return {
+      label: "Rezervisano",
+      className:
+        "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200",
+    };
+  }
+
+  return {
+    label: "Dostupno",
+    className:
+      "border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200",
+  };
 };
 
 // ============================================
@@ -460,6 +449,11 @@ const formatPriceOrInquiry = (price) => {
   return formatPriceAbbreviated(Number(price));
 };
 
+const META_CHIP_CLASS =
+  "inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold leading-none text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200";
+const STATUS_CHIP_BASE_CLASS =
+  "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold leading-none";
+
 // ============================================
 // KARTICA
 // ============================================
@@ -470,8 +464,6 @@ const ProductCard = ({
   isLoading,
   onClick,
   trackingParams,
-  showScarcityMeta = false,
-  scarcityCopy: scarcityCopyOverride = null,
 }) => {
   const dispatch = useDispatch();
   const userData = useSelector(userSignUpData);
@@ -482,11 +474,14 @@ const ProductCard = ({
   const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(item), [item]);
   const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
   const translated_item = item?.translated_item;
-  const publishedAgo = formatRelativeTime(item?.created_at || translated_item?.created_at);
+  const publishedAgo = formatRelativeTime(
+    item?.published_at || item?.created_at || translated_item?.created_at
+  );
 
   const keyAttributes = getKeyAttributes(item);
   const conditionLabel = getConditionLabel(item);
   const availableNow = readAvailableNow(item);
+  const statusMeta = useMemo(() => getListingStatusMeta(item, availableNow), [item, availableNow]);
   const isShopSeller = resolveMembership(
     item,
     item?.membership,
@@ -506,6 +501,17 @@ const ProductCard = ({
   const isOnSale = item?.is_on_sale === true || item?.is_on_sale === 1;
   const oldPrice = item?.old_price;
   const currentPrice = item?.price;
+  const metaValues = useMemo(() => {
+    const values = Array.isArray(keyAttributes) ? [...keyAttributes] : [];
+    if (conditionLabel) {
+      const normalizedCondition = normalizeText(conditionLabel);
+      const withoutCondition = values.filter(
+        (entry) => normalizeText(entry) !== normalizedCondition
+      );
+      return [conditionLabel, ...withoutCondition];
+    }
+    return values;
+  }, [keyAttributes, conditionLabel]);
   const discountPercentage = useMemo(() => {
     const explicit = Number(item?.discount_percentage || 0);
     if (explicit > 0) return explicit;
@@ -521,20 +527,6 @@ const ProductCard = ({
   }, [item?.discount_percentage, isOnSale, oldPrice, currentPrice]);
 
   const hasVideo = !!(item?.video_link && String(item?.video_link).trim() !== "");
-  const exchangePossible = readExchangePossible(item);
-  const scarcityState = useMemo(() => getScarcityState(item), [item]);
-  const scarcityCopy = useMemo(
-    () => scarcityCopyOverride || getScarcityCopy(scarcityState),
-    [scarcityCopyOverride, scarcityState]
-  );
-  const showActiveScarcity = showScarcityMeta && scarcityState?.isEligible;
-  const showOutOfStockLabel = showScarcityMeta && scarcityState?.isOutOfStock;
-  const showPopularHint = showActiveScarcity && scarcityState?.popularity?.hasSignal;
-  const topStatusCount = [
-    Boolean(conditionLabel),
-    Boolean(availableNow),
-    Boolean(showActiveScarcity || showOutOfStockLabel),
-  ].filter(Boolean).length;
 
   // Priprema slajdova
   const slides = useMemo(() => {
@@ -665,7 +657,7 @@ const ProductCard = ({
     <CustomLink
       href={productLink}
       className={cn(
-        "group relative flex flex-col h-full overflow-hidden",
+        "group relative flex h-full w-[95%] flex-col overflow-hidden mx-auto",
         "bg-white rounded-xl border border-slate-100",
         "transition-all duration-200",
         "hover:shadow-sm",
@@ -682,7 +674,7 @@ const ProductCard = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative aspect-[16/10] bg-slate-50">
+        <div className="relative aspect-[4/3] bg-slate-50">
           <div className="absolute inset-0 w-full h-full">
             {slides[currentSlide].type === "image" ? (
               <CustomImage
@@ -764,71 +756,33 @@ const ProductCard = ({
           </div>
 
           {/* Meta informacije dolje-lijevo */}
-          {!isViewMoreSlide && (
+          {/* {!isViewMoreSlide && (
             <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2">
               {hasVideo ? (
                 <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
-                  {/* Video */}
+                  
                 </OverlayPill>
               ) : null}
             </div>
-          )}
+          )} */}
 
-          {/* Status strip na prijelomu slike i donjeg bijelog dijela */}
-          {!isViewMoreSlide && (conditionLabel || availableNow || showActiveScarcity || showOutOfStockLabel) ? (
+          {/* Primarni status (Dostupno/Rezervisano/Prodano) + Izdvojeno na prelomu slike i sadržaja */}
+          {!isViewMoreSlide ? (
             <div className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5">
-              {showActiveScarcity ? (
+              <span className={cn(STATUS_CHIP_BASE_CLASS, statusMeta.className)}>{statusMeta.label}</span>
+              {item?.is_feature ? (
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
-                    "text-[10px] font-semibold leading-none",
-                    "border-amber-300 bg-amber-100/95 text-amber-900 shadow-sm",
-                    "dark:border-amber-600/70 dark:bg-amber-900/45 dark:text-amber-100"
+                    STATUS_CHIP_BASE_CLASS,
+                    "border-amber-300 bg-amber-100 text-amber-800",
+                    "dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200"
                   )}
+                  title="Istaknuti oglas"
+                  aria-label="Istaknuti oglas"
                 >
-                  {scarcityCopy?.badge || "Do isteka zaliha"}
+                  Izdvojeno
                 </span>
               ) : null}
-
-              {showOutOfStockLabel ? (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
-                    "text-[10px] font-semibold leading-none",
-                    "border-rose-300 bg-rose-100/95 text-rose-800 shadow-sm",
-                    "dark:border-rose-700/70 dark:bg-rose-900/40 dark:text-rose-200"
-                  )}
-                >
-                  Rasprodano
-                </span>
-              ) : null}
-
-              {conditionLabel ? (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
-                    "text-[10px] font-semibold leading-none",
-                    "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
-                    "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
-                  )}
-                >
-                  {conditionLabel}
-                </span>
-              ) : null}
-
-              {availableNow ? (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
-                    "text-[10px] font-semibold leading-none",
-                    "border-emerald-300 bg-emerald-100/95 text-emerald-800 shadow-sm",
-                    "dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200"
-                  )}
-                >
-                  Dostupno
-                </span>
-              ) : null}
-
             </div>
           ) : null}
 
@@ -923,39 +877,20 @@ const ProductCard = ({
       </div>
 
       {/* SADRŽAJ */}
-      <div
-        className={cn(
-          "flex flex-col gap-2 p-3 flex-1",
-          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-5" : null
-        )}
-      >
+      <div className={cn("flex flex-col gap-2 p-3 flex-1", !isViewMoreSlide ? "pt-5" : null)}>
 
         <div className="flex items-start justify-between gap-2">
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
             {translated_item?.name || item?.name}
           </h3>
-          {item?.is_feature ? (
-            <span
-              className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
-              title="Istaknuti oglas"
-              aria-label="Istaknuti oglas"
-            >
-              <Rocket className="h-4 w-4 text-amber-500 dark:text-amber-300" />
-            </span>
-          ) : null}
         </div>
 
-        {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
+        {Array.isArray(metaValues) && metaValues.length > 0 ? (
           <div className="flex flex-wrap gap-1">
-            {keyAttributes.map((attr, index) => (
+            {metaValues.map((attr, index) => (
               <span
                 key={`${attr}-${index}`}
-                className={cn(
-                  "inline-flex items-center",
-                  "px-2 py-0.5 rounded-md border",
-                  "bg-slate-50 text-slate-700 border-slate-100",
-                  "text-[10px] font-semibold"
-                )}
+                className={META_CHIP_CLASS}
               >
                 {attr}
               </span>
@@ -963,25 +898,12 @@ const ProductCard = ({
           </div>
         ) : null}
 
-        {showActiveScarcity ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800 dark:border-amber-600/40 dark:bg-amber-500/10 dark:text-amber-200">
-              {scarcityCopy?.quantity}
-            </span>
-            {showPopularHint ? (
-              <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-[10px] font-semibold text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200">
-                Popularno
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-
         <div
-          className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800"
+          className="mt-auto flex flex-col-reverse items-center justify-between gap-2 pt-2 sm:flex-row"
         >
           {publishedAgo ? (
             <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-              <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" />
+              {/* <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" /> */}
               <span className="truncate">{publishedAgo}</span>
             </div>
           ) : !isHidePrice ? (
@@ -991,31 +913,13 @@ const ProductCard = ({
           {!isHidePrice ? (
             isJobCategory ? (
               <div className="flex items-center gap-2">
-                {exchangePossible ? (
-                  <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
-                    title="Zamjena moguća"
-                    aria-label="Zamjena moguća"
-                  >
-                    <TransferFill className="h-4 w-4 text-primary" />
-                  </span>
-                ) : null}
                 <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   {formatSalaryRange(item?.min_salary, item?.max_salary)}
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                {exchangePossible ? (
-                  <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
-                    title="Zamjena moguća"
-                    aria-label="Zamjena moguća"
-                  >
-                    <TransferFill className="h-4 w-4 text-primary" />
-                  </span>
-                ) : null}
-                <div className="flex flex-col items-end leading-none">
+                <div className="flex flex-col items-center leading-none sm:items-end">
                   {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
                     <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
                       {formatPriceAbbreviated(Number(oldPrice))}
@@ -1035,11 +939,11 @@ const ProductCard = ({
                   >
                     {formatPriceOrInquiry(item?.price)}
                   </span>
-                  {showRealEstatePerM2 ? (
+                  {/* {showRealEstatePerM2 ? (
                     <span className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300">
                       {formatPriceAbbreviated(Number(realEstatePricing.perM2Value))} / m²
                     </span>
-                  ) : null}
+                  ) : null} */}
                 </div>
               </div>
             )
@@ -1055,7 +959,7 @@ ProductCard.displayName = "ProductCard";
 export const ProductCardSkeleton = () => {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-      <Skeleton className="relative aspect-[16/10] w-full rounded-none border-0 shadow-none" />
+      <Skeleton className="relative aspect-[4/3] w-full rounded-none border-0 shadow-none" />
       <div className="p-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <Skeleton className="h-3 w-16 rounded" />

@@ -722,7 +722,7 @@ const ComponentFour = ({
       <div className="space-y-4 border-t border-slate-100 pt-8 dark:border-slate-700">
         <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
             <Play className="w-5 h-5 text-red-500" />
-            Video prezentacija
+            Video URL
         </h3>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">

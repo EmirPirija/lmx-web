@@ -1,0 +1,85 @@
+<svg width="520" height="760" viewBox="0 0 520 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#BFD9FF"/>
+      <stop offset="55%" stop-color="#8AB8F9"/>
+      <stop offset="100%" stop-color="#5D91E8"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="520" height="760" fill="url(#bg)"/>
+
+  <!-- Card shell -->
+  <rect x="34" y="26" width="452" height="708" rx="24" fill="#FFFFFF" stroke="#D8E1EB" stroke-width="2"/>
+
+  <!-- Hero image -->
+  <clipPath id="clipHero">
+    <rect x="34" y="26" width="452" height="318" rx="24"/>
+  </clipPath>
+  <g clip-path="url(#clipHero)">
+    <rect x="34" y="26" width="452" height="318" fill="url(#hero)"/>
+    <rect x="44" y="46" width="160" height="220" rx="14" fill="#8DAEE2" opacity="0.38"/>
+    <rect x="220" y="52" width="246" height="176" rx="14" fill="#7EA5E1" opacity="0.3"/>
+    <rect x="184" y="240" width="278" height="84" rx="14" fill="#5F8DD7" opacity="0.26"/>
+    <circle cx="350" cy="178" r="58" fill="#FFFFFF" opacity="0.18"/>
+  </g>
+
+  <!-- Over-image chips -->
+  <rect x="52" y="46" width="116" height="34" rx="17" fill="#EEF2FF" stroke="#C7D2FE"/>
+  <text x="90" y="67" text-anchor="middle" font-family="Inter, system-ui" font-size="14" font-weight="700" fill="#4338CA">LMX Shop</text>
+
+  <rect x="432" y="46" width="36" height="36" rx="18" fill="#FFFFFF" stroke="#D1D9E4"/>
+  <path d="M441 64.5C441 58.701 445.701 54 451.5 54C457.299 54 462 58.701 462 64.5V76H441V64.5Z" fill="#F8FAFC"/>
+  <path d="M447 62.8C447 60.149 449.149 58 451.8 58C454.451 58 456.6 60.149 456.6 62.8V66.5H447V62.8Z" stroke="#334155" stroke-width="1.8"/>
+
+  <!-- Body -->
+  <text x="52" y="390" font-family="Inter, system-ui" font-size="38" font-weight="800" fill="#0F172A">15,000 KM</text>
+
+  <text x="52" y="432" font-family="Inter, system-ui" font-size="35" font-weight="700" fill="#0F172A">Volvo S80 D5 AWD</text>
+  <text x="52" y="470" font-family="Inter, system-ui" font-size="35" font-weight="700" fill="#0F172A">AUTOMATIK 2013</text>
+
+  <!-- Attributes row -->
+  <rect x="52" y="490" width="72" height="34" rx="17" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="88" y="512" text-anchor="middle" font-family="Inter, system-ui" font-size="16" font-weight="700" fill="#334155">2013</text>
+
+  <rect x="132" y="490" width="92" height="34" rx="17" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="178" y="512" text-anchor="middle" font-family="Inter, system-ui" font-size="16" font-weight="700" fill="#334155">Benzin</text>
+
+  <rect x="232" y="490" width="124" height="34" rx="17" fill="#F1F5F9" stroke="#E2E8F0"/>
+  <text x="294" y="512" text-anchor="middle" font-family="Inter, system-ui" font-size="16" font-weight="700" fill="#334155">Automatski</text>
+
+  <!-- Status row -->
+  <rect x="52" y="538" width="110" height="34" rx="17" fill="#ECFDF5" stroke="#86EFAC"/>
+  <text x="107" y="560" text-anchor="middle" font-family="Inter, system-ui" font-size="16" font-weight="700" fill="#166534">Dostupno</text>
+
+  <rect x="170" y="538" width="100" height="34" rx="17" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="220" y="560" text-anchor="middle" font-family="Inter, system-ui" font-size="16" font-weight="700" fill="#1D4ED8">Zamjena</text>
+
+  <rect x="278" y="538" width="110" height="34" rx="17" fill="#FFFBEB" stroke="#FCD34D"/>
+  <text x="333" y="560" text-anchor="middle" font-family="Inter, system-ui" font-size="16" font-weight="700" fill="#B45309">Izdvojeno</text>
+
+  <!-- Scarcity strip -->
+  <rect x="52" y="588" width="416" height="44" rx="14" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="72" y="616" font-family="Inter, system-ui" font-size="18" font-weight="700" fill="#9A3412">Posljednji komadi · Još 2 dostupno</text>
+
+  <!-- Footer -->
+  <line x1="52" y1="650" x2="468" y2="650" stroke="#E2E8F0"/>
+
+  <g>
+    <circle cx="66" cy="680" r="9" fill="#0EA5A4" opacity="0.14"/>
+    <circle cx="66" cy="680" r="4.3" fill="#0F766E"/>
+    <text x="84" y="686" font-family="Inter, system-ui" font-size="22" font-weight="600" fill="#64748B">prije 21 dan</text>
+  </g>
+
+  <g>
+    <path d="M332 675L348 675" stroke="#0EA5A4" stroke-width="3" stroke-linecap="round"/>
+    <path d="M340 667L348 675L340 683" stroke="#0EA5A4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M372 667L364 675L372 683" stroke="#0EA5A4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M364 675L380 675" stroke="#0EA5A4" stroke-width="3" stroke-linecap="round"/>
+    <text x="398" y="686" font-family="Inter, system-ui" font-size="34" font-weight="800" fill="#0F172A">15,000 KM</text>
+  </g>
+</svg>

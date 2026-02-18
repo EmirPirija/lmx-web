@@ -164,7 +164,7 @@ const Subscription = () => {
         ) : (
           listingPackages?.length > 0 && (
             <div className="flex flex-col gap-4 mt-8">
-              <h1 className="text-2xl font-medium">{t("adListingPlan")}</h1>
+              <h1 className="text-2xl font-medium">Privremeno nedo</h1>
               <div className="relative">
                 <Carousel
                   key={isRTL ? "rtl" : "ltr"}

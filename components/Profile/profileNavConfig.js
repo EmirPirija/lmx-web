@@ -155,8 +155,10 @@ export const getProfileNavigationSections = ({
         {
           href: "/user-subscription",
           icon: CreditCard,
-          label: "Planovi i pristup",
-          description: "Promotivni režim i pregled planova",
+          label: "Promo pristup",
+          description: "Svi planovi su trenutno aktivni kroz promo režim",
+          disabled: true,
+          unavailableBadge: "Promo",
         },
         {
           href: "/transactions",

@@ -303,6 +303,17 @@ const EditComponentOne = ({
   real_estate_area_m2 = null,
   isPriceOptional,
 }) => {
+  const parseBooleanFlag = (value) => {
+    if (value === true || value === 1 || value === "1") return true;
+    if (value === false || value === 0 || value === "0") return false;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (["true", "da", "yes", "on", "enabled"].includes(normalized)) return true;
+      if (["false", "ne", "no", "off", "disabled"].includes(normalized)) return false;
+    }
+    return Boolean(value);
+  };
+
   const router = useRouter();
   const dispatch = useDispatch();
   const currencyPosition = useSelector(getCurrencyPosition);
@@ -329,10 +340,53 @@ const EditComponentOne = ({
     currencyPosition === "right" ? `00 ${currencySymbol}` : `${currencySymbol} 00`;
 
   const isDefaultLang = langId === defaultLangId;
+  const sharedInventoryFields = useMemo(
+    () =>
+      new Set([
+        "inventory_count",
+        "minimum_order_quantity",
+        "stock_alert_threshold",
+        "seller_product_code",
+        "scarcity_enabled",
+      ]),
+    []
+  );
+  const applySharedInventoryPatch = useCallback(
+    (prev = {}, patch = {}) => {
+      const targetKeys = [];
+      if (langId !== undefined && langId !== null) targetKeys.push(String(langId));
+      if (defaultLangId !== undefined && defaultLangId !== null) {
+        targetKeys.push(String(defaultLangId));
+      }
+      if (targetKeys.length === 0) {
+        const firstExistingKey = Object.keys(prev || {})[0];
+        if (firstExistingKey) targetKeys.push(firstExistingKey);
+      }
+
+      const uniqueKeys = [...new Set(targetKeys)];
+      if (uniqueKeys.length === 0) return prev;
+
+      let changed = false;
+      const next = { ...prev };
+      uniqueKeys.forEach((key) => {
+        const prevLang = prev?.[key] || {};
+        const hasDiff = Object.keys(patch).some((field) => prevLang?.[field] !== patch[field]);
+        if (!hasDiff && prev?.[key]) return;
+        next[key] = {
+          ...prevLang,
+          ...patch,
+        };
+        changed = true;
+      });
+
+      return changed ? next : prev;
+    },
+    [defaultLangId, langId]
+  );
   const parsedInventoryCount = Number(current?.inventory_count || 0);
   const parsedLowThreshold = Math.max(1, Number(current?.stock_alert_threshold || 3));
   const parsedLastUnitsThreshold = Math.max(1, Math.min(2, parsedLowThreshold));
-  const scarcityEnabled = Boolean(current?.scarcity_enabled);
+  const scarcityEnabled = parseBooleanFlag(current?.scarcity_enabled);
   const scarcityHasInventory = Number.isFinite(parsedInventoryCount) && parsedInventoryCount > 0;
   const scarcityIsLow = scarcityHasInventory && parsedInventoryCount <= parsedLowThreshold;
   const scarcityIsLastUnits = scarcityHasInventory && parsedInventoryCount <= parsedLastUnitsThreshold;
@@ -458,6 +512,12 @@ const EditComponentOne = ({
     (field) => (e) => {
       const value = e.target.value;
       setTranslations((prev) => {
+        if (sharedInventoryFields.has(field)) {
+          return applySharedInventoryPatch(prev, {
+            [field]: value,
+          });
+        }
+
         const updatedLangData = {
           ...prev[langId],
           [field]: value,
@@ -473,7 +533,7 @@ const EditComponentOne = ({
         };
       });
     },
-    [langId, defaultLangId, setTranslations]
+    [applySharedInventoryPatch, defaultLangId, langId, setTranslations, sharedInventoryFields]
   );
 
   const handlePriceOnRequest = (checked) => {
@@ -1063,13 +1123,11 @@ const EditComponentOne = ({
                   checked={scarcityEnabled}
                   onCheckedChange={(checked) => {
                     if (scarcityToggleLocked) return;
-                    setTranslations((prev) => ({
-                      ...prev,
-                      [langId]: {
-                        ...prev[langId],
+                    setTranslations((prev) =>
+                      applySharedInventoryPatch(prev, {
                         scarcity_enabled: checked,
-                      },
-                    }));
+                      })
+                    );
                     setScarcityClientLockUntilTs(Date.now() + CLIENT_SCARCITY_COOLDOWN_MS);
                   }}
                   disabled={!hasShopAccess || scarcityToggleLocked}

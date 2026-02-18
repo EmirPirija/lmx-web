@@ -54,7 +54,7 @@ export default function RootLayout({ children }) {
         `}
       >
         {/* 1. ThemeProvider mora obuhvatiti cijelu aplikaciju */}
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           
           {/* 2. Redux Providers */}
           <Providers>

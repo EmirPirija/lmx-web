@@ -394,36 +394,6 @@ const LocationSelector = ({
         </DialogTitle>
       </DialogHeader>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Trenutni odabir</p>
-            <p className="text-sm font-semibold text-slate-800">{getFormattedLocation()}</p>
-          </div>
-          <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-            {getTitle()}
-          </span>
-        </div>
-        <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-          <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">Entitet</p>
-            <p className="font-semibold">{selectionSummary.entity}</p>
-          </div>
-          <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">
-              {selectedLocation.entity?.id === "fbih" ? "Kanton" : "Regija"}
-            </p>
-            <p className="font-semibold">{selectionSummary.region}</p>
-          </div>
-          <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400">Grad/Općina</p>
-            <p className="font-semibold">{selectionSummary.municipality}</p>
-          </div>
-        </div>
-        <p className="text-xs text-slate-500">
-          Savjet: Pretraži naziv grada ili klikni na popularne lokacije za brzi odabir.
-        </p>
-      </div>
  
       {/* Search input */}
       <div className="flex items-center gap-2 border rounded-lg py-2 px-4 relative">

@@ -69,8 +69,8 @@ const PAGE_CONFIGS = {
     isChat: true,
   },
   "/user-subscription": {
-    title: "Planovi i pristup",
-    subtitle: "Promotivni režim i dostupni paketi",
+    title: "Promo pristup",
+    subtitle: "Svi planovi su trenutno aktivni kroz promo režim",
     icon: CreditCard,
     Component: ProfileSubscription,
   },

@@ -831,7 +831,7 @@ export default function SellerDashboard() {
           </AnimatedCard>
 
           {/* Profile Completeness */}
-          {sellerSummary.percent < 100 && (
+          {/* {sellerSummary.percent < 100 && (
             <AnimatedCard delay={0.4}>
               <Alert
                 type="warning"
@@ -890,7 +890,7 @@ export default function SellerDashboard() {
                 </div>
               </Alert>
             </AnimatedCard>
-          )}
+          )} */}
         </div>
 
         {/* Right Column - 1/3 */}
@@ -1019,7 +1019,7 @@ export default function SellerDashboard() {
           </AnimatedCard>
 
           {/* Quick Links */}
-          <AnimatedCard delay={0.6}>
+          {/* <AnimatedCard delay={0.6}>
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5">
               <h3 className="text-base font-semibold text-slate-900 mb-4">Korisni linkovi</h3>
 
@@ -1064,7 +1064,7 @@ export default function SellerDashboard() {
                 </CustomLink>
               </div>
             </div>
-          </AnimatedCard>
+          </AnimatedCard> */}
         </div>
       </div>
     </div>

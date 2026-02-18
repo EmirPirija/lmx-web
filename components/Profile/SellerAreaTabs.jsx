@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import CustomLink from "@/components/Common/CustomLink";
 import { cn } from "@/lib/utils";
 import {
@@ -57,6 +58,33 @@ const tabs = [
 
 export default function SellerAreaTabs({ badge = 0 }) {
   const pathname = usePathname();
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const mobileNavRef = useRef(null);
+
+  const activeTab = useMemo(
+    () => tabs.find((tab) => pathname === tab.href) || tabs[0],
+    [pathname]
+  );
+
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isMobileNavOpen) return undefined;
+    const handleOutside = (event) => {
+      if (!mobileNavRef.current) return;
+      if (!mobileNavRef.current.contains(event.target)) {
+        setIsMobileNavOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [isMobileNavOpen]);
 
   return (
     <div className="mb-8">
@@ -173,28 +201,99 @@ export default function SellerAreaTabs({ badge = 0 }) {
       {/* Mobile - Select dropdown + Pills */}
       <div className="md:hidden space-y-3">
         {/* Dropdown za navigaciju */}
-        <div className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+        <div
+          ref={mobileNavRef}
+          className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
+        >
           <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Navigacija
           </label>
-          <div className="relative">
-            <select
-              value={pathname}
-              onChange={(e) => {
-                window.location.href = e.target.value;
-              }}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm font-semibold text-slate-900 transition-all cursor-pointer focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-300/20"
+          <div className="space-y-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/80">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                Odabrano
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <activeTab.icon
+                  size={16}
+                  strokeWidth={2.3}
+                  className="shrink-0 text-slate-600 dark:text-slate-300"
+                />
+                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {activeTab.label} — {activeTab.description}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileNavOpen((prev) => !prev)}
+              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              aria-label="Promijeni sekciju"
+              aria-expanded={isMobileNavOpen}
             >
-              {tabs.map((tab) => (
-                <option key={tab.href} value={tab.href}>
-                  {tab.label} — {tab.description}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={18}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-            />
+              Promijeni sekciju
+              <ChevronDown
+                size={16}
+                className={cn(
+                  "text-slate-500 transition-transform duration-200 dark:text-slate-400",
+                  isMobileNavOpen && "rotate-180"
+                )}
+              />
+            </button>
+
+            <AnimatePresence initial={false}>
+              {isMobileNavOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, y: -4, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden rounded-xl border border-slate-200/90 bg-white p-1 dark:border-slate-700 dark:bg-slate-900"
+                >
+                  <div className="grid grid-cols-1 gap-1">
+                    {tabs.map((tab) => {
+                      const isActive = pathname === tab.href;
+                      const Icon = tab.icon;
+                      return (
+                        <CustomLink
+                          key={`mobile-nav-${tab.href}`}
+                          href={tab.href}
+                          onClick={() => setIsMobileNavOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                            isActive
+                              ? "bg-slate-900 text-white dark:bg-primary dark:text-slate-950"
+                              : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <Icon
+                            size={15}
+                            strokeWidth={isActive ? 2.4 : 2}
+                            className={cn(
+                              isActive
+                                ? "text-white dark:text-slate-950"
+                                : "text-slate-500 dark:text-slate-400"
+                            )}
+                          />
+                          <span className="font-semibold">{tab.label}</span>
+                          {tab.badge && badge > 0 ? (
+                            <span
+                              className={cn(
+                                "ml-auto min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold rounded-full",
+                                isActive ? "bg-white text-slate-900" : "bg-red-500 text-white"
+                              )}
+                            >
+                              {badge > 9 ? "9+" : badge}
+                            </span>
+                          ) : null}
+                        </CustomLink>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 

@@ -701,7 +701,7 @@ const ComponentFive = ({
                 ) : null}
               </>
             ) : null}
-
+{/* 
             {location?.city ? (
               <div className="flex items-start gap-4 rounded-xl border-2 border-gray-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
@@ -717,7 +717,7 @@ const ComponentFive = ({
                   </p>
                 </div>
               </div>
-            ) : null}
+            ) : null} */}
           </>
         )}
       </div>

@@ -1425,7 +1425,7 @@ const Ads = () => {
   const renderedAdsContent = advertisements?.isLoading ? (
     Array.from({ length: 12 }).map((_, index) =>
       view === "list" ? (
-        <div className="col-span-12" key={index}>
+        <div className="col-span-12 mb-4" key={index}>
           <ProductHorizontalCardSkeleton />
         </div>
       ) : (
@@ -1441,7 +1441,7 @@ const Ads = () => {
     advertisements.data?.map((item, index) =>
       view === "list" ? (
         <motion.div
-          className="col-span-12"
+          className="col-span-12 mb-4"
           key={item.id || index}
           variants={cardAnimation}
           initial="hidden"
@@ -1473,7 +1473,7 @@ const Ads = () => {
         </motion.div>
       ) : (
         <motion.div
-          className="col-span-6 sm:col-span-6 lg:col-span-4 xl:col-span-3"
+          className="col-span-6 sm:col-span-6 lg:col-span-4 xl:col-span-3 mb-4"
           key={item.id || index}
           variants={cardAnimation}
           initial="hidden"
@@ -1999,7 +1999,7 @@ const Ads = () => {
               </div>
             </div>
           ) : (
-            <div className="grid [grid-template-columns:repeat(12,minmax(0,1fr))] gap-6">
+            <div className="grid [grid-template-columns:repeat(12,minmax(0,1fr))]">
               {renderedAdsContent}
             </div>
             

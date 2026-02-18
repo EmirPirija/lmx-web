@@ -722,7 +722,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
 
           <MenuDivider />
 
-          <MenuSection title="Finansije">
+          {/* <MenuSection title="Finansije">
             <MenuItem
               icon={CreditCard}
               label={"Planovi i pristup"}
@@ -735,15 +735,15 @@ const ProfileDropdown = ({ IsLogout, setIsLogout }) => {
               description="Historija transakcija"
               onClick={() => handleNavigate("/transactions")}
             />
-          </MenuSection>
+          </MenuSection> */}
 
           <MenuDivider />
-
+{/* 
           <MenuSection title="Zajednica">
             <MenuItem icon={IoStarOutline} label={"Ocjene"} description="Recenzije i ocjene" onClick={() => handleNavigate("/reviews")} />
             <MenuItem icon={Medal} label="Bedževi" description="Tvoja postignuća" onClick={() => handleNavigate("/profile/badges")} />
             <MenuItem icon={Trophy} label="Ljestvica" description="Rangiranje korisnika" onClick={() => handleNavigate("/leaderboard")} />
-          </MenuSection>
+          </MenuSection> */}
 
           <MenuDivider />
 

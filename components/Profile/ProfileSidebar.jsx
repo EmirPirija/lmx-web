@@ -119,10 +119,23 @@ function SidebarNavItem({
   );
 
   if (disabled) {
+    const promoItem =
+      String(unavailableBadge || "")
+        .toLowerCase()
+        .includes("promo") ||
+      String(label || "")
+        .toLowerCase()
+        .includes("promo");
     return (
       <button
         type="button"
-        onClick={() => toast.info(`${label} je privremeno nedostupno.`)}
+        onClick={() =>
+          toast.info(
+            promoItem
+              ? "Promo pristup je aktivan: svi planovi su trenutno dostupni bez troškova."
+              : `${label} je privremeno nedostupno.`
+          )
+        }
         className="w-full text-left"
       >
         {content}

@@ -1889,11 +1889,11 @@ const MyAdsCard = ({
         ) : null}
 
         <div
-          className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800"
+          className="mt-auto flex flex-col-reverse items-center justify-between gap-2 border-t border-slate-100 pt-2 sm:flex-row dark:border-slate-800"
         >
           {publishedAgo ? (
             <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-              <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" />
+              {/* <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" /> */}
               <span className="truncate">{publishedAgo}</span>
             </div>
           ) : !isHidePrice ? (
@@ -1934,7 +1934,7 @@ const MyAdsCard = ({
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex flex-col items-end leading-none"
+                  className="flex flex-col items-center leading-none sm:items-end"
                 >
                   {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
                     <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">

@@ -671,3 +671,21 @@ body {
 .lmx-hide button {
   display: none !important;
 }
+
+/* Globalno uklanjanje glow/shadow efekta (po zahtjevu UI clean-up) */
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl,
+.shadow-inner,
+[class*=" shadow-"],
+[class^="shadow-"] {
+  box-shadow: none !important;
+}
+
+.drop-shadow,
+[class*="drop-shadow"] {
+  filter: none !important;
+}

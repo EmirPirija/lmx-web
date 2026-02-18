@@ -1091,6 +1091,17 @@ export const getMainDetailsTranslations = (
   languages,
   defaultLangId
 ) => {
+  const parseBooleanSetting = (value, fallback = false) => {
+    if (value === true || value === 1 || value === "1") return true;
+    if (value === false || value === 0 || value === "0") return false;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (["true", "da", "yes", "on", "enabled"].includes(normalized)) return true;
+      if (["false", "ne", "no", "off", "disabled"].includes(normalized)) return false;
+    }
+    return fallback;
+  };
+
   const translations = {};
   const areaM2 = extractAreaM2FromItem(listingData);
   const initialPerSquare = toPositiveNumber(listingData?.price_per_unit);
@@ -1141,7 +1152,7 @@ export const getMainDetailsTranslations = (
             ? String(listingData.stock_alert_threshold)
             : "",
         seller_product_code: listingData?.seller_product_code || "",
-        scarcity_enabled: Boolean(
+        scarcity_enabled: parseBooleanSetting(
           listingData?.scarcity_enabled ??
           listingData?.is_scarcity_enabled ??
           listingData?.translated_item?.scarcity_enabled ??

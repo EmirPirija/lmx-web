@@ -879,7 +879,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           </div>
         ) : null}
 
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 sm:flex-row dark:border-slate-800">
           
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
             <Clock2Fill className="h-3.5 w-3.5 text-primary" />
@@ -902,7 +902,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                 </span>
               ) : null}
 
-              <div className="flex flex-col items-end leading-none">
+              <div className="flex flex-col items-center leading-none sm:items-end">
                 {isOnSale && Number(oldPrice) > 0 && discountPercentage > 0 ? (
                   <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
                     {formatPriceAbbreviated(Number(oldPrice))}

@@ -351,10 +351,33 @@ const AdsListing = () => {
   }, [showPublishFx]);
 
   const hasTextbox = customFields.some((field) => field.type === "textbox");
+  const primaryLangId = useMemo(() => {
+    if (
+      defaultLangId !== undefined &&
+      defaultLangId !== null &&
+      translations?.[defaultLangId]
+    ) {
+      return defaultLangId;
+    }
+    if (langId !== undefined && langId !== null && translations?.[langId]) {
+      return langId;
+    }
+    const firstTranslationKey = Object.keys(translations || {}).find(
+      (key) => translations?.[key] && typeof translations[key] === "object"
+    );
+    return firstTranslationKey ?? defaultLangId ?? langId;
+  }, [defaultLangId, langId, translations]);
 
-  const defaultDetails = translations[defaultLangId] || {};
-  const currentDetails = translations[langId] || {};
-  const currentExtraDetails = extraDetails[langId] || {};
+  const defaultDetails = translations?.[primaryLangId] || {};
+  const currentDetails = useMemo(
+    () => ({
+      ...(translations?.[primaryLangId] || {}),
+      ...(translations?.[langId] || {}),
+    }),
+    [langId, primaryLangId, translations]
+  );
+  const currentExtraDetails =
+    extraDetails?.[langId] || extraDetails?.[primaryLangId] || {};
 
   const is_job_category = Number(categoryPath[categoryPath.length - 1]?.is_job_category) === 1;
   const isPriceOptional = Number(categoryPath[categoryPath.length - 1]?.price_optional) === 1;
@@ -778,18 +801,56 @@ const AdsListing = () => {
   };
 
   const isEmpty = (x) => !x || !x.toString().trim();
+  const parseBooleanSetting = useCallback((value, fallback = false) => {
+    if (value === true || value === 1 || value === "1") return true;
+    if (value === false || value === 0 || value === "0") return false;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (["true", "da", "yes", "on", "enabled"].includes(normalized)) return true;
+      if (["false", "ne", "no", "off", "disabled"].includes(normalized)) return false;
+    }
+    return fallback;
+  }, []);
+  const getSharedDetailValue = useCallback(
+    (field, fallback = null) => {
+      const candidateKeys = [];
+      if (primaryLangId !== undefined && primaryLangId !== null) {
+        candidateKeys.push(String(primaryLangId));
+      }
+      if (defaultLangId !== undefined && defaultLangId !== null) {
+        candidateKeys.push(String(defaultLangId));
+      }
+      if (langId !== undefined && langId !== null) {
+        candidateKeys.push(String(langId));
+      }
+      Object.keys(translations || {}).forEach((key) => candidateKeys.push(String(key)));
+
+      const uniqueKeys = [...new Set(candidateKeys)];
+      for (const key of uniqueKeys) {
+        const value = translations?.[key]?.[field];
+        if (value !== undefined && value !== null) return value;
+      }
+
+      return fallback;
+    },
+    [defaultLangId, langId, primaryLangId, translations]
+  );
 
   const handleVideoLinkChange = useCallback(
     (value) => {
-      setTranslations((prev) => ({
-        ...prev,
-        [defaultLangId]: {
-          ...(prev?.[defaultLangId] || {}),
-          video_link: value,
-        },
-      }));
+      setTranslations((prev) => {
+        const targetLangId = primaryLangId ?? defaultLangId ?? langId;
+        if (targetLangId === undefined || targetLangId === null) return prev;
+        return {
+          ...prev,
+          [targetLangId]: {
+            ...(prev?.[targetLangId] || {}),
+            video_link: value,
+          },
+        };
+      });
     },
-    [defaultLangId]
+    [defaultLangId, langId, primaryLangId]
   );
 
   const handleUseInstagramAsVideoLink = useCallback(() => {
@@ -873,9 +934,15 @@ const AdsListing = () => {
   const handleFullSubmission = (scheduledDateTime = null) => {
     const { name, description, contact, country_code } = defaultDetails;
     const catId = categoryPath.at(-1)?.id;
-    const scarcityEnabled = !is_real_estate && Boolean(defaultDetails?.scarcity_enabled);
-    const inventoryCount = Number(defaultDetails?.inventory_count || 0);
-    const lowThreshold = Math.max(1, Number(defaultDetails?.stock_alert_threshold || 3));
+    const resolvedScarcityEnabled = parseBooleanSetting(
+      getSharedDetailValue("scarcity_enabled", false),
+      false
+    );
+    const resolvedInventoryCount = getSharedDetailValue("inventory_count", 0);
+    const resolvedStockAlertThreshold = getSharedDetailValue("stock_alert_threshold", 3);
+    const scarcityEnabled = !is_real_estate && Boolean(resolvedScarcityEnabled);
+    const inventoryCount = Number(resolvedInventoryCount || 0);
+    const lowThreshold = Math.max(1, Number(resolvedStockAlertThreshold || 3));
 
     if (!catId) {
       toast.error(t("selectCategory"));
@@ -973,8 +1040,8 @@ const AdsListing = () => {
   const postAd = async (scheduledDateTime = null) => {
     const catId = categoryPath.at(-1)?.id;
     const customFieldTranslations = prepareCustomFieldTranslations(extraDetails);
-    const customFieldFiles = prepareCustomFieldFiles(extraDetails, defaultLangId);
-    const nonDefaultTranslations = filterNonDefaultTranslations(translations, defaultLangId);
+    const customFieldFiles = prepareCustomFieldFiles(extraDetails, primaryLangId);
+    const nonDefaultTranslations = filterNonDefaultTranslations(translations, primaryLangId);
     const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
     const mainTempId = extractTempMediaId(uploadedImages?.[0]);
     const galleryTempIds = (otherImages || []).map(extractTempMediaId).filter(Boolean);
@@ -1004,10 +1071,10 @@ const AdsListing = () => {
       allow_exchange: Boolean(exchangePossible),
       inventory_count:
         !is_real_estate &&
-        defaultDetails?.inventory_count !== undefined &&
-        defaultDetails?.inventory_count !== null &&
-        String(defaultDetails.inventory_count).trim() !== ""
-          ? Number(defaultDetails.inventory_count)
+        getSharedDetailValue("inventory_count") !== undefined &&
+        getSharedDetailValue("inventory_count") !== null &&
+        String(getSharedDetailValue("inventory_count")).trim() !== ""
+          ? Number(getSharedDetailValue("inventory_count"))
           : null,
       price_per_unit:
         is_real_estate
@@ -1019,22 +1086,24 @@ const AdsListing = () => {
           : null,
       minimum_order_quantity:
         !is_real_estate &&
-        defaultDetails?.minimum_order_quantity !== undefined &&
-        defaultDetails?.minimum_order_quantity !== null &&
-        String(defaultDetails.minimum_order_quantity).trim() !== ""
-          ? Math.max(1, Number(defaultDetails.minimum_order_quantity))
+        getSharedDetailValue("minimum_order_quantity") !== undefined &&
+        getSharedDetailValue("minimum_order_quantity") !== null &&
+        String(getSharedDetailValue("minimum_order_quantity")).trim() !== ""
+          ? Math.max(1, Number(getSharedDetailValue("minimum_order_quantity")))
           : null,
       stock_alert_threshold:
         !is_real_estate &&
-        defaultDetails?.stock_alert_threshold !== undefined &&
-        defaultDetails?.stock_alert_threshold !== null &&
-        String(defaultDetails.stock_alert_threshold).trim() !== ""
-          ? Math.max(1, Number(defaultDetails.stock_alert_threshold))
+        getSharedDetailValue("stock_alert_threshold") !== undefined &&
+        getSharedDetailValue("stock_alert_threshold") !== null &&
+        String(getSharedDetailValue("stock_alert_threshold")).trim() !== ""
+          ? Math.max(1, Number(getSharedDetailValue("stock_alert_threshold")))
           : null,
       seller_product_code: is_real_estate
         ? ""
-        : String(defaultDetails?.seller_product_code || "").trim(),
-      scarcity_enabled: is_real_estate ? false : Boolean(defaultDetails?.scarcity_enabled),
+        : String(getSharedDetailValue("seller_product_code", "") || "").trim(),
+      scarcity_enabled: is_real_estate
+        ? false
+        : parseBooleanSetting(getSharedDetailValue("scarcity_enabled", false), false),
       video_link: trimmedVideoLink,
       ...(mainTempId ? { temp_main_image_id: mainTempId } : {}),
       ...(galleryTempIds.length ? { temp_gallery_image_ids: galleryTempIds } : {}),

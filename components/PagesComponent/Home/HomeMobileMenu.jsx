@@ -194,14 +194,17 @@ const HomeMobileMenu = ({
         <IconBell size={22} />
         <span>{t("notifications")}</span>
       </CustomLink>
-      <CustomLink
-        href="/user-subscription"
-        className="flex items-center gap-2 py-3"
-        onClick={() => setIsOpen(false)}
+      <button
+        type="button"
+        disabled
+        className="flex w-full cursor-not-allowed items-center gap-2 py-3 text-left opacity-70"
       >
         <IconCurrencyDollar size={22} />
-        <span>{t("subscription")}</span>
-      </CustomLink>
+        <span>Promo pristup</span>
+        <span className="ml-auto rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+          Aktivno
+        </span>
+      </button>
       <CustomLink
         href="/favorites"
         className="flex items-center gap-2 py-3"
