@@ -1175,7 +1175,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
   return (
     <div className="profile-shell min-h-screen bg-[var(--background)]">
-      <div className="container relative mx-auto px-4 py-6 lg:px-6 lg:py-8">
+      <div className="container relative mx-auto px-0 py-6 lg:px-6 lg:py-8">
         <div className="pointer-events-none absolute -top-10 left-2 h-44 w-44 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
         <div className="pointer-events-none absolute right-2 top-20 h-40 w-40 rounded-full bg-secondary/10 blur-3xl dark:bg-secondary/20" />
 

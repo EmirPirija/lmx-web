@@ -1310,7 +1310,7 @@ const HomeHeader = () => {
                                       transition={{ duration: 0.2 }}
                                       className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
                                     >
-                                      <div className="grid grid-cols-1 gap-1">
+                                      <div className="grid grid-cols-1 gap-2">
                                         {overflowHeaderQuickLinks.map((link) => (
                                           <CustomLink
                                             key={`mobile-overflow-link-${link.id}`}

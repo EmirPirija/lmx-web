@@ -1801,7 +1801,7 @@ const EditListing = ({ id }) => {
                         />
 
                         <div
-                          className="relative z-[2] grid gap-1 sm:gap-4"
+                          className="relative z-[2] grid gap-2 sm:gap-4"
                           style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
                         >
                           {steps.map((s, idx) => {

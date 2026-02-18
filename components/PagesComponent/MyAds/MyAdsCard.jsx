@@ -1868,7 +1868,7 @@ const MyAdsCard = ({
         ) : null}
 
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
-          <div className="flex flex-wrap">
+          <div className="flex flex-wrap gap-1">
             {keyAttributes.map((attr, index) => (
               <motion.span
                 key={`${attr}-${index}`}

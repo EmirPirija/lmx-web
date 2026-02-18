@@ -634,7 +634,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
       >
         {/* QUICK STATS */}
         <div className="px-4 py-3 bg-gradient-to-br from-slate-50/70 to-white dark:from-slate-900/70 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800">
-          <div className="grid grid-cols-3 gap-1 bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-700">
+          <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-700">
             <QuickStat icon={Layers} value={userStats.activeAds} label="Oglasi" color="blue" />
             <QuickStat icon={BellRinging} value={userStats.unreadNotifications} label="Obavijesti" color="amber" />
             <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="purple" />
