@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { hasSellerActiveReel } from "@/lib/seller-reel";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
@@ -102,26 +103,6 @@ const normalizeCardPreferences = (raw) => {
     ),
   };
 };
-
-const getSellerVerified = (seller, sellerSettings) => {
-  // 1) ako sellerSettings donosi verification_status
-  const status =
-    sellerSettings?.verification_status ||
-    sellerSettings?.verificationStatus ||
-    seller?.verification_status ||
-    seller?.verificationStatus;
-
-  if (String(status || "").toLowerCase() === "approved") return true;
-
-  // 2) fallback na razna boolean polja
-  return (
-    toBool(seller?.is_verified) ||
-    toBool(seller?.verified) ||
-    toBool(seller?.is_verified_status) ||
-    toBool(seller?.isVerified)
-  );
-};
-
 
 const responseTimeLabels = {
   instant: "par minuta",
@@ -658,12 +639,10 @@ export const MinimalSellerCard = ({
     settings?.membership
   );
 
-  const isVerified =
-  String(settings?.verification_status || "").toLowerCase() === "approved" ||
-  seller?.is_verified === 1 ||
-  seller?.is_verified === true ||
-  seller?.verified === 1 ||
-  seller?.verified === true;
+  const isVerified = useMemo(
+    () => isSellerVerified(seller, settings, seller?.user, seller?.seller, seller?.account),
+    [seller, settings]
+  );
   const hasReel = useMemo(() => hasSellerActiveReel(seller), [seller]);
 
   

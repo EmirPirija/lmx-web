@@ -85,20 +85,39 @@ const UserCard = ({ user, view }) => {
   const membership = resolveMembership(user, user?.membership);
   const isPro = membership.isPro;
   const isShop = membership.isShop;
-  const sellerSettings = user?.seller_settings || user?.sellerSettings || {
+  const baseSellerSettings = user?.seller_settings || user?.sellerSettings || {};
+  const rawCardPreferences = baseSellerSettings?.card_preferences;
+  let parsedCardPreferences = rawCardPreferences;
+
+  if (typeof rawCardPreferences === "string") {
+    try {
+      parsedCardPreferences = JSON.parse(rawCardPreferences);
+    } catch {
+      parsedCardPreferences = {};
+    }
+  }
+
+  if (!parsedCardPreferences || typeof parsedCardPreferences !== "object") {
+    parsedCardPreferences = {};
+  }
+
+  const sellerSettings = {
+    ...baseSellerSettings,
     card_preferences: {
+      ...parsedCardPreferences,
       show_ratings: true,
       show_badges: true,
-      show_member_since: true,
-      show_response_time: true,
+      show_member_since: parsedCardPreferences.show_member_since ?? true,
+      show_response_time: parsedCardPreferences.show_response_time ?? true,
     },
   };
-  const ratingTotal =
+  const ratingTotalRaw =
     user?.ratings_count ??
     user?.reviews_count ??
     user?.total_reviews ??
     user?.reviews ??
     0;
+  const ratingTotal = Number.isFinite(Number(ratingTotalRaw)) ? Number(ratingTotalRaw) : 0;
 
   return (
     <motion.article
@@ -344,7 +363,7 @@ const SviKorisniciPage = () => {
     search: searchParams.get("search") || "",
     membership: searchParams.get("membership") || "",
     shop: searchParams.get("shop") || "",
-    verified: searchParams.get("verified") || "",
+    verified: searchParams.get("verified") || searchParams.get("seller_verified") || "",
     online: searchParams.get("online") || "",
   });
 
@@ -410,67 +429,67 @@ const SviKorisniciPage = () => {
     return String(raw || "").trim() || null;
   };
 
+  const toFiniteNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const resolveAverageRating = (user = {}, details = {}) => {
+    const seller = details?.seller || {};
+    const candidates = [
+      seller?.average_rating,
+      details?.average_rating,
+      details?.ratings?.average_rating,
+      details?.ratings?.avg_rating,
+      details?.ratings?.meta?.average_rating,
+      user?.average_rating,
+      user?.rating,
+      user?.ratings_avg,
+    ];
+
+    for (const candidate of candidates) {
+      const parsed = toFiniteNumber(candidate);
+      if (parsed !== null) return parsed;
+    }
+
+    const list = Array.isArray(details?.ratings?.data) ? details.ratings.data : [];
+    if (!list.length) return 0;
+    const values = list
+      .map((entry) => toFiniteNumber(entry?.ratings ?? entry?.rating))
+      .filter((entry) => entry !== null);
+    if (!values.length) return 0;
+    const sum = values.reduce((acc, value) => acc + value, 0);
+    return sum / values.length;
+  };
+
+  const resolveRatingCount = (user = {}, details = {}) => {
+    const seller = details?.seller || {};
+    const candidates = [
+      details?.ratings?.total,
+      details?.ratings?.meta?.total,
+      seller?.ratings_count,
+      seller?.reviews_count,
+      user?.ratings_count,
+      user?.reviews_count,
+      user?.total_reviews,
+      user?.reviews,
+    ];
+
+    for (const candidate of candidates) {
+      const parsed = toFiniteNumber(candidate);
+      if (parsed !== null) return Math.max(0, parsed);
+    }
+
+    const ratingsList = Array.isArray(details?.ratings?.data) ? details.ratings.data : [];
+    return ratingsList.length;
+  };
+
   const getMembershipFlags = (user, details) =>
     resolveMembership(user, details, details?.membership, details?.seller);
 
   const isVerifiedUser = (user, details) => {
     const seller = details?.seller || {};
-    if (isSellerVerified(user, seller, details)) return true;
-
-    const directFlagCandidates = [
-      user?.is_verified,
-      user?.verified,
-      user?.isVerified,
-      user?.seller_verified,
-      user?.sellerVerified,
-      user?.is_seller_verified,
-      seller?.is_verified,
-      seller?.verified,
-      seller?.seller_verified,
-      seller?.sellerVerified,
-      details?.is_verified,
-      details?.verified,
-      details?.seller_verified,
-    ];
-
-    if (directFlagCandidates.some((value) => isTruthyFlag(value))) {
-      return true;
-    }
-
-    const statusCandidates = [
-      user?.verification_status,
-      user?.verificationStatus,
-      user?.verified_status,
-      user?.kyc_status,
-      seller?.verification_status,
-      seller?.verificationStatus,
-      seller?.verified_status,
-      seller?.kyc_status,
-      seller?.verification?.status,
-      details?.verification_status,
-      details?.verificationStatus,
-      details?.status,
-    ]
-      .map((value) => String(value ?? "").trim().toLowerCase())
-      .filter(Boolean);
-
-    if (
-      statusCandidates.some((status) =>
-        ["approved", "verified", "kyc_approved", "kyc_verified", "seller_verified"].includes(status)
-      )
-    ) {
-      return true;
-    }
-
-    if (
-      statusCandidates.some((status) =>
-        ["pending", "in_review", "rejected", "declined", "not applied", "unverified"].includes(status)
-      )
-    ) {
-      return false;
-    }
-
-    return false;
+    return isSellerVerified(user, seller, details, details?.user, user?.seller, user?.user);
   };
 
   const normalizeUser = (user, details) => {
@@ -478,6 +497,8 @@ const SviKorisniciPage = () => {
     const { isPro, isShop } = getMembershipFlags(user, details);
     const seller = details?.seller || {};
     const verified = isVerifiedUser(user, details);
+    const averageRating = resolveAverageRating(user, details);
+    const ratingCount = resolveRatingCount(user, details);
     const verificationStatus =
       user?.verification_status ??
       user?.verificationStatus ??
@@ -512,11 +533,7 @@ const SviKorisniciPage = () => {
         user?.items_count ??
         user?.ads_count ??
         0,
-      average_rating:
-        seller?.average_rating ??
-        user?.average_rating ??
-        user?.rating ??
-        user?.ratings_avg,
+      average_rating: averageRating,
       has_reel:
         user?.has_reel ??
         seller?.has_reel ??
@@ -528,15 +545,11 @@ const SviKorisniciPage = () => {
         user?.video ??
         null,
       reels_count: Number(derivedReelCount) || 0,
-      ratings_count:
-        seller?.reviews_count ??
-        user?.ratings_count ??
-        user?.reviews_count ??
-        user?.reviews ??
-        0,
+      ratings_count: ratingCount,
       is_pro: isPro,
       is_shop: isShop,
       membership: details?.membership || user?.membership,
+      seller_settings: details?.seller_settings || seller?.seller_settings || user?.seller_settings || null,
     };
     return normalized;
   };
@@ -581,6 +594,9 @@ const SviKorisniciPage = () => {
         if (!data?.seller?.id) return;
         updates[chunk[idx]] = {
           seller: data.seller,
+          ratings: data.ratings,
+          seller_settings: data.seller_settings,
+          user: data.user,
           membership: data.membership,
           is_pro: data.is_pro,
           is_shop: data.is_shop,
@@ -654,7 +670,7 @@ const SviKorisniciPage = () => {
     
     // Filter by verified
     if (filters.verified === "1") {
-      filteredUsers = filteredUsers.filter(user => 
+      filteredUsers = filteredUsers.filter((user) =>
         isVerifiedUser(user, sellerDetailsMap[user?.id])
       );
     }

@@ -9,9 +9,9 @@ import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/redu
 import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
+import { formatRelativeTimeBs } from "@/utils/timeBosnian";
 
 import {
-  Clock2Fill,
   Heart,
   Youtube,
   Store,
@@ -28,32 +28,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 // ============================================
 // POMOĆNE FUNKCIJE
 // ============================================
-
-const formatRelativeTime = (dateString) => {
-  if (!dateString) return "";
-
-  const now = new Date();
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  if (diffInSeconds < 60) return "Upravo sada";
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
-};
 
 const getKeyAttributes = (item) => {
   const attributes = [];
@@ -433,6 +407,7 @@ const OverlayPill = ({ icon: Icon, children, className }) => (
       "inline-flex items-center gap-1.5",
       "px-2 py-1 rounded-lg border text-[11px] font-semibold",
       "bg-white/90 backdrop-blur-sm",
+      "dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-200",
       "shadow-sm",
       className
     )}
@@ -474,8 +449,9 @@ const ProductCard = ({
   const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(item), [item]);
   const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
   const translated_item = item?.translated_item;
-  const publishedAgo = formatRelativeTime(
-    item?.published_at || item?.created_at || translated_item?.created_at
+  const publishedAgo = formatRelativeTimeBs(
+    item?.published_at || item?.created_at || translated_item?.created_at,
+    { capitalize: true, nowLabel: "Upravo sada" }
   );
 
   const keyAttributes = getKeyAttributes(item);
@@ -658,7 +634,7 @@ const ProductCard = ({
       href={productLink}
       className={cn(
         "group relative flex h-full w-[95%] flex-col overflow-hidden mx-auto",
-        "bg-white rounded-xl border border-slate-100",
+        "bg-white rounded-xl border border-slate-100 dark:bg-slate-900 dark:border-slate-800",
         "transition-all duration-200",
         "hover:shadow-sm",
         "cursor-pointer"
@@ -674,7 +650,7 @@ const ProductCard = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative aspect-[4/3] bg-slate-50">
+        <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-950">
           <div className="absolute inset-0 w-full h-full">
             {slides[currentSlide].type === "image" ? (
               <CustomImage
@@ -724,7 +700,9 @@ const ProductCard = ({
                   "bg-white/90 backdrop-blur-sm",
                   "border-slate-200 shadow-sm",
                   "hover:bg-white hover:border-primary/30",
-                  isInCompare && "text-blue-600 border-blue-200 bg-blue-50/90"
+                  "dark:border-slate-700 dark:bg-slate-900/90 dark:hover:bg-slate-900 dark:hover:border-primary/40",
+                  isInCompare &&
+                    "text-blue-600 border-blue-200 bg-blue-50/90 dark:border-blue-400/40 dark:bg-blue-500/15 dark:text-blue-300"
                 )}
                 title={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
                 aria-label={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
@@ -743,7 +721,9 @@ const ProductCard = ({
                   "bg-white/90 backdrop-blur-sm",
                   "border-slate-200 shadow-sm",
                   "hover:bg-white hover:border-rose-300",
-                  item?.is_liked && "text-rose-600 border-rose-200 bg-rose-50/90"
+                  "dark:border-slate-700 dark:bg-slate-900/90 dark:hover:bg-slate-900 dark:hover:border-rose-400",
+                  item?.is_liked &&
+                    "text-rose-600 border-rose-200 bg-rose-50/90 dark:border-rose-400/40 dark:bg-rose-500/15 dark:text-rose-300"
                 )}
                 title={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
                 aria-label={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
@@ -841,6 +821,7 @@ const ProductCard = ({
                     "hidden sm:flex items-center justify-center",
                     "w-8 h-8 rounded-full",
                     "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                    "dark:border-slate-700 dark:bg-slate-900/90",
                     "transition-all duration-200",
                     isHovered
                       ? "opacity-100 translate-x-0"
@@ -848,7 +829,7 @@ const ProductCard = ({
                   )}
                   aria-label="Prethodna slika"
                 >
-                  <ChevronLeft className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+                  <ChevronLeft className="w-4 h-4 text-slate-700 dark:text-slate-200 rtl:rotate-180" />
                 </button>
               )}
 
@@ -861,6 +842,7 @@ const ProductCard = ({
                     "hidden sm:flex items-center justify-center",
                     "w-8 h-8 rounded-full",
                     "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                    "dark:border-slate-700 dark:bg-slate-900/90",
                     "transition-all duration-200",
                     isHovered
                       ? "opacity-100 translate-x-0"
@@ -868,7 +850,7 @@ const ProductCard = ({
                   )}
                   aria-label="Sljedeća slika"
                 >
-                  <ChevronRight className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+                  <ChevronRight className="w-4 h-4 text-slate-700 dark:text-slate-200 rtl:rotate-180" />
                 </button>
               )}
             </>
@@ -903,7 +885,6 @@ const ProductCard = ({
         >
           {publishedAgo ? (
             <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-              {/* <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" /> */}
               <span className="truncate">{publishedAgo}</span>
             </div>
           ) : !isHidePrice ? (
@@ -958,7 +939,7 @@ ProductCard.displayName = "ProductCard";
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden dark:bg-slate-900 dark:border-slate-800">
       <Skeleton className="relative aspect-[4/3] w-full rounded-none border-0 shadow-none" />
       <div className="p-2 flex flex-col gap-2">
         <div className="flex items-center justify-between">

@@ -86,8 +86,7 @@ const getYouTubeEmbedUrl = (input) => {
 
 const extractTempUploadId = (value) => {
   if (!value || typeof value !== "object") return null;
-  return (
-    value?.id ??
+  const explicitTempId =
     value?.temp_id ??
     value?.tempId ??
     value?.upload_id ??
@@ -96,8 +95,25 @@ const extractTempUploadId = (value) => {
     value?.mediaId ??
     value?.file_id ??
     value?.fileId ??
-    null
-  );
+    null;
+
+  if (explicitTempId !== null && explicitTempId !== undefined && String(explicitTempId).trim() !== "") {
+    return explicitTempId;
+  }
+
+  const hasPersistentImageUrl = Boolean(value?.image || value?.original_url || value?.path);
+  const hasTempUrlOnly = Boolean(value?.url) && !hasPersistentImageUrl;
+  const hasTempMarker =
+    value?.is_temp === true ||
+    value?.isTemp === true ||
+    String(value?.source || "").toLowerCase() === "temp" ||
+    String(value?.storage || "").toLowerCase() === "temp";
+
+  if ((hasTempUrlOnly || hasTempMarker) && value?.id !== null && value?.id !== undefined) {
+    return value.id;
+  }
+
+  return null;
 };
 
 const normalizeTempUploadEntity = (value) => {
@@ -157,7 +173,7 @@ const compressAndWatermarkImage = async (file) => {
   const opts = {
     maxSize: 1920,
     quality: 0.80,
-    // watermarkUrl: WATERMARK_URL,
+    watermarkUrl: null,
     watermarkOpacity: 0.9,
     watermarkScale: 0.15,
     watermarkPaddingPct: 0.03,

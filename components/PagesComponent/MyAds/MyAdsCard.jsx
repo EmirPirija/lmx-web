@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { formatPriceAbbreviated, formatSalaryRange } from "@/utils";
 import { getFeaturedMeta } from "@/utils/featuredPlacement";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
+import { formatRelativeTimeBs } from "@/utils/timeBosnian";
 import { useMediaQuery } from "usehooks-ts";
 
 // ============================================
@@ -99,32 +100,6 @@ const formatBosnianDays = (days) => {
   if (days === 1) return "1 dan";
   if (days >= 2 && days <= 4) return `${days} dana`;
   return `${days} dana`;
-};
-
-const formatRelativeTime = (dateString) => {
-  if (!dateString) return "";
-
-  const now = new Date();
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  if (diffInSeconds < 60) return "Upravo sada";
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
 };
 
 const featuredPlacementOptions = [
@@ -1217,7 +1192,10 @@ const MyAdsCard = ({
 }) => {
   const isJobCategory = Number(data?.category?.is_job_category) === 1;
   const translatedItem = data?.translated_item;
-  const publishedAgo = formatRelativeTime(data?.created_at || translatedItem?.created_at);
+  const publishedAgo = formatRelativeTimeBs(data?.created_at || translatedItem?.created_at, {
+    capitalize: true,
+    nowLabel: "Upravo sada",
+  });
 
   const keyAttributes = getKeyAttributes(data);
   const conditionLabel = getConditionLabel(data);

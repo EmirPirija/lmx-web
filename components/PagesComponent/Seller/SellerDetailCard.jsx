@@ -8,7 +8,6 @@ import { toast } from "@/utils/toastBs";
 import { getVerificationStatusApi } from "@/utils/api";
 import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
-import { allItemApi } from "@/utils/api";
 
 // Lucide ikone
 import {
@@ -99,8 +98,8 @@ const toBool = (v) => {
   return false;
 };
 
-const getVerifiedStatus = (seller, settings) => {
-  return isSellerVerified(seller, settings);
+const getVerifiedStatus = (...sources) => {
+  return isSellerVerified(...sources);
 };
 const VerifiedAvatarBadge = ({ avatarSize = 48, verifiedSize = 10, className = "" }) => {
   const badgeSize = Math.max(14, Math.round(avatarSize * 0.33));
@@ -1467,43 +1466,16 @@ const SocialPill = ({ icon: Icon, label, href }) => {
 ===================================================== */
 
 /**
- * Provjerava da li seller ima aktivan reel/video putem API-ja.
- * Koristi isti endpoint kao ReelViewerModal.
+ * Drži lokalni reel state sinkroniziran sa reel signalom iz seller payload-a.
+ * Namjerno bez fallback-a na obične video oglase kako ne bi palilo reel ring
+ * kada prodavač nema stvarni reels/story sadržaj.
  */
-const useSellerHasReel = (sellerId, localHasReel) => {
+const useSellerHasReel = (_sellerId, localHasReel) => {
   const [hasReel, setHasReel] = useState(localHasReel);
 
   useEffect(() => {
-    if (localHasReel) {
-      setHasReel(true);
-      return;
-    }
-
-    if (!sellerId) return;
-
-    let alive = true;
-
-    const check = async () => {
-      try {
-        const res = await allItemApi.getItems({
-          user_id: sellerId,
-          has_video: 1,
-          status: "approved",
-          limit: 1,
-        });
-
-        const items = res?.data?.data?.data || res?.data?.data || res?.data?.items || [];
-        if (alive) {
-          setHasReel(Array.isArray(items) && items.length > 0);
-        }
-      } catch {
-        // fail silently
-      }
-    };
-
-    check();
-    return () => { alive = false; };
-  }, [sellerId, localHasReel]);
+    setHasReel(Boolean(localHasReel));
+  }, [localHasReel]);
 
   return [hasReel, setHasReel];
 };

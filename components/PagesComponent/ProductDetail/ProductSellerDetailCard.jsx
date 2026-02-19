@@ -82,7 +82,7 @@ const VerifiedAvatarBadge = ({ avatarSize = 48, verifiedSize = 10, className = "
   return (
     <span
       className={cn(
-        "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md",
+        "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md dark:border-slate-900",
         className
       )}
       style={{ width: badgeSize, height: badgeSize }}
@@ -289,10 +289,10 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick, on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">Kontakt</h3>
-          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 text-slate-400">
+      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Kontakt</h3>
+          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -312,41 +312,41 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick, on
               <a
                 href={`tel:${phone}`}
                 onClick={() => onPhoneCall?.()}
-                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
               >
                 <Phone className="w-4 h-4 text-emerald-500" />
-                <span className="text-slate-700">{phone}</span>
+                <span className="text-slate-700 dark:text-slate-200">{phone}</span>
               </a>
-              <button type="button" onClick={() => copy("phone", phone)} className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50">
+              <button type="button" onClick={() => copy("phone", phone)} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
                 {copiedKey === "phone" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
               </button>
             </div>
           )}
 
           {showWhatsapp && (
-            <a href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm">
+            <a href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm">
               <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                 <MessageCircle className="w-2.5 h-2.5 text-white" />
               </div>
-              <span className="text-slate-700">WhatsApp</span>
+              <span className="text-slate-700 dark:text-slate-200">WhatsApp</span>
             </a>
           )}
 
           {showViber && (
-            <a href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm">
+            <a href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm">
               <div className="w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
                 <Phone className="w-2.5 h-2.5 text-white" />
               </div>
-              <span className="text-slate-700">Viber</span>
+              <span className="text-slate-700 dark:text-slate-200">Viber</span>
             </a>
           )}
 
           {showEmail && (
             <div className="flex items-center gap-1.5">
-              <a href={`mailto:${email}`} className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm truncate">
-                <span className="text-slate-700 truncate">{email}</span>
+              <a href={`mailto:${email}`} className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm truncate">
+                <span className="text-slate-700 dark:text-slate-200 truncate">{email}</span>
               </a>
-              <button type="button" onClick={() => copy("email", email)} className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50">
+              <button type="button" onClick={() => copy("email", email)} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
                 {copiedKey === "email" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
               </button>
             </div>
@@ -428,15 +428,15 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <DialogContent showCloseButton={false} className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100">
+            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
               <CustomImage src={resolveSellerAvatar(seller)} alt={seller?.name} width={32} height={32} className="w-full h-full object-cover" />
             </div>
-            <span className="text-sm font-semibold text-slate-900">{seller?.name}</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{seller?.name}</span>
           </div>
-          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 text-slate-400">
+          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -455,18 +455,18 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
             onChange={(e) => { setMessage(e.target.value); setError(""); }}
             placeholder="Napišite poruku..."
             rows={3}
-            className={cn(
-              "w-full rounded-xl border bg-slate-50 px-3 py-2.5 text-sm resize-none",
+              className={cn(
+              "w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 text-sm resize-none text-slate-900 dark:text-slate-100",
               "placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-              error ? "border-red-300" : "border-slate-200"
+              error ? "border-red-300 dark:border-red-700/60" : "border-slate-200 dark:border-slate-700"
             )}
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
-            <button type="button" onClick={() => onOpenChange(false)} className="flex-1 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl">
+            <button type="button" onClick={() => onOpenChange(false)} className="flex-1 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl">
               Odustani
             </button>
-            <button type="button" onClick={handleSend} disabled={!message.trim() || isSending} className="flex-1 px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-xl disabled:opacity-50">
+            <button type="button" onClick={handleSend} disabled={!message.trim() || isSending} className="flex-1 px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl disabled:opacity-50">
               {isSending ? "..." : "Pošalji"}
             </button>
           </div>
@@ -522,10 +522,10 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">Pošalji ponudu</h3>
-          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 text-slate-400">
+      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Pošalji ponudu</h3>
+          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -533,8 +533,8 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
         <div className="p-4 space-y-3">
           {itemPrice && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Cijena</span>
-              <span className="font-semibold text-slate-900">{typeof itemPrice === 'number' ? `${itemPrice.toFixed(2)} KM` : itemPrice}</span>
+              <span className="text-slate-500 dark:text-slate-400">Cijena</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">{typeof itemPrice === 'number' ? `${itemPrice.toFixed(2)} KM` : itemPrice}</span>
             </div>
           )}
           <div className="relative">
@@ -546,9 +546,9 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
               step="0.01"
               min="0"
               className={cn(
-                "w-full rounded-xl border bg-slate-50 px-3 py-2.5 pr-12 text-lg font-semibold",
+                "w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pr-12 text-lg font-semibold text-slate-900 dark:text-slate-100",
                 "placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
-                error ? "border-red-300" : "border-slate-200"
+                error ? "border-red-300 dark:border-red-700/60" : "border-slate-200 dark:border-slate-700"
               )}
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">KM</span>
@@ -697,16 +697,34 @@ const ProductSellerDetailCard = ({
 
 
   const isVerified = useMemo(() => {
-      return getVerifiedStatus(seller, settings, sellerSettings, productDetails?.user);
-    }, [seller, settings, sellerSettings, productDetails?.user]);
+      return getVerifiedStatus(
+        seller,
+        settings,
+        sellerSettings,
+        productDetails?.user,
+        productDetails?.seller,
+        seller?.user,
+        sellerProp
+      );
+    }, [seller, settings, sellerSettings, productDetails?.user, productDetails?.seller, sellerProp]);
 
   const [hasReel, setHasReel] = useState(
-    Boolean(hasItemVideo(productDetails) || hasSellerActiveReel(seller))
+    Boolean(
+      hasSellerActiveReel(seller) ||
+        hasSellerActiveReel(settings) ||
+        hasSellerActiveReel(sellerSettings)
+    )
   );
 
   useEffect(() => {
-    setHasReel(Boolean(hasItemVideo(productDetails) || hasSellerActiveReel(seller)));
-  }, [productDetails, seller]);
+    setHasReel(
+      Boolean(
+        hasSellerActiveReel(seller) ||
+          hasSellerActiveReel(settings) ||
+          hasSellerActiveReel(sellerSettings)
+      )
+    );
+  }, [seller, settings, sellerSettings]);
   const ringMotion = undefined;
   const ringTransition = undefined;
     

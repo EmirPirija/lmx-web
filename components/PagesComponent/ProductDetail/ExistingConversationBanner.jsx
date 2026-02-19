@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { itemConversationApi } from "@/utils/api";
+import { formatRelativeTimeBs } from "@/utils/timeBosnian";
 
 /**
  * ExistingConversationBanner - Prikazuje poruku ako korisnik već ima aktivan razgovor
@@ -103,10 +104,9 @@ const ExistingConversationBanner = ({ itemId, seller, className = "", showDismis
     const diffMs = Math.max(0, nowValue - date.getTime());
     const diffMin = Math.floor(diffMs / (1000 * 60));
 
-    if (diffMin < 1) return "Prije manje od 1 min";
-    if (diffMin < 60) return `Prije ${diffMin} min`;
-    if (diffMin < 1440) return `Prije ${Math.floor(diffMin / 60)} h`;
-    if (diffMin < 10080) return `Prije ${Math.floor(diffMin / 1440)} dana`;
+    if (diffMin < 10080) {
+      return formatRelativeTimeBs(date, { capitalize: true, nowLabel: "Upravo sada" });
+    }
 
     const months = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
     return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}.`;

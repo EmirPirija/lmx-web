@@ -24,32 +24,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { resolveMembership } from "@/lib/membership";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
-
-const formatRelativeTime = (dateString) => {
-  if (!dateString) return "";
-
-  const now = new Date();
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  if (diffInSeconds < 60) return "Upravo sada";
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return diffInMinutes === 1 ? "Prije 1 minut" : `Prije ${diffInMinutes} minuta`;
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return diffInHours === 1 ? "Prije 1 sat" : `Prije ${diffInHours} sati`;
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return diffInDays === 1 ? "Prije 1 dan" : `Prije ${diffInDays} dana`;
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return diffInMonths === 1 ? "Prije 1 mjesec" : `Prije ${diffInMonths} mjeseci`;
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return diffInYears === 1 ? "Prije 1 godina" : `Prije ${diffInYears} godina`;
-};
+import { formatRelativeTimeBs } from "@/utils/timeBosnian";
 
 const getKeyAttributes = (item) => {
   const attributes = [];
@@ -440,6 +415,7 @@ const OverlayPill = ({ icon: Icon, className, children }) => (
     className={cn(
       "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold",
       "bg-white/90 text-slate-700 backdrop-blur-sm",
+      "dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-200",
       className
     )}
   >
@@ -689,7 +665,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                 {isReserved ? (
                   <OverlayPill
                     icon={Clock}
-                    className="border-blue-200 bg-blue-100/95 text-blue-700"
+                    className="border-blue-200 bg-blue-100/95 text-blue-700 dark:border-blue-700/60 dark:bg-blue-900/35 dark:text-blue-300"
                   >
                     Rezervisano
                   </OverlayPill>
@@ -762,7 +738,9 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                     aria-label={`Slide ${index + 1}`}
                     className={cn(
                       "h-1.5 rounded-full transition-all duration-200",
-                      isActive ? "w-6 bg-white" : "w-1.5 bg-white/70 hover:bg-white"
+                      isActive
+                        ? "w-6 bg-white dark:bg-slate-100"
+                        : "w-1.5 bg-white/70 hover:bg-white dark:bg-slate-400/60 dark:hover:bg-slate-200"
                     )}
                   />
                 );
@@ -855,10 +833,10 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                   className={cn(
                     "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1",
                     "text-[10px] font-semibold leading-none",
-                    "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
-                    "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
-                  )}
-                >
+                  "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
+                  "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
+                )}
+              >
                   {conditionLabel}
                 </span>
               ) : null}
@@ -883,7 +861,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
             <Clock2Fill className="h-3.5 w-3.5 text-primary" />
-            <span>{formatRelativeTime(item?.created_at)}</span>
+            <span>{formatRelativeTimeBs(item?.created_at, { capitalize: true, nowLabel: "Upravo sada" })}</span>
           </div>
 
           

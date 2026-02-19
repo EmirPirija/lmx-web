@@ -154,7 +154,7 @@ const Home = () => {
           allEmpty={allEmpty}
         />
       )}
-      <LowInventoryItems cityData={cityData} KmRange={KmRange} />
+      
       <AllItems cityData={cityData} KmRange={KmRange} />
     </>
   );
