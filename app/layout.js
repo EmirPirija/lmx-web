@@ -59,7 +59,7 @@ export default function RootLayout({ children }) {
           {/* 2. Redux Providers */}
           <Providers>
             {children}
-            <PromoWelcomeModal />
+            {/* <PromoWelcomeModal /> */}
             <CompareFloatingBar />
             <Toaster position="top-center" />
           </Providers>
