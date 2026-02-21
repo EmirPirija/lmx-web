@@ -97,6 +97,10 @@ const PROFILE_CONTEXT_COPY = {
       ? "Instagram/Facebook/TikTok objave su privremeno nedostupne."
       : "Instagram povezivanje, sinhronizacija i zakazane objave.",
   },
+  "/profile/sessions": {
+    title: "Uređaji i sesije",
+    description: "Pregledaj aktivne prijave i po potrebi odjavi sve uređaje.",
+  },
   "/profile/shop-ops": {
     title: "Shop operacije",
     description: "Zalihe, custom domena i operativna kontrola shopa.",

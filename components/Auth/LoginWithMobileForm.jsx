@@ -11,7 +11,11 @@ import { getAuth, signInWithPhoneNumber } from "firebase/auth";
 import { getOtpApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
-import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
+import {
+  LMX_PHONE_DEFAULT_COUNTRY,
+  LMX_PHONE_INPUT_PROPS,
+  resolveLmxPhoneDialCode,
+} from "@/components/Common/phoneInputTheme";
 
 const LoginWithMobileForm = ({
   generateRecaptcha,
@@ -36,10 +40,16 @@ const LoginWithMobileForm = ({
     }));
   };
 
-  const handleCountryChange = (code) => {
+  const handleCountryChange = (countryData) => {
+    const regionCodeRaw =
+      typeof countryData === "string" ? countryData : countryData?.countryCode;
+    const regionCode = String(regionCodeRaw || "").toLowerCase();
+    const resolvedDial = resolveLmxPhoneDialCode(regionCode);
+    const dialCode = countryData?.dialCode ? `+${countryData.dialCode}` : `+${resolvedDial}`;
     setLoginStates((prev) => ({
       ...prev,
-      countryCode: code,
+      countryCode: dialCode,
+      regionCode,
     }));
   };
 
@@ -121,7 +131,7 @@ const LoginWithMobileForm = ({
           {"Prijava brojem"}
         </Label>
         <PhoneInput
-          country={process.env.NEXT_PUBLIC_DEFAULT_COUNTRY}
+          country={LMX_PHONE_DEFAULT_COUNTRY}
           value={number}
           onChange={(phone, data) => handleInputChange(phone, data)}
           onCountryChange={handleCountryChange}

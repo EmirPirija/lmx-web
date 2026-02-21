@@ -3,7 +3,11 @@ import "react-phone-input-2/lib/style.css";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import useAutoFocus from "../Common/useAutoFocus";
-import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
+import {
+  LMX_PHONE_DEFAULT_COUNTRY,
+  LMX_PHONE_INPUT_PROPS,
+  resolveLmxPhoneDialCode,
+} from "@/components/Common/phoneInputTheme";
 
 const RegisterAuthInputField = ({
   type,
@@ -23,10 +27,18 @@ const RegisterAuthInputField = ({
       </Label>
       {type === "phone" ? (
         <PhoneInput
-          country={process.env.NEXT_PUBLIC_DEFAULT_COUNTRY}
+          country={LMX_PHONE_DEFAULT_COUNTRY}
           value={value}
           onChange={(phone, data) => handleInputChange(phone, data)}
-          onCountryChange={(code) => setCountryCode(code)}
+          onCountryChange={(countryData) =>
+            setCountryCode(
+              countryData?.dialCode
+                ? `+${countryData.dialCode}`
+                : `+${resolveLmxPhoneDialCode(
+                    typeof countryData === "string" ? countryData : countryData?.countryCode
+                  )}`
+            )
+          }
           inputProps={{
             name: "phone",
             required: true,

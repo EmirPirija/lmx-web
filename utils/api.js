@@ -65,6 +65,8 @@ export const VERIFY_OTP = "verify-otp";
 export const GET_LOCATION = "get-location";
 export const GET_USER_INFO = "get-user-info";
 export const LOGOUT = "logout";
+export const GET_ACTIVE_SESSIONS = "active-sessions";
+export const LOGOUT_ALL_DEVICES = "logout-all-devices";
 export const SET_ITEM_TOTAL_CLICK = "set-item-total-click";
 export const GET_ALL_USERS = "users";
 
@@ -1176,6 +1178,9 @@ export const addItemApi = {
     category_id,
     all_category_ids,
     price,
+    price_on_request,
+    is_price_on_request,
+    isPriceOnRequest,
     contact,
     video_link,
     custom_fields,
@@ -1236,7 +1241,9 @@ export const addItemApi = {
     if (description) formData.append("description", description);
     if (category_id) formData.append("category_id", category_id);
     if (all_category_ids) formData.append("all_category_ids", all_category_ids);
-    if (price) formData.append("price", price);
+    if (price !== undefined && price !== null && String(price).trim() !== "") {
+      formData.append("price", price);
+    }
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
     if (instagram_source_url) {
@@ -1264,6 +1271,13 @@ export const addItemApi = {
         zamena,
       custom_fields
     );
+    const priceOnRequestRaw =
+      price_on_request ?? is_price_on_request ?? isPriceOnRequest;
+    if (priceOnRequestRaw !== undefined && priceOnRequestRaw !== null) {
+      const priceOnRequest01 = to01(priceOnRequestRaw);
+      formData.append("price_on_request", priceOnRequest01);
+      formData.append("is_price_on_request", priceOnRequest01);
+    }
 
     // ✅ šalji custom_fields bez available_now unutra
     if (cleanedCustomFields !== undefined && cleanedCustomFields !== null) {
@@ -1429,6 +1443,9 @@ export const editItemApi = {
     category_id,
     all_category_ids,
     price,
+    price_on_request,
+    is_price_on_request,
+    isPriceOnRequest,
     contact,
     video_link,
     custom_fields,
@@ -1492,7 +1509,9 @@ export const editItemApi = {
     if (description) formData.append("description", description);
     if (category_id) formData.append("category_id", category_id);
     if (all_category_ids) formData.append("all_category_ids", all_category_ids);
-    if (price) formData.append("price", price);
+    if (price !== undefined && price !== null && String(price).trim() !== "") {
+      formData.append("price", price);
+    }
     if (contact) formData.append("contact", contact);
     if (video_link) formData.append("video_link", video_link);
     if (instagram_source_url) {
@@ -1534,6 +1553,13 @@ export const editItemApi = {
         zamena,
       custom_fields
     );
+    const priceOnRequestRaw =
+      price_on_request ?? is_price_on_request ?? isPriceOnRequest;
+    if (priceOnRequestRaw !== undefined && priceOnRequestRaw !== null) {
+      const priceOnRequest01 = to01(priceOnRequestRaw);
+      formData.append("price_on_request", priceOnRequest01);
+      formData.append("is_price_on_request", priceOnRequest01);
+    }
 
     if (cleanedCustomFields !== undefined && cleanedCustomFields !== null) {
       const cfToSend =
@@ -1952,6 +1978,25 @@ export const getLocationApi = {
         search,
         place_id,
         session_id,
+      },
+    });
+  },
+};
+
+export const sessionApi = {
+  getActiveSessions: () => {
+    return Api.get(GET_ACTIVE_SESSIONS, {
+      params: {},
+    });
+  },
+  logoutAllDevices: ({ keep_current } = {}) => {
+    const formData = new FormData();
+    if (keep_current !== undefined && keep_current !== null) {
+      formData.append("keep_current", keep_current ? "1" : "0");
+    }
+    return Api.post(LOGOUT_ALL_DEVICES, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
       },
     });
   },

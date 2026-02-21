@@ -24,7 +24,11 @@ import { extractApiData, resolveMembership } from "@/lib/membership";
 import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
-import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
+import {
+  LMX_PHONE_DEFAULT_COUNTRY,
+  LMX_PHONE_INPUT_PROPS,
+  resolveLmxPhoneCountry,
+} from "@/components/Common/phoneInputTheme";
 
 // Ikone za sekcije (React Icons)
 import {
@@ -1193,7 +1197,7 @@ const EditComponentOne = ({
 
             <div className="phone-input-container">
               <PhoneInput
-                country={process.env.NEXT_PUBLIC_DEFAULT_COUNTRY}
+                country={resolveLmxPhoneCountry(current?.region_code || LMX_PHONE_DEFAULT_COUNTRY)}
                 value={`${current?.country_code || ""}${current?.contact || ""}`}
                 onChange={(phone, data) => handlePhoneChange(phone, data)}
                 inputProps={{

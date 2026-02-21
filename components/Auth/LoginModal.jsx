@@ -47,7 +47,7 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   const [IsOTPScreen, setIsOTPScreen] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [loginStates, setLoginStates] = useState({
-    number: isDemoMode ? "+919876598765" : "",
+    number: isDemoMode ? "38761111222" : "",
     countryCode: "",
     showLoader: false,
     regionCode: "",
@@ -91,7 +91,7 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
     canShowCredentialForm && google_authentication === 1;
 
   const getInitialLoginState = () => ({
-    number: isDemoMode ? "+919876598765" : "",
+    number: isDemoMode ? "38761111222" : "",
     countryCode: "",
     showLoader: false,
     regionCode: "",

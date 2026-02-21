@@ -61,6 +61,10 @@ import {
   Loader2,
   Sparkles,
 } from "@/components/Common/UnifiedIconPack";
+import {
+  resolveLmxPhoneCountry,
+  resolveLmxPhoneDialCode,
+} from "@/components/Common/phoneInputTheme";
 
 // =======================================================
 // MEDIA HELPERS (client-side)
@@ -316,17 +320,18 @@ const AdsListing = () => {
   const [extraDetails, setExtraDetails] = useState({ [defaultLangId]: {} });
   const [langId, setLangId] = useState(defaultLangId);
 
-  const countryCode = userData?.country_code?.replace("+", "") || "91";
-  const mobile = userData?.mobile || "";
-  const regionCode =
+  const regionCode = resolveLmxPhoneCountry(
     userData?.region_code?.toLowerCase() ||
-    process.env.NEXT_PUBLIC_DEFAULT_COUNTRY?.toLowerCase() ||
-    "in";
+      process.env.NEXT_PUBLIC_DEFAULT_COUNTRY?.toLowerCase() ||
+      "ba"
+  );
+  const countryCode = userData?.country_code?.replace("+", "") || resolveLmxPhoneDialCode(regionCode);
+  const mobile = userData?.mobile || "";
 
   const [translations, setTranslations] = useState({
     [langId]: {
       contact: mobile,
-      country_code: countryCode || "91",
+      country_code: countryCode,
       region_code: regionCode,
       inventory_count: "",
       price_per_unit: "",
@@ -1148,6 +1153,7 @@ const AdsListing = () => {
       // Dodano za akciju
       is_on_sale: defaultDetails.is_on_sale || false,
       old_price: defaultDetails.is_on_sale ? defaultDetails.old_price : null,
+      price_on_request: Boolean(defaultDetails.price_on_request),
     };
     
     // Ako je cijena na upit

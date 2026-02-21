@@ -1,3 +1,32 @@
+export const LMX_PHONE_ALLOWED_COUNTRIES = ["ba", "rs", "hr", "si", "me"];
+
+export const LMX_PHONE_DIAL_CODE_BY_COUNTRY = {
+  ba: "387",
+  rs: "381",
+  hr: "385",
+  si: "386",
+  me: "382",
+};
+
+const normalizeIso2 = (value = "") => String(value || "").trim().toLowerCase();
+
+const envDefaultCountry = normalizeIso2(process.env.NEXT_PUBLIC_DEFAULT_COUNTRY);
+
+export const LMX_PHONE_DEFAULT_COUNTRY = LMX_PHONE_ALLOWED_COUNTRIES.includes(envDefaultCountry)
+  ? envDefaultCountry
+  : "ba";
+
+export const resolveLmxPhoneCountry = (value) => {
+  const normalized = normalizeIso2(value);
+  if (LMX_PHONE_ALLOWED_COUNTRIES.includes(normalized)) return normalized;
+  return LMX_PHONE_DEFAULT_COUNTRY;
+};
+
+export const resolveLmxPhoneDialCode = (value) => {
+  const normalized = resolveLmxPhoneCountry(value);
+  return LMX_PHONE_DIAL_CODE_BY_COUNTRY[normalized] || LMX_PHONE_DIAL_CODE_BY_COUNTRY.ba;
+};
+
 export const LMX_PHONE_INPUT_PROPS = {
   containerClass: "lmx-phone-field !w-full",
   inputClass:
@@ -8,5 +37,15 @@ export const LMX_PHONE_INPUT_PROPS = {
     "!rounded-xl !border !border-slate-200 !bg-white !text-slate-800 !shadow-xl dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-200",
   searchClass:
     "!rounded-lg !border !border-slate-200 !bg-white !text-slate-800 dark:!border-slate-700 dark:!bg-slate-950 dark:!text-slate-100",
+  onlyCountries: LMX_PHONE_ALLOWED_COUNTRIES,
+  preferredCountries: LMX_PHONE_ALLOWED_COUNTRIES,
+  preserveOrder: ["onlyCountries", "preferredCountries"],
+  localization: {
+    ba: "Bosna i Hercegovina",
+    rs: "Srbija",
+    hr: "Hrvatska",
+    si: "Slovenija",
+    me: "Crna Gora",
+  },
   enableLongNumbers: true,
 };

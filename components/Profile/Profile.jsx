@@ -30,7 +30,11 @@ import {
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
-import { LMX_PHONE_INPUT_PROPS } from "@/components/Common/phoneInputTheme";
+import {
+  LMX_PHONE_DEFAULT_COUNTRY,
+  LMX_PHONE_INPUT_PROPS,
+  resolveLmxPhoneCountry,
+} from "@/components/Common/phoneInputTheme";
 
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -643,7 +647,7 @@ export default function Profile() {
             <div className="space-y-1.5">
               <Label htmlFor="phone" className="text-xs text-slate-600 dark:text-slate-300">Broj telefona</Label>
               <PhoneInput
-                country={formData.region_code || "ba"}
+                country={resolveLmxPhoneCountry(formData.region_code || LMX_PHONE_DEFAULT_COUNTRY)}
                 value={`${formData.country_code || ""}${formData.phone || ""}`}
                 onChange={handlePhoneChange}
                 onBlur={() => handleBlur("phone")}

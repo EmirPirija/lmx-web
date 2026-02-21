@@ -66,7 +66,7 @@ const RegisterModal = ({
   const [inputValue, setInputValue] = useState("");
 
   // Register with mobile number states
-  const [number, setNumber] = useState(isDemoMode ? "919876598765" : "");
+  const [number, setNumber] = useState(isDemoMode ? "38761111222" : "");
   const [countryCode, setCountryCode] = useState("");
   const [regionCode, setRegionCode] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
@@ -379,7 +379,7 @@ const RegisterModal = ({
     setIsOTPScreen(false);
     setIsPasswordVisible(false);
     setInputValue("");
-    setNumber(isDemoMode ? "919876598765" : "");
+    setNumber(isDemoMode ? "38761111222" : "");
     setCountryCode("");
     setRegionCode("");
     setConfirmationResult(null);

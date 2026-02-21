@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Link2,
   Box,
+  Smartphone,
   Sparkles,
 } from "@/components/Common/UnifiedIconPack";
 import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
@@ -73,6 +74,13 @@ export const getProfileNavigationSections = ({
           description: SOCIAL_POSTING_TEMP_UNAVAILABLE
             ? "Objave na društvenim mrežama: privremeno nedostupno"
             : "Instagram, sync i zakazane objave",
+          match: "prefix",
+        },
+        {
+          href: "/profile/sessions",
+          icon: Smartphone,
+          label: "Uređaji i sesije",
+          description: "Pregled aktivnih prijava i odjava svih uređaja",
           match: "prefix",
         },
         {
