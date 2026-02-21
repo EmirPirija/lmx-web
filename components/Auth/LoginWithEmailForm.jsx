@@ -4,13 +4,13 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import useAutoFocus from "../Common/useAutoFocus";
 import { toast } from "@/utils/toastBs";
-import { handleFirebaseAuthError, t } from "@/utils";
+import { handleFirebaseAuthError } from "@/utils";
 import {
   getAuth,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { authApi, userSignUpApi, usersApi } from "@/utils/api";
+import { authApi, userSignUpApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { Fcmtoken } from "@/redux/reducer/settingSlice";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
@@ -35,62 +35,29 @@ const LoginWithEmailForm = ({ OnHide }) => {
   const resolveEmailFromIdentifier = async (rawIdentifier) => {
     const normalizedIdentifier = String(rawIdentifier || "").trim();
     if (!normalizedIdentifier) return "";
-    if (EMAIL_REGEX.test(normalizedIdentifier)) return normalizedIdentifier;
+    if (EMAIL_REGEX.test(normalizedIdentifier)) {
+      return normalizedIdentifier.toLowerCase();
+    }
 
     try {
       const resolved = await authApi.resolveLoginIdentifier({
         identifier: normalizedIdentifier,
       });
 
-      const resolvedEmail = String(resolved?.data?.data?.email || "").trim();
-      if (resolvedEmail) return resolvedEmail;
+      const resolvedEmail = String(resolved?.data?.data?.email || "")
+        .trim()
+        .toLowerCase();
+      if (resolvedEmail && EMAIL_REGEX.test(resolvedEmail)) return resolvedEmail;
     } catch (error) {
-      // Fallback for older backends where resolve-login-identifier route is missing.
-      console.warn("resolve-login-identifier failed, trying users fallback.", error);
-    }
-
-    try {
-      const response = await usersApi.getUsers({
-        search: normalizedIdentifier,
-        page: 1,
-        per_page: 100,
-      });
-
-      const candidates = Array.isArray(response?.data?.data)
-        ? response.data.data
-        : [];
-
-      const normalizedNeedle = normalizedIdentifier.toLowerCase();
-
-      const toComparableList = (user) =>
-        [
-          user?.username,
-          user?.user_name,
-          user?.name,
-          user?.display_name,
-          user?.slug,
-        ]
-          .filter(Boolean)
-          .map((value) => String(value).trim().toLowerCase());
-
-      const exactMatch =
-        candidates.find((candidate) =>
-          toComparableList(candidate).includes(normalizedNeedle)
-        ) || null;
-
-      const looseMatch =
-        exactMatch ||
-        candidates.find((candidate) =>
-          toComparableList(candidate).some((value) =>
-            value.includes(normalizedNeedle)
-          )
-        );
-
-      return String(looseMatch?.email || "").trim();
-    } catch (error) {
-      console.error("Error resolving username login identifier:", error);
+      if (error?.response?.status === 429) {
+        toast.error("Previše pokušaja. Pokušaj ponovo za minutu.");
+        return null;
+      }
+      console.error("Greška pri provjeri korisničkog imena:", error);
       return "";
     }
+
+    return "";
   };
 
   const signin = async (email, password) => {
@@ -132,8 +99,11 @@ const LoginWithEmailForm = ({ OnHide }) => {
         normalizedIdentifier,
       );
 
+      if (resolvedEmail === null) {
+        return;
+      }
       if (!resolvedEmail) {
-        toast.error("Korisničko ime nije pronađeno. Pokušajte sa e-mail adresom.");
+        toast.error("Nalog nije pronađen. Provjerite e-mail ili korisničko ime.");
         return;
       }
 
@@ -181,6 +151,9 @@ const LoginWithEmailForm = ({ OnHide }) => {
     }
 
     const resolvedEmail = await resolveEmailFromIdentifier(normalizedIdentifier);
+    if (resolvedEmail === null) {
+      return;
+    }
     if (!resolvedEmail || !EMAIL_REGEX.test(resolvedEmail)) {
       toast.error("Nije moguće poslati reset link. Provjerite unos.");
       return;

@@ -1,6 +1,6 @@
 "use client";
 import { toast } from "@/utils/toastBs";
-import { store } from "../redux/store";
+import { getAppStore } from "../redux/store/storeRef";
 import enTranslation from "./locale/en.json";
 import { generateKeywords } from "./generateKeywords";
 import { getCountryCallingCode } from "react-phone-number-input";
@@ -10,14 +10,19 @@ import {
   toPositiveNumber,
 } from "@/utils/realEstatePricing";
 
+const getSafeState = () => {
+  const appStore = getAppStore();
+  if (!appStore || typeof appStore.getState !== "function") return null;
+  return appStore.getState();
+};
+
 export const t = (label) => {
-  if (typeof store.getState !== "function") {
+  const state = getSafeState();
+  if (!state) {
     return enTranslation[label] || label;
   }
 
-  const langData =
-    store.getState().CurrentLanguage?.language?.file_name &&
-    store.getState().CurrentLanguage?.language?.file_name[label];
+  const langData = state.CurrentLanguage?.language?.file_name?.[label];
   if (langData) {
     return langData;
   } else {
@@ -29,7 +34,7 @@ export const t = (label) => {
 // is login user check
 export const isLogin = () => {
   // Use the selector to access user data
-  const userData = store.getState()?.UserSignup?.data;
+  const userData = getSafeState()?.UserSignup?.data;
   // Check if the token exists
   if (userData?.token) {
     return true;
@@ -39,12 +44,12 @@ export const isLogin = () => {
 };
 
 export const IsLandingPageOn = () => {
-  let settings = store.getState()?.Settings?.data?.data;
+  const settings = getSafeState()?.Settings?.data?.data;
   return Number(settings?.show_landing_page);
 };
 
 export const getDefaultLatLong = () => {
-  let settings = store.getState()?.Settings?.data?.data;
+  const settings = getSafeState()?.Settings?.data?.data;
   const default_latitude = Number(settings?.default_latitude);
   const default_longitude = Number(settings?.default_longitude);
 
@@ -56,7 +61,7 @@ export const getDefaultLatLong = () => {
 };
 
 export const getPlaceApiKey = () => {
-  let settings = store.getState()?.Settings?.data?.data;
+  const settings = getSafeState()?.Settings?.data?.data;
   return settings?.place_api_key;
 };
 
@@ -391,9 +396,9 @@ export const formatPriceAbbreviated = (price) => {
     return "Na upit";
   }
 
-  const settingsData = store.getState()?.Settings?.data?.data;
+  const settingsData = getSafeState()?.Settings?.data?.data;
   const currencySymbol = settingsData?.currency_symbol;
-  const currencyPosition = settingsData.currency_symbol_position;
+  const currencyPosition = settingsData?.currency_symbol_position;
   const countryCode =
     process.env.NEXT_PUBLIC_DEFAULT_COUNTRY?.toUpperCase() || "US";
   const locale = countryLocaleMap[countryCode] || "en-US";
@@ -461,8 +466,8 @@ export const createStickyNote = () => {
     document.body.removeChild(stickyNote);
   };
 
-  const playStoreLink = store.getState()?.Settings?.data?.data?.play_store_link;
-  const appStoreLink = store.getState()?.Settings?.data?.data?.app_store_link;
+  const playStoreLink = getSafeState()?.Settings?.data?.data?.play_store_link;
+  const appStoreLink = getSafeState()?.Settings?.data?.data?.app_store_link;
 
   const message = document.createElement("span");
   message.setAttribute("data-sticky-message", "true");
@@ -691,7 +696,7 @@ export const truncate = (text, maxLength) => {
 };
 
 export const loadStripeApiKey = () => {
-  const STRIPEData = store.getState()?.Settings;
+  const STRIPEData = getSafeState()?.Settings;
   const StripeKey = STRIPEData?.data?.stripe_publishable_key;
   if (StripeKey) {
     ``;

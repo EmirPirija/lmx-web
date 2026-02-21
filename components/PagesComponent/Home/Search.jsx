@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useInView } from "react-intersection-observer";
-import { t } from "@/utils";
 import { usePathname } from "next/navigation";
 import { useNavigate } from "@/components/Common/useNavigate";
 import useGetCategories from "@/components/Layout/useGetCategories";
@@ -30,6 +29,7 @@ import {
 const SEARCH_HISTORY_KEY = "lmx_search_history";
 const SEARCH_HISTORY_ENABLED_KEY = "lmx_search_history_enabled";
 const MAX_HISTORY_ITEMS = 8;
+const SEARCH_RESULT_CACHE_TTL_MS = 45 * 1000;
 
 const levenshteinDistance = (str1, str2) => {
   const m = str1.length;
@@ -112,7 +112,7 @@ const formatSavedSearchSubtitle = (qs) => {
   const country = params.get("country");
   const km = params.get("km_range");
 
-  if (q) parts.push(`Upit: ${q}`);
+  if (q) parts.push(`Pretraga: ${q}`);
   if (category) parts.push(`Kategorija: ${category}`);
 
   if (min || max) {
@@ -197,13 +197,12 @@ const Search = ({
   const [isHistoryEnabled, setIsHistoryEnabled] = useState(true);
   const [didYouMean, setDidYouMean] = useState([]);
 
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const searchTimeoutRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const searchResultCacheRef = useRef(new Map());
   const searchContainerRef = useRef(null);
   const inputRef = useRef(null);
   const dropdownId = "lmx-search-dropdown";
@@ -351,6 +350,20 @@ const Search = ({
         return;
       }
 
+      const cacheKey = query.trim().toLowerCase();
+      const cachedSearch = searchResultCacheRef.current.get(cacheKey);
+      if (cachedSearch && Date.now() - cachedSearch.ts <= SEARCH_RESULT_CACHE_TTL_MS) {
+        setSuggestions(cachedSearch.payload.suggestions);
+        setSuggestedCategories(cachedSearch.payload.suggestedCategories);
+        setSuggestedUsers(cachedSearch.payload.suggestedUsers);
+        setDidYouMean(cachedSearch.payload.didYouMean);
+        setIsSearching(false);
+        return;
+      }
+      if (cachedSearch) {
+        searchResultCacheRef.current.delete(cacheKey);
+      }
+
       if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
 
@@ -377,14 +390,22 @@ const Search = ({
           ];
           const similar = findSimilarTermsFromPool(query, pool, 3);
 
-          setDidYouMean(similar);
-          setSuggestions([]);
-          setSuggestedCategories([]);
-          setSuggestedUsers([]);
+          const emptyResultPayload = {
+            suggestions: [],
+            suggestedCategories: [],
+            suggestedUsers: [],
+            didYouMean: similar,
+          };
+          setDidYouMean(emptyResultPayload.didYouMean);
+          setSuggestions(emptyResultPayload.suggestions);
+          setSuggestedCategories(emptyResultPayload.suggestedCategories);
+          setSuggestedUsers(emptyResultPayload.suggestedUsers);
+          searchResultCacheRef.current.set(cacheKey, {
+            ts: Date.now(),
+            payload: emptyResultPayload,
+          });
           return;
         }
-
-        setDidYouMean([]);
 
         await trackAutocompleteImpressions(ads, query);
 
@@ -407,7 +428,6 @@ const Search = ({
         const searchSuggestions = Array.from(titleWords)
           .filter((s) => s.toLowerCase() !== queryLower)
           .slice(0, 5);
-        setSuggestions(searchSuggestions);
 
         const categoryMap = new Map();
         const flatCats = flattenCategories(cateData);
@@ -458,7 +478,6 @@ const Search = ({
         const catResults = Array.from(categoryMap.values()).sort(
           (a, b) => (b.count || 0) - (a.count || 0)
         );
-        setSuggestedCategories(catResults);
 
         const userMap = new Map();
         ads.forEach((ad) => {
@@ -472,7 +491,19 @@ const Search = ({
         const userResults = Array.from(userMap.values())
           .sort((a, b) => (b.adCount || 0) - (a.adCount || 0))
           .slice(0, 3);
-        setSuggestedUsers(userResults);
+        const searchResultPayload = {
+          suggestions: searchSuggestions,
+          suggestedCategories: catResults,
+          suggestedUsers: userResults,
+          didYouMean: [],
+        };
+        setSuggestions(searchResultPayload.suggestions);
+        setSuggestedCategories(searchResultPayload.suggestedCategories);
+        setSuggestedUsers(searchResultPayload.suggestedUsers);
+        searchResultCacheRef.current.set(cacheKey, {
+          ts: Date.now(),
+          payload: searchResultPayload,
+        });
       } catch (error) {
         if (error.name !== "AbortError") console.error("Search error:", error);
       } finally {
@@ -484,8 +515,6 @@ const Search = ({
 
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    setSelectedIndex(-1);
-
     if (!searchQuery || searchQuery.length < 2) {
       setIsSearching(false);
       setSuggestions([]);
@@ -510,7 +539,6 @@ const Search = ({
         !searchContainerRef.current.contains(event.target)
       ) {
         setShowSuggestions(false);
-        setSelectedIndex(-1);
         if (!searchQuery) setIsSearchFocused(false);
       }
     };
@@ -533,7 +561,6 @@ const Search = ({
 
       if (!query) {
         setShowSuggestions(false);
-        setSelectedIndex(-1);
         setIsSearchFocused(false);
 
         const url =
@@ -562,7 +589,6 @@ const Search = ({
           : `/ads?category=${selectedItem?.slug}&query=${encodedQuery}`;
 
       setShowSuggestions(false);
-      setSelectedIndex(-1);
 
       if (pathname === "/ads") {
         window.history.pushState(null, "", url);
@@ -586,7 +612,6 @@ const Search = ({
   const handleCategoryClick = useCallback(
     (category) => {
       setShowSuggestions(false);
-      setSelectedIndex(-1);
       const url = searchQuery
         ? `/ads?category=${category.slug}&query=${encodeURIComponent(searchQuery)}`
         : `/ads?category=${category.slug}`;
@@ -599,7 +624,6 @@ const Search = ({
     (e) => {
       e.stopPropagation();
       setShowSuggestions(false);
-      setSelectedIndex(-1);
       navigate(`/ads?query=${encodeURIComponent(searchQuery)}`);
     },
     [navigate, searchQuery]
@@ -608,7 +632,6 @@ const Search = ({
   const handleUserClick = useCallback(
     (user) => {
       setShowSuggestions(false);
-      setSelectedIndex(-1);
       navigate(`/seller/${user.id}`);
     },
     [navigate]
@@ -634,7 +657,6 @@ const Search = ({
   const handleInputFocus = useCallback(() => {
     setIsInputFocused(true);
     setShowSuggestions(true);
-    setSelectedIndex(-1);
     setIsSearchFocused(true);
   }, []);
 
@@ -776,7 +798,7 @@ const Search = ({
                 inputRef.current && inputRef.current.focus();
               }}
               className="p-1 rounded-full hover:bg-muted transition-colors duration-150"
-              aria-label={"Obriši pretragu" || "Obriši pretragu"}
+              aria-label="Obriši pretragu"
             >
               <IconX className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             </button>
@@ -793,7 +815,7 @@ const Search = ({
                 compact ? "p-1.5" : "p-2"
               )}
               type="submit"
-              aria-label={"Pretraži oglase" || "Pretraži oglase"}
+              aria-label="Pretraži oglase"
             >
               <IconSearch size={compact ? 15 : 16} className="text-white" />
             </button>
@@ -811,7 +833,7 @@ const Search = ({
               <button
                 type="button"
                 onClick={() => handleSearchNav(null, searchQuery)}
-                className="w-full flex items-center justify-between px-3 py-2 border-b border-gray-100 text-left text-sm transition-all duration-200 hover:bg-gray-50"
+                className="w-full flex items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm transition-all duration-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/70"
                 role="option"
               >
                 <span className="flex items-center gap-2">
@@ -825,9 +847,9 @@ const Search = ({
             )}
 
             {suggestedCategories.length > 0 && (
-              <div className="p-3 border-b border-gray-100">
+              <div className="border-b border-slate-100 p-3 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                     <IconFolder className="w-3 h-3" />
                     Kategorije za pronađene oglase
                   </div>
@@ -845,13 +867,13 @@ const Search = ({
                   {suggestedCategories.map((category) => (
                     <li
                       key={category.id}
-                      className="flex items-center justify-between px-2 py-2 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                      className="flex cursor-pointer items-center justify-between rounded px-2 py-2 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                       onClick={() => handleCategoryClick(category)}
                       role="option"
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <IconFolder className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-sm text-gray-800 truncate">
+                        <span className="truncate text-sm text-slate-800 dark:text-slate-100">
                           {category.search_name ||
                             category.translated_name ||
                             category.name}
@@ -870,15 +892,15 @@ const Search = ({
             )}
 
             {searchQuery.length < 2 && savedSearches?.length > 0 && (
-              <div className="px-4 py-3 border-b">
+              <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Spašene pretrage
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Sačuvane pretrage
                   </p>
                   <button
                     type="button"
                     onClick={() => navigate("/profile/saved-searches")}
-                    className="text-xs text-gray-700 hover:text-black"
+                    className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
                   >
                     Uredi
                   </button>
@@ -896,16 +918,16 @@ const Search = ({
                           s.queryString ? `/ads?${s.queryString}` : "/ads"
                         );
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <IconStarFilled size={16} className="text-gray-700" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                        <IconStarFilled size={16} className="text-slate-700 dark:text-slate-200" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                           {s.naziv}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                           {formatSavedSearchSubtitle(
                             s.queryString || s.query_string || ""
                           )}
@@ -918,24 +940,24 @@ const Search = ({
             )}
 
             {showHistoryPanel && (
-              <div className="p-3 border-b border-gray-100">
+              <div className="border-b border-slate-100 p-3 dark:border-slate-800">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                       <IconClock className="w-3 h-3" />
                       Nedavne pretrage
                     </div>
-                    <p className="mt-1 text-[11px] text-gray-400">
+                    <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
                       {isHistoryEnabled
                         ? "Pamćenje pretrage je uključeno"
                         : "Pamćenje pretrage je isključeno"}
                     </p>
                   </div>
 
-                  <div className="inline-flex items-center gap-2 rounded-full bg-gray-100/85 px-2 py-1.5">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-100/85 px-2 py-1.5 dark:bg-slate-800/85">
                     <label
                       htmlFor={historySwitchId}
-                      className="cursor-pointer text-[11px] font-medium text-gray-500 select-none"
+                      className="cursor-pointer select-none text-[11px] font-medium text-slate-500 dark:text-slate-400"
                     >
                       Pamti
                     </label>
@@ -952,15 +974,15 @@ const Search = ({
                 {isHistoryEnabled ? (
                   <>
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">
                         {searchHistory.length > 0
-                          ? `${searchHistory.length} spremljenih pojmova`
+                          ? `${searchHistory.length} sačuvanih pojmova`
                           : "Još nema sačuvane historije"}
                       </p>
                       <button
                         type="button"
                         onClick={clearAllHistory}
-                        className="text-xs text-gray-400 hover:text-red-500 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-xs text-slate-400 transition-colors duration-200 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-500"
                         disabled={searchHistory.length === 0}
                       >
                         Obriši sve
@@ -972,21 +994,21 @@ const Search = ({
                         {searchHistory.map((query, index) => (
                           <li
                             key={index}
-                            className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                            className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                             onClick={() => handleHistoryClick(query)}
                             role="option"
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <IconClock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                              <span className="text-sm text-gray-700 truncate">{query}</span>
+                              <IconClock className="h-4 w-4 flex-shrink-0 text-slate-400 dark:text-slate-500" />
+                              <span className="truncate text-sm text-slate-700 dark:text-slate-200">{query}</span>
                             </div>
                             <button
                               type="button"
                               onClick={(e) => removeFromHistory(query, e)}
-                              className="p-1 hover:bg-gray-200 rounded transition-all duration-200"
+                              className="rounded p-1 transition-all duration-200 hover:bg-slate-200 dark:hover:bg-slate-700"
                               aria-label="Obriši iz historije"
                             >
-                              <IconX className="w-3 h-3 text-gray-400" />
+                              <IconX className="h-3 w-3 text-slate-400 dark:text-slate-500" />
                             </button>
                           </li>
                         ))}
@@ -994,7 +1016,7 @@ const Search = ({
                     )}
                   </>
                 ) : (
-                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 p-3 text-xs text-gray-500">
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
                     Isključeno. Novi pojmovi se neće spremati u historiju.
                   </div>
                 )}
@@ -1005,19 +1027,19 @@ const Search = ({
               <div className="flex items-center justify-center py-8">
                 <div className="flex flex-col items-center gap-3">
                   <IconLoader2 className="w-8 h-8 animate-spin text-primary" />
-                  <span className="text-sm text-gray-500">Tražim...</span>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">Tražim...</span>
                 </div>
               </div>
             )}
 
             {showDidYouMean && (
               <div className="p-4">
-                <div className="text-sm text-gray-500 mb-2">
+                <div className="mb-2 text-sm text-slate-500 dark:text-slate-400">
                   Nema rezultata za{" "}
                   <span className="font-medium">"{searchQuery}"</span>
                 </div>
                 <div className="text-sm">
-                  <span className="text-gray-500">Da li ste mislili: </span>
+                  <span className="text-slate-500 dark:text-slate-400">Jeste li mislili: </span>
                   {didYouMean.map((term, index) => (
                     <span key={term}>
                       <button
@@ -1029,21 +1051,21 @@ const Search = ({
                         {term}
                       </button>
                       {index < didYouMean.length - 1 && (
-                        <span className="text-gray-400">, </span>
+                        <span className="text-slate-400 dark:text-slate-500">, </span>
                       )}
                     </span>
                   ))}
-                  <span className="text-gray-500">?</span>
+                  <span className="text-slate-500 dark:text-slate-400">?</span>
                 </div>
               </div>
             )}
 
             {showNoResults && (
               <div className="py-8 text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-                  <IconSearch className="w-6 h-6 text-gray-400" />
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                  <IconSearch className="h-6 w-6 text-slate-400 dark:text-slate-500" />
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   Nema rezultata za{" "}
                   <span className="font-medium">"{searchQuery}"</span>
                 </p>
@@ -1051,8 +1073,8 @@ const Search = ({
             )}
 
             {suggestions.length > 0 && (
-              <div className="p-3 border-b border-gray-100">
-                <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
+              <div className="border-b border-slate-100 p-3 dark:border-slate-800">
+                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                   <IconSearch className="w-3 h-3" />
                   Prijedlozi pretrage
                 </div>
@@ -1060,12 +1082,12 @@ const Search = ({
                   {suggestions.map((suggestion, index) => (
                     <li
                       key={index}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                       onClick={() => handleSuggestionClick(suggestion)}
                       role="option"
                     >
-                      <IconSearch className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-sm text-gray-700 truncate">
+                      <IconSearch className="h-4 w-4 flex-shrink-0 text-slate-400 dark:text-slate-500" />
+                      <span className="truncate text-sm text-slate-700 dark:text-slate-200">
                         {suggestion}
                       </span>
                     </li>
@@ -1076,7 +1098,7 @@ const Search = ({
 
             {suggestedUsers.length > 0 && (
               <div className="p-3">
-                <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-2">
+                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                   <IconUser className="w-3 h-3" />
                   Korisnici
                 </div>
@@ -1084,12 +1106,12 @@ const Search = ({
                   {suggestedUsers.map((user) => (
                     <li
                       key={user.id}
-                      className="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50"
+                      className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                       onClick={() => handleUserClick(user)}
                       role="option"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
+                        <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600">
                           {user.profile ? (
                             <img
                               src={user.profile}
@@ -1097,15 +1119,15 @@ const Search = ({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <IconUser className="w-3.5 h-3.5 text-gray-500" />
+                            <IconUser className="h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-slate-700 dark:text-slate-200">
                             {user.name}
                           </span>
                           {user.average_rating && (
-                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <span className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
                               <IconStarFilled className="w-2.5 h-2.5 text-yellow-400" />
                               {Number(user.average_rating).toFixed(1)}
                             </span>

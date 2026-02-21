@@ -25,7 +25,7 @@ function formatQueryString(qs) {
 
   const known = [];
   const query = params.get("query");
-  if (query) known.push(`Upit: ${query}`);
+  if (query) known.push(`Pretraga: ${query}`);
   const category = params.get("category");
   if (category) known.push(`Kategorija: ${category}`);
   const location = params.get("location");
@@ -97,7 +97,7 @@ export default function SavedSearches() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/70">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Spašene pretrage</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Sačuvane pretrage</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Ovdje su tvoje prečice do omiljenih filtera. Pretrage možeš sačuvati direktno na stranici “Oglasi”.
           </p>
