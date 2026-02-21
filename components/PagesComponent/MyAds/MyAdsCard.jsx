@@ -1042,8 +1042,8 @@ const SmartQuickActionsPanel = ({
                   className={cn(
                     "fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2",
                     isMobile
-                      ? "w-[min(680px,calc(100vw-1rem))]"
-                      : "w-[min(1040px,calc(100vw-3rem))]"
+                      ? "w-[min(640px,calc(100vw-0.75rem))]"
+                      : "w-[min(920px,calc(100vw-2rem))]"
                   )}
                 >
                   <motion.div
@@ -1053,22 +1053,22 @@ const SmartQuickActionsPanel = ({
                     exit={{ opacity: 0, y: 18, scale: 0.98 }}
                     transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                     className={cn(
-                      "overflow-hidden border border-slate-200 bg-white/95 p-5 shadow-[0_35px_80px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-6",
+                      "overflow-hidden border border-slate-200 bg-white/95 p-4 shadow-[0_28px_68px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-5",
                       isMobile
-                        ? "max-h-[88vh] overflow-y-auto rounded-[28px]"
-                        : "max-h-[88vh] overflow-y-auto rounded-[34px]"
+                        ? "max-h-[84vh] overflow-y-auto rounded-3xl"
+                        : "max-h-[84vh] overflow-y-auto rounded-[30px]"
                     )}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="mb-5 flex items-start justify-between gap-4">
+                    <div className="mb-4 flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                        <p className="text-[clamp(24px,1.9vw,33px)] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                           Pametne akcije oglasa
                         </p>
-                        <p className="mt-1 text-[clamp(15px,1.25vw,24px)] text-slate-600 dark:text-slate-300">
+                        <p className="mt-1 text-[clamp(14px,1vw,18px)] text-slate-600 dark:text-slate-300">
                           {panelHint}
                         </p>
-                        <p className="mt-2 text-xl font-semibold text-violet-600 dark:text-violet-300">
+                        <p className="mt-1.5 text-base font-semibold text-violet-600 dark:text-violet-300">
                           {renewInfoText}
                         </p>
                       </div>
@@ -1079,10 +1079,10 @@ const SmartQuickActionsPanel = ({
                           e.stopPropagation();
                           onClose();
                         }}
-                        className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-600 transition-all hover:scale-[1.03] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-600 transition-all hover:scale-[1.03] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                         aria-label="Zatvori brze akcije"
                       >
-                        <X className="h-7 w-7" />
+                        <X className="h-5 w-5" />
                       </button>
                     </div>
 
@@ -1091,19 +1091,19 @@ const SmartQuickActionsPanel = ({
                         type="button"
                         onClick={(e) => runAction(e, recommendedAction)}
                         className={cn(
-                          "group mb-4 flex w-full items-start gap-4 rounded-[28px] border px-5 py-5 text-left transition-all duration-200",
+                          "group mb-3 flex w-full items-start gap-3 rounded-3xl border px-4 py-4 text-left transition-all duration-200",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                           toneClass[recommendedAction.tone]
                         )}
                       >
-                        <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/80 shadow-sm dark:bg-slate-900/70">
-                          <recommendedAction.icon className="h-7 w-7" />
+                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                          <recommendedAction.icon className="h-5 w-5" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-[clamp(21px,1.65vw,31px)] font-semibold leading-tight">
+                          <span className="block text-[clamp(18px,1.35vw,24px)] font-semibold leading-tight">
                             Preporučeno: {recommendedAction.label}
                           </span>
-                          <span className="mt-1 block text-[clamp(14px,0.95vw,19px)] opacity-90">
+                          <span className="mt-0.5 block text-[clamp(12px,0.8vw,15px)] opacity-90">
                             {recommendedAction.description}
                           </span>
                         </span>
@@ -1111,26 +1111,26 @@ const SmartQuickActionsPanel = ({
                     ) : null}
 
                     {secondaryActions.length ? (
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                         {secondaryActions.map((action) => (
                           <button
                             key={action.key}
                             type="button"
                             onClick={(e) => runAction(e, action)}
                             className={cn(
-                              "group flex min-h-[124px] items-start gap-4 rounded-[28px] border px-5 py-5 text-left transition-all duration-200",
+                              "group flex min-h-[100px] items-start gap-3 rounded-3xl border px-4 py-3.5 text-left transition-all duration-200",
                               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                               toneClass[action.tone]
                             )}
                           >
-                            <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/80 shadow-sm dark:bg-slate-900/70">
-                              <action.icon className="h-6 w-6" />
+                            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                              <action.icon className="h-5 w-5" />
                             </span>
                             <span className="min-w-0">
-                              <span className="block text-[clamp(18px,1.35vw,26px)] font-semibold leading-tight">
+                              <span className="block text-[clamp(16px,1.2vw,21px)] font-semibold leading-tight">
                                 {action.label}
                               </span>
-                              <span className="mt-1 block text-[clamp(13px,0.9vw,17px)] opacity-90">
+                              <span className="mt-0.5 block text-[clamp(12px,0.78vw,14px)] opacity-90">
                                 {action.description}
                               </span>
                             </span>
@@ -1140,26 +1140,26 @@ const SmartQuickActionsPanel = ({
                     ) : null}
 
                     {dangerActions.length ? (
-                      <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-700">
+                      <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
                         {dangerActions.map((action) => (
                           <button
                             key={action.key}
                             type="button"
                             onClick={(e) => runAction(e, action)}
                             className={cn(
-                              "group flex w-full items-start gap-4 rounded-[24px] border px-5 py-4 text-left transition-all duration-200",
+                              "group flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition-all duration-200",
                               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50",
                               toneClass[action.tone]
                             )}
                           >
-                            <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/80 shadow-sm dark:bg-slate-900/70">
-                              <action.icon className="h-6 w-6" />
+                            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                              <action.icon className="h-5 w-5" />
                             </span>
                             <span className="min-w-0">
-                              <span className="block text-[clamp(19px,1.4vw,27px)] font-semibold leading-tight">
+                              <span className="block text-[clamp(16px,1.25vw,21px)] font-semibold leading-tight">
                                 {action.label}
                               </span>
-                              <span className="mt-1 block text-[clamp(13px,0.9vw,17px)] opacity-90">
+                              <span className="mt-0.5 block text-[clamp(12px,0.78vw,14px)] opacity-90">
                                 {action.description}
                               </span>
                             </span>

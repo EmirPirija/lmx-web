@@ -16,6 +16,7 @@ import {
   LMX_PHONE_INPUT_PROPS,
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
+import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 
 const LoginWithMobileForm = ({
   generateRecaptcha,
@@ -53,9 +54,9 @@ const LoginWithMobileForm = ({
     }));
   };
 
-  const sendOtpWithTwillio = async (PhoneNumber) => {
+  const sendOtpWithTwillio = async (phoneE164) => {
     try {
-      const response = await getOtpApi.getOtp({ number: PhoneNumber });
+      const response = await getOtpApi.getOtp({ number: phoneE164 });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
         setIsOTPScreen(true);
@@ -73,7 +74,7 @@ const LoginWithMobileForm = ({
     }
   };
 
-  const sendOtpWithFirebase = async (PhoneNumber) => {
+  const sendOtpWithFirebase = async (phoneE164) => {
     try {
       const appVerifier = generateRecaptcha();
       if (!appVerifier) {
@@ -82,14 +83,17 @@ const LoginWithMobileForm = ({
       }
       const confirmation = await signInWithPhoneNumber(
         auth,
-        PhoneNumber,
+        phoneE164,
         appVerifier,
       );
+      console.info("[Auth][Firebase] OTP request accepted", {
+        phone: maskPhoneForDebug(phoneE164),
+        verificationId: confirmation?.verificationId || null,
+      });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
       setIsOTPScreen(true);
     } catch (error) {
-      console.log(error);
       handleFirebaseAuthError(error);
     } finally {
       setLoginStates((prev) => ({
@@ -99,23 +103,23 @@ const LoginWithMobileForm = ({
     }
   };
 
-  const sendOTP = async () => {
+  const sendOTP = async (phoneE164) => {
     setLoginStates((prev) => ({
       ...prev,
       showLoader: true,
     }));
-    const PhoneNumber = `${countryCode}${formattedNumber}`;
     if (otp_service_provider === "twilio") {
-      await sendOtpWithTwillio(PhoneNumber);
+      await sendOtpWithTwillio(phoneE164);
     } else {
-      await sendOtpWithFirebase(PhoneNumber);
+      await sendOtpWithFirebase(phoneE164);
     }
   };
 
   const handleMobileSubmit = async (e) => {
     e.preventDefault();
-    if (isValidPhoneNumber(`${countryCode}${formattedNumber}`)) {
-      await sendOTP();
+    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    if (isValidPhoneNumber(phoneE164)) {
+      await sendOTP(phoneE164);
     } else {
       toast.error("Neispravan broj telefona");
     }
@@ -123,11 +127,11 @@ const LoginWithMobileForm = ({
 
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
+      className="flex flex-col gap-5 rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 shadow-sm sm:p-5"
       onSubmit={handleMobileSubmit}
     >
       <div className="labelInputCont">
-        <Label className="text-sm font-semibold text-slate-700 after:content-['*'] after:text-red-500">
+        <Label className="text-sm font-semibold text-foreground after:content-['*'] after:text-red-500">
           {"Prijava brojem"}
         </Label>
         <PhoneInput

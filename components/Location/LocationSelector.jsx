@@ -124,6 +124,7 @@ const LocationSelector = ({
           area: "",
           lat: BIH_DEFAULT_COORDS.lat,
           long: BIH_DEFAULT_COORDS.long,
+          location_source: "hierarchy",
           formattedAddress: fullAddress,
         });
         onLocationSaved?.({
@@ -133,6 +134,7 @@ const LocationSelector = ({
           area: "",
           lat: BIH_DEFAULT_COORDS.lat,
           long: BIH_DEFAULT_COORDS.long,
+          location_source: "hierarchy",
           formattedAddress: fullAddress,
         });
         handleSubmitLocation();
@@ -151,6 +153,7 @@ const LocationSelector = ({
       area: "",
       lat: BIH_DEFAULT_COORDS.lat,
       long: BIH_DEFAULT_COORDS.long,
+      location_source: "hierarchy",
       formattedAddress: fullAddress,
     });
     onLocationSaved?.({
@@ -160,6 +163,7 @@ const LocationSelector = ({
       area: "",
       lat: BIH_DEFAULT_COORDS.lat,
       long: BIH_DEFAULT_COORDS.long,
+      location_source: "hierarchy",
       formattedAddress: fullAddress,
     });
     handleSubmitLocation();
@@ -177,6 +181,7 @@ const LocationSelector = ({
         area: "",
         lat: BIH_DEFAULT_COORDS.lat,
         long: BIH_DEFAULT_COORDS.long,
+        location_source: "hierarchy",
         formattedAddress: fullLocation.formatted,
       });
       onLocationSaved?.({
@@ -186,6 +191,7 @@ const LocationSelector = ({
         area: "",
         lat: BIH_DEFAULT_COORDS.lat,
         long: BIH_DEFAULT_COORDS.long,
+        location_source: "hierarchy",
         formattedAddress: fullLocation.formatted,
       });
       handleSubmitLocation();
@@ -257,6 +263,7 @@ const LocationSelector = ({
             area: "",
             lat: BIH_DEFAULT_COORDS.lat,
             long: BIH_DEFAULT_COORDS.long,
+            location_source: "hierarchy",
             formattedAddress: "Bosna i Hercegovina",
           };
           saveCity(locationData);
@@ -274,6 +281,7 @@ const LocationSelector = ({
             area: "",
             lat: BIH_DEFAULT_COORDS.lat,
             long: BIH_DEFAULT_COORDS.long,
+            location_source: "hierarchy",
             formattedAddress: `${selectedLocation.entity?.name}, Bosna i Hercegovina`,
           };
           saveCity(locationData);
@@ -291,6 +299,7 @@ const LocationSelector = ({
             area: "",
             lat: BIH_DEFAULT_COORDS.lat,
             long: BIH_DEFAULT_COORDS.long,
+            location_source: "hierarchy",
             formattedAddress: `${selectedLocation.region?.name}, ${selectedLocation.entity?.name}, Bosna i Hercegovina`,
           };
           saveCity(locationData);
@@ -330,6 +339,7 @@ const LocationSelector = ({
           country: result?.country,
           lat: result?.latitude,
           long: result?.longitude,
+          location_source: "map",
           formattedAddress: [
             result?.area_translation,
             result?.city_translation,

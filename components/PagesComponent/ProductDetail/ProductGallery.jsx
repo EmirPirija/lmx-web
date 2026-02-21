@@ -249,12 +249,12 @@ const ProductGallery = ({
     >
       <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-gray-50 via-white to-gray-100 p-2.5 shadow-[0_22px_55px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:from-slate-900 dark:via-slate-900/85 dark:to-slate-800 sm:p-3">
         <div
-          className="relative rounded-2xl overflow-hidden bg-black group/main"
+          className="relative rounded-2xl overflow-hidden bg-black group/main z-0"
           onTouchStart={handleMediaTouchStart}
           onTouchEnd={handleMediaTouchEnd}
         >
           {isVideoSelected && hasVideo ? (
-            <div className="aspect-[16/10] sm:aspect-[16/9] xl:aspect-[2/1]">
+            <div className="aspect-[16/9] sm:aspect-[2/1] xl:aspect-[21/10]">
               {!isVideoPlaying && (
                 <div
                   className="absolute inset-0 z-10 cursor-pointer"
@@ -320,7 +320,7 @@ const ProductGallery = ({
               )}
             </div>
           ) : (
-            <div className="relative aspect-[16/10] sm:aspect-[16/9] xl:aspect-[2/1]">
+            <div className="relative aspect-[16/9] sm:aspect-[2/1] xl:aspect-[21/10]">
               {safeGalleryImages.length === 0 ? (
                 <div className="absolute inset-0">
                   <CustomImage

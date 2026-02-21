@@ -16,6 +16,7 @@ import {
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useState } from "react";
 import { useNavigate } from "../Common/useNavigate";
+import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 
 const OtpScreen = ({
   generateRecaptcha,
@@ -53,7 +54,7 @@ const OtpScreen = ({
 
   const verifyOTPWithTwillio = async () => {
     try {
-      const PhoneNumber = `${countryCode}${formattedNumber}`;
+      const PhoneNumber = buildPhoneE164(countryCode, formattedNumber);
       const response = await verifyOtpApi.verifyOtp({
         number: PhoneNumber,
         otp: otp,
@@ -120,9 +121,9 @@ const OtpScreen = ({
     }
   };
 
-  const resendOtpWithTwillio = async (PhoneNumber) => {
+  const resendOtpWithTwillio = async (phoneE164) => {
     try {
-      const response = await getOtpApi.getOtp({ number: PhoneNumber });
+      const response = await getOtpApi.getOtp({ number: phoneE164 });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
         setResendTimer(60); // Start the 60-second timer
@@ -136,7 +137,7 @@ const OtpScreen = ({
     }
   };
 
-  const resendOtpWithFirebase = async (PhoneNumber) => {
+  const resendOtpWithFirebase = async (phoneE164) => {
     try {
       const appVerifier = generateRecaptcha();
       if (!appVerifier) {
@@ -145,9 +146,13 @@ const OtpScreen = ({
       }
       const confirmation = await signInWithPhoneNumber(
         auth,
-        PhoneNumber,
+        phoneE164,
         appVerifier,
       );
+      console.info("[Auth][Firebase] OTP resend accepted", {
+        phone: maskPhoneForDebug(phoneE164),
+        verificationId: confirmation?.verificationId || null,
+      });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
     } catch (error) {
@@ -160,25 +165,25 @@ const OtpScreen = ({
   const resendOtp = async (e) => {
     e.preventDefault();
     setResendOtpLoader(true);
-    const PhoneNumber = `${countryCode}${formattedNumber}`;
+    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
     if (otp_service_provider === "twilio") {
-      await resendOtpWithTwillio(PhoneNumber);
+      await resendOtpWithTwillio(phoneE164);
     } else {
-      await resendOtpWithFirebase(PhoneNumber);
+      await resendOtpWithFirebase(phoneE164);
     }
   };
 
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
+      className="flex flex-col gap-5 rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 shadow-sm sm:p-5"
       onSubmit={verifyOTP}
     >
-      <div className="rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-700">
+      <div className="rounded-xl border border-cyan-300/60 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-700 dark:text-cyan-300">
         Unesi šestocifreni kod koji je poslan na tvoj broj.
       </div>
 
       <div className="labelInputCont">
-        <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+        <Label className="requiredInputLabel text-sm font-semibold text-foreground">
           {"OTP"}
         </Label>
         <Input
@@ -188,7 +193,7 @@ const OtpScreen = ({
           name="otp"
           value={otp}
           maxLength={6}
-          className="h-11 rounded-xl border-slate-200 bg-white text-center text-base font-semibold tracking-[0.3em]"
+          className="h-11 rounded-xl border-border bg-background text-center text-base font-semibold tracking-[0.3em] text-foreground placeholder:text-muted-foreground"
           autoComplete="one-time-code"
           onChange={(e) => setOtp(e.target.value)}
           ref={otpInputRef}
@@ -209,7 +214,7 @@ const OtpScreen = ({
 
       <Button
         type="button"
-        className="h-11 rounded-xl border border-slate-200 bg-transparent text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        className="h-11 rounded-xl border border-border bg-transparent text-sm font-semibold text-foreground hover:bg-muted"
         variant="ghost"
         size="lg"
         onClick={resendOtp}

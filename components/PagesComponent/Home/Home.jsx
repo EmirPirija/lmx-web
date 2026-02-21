@@ -15,6 +15,7 @@ import HomeReels from "./HomeReels";
 import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
 import LowInventoryItems from "./LowInventoryItems";
+import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
 
 const OfferSlider = dynamic(() => import("./OfferSlider"), {
   ssr: false,
@@ -37,6 +38,7 @@ const Home = () => {
   const [Slider, setSlider] = useState([]);
   const [IsSliderLoading, setIsSliderLoading] = useState(true);
   const allEmpty = featuredData?.every((ele) => ele?.section_data.length === 0);
+  const locationKey = buildHomeLocationKey(cityData);
 
   useEffect(() => {
     const fetchSliderData = async () => {
@@ -57,22 +59,7 @@ const Home = () => {
     const fetchFeaturedSectionData = async () => {
       setIsFeaturedLoading(true);
       try {
-        const params = {};
-        if (Number(KmRange) > 0 && (cityData?.areaId || cityData?.city)) {
-          params.radius = KmRange;
-          params.latitude = cityData.lat;
-          params.longitude = cityData.long;
-        } else {
-          if (cityData?.areaId) {
-            params.area_id = cityData.areaId;
-          } else if (cityData?.city) {
-            params.city = cityData.city;
-          } else if (cityData?.state) {
-            params.state = cityData.state;
-          } else if (cityData?.country) {
-            params.country = cityData.country;
-          }
-        }
+        const params = buildHomeLocationParams({ cityData, KmRange });
         const [featuredResponse, featuredItemsResponse] = await Promise.all([
           FeaturedSectionApi.getFeaturedSections({
             ...params,
@@ -130,7 +117,7 @@ const Home = () => {
       }
     };
     fetchFeaturedSectionData();
-  }, [cityData.lat, cityData.long, KmRange, currentLanguageCode]);
+  }, [locationKey, KmRange, currentLanguageCode]);
   return (
     <>
       {IsSliderLoading ? (

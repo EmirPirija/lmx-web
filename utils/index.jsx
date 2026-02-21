@@ -661,6 +661,13 @@ export const handleFirebaseAuthError = (errorLike) => {
   const { code, message } = getFirebaseAuthErrorDetails(errorLike);
   const resolvedCode = typeof code === "string" ? code.trim() : "";
 
+  // Always log full auth failure details for production debugging.
+  console.error("Firebase auth error", {
+    code: resolvedCode || null,
+    message: message || null,
+    raw: errorLike,
+  });
+
   if (resolvedCode && ERROR_CODES.hasOwnProperty(resolvedCode)) {
     toast.error(ERROR_CODES[resolvedCode]);
     return;
@@ -670,12 +677,6 @@ export const handleFirebaseAuthError = (errorLike) => {
   const fallbackMessage = "Neočekivana greška. Pokušaj ponovo." || "Došlo je do greške.";
   toast.error(fallbackMessage);
 
-  // Log full details to help debug production auth issues.
-  console.error("Unhandled Firebase auth error", {
-    code: resolvedCode || null,
-    message: message || null,
-    raw: errorLike,
-  });
 };
 
 export const truncate = (text, maxLength) => {
@@ -1102,6 +1103,11 @@ export const getMainDetailsTranslations = (
   const translations = {};
   const areaM2 = extractAreaM2FromItem(listingData);
   const initialPerSquare = toPositiveNumber(listingData?.price_per_unit);
+  const hasPersistedPrice =
+    listingData?.price !== undefined &&
+    listingData?.price !== null &&
+    String(listingData?.price).trim() !== "";
+  const inferredPriceOnRequestFromPrice = hasPersistedPrice && Number(listingData?.price) === 0;
   const inferredPerSquareMode = inferRealEstatePerSquareMode({
     perSquarePrice: listingData?.price_per_unit,
     totalPrice: listingData?.price,
@@ -1128,6 +1134,14 @@ export const getMainDetailsTranslations = (
         max_salary: listingData?.max_salary || "",
         region_code: listingData?.region_code?.toLowerCase() || "",
         country_code: countryCodeFromRegion,
+        price_on_request: parseBooleanSetting(
+          listingData?.price_on_request ??
+            listingData?.is_price_on_request ??
+            listingData?.translated_item?.price_on_request ??
+            listingData?.translated_item?.is_price_on_request ??
+            inferredPriceOnRequestFromPrice,
+          false
+        ),
         is_on_sale: listingData?.is_on_sale || false,
         old_price: listingData?.old_price || "",
         inventory_count:

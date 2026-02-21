@@ -16,7 +16,7 @@ const MailSentSuccessModal = ({ IsMailSentSuccess, setIsMailSentSuccess }) => {
         <DialogHeader>
           <DialogTitle className="sr-only"></DialogTitle>
           <DialogDescription className="sr-only"></DialogDescription>
-          <div className="flex flex-col gap-3 items-center justify-center">
+          <div className="flex flex-col items-center justify-center gap-3">
             <CustomImage
               src={mainSentImg}
               alt="Verification Mail sent"
@@ -24,8 +24,12 @@ const MailSentSuccessModal = ({ IsMailSentSuccess, setIsMailSentSuccess }) => {
               height={195}
               className="aspect-[300/195] object-contain"
             />
-            <h1 className="text-2xl font-medium">{"Stigao ti je e-mail!"}</h1>
-            <p className="opacity-65">{"Klikni link u e-mailu da potvrdiš račun."}</p>
+            <h1 className="text-2xl font-medium text-slate-900 dark:text-slate-100">
+              {"Stigao ti je e-mail!"}
+            </h1>
+            <p className="text-slate-600 dark:text-slate-300">
+              {"Klikni link u e-mailu da potvrdiš račun."}
+            </p>
           </div>
         </DialogHeader>
       </DialogContent>

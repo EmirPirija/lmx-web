@@ -30,13 +30,13 @@ export const resolveLmxPhoneDialCode = (value) => {
 export const LMX_PHONE_INPUT_PROPS = {
   containerClass: "lmx-phone-field !w-full",
   inputClass:
-    "!w-full !h-11 !rounded-xl !border !border-slate-200 !bg-white !pl-[4.2rem] !pr-3 !text-sm !text-slate-900 placeholder:!text-slate-400 focus:!border-primary focus:!ring-2 focus:!ring-primary/20 dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-100",
+    "!w-full !h-11 !rounded-xl !border !border-border !bg-background !pl-[4.2rem] !pr-3 !text-sm !text-foreground placeholder:!text-muted-foreground focus:!border-primary focus:!ring-2 focus:!ring-primary/20",
   buttonClass:
-    "!h-11 !w-[3.6rem] !rounded-l-xl !border-0 !bg-transparent hover:!bg-slate-50 dark:hover:!bg-slate-800/70",
+    "!h-11 !w-[3.6rem] !rounded-l-xl !border-0 !bg-transparent hover:!bg-muted",
   dropdownClass:
-    "!rounded-xl !border !border-slate-200 !bg-white !text-slate-800 !shadow-xl dark:!border-slate-700 dark:!bg-slate-900 dark:!text-slate-200",
+    "!rounded-xl !border !border-border !bg-card !text-foreground !shadow-xl",
   searchClass:
-    "!rounded-lg !border !border-slate-200 !bg-white !text-slate-800 dark:!border-slate-700 dark:!bg-slate-950 dark:!text-slate-100",
+    "!rounded-lg !border !border-border !bg-background !text-foreground",
   onlyCountries: LMX_PHONE_ALLOWED_COUNTRIES,
   preferredCountries: LMX_PHONE_ALLOWED_COUNTRIES,
   preserveOrder: ["onlyCountries", "preferredCountries"],

@@ -1248,6 +1248,7 @@ const EditListing = ({ id }) => {
         is_real_estate && effectiveRealEstateTotalPrice
           ? effectiveRealEstateTotalPrice
           : defaultDetails.price;
+      allData.price_on_request = Boolean(defaultDetails.price_on_request);
       allData.is_on_sale = defaultDetails.is_on_sale || false;
       allData.old_price = defaultDetails.is_on_sale ? defaultDetails.old_price : null;
       

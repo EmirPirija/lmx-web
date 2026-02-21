@@ -8,29 +8,7 @@ import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { allItemApi } from "@/utils/api";
 import { getScarcityCopy, getScarcityState } from "@/utils/scarcity";
 import { AlertCircle } from "@/components/Common/UnifiedIconPack";
-
-const buildLocationParams = ({ cityData, KmRange }) => {
-  const params = {};
-
-  if (Number(KmRange) > 0 && (cityData?.areaId || cityData?.city)) {
-    params.radius = KmRange;
-    params.latitude = cityData.lat;
-    params.longitude = cityData.long;
-    return params;
-  }
-
-  if (cityData?.areaId) {
-    params.area_id = cityData.areaId;
-  } else if (cityData?.city) {
-    params.city = cityData.city;
-  } else if (cityData?.state) {
-    params.state = cityData.state;
-  } else if (cityData?.country) {
-    params.country = cityData.country;
-  }
-
-  return params;
-};
+import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
 
 const extractItems = (response) => {
   const payload = response?.data?.data;
@@ -60,6 +38,7 @@ const LowInventoryItems = ({ cityData, KmRange }) => {
   const currentLanguage = useSelector(CurrentLanguageData);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const locationKey = buildHomeLocationKey(cityData);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +46,7 @@ const LowInventoryItems = ({ cityData, KmRange }) => {
     const fetchLowInventoryItems = async () => {
       setLoading(true);
       try {
-        const locationParams = buildLocationParams({ cityData, KmRange });
+        const locationParams = buildHomeLocationParams({ cityData, KmRange });
 
         const response = await allItemApi.getItems({
           ...locationParams,
@@ -103,7 +82,7 @@ const LowInventoryItems = ({ cityData, KmRange }) => {
     return () => {
       cancelled = true;
     };
-  }, [cityData?.areaId, cityData?.city, cityData?.country, cityData?.lat, cityData?.long, cityData?.state, KmRange, currentLanguage?.id]);
+  }, [locationKey, KmRange, currentLanguage?.id]);
 
   const hasItems = items.length > 0;
   const sectionSubtitle = useMemo(() => {

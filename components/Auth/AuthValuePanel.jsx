@@ -68,11 +68,11 @@ export const AuthCompactHighlights = ({ className }) => {
   return (
     <div
       className={cn(
-        "lg:hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-white p-3.5",
+        "lg:hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-white p-3.5 dark:border-slate-700 dark:from-slate-800 dark:to-slate-900",
         className,
       )}
     >
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">
         <Sparkles className="h-3.5 w-3.5 text-primary" />
         Zašto LMX?
       </div>
@@ -80,7 +80,7 @@ export const AuthCompactHighlights = ({ className }) => {
         {TAGS.map((tag) => (
           <span
             key={tag}
-            className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+            className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
             {tag}
           </span>

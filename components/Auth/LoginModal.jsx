@@ -241,8 +241,8 @@ sm:max-h-[calc(100dvh-2rem)]
 overflow-hidden
 gap-0
 rounded-[24px] sm:rounded-[28px]
-border border-slate-200/90
-bg-white dark:bg-slate-900
+border border-border/80
+bg-background
 shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
 "
 
@@ -250,20 +250,20 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
           <div className="grid h-full min-h-0 lg:grid-cols-[0.95fr_1.25fr]">
             <AuthValuePanel mode={IsOTPScreen ? "otp" : "login"} />
 
-            <div className="min-h-0 overflow-y-auto bg-gradient-to-b from-white via-white to-slate-50/70 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+            <div className="min-h-0 overflow-y-auto bg-gradient-to-b from-background via-background to-muted/35 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
               <div className="mx-auto w-full max-w-[560px]">
                 <DialogHeader className="space-y-3">
                   {!IsOTPScreen ? (
-                    <div className="inline-flex w-max items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                    <div className="inline-flex w-max items-center rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                       {settings?.company_name || "LMX"}
                     </div>
                   ) : null}
-                  <DialogTitle className="text-left text-2xl font-semibold leading-tight text-slate-900 sm:text-[2rem]">
+                  <DialogTitle className="text-left text-2xl font-semibold leading-tight text-foreground sm:text-[2rem]">
                     {IsOTPScreen
                       ? "Unesi verifikacijski kod"
                       : "Prijava na korisnički račun"}
                   </DialogTitle>
-                  <DialogDescription className="text-left text-sm leading-relaxed text-slate-600 sm:text-[15px]">
+                  <DialogDescription className="text-left text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
                     {IsOTPScreen ? (
                       <>
                         Kod smo poslali na {`${countryCode}${formattedNumber}`}.{" "}
@@ -324,14 +324,14 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                       className="mt-5 flex flex-col gap-5"
                     >
                       {canUseBothMethods ? (
-                        <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5">
+                        <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-muted/70 p-1.5">
                           <button
                             type="button"
                             className={cn(
                               "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                               IsLoginWithEmail
-                                ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
-                                : "text-slate-500 hover:bg-white/80 hover:text-slate-700",
+                                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                                : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
                             )}
                             onClick={() => setIsLoginWithEmail(true)}
                           >
@@ -343,8 +343,8 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             className={cn(
                               "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                               !IsLoginWithEmail
-                                ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
-                                : "text-slate-500 hover:bg-white/80 hover:text-slate-700",
+                                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                                : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
                             )}
                             onClick={() => setIsLoginWithEmail(false)}
                           >
@@ -408,11 +408,11 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
 
                       {canShowGoogleDivider ? (
                         <div className="flex items-center gap-3">
-                          <hr className="w-full border-slate-200" />
-                          <p className="text-nowrap text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          <hr className="w-full border-border" />
+                          <p className="text-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             ili nastavi sa
                           </p>
-                          <hr className="w-full border-slate-200" />
+                          <hr className="w-full border-border" />
                         </div>
                       ) : null}
 
@@ -421,7 +421,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           type="button"
                           variant="outline"
                           size="lg"
-                          className="h-11 rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                          className="h-11 rounded-xl border-border bg-card text-sm font-semibold text-foreground hover:bg-muted"
                           onClick={handleGoogleSignup}
                         >
                           <FcGoogle className="!size-5" />

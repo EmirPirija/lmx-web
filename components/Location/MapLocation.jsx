@@ -87,6 +87,7 @@ const MapLocation = ({
                   city,
                   state,
                   country,
+                  location_source: "map",
                   formattedAddress: [city, state, country]
                     .filter(Boolean)
                     .join(", "),
@@ -102,6 +103,7 @@ const MapLocation = ({
                   country: result?.country_translation,
                   lat: result?.latitude,
                   long: result?.longitude,
+                  location_source: "map",
                   formattedAddress: [
                     result?.area_translation,
                     result?.city_translation,
@@ -166,6 +168,7 @@ const MapLocation = ({
             city,
             state,
             country,
+            location_source: "map",
             formattedAddress: [city, state, country].filter(Boolean).join(", "),
           };
 
@@ -188,6 +191,7 @@ const MapLocation = ({
             country: results?.country || "",
             area: results?.area || "",
             areaId: results?.area_id || "",
+            location_source: "map",
             formattedAddress,
           };
           setSelectedCity(cityData);
@@ -206,9 +210,13 @@ const MapLocation = ({
       toast.error("Odaberi lokaciju");
       return;
     }
+    const normalizedLocation = {
+      ...selectedCity,
+      location_source: String(selectedCity?.location_source || "map").toLowerCase(),
+    };
     dispatch(setKilometerRange(KmRange));
-    saveCity(selectedCity);
-    onLocationSaved?.(selectedCity);
+    saveCity(normalizedLocation);
+    onLocationSaved?.(normalizedLocation);
     toast.success("Lokacija sačuvana");
     OnHide();
     // avoid redirect if already on home page otherwise router.push triggering server side api calls

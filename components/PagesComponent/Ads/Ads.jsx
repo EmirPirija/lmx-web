@@ -1473,7 +1473,7 @@ const Ads = () => {
         </motion.div>
       ) : (
         <motion.div
-          className="col-span-6 sm:col-span-6 lg:col-span-4 xl:col-span-3 mb-4"
+          className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-2 mb-4"
           key={item.id || index}
           variants={cardAnimation}
           initial="hidden"
@@ -1999,7 +1999,7 @@ const Ads = () => {
               </div>
             </div>
           ) : (
-            <div className="grid [grid-template-columns:repeat(12,minmax(0,1fr))]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-12 gap-3 sm:gap-6 mt-6">
               {renderedAdsContent}
             </div>
             

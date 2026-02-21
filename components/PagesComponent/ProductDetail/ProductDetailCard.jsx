@@ -90,6 +90,78 @@ const resolvePriceOnRequestState = (item = {}) => {
   return isPriceRequestToken(item?.price) || isPriceRequestToken(item?.translated_item?.price);
 };
 
+const LOCATION_REGION_SHORTCUTS = {
+  "Bosansko-podrinjski kanton Goražde": "BPK Goražde",
+  "Kanton Sarajevo": "KS",
+  "Tuzlanski kanton": "TK",
+  "Zeničko-dobojski kanton": "ZDK",
+  "Unsko-sanski kanton": "USK",
+  "Srednjobosanski kanton": "SBK",
+  "Hercegovačko-neretvanski kanton": "HNK",
+  "Zapadnohercegovački kanton": "ZHK",
+  "Posavski kanton": "PK",
+  "Kanton 10": "K10",
+};
+
+const LOCATION_REDUNDANT_TAILS = new Set([
+  "bih",
+  "fbih",
+  "federacija bosne i hercegovine",
+  "bosna i hercegovina",
+]);
+
+const normalizeLocationToken = (value) => {
+  let token = String(value || "").trim();
+  if (!token) return "";
+
+  token = token
+    .replace(/^Područje:\s*/i, "")
+    .replace(/^Zona:\s*/i, "")
+    .replace(/^Općina\s+/i, "")
+    .replace(/^Opština\s+/i, "")
+    .replace(/\bBosna i Hercegovina\b/gi, "BiH")
+    .replace(/\bFederacija Bosne i Hercegovine\b/gi, "FBiH")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (LOCATION_REGION_SHORTCUTS[token]) return LOCATION_REGION_SHORTCUTS[token];
+
+  return token
+    .replace(/Bosansko-podrinjski(?:\s+kanton)?\s+Goražde/gi, "BPK Goražde")
+    .replace(/\bkanton\b/gi, "")
+    .replace(/\bžupanija\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+,/g, ",")
+    .trim();
+};
+
+const compactLocationLabel = (rawValue) => {
+  const parts = String(rawValue || "")
+    .split(",")
+    .map((part) => normalizeLocationToken(part))
+    .filter(Boolean);
+  if (!parts.length) return "";
+
+  const deduped = [];
+  const seen = new Set();
+  for (const part of parts) {
+    const key = part.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(part);
+  }
+
+  const shortened = [...deduped];
+  while (shortened.length > 2) {
+    const tail = shortened[shortened.length - 1]?.toLowerCase();
+    if (!LOCATION_REDUNDANT_TAILS.has(tail)) break;
+    shortened.pop();
+  }
+
+  const output = shortened.length > 2 ? shortened.slice(0, 2) : shortened;
+  return output.join(", ");
+};
+
 const formatSignedPriceDelta = (value) => {
   if (!Number.isFinite(value) || value === 0) return "0 KM";
   const sign = value > 0 ? "+" : "-";
@@ -1163,9 +1235,12 @@ const ProductDetailCard = ({
     productDetails?.translated_address ||
     productDetails?.translated_item?.address ||
     [areaName, productDetails?.city, productDetails?.state].filter(Boolean).join(", ");
+  const compactLocationLine = useMemo(
+    () => compactLocationLabel(resolvedLocationByPin || textualLocationLine),
+    [resolvedLocationByPin, textualLocationLine]
+  );
   const locationLine =
-    resolvedLocationByPin ||
-    textualLocationLine ||
+    compactLocationLine ||
     (hasPreciseCoordinates ? "Lokacija označena na mapi" : "Lokacija nije navedena");
   const availableNow = readAvailableNow(productDetails);
   const exchangePossible = readExchangePossible(productDetails);
@@ -1198,9 +1273,11 @@ const ProductDetailCard = ({
           maximumFractionDigits: 2,
         })
       : null;
-  const hasDiscount = isOnSale && Number.isFinite(oldPriceNumber) && Number.isFinite(currentPriceNumber) && oldPriceNumber > currentPriceNumber && currentPriceNumber > 0;
+  const hasDiscount = !currentPriceOnRequest && isOnSale && Number.isFinite(oldPriceNumber) && Number.isFinite(currentPriceNumber) && oldPriceNumber > currentPriceNumber && currentPriceNumber > 0;
   const displayPrice = isJobCategory
     ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
+    : currentPriceOnRequest
+    ? "Na upit"
     : formatBosnianPrice(productDetails?.price);
   const scarcityState = useMemo(() => getScarcityState(productDetails), [productDetails]);
   const scarcityCopy = useMemo(() => getScarcityCopy(scarcityState), [scarcityState]);

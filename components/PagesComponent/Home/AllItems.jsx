@@ -1,16 +1,35 @@
 import ProductCard from "@/components/Common/ProductCard";
 import NoData from "@/components/EmptyStates/NoData";
 import AllItemsSkeleton from "@/components/PagesComponent/Home/AllItemsSkeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { resetBreadcrumb } from "@/redux/reducer/breadCrumbSlice";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
-import { t } from "@/utils";
 import { allItemApi } from "@/utils/api";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
 import { Info } from "@/components/Common/UnifiedIconPack";
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
+
+const formatLocationAlertMessage = (message = "") => {
+  const raw = String(message || "").trim();
+  if (!raw) return "Nema oglasa za odabranu lokaciju. Prikazujemo sve dostupne oglase.";
+
+  const locationFallbackMatch = raw.match(
+    /no ads found in\s+(.+?)\.\s*showing all available ads\.?/i
+  );
+  if (locationFallbackMatch?.[1]) {
+    const locationName = locationFallbackMatch[1].trim();
+    return `Nema oglasa u ${locationName}. Prikazujemo sve dostupne oglase.`;
+  }
+
+  if (raw.toLowerCase().includes("no ads found")) {
+    return "Nema oglasa za odabranu lokaciju. Prikazujemo sve dostupne oglase.";
+  }
+
+  return raw;
+};
+
 const AllItems = ({ cityData, KmRange }) => {
   const dispatch = useDispatch();
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -22,6 +41,7 @@ const AllItems = ({ cityData, KmRange }) => {
 
   // State to track if we should show location alert
   const [locationAlertMessage, setLocationAlertMessage] = useState("");
+  const locationKey = buildHomeLocationKey(cityData);
 
   const getAllItemData = async (page) => {
     if (page === 1) {
@@ -35,24 +55,10 @@ const AllItems = ({ cityData, KmRange }) => {
         placement: "home",
         positions: "home",
         limit: 20,
+        no_cache: 1,
       };
-      if (Number(KmRange) > 0 && (cityData?.areaId || cityData?.city)) {
-        // Add location-based parameters for non-demo mode
-        params.radius = KmRange;
-        params.latitude = cityData.lat;
-        params.longitude = cityData.long;
-      } else {
-        // Add location hierarchy parameters for non-demo mode
-        if (cityData?.areaId) {
-          params.area_id = cityData.areaId;
-        } else if (cityData?.city) {
-          params.city = cityData.city;
-        } else if (cityData?.state) {
-          params.state = cityData.state;
-        } else if (cityData?.country) {
-          params.country = cityData.country;
-        }
-      }
+
+      Object.assign(params, buildHomeLocationParams({ cityData, KmRange }));
 
       const response = await allItemApi.getItems(params);
       if (response.data?.error === true) {
@@ -67,7 +73,7 @@ const AllItems = ({ cityData, KmRange }) => {
 
       // Show alert only if there are items but from different location
       if (isNoItemsInLocation && response?.data?.data?.data?.length > 0) {
-        setLocationAlertMessage(apiMessage);
+        setLocationAlertMessage(formatLocationAlertMessage(apiMessage));
       } else {
         setLocationAlertMessage("");
       }
@@ -118,7 +124,7 @@ const AllItems = ({ cityData, KmRange }) => {
 
   useEffect(() => {
     getAllItemData(1);
-  }, [cityData.lat, cityData.long, KmRange, CurrentLanguage?.id]);
+  }, [locationKey, KmRange, CurrentLanguage?.id]);
 
   const handleLoadMore = () => {
     setIsLoadMore(true);
@@ -144,11 +150,19 @@ const AllItems = ({ cityData, KmRange }) => {
 
       {/* Location Alert - shows when items are from different location */}
       {locationAlertMessage && AllItem.length > 0 && (
-        <Alert variant="warning" className="mt-3">
-          <Info className="size-4" />
-          <AlertTitle>{locationAlertMessage}</AlertTitle>
-          <AlertDescription className="sr-only"></AlertDescription>
-        </Alert>
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-amber-50/80 to-white px-4 py-3 shadow-sm dark:border-amber-500/30 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-amber-500/10 dark:to-slate-900">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200">
+              <Info className="size-3.5" />
+            </span>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700/80 dark:text-amber-200/90">
+                Lokacijski filter
+              </p>
+              <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-100">{locationAlertMessage}</p>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-6 mt-6">

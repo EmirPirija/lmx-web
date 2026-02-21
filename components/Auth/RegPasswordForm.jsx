@@ -17,15 +17,15 @@ const RegPasswordForm = ({
 }) => {
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
+      className="flex flex-col gap-5 rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 shadow-sm sm:p-5"
       onSubmit={Signin}
     >
-      <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+      <div className="rounded-xl border border-emerald-300/60 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
         Postavi korisničko ime i lozinku kako bi završio registraciju.
       </div>
 
       <div className="labelInputCont">
-        <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+        <Label className="requiredInputLabel text-sm font-semibold text-foreground">
           {"Korisničko ime"}
         </Label>
         <Input
@@ -33,7 +33,7 @@ const RegPasswordForm = ({
           placeholder={"Unesi korisničko ime"}
           name="username"
           required
-          className="h-11 rounded-xl border-slate-200 bg-white"
+          className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground"
           autoComplete="username"
           onChange={(e) => setUsername(e.target.value)}
           value={username}
@@ -41,7 +41,7 @@ const RegPasswordForm = ({
       </div>
 
       <div className="labelInputCont">
-        <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+        <Label className="requiredInputLabel text-sm font-semibold text-foreground">
           {"Lozinka"}
         </Label>
         <div className="flex items-center relative">
@@ -50,13 +50,13 @@ const RegPasswordForm = ({
             placeholder={"Unesi lozinku"}
             id="password"
             name="password"
-            className="h-11 rounded-xl border-slate-200 bg-white ltr:pr-10 rtl:pl-10"
+            className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground ltr:pr-10 rtl:pl-10"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-slate-500 hover:text-slate-700"
+            className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-muted-foreground hover:text-foreground"
             type="button"
             onClick={() => setIsPasswordVisible((prev) => !prev)}
           >

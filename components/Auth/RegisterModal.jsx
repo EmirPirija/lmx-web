@@ -28,7 +28,11 @@ import { Button } from "../ui/button";
 import { getOtpApi, userSignUpApi } from "@/utils/api";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
 import { toast } from "@/utils/toastBs";
-import { FcGoogle } from "@/components/Common/UnifiedIconPack";
+import {
+  FcGoogle,
+  MdOutlineEmail,
+  MdOutlineLocalPhone,
+} from "@/components/Common/UnifiedIconPack";
 import OtpScreen from "./OtpScreen";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
 import TermsAndPrivacyLinks from "./TermsAndPrivacyLinks";
@@ -38,15 +42,14 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import AuthValuePanel, { AuthCompactHighlights } from "./AuthValuePanel";
 import { AnimatePresence, motion } from "framer-motion";
+import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
+import { cn } from "@/lib/utils";
 
 const RegisterModal = ({
   setIsMailSentSuccess,
   IsRegisterModalOpen,
   setIsRegisterModalOpen,
 }) => {
-  // Register with email or mobile checker state
-  const [inputType, setInputType] = useState("");
-
   // Get Global data
   const settings = useSelector(settingsData);
   const auth = getAuth();
@@ -64,6 +67,7 @@ const RegisterModal = ({
 
   // Common input change value
   const [inputValue, setInputValue] = useState("");
+  const [registerMethod, setRegisterMethod] = useState("email");
 
   // Register with mobile number states
   const [number, setNumber] = useState(isDemoMode ? "38761111222" : "");
@@ -96,50 +100,73 @@ const RegisterModal = ({
     ? number.substring(countryCodeDigitsOnly.length)
     : number;
 
-  const handleInputChange = (value, data) => {
-    const emailRegexPattern =
-      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const containsOnlyDigits = /^\d+$/.test(value);
+  const hasBothCredentialMethods =
+    mobile_authentication === 1 && email_authentication === 1;
+
+  const activeRegisterMethod =
+    email_authentication === 1 && mobile_authentication === 0
+      ? "email"
+      : mobile_authentication === 1 && email_authentication === 0
+        ? "phone"
+        : registerMethod;
+
+  const handleEmailInputChange = (value) => {
     setInputValue(value);
-    if (emailRegexPattern.test(value)) {
-      setInputType("email");
-      setEmail(value);
-      setNumber("");
-      setCountryCode("");
-      setRegionCode("");
-    } else if (containsOnlyDigits) {
-      setInputType("number");
-      setNumber(value);
-      setCountryCode("+" + (data?.dialCode || ""));
-      setRegionCode(data?.countryCode.toLowerCase() || "");
-    } else {
-      setInputType("");
-    }
+    setEmail(value);
   };
 
-  const handleLoginSubmit = (e) => {
+  const handlePhoneInputChange = (value, data) => {
+    setNumber(value);
+    setCountryCode("+" + (data?.dialCode || ""));
+    setRegionCode(data?.countryCode.toLowerCase() || "");
+  };
+
+  const handleLoginSubmit = async (e) => {
     setShowLoader(true);
     e.preventDefault();
-    if (inputType === "email") {
+
+    if (activeRegisterMethod === "email") {
+      const normalizedEmail = String(inputValue || email || "").trim();
+      if (!normalizedEmail || !/\S+@\S+\.\S+/.test(normalizedEmail)) {
+        toast.error("Unesi ispravan e-mail");
+        setShowLoader(false);
+        return;
+      }
+      setEmail(normalizedEmail);
       setIsPasswordScreen(true);
       setIsLoginScreen(false);
       setShowLoader(false);
-    } else if (inputType === "number") {
-      // Perform phone number validation on the formatted number
-      if (isValidPhoneNumber(`${countryCode}${formattedNumber}`)) {
-        sendOTP();
+      return;
+    }
+
+    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    if (activeRegisterMethod === "phone") {
+      if (isValidPhoneNumber(phoneE164)) {
+        await sendOTP(phoneE164);
       } else {
-        // Show an error message indicating that the phone number is not valid
         toast.error("Neispravan broj telefona");
         setShowLoader(false);
       }
+      return;
+    }
+
+    setShowLoader(false);
+    if (email_authentication === 0 && mobile_authentication === 1) {
+      toast.error("Neispravan broj telefona");
     } else {
-      setShowLoader(false);
-      if (email_authentication === 0 && mobile_authentication === 1) {
-        toast.error("Neispravan broj telefona");
-      } else {
-        toast.error("Unesi ispravan broj ili e-mail");
-      }
+      toast.error("Unesi ispravan broj ili e-mail");
+    }
+  };
+
+  const handleMethodChange = (method) => {
+    setRegisterMethod(method);
+    if (method === "email") {
+      setNumber(isDemoMode ? "38761111222" : "");
+      setCountryCode("");
+      setRegionCode("");
+    } else {
+      setInputValue("");
+      setEmail("");
     }
   };
 
@@ -178,6 +205,20 @@ const RegisterModal = ({
     }
     return window.recaptchaVerifier;
   };
+
+  useEffect(() => {
+    if (!IsRegisterModalOpen) return;
+    if (mobile_authentication === 1 && email_authentication === 0) {
+      setRegisterMethod("phone");
+      return;
+    }
+    setRegisterMethod("email");
+  }, [
+    IsRegisterModalOpen,
+    mobile_authentication,
+    email_authentication,
+    setRegisterMethod,
+  ]);
 
   useEffect(() => {
     generateRecaptcha();
@@ -235,9 +276,9 @@ const RegisterModal = ({
     }
   };
 
-  const sendOtpWithTwillio = async (PhoneNumber) => {
+  const sendOtpWithTwillio = async (phoneE164) => {
     try {
-      const response = await getOtpApi.getOtp({ number: PhoneNumber });
+      const response = await getOtpApi.getOtp({ number: phoneE164 });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
         setIsOTPScreen(true);
@@ -253,7 +294,7 @@ const RegisterModal = ({
     }
   };
 
-  const sendOtpWithFirebase = async (PhoneNumber) => {
+  const sendOtpWithFirebase = async (phoneE164) => {
     try {
       const appVerifier = generateRecaptcha();
       if (!appVerifier) {
@@ -262,28 +303,30 @@ const RegisterModal = ({
       }
       const confirmation = await signInWithPhoneNumber(
         auth,
-        PhoneNumber,
+        phoneE164,
         appVerifier,
       );
+      console.info("[Auth][Firebase] OTP request accepted", {
+        phone: maskPhoneForDebug(phoneE164),
+        verificationId: confirmation?.verificationId || null,
+      });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
       setIsOTPScreen(true);
       setIsLoginScreen(false);
     } catch (error) {
-      console.log(error);
       handleFirebaseAuthError(error);
     } finally {
       setShowLoader(false);
     }
   };
 
-  const sendOTP = async () => {
+  const sendOTP = async (phoneE164) => {
     setShowLoader(true);
-    const PhoneNumber = `${countryCode}${formattedNumber}`;
     if (otp_service_provider === "twilio") {
-      await sendOtpWithTwillio(PhoneNumber);
+      await sendOtpWithTwillio(phoneE164);
     } else {
-      await sendOtpWithFirebase(PhoneNumber);
+      await sendOtpWithFirebase(phoneE164);
     }
   };
 
@@ -373,12 +416,16 @@ const RegisterModal = ({
     google_authentication === 1;
 
   const resetState = () => {
-    setInputType("");
     setIsLoginScreen(true);
     setIsPasswordScreen(false);
     setIsOTPScreen(false);
     setIsPasswordVisible(false);
     setInputValue("");
+    setRegisterMethod(
+      mobile_authentication === 1 && email_authentication === 0
+        ? "phone"
+        : "email",
+    );
     setNumber(isDemoMode ? "38761111222" : "");
     setCountryCode("");
     setRegionCode("");
@@ -394,7 +441,12 @@ const RegisterModal = ({
     if (!IsRegisterModalOpen) {
       resetState();
     }
-  }, [IsRegisterModalOpen, isDemoMode]);
+  }, [
+    IsRegisterModalOpen,
+    isDemoMode,
+    mobile_authentication,
+    email_authentication,
+  ]);
 
   const handleDialogOpenChange = async (isOpen) => {
     if (!isOpen) {
@@ -420,8 +472,8 @@ sm:max-h-[calc(100dvh-2rem)]
 overflow-hidden
 gap-0
 rounded-[24px] sm:rounded-[28px]
-border border-slate-200/90
-bg-white dark:bg-slate-900
+border border-border/80
+bg-background
 shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
 "
 
@@ -429,22 +481,22 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
           <div className="grid h-full min-h-0 lg:grid-cols-[0.95fr_1.25fr]">
             <AuthValuePanel mode={IsOTPScreen ? "otp" : "register"} />
 
-            <div className="min-h-0 overflow-y-auto bg-gradient-to-b from-white via-white to-slate-50/70 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+            <div className="min-h-0 overflow-y-auto bg-gradient-to-b from-background via-background to-muted/35 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
               <div className="mx-auto w-full max-w-[560px]">
                 <DialogHeader className="space-y-3">
                   {!IsOTPScreen ? (
-                    <div className="inline-flex w-max items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                    <div className="inline-flex w-max items-center rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                       {settings?.company_name || "LMX"}
                     </div>
                   ) : null}
-                  <DialogTitle className="text-left text-2xl font-semibold leading-tight text-slate-900 sm:text-[2rem]">
+                  <DialogTitle className="text-left text-2xl font-semibold leading-tight text-foreground sm:text-[2rem]">
                     {IsPasswordScreen
                       ? "Dovrši registraciju"
                       : IsOTPScreen
                         ? "Unesi verifikacijski kod"
                         : "Kreiraj korisnički račun"}
                   </DialogTitle>
-                  <DialogDescription className="text-left text-sm leading-relaxed text-slate-600 sm:text-[15px]">
+                  <DialogDescription className="text-left text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
                     {IsPasswordScreen ? (
                       <>
                         Nastavljaš s email adresom {email}.{" "}
@@ -496,46 +548,65 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           className="flex flex-col gap-5"
                           onSubmit={handleLoginSubmit}
                         >
-                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                            Unesi email ili broj mobitela za početak
-                            registracije.
+                          {hasBothCredentialMethods ? (
+                            <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-muted/70 p-1.5">
+                              <button
+                                type="button"
+                                className={cn(
+                                  "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+                                  activeRegisterMethod === "email"
+                                    ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                                    : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+                                )}
+                                onClick={() => handleMethodChange("email")}
+                              >
+                                <MdOutlineEmail className="h-4 w-4" />
+                                E-mail
+                              </button>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+                                  activeRegisterMethod === "phone"
+                                    ? "bg-card text-foreground shadow-sm ring-1 ring-border"
+                                    : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+                                )}
+                                onClick={() => handleMethodChange("phone")}
+                              >
+                                <MdOutlineLocalPhone className="h-4 w-4" />
+                                Mobitel
+                              </button>
+                            </div>
+                          ) : null}
+
+                          <div className="rounded-xl border border-border bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                            {activeRegisterMethod === "phone"
+                              ? "Unesi broj mobitela za početak registracije."
+                              : "Unesi e-mail adresu za početak registracije."}
                           </div>
 
-                          {mobile_authentication === 1 &&
-                            email_authentication === 1 && (
-                              <RegisterAuthInputField
-                                type={inputType === "number" ? "phone" : "text"}
-                                label="E-mail ili broj telefona"
-                                placeholder="Unesi e-mail ili broj"
-                                value={
-                                  inputType === "number" ? number : inputValue
-                                }
-                                handleInputChange={handleInputChange}
-                                setCountryCode={setCountryCode}
-                              />
-                            )}
-                          {email_authentication === 1 &&
-                            mobile_authentication === 0 && (
-                              <RegisterAuthInputField
-                                type="email"
-                                label="E-mail"
-                                placeholder="Unesi e-mail"
-                                value={inputValue}
-                                handleInputChange={handleInputChange}
-                              />
-                            )}
+                          {activeRegisterMethod === "email" ? (
+                            <RegisterAuthInputField
+                              key="register-email"
+                              type="email"
+                              label="E-mail"
+                              placeholder="Unesi e-mail"
+                              value={inputValue}
+                              handleInputChange={handleEmailInputChange}
+                            />
+                          ) : null}
 
-                          {mobile_authentication === 1 &&
-                            email_authentication === 0 && (
-                              <RegisterAuthInputField
-                                type="phone"
-                                label="Broj telefona"
-                                placeholder="Unesi broj telefona"
-                                value={number}
-                                handleInputChange={handleInputChange}
-                                setCountryCode={setCountryCode}
-                              />
-                            )}
+                          {activeRegisterMethod === "phone" ? (
+                            <RegisterAuthInputField
+                              key="register-phone"
+                              type="phone"
+                              label="Broj mobitela"
+                              placeholder="Unesi broj mobitela"
+                              value={number}
+                              handleInputChange={handlePhoneInputChange}
+                              setCountryCode={setCountryCode}
+                            />
+                          ) : null}
 
                           {showContinueButton && (
                             <Button
@@ -556,11 +627,11 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
 
                       {showOrSignInWith ? (
                         <div className="flex items-center gap-3">
-                          <hr className="w-full border-slate-200" />
-                          <p className="text-nowrap text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          <hr className="w-full border-border" />
+                          <p className="text-nowrap text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             ili nastavi sa
                           </p>
-                          <hr className="w-full border-slate-200" />
+                          <hr className="w-full border-border" />
                         </div>
                       ) : null}
 
@@ -569,7 +640,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           type="button"
                           variant="outline"
                           size="lg"
-                          className="h-11 rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                          className="h-11 rounded-xl border-border bg-card text-sm font-semibold text-foreground hover:bg-muted"
                           onClick={handleGoogleSignup}
                         >
                           <FcGoogle className="!size-5" />

@@ -75,9 +75,39 @@ import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 // HELPER COMPONENTS
 // ============================================
 
-const MobileStickyBar = ({ 
-  isMyListing, 
-  productDetails, 
+const toBooleanFlag = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  if (value == null) return null;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return null;
+  if (["true", "yes", "da", "on", "enabled"].includes(normalized)) return true;
+  if (["false", "no", "ne", "off", "disabled"].includes(normalized)) return false;
+  return null;
+};
+
+const resolvePriceOnRequestState = (item = {}) => {
+  const candidates = [
+    item?.price_on_request,
+    item?.is_price_on_request,
+    item?.isPriceOnRequest,
+    item?.translated_item?.price_on_request,
+    item?.translated_item?.is_price_on_request,
+    item?.translated_item?.isPriceOnRequest,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = toBooleanFlag(candidate);
+    if (parsed !== null) return parsed;
+  }
+
+  return Number(item?.price) === 0;
+};
+
+const MobileStickyBar = ({
+  isMyListing,
+  productDetails,
   hide, 
   onPhoneClick, 
   onChatClick, 
@@ -88,6 +118,7 @@ const MobileStickyBar = ({
 }) => {
   if (!productDetails) return null;
   const realEstatePricing = resolveRealEstateDisplayPricing(productDetails);
+  const priceOnRequest = resolvePriceOnRequestState(productDetails);
   const showRealEstatePerM2 = !isMyListing && realEstatePricing?.showPerM2;
   const formattedPerM2 = showRealEstatePerM2
     ? `${new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(
@@ -139,8 +170,11 @@ const MobileStickyBar = ({
                 <>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Cijena</p>
                   <p className="text-lg font-black text-primary truncate">
-                    {Number(productDetails.price) === 0 ? "Na upit" :
-                     new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0 }).format(productDetails.price) + " KM"}
+                    {priceOnRequest
+                      ? "Na upit"
+                      : `${new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0 }).format(
+                          Number(productDetails?.price || 0)
+                        )} KM`}
                   </p>
                   {formattedPerM2 ? (
                     <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
@@ -215,7 +249,7 @@ const SkeletonLoader = () => (
     <Skeleton className="mb-6 h-4 w-32 rounded-md" />
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div className="lg:col-span-8 space-y-6">
-        <Skeleton className="aspect-[16/10] w-full rounded-2xl" />
+        <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 h-40 rounded-2xl p-6 space-y-3">
           <Skeleton className="h-8 w-3/4 rounded-lg" />
           <Skeleton className="h-6 w-1/4 rounded-lg" />

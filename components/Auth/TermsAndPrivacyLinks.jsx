@@ -2,9 +2,9 @@ import CustomLink from "@/components/Common/CustomLink";
 
 const TermsAndPrivacyLinks = ({ t, settings, OnHide }) => {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-center text-xs leading-relaxed text-slate-500">
+    <div className="rounded-xl border border-border bg-muted/60 px-3 py-2.5 text-center text-xs leading-relaxed text-muted-foreground">
       {"Prijavom pristaješ na"}{" "}
-      <span className="font-semibold text-slate-700">
+      <span className="font-semibold text-foreground">
         {settings?.company_name}
       </span>{" "}
       <CustomLink

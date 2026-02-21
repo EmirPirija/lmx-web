@@ -172,18 +172,18 @@ const LoginWithEmailForm = ({ OnHide }) => {
   return (
     <>
       <form
-        className="flex flex-col gap-5 rounded-2xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/60 p-4 shadow-sm sm:p-5"
+        className="flex flex-col gap-5 rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 shadow-sm sm:p-5"
         onSubmit={Signin}
       >
         <div className="labelInputCont">
-          <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+          <Label className="requiredInputLabel text-sm font-semibold text-foreground">
             E-mail ili korisničko ime
           </Label>
           <Input
             type="text"
             placeholder="Unesite e-mail ili korisničko ime"
             value={identifier}
-            className="h-11 rounded-xl border-slate-200 bg-white"
+            className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground"
             autoComplete="username"
             onChange={(e) =>
               setLoginStates((prev) => ({
@@ -195,14 +195,14 @@ const LoginWithEmailForm = ({ OnHide }) => {
           />
         </div>
         <div className="labelInputCont">
-          <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
+          <Label className="requiredInputLabel text-sm font-semibold text-foreground">
             {"Lozinka"}
           </Label>
           <div className="flex items-center relative">
             <Input
               type={IsPasswordVisible ? "text" : "password"}
               placeholder={"Unesi lozinku"}
-              className="h-11 rounded-xl border-slate-200 bg-white ltr:pr-10 rtl:pl-10"
+              className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground ltr:pr-10 rtl:pl-10"
               value={password}
               autoComplete="current-password"
               onChange={(e) =>
@@ -214,7 +214,7 @@ const LoginWithEmailForm = ({ OnHide }) => {
             />
             <button
               type="button"
-              className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-slate-500 hover:text-slate-700"
+              className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-muted-foreground hover:text-foreground"
               onClick={() =>
                 setLoginStates((prev) => ({
                   ...prev,

@@ -1197,7 +1197,7 @@ const MyAds = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="w-full lg:max-w-[360px]">
+              <div className="">
                 <SortButton value={sortValue} onChange={handleSortChange} isRTL={isRTL} fullWidth />
               </div>
               <Button
