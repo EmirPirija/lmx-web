@@ -81,12 +81,30 @@ const DIRECT_MAP = {
   "Failed to send message": "Slanje poruke nije uspjelo.",
   "Error sending message": "Greška pri slanju poruke.",
   "Link copied": "Link je kopiran.",
+  "Link copied to clipboard": "Link je kopiran u međuspremnik.",
   Copied: "Kopirano.",
   Loading: "Učitavanje...",
   Start: "Početak",
+  "User logged in successfully": "Uspješno ste prijavljeni.",
+  "User logged in succesfully": "Uspješno ste prijavljeni.",
+  "Logged in successfully": "Uspješno ste prijavljeni.",
+  "Logged in succesfully": "Uspješno ste prijavljeni.",
+  "Successfully logged in": "Uspješno ste prijavljeni.",
+  "Login successful": "Uspješno ste prijavljeni.",
+  "User logged out successfully": "Uspješno ste odjavljeni.",
+  "Logged out successfully": "Uspješno ste odjavljeni.",
+  "User registered successfully": "Račun je uspješno kreiran.",
+  "Registered successfully": "Račun je uspješno kreiran.",
+  "Registration successful": "Račun je uspješno kreiran.",
+  "OTP sent successfully": "OTP kod je uspješno poslan.",
+  "Verification code sent successfully": "Verifikacijski kod je uspješno poslan.",
+  "Invalid credentials": "Uneseni podaci nisu ispravni.",
+  "Invalid credential": "Uneseni podaci nisu ispravni.",
+  Unauthorized: "Nemate dozvolu za ovu radnju.",
+  unauthorised: "Nemate dozvolu za ovu radnju.",
 };
 
-const ENGLISH_REGEX = /\b(failed|error|success|saved|deleted|updated|created|invalid|please|try again|loading|copied|signup|login|logout|upload|download|message|payment|cancelled|not found|unable|required|warning)\b/i;
+const ENGLISH_REGEX = /\b(failed|error|success|succes|successful|saved|deleted|updated|created|invalid|please|try again|loading|copied|signup|login|logged|logout|upload|download|message|payment|cancelled|not found|unable|required|warning|credentials|unauthorized|forbidden|verification code)\b/i;
 
 const BOSNIAN_HINT_REGEX = /[čćžšđ]|\b(grešk|uspješ|uspješn|pokušaj|molimo|obavez|učitav|sačuv|obri|poruk|račun|odjav|prijav|ne može|nije usp|dodat|ažur|lokacij|pretr|članst|ponud|plaćan|verifik|potvrd|upit|obavijest)\b/i;
 
@@ -119,6 +137,34 @@ export const toBosnianToastMessage = (input, type = "default") => {
   }
 
   // Backend čestice na engleskom
+  if (
+    (lower.includes("logged in") || lower.includes("log in")) &&
+    (lower.includes("success") || lower.includes("succes"))
+  ) {
+    return "Uspješno ste prijavljeni.";
+  }
+  if (
+    (lower.includes("logged out") || lower.includes("log out")) &&
+    (lower.includes("success") || lower.includes("succes"))
+  ) {
+    return "Uspješno ste odjavljeni.";
+  }
+  if (
+    (lower.includes("register") || lower.includes("sign up")) &&
+    (lower.includes("success") || lower.includes("succes"))
+  ) {
+    return "Račun je uspješno kreiran.";
+  }
+  if (
+    lower.includes("otp") &&
+    (lower.includes("sent") || lower.includes("send")) &&
+    (lower.includes("success") || lower.includes("succes") || lower.includes("accepted"))
+  ) {
+    return "OTP kod je uspješno poslan.";
+  }
+  if (lower.includes("invalid credential")) {
+    return "Uneseni podaci nisu ispravni.";
+  }
   if (lower.includes("insufficient") && lower.includes("balance")) {
     return "Nemate dovoljno sredstava za ovu radnju.";
   }

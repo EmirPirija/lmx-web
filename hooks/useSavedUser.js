@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { savedUsersApi } from "@/utils/api";
 
 export function useSavedUser(sellerId, { enabled = true } = {}) {

@@ -541,6 +541,50 @@ const readExchangePossible = (item = {}) => {
   return false;
 };
 
+const getListingStatusMeta = (item = {}, availableNow = null) => {
+  const status = normalizeText(item?.status || item?.translated_item?.status || "");
+  const reservationStatus = normalizeText(
+    item?.reservation_status || item?.translated_item?.reservation_status || ""
+  );
+  const hasReservedUser = Boolean(item?.reserved_for_user_id);
+
+  const isSold = ["soldout", "sold out", "sold", "prodano", "rasprodano"].includes(status);
+  const isReserved =
+    ["reserved", "rezervisano"].includes(status) ||
+    ["reserved", "rezervisano"].includes(reservationStatus) ||
+    hasReservedUser;
+
+  if (isSold) {
+    return {
+      label: "Prodano",
+      className:
+        "border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-700/70 dark:bg-rose-900/40 dark:text-rose-200",
+    };
+  }
+
+  if (isReserved) {
+    return {
+      label: "Rezervisano",
+      className:
+        "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200",
+    };
+  }
+
+  if (availableNow === false && status && !["approved", "active", "featured"].includes(status)) {
+    return {
+      label: "Rezervisano",
+      className:
+        "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200",
+    };
+  }
+
+  return {
+    label: "Dostupno",
+    className:
+      "border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200",
+  };
+};
+
 // ============================================
 // UI KOMPONENTE
 // ============================================
@@ -551,6 +595,7 @@ const OverlayPill = ({ icon: Icon, children, className }) => (
       "inline-flex items-center gap-1.5",
       "px-2 py-1 rounded-lg border text-[11px] font-semibold",
       "bg-white/90 backdrop-blur-sm",
+      "dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-200",
       "shadow-sm",
       className
     )}
@@ -566,6 +611,11 @@ const formatPriceOrInquiry = (price) => {
   if (Number(price) === 0) return "Na upit";
   return formatPriceAbbreviated(Number(price));
 };
+
+const META_CHIP_CLASS =
+  "inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold leading-none text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200";
+const STATUS_CHIP_BASE_CLASS =
+  "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold leading-none";
 
 // ============================================
 // FEATURED PLAN MODAL
@@ -1200,7 +1250,7 @@ const MyAdsCard = ({
   const keyAttributes = getKeyAttributes(data);
   const conditionLabel = getConditionLabel(data);
   const availableNow = readAvailableNow(data);
-  const topStatusCount = [Boolean(conditionLabel), Boolean(availableNow)].filter(Boolean).length;
+  const statusMeta = useMemo(() => getListingStatusMeta(data, availableNow), [data, availableNow]);
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -1338,6 +1388,17 @@ const MyAdsCard = ({
   const isOnSale = data?.is_on_sale === true || data?.is_on_sale === 1;
   const oldPrice = data?.old_price;
   const currentPrice = data?.price;
+  const metaValues = useMemo(() => {
+    const values = Array.isArray(keyAttributes) ? [...keyAttributes] : [];
+    if (conditionLabel) {
+      const normalizedCondition = normalizeText(conditionLabel);
+      const withoutCondition = values.filter(
+        (entry) => normalizeText(entry) !== normalizedCondition
+      );
+      return [conditionLabel, ...withoutCondition];
+    }
+    return values;
+  }, [keyAttributes, conditionLabel]);
   const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(data), [data]);
   const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
 
@@ -1499,8 +1560,8 @@ const MyAdsCard = ({
   const cardContent = (
     <div
       className={cn(
-        "group relative flex flex-col h-full overflow-hidden",
-        "bg-white rounded-xl border border-slate-100",
+        "group relative flex h-full flex-col overflow-hidden",
+        "bg-white rounded-xl border border-slate-100 dark:bg-slate-900 dark:border-slate-800",
         "transition-all duration-200",
         isSelected ? "ring-2 ring-primary/70 bg-primary/5 shadow-sm" : "hover:shadow-sm",
         "cursor-pointer"
@@ -1545,7 +1606,7 @@ const MyAdsCard = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative aspect-[16/10] bg-slate-50">
+        <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-950">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
@@ -1573,8 +1634,8 @@ const MyAdsCard = ({
                   >
                     <ChevronRight className="w-6 h-6" />
                   </motion.div>
-                  <p className="text-sm font-semibold text-slate-900 text-center">Detalji</p>
-                  <p className="text-xs text-slate-500 text-center mt-1">Otvori oglas</p>
+                  <p className="text-sm font-semibold text-slate-900 text-center dark:text-slate-100">Detalji</p>
+                  <p className="text-xs text-slate-500 text-center mt-1 dark:text-slate-400">Otvori oglas</p>
                 </div>
               )}
             </motion.div>
@@ -1667,37 +1728,28 @@ const MyAdsCard = ({
             </motion.div>
           )}
 
-          {/* Status strip na prijelomu slike i donjeg bijelog dijela */}
-          {!isViewMoreSlide && (conditionLabel || availableNow) ? (
+          {/* Primarni status (Dostupno/Rezervisano/Prodano) + Izdvojeno na prelomu slike i sadržaja */}
+          {!isViewMoreSlide ? (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
               className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5"
             >
-              {conditionLabel ? (
+              <span className={cn(STATUS_CHIP_BASE_CLASS, statusMeta.className)}>
+                {statusMeta.label}
+              </span>
+              {data?.is_feature ? (
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
-                    "text-[10px] font-semibold leading-none",
-                    "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
-                    "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
+                    STATUS_CHIP_BASE_CLASS,
+                    "border-amber-300 bg-amber-100 text-amber-800",
+                    "dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200"
                   )}
+                  title="Istaknuti oglas"
+                  aria-label="Istaknuti oglas"
                 >
-                  {conditionLabel}
-                </span>
-              ) : null}
-
-              {availableNow ? (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-2.5 py-1",
-                    "text-[10px] font-semibold leading-none",
-                    "border-emerald-300 bg-emerald-100/95 text-emerald-800 shadow-sm",
-                    "dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200"
-                  )}
-                >
-                  Dostupno
+                  Izdvojeno
                 </span>
               ) : null}
             </motion.div>
@@ -1760,6 +1812,7 @@ const MyAdsCard = ({
                     "hidden sm:flex items-center justify-center",
                     "w-8 h-8 rounded-full",
                     "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                    "dark:border-slate-700 dark:bg-slate-900/90",
                     "transition-all duration-200",
                     isHovered
                       ? "opacity-100 translate-x-0"
@@ -1776,7 +1829,7 @@ const MyAdsCard = ({
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
-                  <ChevronLeft className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+                  <ChevronLeft className="w-4 h-4 text-slate-700 dark:text-slate-200 rtl:rotate-180" />
                 </motion.button>
               )}
 
@@ -1789,6 +1842,7 @@ const MyAdsCard = ({
                     "hidden sm:flex items-center justify-center",
                     "w-8 h-8 rounded-full",
                     "bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm",
+                    "dark:border-slate-700 dark:bg-slate-900/90",
                     "transition-all duration-200",
                     isHovered
                       ? "opacity-100 translate-x-0"
@@ -1805,7 +1859,7 @@ const MyAdsCard = ({
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
-                  <ChevronRight className="w-4 h-4 text-slate-700 rtl:rotate-180" />
+                  <ChevronRight className="w-4 h-4 text-slate-700 dark:text-slate-200 rtl:rotate-180" />
                 </motion.button>
               )}
             </>
@@ -1817,13 +1871,13 @@ const MyAdsCard = ({
       <div
         className={cn(
           "flex flex-col gap-2 p-3 flex-1",
-          topStatusCount >= 2 ? "pt-5" : topStatusCount >= 1 ? "pt-5" : null
+          !isViewMoreSlide ? "pt-5" : null
         )}
       >
         <div className="flex items-start justify-between gap-2">
           <motion.h3
             whileHover={{ color: "hsl(var(--primary))" }}
-            className="text-sm font-semibold text-slate-900 dark:text-slate-300 line-clamp-2 leading-snug group-hover:text-primary transition-colors"
+            className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100"
           >
             {title}
           </motion.h3>
@@ -1839,35 +1893,27 @@ const MyAdsCard = ({
         </div>
 
         {internalCode ? (
-          <div className="flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-slate-50/90 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-800/80">
             <span className="font-medium text-slate-500 dark:text-slate-400">Interna šifra:</span>
             <span className="truncate font-semibold text-slate-800 dark:text-slate-100">{internalCode}</span>
           </div>
         ) : null}
 
-        {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
+        {Array.isArray(metaValues) && metaValues.length > 0 ? (
           <div className="flex flex-wrap gap-1">
-            {keyAttributes.map((attr, index) => (
-              <motion.span
+            {metaValues.map((attr, index) => (
+              <span
                 key={`${attr}-${index}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className={cn(
-                  "inline-flex items-center",
-                  "px-2 py-0.5 rounded-md border",
-                  "bg-slate-50 text-slate-700 border-slate-100",
-                  "text-[10px] font-semibold"
-                )}
+                className={META_CHIP_CLASS}
               >
                 {attr}
-              </motion.span>
+              </span>
             ))}
           </div>
         ) : null}
 
         <div
-          className="mt-auto flex flex-col-reverse items-center justify-between gap-2 border-t border-slate-100 pt-2 sm:flex-row dark:border-slate-800"
+          className="mt-auto flex flex-col-reverse items-center justify-between gap-2 pt-2 sm:flex-row"
         >
           {publishedAgo ? (
             <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
@@ -1958,7 +2004,7 @@ const MyAdsCard = ({
   );
 
   return (
-    <motion.div ref={cardShellRef} layout className="relative h-full">
+    <motion.div ref={cardShellRef} layout className="relative h-full w-[95%] mx-auto">
       {cardContent}
 
       <SmartQuickActionsPanel

@@ -11,7 +11,9 @@ const Toaster = ({
     (<Sonner
       theme={theme}
       className="toaster group"
+      style={{ zIndex: 2147483647 }}
       toastOptions={{
+        style: { zIndex: 2147483647 },
         classNames: {
           toast:
             "group toast rounded-2xl border border-border/70 bg-background text-foreground shadow-lg",

@@ -5,7 +5,7 @@ import { toast } from "@/utils/toastBs";
 import Api from "@/api/AxiosInterceptors";
 import { 
   Upload, X, Play, Pause, Image as ImageIcon, 
-  Star, Trash2, Loader2, GripVertical, Plus, CheckCircle2, MousePointerClick, Link2, ExternalLink, Instagram
+  Star, Trash2, Loader2, GripVertical, Plus, CheckCircle2, MousePointerClick, Link2, ExternalLink, Instagram, ChevronLeft, ChevronRight
 } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
@@ -284,6 +284,7 @@ const ComponentFour = ({
   const [isVideoProcessing, setIsVideoProcessing] = useState(false);
 
   const [focusedImageId, setFocusedImageId] = useState(null);
+  const [isMobileImageUi, setIsMobileImageUi] = useState(false);
 
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -314,14 +315,35 @@ const ComponentFour = ({
   }, [uploadedVideo]);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-        if (!e.target.closest('.image-card-interactive')) {
-            setFocusedImageId(null);
-        }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    if (typeof window === "undefined") return undefined;
+
+    const media = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobileImageUi(media.matches);
+    update();
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", update);
+      return () => media.removeEventListener("change", update);
+    }
+
+    media.addListener(update);
+    return () => media.removeListener(update);
   }, []);
+
+  useEffect(() => {
+    if (isMobileImageUi) {
+      setFocusedImageId(null);
+      return undefined;
+    }
+
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".image-card-interactive")) {
+        setFocusedImageId(null);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [isMobileImageUi]);
 
   const allImages = React.useMemo(() => {
     return [...(uploadedImages || []), ...(otherImages || [])];
@@ -443,6 +465,40 @@ const ComponentFour = ({
         setOtherImages(_allImages.slice(1));
     }
   };
+
+  const moveImage = useCallback(
+    (fromIndex, toIndex) => {
+      if (fromIndex === toIndex) return;
+      if (fromIndex < 0 || toIndex < 0) return;
+      if (fromIndex >= allImages.length || toIndex >= allImages.length) return;
+
+      const nextImages = [...allImages];
+      const [moved] = nextImages.splice(fromIndex, 1);
+      nextImages.splice(toIndex, 0, moved);
+
+      if (!nextImages.length) return;
+      setUploadedImages([nextImages[0]]);
+      setOtherImages(nextImages.slice(1));
+      setFocusedImageId(null);
+    },
+    [allImages, setUploadedImages, setOtherImages]
+  );
+
+  const handleMoveImageLeft = useCallback(
+    (index) => {
+      if (index <= 0) return;
+      moveImage(index, index - 1);
+    },
+    [moveImage]
+  );
+
+  const handleMoveImageRight = useCallback(
+    (index) => {
+      if (index >= allImages.length - 1) return;
+      moveImage(index, index + 1);
+    },
+    [allImages.length, moveImage]
+  );
 
   const handleDeleteImage = async (targetImg) => {
     try {
@@ -567,6 +623,7 @@ const ComponentFour = ({
   };
 
   const toggleImageFocus = (e, id) => {
+    if (isMobileImageUi) return;
     e.stopPropagation();
     setFocusedImageId(focusedImageId === id ? null : id);
   };
@@ -582,8 +639,10 @@ const ComponentFour = ({
                   <ImageIcon className="w-5 h-5 text-primary" />
                   Fotografije
               </h3>
-              <p className="mt-1 hidden text-xs text-slate-500 dark:text-slate-400 sm:block">
-                Prva slika je glavna. Prevucite za promjenu rasporeda.
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {isMobileImageUi
+                  ? "Prva slika je glavna. Na mobitelu koristite strelice za raspored."
+                  : "Prva slika je glavna. Prevucite za promjenu rasporeda."}
               </p>
             </div>
             <div className="flex items-center gap-3 rounded-full border bg-white px-3 py-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -651,14 +710,30 @@ const ComponentFour = ({
                     return (
                         <div 
                             key={imgId}
-                            draggable
-                            onDragStart={(e) => handleSortStart(e, index)}
-                            onDragEnter={(e) => handleSortEnter(e, index)}
-                            onDragEnd={handleSortEnd}
-                            onDragOver={(e) => e.preventDefault()}
-                            onClick={(e) => toggleImageFocus(e, imgId)}
+                            draggable={!isMobileImageUi}
+                            onDragStart={(e) => {
+                              if (isMobileImageUi) return;
+                              handleSortStart(e, index);
+                            }}
+                            onDragEnter={(e) => {
+                              if (isMobileImageUi) return;
+                              handleSortEnter(e, index);
+                            }}
+                            onDragEnd={(e) => {
+                              if (isMobileImageUi) return;
+                              handleSortEnd(e);
+                            }}
+                            onDragOver={(e) => {
+                              if (isMobileImageUi) return;
+                              e.preventDefault();
+                            }}
+                            onClick={(e) => {
+                              if (isMobileImageUi) return;
+                              toggleImageFocus(e, imgId);
+                            }}
                             className={cn(
-                                "image-card-interactive group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900",
+                                "image-card-interactive group relative aspect-square overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900 touch-manipulation",
+                                isMobileImageUi ? "cursor-default" : "cursor-pointer",
                                 isFocused
                                   ? "z-20 ring-2 ring-primary ring-offset-2 ring-offset-slate-100 shadow-lg dark:ring-offset-slate-950"
                                   : "border-slate-200 hover:shadow-md dark:border-slate-700",
@@ -673,31 +748,36 @@ const ComponentFour = ({
 
                             <div className={cn(
                                 "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300",
-                                isFocused ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                isMobileImageUi ? "opacity-100" : isFocused ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                             )} />
 
                             <div className={cn(
                                 "absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1 z-10 transition-all",
                                 isMain ? "bg-primary text-white" : "bg-black/60 text-white backdrop-blur-md",
-                                isFocused && !isMain ? "opacity-0" : "opacity-100"
+                                isFocused && !isMain && !isMobileImageUi ? "opacity-0" : "opacity-100"
                             )}>
                                 {isMain ? <><Star className="w-3 h-3 fill-current" /> GLAVNA</> : <span>#{index + 1}</span>}
                             </div>
 
                             <div className={cn(
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-lg transition-opacity duration-300 pointer-events-none",
-                                isFocused ? "opacity-0" : "opacity-0 group-hover:opacity-100"
+                                isMobileImageUi ? "opacity-0" : isFocused ? "opacity-0" : "opacity-0 group-hover:opacity-100"
                             )}>
                                 <GripVertical className="w-10 h-10" />
                             </div>
 
                             <div className={cn(
                                 "absolute top-2 right-2 z-30 transition-opacity duration-300",
-                                isFocused ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                isMobileImageUi ? "opacity-100" : isFocused ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                             )}>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); handleDeleteImage(img); }}
-                                    className="rounded-full bg-white/90 p-1.5 text-red-500 shadow-md transition-colors hover:bg-red-50 hover:text-white dark:bg-slate-900/90 dark:hover:bg-red-500/20"
+                                    className={cn(
+                                      "rounded-full bg-white/90 p-1.5 text-red-500 shadow-md transition-colors dark:bg-slate-900/90",
+                                      isMobileImageUi
+                                        ? "active:bg-red-50"
+                                        : "hover:bg-red-50 hover:text-white dark:hover:bg-red-500/20"
+                                    )}
                                     title="Izbriši sliku"
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -707,7 +787,11 @@ const ComponentFour = ({
                             {!isMain && (
                                 <div className={cn(
                                     "absolute bottom-3 left-3 right-3 z-30 transition-all duration-300 transform",
-                                    isFocused ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
+                                    isMobileImageUi
+                                      ? "opacity-100 translate-y-0"
+                                      : isFocused
+                                      ? "opacity-100 translate-y-0"
+                                      : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
                                 )}>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleSetMain(img); }}
@@ -716,6 +800,54 @@ const ComponentFour = ({
                                         <MousePointerClick className="w-3.5 h-3.5" />
                                         Postavi kao glavnu
                                     </button>
+                                </div>
+                            )}
+
+                            {isMobileImageUi && (
+                                <div className="absolute inset-x-2 bottom-2 z-30">
+                                    <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-black/45 p-1.5 backdrop-blur-sm">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleMoveImageLeft(index);
+                                            }}
+                                            disabled={index === 0}
+                                            className="inline-flex h-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
+                                            title="Pomjeri lijevo"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleMoveImageRight(index);
+                                            }}
+                                            disabled={index === allImages.length - 1}
+                                            className="inline-flex h-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
+                                            title="Pomjeri desno"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (!isMain) handleSetMain(img);
+                                            }}
+                                            disabled={isMain}
+                                            className={cn(
+                                              "inline-flex h-8 items-center justify-center rounded-lg px-1 text-[11px] font-semibold disabled:cursor-not-allowed",
+                                              isMain
+                                                ? "bg-emerald-500 text-white disabled:opacity-95"
+                                                : "bg-white/90 text-slate-700 active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
+                                            )}
+                                            title={isMain ? "Već je glavna" : "Postavi kao glavnu"}
+                                        >
+                                            {isMain ? "Glavna" : "Na vrh"}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -735,8 +867,33 @@ const ComponentFour = ({
       <div className="space-y-4 border-t border-slate-100 pt-8 dark:border-slate-700">
         <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
             <Play className="w-5 h-5 text-red-500" />
-            Video URL
+            Video prezentacija
         </h3>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/70">
+          <label className={cn("flex items-start gap-3 select-none", hasAnyVideoSource ? "cursor-pointer" : "cursor-not-allowed opacity-70")}>
+            <input
+              type="checkbox"
+              checked={Boolean(addVideoToStory)}
+              onChange={(e) => handleStoryToggle(e.target.checked)}
+              disabled={!hasAnyVideoSource}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
+            />
+            <span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Objavi video i na story</span>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                Maksimalno 5 aktivnih story objava po profilu. (vrijedi za URL i upload video)
+              </p>
+            </span>
+          </label>
+          <p className={cn("mt-2 text-xs", addVideoToStory ? "text-primary" : "text-slate-500 dark:text-slate-400")}>
+            {hasAnyVideoSource && addVideoToStory
+              ? "Video će biti objavljen i na story."
+              : hasAnyVideoSource
+              ? "Video će biti objavljen uz oglas, ali ne i na story."
+              : "Dodajte video URL ili upload videa da biste mogli uključiti story objavu."}
+          </p>
+        </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
@@ -853,6 +1010,7 @@ const ComponentFour = ({
                 </button>
               </div>
             )}
+
           </div>
         </div>
 
@@ -970,38 +1128,6 @@ const ComponentFour = ({
             </span>
           </label>
         </div>
-
-        {hasAnyVideoSource ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
-            <label className="flex items-start gap-3 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={Boolean(addVideoToStory)}
-                onChange={(e) => handleStoryToggle(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-              />
-              <span>
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Objavi video i na story</span>
-                <p className="text-xs text-slate-500 mt-0.5 dark:text-slate-400">
-                  Maksimalno 5 aktivnih story objava po profilu.
-                </p>
-              </span>
-            </label>
-          </div>
-        ) : null}
-
-        <p
-          className={cn(
-            "text-xs",
-            addVideoToStory ? "text-primary" : "text-slate-500 dark:text-slate-400"
-          )}
-        >
-          {hasAnyVideoSource && addVideoToStory
-            ? "Video će biti objavljen i u Story objavi."
-            : hasAnyVideoSource
-            ? "Video će biti objavljen uz oglas, ali ne i u Story objavi."
-            : "Dodajte video da biste mogli uključiti story objavu."}
-        </p>
 
         <p
           className={cn(

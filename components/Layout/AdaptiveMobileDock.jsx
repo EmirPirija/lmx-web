@@ -46,6 +46,8 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   const [isNavExpanded, setIsNavExpanded] = useState(false);
   const [isDockCollapsed, setIsDockCollapsed] = useState(false);
   const [isDockInteracting, setIsDockInteracting] = useState(false);
+  const [isTextInputActive, setIsTextInputActive] = useState(false);
+  const [isVirtualKeyboardVisible, setIsVirtualKeyboardVisible] = useState(false);
   const rowRef = useRef(null);
   const scrollStateRef = useRef({
     lastY: 0,
@@ -137,6 +139,9 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () => Object.values(suspendRegistry).some((entry) => Boolean(entry?.keepNavOpen)),
     [suspendRegistry]
   );
+  const isUiAutoSuspended = isTextInputActive || isVirtualKeyboardVisible;
+  const effectiveSuspended = isSuspended || isUiAutoSuspended;
+  const shouldKeepNavWhileSuspended = isSuspended && keepNavDuringSuspend && !isUiAutoSuspended;
 
   const hasNav = Boolean(ready && isMobile && activeNav);
   const hasCta = Boolean(ready && isMobile && activeCta);
@@ -156,17 +161,19 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     if (!isMobile) {
       setIsNavExpanded(false);
       setIsDockCollapsed(false);
+      setIsTextInputActive(false);
+      setIsVirtualKeyboardVisible(false);
     }
   }, [isMobile]);
 
   useEffect(() => {
-    if (isSuspended) {
-      if (!keepNavDuringSuspend) {
+    if (effectiveSuspended) {
+      if (!shouldKeepNavWhileSuspended) {
         setIsNavExpanded(false);
       }
       setIsDockCollapsed(false);
     }
-  }, [isSuspended, keepNavDuringSuspend]);
+  }, [effectiveSuspended, shouldKeepNavWhileSuspended]);
 
   useEffect(() => {
     if (!isDockInteracting) return;
@@ -174,7 +181,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   }, [isDockInteracting]);
 
   useEffect(() => {
-    if (!ready || !isMobile || !showDock || isSuspended || isNavExpanded || isDockInteracting) {
+    if (!ready || !isMobile || !showDock || effectiveSuspended || isNavExpanded || isDockInteracting) {
       setIsDockCollapsed(false);
       return undefined;
     }
@@ -250,7 +257,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [ready, isMobile, showDock, isSuspended, isNavExpanded, isDockInteracting]);
+  }, [ready, isMobile, showDock, effectiveSuspended, isNavExpanded, isDockInteracting]);
 
   const dockRootTransition = useMemo(
     () =>
@@ -300,6 +307,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
     if (!viewport) {
       root.style.setProperty("--lmx-mobile-viewport-bottom-offset", "0px");
+      setIsVirtualKeyboardVisible(false);
       return undefined;
     }
 
@@ -312,6 +320,8 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
           Math.round(window.innerHeight - (viewport.height + viewport.offsetTop))
         );
         root.style.setProperty("--lmx-mobile-viewport-bottom-offset", `${bottomOffset}px`);
+        const keyboardVisible = isMobile && bottomOffset > 80;
+        setIsVirtualKeyboardVisible((prev) => (prev === keyboardVisible ? prev : keyboardVisible));
       });
     };
 
@@ -327,13 +337,65 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
       window.removeEventListener("orientationchange", updateViewportBottomOffset);
       root.style.setProperty("--lmx-mobile-viewport-bottom-offset", "0px");
     };
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+
+    const isTextualInput = (node) => {
+      if (!(node instanceof HTMLElement)) return false;
+      if (node.isContentEditable) return true;
+
+      const tag = String(node.tagName || "").toLowerCase();
+      if (tag === "textarea") return true;
+      if (tag !== "input") return false;
+
+      const type = String(node.getAttribute("type") || "text").toLowerCase();
+      return ![
+        "checkbox",
+        "radio",
+        "button",
+        "submit",
+        "reset",
+        "file",
+        "range",
+        "color",
+        "date",
+        "month",
+        "week",
+        "time",
+        "datetime-local",
+        "hidden",
+      ].includes(type);
+    };
+
+    const syncInputState = () => {
+      const active = document.activeElement;
+      setIsTextInputActive((prev) => {
+        const next = isTextualInput(active);
+        return prev === next ? prev : next;
+      });
+    };
+
+    const onFocusOut = () => {
+      window.requestAnimationFrame(syncInputState);
+    };
+
+    syncInputState();
+    document.addEventListener("focusin", syncInputState);
+    document.addEventListener("focusout", onFocusOut);
+
+    return () => {
+      document.removeEventListener("focusin", syncInputState);
+      document.removeEventListener("focusout", onFocusOut);
+    };
   }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
     const root = document.documentElement;
 
-    if (!showDock || isSuspended || isDockCollapsed) {
+    if (!showDock || effectiveSuspended || isDockCollapsed) {
       root.style.setProperty("--adaptive-mobile-dock-space", "0px");
       return undefined;
     }
@@ -356,7 +418,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     return () => {
       observer?.disconnect?.();
     };
-  }, [showDock, hasCta, hasNav, isNavExpanded, activeNav, activeCta, isSuspended, isDockCollapsed]);
+  }, [showDock, hasCta, hasNav, isNavExpanded, activeNav, activeCta, effectiveSuspended, isDockCollapsed]);
 
   const closeNav = useCallback(() => setIsNavExpanded(false), []);
 
@@ -383,7 +445,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () => ({
       ready,
       isMobile,
-      isSuspended,
+      isSuspended: effectiveSuspended,
       upsertNav,
       removeNav,
       upsertCta,
@@ -395,7 +457,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     [
       ready,
       isMobile,
-      isSuspended,
+      effectiveSuspended,
       upsertNav,
       removeNav,
       upsertCta,
@@ -413,7 +475,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
       <AnimatePresence>
         {showDock && (
           <>
-            {hasCta && hasNav && isNavExpanded && !isSuspended && (
+            {hasCta && hasNav && isNavExpanded && !effectiveSuspended && (
               <motion.button
                 type="button"
                 aria-label="Zatvori meni"
@@ -433,7 +495,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
             <motion.div
               initial={{ y: 22, opacity: 0 }}
               animate={
-                isSuspended
+                effectiveSuspended
                   ? { y: "120%", opacity: 0 }
                   : isDockCollapsed && !isNavExpanded
                     ? { y: "104%", opacity: 0 }
@@ -455,7 +517,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 <LayoutGroup id="adaptive-mobile-dock">
                   <div className="relative">
                     <AnimatePresence>
-                      {hasCta && hasNav && isNavExpanded && (!isSuspended || keepNavDuringSuspend) && (
+                      {hasCta && hasNav && isNavExpanded && (!effectiveSuspended || shouldKeepNavWhileSuspended) && (
                         <motion.div
                           initial={{ opacity: 0, y: 10, scale: 0.98 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -479,7 +541,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
                     <div
                       className={`border border-slate-200/80 bg-white/95 p-2 shadow-[0_-12px_35px_-22px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
-                        isSuspended ? "pointer-events-none" : "pointer-events-auto"
+                        effectiveSuspended ? "pointer-events-none" : "pointer-events-auto"
                       }`}
                       onPointerDownCapture={beginDockInteraction}
                       onPointerUpCapture={endDockInteraction}

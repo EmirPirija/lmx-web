@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 
 const initialState = {
   compareList: [], // Tu čuvamo cijele objekte oglasa

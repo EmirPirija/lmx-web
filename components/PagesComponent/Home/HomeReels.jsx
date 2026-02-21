@@ -77,6 +77,24 @@ const pickArr = (r) => {
   return d?.data?.data || d?.data || d?.items || d?.result || [];
 };
 
+const getInstagramEmbedUrl = (input) => {
+  if (!input) return "";
+  try {
+    const parsed = new URL(String(input));
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (!["instagram.com", "m.instagram.com"].includes(host)) return "";
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return "";
+    const type = parts[0];
+    const id = parts[1];
+    if (!["p", "reel", "reels", "tv"].includes(type) || !id) return "";
+    const canonicalType = type === "reels" ? "reel" : type;
+    return `https://www.instagram.com/${canonicalType}/${id}/embed`;
+  } catch {
+    return "";
+  }
+};
+
 const buildVideoMeta = (item) => {
   const raw = item?.video || item?.video_link || null;
   if (!raw) return null;
@@ -96,11 +114,21 @@ const buildVideoMeta = (item) => {
     if (id) {
       return {
         type: "youtube",
-        src: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1`,
+        src: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`,
         poster: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
         raw,
       };
     }
+  }
+
+  const instagramEmbed = getInstagramEmbedUrl(raw);
+  if (instagramEmbed) {
+    return {
+      type: "instagram",
+      src: instagramEmbed,
+      poster: item?.image || "",
+      raw,
+    };
   }
 
   return { type: "direct", src: raw, poster: item?.image || "", raw };
@@ -568,6 +596,8 @@ const ReelCard = memo(({
   const videoUrl = videoMeta?.src;
   const poster = videoMeta?.poster || "";
   const isYouTube = videoMeta?.type === "youtube";
+  const isInstagramEmbed = videoMeta?.type === "instagram";
+  const isEmbedSource = isYouTube || isInstagramEmbed;
   const views = num(item?.total_video_plays) || num(item?.clicks);
   const likes = num(item?.total_likes);
 
@@ -610,13 +640,13 @@ const ReelCard = memo(({
   }, []);
 
   useEffect(() => {
-    setShouldLoadVideo(isYouTube);
+    setShouldLoadVideo(isEmbedSource);
     setProgress(0);
     progressValueRef.current = 0;
-  }, [item?.id, isYouTube]);
+  }, [item?.id, isEmbedSource]);
 
   useEffect(() => {
-    if (isYouTube || shouldLoadVideo) return;
+    if (isEmbedSource || shouldLoadVideo) return;
     const wr = wrapperRef.current;
     if (!wr || typeof IntersectionObserver === "undefined") {
       setShouldLoadVideo(true);
@@ -637,11 +667,11 @@ const ReelCard = memo(({
     io.observe(wr);
 
     return () => io.disconnect();
-  }, [isYouTube, shouldLoadVideo]);
+  }, [isEmbedSource, shouldLoadVideo]);
 
   /* autoplay via intersection observer */
   useEffect(() => {
-    if (!videoUrl || !autoPlay || isYouTube || !shouldLoadVideo) return;
+    if (!videoUrl || !autoPlay || isEmbedSource || !shouldLoadVideo) return;
     const el = videoRef.current;
     const wr = wrapperRef.current;
     if (!el || !wr) return;
@@ -663,11 +693,11 @@ const ReelCard = memo(({
     );
     io.observe(wr);
     return () => io.disconnect();
-  }, [videoUrl, isMuted, autoPlay, playSpeed, isYouTube, shouldLoadVideo]);
+  }, [videoUrl, isMuted, autoPlay, playSpeed, isEmbedSource, shouldLoadVideo]);
 
   /* progress */
   useEffect(() => {
-    if (isYouTube || !shouldLoadVideo) return;
+    if (isEmbedSource || !shouldLoadVideo) return;
     const el = videoRef.current;
     if (!el) return;
     const up = () => {
@@ -686,12 +716,12 @@ const ReelCard = memo(({
         progressRafRef.current = 0;
       }
     };
-  }, [isYouTube, shouldLoadVideo, commitProgress]);
+  }, [isEmbedSource, shouldLoadVideo, commitProgress]);
 
   /* speed update */
   useEffect(() => {
-    if (!isYouTube && shouldLoadVideo && videoRef.current) videoRef.current.playbackRate = playSpeed;
-  }, [playSpeed, isYouTube, shouldLoadVideo]);
+    if (!isEmbedSource && shouldLoadVideo && videoRef.current) videoRef.current.playbackRate = playSpeed;
+  }, [playSpeed, isEmbedSource, shouldLoadVideo]);
 
   useEffect(() => () => {
     if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
@@ -701,7 +731,7 @@ const ReelCard = memo(({
 
   const toggleMute = (e) => {
     e?.stopPropagation();
-    if (isYouTube) return;
+    if (isEmbedSource) return;
     const el = videoRef.current;
     if (!el) return;
     const next = !isMuted;
@@ -719,7 +749,7 @@ const ReelCard = memo(({
 
   const handleHoldStart = (e) => {
     if (e.target.closest("button,input,a")) return;
-    if (isYouTube || !shouldLoadVideo) return;
+    if (isEmbedSource || !shouldLoadVideo) return;
     if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
     holdTimerRef.current = setTimeout(() => {
       const el = videoRef.current;
@@ -826,7 +856,7 @@ const ReelCard = memo(({
         transition: "box-shadow 0.3s ease",
       }}
     >
-      {isYouTube ? (
+      {isEmbedSource ? (
         <div className="absolute inset-0">
           <img
             src={poster}
@@ -951,15 +981,16 @@ const ReelCard = memo(({
               />
             )}
             {isYouTube && <span className="px-1.5 py-0.5 rounded bg-white/20 text-[8px] font-bold text-white uppercase tracking-wide">YT</span>}
+            {isInstagramEmbed && <span className="px-1.5 py-0.5 rounded bg-white/20 text-[8px] font-bold text-white uppercase tracking-wide">IG</span>}
           </div>
         </button>
 
         <button
           type="button"
           onClick={toggleMute}
-          disabled={isYouTube}
+          disabled={isEmbedSource}
           className={`w-7 h-7 rounded-full border border-white/30 bg-black/20 backdrop-blur-[2px] text-white flex items-center justify-center transition-transform ${
-            isYouTube ? "opacity-50 cursor-not-allowed" : "hover:scale-110"
+            isEmbedSource ? "opacity-50 cursor-not-allowed" : "hover:scale-110"
           }`}
         >
           {isMuted ? <MdVolumeOff size={14} /> : <MdVolumeUp size={14} />}

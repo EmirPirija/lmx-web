@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { instagramApi, socialMediaApi } from "@/utils/api";
 import { runSocialOAuthPopup } from "@/utils/socialOAuth";
 import {
@@ -179,7 +179,7 @@ export function useSocialSharing() {
     try {
       const url = getItemUrl(item);
       await navigator.clipboard.writeText(url);
-      toast.success("Link kopiran u clipboard");
+      toast.success("Link je kopiran u međuspremnik.");
       return true;
     } catch (error) {
       console.error("Copy error:", error);

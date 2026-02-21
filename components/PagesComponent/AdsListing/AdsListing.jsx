@@ -1968,7 +1968,7 @@ const AdsListing = () => {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
+              <div className="rounded-2xl border p-1 border-slate-200/70 bg-white/95 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
                 {renderedStep === 1 && (
                   <ComponentOne
                     categories={categories}

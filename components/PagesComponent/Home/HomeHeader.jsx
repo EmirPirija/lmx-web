@@ -720,7 +720,8 @@ const HomeHeader = () => {
       IsLogout ||
       IsUpdatingProfile ||
       manageDeleteAccount.IsDeleteAccount ||
-      isMobileUtilityMenuOpen);
+      isMobileUtilityMenuOpen ||
+      isMobileSearchFocused);
 
   const availableHeaderQuickLinks = useMemo(
     () =>

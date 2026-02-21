@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/utils/toastBs";
 import { savedCollectionsApi } from "@/utils/api";
 
 export function useSavedCollections() {

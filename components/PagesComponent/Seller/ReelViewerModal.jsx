@@ -43,9 +43,74 @@ import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 
 /* ── helpers ────────────────────────────────────── */
 
+let ytIframeApiPromise = null;
+
+const loadYouTubeIframeApi = () => {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("YouTube API nije dostupna na serveru."));
+  }
+
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+
+  if (ytIframeApiPromise) {
+    return ytIframeApiPromise;
+  }
+
+  ytIframeApiPromise = new Promise((resolve, reject) => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof previousReady === "function") {
+        try {
+          previousReady();
+        } catch {}
+      }
+
+      if (window.YT?.Player) {
+        resolve(window.YT);
+      } else {
+        reject(new Error("YouTube API je učitana bez Player objekta."));
+      }
+    };
+
+    const existingScript = document.querySelector("script[data-yt-iframe-api='1']");
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      script.defer = true;
+      script.dataset.ytIframeApi = "1";
+      script.onerror = () => reject(new Error("Ne mogu učitati YouTube player API."));
+      document.head.appendChild(script);
+    }
+  });
+
+  return ytIframeApiPromise;
+};
+
 const pickItemsArray = (r) => {
   const d = r?.data;
   return d?.data?.data || d?.data || d?.items || d?.result || [];
+};
+
+const getInstagramEmbedUrl = (input) => {
+  if (!input) return "";
+  try {
+    const parsed = new URL(String(input));
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (!["instagram.com", "m.instagram.com"].includes(host)) return "";
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return "";
+    const type = parts[0];
+    const id = parts[1];
+    if (!["p", "reel", "reels", "tv"].includes(type) || !id) return "";
+    const canonicalType = type === "reels" ? "reel" : type;
+    return `https://www.instagram.com/${canonicalType}/${id}/embed`;
+  } catch {
+    return "";
+  }
 };
 
 const pickVideoMeta = (item) => {
@@ -60,11 +125,20 @@ const pickVideoMeta = (item) => {
     if (id) {
       return {
         type: "youtube",
-        src: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1`,
+        videoId: id,
+        src: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`,
         thumb: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
         raw,
       };
     }
+  }
+  const instagramEmbed = getInstagramEmbedUrl(raw);
+  if (instagramEmbed) {
+    return {
+      type: "instagram",
+      src: instagramEmbed,
+      raw,
+    };
   }
   return { type: "direct", src: raw, raw };
 };
@@ -99,7 +173,6 @@ const fmtCount = (v) => {
   return String(n);
 };
 
-const YT_STORY_SECONDS = 12;
 const EDGE_TAP_RATIO = 0.14;
 const SWIPE_NAV_PX = 44;
 
@@ -141,8 +214,9 @@ const ReelViewerModal = ({
   const holdRef = useRef(null);
   const sxRef = useRef(null);
   const syRef = useRef(null);
-  const ytTimerRef = useRef(null);
   const ytRafRef = useRef(null);
+  const ytPlayerRef = useRef(null);
+  const ytPlayerWrapIdRef = useRef(`reel-yt-player-${Math.random().toString(36).slice(2, 10)}`);
   const progressRafRef = useRef(null);
   const progressValueRef = useRef(0);
   const pendingProgressRef = useRef(0);
@@ -163,8 +237,10 @@ const ReelViewerModal = ({
 
   useEffect(() => () => {
     if (holdRef.current) clearTimeout(holdRef.current);
-    if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
     if (ytRafRef.current) cancelAnimationFrame(ytRafRef.current);
+    if (ytPlayerRef.current?.destroy) {
+      try { ytPlayerRef.current.destroy(); } catch {}
+    }
     if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current);
     if (likeAnimTimerRef.current) clearTimeout(likeAnimTimerRef.current);
     if (navUnlockTimerRef.current) clearTimeout(navUnlockTimerRef.current);
@@ -177,6 +253,8 @@ const ReelViewerModal = ({
   const vMeta = item ? pickVideoMeta(item) : null;
   const vUrl = vMeta?.src || null;
   const isYouTube = vMeta?.type === "youtube";
+  const isInstagramEmbed = vMeta?.type === "instagram";
+  const isIframeSource = isYouTube || isInstagramEmbed;
 
   const seller = cur?.seller || {};
   const sName = seller?.name || seller?.shop_name || "Prodavač";
@@ -274,7 +352,7 @@ const ReelViewerModal = ({
 
   /* play video when item changes */
   useEffect(() => {
-    if (!open || !vUrl || isYouTube) return;
+    if (!open || !vUrl || isIframeSource) return;
     const el = vidRef.current;
     if (!el) return;
     el.muted = muted;
@@ -283,11 +361,21 @@ const ReelViewerModal = ({
     setPaused(false);
     const t = setTimeout(() => { el.play().catch(() => {}); }, 80);
     return () => clearTimeout(t);
-  }, [open, vUrl, sIdx, iIdx, isYouTube, muted, resetProgress]);
+  }, [open, vUrl, sIdx, iIdx, isIframeSource, muted, resetProgress]);
 
   useEffect(() => {
-    if (!isYouTube && vidRef.current) vidRef.current.muted = muted;
-  }, [muted, isYouTube]);
+    if (!isIframeSource && vidRef.current) {
+      vidRef.current.muted = muted;
+      return;
+    }
+
+    if (isYouTube && ytPlayerRef.current) {
+      try {
+        if (muted) ytPlayerRef.current.mute();
+        else ytPlayerRef.current.unMute();
+      } catch {}
+    }
+  }, [muted, isIframeSource, isYouTube]);
 
   const lockNavigation = useCallback(() => {
     navLockRef.current = true;
@@ -332,8 +420,19 @@ const ReelViewerModal = ({
 
   const goPrev = useCallback(() => {
     if (navLockRef.current) return;
-    const el = vidRef.current;
-    if (el && el.currentTime > 3) { el.currentTime = 0; resetProgress(); return; }
+    if (isYouTube && ytPlayerRef.current) {
+      try {
+        const current = Number(ytPlayerRef.current.getCurrentTime?.() || 0);
+        if (current > 3) {
+          ytPlayerRef.current.seekTo(0, true);
+          resetProgress();
+          return;
+        }
+      } catch {}
+    } else {
+      const el = vidRef.current;
+      if (el && el.currentTime > 3) { el.currentTime = 0; resetProgress(); return; }
+    }
 
     const sellerIndex = sIdxRef.current;
     const itemIndex = iIdxRef.current;
@@ -359,7 +458,7 @@ const ReelViewerModal = ({
       setIIdx(prevItemIndex);
       resetProgress();
     }
-  }, [allSellers, lockNavigation, resetProgress, advanceAcrossSellers]);
+  }, [allSellers, lockNavigation, resetProgress, advanceAcrossSellers, isYouTube]);
 
   const shiftSeller = useCallback((direction) => {
     if (navLockRef.current) return;
@@ -377,7 +476,7 @@ const ReelViewerModal = ({
 
   /* progress */
   useEffect(() => {
-    if (!open || isYouTube) return;
+    if (!open || isIframeSource) return;
     const el = vidRef.current;
     if (!el) return;
     const up = () => {
@@ -392,57 +491,129 @@ const ReelViewerModal = ({
       el.removeEventListener("loadedmetadata", up);
       el.removeEventListener("seeking", up);
     };
-  }, [open, sIdx, iIdx, isYouTube, queueProgress]);
+  }, [open, sIdx, iIdx, isIframeSource, queueProgress]);
 
   useEffect(() => {
-    if (!open || !isYouTube) return;
-    if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
-    if (ytRafRef.current) cancelAnimationFrame(ytRafRef.current);
+    if (!open || !isYouTube || !vMeta?.videoId) return;
+
+    let disposed = false;
     resetProgress();
+    setPaused(false);
 
-    const start = performance.now();
-    let lastPaint = 0;
-    const tick = (now) => {
-      const elapsed = (now - start) / 1000;
-      if (now - lastPaint >= 100) {
-        queueProgress((elapsed / YT_STORY_SECONDS) * 100);
-        lastPaint = now;
-      }
-      if (elapsed < YT_STORY_SECONDS) {
-        ytRafRef.current = requestAnimationFrame(tick);
-      }
-    };
-    ytRafRef.current = requestAnimationFrame(tick);
-
-    if (autoAdvance) {
-      ytTimerRef.current = setTimeout(() => {
-        goNext(true);
-      }, YT_STORY_SECONDS * 1000);
+    if (ytRafRef.current) {
+      cancelAnimationFrame(ytRafRef.current);
+      ytRafRef.current = null;
     }
 
-    return () => {
-      if (ytTimerRef.current) clearTimeout(ytTimerRef.current);
-      if (ytRafRef.current) cancelAnimationFrame(ytRafRef.current);
+    const syncProgress = () => {
+      if (disposed) return;
+      const player = ytPlayerRef.current;
+      if (player) {
+        try {
+          const duration = Number(player.getDuration?.() || 0);
+          const current = Number(player.getCurrentTime?.() || 0);
+          if (duration > 0 && Number.isFinite(duration) && Number.isFinite(current)) {
+            queueProgress((current / duration) * 100);
+          }
+        } catch {}
+      }
+      ytRafRef.current = requestAnimationFrame(syncProgress);
     };
-  }, [open, isYouTube, sIdx, iIdx, autoAdvance, goNext, queueProgress, resetProgress]);
+
+    const initPlayer = async () => {
+      try {
+        const YT = await loadYouTubeIframeApi();
+        if (disposed) return;
+
+        if (ytPlayerRef.current?.destroy) {
+          try { ytPlayerRef.current.destroy(); } catch {}
+        }
+
+        ytPlayerRef.current = new YT.Player(ytPlayerWrapIdRef.current, {
+          videoId: vMeta.videoId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            mute: muted ? 1 : 0,
+            fs: 0,
+            iv_load_policy: 3,
+          },
+          events: {
+            onReady: (event) => {
+              if (disposed) return;
+              try {
+                if (muted) event.target.mute();
+                else event.target.unMute();
+                event.target.playVideo();
+              } catch {}
+              syncProgress();
+            },
+            onStateChange: (event) => {
+              if (disposed) return;
+              const state = event?.data;
+              if (state === YT.PlayerState.PLAYING) setPaused(false);
+              if (state === YT.PlayerState.PAUSED) setPaused(true);
+              if (state === YT.PlayerState.ENDED) {
+                queueProgress(100);
+                if (autoAdvance) goNext(true);
+              }
+            },
+          },
+        });
+      } catch (error) {
+        console.error("YouTube player init error:", error);
+      }
+    };
+
+    initPlayer();
+
+    return () => {
+      disposed = true;
+      if (ytRafRef.current) {
+        cancelAnimationFrame(ytRafRef.current);
+        ytRafRef.current = null;
+      }
+      if (ytPlayerRef.current?.destroy) {
+        try { ytPlayerRef.current.destroy(); } catch {}
+      }
+      ytPlayerRef.current = null;
+      setPaused(false);
+    };
+  }, [open, isYouTube, vMeta?.videoId, muted, autoAdvance, goNext, queueProgress, resetProgress]);
 
   /* auto-advance */
   useEffect(() => {
-    if (!open || !autoAdvance || isYouTube) return;
+    if (!open || !autoAdvance || isIframeSource) return;
     const el = vidRef.current;
     if (!el) return;
     const end = () => goNext(true);
     el.addEventListener("ended", end);
     return () => el.removeEventListener("ended", end);
-  }, [open, goNext, autoAdvance, isYouTube]);
+  }, [open, goNext, autoAdvance, isIframeSource]);
 
   const togglePause = useCallback(() => {
-    if (isYouTube) return;
+    if (isYouTube && ytPlayerRef.current) {
+      try {
+        const state = ytPlayerRef.current.getPlayerState?.();
+        if (state === 1) {
+          ytPlayerRef.current.pauseVideo?.();
+          setPaused(true);
+        } else {
+          ytPlayerRef.current.playVideo?.();
+          setPaused(false);
+        }
+      } catch {}
+      return;
+    }
+    if (isInstagramEmbed) return;
     const el = vidRef.current;
     if (!el) return;
     if (el.paused) { el.play().catch(() => {}); setPaused(false); }
     else { el.pause(); setPaused(true); }
-  }, [isYouTube]);
+  }, [isYouTube, isInstagramEmbed]);
 
   /* keyboard */
   useEffect(() => {
@@ -468,7 +639,7 @@ const ReelViewerModal = ({
     if (e.pointerType === "mouse" && e.button !== 0) return;
     sxRef.current = e.clientX;
     syRef.current = e.clientY;
-    if (!isYouTube) {
+    if (!isIframeSource) {
       if (holdRef.current) clearTimeout(holdRef.current);
       holdRef.current = setTimeout(() => {
         const el = vidRef.current;
@@ -674,10 +845,15 @@ const ReelViewerModal = ({
             {vUrl ? (
               isYouTube ? (
                 <div className="absolute inset-0">
+                  <div id={ytPlayerWrapIdRef.current} className="absolute inset-0 w-full h-full" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/40 pointer-events-none" />
+                </div>
+              ) : isInstagramEmbed ? (
+                <div className="absolute inset-0">
                   <iframe
-                    key={`yt-${sIdx}-${iIdx}`}
+                    key={`ig-${sIdx}-${iIdx}`}
                     src={vUrl}
-                    title={item?.name || "YouTube video"}
+                    title={item?.name || "Instagram video"}
                     className="absolute inset-0 w-full h-full"
                     allow="autoplay; encrypted-media; picture-in-picture"
                     allowFullScreen
@@ -721,10 +897,17 @@ const ReelViewerModal = ({
               {items.map((_, idx) => (
                 <div key={idx} className="flex-1 h-[3px] rounded-full bg-white/25 overflow-hidden">
                   <motion.div
-                    className="h-full bg-white rounded-full"
+                    className={`h-full bg-white rounded-full ${idx === iIdx && isInstagramEmbed ? "animate-pulse" : ""}`}
                     initial={false}
                     animate={{
-                      width: idx < iIdx ? "100%" : idx === iIdx ? `${progress}%` : "0%",
+                      width:
+                        idx < iIdx
+                          ? "100%"
+                          : idx === iIdx
+                          ? isInstagramEmbed
+                            ? "35%"
+                            : `${progress}%`
+                          : "0%",
                     }}
                     transition={{ duration: 0.1, ease: "linear" }}
                   />
@@ -776,6 +959,7 @@ const ReelViewerModal = ({
                   <div className="flex items-center gap-2 text-[11px] text-white/45">
                     {created && <span>{timeAgo(created)}</span>}
                     {isYouTube && <span className="px-1.5 py-0.5 rounded-full bg-white/15 text-white/70 text-[10px]">YouTube</span>}
+                    {isInstagramEmbed && <span className="px-1.5 py-0.5 rounded-full bg-white/15 text-white/70 text-[10px]">Instagram</span>}
                   </div>
                 </div>
               </button>
@@ -786,11 +970,11 @@ const ReelViewerModal = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!isYouTube) setMuted((p) => !p);
+                    if (!isIframeSource) setMuted((p) => !p);
                   }}
-                  disabled={isYouTube}
+                  disabled={isIframeSource}
                   className={`w-8 h-8 rounded-full bg-black/35 backdrop-blur-md text-white flex items-center justify-center transition ${
-                    isYouTube ? "opacity-50 cursor-not-allowed" : "hover:bg-black/50"
+                    isIframeSource ? "opacity-50 cursor-not-allowed" : "hover:bg-black/50"
                   }`}
                 >
                   {muted ? <MdVolumeOff size={16} /> : <MdVolumeUp size={16} />}
