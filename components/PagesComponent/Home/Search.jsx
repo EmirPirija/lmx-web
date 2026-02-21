@@ -662,8 +662,7 @@ const Search = ({
 
   const handleInputBlur = useCallback(() => {
     setIsInputFocused(false);
-    if (!searchQuery) setIsSearchFocused(false);
-  }, [searchQuery]);
+  }, []);
 
   const hasResults =
     suggestions.length > 0 ||
@@ -685,6 +684,12 @@ const Search = ({
   const shouldShowDropdown =
     showSuggestions &&
     (showHistoryPanel || isSearching || hasResults || showDidYouMean || showNoResults);
+
+  useEffect(() => {
+    if (!isInputFocused && !shouldShowDropdown && !searchQuery) {
+      setIsSearchFocused(false);
+    }
+  }, [isInputFocused, shouldShowDropdown, searchQuery]);
 
   useEffect(() => {
     onInputFocusChange?.(isInputFocused || shouldShowDropdown);
@@ -825,7 +830,7 @@ const Search = ({
         {shouldShowDropdown && (
           <div
             id={dropdownId}
-            className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-[0_24px_44px_-30px_rgba(15,23,42,0.55)] animate-in fade-in-0 slide-in-from-top-2 duration-200 dark:border-slate-700 dark:bg-slate-900"
+            className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-[min(70vh,34rem)] overflow-y-auto overscroll-contain scrollbar-lmx border border-slate-200 bg-white shadow-[0_24px_44px_-30px_rgba(15,23,42,0.55)] animate-in fade-in-0 slide-in-from-top-2 duration-200 dark:border-slate-700 dark:bg-slate-900"
             role="listbox"
             aria-label="Prijedlozi pretrage"
           >
@@ -863,11 +868,11 @@ const Search = ({
                   </button>
                 </div>
 
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {suggestedCategories.map((category) => (
                     <li
                       key={category.id}
-                      className="flex cursor-pointer items-center justify-between rounded px-2 py-2 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/70"
+                      className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2.5 transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/70"
                       onClick={() => handleCategoryClick(category)}
                       role="option"
                     >

@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { formatPriceAbbreviated } from "@/utils";
 import { getItemBuyerListApi } from "@/utils/api";
-import NoDataFound from "../../../public/assets/no_data_found_illustrator.svg";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -337,14 +336,15 @@ const SoldOutModal = ({
               ))
             ) : (
               <div className="flex flex-col items-center justify-center py-8">
-                <CustomImage
-                  src={NoDataFound}
-                  alt="Nema kupaca"
-                  width={120}
-                  height={120}
-                  className="opacity-60"
-                />
-                <p className="text-slate-500 mt-4 text-center">
+                <div className="relative mb-2">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
+                    <MdInventory size={34} />
+                  </div>
+                  <div className="absolute -right-1 -top-1 flex h-8 w-8 items-center justify-center rounded-full border border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/25 dark:text-amber-300">
+                    <MdWarning size={16} />
+                  </div>
+                </div>
+                <p className="text-slate-500 mt-4 text-center dark:text-slate-400">
                   {isJobAd ? "Nema prijavljenih kandidata" : "Nema registriranih kupaca"}
                 </p>
               </div>

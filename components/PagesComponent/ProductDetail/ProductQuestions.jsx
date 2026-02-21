@@ -164,6 +164,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
   const itemId = productDetails?.id;
   const { trackEngagement } = useItemTracking(itemId, { autoTrackView: false });
 
@@ -177,6 +178,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
         setQuestions(prev => append ? [...prev, ...data.data] : data.data || []);
         setHasMore(data.current_page < data.last_page);
         setTotalCount(data.total || 0);
+        setPage(data.current_page || pageNum);
       }
     } catch (e) { console.error(e); } finally { setIsLoading(false); }
   }, [itemId]);
@@ -242,25 +244,80 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
     } catch { toast.error("Greška"); }
   };
 
-  const displayedQuestions = isExpanded ? questions : questions.slice(0, 3);
+  const answeredCount = questions.filter((q) => Boolean(q.answer)).length;
+  const unansweredCount = Math.max(0, totalCount - answeredCount);
+  const filteredQuestions = showUnansweredOnly
+    ? questions.filter((q) => !q.answer)
+    : questions;
+  const displayedQuestions = isExpanded
+    ? filteredQuestions
+    : filteredQuestions.slice(0, 3);
+  const visibleCount = displayedQuestions.length;
+  const hasFilteredResults = filteredQuestions.length > 0;
+
+  const handleLoadMore = async () => {
+    if (isLoading || !hasMore) return;
+    await fetchQuestions(page + 1, true);
+  };
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
-      <div className="bg-slate-50/50 dark:bg-slate-800/50 px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-            <MdQuestionAnswer className="text-primary text-xl" />
+      <div className="border-b border-slate-100 dark:border-slate-800 bg-gradient-to-b from-slate-50/80 to-white dark:from-slate-800/60 dark:to-slate-900 px-4 sm:px-5 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="mt-0.5 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <MdQuestionAnswer className="text-primary text-xl" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg leading-tight">Javna pitanja</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {totalCount > 0
+                  ? `${totalCount} ${totalCount === 1 ? "pitanje" : "pitanja"}`
+                  : "Postavite prvo pitanje"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg">Javna pitanja</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{totalCount > 0 ? `${totalCount} pitanja` : 'Postavite prvo pitanje'}</p>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowUnansweredOnly((prev) => !prev)}
+              className={cn(
+                "inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors",
+                showUnansweredOnly
+                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/60"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700/80"
+              )}
+            >
+              {showUnansweredOnly ? <MdCheck className="text-sm" /> : null}
+              <span>Samo neodgovorena</span>
+            </button>
+
+            {!showAskForm && (
+              <button
+                onClick={() => isLoggedIn ? setShowAskForm(true) : dispatch(setIsLoginOpen(true))}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm"
+              >
+                <MdQuestionAnswer /> <span>Postavi pitanje</span>
+              </button>
+            )}
           </div>
         </div>
-        {!showAskForm && (
-          <button onClick={() => isLoggedIn ? setShowAskForm(true) : dispatch(setIsLoginOpen(true))} className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary/90 transition-all shadow-sm">
-            <MdQuestionAnswer /> <span>Postavi pitanje</span>
-          </button>
-        )}
+
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-800/70 px-3 py-2">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Ukupno</p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{totalCount}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-200/70 dark:border-emerald-900/40 bg-emerald-50/70 dark:bg-emerald-900/15 px-3 py-2">
+            <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/80">Odgovoreno</p>
+            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{answeredCount}</p>
+          </div>
+          <div className="rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/70 dark:bg-amber-900/15 px-3 py-2">
+            <p className="text-[11px] text-amber-700/90 dark:text-amber-300/80">Čeka odgovor</p>
+            <p className="text-sm font-bold text-amber-700 dark:text-amber-300">{unansweredCount}</p>
+          </div>
+        </div>
       </div>
 
       {showAskForm && (
@@ -288,13 +345,34 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
       <div className="p-5">
         {isLoading && questions.length === 0 ? (
           <div className="flex justify-center py-8"><div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
-        ) : questions.length > 0 ? (
+        ) : hasFilteredResults ? (
           <div className="space-y-4">
             {displayedQuestions.map(q => <QuestionItem key={q.id} question={q} isSeller={isSeller} currentUserId={currentUser?.id} onAnswer={handleAnswer} onLike={handleLike} onDelete={handleDelete} onReport={handleReport} />)}
-            {questions.length > 3 && (
+
+            {filteredQuestions.length > 3 && (
               <button onClick={() => setIsExpanded(!isExpanded)} className="w-full py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex justify-center gap-2">
-                {isExpanded ? <><MdExpandLess size={18} /> Manje</> : <><MdExpandMore size={18} /> Još {questions.length - 3}</>}
+                {isExpanded ? <><MdExpandLess size={18} /> Manje</> : <><MdExpandMore size={18} /> Još {filteredQuestions.length - 3}</>}
               </button>
+            )}
+
+            {hasMore && (
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
+              >
+                {isLoading ? (
+                  <span className="w-4 h-4 border-2 border-slate-400/40 border-t-slate-500 dark:border-slate-300/30 dark:border-t-slate-200 rounded-full animate-spin" />
+                ) : null}
+                <span>Učitaj još pitanja</span>
+              </button>
+            )}
+
+            {isExpanded && (
+              <p className="text-center text-xs text-slate-400 dark:text-slate-500">
+                Prikazano: {visibleCount} / {filteredQuestions.length}
+              </p>
             )}
           </div>
         ) : (
@@ -306,8 +384,34 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
     <path fill="#0ab6af" d="M11 7.333333333333333a3.6666666666666665 3.6666666666666665 0 0 1 3.2139999999999995 5.4319999999999995l0.2573333333333333 0.8739999999999999a0.6699999999999999 0.6699999999999999 0 0 1 -0.832 0.832l-0.8733333333333333 -0.2573333333333333A3.6666666666666665 3.6666666666666665 0 1 1 11 7.333333333333333ZM7.333333333333333 2a6.002666666666666 6.002666666666666 0 0 1 5.8053333333333335 4.479333333333333 5 5 0 0 0 -6.1466666666666665 7.511333333333333 5.968666666666666 5.968666666666666 0 0 1 -2.7313333333333336 -0.8366666666666666l-1.7666666666666666 0.52a0.6719999999999999 0.6719999999999999 0 0 1 -0.8346666666666667 -0.8346666666666667l0.52 -1.7666666666666666A6 6 0 0 1 7.333333333333333 2Z" stroke-width="0.6667"></path>
   </g>
 </svg></div>
-            <h4 className="font-semibold text-slate-700 dark:text-slate-200">Nema pitanja</h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Budite prvi koji će postaviti pitanje.</p>
+            <h4 className="font-semibold text-slate-700 dark:text-slate-200">
+              {totalCount > 0 && showUnansweredOnly ? "Nema neodgovorenih pitanja" : "Nema pitanja"}
+            </h4>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {totalCount > 0 && showUnansweredOnly
+                ? "Sva pitanja su trenutno odgovorena."
+                : "Budite prvi koji će postaviti pitanje."}
+            </p>
+            {!showAskForm && (
+              <button
+                type="button"
+                onClick={() => isLoggedIn ? setShowAskForm(true) : dispatch(setIsLoginOpen(true))}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+              >
+                <MdQuestionAnswer />
+                <span>Postavi pitanje</span>
+              </button>
+            )}
+            {showUnansweredOnly && hasMore && (
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={isLoading}
+                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
+              >
+                <span>Učitaj još pitanja</span>
+              </button>
+            )}
           </div>
         )}
       </div>

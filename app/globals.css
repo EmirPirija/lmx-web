@@ -638,11 +638,6 @@ body {
 }
 
 
-.custom-lmx-bg {
-  /* background: #F5F1EC; */
-  padding-bottom: 2rem;
-}
-
 .flex.gap-2.items-center img.h-7.w-7.rounded-sm {
   display: none;
 }

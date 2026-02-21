@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { logoutSuccess, userSignUpData } from "@/redux/reducer/authSlice";
 import { settingsData } from "@/redux/reducer/settingSlice";
@@ -39,7 +39,6 @@ import {
   IoNotificationsOutline,
   IoLogOutOutline,
   IoChevronForward,
-  IoAddCircleOutline,
   IoStarOutline,
   IoSearchOutline,
   IoMenuOutline,
@@ -84,7 +83,7 @@ const extractTotal = (payload) => {
 
 const PROFILE_CONTEXT_COPY = {
   "/profile": {
-    title: "Moj profil",
+    title: "Osnovni profil",
     description: "Uredi lične podatke, kontakt i osnovne informacije računa.",
   },
   "/profile/seller-settings": {
@@ -121,6 +120,22 @@ const PROFILE_CONTEXT_COPY = {
     title: "Moji oglasi",
     description: "Prati stanje oglasa i brzo reaguj na upite kupaca.",
   },
+  "/favorites": {
+    title: "Spašeni oglasi",
+    description: "Prati oglase koji su ti važni i brzo im se vrati.",
+  },
+  "/profile/saved": {
+    title: "Sačuvani prodavači",
+    description: "Pregled profila prodavača koje pratiš i njihove aktivnosti.",
+  },
+  "/profile/saved-searches": {
+    title: "Spašene pretrage",
+    description: "Sačuvani filteri za brži povratak na relevantne oglase.",
+  },
+  "/purchases": {
+    title: "Moje kupovine",
+    description: "Historija kupovina i pregled prethodnih narudžbi.",
+  },
   "/notifications": {
     title: "Obavijesti",
     description: "Sve nove aktivnosti na jednom mjestu, bez propuštenih događaja.",
@@ -133,6 +148,10 @@ const PROFILE_CONTEXT_COPY = {
     title: "Ocjene i recenzije",
     description: "Prati kvalitet usluge i reputaciju profila kroz ocjene.",
   },
+  "/profile/public-questions": {
+    title: "Javna pitanja",
+    description: "Upravljaj pitanjima kupaca postavljenim na oglasima.",
+  },
   "/transactions": {
     title: "Transakcije",
     description: "Pregled uplata, troškova i historije plaćanja.",
@@ -140,6 +159,10 @@ const PROFILE_CONTEXT_COPY = {
   "/user-subscription": {
     title: "Promo pristup",
     description: "Svi planovi su trenutno aktivni kroz promo režim.",
+  },
+  "/contact-us": {
+    title: "Kontakt podrške",
+    description: "Pošalji upit podršci za tehničke poteškoće i prijedloge.",
   },
 };
 
@@ -1051,130 +1074,106 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
   // Mobile sidebar (isti pattern kao ProfileDropdown: bottom sheet + dock phase)
   const MobileSidebar = (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => handleMobileMenuOpenChange(true)}
-        disabled={mobileMenuPhase === "opening"}
-        className={cn(
-          "flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 lg:hidden",
-          mobileMenuPhase === "opening" && "pointer-events-none opacity-80"
-        )}
-        aria-label="Otvori meni"
-        aria-expanded={mobileMenuOpen}
+    <Sheet open={mobileMenuOpen} onOpenChange={handleMobileMenuOpenChange}>
+      <SheetContent
+        side="bottom"
+        onOpenAutoFocus={preventSheetAutoFocusScroll}
+        onCloseAutoFocus={preventSheetAutoFocusScroll}
+        className="z-[96] h-[calc(100dvh-0.75rem)] max-h-[calc(100dvh-0.75rem)] overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent p-0 shadow-2xl dark:border-slate-700 [&>button]:hidden"
       >
-        <IoMenuOutline size={20} className="text-slate-600 dark:text-slate-300" />
-        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Meni</span>
-        <IoChevronForward
-          size={14}
-          className={cn(
-            "text-slate-500 transition-transform duration-200 dark:text-slate-400",
-            mobileMenuOpen && "rotate-90"
-          )}
-        />
-      </button>
-
-      <Sheet open={mobileMenuOpen} onOpenChange={handleMobileMenuOpenChange}>
-        <SheetContent
-          side="bottom"
-          onOpenAutoFocus={preventSheetAutoFocusScroll}
-          onCloseAutoFocus={preventSheetAutoFocusScroll}
-          className="z-[96] h-[calc(100dvh-0.75rem)] max-h-[calc(100dvh-0.75rem)] overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent p-0 shadow-2xl dark:border-slate-700 [&>button]:hidden"
-        >
-          <div className="flex h-full flex-col overflow-hidden bg-white/95 backdrop-blur-xl dark:bg-slate-900/95">
-            <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-3 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Meni prodavača
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleMobileMenuOpenChange(false)}
-                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                  aria-label="Zatvori meni"
-                >
-                  <IoCloseOutline size={18} />
-                </button>
-              </div>
-
-              <div className="mt-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-                  Odabrano
-                </p>
-                {mobileActiveNavItem ? (
-                  <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/80">
-                    <div className="flex items-center gap-2">
-                      <MobileActiveNavIcon size={15} className="shrink-0 text-slate-600 dark:text-slate-300" />
-                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {mobileActiveNavItem.label}
-                      </span>
-                    </div>
-                    <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                      {mobileActiveNavItem.description || mobileActiveNavItem.sectionTitle}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400">
-                    Odaberite sekciju.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto overscroll-contain p-2 scrollbar-lmx">
-              <div className="space-y-2">
-                {navigationSections.map((section) => (
-                  <div key={`mobile-menu-${section.title}`}>
-                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
-                      {section.title}
-                    </p>
-                    <div className="space-y-0.5">
-                      {section.items.map((item) => (
-                        <MenuItem
-                          key={`mobile-menu-item-${item.href || item.label}`}
-                          icon={item.icon}
-                          label={item.label}
-                          description={item.description}
-                          href={item.href}
-                          onClick={
-                            item.onClick
-                              ? () => {
-                                  item.onClick();
-                                  closeMobileMenuImmediately();
-                                }
-                              : closeMobileMenuImmediately
-                          }
-                          isActive={isProfileNavItemActive(pathname, item)}
-                          badge={item.badge}
-                          isNew={item.isNew}
-                          danger={item.danger}
-                          disabled={Boolean(item.disabled)}
-                          unavailableBadge={item.unavailableBadge}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100 p-2 dark:border-slate-800">
+        <div className="flex h-full flex-col overflow-hidden bg-white/95 backdrop-blur-xl dark:bg-slate-900/95">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-3 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                Odaberi sekciju
+              </p>
               <button
                 type="button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => handleMobileMenuOpenChange(false)}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                aria-label="Zatvori meni"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
-                  <IoLogOutOutline size={18} className="text-slate-500 dark:text-slate-300" />
-                </div>
-                <span>{isLoggingOut ? "Odjava..." : "Odjavi se"}</span>
+                <IoCloseOutline size={18} />
               </button>
             </div>
+
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                Odabrano
+              </p>
+              {mobileActiveNavItem ? (
+                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <MobileActiveNavIcon size={15} className="shrink-0 text-slate-600 dark:text-slate-300" />
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {mobileActiveNavItem.label}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                    {mobileActiveNavItem.description || mobileActiveNavItem.sectionTitle}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400">
+                  Odaberite sekciju.
+                </div>
+              )}
+            </div>
           </div>
-        </SheetContent>
-      </Sheet>
-    </div>
+
+          <div className="flex-1 overflow-y-auto overscroll-contain p-2 scrollbar-lmx">
+            <div className="space-y-2">
+              {navigationSections.map((section) => (
+                <div key={`mobile-menu-${section.title}`}>
+                  <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+                    {section.title}
+                  </p>
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => (
+                      <MenuItem
+                        key={`mobile-menu-item-${item.href || item.label}`}
+                        icon={item.icon}
+                        label={item.label}
+                        description={item.description}
+                        href={item.href}
+                        onClick={
+                          item.onClick
+                            ? () => {
+                                item.onClick();
+                                closeMobileMenuImmediately();
+                              }
+                            : closeMobileMenuImmediately
+                        }
+                        isActive={isProfileNavItemActive(pathname, item)}
+                        badge={item.badge}
+                        isNew={item.isNew}
+                        danger={item.danger}
+                        disabled={Boolean(item.disabled)}
+                        unavailableBadge={item.unavailableBadge}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 p-2 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                <IoLogOutOutline size={18} className="text-slate-500 dark:text-slate-300" />
+              </div>
+              <span>{isLoggingOut ? "Odjava..." : "Odjavi se"}</span>
+            </button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 
   return (
@@ -1184,19 +1183,75 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         <div className="pointer-events-none absolute right-2 top-20 h-40 w-40 rounded-full bg-secondary/10 blur-3xl dark:bg-secondary/20" />
 
         {/* Mobile Header */}
-        <div className="mb-4 lg:hidden">
-          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-            <div className="flex items-center justify-between gap-4">
-              {MobileSidebar}
-              <CustomLink
-                href="/ad-listing"
-                className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+        <div className="sticky top-2 z-30 mb-4 lg:hidden">
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.6)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85"
+          >
+            {MobileSidebar}
+
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.button
+                key={mobileActiveNavItem?.href || "mobile-nav-empty"}
+                type="button"
+                onClick={() => handleMobileMenuOpenChange(true)}
+                initial={{ opacity: 0, y: 8, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.985 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                className="group relative mt-2.5 w-full overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-3 py-2.5 text-left transition-colors hover:border-primary/35 dark:border-primary/30 dark:from-primary/20 dark:via-primary/10"
               >
-                <IoAddCircleOutline size={18} />
-                <span className="hidden sm:inline">Dodaj</span>
-              </CustomLink>
-            </div>
-          </div>
+                <motion.span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 -left-10 w-20 bg-gradient-to-r from-transparent via-white/35 to-transparent dark:via-white/10"
+                  animate={{ x: [0, 220, 0] }}
+                  transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-primary/90 dark:text-primary/80">
+                      Trenutno odabrano
+                    </p>
+                    <div className="mt-1 flex min-w-0 items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 text-primary shadow-sm dark:bg-slate-900/80">
+                        <MobileActiveNavIcon size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {mobileActiveNavItem?.label || "Odaberite sekciju"}
+                        </p>
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          {mobileActiveNavItem?.sectionTitle || "Sekcije"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 rounded-full border border-primary/30 bg-white/80 px-2 py-1 text-[11px] font-semibold text-primary dark:bg-slate-900/80">
+                    <motion.span
+                      className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                      animate={{ scale: [1, 1.25, 1], opacity: [0.75, 1, 0.75] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    Aktivno
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center justify-end gap-1 text-[11px] font-semibold text-primary/90 dark:text-primary/80">
+                  <span>Dodirni za odabir sekcije</span>
+                  <motion.span
+                    animate={{ x: [0, 3, 0] }}
+                    transition={{ duration: 1.15, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <IoChevronForward size={14} />
+                  </motion.span>
+                </div>
+              </motion.button>
+            </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* Main Layout */}
@@ -1212,7 +1267,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="hidden lg:block lg:self-start"
           >
-            <div className="sticky top-24 overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+            <div className="sticky top-24 h-[calc(100vh-7rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-[0_14px_36px_-30px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
               <ProfileSidebar
                 userData={userData}
                 customAvatarUrl={customAvatarUrl}

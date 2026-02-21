@@ -779,10 +779,9 @@ const HomeHeader = () => {
   }, []);
 
   const mobileHeaderLayoutTransition = {
-    type: "spring",
-    stiffness: 250,
-    damping: 30,
-    mass: 0.85,
+    type: "tween",
+    duration: 0.24,
+    ease: [0.22, 1, 0.36, 1],
   };
   const isMobileSearchExpanded =
     isMobileSearchFocused &&
@@ -894,7 +893,11 @@ const HomeHeader = () => {
             : "translate-y-0 opacity-100"
         }`}
       >
-        <nav className="w-full px-3 sm:px-4 lg:px-6">
+        <nav
+          className={`w-full lg:px-6 ${
+            !isLargeScreen && isMobileSearchExpanded ? "px-0" : "px-3 sm:px-4"
+          }`}
+        >
           {/* container */}
           {isLargeScreen ? (
             <>
@@ -969,10 +972,6 @@ const HomeHeader = () => {
                 </div>
 
                   <div className="flex min-w-0 items-center gap-2">
-                    <div className="grid h-10 w-10 place-items-center rounded-full border border-slate-200/90 bg-white dark:border-slate-700 dark:bg-slate-900">
-                      <ThemeToggle />
-                    </div>
-
                   {/* PROFIL (lijevo u ovom bloku) */}
                   {IsLoggedin ? (
                     <div className="flex items-center gap-2">
@@ -1051,6 +1050,9 @@ const HomeHeader = () => {
                     <IconListDetails size={20} strokeWidth={isMyAdsActive ? 2.5 : 1.8} />
                     <span className="hidden whitespace-nowrap text-sm font-medium 2xl:inline">Moji oglasi</span>
                   </button>
+                  <div className="shrink-0">
+                    <ThemeToggle />
+                  </div>
                   </div>
                 </div>
 
@@ -1086,18 +1088,24 @@ const HomeHeader = () => {
             </>
           ) : (
             <>
-              <div className="py-2">
+              <div className={isMobileSearchExpanded ? "py-0" : "py-2"}>
                 <motion.div
                   ref={mobileHeaderMenuRef}
                   layout
                   initial={false}
                   animate={
-                    isMobileHeaderCollapsed || shouldUseAdsSearchIconMode
+                    isMobileSearchExpanded
+                      ? { paddingTop: 6, paddingBottom: 6, paddingLeft: 0, paddingRight: 0 }
+                      : isMobileHeaderCollapsed || shouldUseAdsSearchIconMode
                       ? { padding: 6 }
                       : { padding: 8 }
                   }
                   transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                  className="rounded-2xl bg-white p-2 dark:bg-slate-900"
+                  className={`bg-white dark:bg-slate-900 ${
+                    isMobileSearchExpanded
+                      ? "rounded-none border-y border-slate-200/80 dark:border-slate-800/80"
+                      : "rounded-2xl p-2"
+                  }`}
                 >
                   <motion.div layout transition={mobileHeaderLayoutTransition} className="flex items-center gap-2">
                     <AnimatePresence initial={false}>
@@ -1177,7 +1185,7 @@ const HomeHeader = () => {
                             animate={{
                               opacity: 1,
                               x: 0,
-                              scale: isMobileSearchExpanded ? 1.015 : 1,
+                              scale: 1,
                             }}
                             exit={{ opacity: 0, x: -8 }}
                             transition={mobileHeaderLayoutTransition}
@@ -1196,7 +1204,7 @@ const HomeHeader = () => {
                     <AnimatePresence initial={false}>
                       {!isMobileSearchExpanded && (
                         <motion.button
-                          key="mobile-menu-button"
+                          key="mobile-menu-button-utility"
                           type="button"
                           layout
                           whileTap={{ scale: 0.96 }}

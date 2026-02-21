@@ -11,6 +11,15 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
   if (!filteredFields || filteredFields.length === 0) return null;
 
   const getFieldLabel = (field) => field?.translated_name || field?.name || "Polje";
+  const normalizeLabel = (value = "") =>
+    String(value)
+      .toLowerCase()
+      .replace(/[čć]/g, "c")
+      .replace(/đ/g, "dj")
+      .replace(/[š]/g, "s")
+      .replace(/[ž]/g, "z")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
 
   const parseDateSafe = (value) => {
     if (!value) return null;
@@ -51,6 +60,29 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
     return fieldName.includes('stanje') || fieldName.includes('condition');
   });
   const publishedAt = resolvePublishedAt(productDetails);
+  const hasViewsSummary = productDetails?.clicks !== undefined;
+  const hasIdSummary = Boolean(productDetails?.id);
+  const hasPublishedSummary = Boolean(publishedAt);
+
+  const shouldHideAsSummaryDuplicate = (feature) => {
+    const key = normalizeLabel(getFieldLabel(feature));
+    if (!key) return false;
+
+    if (statusField?.id && feature?.id === statusField.id) return true;
+    if (statusField && (key.includes("stanje oglasa") || key === "stanje" || key.includes("condition"))) return true;
+    if (hasViewsSummary && (key.includes("pregledi") || key.includes("views"))) return true;
+    if (hasIdSummary && (key === "id" || key.includes("id oglasa") || key.includes("ad id"))) return true;
+    if (hasPublishedSummary && (key.includes("objavljeno") || key.includes("datum objave") || key.includes("posted"))) return true;
+
+    return false;
+  };
+
+  const visibleFeatureFields = filteredFields.filter((feature) => !shouldHideAsSummaryDuplicate(feature));
+  const dedupedFeatureFields = visibleFeatureFields.filter((feature, index, list) => {
+    const currentKey = normalizeLabel(getFieldLabel(feature));
+    if (!currentKey) return true;
+    return index === list.findIndex((candidate) => normalizeLabel(getFieldLabel(candidate)) === currentKey);
+  });
 
   const renderValue = (feature) => {
     const { type, value, translated_selected_values } = feature;
@@ -155,33 +187,42 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
       </div>
 
       {/* Specifikacije */}
-      {filteredFields.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="bg-slate-50/50 dark:bg-slate-800/50 px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-            <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+      {dedupedFeatureFields.length > 0 && (
+        <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/95">
+          <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-5 py-4 dark:border-slate-800 dark:bg-slate-800/40">
+            <div className="rounded-xl border border-slate-100 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
               <MdSettings className="text-slate-600 dark:text-slate-300 text-xl" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Karakteristike</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">Specifikacije i oprema</p>
             </div>
+            <span className="ml-auto inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              {dedupedFeatureFields.length}
+            </span>
           </div>
-          <div className="p-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">
-              {filteredFields.map((feature, index) => {
+          <div className="p-4 sm:p-5">
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+              {dedupedFeatureFields.map((feature, index) => {
                 const isCheckbox = feature.type === 'checkbox';
                 const fieldLabel = getFieldLabel(feature);
                 return (
-                  <div key={index} className={`flex ${isCheckbox ? 'flex-col gap-2 pt-2 pb-4' : 'items-center justify-between py-3.5'} border-b border-slate-100 dark:border-slate-800 last:border-b-0 ${isCheckbox ? 'md:col-span-2' : ''}`}>
-                    <span className="inline-flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">
-                      <span
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border p-1"
-                      >
-                        <CustomFieldSemanticIcon fieldLabel={fieldLabel} className="w-[17px] h-[17px]" />
+                  <div
+                    key={index}
+                    className={cn(
+                      "rounded-2xl border border-slate-200/80 bg-gradient-to-r from-white via-slate-50/70 to-white px-3.5 py-3 transition-all hover:border-primary/40 hover:bg-primary/[0.03] dark:border-slate-700/70 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-800/80 dark:hover:bg-primary/10",
+                      isCheckbox && "md:col-span-2"
+                    )}
+                  >
+                    <div className={cn("flex items-start justify-between gap-3", isCheckbox && "flex-col")}>
+                      <span className="inline-flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
+                          <CustomFieldSemanticIcon fieldLabel={fieldLabel} className="w-[17px] h-[17px]" />
+                        </span>
+                        <span className="font-semibold">{fieldLabel}</span>
                       </span>
-                      <span>{fieldLabel}</span>
-                    </span>
-                    <div className={cn(isCheckbox ? 'w-full mt-1' : 'text-right')}>{renderValue(feature)}</div>
+                      <div className={cn(isCheckbox ? "w-full pt-1" : "min-w-0 text-right")}>{renderValue(feature)}</div>
+                    </div>
                   </div>
                 );
               })}

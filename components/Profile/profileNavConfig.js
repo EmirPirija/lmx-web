@@ -43,39 +43,23 @@ export const getProfileNavigationSections = ({
 } = {}) => {
   const sections = [
     {
-      title: "Račun",
+      title: "Moj račun",
       items: [
         {
           href: "/profile",
           icon: IdentificationCard,
-          label: "Moj profil",
-          description: "Uredi podatke i postavke",
+          label: "Osnovni profil",
+          description: "Lični podaci, kontakt i postavke računa",
         },
         !isVerified
           ? {
               href: "/user-verification",
               icon: ShieldCheck,
-              label: "Verifikacija",
-              description: "Potvrdi svoj identitet",
+              label: "Verifikacija računa",
+              description: "Potvrdi identitet i povećaj povjerenje",
               isNew: true,
             }
           : null,
-        {
-          href: "/profile/seller-settings",
-          icon: Store,
-          label: "Postavke prodavača",
-          description: "Prilagodi svoj profil prodavača",
-          match: "prefix",
-        },
-        {
-          href: "/profile/integrations",
-          icon: Link2,
-          label: "Integracije",
-          description: SOCIAL_POSTING_TEMP_UNAVAILABLE
-            ? "Objave na društvenim mrežama: privremeno nedostupno"
-            : "Instagram, sync i zakazane objave",
-          match: "prefix",
-        },
         {
           href: "/profile/sessions",
           icon: Smartphone,
@@ -84,35 +68,70 @@ export const getProfileNavigationSections = ({
           match: "prefix",
         },
         {
-          href: "/profile/shop-ops",
-          icon: Box,
-          label: "Shop operacije",
-          description: "Zalihe, alerti i custom domena",
+          href: "/profile/integrations",
+          icon: Link2,
+          label: "Integracije",
+          description: SOCIAL_POSTING_TEMP_UNAVAILABLE
+            ? "Objave na društvenim mrežama su privremeno nedostupne"
+            : "Instagram, sinhronizacija i zakazane objave",
           match: "prefix",
         },
       ].filter(Boolean),
     },
     {
-      title: "Moji sadržaji",
+      title: "Prodaja",
       items: [
         {
           href: "/my-ads",
           icon: Layers,
           label: "Moji oglasi",
-          description: activeAds > 0 ? `${activeAds} aktivnih oglasa` : "Upravljaj oglasima",
+          description: activeAds > 0 ? `${activeAds} aktivnih oglasa` : "Upravljaj oglasima i statusima",
           match: "prefix",
         },
+        {
+          href: "/profile/seller-settings",
+          icon: Store,
+          label: "Postavke prodavača",
+          description: "Javni prikaz profila prodavača i detalja oglasa",
+          match: "prefix",
+        },
+        {
+          href: "/profile/shop-ops",
+          icon: Box,
+          label: "Shop operacije",
+          description: "Zalihe, alerti i operativna pravila shopa",
+          match: "prefix",
+        },
+        {
+          href: "/profile/public-questions",
+          icon: MessageSquareMore,
+          label: "Javna pitanja",
+          description: "Pitanja kupaca na tvojim oglasima",
+          match: "prefix",
+        },
+        {
+          href: "/reviews",
+          icon: Star,
+          label: "Ocjene i recenzije",
+          description: "Prati reputaciju i utisak kupaca",
+          match: "prefix",
+        },
+      ],
+    },
+    {
+      title: "Kupovina i praćenje",
+      items: [
         {
           href: "/favorites",
           icon: Heart,
           label: "Spašeni oglasi",
-          description: "Sačuvani oglasi",
+          description: "Sačuvani oglasi koje želiš pratiti",
         },
         {
           href: "/profile/saved",
           icon: UserList,
           label: "Sačuvani prodavači",
-          description: "Kolekcije, bilješke i obavijesti",
+          description: "Liste prodavača, bilješke i obavijesti",
           match: "prefix",
         },
         {
@@ -145,21 +164,22 @@ export const getProfileNavigationSections = ({
           href: "/notifications",
           icon: BellRinging,
           label: "Notifikacije",
-          description: "Sve obavijesti na jednom mjestu",
+          description: "Sva dešavanja na jednom mjestu",
           badge: unreadNotifications,
           match: "prefix",
-        },
-        {
-          href: "/profile/public-questions",
-          icon: MessageSquareMore,
-          label: "Javna pitanja",
-          description: "Pitanja na vašim oglasima",
         },
       ],
     },
     {
       title: "Finansije",
       items: [
+        {
+          href: "/transactions",
+          icon: Receipt,
+          label: "Transakcije",
+          description: "Historija transakcija",
+          match: "prefix",
+        },
         {
           href: "/user-subscription",
           icon: CreditCard,
@@ -168,25 +188,22 @@ export const getProfileNavigationSections = ({
           disabled: true,
           unavailableBadge: "Promo",
         },
+      ],
+    },
+    {
+      title: "Podrška",
+      items: [
         {
-          href: "/transactions",
-          icon: Receipt,
-          label: "Transakcije",
-          description: "Historija transakcija",
-          match: "prefix",
+          href: "/contact-us",
+          icon: Headset,
+          label: "Kontakt podrške",
+          description: "Pošalji upit i prijavi problem",
         },
       ],
     },
     {
-      title: "Zajednica",
+      title: "Uskoro",
       items: [
-        {
-          href: "/reviews",
-          icon: Star,
-          label: "Ocjene",
-          description: "Recenzije i ocjene",
-          match: "prefix",
-        },
         {
           href: "/profile/gamification",
           icon: Sparkles,
@@ -213,17 +230,6 @@ export const getProfileNavigationSections = ({
           match: "prefix",
           disabled: true,
           unavailableBadge: "Nedostupno",
-        },
-      ],
-    },
-    {
-      title: "Podrška",
-      items: [
-        {
-          href: "/contact-us",
-          icon: Headset,
-          label: "Kontakt",
-          description: "Kontaktiraj podršku",
         },
       ],
     },

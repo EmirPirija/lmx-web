@@ -794,26 +794,31 @@ const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className,
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 px-2.5 py-2",
+        "group flex w-full min-w-0 items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-gradient-to-r from-white via-slate-50/80 to-white px-3 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.7)] transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] dark:border-slate-700/60 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-800/80 dark:shadow-none dark:hover:border-primary/40 dark:hover:bg-primary/10",
         className
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5">
+      <div className="flex min-w-0 items-center gap-2.5">
         <span
           className={cn(
-            "relative inline-flex h-[18px] w-[18px] items-center justify-center",
+            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80",
             isExchangeIcon && "text-slate-500 dark:text-slate-300"
           )}
         >
-          <Icon className="h-full w-full text-primary dark:text-primary" />
+          <Icon
+            className={cn(
+              "h-3.5 w-3.5",
+              isExchangeIcon ? "text-slate-500 dark:text-slate-300" : "text-primary dark:text-primary"
+            )}
+          />
         </span>
-        <span className="shrink-0 text-[11px] font-semibold leading-tight text-slate-500 dark:text-slate-400">
-          {label}:
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+          {label}
         </span>
       </div>
       <p
         className={cn(
-          "min-w-0 text-xs font-semibold leading-tight text-slate-900 dark:text-slate-100",
+          "min-w-0 text-sm font-semibold leading-tight text-slate-900 dark:text-slate-100",
           isBadgeTone ? "flex-none" : "flex-1"
         )}
         title={valueTitle || String(value || "")}
@@ -821,7 +826,7 @@ const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className,
         {isBadgeTone ? (
           <span
             className={cn(
-              "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold",
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold",
               tone === "positive" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
               tone === "negative" && "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
               tone === "neutral" && "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
@@ -1310,13 +1315,13 @@ const ProductDetailCard = ({
 
   return (
     <>
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-[0_18px_45px_-28px_rgba(2,6,23,0.45)] backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500 dark:border-slate-700/60 dark:bg-slate-900/95">
         <div className="p-4 sm:p-6">
           
           {/* BADGES ROW */}
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2.5">
           {productDetails?.category?.name && (
-              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700">
+              <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-100/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 {productDetails.category.name}
               </span>
             )}
@@ -1356,7 +1361,7 @@ const ProductDetailCard = ({
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 space-y-2">
-                <h1 className="text-xl lg:text-2xl font-extrabold text-slate-900 dark:text-white leading-tight break-words">
+                <h1 className="text-[clamp(1.6rem,4.7vw,2.15rem)] font-black leading-[1.08] tracking-[-0.02em] text-slate-900 break-words dark:text-white">
                   {productName}
                 </h1>
 
@@ -1368,7 +1373,7 @@ const ProductDetailCard = ({
                   title={FbTitle}
                   headline={headline}
                   companyName={CompanyName}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-primary dark:hover:text-primary transition-all active:scale-95 border border-slate-200 dark:border-slate-700"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-white text-slate-500 shadow-sm transition-all active:scale-95 hover:border-primary/40 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-primary/50 dark:hover:bg-slate-700 dark:hover:text-primary"
                   triggerTitle="Podijeli oglas"
                   triggerAriaLabel="Podijeli oglas"
                   onShare={(platform) => onShareClick?.(platform)}
@@ -1377,10 +1382,10 @@ const ProductDetailCard = ({
                   type="button"
                   onClick={handleLikeItem}
                   className={cn(
-                    "w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95 border",
+                    "flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition-all active:scale-95",
                     productDetails?.is_liked
-                      ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-red-600 dark:hover:text-red-400"
+                      ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
+                      : "border-slate-200/80 bg-white text-slate-500 hover:border-red-200 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-900/40 dark:hover:text-red-400"
                   )}
                   title={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Sačuvaj oglas"}
                   aria-label={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Sačuvaj oglas"}
@@ -1390,10 +1395,11 @@ const ProductDetailCard = ({
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 p-4 sm:p-5 bg-gradient-to-br from-slate-50/80 dark:from-slate-900/50 to-white dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-primary/[0.06] p-4 sm:p-5 dark:border-slate-700/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-2xl dark:bg-primary/20" />
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <div className="relative min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
                     {isJobCategory ? "Plata" : "Cijena"}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1410,14 +1416,23 @@ const ProductDetailCard = ({
                         </span>
                       </>
                     ) : (
-                      <p className="text-3xl font-black text-primary tracking-tight break-words">{displayPrice}</p>
+                      <p
+                        className={cn(
+                          "break-words text-3xl font-black tracking-tight",
+                          currentPriceOnRequest
+                            ? "bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent"
+                            : "text-primary"
+                        )}
+                      >
+                        {displayPrice}
+                      </p>
                     )}
 
                     {showHistorySection && (
                       <button
                         type="button"
                         onClick={handleOpenHistoryModal}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2 ml-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95"
+                        className="ml-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 shadow-sm transition-all active:scale-95 hover:border-primary/40 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-primary/40 dark:hover:bg-slate-700"
                         title="Historija cijena"
                         aria-label="Prikaži historiju cijena"
                       >
@@ -1470,34 +1485,30 @@ const ProductDetailCard = ({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <DetailInfoPill
                 icon={CheckCircle2}
                 label="Dostupno odmah"
                 value={availableNowLabel}
                 tone={availableNowTone}
-                className="sm:w-auto sm:flex-none"
               />
               <DetailInfoPill
                 icon={GitCompare}
                 label="Zamjena"
                 value={exchangeLabel}
                 tone={exchangeTone}
-                className="sm:w-auto sm:flex-none"
               />
               <DetailInfoPill
                 icon={MapPin}
                 label="Lokacija"
                 value={locationLine}
                 valueTitle={locationLine}
-                className="sm:min-w-0 sm:flex-1"
               />
               <DetailInfoPill
                 icon={CalendarDays}
                 label="Zadnja obnova"
                 value={renewalInfoValue}
                 valueTitle={renewalInfoTitle}
-                className="sm:w-auto sm:flex-none"
               />
             </div>
           </div>

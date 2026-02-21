@@ -247,14 +247,14 @@ const ProductGallery = ({
         </div>
       )}
     >
-      <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-gray-50 via-white to-gray-100 p-2.5 shadow-[0_22px_55px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:from-slate-900 dark:via-slate-900/85 dark:to-slate-800 sm:p-3">
+      <div className="overflow-hidden rounded-none border-y border-slate-200/80 bg-gradient-to-br from-gray-50 via-white to-gray-100 p-0 shadow-[0_22px_55px_-36px_rgba(15,23,42,0.55)] dark:border-slate-700/70 dark:from-slate-900 dark:via-slate-900/85 dark:to-slate-800 sm:rounded-3xl sm:border sm:p-3">
         <div
-          className="relative rounded-2xl overflow-hidden bg-black group/main z-0"
+          className="relative overflow-hidden bg-black group/main z-0 sm:rounded-2xl"
           onTouchStart={handleMediaTouchStart}
           onTouchEnd={handleMediaTouchEnd}
         >
           {isVideoSelected && hasVideo ? (
-            <div className="aspect-[16/9] sm:aspect-[2/1] xl:aspect-[21/10]">
+            <div className="aspect-[4/3] sm:aspect-[16/10] xl:aspect-[21/10]">
               {!isVideoPlaying && (
                 <div
                   className="absolute inset-0 z-10 cursor-pointer"
@@ -267,15 +267,16 @@ const ProductGallery = ({
                   <div className="absolute inset-0 bg-black/35" />
 
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 bg-primary/90 rounded-full flex items-center justify-center hover:scale-110 hover:bg-primary transition-all duration-300 group/play">
-                      <RiPlayCircleFill size={48} className="text-white ml-1" />
+                    <div className="h-16 w-16 rounded-full bg-primary/90 flex items-center justify-center transition-all duration-300 group/play hover:scale-110 hover:bg-primary sm:h-20 sm:w-20">
+                      <RiPlayCircleFill size={40} className="ml-1 text-white sm:text-[48px]" />
                     </div>
                   </div>
 
-                  <div className="absolute bottom-4 left-4 bg-black/65 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                    <span className="text-white text-sm font-medium flex items-center gap-2">
+                  <div className="absolute bottom-3 left-3 rounded-full bg-black/65 px-2.5 py-1 backdrop-blur-sm sm:bottom-4 sm:left-4 sm:px-3 sm:py-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-white sm:gap-2 sm:text-sm">
                       <RiVideoLine size={16} />
-                      Pokreni video prikaz
+                      <span className="hidden sm:inline">Pokreni video prikaz</span>
+                      <span className="sm:hidden">Video</span>
                     </span>
                   </div>
                 </div>
@@ -320,7 +321,7 @@ const ProductGallery = ({
               )}
             </div>
           ) : (
-            <div className="relative aspect-[16/9] sm:aspect-[2/1] xl:aspect-[21/10]">
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] xl:aspect-[21/10]">
               {safeGalleryImages.length === 0 ? (
                 <div className="absolute inset-0">
                   <CustomImage
@@ -377,33 +378,34 @@ const ProductGallery = ({
             </div>
           )}
 
-          <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
-            <div className="rounded-full bg-black/65 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white backdrop-blur-sm">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-black/45 via-black/20 to-transparent" />
+
+          <div className="absolute top-2.5 left-2.5 z-30 flex items-center gap-1.5 sm:top-3 sm:left-3 sm:gap-2">
+            <div className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white backdrop-blur-sm sm:px-3 sm:py-1.5 sm:text-[11px]">
               {isVideoSelected ? "Video" : "Galerija"}
             </div>
             {isReserved && (
-              <div className="rounded-full bg-amber-500/85 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white backdrop-blur-sm">
+              <div className="rounded-full bg-amber-500/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white backdrop-blur-sm sm:px-3 sm:py-1.5 sm:text-[11px]">
                 Rezervisano
               </div>
             )}
           </div>
 
-          <div className="absolute top-3 right-3 flex items-center gap-2 z-30">
+          <div className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1.5 sm:top-3 sm:right-3 sm:gap-2">
             {hasVideo && (
               <button
                 type="button"
                 onClick={() => setSelectedIndex(videoIndex)}
-                className={`bg-black/60 backdrop-blur-xl px-3 py-2 rounded-full shadow-lg transition-all duration-300 flex items-center gap-1.5 hover:bg-black/80 ${
+                className={`rounded-full bg-black/60 px-2.5 py-1.5 backdrop-blur-xl shadow-lg transition-all duration-300 hover:bg-black/80 sm:px-3 sm:py-2 ${
                   isVideoSelected ? "ring-2 ring-primary" : ""
                 }`}
                 title="Prikaži video"
               >
                 <RiVideoLine size={18} className="text-white" />
-                {/* <span className="hidden sm:inline text-white text-xs font-semibold">Video</span> */}
               </button>
             )}
-            <div className="bg-black/60 backdrop-blur-xl px-3.5 py-1.5 rounded-full text-white font-medium shadow-lg">
-              <p className="text-sm font-bold leading-tight">{currentMediaNumber}/{normalizedTotalItems}</p>
+            <div className="rounded-full bg-black/60 px-3 py-1.5 text-white shadow-lg backdrop-blur-xl sm:px-3.5">
+              <p className="text-xs font-bold leading-tight sm:text-sm">{currentMediaNumber}/{normalizedTotalItems}</p>
             </div>
           </div>
 
@@ -412,11 +414,11 @@ const ProductGallery = ({
               <button
                 onClick={handlePrevImage}
                 type="button"
-                className="absolute top-1/2 left-3 -translate-y-1/2 bg-white/90 dark:bg-black/50 backdrop-blur-sm p-2.5 rounded-full shadow-lg opacity-100 sm:opacity-0 sm:group-hover/main:opacity-100 hover:scale-110 active:scale-95 transition-all duration-300 z-30"
+                className="absolute left-2 top-1/2 z-30 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg opacity-100 transition-all duration-300 hover:scale-110 active:scale-95 dark:bg-black/50 sm:left-3 sm:p-2.5 sm:opacity-0 sm:group-hover/main:opacity-100"
                 title="Prethodna slika"
               >
                 <RiArrowLeftLine
-                  size={22}
+                  size={20}
                   className={`text-gray-800 dark:text-white ${isRTL ? "rotate-180" : ""}`}
                 />
               </button>
@@ -424,18 +426,18 @@ const ProductGallery = ({
               <button
                 onClick={handleNextImage}
                 type="button"
-                className="absolute top-1/2 right-3 -translate-y-1/2 bg-white/90 dark:bg-black/50 backdrop-blur-sm p-2.5 rounded-full shadow-lg opacity-100 sm:opacity-0 sm:group-hover/main:opacity-100 hover:scale-110 active:scale-95 transition-all duration-300 z-30"
+                className="absolute right-2 top-1/2 z-30 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg opacity-100 transition-all duration-300 hover:scale-110 active:scale-95 dark:bg-black/50 sm:right-3 sm:p-2.5 sm:opacity-0 sm:group-hover/main:opacity-100"
                 title="Sljedeća slika"
               >
                 <RiArrowRightLine
-                  size={22}
+                  size={20}
                   className={`text-gray-800 dark:text-white ${isRTL ? "rotate-180" : ""}`}
                 />
               </button>
             </>
           )}
 
-          <div className="absolute inset-x-0 bottom-0 h-1.5 bg-black/25 z-30">
+          <div className="absolute inset-x-0 bottom-0 z-30 h-1 bg-black/25 sm:h-1.5">
             <div
               className="h-full bg-primary/90 transition-all duration-300"
               style={{ width: `${mediaProgress}%` }}
@@ -444,14 +446,14 @@ const ProductGallery = ({
         </div>
 
         {totalItems > 1 && (
-          <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700/80 dark:bg-slate-900/65">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <div className="mt-2 rounded-none border-y border-slate-200/80 bg-white/80 p-2 dark:border-slate-700/80 dark:bg-slate-900/65 sm:mt-3 sm:rounded-2xl sm:border">
+            <div className="no-scrollbar flex snap-x snap-mandatory items-center gap-2 overflow-x-auto pb-1">
               {safeGalleryImages.map((imageUrl, index) => (
                 <button
                   key={`gallery-thumb-${index}`}
                   type="button"
                   onClick={() => handleImageClick(index)}
-                  className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border transition-all duration-200 ${
+                  className={`relative h-14 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition-all duration-200 sm:w-20 ${
                     selectedIndex === index
                       ? "border-primary ring-2 ring-primary/35"
                       : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
@@ -469,7 +471,7 @@ const ProductGallery = ({
                 <button
                   type="button"
                   onClick={() => setSelectedIndex(videoIndex)}
-                  className={`relative h-14 w-24 shrink-0 overflow-hidden rounded-xl border transition-all duration-200 ${
+                  className={`relative h-14 w-24 shrink-0 snap-start overflow-hidden rounded-xl border transition-all duration-200 ${
                     isVideoSelected
                       ? "border-primary ring-2 ring-primary/35"
                       : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"

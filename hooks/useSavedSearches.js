@@ -3,6 +3,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { savedSearchesApi } from "@/utils/savedSearchApi";
+import { useSelector } from "react-redux";
+import { getIsLoggedIn } from "@/redux/reducer/authSlice";
+
+const createAuthRequiredError = () => {
+  const error = new Error("AUTH_REQUIRED");
+  error.code = "AUTH_REQUIRED";
+  return error;
+};
 
 // ✅ Helper: uvijek vraća "front friendly" + "backend friendly" polja
 function normalizeSavedSearch(item) {
@@ -32,8 +40,15 @@ export function buildSavedSearchUrl(queryString, basePath = "/ads") {
 export function useSavedSearches({ context = "ads" } = {}) {
   const [savedSearches, setSavedSearches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const fetchAll = useCallback(async () => {
+    if (!isLoggedIn) {
+      setSavedSearches([]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await savedSearchesApi.list({ context });
@@ -53,7 +68,7 @@ export function useSavedSearches({ context = "ads" } = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [context]);
+  }, [context, isLoggedIn]);
 
   useEffect(() => {
     fetchAll();
@@ -62,24 +77,39 @@ export function useSavedSearches({ context = "ads" } = {}) {
   // ✅ Kreiranje: prihvata i {name, query_string} i {naziv, queryString}
   const createSavedSearch = useCallback(
     async (payload = {}) => {
+      if (!isLoggedIn) {
+        throw createAuthRequiredError();
+      }
+
       const name = payload?.naziv ?? payload?.name ?? "Moja pretraga";
       const query_string = payload?.queryString ?? payload?.query_string ?? "";
 
-      const res = await savedSearchesApi.create({
-        name,
-        query_string,
-        context,
-      });
+      try {
+        const res = await savedSearchesApi.create({
+          name,
+          query_string,
+          context,
+        });
 
-      await fetchAll();
-      return res;
+        await fetchAll();
+        return res;
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          throw createAuthRequiredError();
+        }
+        throw error;
+      }
     },
-    [context, fetchAll]
+    [context, fetchAll, isLoggedIn]
   );
 
   // ✅ Rename: radi i renameSavedSearch(id, naziv) i renameSavedSearch({id, name})
   const renameSavedSearch = useCallback(
     async (arg1, arg2) => {
+      if (!isLoggedIn) {
+        throw createAuthRequiredError();
+      }
+
       const id = typeof arg1 === "object" ? arg1?.id : arg1;
       const name =
         typeof arg1 === "object"
@@ -88,24 +118,42 @@ export function useSavedSearches({ context = "ads" } = {}) {
 
       if (!id) return;
 
-      const res = await savedSearchesApi.update({ id, name });
-      await fetchAll();
-      return res;
+      try {
+        const res = await savedSearchesApi.update({ id, name });
+        await fetchAll();
+        return res;
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          throw createAuthRequiredError();
+        }
+        throw error;
+      }
     },
-    [fetchAll]
+    [fetchAll, isLoggedIn]
   );
 
   // ✅ Delete: radi i deleteSavedSearch({id}) i deleteSavedSearch(id)
   const deleteSavedSearch = useCallback(
     async (arg) => {
+      if (!isLoggedIn) {
+        throw createAuthRequiredError();
+      }
+
       const id = typeof arg === "object" ? arg?.id : arg;
       if (!id) return;
 
-      const res = await savedSearchesApi.remove({ id });
-      await fetchAll();
-      return res;
+      try {
+        const res = await savedSearchesApi.remove({ id });
+        await fetchAll();
+        return res;
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          throw createAuthRequiredError();
+        }
+        throw error;
+      }
     },
-    [fetchAll]
+    [fetchAll, isLoggedIn]
   );
 
   // ✅ Alias da SavedSearches.jsx radi bez diranja
@@ -116,13 +164,17 @@ export function useSavedSearches({ context = "ads" } = {}) {
 
   // ✅ "Obriši sve" bez posebnog backend endpointa (radi preko postojećeg DELETE)
   const clearSavedSearches = useCallback(async () => {
+    if (!isLoggedIn) {
+      throw createAuthRequiredError();
+    }
+
     const current = savedSearches || [];
     if (!current.length) return;
 
     // brišemo paralelno, pa refresh
     await Promise.allSettled(current.map((s) => savedSearchesApi.remove({ id: s.id })));
     await fetchAll();
-  }, [savedSearches, fetchAll]);
+  }, [savedSearches, fetchAll, isLoggedIn]);
 
   // ✅ markUsed: backend nema endpoint, ali UI dobija “recently used” osjećaj (prebaci na vrh)
   const markUsed = useCallback((id) => {

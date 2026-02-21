@@ -450,10 +450,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
             >
               <div
                 ref={rowRef}
-                className="mx-auto w-full max-w-7xl px-3 pt-2 sm:px-4"
-                style={{
-                  paddingBottom: "max(env(safe-area-inset-bottom), 0.75rem)",
-                }}
+                className="mx-auto w-full max-w-7xl sm:px-4"
               >
                 <LayoutGroup id="adaptive-mobile-dock">
                   <div className="relative">
@@ -481,7 +478,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                     </AnimatePresence>
 
                     <div
-                      className={`rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_-12px_35px_-22px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
+                      className={`border border-slate-200/80 bg-white/95 p-2 shadow-[0_-12px_35px_-22px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
                         isSuspended ? "pointer-events-none" : "pointer-events-auto"
                       }`}
                       onPointerDownCapture={beginDockInteraction}

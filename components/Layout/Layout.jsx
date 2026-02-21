@@ -50,7 +50,9 @@ export default function Layout({ children }) {
           style={{ paddingBottom: "var(--adaptive-mobile-dock-space, 0px)" }}
         >
           <Header />
-          <div className="flex-1 custom-lmx-bg">{children}</div>
+          <div className="flex-1 bg-[#f0f3f9] dark:bg-slate-900 pb-8">
+            {children}
+          </div>
           <ScrollToTopButton />
           <Footer />
         </div>

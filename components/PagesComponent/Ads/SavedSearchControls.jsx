@@ -5,9 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "@/utils/toastBs";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import { useSelector } from "react-redux";
 
 import { useNavigate } from "@/components/Common/useNavigate";
 import { useSavedSearches } from "@/hooks/useSavedSearches";
+import { getIsLoggedIn } from "@/redux/reducer/authSlice";
+import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -559,6 +562,7 @@ export default function SavedSearchControls({
 }) {
   const searchParams = useSearchParams();
   const { navigate } = useNavigate();
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const {
     savedSearches,
@@ -612,6 +616,12 @@ export default function SavedSearchControls({
   );
 
   const handleSave = async () => {
+    if (!isLoggedIn) {
+      toast.error("Prvo se prijavi");
+      setIsLoginOpen(true);
+      return;
+    }
+
     if (!hasAnyRealParams) {
       toast.error("Nemaš šta sačuvati — prvo promijeni filtere.");
       return;
@@ -630,25 +640,52 @@ export default function SavedSearchControls({
       toast.success("Pretraga je sačuvana!");
       setNaziv("");
       setIsSaveOpen(false);
-    } catch {
+    } catch (error) {
+      if (error?.code === "AUTH_REQUIRED" || error?.response?.status === 401) {
+        toast.error("Sesija je istekla. Prijavi se ponovo.");
+        setIsLoginOpen(true);
+        return;
+      }
       toast.error("Nisam uspio sačuvati pretragu.");
     }
   };
 
   const handleRename = async (id, name) => {
+    if (!isLoggedIn) {
+      toast.error("Prvo se prijavi");
+      setIsLoginOpen(true);
+      return;
+    }
+
     try {
       await renameSavedSearch({ id, name });
       toast.success("Pretraga je preimenovana.");
-    } catch {
+    } catch (error) {
+      if (error?.code === "AUTH_REQUIRED" || error?.response?.status === 401) {
+        toast.error("Sesija je istekla. Prijavi se ponovo.");
+        setIsLoginOpen(true);
+        return;
+      }
       toast.error("Nisam uspio preimenovati pretragu.");
     }
   };
 
   const handleDelete = async (id) => {
+    if (!isLoggedIn) {
+      toast.error("Prvo se prijavi");
+      setIsLoginOpen(true);
+      return;
+    }
+
     try {
       await deleteSavedSearch({ id });
       toast.success("Pretraga je obrisana.");
-    } catch {
+    } catch (error) {
+      if (error?.code === "AUTH_REQUIRED" || error?.response?.status === 401) {
+        toast.error("Sesija je istekla. Prijavi se ponovo.");
+        setIsLoginOpen(true);
+        return;
+      }
       toast.error("Nisam uspio obrisati pretragu.");
     }
   };

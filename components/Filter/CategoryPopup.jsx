@@ -38,6 +38,18 @@ const formatAdCount = (count) => {
   return `${num} oglasa`;
 };
 
+const formatSubcategoryCount = (count) => {
+  const num = Number(count) || 0;
+  if (num <= 0) return "Bez podkategorija";
+  const mod10 = num % 10;
+  const mod100 = num % 100;
+  if (mod10 === 1 && mod100 !== 11) return "1 podkategorija";
+  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) {
+    return `${num} podkategorije`;
+  }
+  return `${num} podkategorija`;
+};
+
 const getDisplayCount = (category) =>
   Number(category?.adCount ?? category?.all_items_count ?? category?.items_count ?? 0) || 0;
 
@@ -179,6 +191,13 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
 
   const categoryLookup = useMemo(() => flattenForLookup(cateData || []), [cateData]);
   const categorySearchIndex = useMemo(() => flattenForSearch(cateData || []), [cateData]);
+  const selectedCategory = useMemo(() => {
+    if (!selectedCategorySlug) return null;
+    return categoryLookup.get(selectedCategorySlug) || null;
+  }, [selectedCategorySlug, categoryLookup]);
+  const selectedCategoryLabel =
+    selectedCategory?.translated_name || selectedCategory?.name || "Sve kategorije";
+  const selectedCategoryPath = selectedCategory?.__path || null;
 
   const rootCategories = useMemo(() => {
     const source = Array.isArray(cateData) ? cateData : [];
@@ -287,6 +306,10 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
     [searchParams, extraDetails, pathname, navigate, onClose, saveRecentCategory]
   );
 
+  const handleResetCategory = useCallback(() => {
+    selectCategory({ slug: null });
+  }, [selectCategory]);
+
   const fetchSubcategories = useCallback(
     async (parentCategory) => {
       const parentId = Number(parentCategory?.id);
@@ -343,10 +366,10 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-[0_30px_70px_-35px_rgba(2,6,23,0.75)] sm:max-h-[86vh] sm:max-w-3xl sm:rounded-2xl dark:border-slate-700 dark:bg-slate-900"
+        className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-[0_30px_70px_-35px_rgba(2,6,23,0.75)] sm:max-h-[88vh] sm:max-w-4xl sm:rounded-2xl dark:border-slate-700 dark:bg-slate-900"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="sticky top-0 z-20 space-y-3 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5 dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="sticky top-0 z-20 space-y-3 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5 md:px-6 dark:border-slate-700 dark:bg-slate-900/95">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Kategorija</h2>
@@ -365,6 +388,37 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
             </button>
           </div>
 
+          <div className="rounded-xl border border-slate-200/85 bg-slate-50/90 px-3 py-2.5 dark:border-slate-700/80 dark:bg-slate-800/60">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                Trenutno odabrano
+              </p>
+              {selectedCategorySlug ? (
+                <button
+                  type="button"
+                  onClick={handleResetCategory}
+                  className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                >
+                  Prikaži sve
+                </button>
+              ) : (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-900/20 dark:text-emerald-300">
+                  Bez filtera
+                </span>
+              )}
+            </div>
+            <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {selectedCategoryLabel}
+            </p>
+            {selectedCategorySlug && selectedCategoryPath ? (
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{selectedCategoryPath}</p>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Trenutno su prikazane sve dostupne kategorije.
+              </p>
+            )}
+          </div>
+
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -376,7 +430,7 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
               <Switch checked={onlyWithAds} onCheckedChange={setOnlyWithAds} />
               Samo kategorije sa oglasima
@@ -385,7 +439,7 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
               <button
                 type="button"
                 onClick={() => setSearchTerm("")}
-                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-slate-200"
+                className="self-end text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline sm:self-auto dark:text-slate-400 dark:hover:text-slate-200"
               >
                 Očisti pretragu
               </button>
@@ -393,9 +447,17 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 scrollbar-lmx sm:px-4 md:px-5">
           {!showSearchResults ? (
             <div className="mb-4 space-y-2">
+              <div className="mb-1 flex items-center justify-between px-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                  Brzi izbor
+                </p>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {rootCategories.length} kategorija
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => selectCategory({ slug: null })}
@@ -469,7 +531,7 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
             <CategorySkeleton />
           ) : showSearchResults ? (
             filteredSearchResults.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {filteredSearchResults.map((category) => {
                   const identifier = getCategoryIdentifier(category);
                   const isSelected = selectedCategorySlug === identifier;
@@ -527,18 +589,29 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
               </div>
             )
           ) : (
-            <div className="space-y-1">
-              {rootCategories.map((category) => {
+              <div className="space-y-2">
+                <div className="mb-1 flex items-center justify-between px-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                    Sve kategorije
+                  </p>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                    {rootCategories.length}
+                  </span>
+                </div>
+                {rootCategories.map((category) => {
                 const identifier = getCategoryIdentifier(category);
                 const isSelected = selectedCategorySlug === identifier;
                 const isExpanded = selectedParent?.id === category.id;
                 const hasChildren = Number(category?.subcategories_count) > 0;
                 const isLoadingChildren = isLoadingSubsFor === category.id;
+                const categoryMeta = `${formatAdCount(getDisplayCount(category))} • ${formatSubcategoryCount(
+                  category?.subcategories_count
+                )}`;
 
                 return (
                   <div
                     key={`root-${category.id}`}
-                    className="overflow-hidden rounded-xl border border-slate-200/80 bg-white dark:border-slate-700/70 dark:bg-slate-900"
+                    className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white dark:border-slate-700/70 dark:bg-slate-900"
                   >
                     <button
                       type="button"
@@ -550,7 +623,7 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
                         if (hasChildren) fetchSubcategories(category);
                       }}
                       className={cn(
-                        "flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors",
+                        "flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition-colors sm:px-3.5",
                         isSelected
                           ? "bg-primary/10"
                           : "hover:bg-slate-50 dark:hover:bg-slate-800/80"
@@ -566,7 +639,7 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
                           {category?.translated_name || category?.name}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {formatAdCount(getDisplayCount(category))}
+                          {categoryMeta}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -586,7 +659,7 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
                     {isExpanded ? (
                       <div className="border-t border-slate-200/80 bg-slate-50/70 px-2 py-2 dark:border-slate-700/70 dark:bg-slate-800/40">
                         {selectedSubcategories.length > 0 ? (
-                          <div className="space-y-1">
+                          <div className="max-h-60 space-y-1 overflow-y-auto overscroll-contain pr-1 scrollbar-lmx">
                             {selectedSubcategories.map((subcategory) => {
                               const subIdentifier = getCategoryIdentifier(subcategory);
                               const isSubSelected = selectedCategorySlug === subIdentifier;
@@ -609,7 +682,7 @@ const CategoryPopup = ({ onClose, extraDetails }) => {
                                     </span>
                                   </span>
                                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                                    {getDisplayCount(subcategory)}
+                                    {formatAdCount(getDisplayCount(subcategory))}
                                   </span>
                                 </button>
                               );

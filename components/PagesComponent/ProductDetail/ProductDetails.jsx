@@ -5,8 +5,9 @@ import {
   getMyItemsApi,
   setItemTotalClickApi,
   deleteItemApi,
-  getSellerApi, 
-  gamificationApi
+  getSellerApi,
+  gamificationApi,
+  logoutApi,
 } from "@/utils/api";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -24,8 +25,8 @@ import {
   MdChat,
   MdEdit,
   MdDelete,
-  MdSyncAlt,
-  MdRocketLaunch
+  MdRocketLaunch,
+  User
 } from "@/components/Common/UnifiedIconPack";
 import { IoStatsChart } from "@/components/Common/UnifiedIconPack";
 
@@ -41,6 +42,7 @@ import ProductQuestions from "./ProductQuestions";
 import ProductLocation from "./ProductLocation";
 import SellerOtherAds from "./SellerOtherAds";
 import SimilarProducts from "./SimilarProducts";
+import ProfileDropdown from "@/components/PagesComponent/Home/ProfileDropdown";
 import AdsReportCard from "./AdsReportCard";
 import MyAdsListingDetailCard from "./MyAdsListingDetailCard";
 import AdsStatusChangeCards from "./AdsStatusChangeCards";
@@ -57,8 +59,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 // Redux
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { setBreadcrumbPath } from "@/redux/reducer/breadCrumbSlice";
-import { userSignUpData } from "@/redux/reducer/authSlice";
-import { setHideMobileBottomNav } from "@/redux/reducer/globalStateSlice";
+import { logoutSuccess, userSignUpData } from "@/redux/reducer/authSlice";
+import { setHideMobileBottomNav, setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 
 // Utils & Hooks
 import { getFilteredCustomFields, getYouTubeVideoId, truncate } from "@/utils";
@@ -70,6 +72,7 @@ import {
 import { getFeaturedMeta } from "@/utils/featuredPlacement";
 import { getScarcityState } from "@/utils/scarcity";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
+import FirebaseData from "@/utils/Firebase";
 
 // ============================================
 // HELPER COMPONENTS
@@ -105,6 +108,75 @@ const resolvePriceOnRequestState = (item = {}) => {
   return Number(item?.price) === 0;
 };
 
+const MobileProfileDockSlot = ({
+  isLoggedIn = false,
+  onOpenLogin = () => {},
+  isLogoutOpen = false,
+  setIsLogoutOpen = () => {},
+  profileLabel = "Profil",
+  showLabel = true,
+  className = "",
+}) => {
+  const safeLabel = profileLabel?.trim?.() || "Profil";
+
+  if (isLoggedIn) {
+    return (
+      <div
+        className={cn(
+          "shrink-0",
+          showLabel
+            ? "flex min-w-[62px] flex-col items-center justify-center gap-1"
+            : "flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70",
+          className
+        )}
+      >
+        <div className={cn("relative flex items-center justify-center", showLabel ? "" : "scale-[0.92]")}>
+          <ProfileDropdown
+            setIsLogout={setIsLogoutOpen}
+            IsLogout={isLogoutOpen}
+            dockOpenMode="instant"
+          />
+        </div>
+        {showLabel ? (
+          <span className="max-w-[62px] truncate text-[10px] font-medium leading-none text-slate-600 dark:text-slate-400">
+            {safeLabel}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenLogin}
+      className={cn(
+        "group shrink-0 transition-all active:scale-95",
+        showLabel
+          ? "flex min-w-[62px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-0.5"
+          : "flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70",
+        className
+      )}
+      aria-label="Prijava"
+      title="Prijava"
+    >
+      <span
+        className={cn(
+          "flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors group-hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:group-hover:bg-slate-800",
+          showLabel ? "h-10 w-10" : "h-8 w-8"
+        )}
+      >
+        <User size={18} />
+      </span>
+      {showLabel ? (
+        <span className="max-w-[62px] truncate text-[10px] font-medium leading-none text-slate-600 dark:text-slate-400">
+          Prijava
+        </span>
+      ) : null}
+    </button>
+  );
+};
+
 const MobileStickyBar = ({
   isMyListing,
   productDetails,
@@ -115,6 +187,11 @@ const MobileStickyBar = ({
   onStatusClick,
   disableContactActions = false,
   contactBlockedMessage = "",
+  isLoggedIn = false,
+  onOpenLogin = () => {},
+  isLogoutOpen = false,
+  setIsLogoutOpen = () => {},
+  profileLabel = "Profil",
 }) => {
   if (!productDetails) return null;
   const realEstatePricing = resolveRealEstateDisplayPricing(productDetails);
@@ -198,14 +275,23 @@ const MobileStickyBar = ({
         {/* Desna strana (Akcije) */}
         <div className="flex items-center gap-2">
           {isMyListing ? (
-            <>
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1 dark:border-slate-700 dark:bg-slate-800/60">
+              <MobileProfileDockSlot
+                isLoggedIn={isLoggedIn}
+                onOpenLogin={onOpenLogin}
+                isLogoutOpen={isLogoutOpen}
+                setIsLogoutOpen={setIsLogoutOpen}
+                profileLabel={profileLabel}
+                showLabel={false}
+              />
+
               {/* UREDI */}
-              <Link href={`/edit-listing/${productDetails.id}`} className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl active:scale-95 transition-all">
+              <Link href={`/edit-listing/${productDetails.id}`} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl active:scale-95 transition-all border border-slate-200/80 dark:border-slate-700">
                 <MdEdit size={20} />
               </Link>
               
               {/* DELETE */}
-              <button onClick={onDeleteClick} className="w-10 h-10 flex items-center justify-center bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl active:scale-95 transition-all">
+              <button onClick={onDeleteClick} className="w-10 h-10 flex items-center justify-center bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl active:scale-95 transition-all border border-rose-100 dark:border-rose-900/30">
                 <MdDelete size={20} />
               </button>
 
@@ -213,20 +299,27 @@ const MobileStickyBar = ({
               <button onClick={onStatusClick} className="px-4 h-10 flex items-center justify-center bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 rounded-xl font-bold text-sm active:scale-95 shadow-lg shadow-slate-900/20 dark:shadow-none border border-transparent dark:border-slate-700">
                 Opcije
               </button>
-            </>
+            </div>
           ) : (
             <>
+              <MobileProfileDockSlot
+                isLoggedIn={isLoggedIn}
+                onOpenLogin={onOpenLogin}
+                isLogoutOpen={isLogoutOpen}
+                setIsLogoutOpen={setIsLogoutOpen}
+                profileLabel={profileLabel}
+              />
               <button 
                 onClick={onPhoneClick}
                 disabled={disableContactActions}
-                className="w-11 h-11 flex items-center justify-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/30 rounded-xl active:scale-95 transition-all"
+                className="w-10 h-10 flex items-center justify-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/30 rounded-xl active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <MdPhone size={22} />
               </button>
               <button 
                 onClick={onChatClick}
                 disabled={disableContactActions}
-                className="flex-1 px-5 h-11 flex items-center justify-center gap-2 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 h-10 flex items-center justify-center gap-2 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <MdChat size={20} />
                 <span>Poruka</span>
@@ -328,6 +421,7 @@ const FeaturedAdTriggerCard = ({
 const ProductDetails = ({ slug }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const currentUser = useSelector(userSignUpData);
+  const { signOut } = FirebaseData();
   const dispatch = useDispatch();
   const pathName = usePathname();
   const router = useRouter();
@@ -354,6 +448,8 @@ const ProductDetails = ({ slug }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOpenInApp, setIsOpenInApp] = useState(false);
   const [showProductReviewDialog, setShowProductReviewDialog] = useState(false);
+  const [IsLogout, setIsLogout] = useState(false);
+  const [IsLoggingOut, setIsLoggingOut] = useState(false);
   
   // Mobile Drawers
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
@@ -527,6 +623,31 @@ const ProductDetails = ({ slug }) => {
   );
   const hideBottomBar = showStatsModal || showStatusDrawer || showFeaturedDrawer || isDeleteOpen || isOpenInApp;
 
+  const handleLogout = useCallback(async () => {
+    try {
+      setIsLoggingOut(true);
+      await signOut();
+
+      const res = await logoutApi.logoutApi({
+        ...(currentUser?.fcm_id && { fcm_token: currentUser?.fcm_id }),
+      });
+
+      if (res?.data?.error === false) {
+        dispatch(logoutSuccess());
+        toast.success("Odjava uspješna");
+        setIsLogout(false);
+        if (pathName !== "/") router.push("/");
+      } else {
+        toast.error(res?.data?.message || "Odjava nije uspjela. Pokušajte ponovo.");
+      }
+    } catch (error) {
+      console.log("Neuspješna odjava", error);
+      toast.error("Odjava nije uspjela. Pokušajte ponovo.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [currentUser?.fcm_id, dispatch, pathName, router, signOut]);
+
   const openFeaturedModal = useCallback(() => {
     if (!canManageFeaturedAd || !productDetails?.id) {
       toast.error("Izdvajanje trenutno nije dostupno za ovaj oglas.");
@@ -567,7 +688,7 @@ const ProductDetails = ({ slug }) => {
           <div className="lg:col-span-8 flex flex-col gap-6 lg:gap-8">
             
             {/* 1. GALERIJA */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+            <div className="-mx-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 sm:mx-0">
               <ProductGallery
                 galleryImages={galleryImages}
                 videoData={videoData}
@@ -816,6 +937,17 @@ const ProductDetails = ({ slug }) => {
       {/* In-App Browser Drawer */}
       <OpenInAppDrawer isOpenInApp={isOpenInApp} setIsOpenInApp={setIsOpenInApp} />
 
+      <ReusableAlertDialog
+        open={IsLogout}
+        onCancel={() => setIsLogout(false)}
+        onConfirm={handleLogout}
+        title="Potvrdi odjavu"
+        description="Sigurno se želiš odjaviti? Morat ćeš se ponovo prijaviti."
+        cancelText="Otkaži"
+        confirmText="Da"
+        confirmDisabled={IsLoggingOut}
+      />
+
       <Dialog
         open={showProductReviewDialog && canLeaveProductReview}
         onOpenChange={(open) => setShowProductReviewDialog(open)}
@@ -854,6 +986,11 @@ const ProductDetails = ({ slug }) => {
         onStatusClick={() => setShowStatusDrawer(true)}
         disableContactActions={isInventoryOutOfStock}
         contactBlockedMessage="Oglas je rasprodan. Kontakt opcije su trenutno onemogućene dok prodavač ne dopuni zalihu."
+        isLoggedIn={Boolean(currentUser?.id)}
+        isLogoutOpen={IsLogout}
+        setIsLogoutOpen={setIsLogout}
+        profileLabel={currentUser?.name ? truncate(currentUser.name, 10) : "Profil"}
+        onOpenLogin={() => dispatch(setIsLoginOpen(true))}
       />
 
     </Layout>

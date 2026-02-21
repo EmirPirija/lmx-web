@@ -679,7 +679,7 @@ const ProductCard = ({
                 <OverlayPill
                   icon={Store}
                   iconClassName="h-3 w-3"
-                  className="border-indigo-200 text-[9px] bg-indigo-100/95 text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-900/55 dark:text-indigo-200"
+                  className="text-[9px] bg-gray-100 border border-gray-200 w-fit dark:border-indigo-800/70 dark:bg-indigo-900/55 dark:text-indigo-200"
                 >
                   LMX Shop
                 </OverlayPill>

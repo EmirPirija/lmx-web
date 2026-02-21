@@ -2,65 +2,31 @@
 
 import { useTheme } from "next-themes"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import { IconMoon, IconSun } from "@/components/Common/UnifiedIconPack"
 import { useEffect, useState } from "react"
 
-function SunIcon({ className = "" }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 16 16"
-      width="18"
-      height="18"
-      className={className}
-      aria-hidden="true"
-    >
-      <g fill="none" fillRule="evenodd">
-        <path
-          d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z"
-          strokeWidth="0.6667"
-        />
-        <path
-          fill="currentColor"
-          d="M8 12.666666666666666a0.6666666666666666 0.6666666666666666 0 0 1 0.6619999999999999 0.5886666666666667L8.666666666666666 13.333333333333332v0.6666666666666666a0.6666666666666666 0.6666666666666666 0 0 1 -1.3286666666666667 0.078L7.333333333333333 14v-0.6666666666666666a0.6666666666666666 0.6666666666666666 0 0 1 0.6666666666666666 -0.6666666666666666Zm-3.3 -1.3666666666666665a0.6666666666666666 0.6666666666666666 0 0 1 0 0.9426666666666665l-0.47133333333333327 0.47133333333333327a0.6666666666666666 0.6666666666666666 0 1 1 -0.9426666666666665 -0.9426666666666665l0.47133333333333327 -0.47133333333333327a0.6666666666666666 0.6666666666666666 0 0 1 0.9426666666666665 0Zm7.542666666666666 0 0.47133333333333327 0.47133333333333327a0.6666666666666666 0.6666666666666666 0 0 1 -0.9426666666666665 0.9426666666666665l-0.47133333333333327 -0.47133333333333327a0.6666666666666666 0.6666666666666666 0 0 1 0.9426666666666665 -0.9426666666666665ZM8.411333333333333 1.3333333333333333a1.3333333333333333 1.3333333333333333 0 0 1 1.3233333333333333 1.168l0.2533333333333333 2.0266666666666664a4 4 0 1 1 -3.976 0l0.2533333333333333 -2.0266666666666664A1.3333333333333333 1.3333333333333333 0 0 1 7.588666666666666 1.3333333333333333h0.8226666666666667ZM2.6666666666666665 7.333333333333333a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333H2a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333h0.6666666666666666Zm11.333333333333332 0a0.6666666666666666 0.6666666666666666 0 1 1 0 1.3333333333333333h-0.6666666666666666a0.6666666666666666 0.6666666666666666 0 1 1 0 -1.3333333333333333h0.6666666666666666Zm-1.286 -4.046666666666667a0.6666666666666666 0.6666666666666666 0 0 1 0 0.9426666666666665l-0.47133333333333327 0.47133333333333327a0.6666666666666666 0.6666666666666666 0 1 1 -0.9426666666666665 -0.9426666666666665l0.47133333333333327 -0.47133333333333327a0.6666666666666666 0.6666666666666666 0 0 1 0.9426666666666665 0Zm-8.485333333333333 0 0.47133333333333327 0.47133333333333327A0.6666666666666666 0.6666666666666666 0 0 1 3.7573333333333334 4.699999999999999l-0.47133333333333327 -0.47133333333333327A0.6666666666666666 0.6666666666666666 0 0 1 4.228666666666666 3.286666666666666ZM8.411333333333333 2.6666666666666665h-0.8226666666666667l-0.16666666666666666 1.3333333333333333h1.156l-0.16666666666666666 -1.3333333333333333Z"
-          strokeWidth="0.6667"
-        />
-      </g>
-    </svg>
-  )
-}
+const NIGHT_STARS = [
+  { top: "20%", left: "22%", delay: 0, size: 2.8 },
+  { top: "28%", left: "70%", delay: 0.4, size: 2.3 },
+  { top: "62%", left: "24%", delay: 0.8, size: 2.1 },
+  { top: "72%", left: "68%", delay: 1.1, size: 2.6 },
+]
 
-function MoonIcon({ className = "" }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 16 16"
-      width="18"
-      height="18"
-      className={className}
-      aria-hidden="true"
-    >
-      <g fill="none" fillRule="evenodd">
-        <path
-          d="m16 0 0 16 -16 0L0 0l16 0ZM8.395666666666667 15.505199999999999l-0.0077333333333333325 0.0011333333333333332 -0.047333333333333324 0.023666666666666662 -0.012666666666666666 0.0024666666666666665 -0.010133333333333333 -0.0024666666666666665 -0.047333333333333324 -0.023666666666666662c-0.0066 -0.0020666666666666663 -0.012466666666666668 -0.0003333333333333333 -0.015733333333333332 0.0036l-0.0027333333333333333 0.007266666666666666 -0.0114 0.28486666666666666 0.003333333333333333 0.013600000000000001 0.007333333333333332 0.008133333333333333 0.06906666666666667 0.049333333333333326 0.009866666666666666 0.0026 0.007866666666666666 -0.0026 0.06906666666666667 -0.049333333333333326 0.0084 -0.010666666666666666 0.0022666666666666664 -0.011066666666666666 -0.0114 -0.28486666666666666c-0.0013333333333333333 -0.0067333333333333325 -0.005733333333333333 -0.011 -0.010733333333333333 -0.011999999999999999Zm0.1766 -0.075 -0.009266666666666666 0.0013333333333333333 -0.12313333333333333 0.061599999999999995 -0.0066 0.0068000000000000005 -0.0018 0.007466666666666667 0.011933333333333332 0.28633333333333333 0.0031999999999999997 0.008533333333333334 0.005666666666666667 0.004733333333333333 0.13393333333333332 0.0618c0.008066666666666666 0.0024666666666666665 0.015266666666666666 -0.00013333333333333334 0.019 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02273333333333333 -0.4098c-0.0015999999999999999 -0.007933333333333334 -0.006866666666666667 -0.013 -0.012866666666666667 -0.014133333333333333Zm-0.4769333333333333 0.0013333333333333333c-0.006533333333333333 -0.0032666666666666664 -0.013866666666666666 -0.0013333333333333333 -0.018266666666666667 0.003533333333333333l-0.0038 0.009266666666666666 -0.02273333333333333 0.4098c-0.00046666666666666666 0.007666666666666666 0.004666666666666666 0.0138 0.011199999999999998 0.0156l0.010466666666666666 -0.0009333333333333333 0.13393333333333332 -0.0618 0.006266666666666667 -0.005399999999999999 0.0026 -0.007866666666666666 0.011933333333333332 -0.28633333333333333 -0.0021333333333333334 -0.0084 -0.006266666666666667 -0.005866666666666667 -0.12319999999999999 -0.061599999999999995Z"
-          strokeWidth="0.6667"
-        />
-        <path
-          fill="currentColor"
-          d="M8 1.3333333333333333c-3.1296133333333334 0 -5.666666666666666 2.537053333333333 -5.666666666666666 5.666666666666666 0 1.9154666666666667 0.9503733333333333 3.6089333333333333 2.4053 4.634666666666666l0.9632266666666666 1.9264000000000001C6.04064 14.238666666666667 6.7332 14.666666666666666 7.490733333333333 14.666666666666666l1.0185333333333333 0c0.7575333333333334 0 1.4500666666666666 -0.428 1.7888666666666666 -1.1056l0.9632000000000001 -1.9264000000000001c1.4549333333333332 -1.0257333333333332 2.405333333333333 -2.7192 2.405333333333333 -4.634666666666666C13.666666666666666 3.8703866666666666 11.1296 1.3333333333333333 8 1.3333333333333333Zm1.3335333333333335 11.175533333333334C8.905866666666666 12.611999999999998 8.459333333333333 12.666666666666666 8 12.666666666666666c-0.45933333333333326 0 -0.9058666666666666 -0.05466666666666667 -1.3335466666666664 -0.1578l0.22794666666666666 0.4559333333333333c0.11293333333333333 0.22586666666666666 0.3438 0.36853333333333327 0.5963333333333333 0.36853333333333327l1.0185333333333333 0c0.25253333333333333 0 0.48339999999999994 -0.14266666666666666 0.5963333333333333 -0.36853333333333327l0.22793333333333332 -0.4559333333333333Z"
-          strokeWidth="0.6667"
-        />
-      </g>
-    </svg>
-  )
-}
+const DAY_SPARKS = [
+  { top: "24%", left: "24%", delay: 0, size: 3.2 },
+  { top: "24%", left: "74%", delay: 0.45, size: 2.8 },
+  { top: "72%", left: "30%", delay: 0.9, size: 2.7 },
+  { top: "70%", left: "74%", delay: 1.25, size: 3.1 },
+]
 
 export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const prefersReducedMotion = useReducedMotion()
-  const transition = prefersReducedMotion
+
+  const springTransition = prefersReducedMotion
     ? { duration: 0 }
-    : { type: "spring", stiffness: 340, damping: 24, mass: 0.9 }
+    : { type: "spring", stiffness: 360, damping: 28, mass: 0.92 }
 
   useEffect(() => {
     setMounted(true)
@@ -69,92 +35,224 @@ export function ThemeToggle() {
   const effectiveTheme = resolvedTheme || theme
   const isDark = effectiveTheme === "dark"
 
-  if (!mounted) return <div className="w-10 h-10" />
+  if (!mounted) {
+    return (
+      <div
+        aria-hidden="true"
+        className="h-10 w-10 rounded-full border border-slate-200/90 bg-white/85 dark:border-slate-700 dark:bg-slate-900/90"
+      />
+    )
+  }
 
   return (
     <motion.button
       initial={false}
-      animate={isDark ? "selectedDark" : "selectedLight"}
-      whileHover={prefersReducedMotion ? undefined : { scale: 1.05, y: -1 }}
-      whileTap={prefersReducedMotion ? undefined : { scale: 0.94, y: 0 }}
-      variants={{
-        selectedLight: { rotate: 0 },
-        selectedDark: { rotate: 0 },
-      }}
-      transition={transition}
+      animate={
+        isDark
+          ? {
+              borderColor: "rgba(56,189,248,0.55)",
+              
+            }
+          : {
+              borderColor: "rgba(251,191,36,0.8)",
+              boxShadow:
+                "0 10px 22px rgba(245,158,11,0.24), inset 0 0 0 1px rgba(251,191,36,0.2)",
+            }
+      }
+      whileHover={prefersReducedMotion ? undefined : { scale: 1.06, y: -1.5 }}
+      whileTap={prefersReducedMotion ? undefined : { scale: 0.92, y: 0 }}
+      transition={springTransition}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       type="button"
-      className={`relative isolate flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border transition-colors ${
-        isDark
-          ? "border-slate-600 bg-slate-900 text-blue-300 shadow-[0_6px_14px_rgba(59,130,246,0.24)]"
-          : "border-slate-200 bg-white text-amber-500 shadow-[0_6px_14px_rgba(245,158,11,0.22)]"
+      className={`group relative isolate flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-sm transition-colors ${
+        isDark ? "bg-slate-950 text-sky-200" : "bg-amber-50 text-amber-600"
       }`}
       aria-label="Promijeni temu"
       aria-pressed={isDark}
-      title={isDark ? "Aktivna tamna tema" : "Aktivna svijetla tema"}
+      title={isDark ? "Tamna tema je aktivna" : "Svijetla tema je aktivna"}
     >
+      <motion.span
+        initial={false}
+        className="pointer-events-none absolute -inset-[36%] rounded-full"
+        style={{
+          background: isDark
+            ? "conic-gradient(from 20deg, rgba(56,189,248,0.42), rgba(59,130,246,0.16), rgba(15,23,42,0.06), rgba(56,189,248,0.42))"
+            : "conic-gradient(from 25deg, rgba(251,191,36,0.46), rgba(249,115,22,0.22), rgba(255,255,255,0.08), rgba(251,191,36,0.46))",
+        }}
+        animate={
+          prefersReducedMotion
+            ? { opacity: isDark ? 0.4 : 0.35, rotate: 0, scale: 1 }
+            : { opacity: [0.28, 0.48, 0.28], rotate: [0, 360], scale: [1, 1.07, 1] }
+        }
+        transition={
+          prefersReducedMotion
+            ? { duration: 0 }
+            : { duration: 14, repeat: Infinity, ease: "linear" }
+        }
+      />
+
       <motion.span
         initial={false}
         className="pointer-events-none absolute inset-0 rounded-full"
         animate={
           isDark
             ? {
-                opacity: 0.35,
-                scale: 1,
+                opacity: prefersReducedMotion ? 0.34 : [0.28, 0.46, 0.28],
+                scale: prefersReducedMotion ? 1 : [1, 1.05, 1],
                 background:
-                  "radial-gradient(circle at 35% 30%, rgba(96,165,250,0.35), rgba(15,23,42,0.08) 70%)",
+                  "radial-gradient(circle at 32% 28%, rgba(125,211,252,0.48), rgba(2,132,199,0.12) 52%, rgba(2,6,23,0.05) 72%)",
               }
             : {
-                opacity: 0.3,
-                scale: 1,
+                opacity: prefersReducedMotion ? 0.36 : [0.3, 0.52, 0.3],
+                scale: prefersReducedMotion ? 1 : [1, 1.04, 1],
                 background:
-                  "radial-gradient(circle at 35% 30%, rgba(251,191,36,0.38), rgba(255,255,255,0.1) 70%)",
+                  "radial-gradient(circle at 30% 26%, rgba(254,215,170,0.72), rgba(251,191,36,0.16) 52%, rgba(255,255,255,0.06) 72%)",
               }
         }
-        transition={transition}
+        transition={
+          prefersReducedMotion
+            ? { duration: 0 }
+            : { duration: 4.4, repeat: Infinity, ease: "easeInOut" }
+        }
       />
 
       <motion.span
-        initial={false}
-        className="pointer-events-none absolute inset-[3px] rounded-full border"
+        className="pointer-events-none absolute inset-[2px] rounded-full border"
         animate={
-          isDark
-            ? {
-                borderColor: "rgba(148,163,184,0.35)",
-                rotate: 180,
-                scale: 1,
-              }
-            : {
-                borderColor: "rgba(251,191,36,0.45)",
-                rotate: 0,
-                scale: 1,
-              }
+          prefersReducedMotion
+            ? { rotate: 0, opacity: 1 }
+            : { rotate: [0, 360], opacity: [0.7, 1, 0.7] }
         }
-        transition={transition}
+        transition={
+          prefersReducedMotion
+            ? { duration: 0 }
+            : { duration: 18, repeat: Infinity, ease: "linear" }
+        }
+        style={{
+          borderColor: isDark ? "rgba(125,211,252,0.32)" : "rgba(251,191,36,0.36)",
+        }}
       />
 
       <AnimatePresence mode="wait" initial={false}>
         {isDark ? (
-          <motion.span
-            key="theme-moon"
-            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.65, rotate: -45, y: 3 }}
-            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, rotate: 0, y: 0 }}
-            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.65, rotate: 45, y: -3 }}
-            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.28, ease: "easeOut" }}
-            className="relative z-[1] text-blue-300"
+          <motion.div
+            key="night-passive-layer"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="pointer-events-none absolute inset-0"
           >
-            <MoonIcon />
+            {NIGHT_STARS.map((star, index) => (
+              <motion.span
+                key={`night-star-${index}`}
+                className="absolute rounded-full bg-sky-200/90"
+                style={{ top: star.top, left: star.left, width: star.size, height: star.size }}
+                animate={
+                  prefersReducedMotion
+                    ? { opacity: 0.72 }
+                    : { opacity: [0.2, 0.9, 0.25], scale: [0.85, 1.35, 0.9] }
+                }
+                transition={
+                  prefersReducedMotion
+                    ? { duration: 0 }
+                    : {
+                        duration: 2.6,
+                        repeat: Infinity,
+                        repeatType: "mirror",
+                        delay: star.delay,
+                        ease: "easeInOut",
+                      }
+                }
+              />
+            ))}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="day-passive-layer"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="pointer-events-none absolute inset-0"
+          >
+            {DAY_SPARKS.map((spark, index) => (
+              <motion.span
+                key={`day-spark-${index}`}
+                className="absolute rounded-full bg-amber-300/90"
+                style={{ top: spark.top, left: spark.left, width: spark.size, height: spark.size }}
+                animate={
+                  prefersReducedMotion
+                    ? { opacity: 0.66 }
+                    : { opacity: [0.2, 0.92, 0.25], scale: [0.8, 1.28, 0.82] }
+                }
+                transition={
+                  prefersReducedMotion
+                    ? { duration: 0 }
+                    : {
+                        duration: 2.8,
+                        repeat: Infinity,
+                        repeatType: "mirror",
+                        delay: spark.delay,
+                        ease: "easeInOut",
+                      }
+                }
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait" initial={false}>
+        {isDark ? (
+          <motion.span
+            key="theme-moon-icon"
+            initial={
+              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.62, rotate: -52, y: 2.5 }
+            }
+            animate={prefersReducedMotion ? { opacity: 1, scale: 1, rotate: 0, y: 0 } : { opacity: 1, scale: 1, rotate: 0, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.6, rotate: 52, y: -2.5 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.32, ease: "easeOut" }}
+            className="relative z-[2] text-sky-200"
+          >
+            <motion.span
+              animate={
+                prefersReducedMotion
+                  ? { y: 0, rotate: 0, scale: 1 }
+                  : { y: [0, -0.6, 0], rotate: [0, -3, 0], scale: [1, 1.03, 1] }
+              }
+              transition={
+                prefersReducedMotion
+                  ? { duration: 0 }
+                  : { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
+              }
+            >
+              <IconMoon size={17} strokeWidth={2.1} />
+            </motion.span>
           </motion.span>
         ) : (
           <motion.span
-            key="theme-sun"
-            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.65, rotate: 45, y: 3 }}
-            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, rotate: 0, y: 0 }}
-            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.65, rotate: -45, y: -3 }}
-            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.28, ease: "easeOut" }}
-            className="relative z-[1] text-amber-500"
+            key="theme-sun-icon"
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.62, rotate: 52, y: 2.5 }}
+            animate={prefersReducedMotion ? { opacity: 1, scale: 1, rotate: 0, y: 0 } : { opacity: 1, scale: 1, rotate: 0, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.6, rotate: -52, y: -2.5 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.32, ease: "easeOut" }}
+            className="relative z-[2] text-amber-500"
           >
-            <SunIcon />
+            <motion.span
+              animate={
+                prefersReducedMotion
+                  ? { y: 0, rotate: 0, scale: 1 }
+                  : { y: [0, -0.5, 0], rotate: [0, 8, 0], scale: [1, 1.05, 1] }
+              }
+              transition={
+                prefersReducedMotion
+                  ? { duration: 0 }
+                  : { duration: 3, repeat: Infinity, ease: "easeInOut" }
+              }
+            >
+              <IconSun size={17} strokeWidth={2.1} />
+            </motion.span>
           </motion.span>
         )}
       </AnimatePresence>
