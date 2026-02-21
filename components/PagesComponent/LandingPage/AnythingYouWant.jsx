@@ -53,7 +53,7 @@ const AnythingYouWant = () => {
           !selectedCity?.country;
 
     if (isInvalidLocation) {
-      toast.error(t("pleaseSelectLocation"));
+      toast.error("Odaberi lokaciju");
       return;
     }
 
@@ -71,13 +71,13 @@ const AnythingYouWant = () => {
           <div className="flex flex-col items-center gap-6 text-center">
             <div className="flex flex-col items-center font-bold text-4xl lg:text-5xl gap-3 relative">
               <h1 className="flex flex-column items-center relative z-10 after:content-[''] after:absolute after:bg-[#00b2ca] after:h-[40%] after:w-full after:z-[-1] after:bottom-0">
-                {t("buySell")}
+                {"Kupi i prodaj"}
               </h1>
-              <h1>{t("anythingYouWant")}</h1>
+              <h1>{"šta god želiš"}</h1>
             </div>
             <p className="text-sm font-light md:w-1/2">
-              {t("discoverEndlessPossibilitiesAt")} {companyName}{" "}
-              {t("goToMarketplace")}
+              {"Otkrij mogućnosti na"} {companyName}{" "}
+              {"tvom marketplaceu za kupovinu i prodaju. Pridruži se i kreni odmah!"}
             </p>
             <div className="space-between gap-3 rounded border w-full lg:w-[60%] bg-white py-2 px-3 relative">
               <div className="flex items-center w-full gap-2">
@@ -101,14 +101,14 @@ const AnythingYouWant = () => {
                   onClick={handleSearchLocation}
                 >
                   <IoSearchOutline size={22} />
-                  <span className="hidden md:block">{t("search")}</span>
+                  <span className="hidden md:block">{"Pretraži"}</span>
                 </button>
               </div>
               <CustomLink
                 href="/"
                 className="hidden sm:flex items-center gap-2 text-destructive"
               >
-                <span className="whitespace-nowrap">{t("skip")}</span>
+                <span className="whitespace-nowrap">{"Preskoči"}</span>
                 <ArrowRight size={16} />
               </CustomLink>
             </div>
@@ -116,7 +116,7 @@ const AnythingYouWant = () => {
               href="/"
               className="sm:hidden flex items-center gap-2 text-destructive"
             >
-              <span className="whitespace-nowrap">{t("skip")}</span>
+              <span className="whitespace-nowrap">{"Preskoči"}</span>
               <ArrowRight size={16} />
             </CustomLink>
           </div>

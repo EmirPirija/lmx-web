@@ -13,13 +13,13 @@ const PrivacyPolicy = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("privacyPolicy")} />
+      <BreadCrumb title2={"Politiku privatnosti"} />
       <div className="container">
         <div className="max-w-full py-7 prose lg:prose-lg">
           {parse(privacy || "")}
           <p>
             Informacije o zahtjevu i postupku brisanja naloga možeš pronaći na
-            stranici <a href="/data-deletion">{t("dataDeletionPolicy")}</a>.
+            stranici <a href="/data-deletion">{"Brisanje podataka"}</a>.
           </p>
         </div>
       </div>

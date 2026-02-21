@@ -2,23 +2,23 @@
 export const workProcessSteps = [
     {
         id: 1,
-        title: 'listingMadeEasy',
-        description: 'createAds',
+        title: "Objava oglasa bez muke",
+        description: "Kreiraj oglas za par minuta uz opis i fotke.",
     },
     {
         id: 2,
-        title: "instantReach",
-        description: "connectVastAudience",
+        title: "Brz doseg",
+        description: "Dođi do kupaca uz pretragu i filtere.",
     },
     {
         id: 3,
-        title: "effortlessConnection",
-        description: "interactSecureMessaging",
+        title: "Lako povezivanje",
+        description: "Dopisuj se sigurno unutar platforme.",
     },
     {
         id: 4,
-        title: "enjoyBenefits",
-        description: "reapRewards",
+        title: "Uživaj u prednostima",
+        description: "Prodaj bez gnjavaže.",
     },
 ];
 
@@ -26,27 +26,27 @@ export const quickLinks = [
     {
         id: 1,
         href: "/about-us",
-        labelKey: "aboutUs",
+        label: "O nama",
     },
     {
         id: 2,
         href: "/contact-us",
-        labelKey: "contactUs",
+        label: "Kontakt",
     },
     {
         id: 3,
         href: "/subscription",
-        labelKey: "subscription",
+        label: "Pretplata",
     },
     {
         id: 4,
         href: "/blogs",
-        labelKey: "ourBlog",
+        label: "Naš blog",
     },
     {
         id: 5,
         href: "/faqs",
-        labelKey: "faqs",
+        label: "Česta pitanja",
     },
 ];
 
@@ -54,12 +54,12 @@ export const headerQuickLinks = [
     {
         id: 1,
         href: "/about-us",
-        labelKey: "aboutUs",
+        label: "O nama",
     },
     {
         id: 5,
         href: "/faqs",
-        labelKey: "faqs",
+        label: "Česta pitanja",
     },
     {
         id: 6,

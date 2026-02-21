@@ -745,7 +745,7 @@ const EditListing = ({ id }) => {
 
   const handleImageSubmit = () => {
     if (uploadedImages.length === 0) {
-      toast.error(t("uploadMainPicture"));
+      toast.error("Otpremi glavnu sliku");
       return;
     }
     setStep(4);
@@ -947,13 +947,13 @@ const EditListing = ({ id }) => {
     const lowThreshold = Math.max(1, Number(resolvedStockAlertThreshold || 3));
 
     if (!name.trim() || !description.trim() || !contact) {
-      toast.error(t("completeDetails"));
+      toast.error("Popuni obavezna polja.");
       setStep(1);
       return;
     }
 
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
-      toast.error(t("invalidPhoneNumber"));
+      toast.error("Neispravan broj telefona");
       return setStep(1);
     }
 
@@ -962,23 +962,23 @@ const EditListing = ({ id }) => {
       const max = max_salary ? Number(max_salary) : null;
 
       if (min !== null && min < 0) {
-        toast.error(t("enterValidSalaryMin"));
+        toast.error("Unesi ispravnu minimalnu platu.");
         setStep(1);
         return;
       }
 
       if (max !== null && max < 0) {
-        toast.error(t("enterValidSalaryMax"));
+        toast.error("Unesi ispravnu maksimalnu platu.");
         setStep(1);
         return;
       }
       if (min !== null && max !== null) {
         if (min === max) {
-          toast.error(t("salaryMinCannotBeEqualMax"));
+          toast.error("Minimalna i maksimalna plata ne mogu biti iste.");
           return setStep(1);
         }
         if (min > max) {
-          toast.error(t("salaryMinCannotBeGreaterThanMax"));
+          toast.error("Minimalna plata ne može biti veća od maksimalne.");
           return setStep(1);
         }
       }
@@ -990,23 +990,23 @@ const EditListing = ({ id }) => {
           Number.isFinite(Number(realEstatePriceState.manualValue)) &&
           Number(realEstatePriceState.manualValue) > 0);
       if (!defaultDetails.price_on_request && !hasPriceInput) {
-        toast.error(t("completeDetails"));
+        toast.error("Popuni obavezna polja.");
         return setStep(1);
       }
 
       if (!isEmpty(price) && isNegative(price) && !effectiveManualPrice && !manualPerM2ModeActive) {
-        toast.error(t("enterValidPrice"));
+        toast.error("Unesi ispravnu cijenu.");
         return setStep(1);
       }
     }
 
     if (!isEmpty(slug) && !SLUG_RE.test(slug.trim())) {
-      toast.error(t("addValidSlug"));
+      toast.error("Unesi ispravan slug.");
       return setStep(1);
     }
 
     if (!isEmpty(video_link) && !isValidURL(video_link)) {
-      toast.error(t("enterValidUrl"));
+      toast.error("Unesi ispravan URL.");
       setStep(3);
       return;
     }
@@ -1045,7 +1045,7 @@ const EditListing = ({ id }) => {
     }
 
     if (uploadedImages.length === 0) {
-      toast.error(t("uploadMainPicture"));
+      toast.error("Otpremi glavnu sliku");
       setStep(3);
       return;
     }
@@ -1056,7 +1056,7 @@ const EditListing = ({ id }) => {
       !Location?.city ||
       !Location?.address
     ) {
-      toast.error(t("pleaseSelectCity"));
+      toast.error("Odaberi lokaciju");
       return;
     }
 
@@ -1292,12 +1292,12 @@ const EditListing = ({ id }) => {
 
   const steps = useMemo(
     () => [
-      { id: 1, label: t("details"), mobileLabel: "Detalji", icon: Circle, disabled: false },
+      { id: 1, label: "Detalji", mobileLabel: "Detalji", icon: Circle, disabled: false },
       ...(customFields?.length > 0
-        ? [{ id: 2, label: t("extraDetails"), mobileLabel: "Dodatno", icon: Circle, disabled: false }]
+        ? [{ id: 2, label: "Dodatni detalji", mobileLabel: "Dodatno", icon: Circle, disabled: false }]
         : []),
       { id: 3, label: "Media", mobileLabel: "Mediji", icon: Circle, disabled: false },
-      { id: 4, label: t("location"), mobileLabel: "Lokacija", icon: Circle, disabled: false },
+      { id: 4, label: "Lokacija", mobileLabel: "Lokacija", icon: Circle, disabled: false },
     ],
     [customFields?.length]
   );
@@ -1570,7 +1570,7 @@ const EditListing = ({ id }) => {
   }, [uploadedImages, OtherImages]);
 
   const previewCardItem = useMemo(() => {
-    const previewName = defaultDetails?.name || t("Vaš naslov oglasa ovdje");
+    const previewName = defaultDetails?.name || "Vaš naslov oglasa ovdje";
     const primaryImage = getPreviewImage();
     const previewPrice = defaultDetails?.price_on_request
       ? 0
@@ -1656,7 +1656,7 @@ const EditListing = ({ id }) => {
       ? `Do ${formatPriceAbbreviated(defaultDetails.max_salary)}`
       : ""
     : defaultDetails?.price_on_request
-    ? t("Na upit")
+    ? "Na upit"
     : showDiscount
     ? `${formatPriceAbbreviated(currentPrice)} (sniženo sa ${formatPriceAbbreviated(oldPrice)})`
     : hasCurrentPrice
@@ -1768,16 +1768,16 @@ const EditListing = ({ id }) => {
         <PageLoader />
       ) : (
         <>
-          <BreadCrumb title2={t("editListing")} />
+          <BreadCrumb title2={"Uredi oglas"} />
           <div className="container relative overflow-x-hidden">
             <div className="mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden">
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-medium">{t("editListing")}</h1>
+                <h1 className="text-2xl font-medium">{"Uredi oglas"}</h1>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-2 rounded-full">
                     <Award className="w-5 h-5 text-primary" />
                     <span className="font-semibold text-primary">{completenessScore}%</span>
-                    <span className="text-sm text-muted-foreground">{t("dovršen")}</span>
+                    <span className="text-sm text-muted-foreground">{"dovršen"}</span>
                   </div>
                 </div>
               </div>
@@ -1932,7 +1932,7 @@ const EditListing = ({ id }) => {
                     <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                       <div className="flex items-center justify-between">
                         <p className="font-medium text-sm text-gray-500">
-                          {t("selectedCategory")}
+                          {"Odabrana kategorija"}
                         </p>
                       </div>
                       
@@ -2043,7 +2043,7 @@ const EditListing = ({ id }) => {
                   <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-4 px-1">
                       <Zap className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold text-lg">{t("Pregled oglasa")}</h3>
+                      <h3 className="font-semibold text-lg">{"Pregled oglasa"}</h3>
                     </div>
 
                     <div className="pointer-events-none select-none">
@@ -2053,7 +2053,7 @@ const EditListing = ({ id }) => {
                     <div className="mt-6 space-y-4">
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="font-medium">{t("Ocjena kvaliteta oglasa")}</span>
+                          <span className="font-medium">{"Ocjena kvaliteta oglasa"}</span>
                           <span className="text-primary font-semibold">{completenessScore}%</span>
                         </div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -2069,7 +2069,7 @@ const EditListing = ({ id }) => {
                           <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <TrendingUp className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                             <p className="text-xs text-yellow-800">
-                              {t("Dodajte bar jednu sliku!")} (+20% {t("visibility")})
+                              {"Dodaj barem jednu sliku!"} (+20% {"vidljivost"})
                             </p>
                           </div>
                         )}
@@ -2078,7 +2078,7 @@ const EditListing = ({ id }) => {
                           <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                             <Star className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                             <p className="text-xs text-blue-800">
-                              {t("Dodajte još fotografija").replace("{count}", 3 - OtherImages.length)} (+{(3 - OtherImages.length) * 5}% {t("veća vidljivost!")})
+                              {"Dodaj još {count} fotografija".replace("{count}", 3 - OtherImages.length)} (+{(3 - OtherImages.length) * 5}% {"veća vidljivost!"})
                             </p>
                           </div>
                         )}
@@ -2087,7 +2087,7 @@ const EditListing = ({ id }) => {
                           <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                             <Award className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
                             <p className="text-xs text-purple-800">
-                              {t("Detaljan opis")} (+10% {t("pouzdanost")})
+                              {"Detaljan opis"} (+10% {"pouzdanost"})
                             </p>
                           </div>
                         )}

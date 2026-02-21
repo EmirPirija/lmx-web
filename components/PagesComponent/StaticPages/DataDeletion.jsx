@@ -12,7 +12,7 @@ const DataDeletion = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("dataDeletionPolicy")} />
+      <BreadCrumb title2={"Brisanje podataka"} />
       <div className="container">
         <article className="max-w-full py-7 prose lg:prose-lg">
           <h2>Brisanje podataka</h2>

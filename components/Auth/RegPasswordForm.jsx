@@ -26,11 +26,11 @@ const RegPasswordForm = ({
 
       <div className="labelInputCont">
         <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
-          {t("username")}
+          {"Korisničko ime"}
         </Label>
         <Input
           type="text"
-          placeholder={t("typeUsername")}
+          placeholder={"Unesi korisničko ime"}
           name="username"
           required
           className="h-11 rounded-xl border-slate-200 bg-white"
@@ -42,12 +42,12 @@ const RegPasswordForm = ({
 
       <div className="labelInputCont">
         <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
-          {t("password")}
+          {"Lozinka"}
         </Label>
         <div className="flex items-center relative">
           <Input
             type={IsPasswordVisible ? "text" : "password"}
-            placeholder={t("enterPassword")}
+            placeholder={"Unesi lozinku"}
             id="password"
             name="password"
             className="h-11 rounded-xl border-slate-200 bg-white ltr:pr-10 rtl:pl-10"
@@ -78,7 +78,7 @@ const RegPasswordForm = ({
         {showLoader ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <span>{t("verifyEmail")}</span>
+          <span>{"Potvrdi e-mail adresu"}</span>
         )}
       </Button>
     </form>

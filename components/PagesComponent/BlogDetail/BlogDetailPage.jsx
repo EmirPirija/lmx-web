@@ -52,7 +52,7 @@ const BlogDetailPage = ({ slug }) => {
       dispatch(
         setBreadcrumbPath([
           {
-            name: t("ourBlogs"),
+            name: "Naši blogovi",
             slug: "/blogs",
           },
           {
@@ -71,7 +71,7 @@ const BlogDetailPage = ({ slug }) => {
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(currentUrl);
-      toast(t("copyToClipboard"));
+      toast("Kopirano");
     } catch (error) {
       console.error("Error copying to clipboard:", error);
     }
@@ -106,12 +106,12 @@ const BlogDetailPage = ({ slug }) => {
                   <div className="border-r h-[16px]"></div>
                   <div className="flex items-center gap-1">
                     <FaEye size={16} />
-                    {t("views")}: {blogData?.views}
+                    {"Pregledi"}: {blogData?.views}
                   </div>
                   <div className="border-r h-[16px] "></div>
                   <div className="flex gap-2 items-center">
                     <FaRegCalendarCheck size={16} color="" />
-                    {t("postedOn")}: {formatDateMonthYear(blogData?.created_at)}
+                    {"Objavljeno"}: {formatDateMonthYear(blogData?.created_at)}
                   </div>
                 </div>
                 <CustomImage
@@ -130,7 +130,7 @@ const BlogDetailPage = ({ slug }) => {
                 </div>
                 <div className="border-t pt-4 flex items-center justify-between ">
                   <div className="flex flex-col gap-2 opacity-60">
-                    <span className="pb-2 font-sm ">{t("shareThis")}</span>
+                    <span className="pb-2 font-sm ">{"Podijeli"}</span>
                     <div className="flex gap-3">
                       <button className="border-none" onClick={handleCopyUrl}>
                         <BiLink size={24} />
@@ -176,7 +176,7 @@ const BlogDetailPage = ({ slug }) => {
               </div>
             ) : (
               <div className="col-span-1 md:col-span-8">
-                <NoData name={t("blog")} />
+                <NoData name={"Blog"} />
               </div>
             )}
 
@@ -185,7 +185,7 @@ const BlogDetailPage = ({ slug }) => {
             </div>
           </div>
           <div className="flex gap-8 flex-col">
-            <h1 className="text-2xl font-medium">{t("relatedArticle")}</h1>
+            <h1 className="text-2xl font-medium">{"Povezani članci"}</h1>
             <div className="grid md:grid-cols-12 grid-cols-1 gap-4">
               {relatedBlogs &&
                 relatedBlogs?.map((blog, index) => (

@@ -39,7 +39,7 @@ const FlutterwavePayment = ({ selectedPackage }) => {
       }
     } catch (error) {
       console.error("Error during Flutterwave payment", error);
-      toast.error(t("errorOccurred"));
+      toast.error("Došlo je do greške.");
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +59,7 @@ const FlutterwavePayment = ({ selectedPackage }) => {
                 className="w-full h-full "
               />
             </div>
-            <p className="text-lg font-semibold">{t("flutterwave")}</p>
+            <p className="text-lg font-semibold">{"Flutterwave"}</p>
           </div>
           <div>
             {isLoading ? (

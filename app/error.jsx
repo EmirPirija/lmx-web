@@ -24,12 +24,12 @@ export default function Error({ error }) {
         height={200}
       />
       <h3 className="text-2xl font-semibold text-primary text-center">
-        {t("somthingWentWrong")}
+        {"Nešto je pošlo po zlu"}
       </h3>
       <div className="flex flex-col gap-2">
-        <span>{t("tryLater")}</span>
+        <span>{"Pokušaj kasnije"}</span>
         <Button variant="outline" onClick={navigateHome}>
-          {t("home")}
+          {"Početna"}
         </Button>
       </div>
     </div>

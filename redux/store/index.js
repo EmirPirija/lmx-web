@@ -11,6 +11,7 @@ import authReducer from '../reducer/authSlice'
 import gamificationReducer from '../reducer/gamificationSlice'
 import membershipReducer from '../reducer/membershipSlice'
 import compareReducer from '../reducer/compareSlice';
+import { setAppStore } from "./storeRef";
 
 
 const persistConfig = {
@@ -43,5 +44,7 @@ export const store = configureStore({
     }),
   ],
 });
+
+setAppStore(store);
 
 export const persistor = persistStore(store);

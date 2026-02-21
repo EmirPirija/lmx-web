@@ -1,5 +1,5 @@
 import { createSelector, createSlice } from "@reduxjs/toolkit";
-import { store } from "../store";
+import { dispatchWithStore } from "../store/storeRef";
 
 const initialState = {
   IsLoginModalOpen: false,
@@ -91,15 +91,15 @@ export const getIsShowBankDetails = createSelector(
 );
 
 export const setIsLoginOpen = (value) => {
-  store.dispatch(setIsLoginModalOpen(value));
+  dispatchWithStore(setIsLoginModalOpen(value));
 };
 
 export const showBankDetails = () => {
-  store.dispatch(setIsShowBankDetails(true));
+  dispatchWithStore(setIsShowBankDetails(true));
 };
 
 export const hideBankDetails = () => {
-  store.dispatch(setIsShowBankDetails(false));
+  dispatchWithStore(setIsShowBankDetails(false));
 };
 
 export const getNotification = createSelector(

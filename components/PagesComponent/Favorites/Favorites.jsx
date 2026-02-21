@@ -89,7 +89,7 @@ const Favorites = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="py-16"
       >
-        <NoData name={t("favorites")} />
+        <NoData name={"Favoriti"} />
       </motion.div>
     );
   }
@@ -104,7 +104,7 @@ const Favorites = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="py-16"
       >
-        <NoData name={t("favorites")} />
+        <NoData name={"Favoriti"} />
       </motion.div>
     );
   }
@@ -137,12 +137,12 @@ const Favorites = () => {
             {IsLoadMore ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                {t("loading")}
+                {"Učitavanje..."}
               </>
             ) : (
               <>
                 <ChevronDown size={18} />
-                {t("loadMore")}
+                {"Učitaj još"}
               </>
             )}
           </Button>

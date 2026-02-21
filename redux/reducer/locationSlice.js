@@ -1,5 +1,5 @@
 import { createSelector, createSlice } from "@reduxjs/toolkit";
-import { store } from "../store";
+import { dispatchWithStore } from "../store/storeRef";
 
 const initialState = {
   cityData: {
@@ -45,12 +45,12 @@ export const resetCityData = () => {
     long: "",
     formattedAddress: "",
   };
-  store.dispatch(setCityData({ data: initialCityData }));
+  dispatchWithStore(setCityData({ data: initialCityData }));
 };
 
 // Action to store location
 export const saveCity = (data) => {
-  store.dispatch(setCityData({ data }));
+  dispatchWithStore(setCityData({ data }));
 };
 
 export const getCityData = createSelector(

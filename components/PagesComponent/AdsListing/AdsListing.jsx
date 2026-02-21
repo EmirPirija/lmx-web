@@ -947,24 +947,24 @@ const AdsListing = () => {
     const lowThreshold = Math.max(1, Number(resolvedStockAlertThreshold || 3));
 
     if (!catId) {
-      toast.error(t("selectCategory"));
+      toast.error("Odaberi kategoriju");
       return setStep(1);
     }
 
     if (scheduledDateTime) setScheduledAt(scheduledDateTime);
 
     if (isEmpty(name) || isEmpty(description) || isEmpty(contact)) {
-      toast.error(t("completeDetails"));
+      toast.error("Popuni obavezna polja.");
       return setStep(2);
     }
 
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
-      toast.error(t("invalidPhoneNumber"));
+      toast.error("Neispravan broj telefona");
       return setStep(2);
     }
 
     if (!isEmpty(defaultDetails?.video_link) && !isValidURL(defaultDetails?.video_link)) {
-      toast.error(t("enterValidUrl"));
+      toast.error("Unesi ispravan URL.");
       return setStep(4);
     }
 
@@ -985,7 +985,7 @@ const AdsListing = () => {
     }
 
     if (!location?.country || !location?.state || !location?.city || !location?.address) {
-      toast.error(t("pleaseSelectCity"));
+      toast.error("Odaberi lokaciju");
       return;
     }
 
@@ -1300,14 +1300,14 @@ const AdsListing = () => {
     () => [
       {
         id: 1,
-        label: t("selectedCategory"),
+        label: "Odabrana kategorija",
         mobileLabel: "Kategorija",
         icon: Circle,
         disabled: disabledTab.categoryTab,
       },
       {
         id: 2,
-        label: t("details"),
+        label: "Detalji",
         mobileLabel: "Detalji",
         icon: Circle,
         disabled: disabledTab.detailTab,
@@ -1316,7 +1316,7 @@ const AdsListing = () => {
         ? [
             {
               id: 3,
-              label: t("extraDetails"),
+              label: "Dodatni detalji",
               mobileLabel: "Dodatno",
               icon: Circle,
               disabled: disabledTab.extraDetailTabl,
@@ -1324,7 +1324,7 @@ const AdsListing = () => {
           ]
         : []),
       { id: 4, label: "Mediji", mobileLabel: "Mediji", icon: Circle, disabled: disabledTab.images },
-      { id: 5, label: t("location"), mobileLabel: "Lokacija", icon: Circle, disabled: disabledTab.location },
+      { id: 5, label: "Lokacija", mobileLabel: "Lokacija", icon: Circle, disabled: disabledTab.location },
     ],
     [
       customFields?.length,
@@ -1538,7 +1538,7 @@ const AdsListing = () => {
       ? `Do ${formatPriceAbbreviated(defaultDetails.max_salary)}`
       : ""
     : defaultDetails?.price_on_request
-    ? t("Na upit")
+    ? "Na upit"
     : showDiscount
     ? `${formatPriceAbbreviated(currentPrice)} (sniženo sa ${formatPriceAbbreviated(oldPrice)})`
     : hasCurrentPrice
@@ -1676,7 +1676,7 @@ const AdsListing = () => {
   }, [uploadedImages, otherImages]);
 
   const previewCardItem = useMemo(() => {
-    const previewName = defaultDetails?.name || t("Vaš naslov oglasa ovdje");
+    const previewName = defaultDetails?.name || "Vaš naslov oglasa ovdje";
     const primaryImage = getPreviewImage();
     const previewPrice = defaultDetails?.price_on_request
       ? 0
@@ -1742,7 +1742,7 @@ const AdsListing = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("adListing")} />
+      <BreadCrumb title2={"Lista oglasa"} />
       <div className="container relative overflow-x-hidden">
         <div className="relative mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden pb-10">
           <div className="pointer-events-none absolute -top-14 left-0 h-52 w-52 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
@@ -1756,7 +1756,7 @@ const AdsListing = () => {
                   LMX Studio
                 </p>
                 <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 md:text-3xl">
-                  {t("adListing")}
+                  {"Lista oglasa"}
                 </h1>
                 <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
                   Kreirajte oglas uz prikaz uživo, pametan medijski tok i jasne korake do objave.
@@ -1766,7 +1766,7 @@ const AdsListing = () => {
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/15 to-primary/5 px-4 py-2 dark:border-primary/35 dark:from-primary/20 dark:to-primary/10">
                 <Award className="h-5 w-5 text-primary" />
                 <span className="text-sm font-semibold text-primary">{completenessScore}%</span>
-                <span className="text-xs text-slate-600 dark:text-slate-300">{t("dovršen")}</span>
+                <span className="text-xs text-slate-600 dark:text-slate-300">{"dovršen"}</span>
               </div>
             </div>
           </div>
@@ -1919,7 +1919,7 @@ const AdsListing = () => {
               {(renderedStep === 1 || renderedStep === 2) && categoryPath?.length > 0 && (
                 <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-300">{t("selectedCategory")}</p>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-300">{"Odabrana kategorija"}</p>
                     <button 
                       onClick={handleCategoryReset}
                       className="flex items-center gap-1 text-xs font-medium text-red-500 transition-colors hover:text-red-600"
@@ -2061,7 +2061,7 @@ const AdsListing = () => {
                   <div className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-primary" />
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {t("Pregled oglasa")}
+                      {"Pregled oglasa"}
                     </h3>
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary dark:border-primary/35 dark:bg-primary/20">
@@ -2076,7 +2076,7 @@ const AdsListing = () => {
                 <div className="mt-6 space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium text-slate-700 dark:text-slate-200">{t("Ocjena kvaliteta oglasa")}</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-200">{"Ocjena kvaliteta oglasa"}</span>
                       <span className="text-primary font-semibold">{completenessScore}%</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
@@ -2092,7 +2092,7 @@ const AdsListing = () => {
                       <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-500/40 dark:bg-yellow-500/10">
                         <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600 dark:text-yellow-300" />
                         <p className="text-xs text-yellow-800 dark:text-yellow-100">
-                          {t("Dodajte bar jednu sliku!")} (+20% {t("visibility")})
+                          {"Dodaj barem jednu sliku!"} (+20% {"vidljivost"})
                         </p>
                       </div>
                     )}
@@ -2100,14 +2100,14 @@ const AdsListing = () => {
                       <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
                         <Star className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-300" />
                         <p className="text-xs text-blue-800 dark:text-blue-100">
-                          {t("Dodajte još fotografija").replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {t("veća vidljivost!")})
+                          {"Dodaj još {count} fotografija".replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {"veća vidljivost!"})
                         </p>
                       </div>
                     )}
                     {defaultDetails.description && defaultDetails.description.length < 100 && (
                       <div className="flex items-start gap-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50 p-3 dark:border-fuchsia-500/40 dark:bg-fuchsia-500/10">
                         <Award className="mt-0.5 h-4 w-4 shrink-0 text-fuchsia-600 dark:text-fuchsia-300" />
-                        <p className="text-xs text-fuchsia-800 dark:text-fuchsia-100">{t("Detaljan opis")} (+10% {t("pouzdanost")})</p>
+                        <p className="text-xs text-fuchsia-800 dark:text-fuchsia-100">{"Detaljan opis"} (+10% {"pouzdanost"})</p>
                       </div>
                     )}
                   </div>

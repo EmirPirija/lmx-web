@@ -48,10 +48,10 @@ const OpenInAppDrawer = ({ isOpenInApp, setIsOpenInApp }) => {
                 // App opened successfully
             } else {
                 // App is not installed, ask user if they want to go to app store
-                if (confirm(`${companyName} ${t('appIsNotInstalled')} ${isIOS ? t('appStore') : t('playStore')}?`)) {
+                if (confirm(`${companyName} ${"Aplikacija nije instalirana. Želiš li je preuzeti s"} ${isIOS ? "App Store-a" : "Play Store-a"}?`)) {
 
                     if (!applicationLink) {
-                        toast.error(`${companyName} ${isIOS ? t('appStore') : t('playStore')} ${t('linkNotAvailable')}`);
+                        toast.error(`${companyName} ${isIOS ? "App Store-a" : "Play Store-a"} ${"Link nije dostupan"}`);
                         return;
                     }
 
@@ -65,14 +65,14 @@ const OpenInAppDrawer = ({ isOpenInApp, setIsOpenInApp }) => {
         <Drawer open={isOpenInApp} onOpenChange={setIsOpenInApp}>
             <DrawerContent>
                 <DrawerHeader>
-                    <DrawerTitle>{`${t('viewIn')} ${companyName} ${t('app')}`}</DrawerTitle>
+                    <DrawerTitle>{`${"Otvori u"} ${companyName} ${"aplikacije"}`}</DrawerTitle>
                     <DrawerDescription>
-                        {t('getTheBestExperienceByOpeningThisInOurMobileApp')}
+                        {"Najbolje iskustvo je u mobilnoj aplikaciji"}
                     </DrawerDescription>
                 </DrawerHeader>
                 <DrawerFooter>
                     <Button onClick={handleOpenInApp}>
-                        {t('openInApp')}
+                        {"Otvori u aplikaciji"}
                     </Button>
                 </DrawerFooter>
             </DrawerContent>

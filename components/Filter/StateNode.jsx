@@ -150,7 +150,7 @@ const StateNode = ({ state, country }) => {
               className="text-primary text-center text-sm py-1 px-2"
               disabled={cities.isLoadMore}
             >
-              {cities.isLoadMore ? t("loading") : t("loadMore")}
+              {cities.isLoadMore ? "Učitavanje..." : "Učitaj još"}
             </button>
           )}
         </ul>

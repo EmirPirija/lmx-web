@@ -12,7 +12,7 @@ const TermsAndCondition = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("termsConditions")} />
+      <BreadCrumb title2={"Uslovi i odredbe"} />
       <div className="container">
         <div className="max-w-full prose lg:prose-lg py-7">{parse(termsAndCondition || "")}</div>
       </div>

@@ -66,7 +66,7 @@ const FirebaseData = () => {
                 setFcmToken(currentToken);
               } else {
                 console.error("No token found");
-                toast.error(t("permissionRequired"));
+                toast.error("Potrebna je dozvola za obavještenja.");
               }
             })
             .catch((err) => {

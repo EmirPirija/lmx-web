@@ -176,8 +176,8 @@ const VideoUpload = ({
       <div className="flex items-center justify-between mb-2">
         <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
           <VideoIcon className="w-4 h-4 text-gray-500" />
-          {t("video") || "Video"} 
-          <span className="text-gray-400 font-normal">({t("optional") || "opciono"})</span>
+          {"Video" || "Video"} 
+          <span className="text-gray-400 font-normal">({"Opcionalno" || "opciono"})</span>
         </label>
         <span className="text-xs text-gray-400">Max {maxDuration}s, {maxSize}MB</span>
       </div>

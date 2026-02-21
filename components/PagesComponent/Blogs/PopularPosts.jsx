@@ -29,7 +29,7 @@ const PopularPosts = ({ langCode }) => {
   return (
     <div className="flex flex-col border rounded-xl">
       <div className="p-4 border-b">
-        <p className="font-medium">{t("popularPosts")}</p>
+        <p className="font-medium">{"Popularno"}</p>
       </div>
       <div className="flex flex-col gap-2">
         {isPopularPostLoading ? (
@@ -57,7 +57,7 @@ const PopularPosts = ({ langCode }) => {
           ))
         ) : (
           <div className="col-span-full">
-            <NoData name={t("popularPosts")} />
+            <NoData name={"Popularno"} />
           </div>
         )}
       </div>

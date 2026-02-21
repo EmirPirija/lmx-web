@@ -190,7 +190,7 @@ const Notifications = () => {
   }
 
   if (!notifications || notifications.length === 0) {
-    return <NoData name={t("notifications")} />;
+    return <NoData name={"Obavještenja"} />;
   }
 
   return (

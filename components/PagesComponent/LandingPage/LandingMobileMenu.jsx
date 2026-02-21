@@ -56,7 +56,7 @@ const LandingMobileMenu = ({ isOpen, setIsOpen, activeSection }) => {
               }`}
               onClick={() => scrollToSection("anythingYouWant")}
             >
-              {t("home")}
+              {"Početna"}
             </li>
             <li
               className={`cursor-pointer py-3 border-b border-dashed transition-all duration-200 ${
@@ -66,7 +66,7 @@ const LandingMobileMenu = ({ isOpen, setIsOpen, activeSection }) => {
               }`}
               onClick={() => scrollToSection("work_process")}
             >
-              {t("whyChooseUs")}
+              {"Zašto mi"}
             </li>
             <li
               className={`cursor-pointer py-3 border-b border-dashed transition-all duration-200 ${
@@ -76,7 +76,7 @@ const LandingMobileMenu = ({ isOpen, setIsOpen, activeSection }) => {
               }`}
               onClick={() => scrollToSection("faq")}
             >
-              {t("faqs")}
+              {"Česta pitanja"}
             </li>
             <li
               className={`cursor-pointer py-3 border-b border-dashed transition-all duration-200 ${
@@ -86,7 +86,7 @@ const LandingMobileMenu = ({ isOpen, setIsOpen, activeSection }) => {
               }`}
               onClick={() => scrollToSection("ourBlogs")}
             >
-              {t("blog")}
+              {"Blog"}
             </li>
             <li className="py-3">
               <LanguageDropdown />

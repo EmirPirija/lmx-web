@@ -62,7 +62,7 @@ const UploadReceiptModal = ({
             item.id === transactionId ? res?.data?.data : item
           )
         );
-        toast.success(t("receiptUploaded"));
+        toast.success("Potvrda otpremljena! Admin će pregledati i aktivirati paket.");
         setIsUploadRecipt(false);
       } else {
         toast.error(res?.data?.message);
@@ -79,10 +79,10 @@ const UploadReceiptModal = ({
       <DialogContent onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {t("uploadPaymentReceipt")}
+            {"Otpremi potvrdu uplate"}
           </DialogTitle>
           <DialogDescription className="!text-base">
-            {t("uploadReceiptDescription")}
+            {"Prevuci i spusti ili klikni da odabereš"}
           </DialogDescription>
         </DialogHeader>
 
@@ -98,11 +98,11 @@ const UploadReceiptModal = ({
               {/* <FileImage className="receipt-icon" /> */}
               <p className="text-sm text-black opacity-60">
                 {isDragActive
-                  ? t("dropYourReceiptHere")
-                  : t("dragAndDropReceipt")}
+                  ? "Spusti potvrdu ovdje"
+                  : "Prevuci i spusti potvrdu"}
               </p>
               <p className="text-sm text-black opacity-60">
-                {t("clickToSelect")}
+                {"ili klikni da odabereš"}
               </p>
             </div>
           ) : (
@@ -125,7 +125,7 @@ const UploadReceiptModal = ({
             onClick={handleReceiptSubmit}
             disabled={!selectedFile || isUploading}
           >
-            {t("submit")}
+            {"Pošalji"}
           </button>
         </div>
       </DialogContent>

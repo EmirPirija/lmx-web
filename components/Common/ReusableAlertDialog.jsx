@@ -17,8 +17,8 @@ const ReusableAlertDialog = ({
   onConfirm,
   title,
   description,
-  cancelText = t("cancel"),
-  confirmText = t("confirm"),
+  cancelText = "Otkaži",
+  confirmText = "Potvrdi",
   confirmDisabled = false,
 }) => {
   const isDescriptionString = typeof description === "string";

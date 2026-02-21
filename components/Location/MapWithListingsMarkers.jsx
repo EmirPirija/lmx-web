@@ -226,7 +226,7 @@ const CurrentLocationButton = ({ onClick }) => {
         cursor: "pointer",
         boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
       }}
-      title={t("currentLocation") || "Trenutna lokacija"}
+      title={"Trenutna lokacija" || "Trenutna lokacija"}
     >
       <BiCurrentLocation className="text-xl text-primary" />
     </button>

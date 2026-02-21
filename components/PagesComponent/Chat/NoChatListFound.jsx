@@ -13,10 +13,10 @@ const NoChatListFound = () => {
         className="w-[200px] h-auto aspect-square"
       />
       <h3 className="font-semibold text-2xl text-primary text-center">
-        {t("noConversationsFound")}
+        {"Nema razgovora"}
       </h3>
       <span className="text-sm text-slate-500 dark:text-slate-400 text-center">
-        {t("noChatsAvailable")}
+        {"Nema dostupnih chatova."}
       </span>
     </div>
   );

@@ -546,11 +546,11 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
           console.warn("Praćenje favorita nije uspjelo.", trackingError);
         }
       } else {
-        toast.error(t("failedToLike"));
+        toast.error("Nije uspjelo lajkanje");
       }
     } catch (error) {
       console.error(error);
-      toast.error(t("failedToLike"));
+      toast.error("Nije uspjelo lajkanje");
     }
   };
 

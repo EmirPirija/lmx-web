@@ -65,7 +65,7 @@ const SimilarProducts = ({ productDetails }) => {
 
   return (
     <div className="flex flex-col gap-5 mt-8">
-      <h2 className="text-2xl font-medium">{t("relatedAds")}</h2>
+      <h2 className="text-2xl font-medium">{"Povezani oglasi"}</h2>
       <Carousel
         key={isRTL ? "rtl" : "ltr"}
         opts={{

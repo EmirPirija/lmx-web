@@ -52,7 +52,7 @@ const PaymentModal = ({
         });
       });
     }
-    toast.success(t("paymentSuccess"));
+    toast.success("Uplata uspješna!");
   };
 
   const PaymentModalClose = () => {
@@ -66,9 +66,9 @@ const PaymentModal = ({
       if (status === "success") {
         updateActivePackage();
       } else if (status === "cancel") {
-        toast.error(t("paymentCancelled"));
+        toast.error("Plaćanje otkazano.");
       } else {
-        toast.error(t("paymentFailed"));
+        toast.error("Plaćanje nije uspjelo. Pokušaj ponovo.");
       }
       PaymentModalClose();
     }
@@ -91,7 +91,7 @@ const PaymentModal = ({
           }}
         >
           <DialogHeader className="border-b border-gray-400 pb-5 ">
-            <DialogTitle className="text-lg">{t("paymentWith")}</DialogTitle>
+            <DialogTitle className="text-lg">{"Plaćanje:"}</DialogTitle>
           </DialogHeader>
           {isLoading ? (
             <div className="flex justify-center items-center h-full flex-col gap-4">
@@ -125,7 +125,7 @@ const PaymentModal = ({
                           className="w-full h-full "
                         />
                       </div>
-                      <p className="text-lg font-semibold">{t("stripe")}</p>
+                      <p className="text-lg font-semibold">{"Stripe"}</p>
                     </div>
                     <FaAngleRight size={18} className="rtl:scale-x-[-1]" />
                   </div>

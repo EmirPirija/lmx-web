@@ -40,7 +40,7 @@ const Tags = ({ tag, langCode }) => {
   return (
     <div className="flex flex-col border rounded-lg ">
       <div className="p-4">
-        <p className="font-bold">{t("tags")}</p>
+        <p className="font-bold">{"Oznake"}</p>
       </div>
       <div className="border-b w-full"></div>
       <div className="p-4 flex flex-wrap gap-2">
@@ -57,7 +57,7 @@ const Tags = ({ tag, langCode }) => {
               )}
               onClick={handleAllTags}
             >
-              {t("all")}
+              {"Sve"}
             </button>
 
             {blogTags?.map((tagItem) => (

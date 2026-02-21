@@ -152,7 +152,7 @@ const ProfileSubscription = () => {
         <>
           {listingPackages.length > 0 && (
             <div className="flex flex-col gap-4">
-              <h1 className="text-2xl font-medium">{t("adListingPlan")}</h1>
+              <h1 className="text-2xl font-medium">{"Plan objave oglasa"}</h1>
               <div className="relative">
                 <Carousel
                   key={isRTL ? "rtl" : "ltr"}
@@ -194,7 +194,7 @@ const ProfileSubscription = () => {
             listingPackages.length > 0 ? "mt-8" : ""
           }`}
         >
-          <h1 className="text-2xl font-medium">{t("featuredAdPlan")}</h1>
+          <h1 className="text-2xl font-medium">{"Plan istaknutog oglasa"}</h1>
           <div className="relative">
             <Carousel
               key={isRTL ? "rtl" : "ltr"}

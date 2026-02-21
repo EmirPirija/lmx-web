@@ -209,7 +209,7 @@ const SearchAutocomplete = ({
     <>
       <input
         type="text"
-        placeholder={t("selectLocation")}
+        placeholder={"Odaberi lokaciju"}
         onChange={handleSearchChange}
         value={search}
         ref={inputRef}
@@ -223,7 +223,7 @@ const SearchAutocomplete = ({
           <div className="absolute top-full left-0 right-0 bg-white border z-[1500] max-h-[220px] overflow-y-auto shadow-lg rounded-lg mt-0.5">
             {autoState.loading ? (
               <div className="px-4 py-2.5 text-muted-foreground text-sm">
-                {t("loading")}
+                {"Učitavanje..."}
               </div>
             ) : (
               autoState.suggestions.map((s, idx) => (

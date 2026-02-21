@@ -31,7 +31,7 @@ const ShareDropdown = ({ url, title, headline, companyName, className, onShare, 
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(url + "?share=true&lang=" + langCode);
-      toast.success(t("copyToClipboard"));
+      toast.success("Kopirano");
       onShare?.("copy_link");
       setOpen(false);
     } catch (error) {
@@ -66,7 +66,7 @@ const ShareDropdown = ({ url, title, headline, companyName, className, onShare, 
           >
             <div className="flex items-center gap-2">
               <FacebookIcon className="!size-6" round />
-              <span>{t("facebook")}</span>
+              <span>{"Facebook"}</span>
             </div>
           </FacebookShareButton>
         </DropdownMenuItem>
@@ -93,7 +93,7 @@ const ShareDropdown = ({ url, title, headline, companyName, className, onShare, 
           >
             <div className="flex items-center gap-2">
               <WhatsappIcon className="!size-6" round />
-              <span>{t("whatsapp")}</span>
+              <span>{"WhatsApp"}</span>
             </div>
           </WhatsappShareButton>
         </DropdownMenuItem>
@@ -103,7 +103,7 @@ const ShareDropdown = ({ url, title, headline, companyName, className, onShare, 
             onClick={handleCopyUrl}
           >
             <CiLink className="!size-6" />
-            <span>{t("copyLink")}</span>
+            <span>{"Kopiraj link"}</span>
           </button>
         </DropdownMenuItem>
       </DropdownMenuContent>

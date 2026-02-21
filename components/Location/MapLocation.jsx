@@ -116,19 +116,19 @@ const MapLocation = ({
             }
           } catch (error) {
             console.error("Error fetching location data:", error);
-            toast.error(t("errorOccurred"));
+            toast.error("Došlo je do greške.");
           } finally {
             setIsFetchingLocation(false);
           }
         },
         (error) => {
           console.log(error);
-          toast.error(t("locationNotGranted"));
+          toast.error("Dozvola za lokaciju nije odobrena.");
           setIsFetchingLocation(false);
         }
       );
     } else {
-      toast.error(t("geoLocationNotSupported"));
+      toast.error("Geolokacija nije podržana.");
     }
   };
 
@@ -193,7 +193,7 @@ const MapLocation = ({
           setSelectedCity(cityData);
         }
       } else {
-        toast.error(t("errorOccurred"));
+        toast.error("Došlo je do greške.");
       }
     } catch (error) {
       console.error("Error fetching location data:", error);
@@ -203,13 +203,13 @@ const MapLocation = ({
   const handleSave = () => {
     const isInvalidLocation = !selectedCity?.lat || !selectedCity?.long;
     if (isInvalidLocation) {
-      toast.error(t("pleaseSelectLocation"));
+      toast.error("Odaberi lokaciju");
       return;
     }
     dispatch(setKilometerRange(KmRange));
     saveCity(selectedCity);
     onLocationSaved?.(selectedCity);
-    toast.success(t("locationSaved"));
+    toast.success("Lokacija sačuvana");
     OnHide();
     // avoid redirect if already on home page otherwise router.push triggering server side api calls
     if (navigateOnSave && pathname !== "/") {
@@ -243,7 +243,7 @@ const MapLocation = ({
           {selectedCity?.formattedAddress ? (
             <p>{selectedCity?.formattedAddress}</p>
           ) : (
-            t("addYourAddress")
+            "Dodaj adresu"
           )}
         </DialogTitle>
       </DialogHeader>
@@ -270,8 +270,8 @@ const MapLocation = ({
                 <BiCurrentLocation className="size-5 shrink-0" />
                 <span className="text-sm text-balance hidden sm:inline">
                   {IsFetchingLocation
-                    ? t("gettingLocation")
-                    : t("currentLocation")}
+                    ? "Učitavam lokaciju..."
+                    : "Trenutna lokacija"}
                 </span>
               </div>
             </button>
@@ -303,7 +303,7 @@ const MapLocation = ({
       />
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2 justify-between">
-          <span>{t("rangeLabel")}</span>
+          <span>{"Raspon"}</span>
           <span>{KmRange} KM</span>
         </div>
         <Slider
@@ -317,9 +317,9 @@ const MapLocation = ({
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={handleReset}>
-          {t("reset")}
+          {"Resetuj"}
         </Button>
-        <Button onClick={handleSave}>{t("save")}</Button>
+        <Button onClick={handleSave}>{"Sačuvaj"}</Button>
       </DialogFooter>
     </>
   );

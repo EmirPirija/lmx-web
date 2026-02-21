@@ -27,7 +27,7 @@ const AdEditedByAdmin = ({ admin_edit_reason }) => {
       <LiaUserEditSolid className="size-12 text-destructive flex-shrink-0" />
       <div className="flex flex-col gap-1">
         <span className="font-medium text-[#d32f2f]">
-          {t("adEditedBy")} <b>{t("admin")}</b>
+          {"Oglas uredio"} <b>{"Admin"}</b>
         </span>
         <div className="text-sm text-destructive">
           <p ref={textRef} className={!isExpanded ? "line-clamp-2" : ""}>
@@ -39,7 +39,7 @@ const AdEditedByAdmin = ({ admin_edit_reason }) => {
             className="text-sm font-medium text-destructive"
             onClick={() => setIsExpanded(!isExpanded)}
           >
-            {isExpanded ? t("seeLess") : t("seeMore")}
+            {isExpanded ? "Manje" : "Više"}
           </button>
         )}
       </div>

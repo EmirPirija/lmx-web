@@ -12,7 +12,6 @@ const RegisterAuthInputField = ({
   value,
   handleInputChange,
   setCountryCode,
-  t,
 }) => {
   const emailInputRef = useAutoFocus();
   const phoneInputRef = useAutoFocus();
@@ -20,7 +19,7 @@ const RegisterAuthInputField = ({
   return (
     <div className="labelInputCont">
       <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
-        {t(label)}
+        {label}
       </Label>
       {type === "phone" ? (
         <PhoneInput
@@ -38,7 +37,7 @@ const RegisterAuthInputField = ({
       ) : (
         <Input
           type={type}
-          placeholder={t(placeholder)}
+          placeholder={placeholder}
           value={value}
           className="h-11 rounded-xl border-slate-200 bg-white"
           onChange={(e) => handleInputChange(e.target.value)}

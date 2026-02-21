@@ -32,8 +32,8 @@ const QuickAnswers = () => {
     <section className="py-28" id="faq">
       <div className="container">
         <div className="flex items-center flex-col gap-6">
-          <p className="outlinedSecHead">{t("navigating")}</p>
-          <h1 className="landingSecHeader">{t("quickAnswers")}</h1>
+          <p className="outlinedSecHead">{"Snalaženje"}</p>
+          <h1 className="landingSecHeader">{"Brzi odgovori"}</h1>
         </div>
         <div className="flex flex-col gap-4 md:gap-8 mt-20">
           {Faqs &&

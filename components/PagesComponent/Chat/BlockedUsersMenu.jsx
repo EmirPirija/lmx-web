@@ -87,7 +87,7 @@ const BlockedUsersMenu = ({ setSelectedChatDetails }) => {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-72">
-        <DropdownMenuLabel>{t("blockedUsers")}</DropdownMenuLabel>
+        <DropdownMenuLabel>{"Blokirani korisnici"}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="max-h-64 overflow-y-auto">
           {loading ? (
@@ -121,14 +121,14 @@ const BlockedUsersMenu = ({ setSelectedChatDetails }) => {
                         : "bg-primary hover:bg-primary/80"
                     } text-white rounded-md flex-shrink-0 ml-2`}
                   >
-                    {t("unblock")}
+                    {"Odblokiraj"}
                   </button>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
           ) : (
             <div className="p-4 text-center text-muted-foreground">
-              {t("noBlockedUsers")}
+              {"Nema blokiranih korisnika"}
             </div>
           )}
         </div>

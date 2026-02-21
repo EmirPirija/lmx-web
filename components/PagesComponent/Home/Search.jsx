@@ -176,7 +176,7 @@ const Search = ({
   const { trackSearchImpressions, getSearchId } = useSearchTracking();
 
   const categoryList = [
-    { slug: "all-categories", translated_name: t("allCategories") },
+    { slug: "all-categories", translated_name: "Sve kategorije" },
     ...cateData,
   ];
 
@@ -747,7 +747,7 @@ const Search = ({
             ref={inputRef}
             id="lmx-search-input"
             type="text"
-            placeholder={t("searchAd")}
+            placeholder={"Pretraži oglase"}
             className={cn(
               "w-full border-none bg-transparent text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500",
               compact ? "text-[13px]" : "text-sm"
@@ -776,7 +776,7 @@ const Search = ({
                 inputRef.current && inputRef.current.focus();
               }}
               className="p-1 rounded-full hover:bg-muted transition-colors duration-150"
-              aria-label={t("clearSearch") || "Obriši pretragu"}
+              aria-label={"Obriši pretragu" || "Obriši pretragu"}
             >
               <IconX className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             </button>
@@ -793,7 +793,7 @@ const Search = ({
                 compact ? "p-1.5" : "p-2"
               )}
               type="submit"
-              aria-label={t("searchAd") || "Pretraži oglase"}
+              aria-label={"Pretraži oglase" || "Pretraži oglase"}
             >
               <IconSearch size={compact ? 15 : 16} className="text-white" />
             </button>

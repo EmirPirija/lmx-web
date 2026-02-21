@@ -24,8 +24,8 @@ const MailSentSuccessModal = ({ IsMailSentSuccess, setIsMailSentSuccess }) => {
               height={195}
               className="aspect-[300/195] object-contain"
             />
-            <h1 className="text-2xl font-medium">{t("youveGotMail")}</h1>
-            <p className="opacity-65">{t("verifyAccount")}</p>
+            <h1 className="text-2xl font-medium">{"Stigao ti je e-mail!"}</h1>
+            <p className="opacity-65">{"Klikni link u e-mailu da potvrdiš račun."}</p>
           </div>
         </DialogHeader>
       </DialogContent>

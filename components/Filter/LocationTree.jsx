@@ -102,7 +102,7 @@ const LocationTree = () => {
               isAllSelected && "border bg-muted"
             )}
           >
-            {t("allCountries")}
+            {"Sve države"}
           </button>
         </div>
         {countries.expanded && countries.data.length > 0 && (
@@ -117,7 +117,7 @@ const LocationTree = () => {
                 className="text-primary text-center text-sm py-1 px-2"
                 disabled={countries.isLoadMore}
               >
-                {countries.isLoadMore ? t("loading") : t("loadMore")}
+                {countries.isLoadMore ? "Učitavanje..." : "Učitaj još"}
               </button>
             )}
           </ul>

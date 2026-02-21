@@ -91,7 +91,7 @@ const AdsMapPage = () => {
       setAds(formattedAds);
     } catch (error) {
       console.error("Error fetching ads:", error);
-      toast.error(t("errorFetchingAds") || "Greška pri učitavanju oglasa");
+      toast.error("Greška pri učitavanju oglasa." || "Greška pri učitavanju oglasa");
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ const AdsMapPage = () => {
 
   const handleCurrentLocationClick = () => {
     // This could open the LocationModal to set new location
-    toast.info(t("useLocationModal") || "Koristite modal za promjenu lokacije");
+    toast.info("Koristi modal za promjenu lokacije" || "Koristite modal za promjenu lokacije");
   };
 
   return (
@@ -124,12 +124,12 @@ const AdsMapPage = () => {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-800 mb-2">
-          {t("searchOnMap") || "Pretraga oglasa na mapi"}
+          {"Pretraga oglasa na mapi" || "Pretraga oglasa na mapi"}
         </h1>
         <p className="text-slate-600">
           {cityData?.formattedAddress 
-            ? `${t("showingAdsNear")} ${cityData.formattedAddress}` 
-            : t("selectLocationToSeeAds") || "Odaberite lokaciju da vidite oglase"
+            ? `${"Prikazujem oglase blizu"} ${cityData.formattedAddress}` 
+            : "Odaberi lokaciju da vidiš oglase" || "Odaberite lokaciju da vidite oglase"
           }
         </p>
       </div>
@@ -150,13 +150,13 @@ const AdsMapPage = () => {
       {!loading && ads.length > 0 && (
         <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h3 className="font-semibold text-slate-800 mb-2">
-            {t("tips") || "Savjeti za pretragu"}
+            {"Savjeti" || "Savjeti za pretragu"}
           </h3>
           <ul className="text-sm text-slate-600 space-y-1">
-            <li>• {t("tipZoom") || "Zumirајte mapu da vidite detaljnije oglase"}</li>
-            <li>• {t("tipClick") || "Kliknite na marker da vidite detalje oglasa"}</li>
-            <li>• {t("tipFilter") || "Koristite filtere da suzite pretragu"}</li>
-            <li>• {t("tipLocation") || "Promenite lokaciju da vidite oglase u drugoj oblasti"}</li>
+            <li>• {"Zumiraj mapu da vidiš detaljnije oglase" || "Zumirајte mapu da vidite detaljnije oglase"}</li>
+            <li>• {"Klikni na marker da vidiš detalje oglasa" || "Kliknite na marker da vidite detalje oglasa"}</li>
+            <li>• {"Koristi filtere da suziš pretragu" || "Koristite filtere da suzite pretragu"}</li>
+            <li>• {"Promijeni lokaciju da vidiš oglase u drugoj oblasti" || "Promenite lokaciju da vidite oglase u drugoj oblasti"}</li>
           </ul>
         </div>
       )}

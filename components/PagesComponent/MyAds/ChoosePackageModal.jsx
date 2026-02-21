@@ -53,7 +53,7 @@ const ChoosePackageModal = ({
       <DialogContent onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {t("selectPackage")}
+            {"Odaberi paket"}
           </DialogTitle>
           <DialogDescription className="sr-only"></DialogDescription>
         </DialogHeader>
@@ -84,7 +84,7 @@ const ChoosePackageModal = ({
                 <div className="flex flex-col gap-1 w-full">
                   <h3 className="text-lg font-medium ltr:text-left rtl:text-right line-clamp-2">
                     {item.translated_name}
-                    {item?.is_active && t("activePlan")}
+                    {item?.is_active && "(Aktivni plan)"}
                   </h3>
                   <div className="flex items-center gap-3 justify-between w-full">
                     <span className="text-lg font-bold whitespace-nowrap">
@@ -104,10 +104,10 @@ const ChoosePackageModal = ({
                         )}
                       >
                         {item.item_limit === "unlimited"
-                          ? t("unlimited")
+                          ? "Neograničeno"
                           : item.item_limit}
                       </strong>{" "}
-                      {t("ads")} &nbsp;|&nbsp;&nbsp;
+                      {"Oglasi"} &nbsp;|&nbsp;&nbsp;
                       <strong
                         className={cn(
                           item?.id == selectedPackageId
@@ -116,10 +116,10 @@ const ChoosePackageModal = ({
                         )}
                       >
                         {item.duration === "unlimited"
-                          ? t("unlimited")
+                          ? "Neograničeno"
                           : item.duration}
                       </strong>{" "}
-                      {t("days")}
+                      {"Dana"}
                     </span>
                   </div>
                 </div>
@@ -133,7 +133,7 @@ const ChoosePackageModal = ({
         {ItemPackages.length > 0 && (
           <DialogFooter>
             <DialogClose asChild>
-              <Button className="bg-black text-white">{t("cancel")}</Button>
+              <Button className="bg-black text-white">{"Otkaži"}</Button>
             </DialogClose>
             <Button
               className="bg-primary text-white"
@@ -141,7 +141,7 @@ const ChoosePackageModal = ({
               onClick={handleRenew}
               disabled={isRenewingAd}
             >
-              {isRenewingAd ? t("loading") : t("renewAd")}
+              {isRenewingAd ? "Učitavanje..." : "Obnovi oglas"}
             </Button>
           </DialogFooter>
         )}

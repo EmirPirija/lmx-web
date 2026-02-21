@@ -140,7 +140,7 @@ const Subscription = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("subscription")} />
+      <BreadCrumb title2={"Pretplata"} />
       <div className="container">
         {promoEnabled ? (
           <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
@@ -201,7 +201,7 @@ const Subscription = () => {
           <AdListingPublicPlanCardSkeleton />
         ) : (
           <div className="flex flex-col gap-4 mt-8">
-            <h1 className="text-2xl font-medium">{t("featuredAdPlan")}</h1>
+            <h1 className="text-2xl font-medium">{"Plan istaknutog oglasa"}</h1>
             <div className="relative">
               <Carousel
                 key={isRTL ? "rtl" : "ltr"}

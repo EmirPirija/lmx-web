@@ -27,7 +27,7 @@ const BlogCard = ({ blog }) => {
         href={`/blogs/${blog?.slug}`}
         className="flex items-center gap-3 text-primary text-lg mt-auto"
       >
-        <span>{t("readArticle")}</span>
+        <span>{"Pročitaj"}</span>
         <FaArrowRight className="rtl:scale-x-[-1]" size={20} />
       </CustomLink>
     </div>

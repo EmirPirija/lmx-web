@@ -84,7 +84,7 @@ const LandingHeader = () => {
                         : "hover:text-primary"
                     }`}
                   >
-                    {t("home")}
+                    {"Početna"}
                   </CustomLink>
                 </li>
                 <li>
@@ -97,7 +97,7 @@ const LandingHeader = () => {
                     }`}
                     onClick={handleMobileMenuClose}
                   >
-                    {t("whyChooseUs")}
+                    {"Zašto mi"}
                   </CustomLink>
                 </li>
                 <li>
@@ -110,7 +110,7 @@ const LandingHeader = () => {
                     }`}
                     onClick={handleMobileMenuClose}
                   >
-                    {t("faqs")}
+                    {"Česta pitanja"}
                   </CustomLink>
                 </li>
                 <li>
@@ -123,7 +123,7 @@ const LandingHeader = () => {
                     }`}
                     onClick={handleMobileMenuClose}
                   >
-                    {t("blog")}
+                    {"Blog"}
                   </CustomLink>
                 </li>
               </ul>

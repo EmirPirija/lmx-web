@@ -44,13 +44,13 @@ const JobApplicationCard = ({
   const getStatusBadge = (status) => {
     switch (status) {
       case "accepted":
-        return <Badge className="bg-green-600">{t("accepted")}</Badge>;
+        return <Badge className="bg-green-600">{"Prihvaćeno"}</Badge>;
       case "rejected":
-        return <Badge className="bg-red-500">{t("rejected")}</Badge>;
+        return <Badge className="bg-red-500">{"Odbijeno"}</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-500">{t("pending")}</Badge>;
+        return <Badge className="bg-yellow-500">{"Na čekanju"}</Badge>;
       default:
-        return <Badge className="bg-yellow-500">{t("pending")}</Badge>;
+        return <Badge className="bg-yellow-500">{"Na čekanju"}</Badge>;
     }
   };
 
@@ -68,21 +68,21 @@ const JobApplicationCard = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div className="flex flex-col ltr:text-left rtl:text-right">
               <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">
-                {t("email")}
+                {"E-mail"}
               </span>
               <span>{application.email}</span>
             </div>
 
             <div className="flex flex-col ltr:text-left rtl:text-right">
               <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">
-                {t("phone")}
+                {"Telefon"}
               </span>
               <span>{application.mobile}</span>
             </div>
 
             <div className="flex flex-col sm:col-span-2 ltr:text-left rtl:text-right">
               <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">
-                {t("appliedDate")}
+                {"Datum prijave"}
               </span>
               <span>
                 {formatDateMonthYear(application.created_at)}
@@ -103,7 +103,7 @@ const JobApplicationCard = ({
                       disabled={processing}
                     >
                       <Check className="size-4" />
-                      {t("accept")}
+                      {"Prihvati"}
                     </Button>
 
                     <Button
@@ -113,7 +113,7 @@ const JobApplicationCard = ({
                       disabled={processing}
                     >
                       <X className="size-4" />
-                      {t("reject")}
+                      {"Odbij"}
                     </Button>
                   </>
                 )}
@@ -126,7 +126,7 @@ const JobApplicationCard = ({
                       rel="noopener noreferrer"
                     >
                       <Download className="size-4" />
-                      {t("viewResume")}
+                      {"Pogledaj CV"}
                     </CustomLink>
                   </Button>
                 )}

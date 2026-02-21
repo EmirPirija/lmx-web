@@ -67,7 +67,7 @@ const RenewAd = ({
       setRenewId(activePackage?.id || data?.[0]?.id || "");
     } catch (error) {
       console.log(error);
-      toast.error(t("failedToLoadPackages") || "Greška pri učitavanju paketa");
+      toast.error("Greška pri učitavanju paketa." || "Greška pri učitavanju paketa");
     } finally {
       setIsLoadingPackages(false);
     }
@@ -75,7 +75,7 @@ const RenewAd = ({
 
   const handleRenewItem = async () => {
     if (!RenewId && !isFreeAdListing) {
-      toast.error(t("pleaseSelectPackage") || "Molimo odaberite paket");
+      toast.error("Odaberi paket da nastaviš." || "Molimo odaberite paket");
       return;
     }
 
@@ -84,7 +84,7 @@ const RenewAd = ({
     );
 
     if (!isFreeAdListing && !subPackage?.is_active) {
-      toast.error(t("purchasePackageFirst") || "Morate prvo kupiti ovaj paket");
+      toast.error("Prvo kupi odabrani paket." || "Morate prvo kupiti ovaj paket");
       navigate("/user-subscription");
       return;
     }
@@ -118,7 +118,7 @@ const RenewAd = ({
       console.error(error);
       toast.error(
         mapRenewToastMessage(
-          error?.response?.data?.message || t("somethingWentWrong") || "Nešto je pošlo po zlu"
+          error?.response?.data?.message || "Nešto je pošlo po zlu. Pokušaj kasnije." || "Nešto je pošlo po zlu"
         )
       );
     } finally {
@@ -135,7 +135,7 @@ const RenewAd = ({
       {/* Header */}
       <div className="p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 flex items-center gap-2">
         <RefreshCw className="size-5 text-primary" />
-        <h3 className="font-semibold text-gray-900">{t("renewAd") || "Obnovi oglas"}</h3>
+        <h3 className="font-semibold text-gray-900">{"Obnovi oglas" || "Obnovi oglas"}</h3>
       </div>
 
       {/* Content */}
@@ -146,10 +146,10 @@ const RenewAd = ({
             <CheckCircle2 className="size-5 text-green-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
               <p className="font-medium text-green-900">
-                {t("freeRenewal") || "Besplatno obnavljanje"}
+                {"Besplatna obnova" || "Besplatno obnavljanje"}
               </p>
               <p className="text-green-700 text-xs mt-1">
-                {t("freeRenewalDesc") || "Vaš oglas će biti besplatno obnovljen"}
+                {"Tvoj oglas će biti besplatno obnovljen" || "Vaš oglas će biti besplatno obnovljen"}
               </p>
             </div>
           </div>
@@ -161,7 +161,7 @@ const RenewAd = ({
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Package className="size-4" />
-                {t("selectPackage") || "Odaberi paket"}
+                {"Odaberi paket" || "Odaberi paket"}
               </label>
               
               <Select
@@ -173,8 +173,8 @@ const RenewAd = ({
                   <SelectValue 
                     placeholder={
                       isLoadingPackages 
-                        ? t("loading") || "Učitavanje..." 
-                        : t("selectPackage") || "Odaberi paket"
+                        ? "Učitavanje..." || "Učitavanje..." 
+                        : "Odaberi paket" || "Odaberi paket"
                     } 
                   />
                 </SelectTrigger>
@@ -191,16 +191,16 @@ const RenewAd = ({
                         </span>
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-gray-500">
-                            {item.duration} {t("days") || "dana"}
+                            {item.duration} {"Dana" || "dana"}
                           </span>
                           {item?.is_active && (
                             <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
-                              {t("active") || "Aktivan"}
+                              {"Aktivno" || "Aktivan"}
                             </span>
                           )}
                           {!item?.is_active && (
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-                              {t("inactive") || "Neaktivan"}
+                              {"Neaktivan" || "Neaktivan"}
                             </span>
                           )}
                         </div>
@@ -221,11 +221,11 @@ const RenewAd = ({
                       {selectedPackage?.translated_name || selectedPackage?.name}
                     </p>
                     <p className="text-blue-700 text-xs mt-1">
-                      {t("adWillBeActiveFor") || "Oglas će biti aktivan"} {selectedPackage.duration} {t("days") || "dana"}
+                      {"Oglas će biti aktivan" || "Oglas će biti aktivan"} {selectedPackage.duration} {"Dana" || "dana"}
                     </p>
                     {!selectedPackage?.is_active && (
                       <p className="text-orange-600 text-xs mt-2 font-medium">
-                        ⚠️ {t("packageNotActive") || "Ovaj paket nije aktivan. Potrebno je kupiti paket."}
+                        ⚠️ {"Ovaj paket nije aktivan. Potrebno je kupiti paket." || "Ovaj paket nije aktivan. Potrebno je kupiti paket."}
                       </p>
                     )}
                   </div>
@@ -240,10 +240,10 @@ const RenewAd = ({
                   <AlertCircle className="size-5 text-orange-600 mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
                     <p className="font-medium text-orange-900">
-                      {t("noPackagesAvailable") || "Nema dostupnih paketa"}
+                      {"Nema dostupnih paketa" || "Nema dostupnih paketa"}
                     </p>
                     <p className="text-orange-700 text-xs mt-1">
-                      {t("contactSupport") || "Molimo kontaktirajte podršku"}
+                      {"Molimo kontaktiraj podršku." || "Molimo kontaktirajte podršku"}
                     </p>
                   </div>
                 </div>
@@ -266,12 +266,12 @@ const RenewAd = ({
           {isRenewingAd ? (
             <>
               <RefreshCw className="size-4 animate-spin" />
-              {t("renewing") || "Obnavljanje..."}
+              {"Obnavljanje..." || "Obnavljanje..."}
             </>
           ) : (
             <>
               <RefreshCw className="size-4" />
-              {t("renew") || "Obnovi oglas"}
+              {"Obnovi" || "Obnovi oglas"}
             </>
           )}
         </button>

@@ -47,11 +47,11 @@ const LoginWithMobileForm = ({
     try {
       const response = await getOtpApi.getOtp({ number: PhoneNumber });
       if (response?.data?.error === false) {
-        toast.success(t("otpSentSuccess"));
+        toast.success("OTP poslan");
         setIsOTPScreen(true);
         setResendTimer(60); // Start the 60-second timer
       } else {
-        toast.error(t("failedToSendOtp"));
+        toast.error("Slanje OTP koda nije uspjelo.");
       }
     } catch (error) {
       console.error("error", error);
@@ -76,7 +76,7 @@ const LoginWithMobileForm = ({
         appVerifier,
       );
       setConfirmationResult(confirmation);
-      toast.success(t("otpSentSuccess"));
+      toast.success("OTP poslan");
       setIsOTPScreen(true);
     } catch (error) {
       console.log(error);
@@ -107,7 +107,7 @@ const LoginWithMobileForm = ({
     if (isValidPhoneNumber(`${countryCode}${formattedNumber}`)) {
       await sendOTP();
     } else {
-      toast.error(t("invalidPhoneNumber"));
+      toast.error("Neispravan broj telefona");
     }
   };
 
@@ -118,7 +118,7 @@ const LoginWithMobileForm = ({
     >
       <div className="labelInputCont">
         <Label className="text-sm font-semibold text-slate-700 after:content-['*'] after:text-red-500">
-          {t("loginWithMobile")}
+          {"Prijava brojem"}
         </Label>
         <PhoneInput
           country={process.env.NEXT_PUBLIC_DEFAULT_COUNTRY}
@@ -142,7 +142,7 @@ const LoginWithMobileForm = ({
         {showLoader ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
-          t("continue")
+          "Nastavi"
         )}
       </Button>
     </form>

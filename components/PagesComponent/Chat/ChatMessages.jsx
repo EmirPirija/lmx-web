@@ -499,12 +499,12 @@ const ChatMessages = ({
                   {isLoadPrevMesg ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      {t("loading")}
+                      {"Učitavanje..."}
                     </>
                   ) : (
                     <>
                       <ChevronUp className="w-4 h-4" />
-                      {t("loadPreviousMessages")}
+                      {"Starije poruke"}
                     </>
                   )}
                 </button>
@@ -524,7 +524,7 @@ const ChatMessages = ({
                   )}
                 >
                   <p className="text-sm">
-                    {isSelling ? t("offer") : t("yourOffer")}
+                    {isSelling ? "Ponuda" : "Tvoja ponuda"}
                   </p>
                   <span className="text-xl font-medium">
                     {formatPriceAbbreviated(selectedChatDetails.amount)}

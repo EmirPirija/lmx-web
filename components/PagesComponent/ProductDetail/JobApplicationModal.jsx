@@ -93,10 +93,10 @@ const JobApplicationModal = ({
       >
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {t("jobApplications")}
+            {"Prijave za posao"}
           </DialogTitle>
           <DialogDescription className="!text-base">
-            {t("jobApplicationsDescription")}
+            {"Primljene prijave za ovu poziciju."}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[60vh] pr-4">
@@ -116,7 +116,7 @@ const JobApplicationModal = ({
                 />
               ))
             ) : (
-              <NoData name={t("jobApplications")} />
+              <NoData name={"Prijave za posao"} />
             )}
           </div>
 
@@ -129,8 +129,8 @@ const JobApplicationModal = ({
                 className="text-sm sm:text-base text-primary w-[256px]"
               >
                 {receivedApplications.isLoadingMore
-                  ? t("loading")
-                  : t("loadMore")}
+                  ? "Učitavanje..."
+                  : "Učitaj još"}
               </Button>
             </div>
           )}

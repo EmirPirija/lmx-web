@@ -348,7 +348,7 @@ const SelectedChatHeader = ({
               className="cursor-pointer text-slate-600"
               onClick={isBlocked ? handleUnBlockUser : handleBlockUser}
             >
-              <span>{isBlocked ? t("unblock") : t("block")}</span>
+              <span>{isBlocked ? "Odblokiraj" : "Blokiraj"}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

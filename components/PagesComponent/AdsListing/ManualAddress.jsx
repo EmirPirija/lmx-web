@@ -574,7 +574,7 @@ const ManualAddress = ({
         <div className="flex flex-col gap-4 py-4">
           {/* Country Field */}
           <div className="flex flex-col gap-1">
-            {renderFieldLabel(t("country"), 'country')}
+            {renderFieldLabel("Država", 'country')}
             <Popover
               modal
               open={CountryStore?.countryOpen}
@@ -596,20 +596,20 @@ const ManualAddress = ({
                 >
                   {CountryStore?.SelectedCountry?.translated_name ||
                     CountryStore?.SelectedCountry?.name ||
-                    t("selectCountry")}
+                    "Odaberi državu"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               {fieldErrors.country && touched.country && (
                 <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  {t("countryRequired")}
+                  {"Država je obavezna"}
                 </span>
               )}
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                 <Command shouldFilter={false}>
                   <CommandInput
-                    placeholder={t("searchCountries")}
+                    placeholder={"Pretraži države..."}
                     value={CountryStore.CountrySearch || ""}
                     onValueChange={(val) => {
                       setCountryStore((prev) => ({
@@ -624,7 +624,7 @@ const ManualAddress = ({
                     ) : (
                       <div className="text-center py-4">
                         <p className="text-sm text-muted-foreground">
-                          {t("noCountriesFound")}
+                          {"Nema država"}
                         </p>
                       </div>
                     )}
@@ -663,7 +663,7 @@ const ManualAddress = ({
 
           {/* State Field */}
           <div className="flex flex-col gap-1">
-            {renderFieldLabel(t("state"), 'state')}
+            {renderFieldLabel("Kanton/region", 'state')}
             <Popover
               modal
               open={StateStore?.stateOpen}
@@ -686,20 +686,20 @@ const ManualAddress = ({
                 >
                   {StateStore?.SelectedState?.translated_name ||
                     StateStore?.SelectedState?.name ||
-                    t("selectState")}
+                    "Odaberi kanton/region"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               {fieldErrors.state && touched.state && (
                 <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  {t("stateRequired")}
+                  {"Kanton/region je obavezan"}
                 </span>
               )}
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                 <Command shouldFilter={false}>
                   <CommandInput
-                    placeholder={t("searchStates")}
+                    placeholder={"Pretraži kantone/regije..."}
                     value={StateStore.StateSearch || ""}
                     onValueChange={(val) => {
                       setStateStore((prev) => ({ ...prev, StateSearch: val }));
@@ -711,7 +711,7 @@ const ManualAddress = ({
                     ) : (
                       <div className="text-center py-4">
                         <p className="text-sm text-muted-foreground">
-                          {t("noStatesFound")}
+                          {"Nema kantona/regija"}
                         </p>
                       </div>
                     )}
@@ -749,7 +749,7 @@ const ManualAddress = ({
 
           {/* City Field */}
           <div className="flex-col gap-1">
-            {renderFieldLabel(t("city"), 'city')}
+            {renderFieldLabel("Grad", 'city')}
             <Popover
               modal
               open={CityStore?.cityOpen}
@@ -772,20 +772,20 @@ const ManualAddress = ({
                 >
                   {CityStore?.SelectedCity?.translated_name ||
                     CityStore?.SelectedCity?.name ||
-                    t("selectCity")}
+                    "Odaberi grad"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               {fieldErrors.city && touched.city && (
                 <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  {t("cityRequired")}
+                  {"Grad je obavezan"}
                 </span>
               )}
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                 <Command shouldFilter={false}>
                   <CommandInput
-                    placeholder={t("searchCities")}
+                    placeholder={"Pretraži gradove..."}
                     value={CityStore.CitySearch || ""}
                     onValueChange={(val) => {
                       setCityStore((prev) => ({ ...prev, CitySearch: val }));
@@ -797,7 +797,7 @@ const ManualAddress = ({
                     ) : (
                       <div className="text-center py-4">
                         <p className="text-sm text-muted-foreground">
-                          {t("noCitiesFound")}
+                          {"Nema gradova"}
                         </p>
                       </div>
                     )}
@@ -836,7 +836,7 @@ const ManualAddress = ({
           {/* Area or Address Field */}
           {hasAreas || AreaStore?.AreaSearch ? (
             <div className="flex flex-col gap-1">
-              {renderFieldLabel(t("area"), 'address')}
+              {renderFieldLabel("Područje", 'address')}
               <Popover
                 modal
                 open={AreaStore?.areaOpen}
@@ -859,20 +859,20 @@ const ManualAddress = ({
                   >
                     {AreaStore?.SelectedArea?.translated_name ||
                       AreaStore?.SelectedArea?.name ||
-                      t("selectArea")}
+                      "Odaberi naselje"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 {fieldErrors.address && touched.address && (
                   <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
-                    {t("areaRequired")}
+                    {"Naselje je obavezno"}
                   </span>
                 )}
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                   <Command shouldFilter={false}>
                     <CommandInput
-                      placeholder={t("searchAreas")}
+                      placeholder={"Pretraži naselja..."}
                       value={AreaStore.AreaSearch || ""}
                       onValueChange={(val) => {
                         setAreaStore((prev) => ({ ...prev, AreaSearch: val }));
@@ -884,7 +884,7 @@ const ManualAddress = ({
                       ) : (
                         <div className="text-center py-4">
                           <p className="text-sm text-muted-foreground">
-                            {t("noAreasFound")}
+                            {"Nema naselja"}
                           </p>
                         </div>
                       )}
@@ -921,7 +921,7 @@ const ManualAddress = ({
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              {renderFieldLabel(t("address"), 'address')}
+              {renderFieldLabel("Adresa", 'address')}
               <Textarea
                 rows={5}
                 className={cn(
@@ -929,7 +929,7 @@ const ManualAddress = ({
                   fieldErrors.address && touched.address && "border-red-500 bg-red-50",
                   isFieldValid('address') && touched.address && "border-green-500 bg-green-50"
                 )}
-                placeholder={t("enterAddress")}
+                placeholder={"Unesi adresu"}
                 value={Address}
                 onChange={handleAddressChange}
                 onBlur={() => setTouched(prev => ({ ...prev, address: true }))}
@@ -938,7 +938,7 @@ const ManualAddress = ({
               {fieldErrors.address && touched.address && (
                 <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  {t("addressRequired")}
+                  {"Adresa je obavezna"}
                 </span>
               )}
             </div>
@@ -950,7 +950,7 @@ const ManualAddress = ({
             className="rounded-md px-4 py-2 transition-colors hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-800"
             onClick={() => setShowManualAddress(false)}
           >
-            {t("cancel")}
+            {"Otkaži"}
           </button>
           <button
             className={cn(
@@ -961,7 +961,7 @@ const ManualAddress = ({
             )}
             onClick={handleSave}
           >
-            {t("save")}
+            {"Sačuvaj"}
           </button>
         </DialogFooter>
       </DialogContent>
@@ -976,7 +976,7 @@ const LoacationLoader = () => {
     <div className="flex items-center justify-center py-4">
       <Loader2 className="size-4 animate-spin" />
       <span className="ml-2 text-sm text-muted-foreground">
-        {t("loading")}..
+        {"Učitavanje..."}..
       </span>
     </div>
   );

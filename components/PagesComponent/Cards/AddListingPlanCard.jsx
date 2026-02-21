@@ -24,7 +24,7 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
       {pckg?.discount_in_percentage > 0 && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
           <span className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-semibold whitespace-nowrap shadow-lg">
-            {t("save")} {pckg?.discount_in_percentage}% {t("off")}
+            {"Sačuvaj"} {pckg?.discount_in_percentage}% {"Popust"}
           </span>
         </div>
       )}
@@ -73,7 +73,7 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
             {pckg?.duration === "unlimited" ? "∞" : pckg?.duration}
           </div>
           <div className={`text-xs uppercase tracking-wide ${isActive ? 'text-white/80' : 'text-gray-600'}`}>
-            {t("days")}
+            {"Dana"}
           </div>
         </div>
         <div className={`p-3 rounded-lg text-center ${isActive ? 'bg-white/10' : 'bg-gray-50'}`}>
@@ -81,7 +81,7 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
             {pckg?.item_limit === "unlimited" ? "∞" : pckg?.item_limit}
           </div>
           <div className={`text-xs uppercase tracking-wide ${isActive ? 'text-white/80' : 'text-gray-600'}`}>
-            {t("adsListing")}
+            {"Lista oglasa"}
           </div>
         </div>
       </div>
@@ -117,10 +117,10 @@ const AddListingPlanCard = ({ pckg, handlePurchasePackage }) => {
       >
         <span className="text-base">
           {isActive
-            ? t("currentPlan") || "Current Plan"
+            ? "Trenutni plan" || "Current Plan"
             : promoEnabled
             ? "Aktiviraj besplatno"
-            : t("choosePlan")}
+            : "Odaberi plan"}
         </span>
         {!isActive && (
           <FaArrowRight size={18} className="rtl:scale-x-[-1] group-hover:translate-x-1 transition-transform" />

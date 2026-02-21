@@ -27,6 +27,7 @@ export const CREATE_FEATURED_ITEM = "make-item-featured";
 export const CONTACT_US = "contact-us";
 export const UPDATE_LISTING = "update-item";
 export const USER_SIGNUP = "user-signup";
+export const RESOLVE_LOGIN_IDENTIFIER = "resolve-login-identifier";
 export const UPDATE_PROFILE = "update-profile";
 export const DELETE_USER = "delete-user";
 export const GET_REPORT_REASONS = "get-report-reasons";
@@ -589,6 +590,19 @@ export const userSignUpApi = {
     });
   },
 };
+
+export const authApi = {
+  resolveLoginIdentifier: ({ identifier } = {}) => {
+    const formData = new FormData();
+    if (identifier) formData.append("identifier", identifier);
+    return Api.post(RESOLVE_LOGIN_IDENTIFIER, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+};
+
 export const logoutApi = {
   logoutApi: ({ fcm_token } = {}) => {
     const formData = new FormData();

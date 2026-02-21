@@ -24,7 +24,7 @@ const BreadCrumb = ({ title2 }) => {
 
   const items = [
     {
-      title: t("home"),
+      title: "Početna",
       key: "home",
       href: "/",
       isLink: true,

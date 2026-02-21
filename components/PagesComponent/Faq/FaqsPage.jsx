@@ -71,14 +71,14 @@ const FaqsPage = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("faqs")} />
+      <BreadCrumb title2={"Česta pitanja"} />
       {loading ? (
         <PageLoader />
       ) : (
         <div className="container">
           <div className="mt-8 flex flex-col gap-6">
             <div className="space-y-2">
-              <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{t("faqs")}</h1>
+              <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{"Česta pitanja"}</h1>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 Najčešća pitanja o objavi oglasa, obnovi, izdvajanjima i podršci.
               </p>

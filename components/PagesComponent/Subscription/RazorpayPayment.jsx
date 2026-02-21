@@ -70,7 +70,7 @@ const RazorpayPayment = ({
       rzpay.open();
     } catch (error) {
       console.error("Error during payment", error);
-      toast.error(t("errorProcessingPayment"));
+      toast.error("Greška pri obradi plaćanja.");
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +90,7 @@ const RazorpayPayment = ({
                 className="w-full h-full "
               />
             </div>
-            <p className="text-lg font-semibold">{t("razorPay")}</p>
+            <p className="text-lg font-semibold">{"Razorpay"}</p>
           </div>
           <div>
             {isLoading ? (

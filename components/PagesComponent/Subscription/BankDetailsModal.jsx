@@ -31,7 +31,7 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
         payment_method: "bankTransfer",
       });
       if (res?.data?.error === false) {
-        toast.success(t("paymentConfirmed"));
+        toast.success("Uplata potvrđena");
         hideBankDetails();
         navigate("/transactions");
       } else {
@@ -48,17 +48,17 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
       <DialogContent onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {t("bankAccountDetails")}
+            {"Podaci bankovnog računa"}
           </DialogTitle>
           <DialogDescription className="!text-base">
-            {t("pleaseTransferAmount")}
+            {"Uplati iznos na sljedeći račun"}
           </DialogDescription>
           {IsBankDetails ? (
             <>
               <div className="flex flex-col gap-3 !mt-8">
                 <div className="flex items-center gap-2">
                   <p className="w-[35%] opacity-60 font-medium text-base">
-                    {t("accountHolder")}
+                    {"Vlasnik računa"}
                   </p>
                   <p className="text-base px-3 py-2 bg-muted w-[75%] rounded">
                     {bankDetails?.account_holder_name}
@@ -66,7 +66,7 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="w-[35%] opacity-60 font-medium text-base">
-                    {t("accountNumber")}
+                    {"Broj računa"}
                   </p>
                   <p className="text-base px-3 py-2 bg-muted w-[75%] rounded">
                     {bankDetails?.account_number}
@@ -74,7 +74,7 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="w-[35%] opacity-60 font-medium text-base">
-                    {t("bankName")}
+                    {"Naziv banke"}
                   </p>
                   <p className="text-base px-3 py-2 bg-muted w-[75%] rounded">
                     {bankDetails?.bank_name}
@@ -95,7 +95,7 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
                   className="px-4 py-2 border flex-1 rounded whitespace-nowrap"
                   onClick={hideBankDetails}
                 >
-                  {t("cancel")}
+                  {"Otkaži"}
                 </button>
                 <button
                   className="px-4 py-2 bg-primary flex-1 text-white rounded whitespace-nowrap disabled:opacity-66"
@@ -103,13 +103,13 @@ const BankDetailsModal = ({ packageId, bankDetails }) => {
                   disabled={IsConfirmingPayment}
                 >
                   {IsConfirmingPayment
-                    ? t("confirmingPayment")
-                    : t("confirmPayment")}
+                    ? "Potvrđujem uplatu"
+                    : "Potvrdi uplatu"}
                 </button>
               </div>
             </>
           ) : (
-            <NoData name={t("bankAccountDetails")} />
+            <NoData name={"Podaci bankovnog računa"} />
           )}
         </DialogHeader>
       </DialogContent>

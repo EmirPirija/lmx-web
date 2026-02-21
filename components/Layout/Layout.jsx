@@ -35,7 +35,7 @@ export default function Layout({ children }) {
           height={255}
           width={255}
         />
-        <p className="text-center max-w-[40%]">{t("underMaintenance")}</p>
+        <p className="text-center max-w-[40%]">{"Stranica je na održavanju i privremeno nedostupna."}</p>
       </div>
     );
   }

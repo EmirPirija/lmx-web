@@ -165,7 +165,7 @@ const AllItems = ({ cityData, KmRange }) => {
           ))
         ) : (
           <div className="col-span-full">
-            <NoData name={t("advertisement")} />
+            <NoData name={"Oglasi"} />
           </div>
         )}
       </div>
@@ -178,7 +178,7 @@ const AllItems = ({ cityData, KmRange }) => {
             disabled={isLoading || isLoadMore}
             onClick={handleLoadMore}
           >
-            {isLoadMore ? t("loading") : t("loadMore")}
+            {isLoadMore ? "Učitavanje..." : "Učitaj još"}
           </Button>
         </div>
       )}

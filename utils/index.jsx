@@ -77,17 +77,17 @@ export const formatDate = (createdAt) => {
   const days = Math.floor(hours / 24);
 
   if (days === 0) {
-    return t("today");
+    return "Danas";
   } else if (days === 1) {
-    return t("yesterday");
+    return "Jučer";
   } else if (days < 30) {
-    return `${days} ${t("daysAgo")}`;
+    return `${days} ${"dana"}`;
   } else if (days < 365) {
     const months = Math.floor(days / 30);
-    return `${months} ${months > 1 ? t("months") : t("month")} ${t("ago")}`;
+    return `${months} ${months > 1 ? "mjeseci" : "mjesec"} ${"prije"}`;
   } else {
     const years = Math.floor(days / 365);
-    return `${years} ${years > 1 ? t("years") : t("year")} ${t("ago")}`;
+    return `${years} ${years > 1 ? "godine" : "godina"} ${"prije"}`;
   }
 };
 
@@ -388,7 +388,7 @@ export const formatPriceAbbreviated = (price) => {
   }
 
   if (Number(price) === 0) {
-    return t("Na upit");
+    return "Na upit";
   }
 
   const settingsData = store.getState()?.Settings?.data?.data;
@@ -421,11 +421,11 @@ export const formatSalaryRange = (minSalary, maxSalary) => {
   }
 
   if (hasMin) {
-    return `${t("from")} ${formatPriceAbbreviated(minSalary)}`;
+    return `${"Od"} ${formatPriceAbbreviated(minSalary)}`;
   }
 
   if (hasMax) {
-    return `${t("upTo")} ${formatPriceAbbreviated(maxSalary)}`;
+    return `${"Do"} ${formatPriceAbbreviated(maxSalary)}`;
   }
 
   return "";
@@ -466,7 +466,7 @@ export const createStickyNote = () => {
 
   const message = document.createElement("span");
   message.setAttribute("data-sticky-message", "true");
-  message.innerText = t("chatAndNotificationNotSupported");
+  message.innerText = "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
 
   const linkContainer = document.createElement("div"); // Changed to 'div' for better spacing
   linkContainer.style.display = "inline-block"; // Keeps links inline while allowing space
@@ -477,7 +477,7 @@ export const createStickyNote = () => {
     const playStoreAnchor = document.createElement("a");
     playStoreAnchor.setAttribute("data-sticky-playstore", "true"); // Add identifier
     playStoreAnchor.style.cssText = linkStyle;
-    playStoreAnchor.innerText = t("playStore");
+    playStoreAnchor.innerText = "Play Store-a";
     playStoreAnchor.href = playStoreLink;
     playStoreAnchor.target = "_blank";
     linkContainer.appendChild(playStoreAnchor);
@@ -488,7 +488,7 @@ export const createStickyNote = () => {
     appStoreAnchor.setAttribute("data-sticky-appstore", "true"); // Add identifier
     appStoreAnchor.style.cssText = linkStyle;
     appStoreAnchor.style.marginLeft = "5px"; // Space before this link
-    appStoreAnchor.innerText = t("appStore");
+    appStoreAnchor.innerText = "App Store-a";
     appStoreAnchor.href = appStoreLink;
     appStoreAnchor.target = "_blank";
     linkContainer.appendChild(appStoreAnchor);
@@ -512,130 +512,122 @@ export const updateStickyNoteTranslations = () => {
   const appStoreLink = note.querySelector("[data-sticky-appstore]");
 
   if (message) {
-    message.innerText = t("chatAndNotificationNotSupported");
+    message.innerText = "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
   }
   if (playStoreLink) {
-    playStoreLink.innerText = t("playStore");
+    playStoreLink.innerText = "Play Store-a";
   }
   if (appStoreLink) {
-    appStoreLink.innerText = t("appStore");
+    appStoreLink.innerText = "App Store-a";
   }
 };
 
 const ERROR_CODES = {
-  "auth/user-not-found": t("userNotFound"),
-  "auth/wrong-password": t("invalidPassword"),
-  "auth/email-already-in-use": t("emailInUse"),
-  "auth/invalid-email": t("invalidEmail"),
-  "auth/user-disabled": t("userAccountDisabled"),
-  "auth/too-many-requests": t("tooManyRequests"),
-  "auth/operation-not-allowed": t("operationNotAllowed"),
-  "auth/internal-error": t("internalError"),
-  "auth/invalid-login-credentials": t("incorrectDetails"),
-  "auth/invalid-credential": t("incorrectDetails"),
-  "auth/admin-restricted-operation": t("adminOnlyOperation"),
-  "auth/already-initialized": t("alreadyInitialized"),
-  "auth/app-not-authorized": t("appNotAuthorized"),
-  "auth/app-not-installed": t("appNotInstalled"),
-  "auth/argument-error": t("argumentError"),
-  "auth/captcha-check-failed": t("captchaCheckFailed"),
-  "auth/code-expired": t("codeExpired"),
-  "auth/cordova-not-ready": t("cordovaNotReady"),
-  "auth/cors-unsupported": t("corsUnsupported"),
-  "auth/credential-already-in-use": t("credentialAlreadyInUse"),
-  "auth/custom-token-mismatch": t("customTokenMismatch"),
-  "auth/requires-recent-login": t("requiresRecentLogin"),
-  "auth/dependent-sdk-initialized-before-auth": t(
-    "dependentSdkInitializedBeforeAuth"
-  ),
-  "auth/dynamic-link-not-activated": t("dynamicLinkNotActivated"),
-  "auth/email-change-needs-verification": t("emailChangeNeedsVerification"),
-  "auth/emulator-config-failed": t("emulatorConfigFailed"),
-  "auth/expired-action-code": t("expiredActionCode"),
-  "auth/cancelled-popup-request": t("cancelledPopupRequest"),
-  "auth/invalid-api-key": t("invalidApiKey"),
-  "auth/invalid-app-credential": t("invalidAppCredential"),
-  "auth/invalid-app-id": t("invalidAppId"),
-  "auth/invalid-user-token": t("invalidUserToken"),
-  "auth/invalid-auth-event": t("invalidAuthEvent"),
-  "auth/invalid-cert-hash": t("invalidCertHash"),
-  "auth/invalid-verification-code": t("invalidVerificationCode"),
-  "auth/invalid-continue-uri": t("invalidContinueUri"),
-  "auth/invalid-cordova-configuration": t("invalidCordovaConfiguration"),
-  "auth/invalid-custom-token": t("invalidCustomToken"),
-  "auth/invalid-dynamic-link-domain": t("invalidDynamicLinkDomain"),
-  "auth/invalid-emulator-scheme": t("invalidEmulatorScheme"),
-  "auth/invalid-message-payload": t("invalidMessagePayload"),
-  "auth/invalid-multi-factor-session": t("invalidMultiFactorSession"),
-  "auth/invalid-oauth-client-id": t("invalidOauthClientId"),
-  "auth/invalid-oauth-provider": t("invalidOauthProvider"),
-  "auth/invalid-action-code": t("invalidActionCode"),
-  "auth/unauthorized-domain": t("unauthorizedDomain"),
-  "auth/invalid-persistence-type": t("invalidPersistenceType"),
-  "auth/invalid-phone-number": t("invalidPhoneNumber"),
-  "auth/invalid-provider-id": t("invalidProviderId"),
-  "auth/invalid-recaptcha-action": t("invalidRecaptchaAction"),
-  "auth/invalid-recaptcha-token": t("invalidRecaptchaToken"),
-  "auth/invalid-recaptcha-version": t("invalidRecaptchaVersion"),
-  "auth/invalid-recipient-email": t("invalidRecipientEmail"),
-  "auth/invalid-req-type": t("invalidReqType"),
-  "auth/invalid-sender": t("invalidSender"),
-  "auth/invalid-verification-id": t("invalidVerificationId"),
-  "auth/invalid-tenant-id": t("invalidTenantId"),
-  "auth/multi-factor-info-not-found": t("multiFactorInfoNotFound"),
-  "auth/multi-factor-auth-required": t("multiFactorAuthRequired"),
-  "auth/missing-android-pkg-name": t("missingAndroidPkgName"),
-  "auth/missing-app-credential": t("missingAppCredential"),
-  "auth/auth-domain-config-required": t("authDomainConfigRequired"),
-  "auth/missing-client-type": t("missingClientType"),
-  "auth/missing-verification-code": t("missingVerificationCode"),
-  "auth/missing-continue-uri": t("missingContinueUri"),
-  "auth/missing-iframe-start": t("missingIframeStart"),
-  "auth/missing-ios-bundle-id": t("missingIosBundleId"),
-  "auth/missing-multi-factor-info": t("missingMultiFactorInfo"),
-  "auth/missing-multi-factor-session": t("missingMultiFactorSession"),
-  "auth/missing-or-invalid-nonce": t("missingOrInvalidNonce"),
-  "auth/missing-phone-number": t("missingPhoneNumber"),
-  "auth/missing-recaptcha-token": t("missingRecaptchaToken"),
-  "auth/missing-recaptcha-version": t("missingRecaptchaVersion"),
-  "auth/missing-verification-id": t("missingVerificationId"),
-  "auth/app-deleted": t("appDeleted"),
-  "auth/account-exists-with-different-credential": t(
-    "accountExistsWithDifferentCredential"
-  ),
-  "auth/network-request-failed": t("networkRequestFailed"),
-  "auth/no-auth-event": t("noAuthEvent"),
-  "auth/no-such-provider": t("noSuchProvider"),
-  "auth/null-user": t("nullUser"),
-  "auth/operation-not-supported-in-this-environment": t(
-    "operationNotSupportedInThisEnvironment"
-  ),
-  "auth/popup-blocked": t("popupBlocked"),
-  "auth/popup-closed-by-user": t("popupClosedByUser"),
-  "auth/provider-already-linked": t("providerAlreadyLinked"),
-  "auth/quota-exceeded": t("quotaExceeded"),
-  "auth/recaptcha-not-enabled": t("recaptchaNotEnabled"),
-  "auth/redirect-cancelled-by-user": t("redirectCancelledByUser"),
-  "auth/redirect-operation-pending": t("redirectOperationPending"),
-  "auth/rejected-credential": t("rejectedCredential"),
-  "auth/second-factor-already-in-use": t("secondFactorAlreadyInUse"),
-  "auth/maximum-second-factor-count-exceeded": t(
-    "maximumSecondFactorCountExceeded"
-  ),
-  "auth/tenant-id-mismatch": t("tenantIdMismatch"),
-  "auth/timeout": t("timeout"),
-  "auth/user-token-expired": t("userTokenExpired"),
-  "auth/unauthorized-continue-uri": t("unauthorizedContinueUri"),
-  "auth/unsupported-first-factor": t("unsupportedFirstFactor"),
-  "auth/unsupported-persistence-type": t("unsupportedPersistenceType"),
-  "auth/unsupported-tenant-operation": t("unsupportedTenantOperation"),
-  "auth/unverified-email": t("unverifiedEmail"),
-  "auth/user-cancelled": t("userCancelled"),
-  "auth/user-mismatch": t("userMismatch"),
-  "auth/user-signed-out": t("userSignedOut"),
-  "auth/weak-password": t("weakPassword"),
-  "auth/web-storage-unsupported": t("webStorageUnsupported"),
-  "auth/missing-email": t("addEmail"),
+  "auth/user-not-found": "Korisnik nije pronađen",
+  "auth/wrong-password": "Neispravna lozinka",
+  "auth/email-already-in-use": "E-mail je već zauzet.",
+  "auth/invalid-email": "Neispravan e-mail.",
+  "auth/user-disabled": "Račun je onemogućen",
+  "auth/too-many-requests": "Previše zahtjeva. Pokušaj kasnije.",
+  "auth/operation-not-allowed": "Operacija nije dozvoljena",
+  "auth/internal-error": "Došlo je do interne greške",
+  "auth/invalid-login-credentials": "Podaci nisu tačni. Pokušaj ponovo.",
+  "auth/invalid-credential": "Podaci nisu tačni. Pokušaj ponovo.",
+  "auth/admin-restricted-operation": "Samo za admina",
+  "auth/already-initialized": "Već inicijalizovano",
+  "auth/app-not-authorized": "Aplikacija nije autorizovana",
+  "auth/app-not-installed": "Aplikacija nije instalirana",
+  "auth/argument-error": "Greška u argumentu",
+  "auth/captcha-check-failed": "CAPTCHA provjera nije uspjela",
+  "auth/code-expired": "Kod je istekao",
+  "auth/cordova-not-ready": "Cordova nije spremna",
+  "auth/cors-unsupported": "CORS nije podržan",
+  "auth/credential-already-in-use": "Podaci za prijavu su već u upotrebi",
+  "auth/custom-token-mismatch": "Token se ne poklapa",
+  "auth/requires-recent-login": "Ponovno se prijavi",
+  "auth/dependent-sdk-initialized-before-auth": "SDK pokrenut prije autentifikacije",
+  "auth/dynamic-link-not-activated": "Dinamički link nije aktiviran",
+  "auth/email-change-needs-verification": "Promjena e-maila traži potvrdu",
+  "auth/emulator-config-failed": "Konfiguracija emulatora nije uspjela",
+  "auth/expired-action-code": "Link/kod je istekao",
+  "auth/cancelled-popup-request": "Zahtjev za pop-up je istekao",
+  "auth/invalid-api-key": "Neispravan API ključ",
+  "auth/invalid-app-credential": "Neispravna aplikacijska vjerodajnica",
+  "auth/invalid-app-id": "Neispravan ID aplikacije",
+  "auth/invalid-user-token": "Neispravna autentifikacija",
+  "auth/invalid-auth-event": "Neispravan auth događaj",
+  "auth/invalid-cert-hash": "Neispravan cert hash",
+  "auth/invalid-verification-code": "Neispravan kod",
+  "auth/invalid-continue-uri": "Neispravan continue URL",
+  "auth/invalid-cordova-configuration": "Neispravna Cordova konfiguracija",
+  "auth/invalid-custom-token": "Neispravan custom token",
+  "auth/invalid-dynamic-link-domain": "Neispravan domen dinamičkog linka",
+  "auth/invalid-emulator-scheme": "Neispravna emulator šema",
+  "auth/invalid-message-payload": "Neispravan sadržaj poruke",
+  "auth/invalid-multi-factor-session": "Neispravna MFA sesija",
+  "auth/invalid-oauth-client-id": "Neispravan OAuth Client ID",
+  "auth/invalid-oauth-provider": "Neispravan OAuth provider",
+  "auth/invalid-action-code": "Neispravan kod",
+  "auth/unauthorized-domain": "Neispravan origin",
+  "auth/invalid-persistence-type": "Neispravna persistencija",
+  "auth/invalid-phone-number": "Neispravan broj telefona",
+  "auth/invalid-provider-id": "Neispravan provider ID",
+  "auth/invalid-recaptcha-action": "Neispravna reCAPTCHA akcija",
+  "auth/invalid-recaptcha-token": "Neispravan reCAPTCHA token",
+  "auth/invalid-recaptcha-version": "Neispravna reCAPTCHA verzija",
+  "auth/invalid-recipient-email": "Neispravan e-mail primaoca",
+  "auth/invalid-req-type": "Neispravan tip zahtjeva",
+  "auth/invalid-sender": "Neispravan pošiljalac",
+  "auth/invalid-verification-id": "Neispravne informacije sesije",
+  "auth/invalid-tenant-id": "Neispravan tenant ID",
+  "auth/multi-factor-info-not-found": "MFA info nije pronađen",
+  "auth/multi-factor-auth-required": "Potrebna MFA",
+  "auth/missing-android-pkg-name": "Nedostaje Android paket",
+  "auth/missing-app-credential": "Nedostaje aplikacijska vjerodajnica",
+  "auth/auth-domain-config-required": "Nedostaje auth domen",
+  "auth/missing-client-type": "Nedostaje tip klijenta",
+  "auth/missing-verification-code": "Nedostaje kod",
+  "auth/missing-continue-uri": "Nedostaje continue URL",
+  "auth/missing-iframe-start": "Nedostaje iframe start",
+  "auth/missing-ios-bundle-id": "Nedostaje iOS Bundle ID",
+  "auth/missing-multi-factor-info": "Nedostaje MFA info",
+  "auth/missing-multi-factor-session": "Nedostaje MFA sesija",
+  "auth/missing-or-invalid-nonce": "Nonce nedostaje ili je neispravan",
+  "auth/missing-phone-number": "Nedostaje broj telefona",
+  "auth/missing-recaptcha-token": "Nedostaje reCAPTCHA token",
+  "auth/missing-recaptcha-version": "Nedostaje reCAPTCHA verzija",
+  "auth/missing-verification-id": "Nedostaje info sesije",
+  "auth/app-deleted": "Aplikacija je obrisana",
+  "auth/account-exists-with-different-credential": "Račun postoji s drugim načinom prijave",
+  "auth/network-request-failed": "Mrežni zahtjev nije uspio",
+  "auth/no-auth-event": "Nema auth događaja",
+  "auth/no-such-provider": "Provider ne postoji",
+  "auth/null-user": "Korisnik ne postoji",
+  "auth/operation-not-supported-in-this-environment": "Operacija nije podržana u ovom okruženju",
+  "auth/popup-blocked": "Pop-up je blokiran",
+  "auth/popup-closed-by-user": "Pop-up zatvoren",
+  "auth/provider-already-linked": "Provider je već povezan",
+  "auth/quota-exceeded": "Kvota je premašena. Pokušaj kasnije.",
+  "auth/recaptcha-not-enabled": "reCAPTCHA nije uključena",
+  "auth/redirect-cancelled-by-user": "Preusmjeravanje otkazano",
+  "auth/redirect-operation-pending": "Preusmjeravanje u toku",
+  "auth/rejected-credential": "Vjerodajnica odbijena",
+  "auth/second-factor-already-in-use": "Drugi faktor je već aktivan",
+  "auth/maximum-second-factor-count-exceeded": "Prekoračen limit drugog faktora",
+  "auth/tenant-id-mismatch": "Tenant ID se ne poklapa",
+  "auth/timeout": "Isteklo vrijeme",
+  "auth/user-token-expired": "Token je istekao",
+  "auth/unauthorized-continue-uri": "Neautorizovan URL",
+  "auth/unsupported-first-factor": "Nepodržan prvi faktor",
+  "auth/unsupported-persistence-type": "Nepodržana persistencija",
+  "auth/unsupported-tenant-operation": "Nepodržana tenant operacija",
+  "auth/unverified-email": "E-mail nije potvrđen",
+  "auth/user-cancelled": "Otkazano",
+  "auth/user-mismatch": "Korisnik se ne poklapa",
+  "auth/user-signed-out": "Korisnik odjavljen",
+  "auth/weak-password": "Lozinka je preslaba.",
+  "auth/web-storage-unsupported": "Web storage nije podržan",
+  "auth/missing-email": "E-mail je obavezan. Unesi e-mail i pokušaj ponovo.",
 };
 
 const getFirebaseAuthErrorDetails = (errorLike) => {
@@ -670,7 +662,7 @@ export const handleFirebaseAuthError = (errorLike) => {
   }
 
   // Keep the user-facing toast clean even for non-Firebase/runtime errors.
-  const fallbackMessage = t("unexpectedError") || t("errorOccurred");
+  const fallbackMessage = "Neočekivana greška. Pokušaj ponovo." || "Došlo je do greške.";
   toast.error(fallbackMessage);
 
   // Log full details to help debug production auth issues.
@@ -821,13 +813,13 @@ export const formatTime = (dateString) => {
   const diffInYears = Math.floor(diffInDays / 365);
 
   if (diffInSeconds < 60) {
-    return t("now");
+    return "Sada";
   } else if (diffInMinutes < 60) {
     return `${diffInMinutes}m`;
   } else if (diffInHours < 24) {
     return `${diffInHours}h`;
   } else if (diffInDays === 1) {
-    return t("yesterday");
+    return "Jučer";
   } else if (diffInDays < 7) {
     return `${diffInDays}d`;
   } else if (diffInWeeks < 4) {
@@ -872,9 +864,9 @@ export const formatMessageDate = (dateString) => {
   yesterday.setDate(yesterday.getDate() - 1);
 
   if (messageDate.toDateString() === today.toDateString()) {
-    return t("today");
+    return "Danas";
   } else if (messageDate.toDateString() === yesterday.toDateString()) {
-    return t("yesterday");
+    return "Jučer";
   } else {
     return formatDateMonthYear(dateString); // d/m/yyyy
   }
@@ -939,8 +931,8 @@ export const validateExtraDetails = ({
 
       if (isRequired && isMissing) {
         const key = ["checkbox", "radio"].includes(type)
-          ? t("selectAtleastOne")
-          : t("fillDetails");
+          ? "Odaberi barem jednu vrijednost za"
+          : "Popuni detalje za";
         showError(`${key} ${name}.`);
         return false;
       }
@@ -951,8 +943,8 @@ export const validateExtraDetails = ({
         if (valStr.length < min_length) {
           const lengthError =
             type === "number"
-              ? `${t("mustBeAtleast")} ${min_length} ${t("digitLong")}`
-              : `${t("mustBeAtleast")} ${min_length} ${t("charactersLong")}`;
+              ? `${"mora imati najmanje"} ${min_length} ${"cifara"}`
+              : `${"mora imati najmanje"} ${min_length} ${"znakova"}`;
           showError(`${name} ${lengthError}`);
           return false;
         }

@@ -323,13 +323,13 @@ const SendMessage = ({
         console.log(error);
         switch (error) {
           case "permission_denied":
-            toast.error(t("microphoneAccessDenied"));
+            toast.error("Mikrofon je odbijen. Uključi dozvolu.");
             break;
           case "no_specified_media_found":
-            toast.error(t("noMicrophoneFound"));
+            toast.error("Nema mikrofona. Priključi mikrofon i pokušaj ponovo.");
             break;
           default:
-            toast.error(t("somethingWentWrong"));
+            toast.error("Nešto je pošlo po zlu. Pokušaj kasnije.");
         }
       }
     }
@@ -436,7 +436,7 @@ const SendMessage = ({
  
         {isRecording ? (
           <div className="flex-1 min-h-[42px] py-2 px-3 bg-red-50 dark:bg-red-500/15 text-red-500 rounded-xl flex items-center justify-center font-medium">
-            🔴 {t("recording")} {formatDuration(recordingDuration)}
+            🔴 {"Snimam..."} {formatDuration(recordingDuration)}
           </div>
         ) : (
           <div className="flex-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 shadow-sm">

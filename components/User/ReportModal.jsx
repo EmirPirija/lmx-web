@@ -38,13 +38,13 @@ const ReportModal = ({
     e.preventDefault();
 
     if (!selectedReason) {
-      toast.error(t("pleaseSelectReason"));
+      toast.error("Odaberi razlog.");
       return;
     }
 
     // Validation: Ensure custom reason is provided if "Other" is selected
     if (selectedReason === "other" && !customReason.trim()) {
-      toast.error(t("pleaseProvideReason"));
+      toast.error("Unesi razlog");
       return;
     }
 
@@ -80,7 +80,7 @@ const ReportModal = ({
       <DialogContent onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {t("report")}
+            {"Prijavi"}
           </DialogTitle>
         </DialogHeader>
 
@@ -110,13 +110,13 @@ const ReportModal = ({
                   : "hover:bg-gray-50 text-gray-700"
               }`}
             >
-              {t("other")}
+              {"Ostalo"}
             </button>
             {selectedReason === "other" && (
               <textarea
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
-                placeholder={t("writereason")}
+                placeholder={"Napiši razlog"}
                 className="w-full p-2 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-primary mt-2"
                 rows={3}
               />
@@ -130,14 +130,14 @@ const ReportModal = ({
             className="w-full py-2 px-4 text-white  text-base font-medium  bg-[#000] rounded-md hover:bg-primary/90 transition-colors"
             onClick={handleClose}
           >
-            {t("cancel")}
+            {"Otkaži"}
           </button>
           <button
             className="w-full py-2 px-4 text-base font-medium  text-white  bg-primary rounded-md hover:bg-primary/90 transition-colors"
             onClick={handleReport}
             disabled={!selectedReason || IsSubmitting}
           >
-            {IsSubmitting ? t("submitting") : t("submit")}
+            {IsSubmitting ? "Šaljem..." : "Pošalji"}
           </button>
         </div>
       </DialogContent>

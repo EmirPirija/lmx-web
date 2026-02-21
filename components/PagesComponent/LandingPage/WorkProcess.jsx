@@ -1,14 +1,11 @@
 "use client";
-import { t } from "@/utils";
 import Arrow from "../../../public/assets/Arrow.svg";
 import { workProcessSteps } from "@/utils/constants";
 import { useSelector } from "react-redux";
 import { settingsData } from "@/redux/reducer/settingSlice";
-import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import CustomImage from "@/components/Common/CustomImage";
 
 const WorkProcess = () => {
-  const CurrentLanguage = useSelector(CurrentLanguageData);
   const settings = useSelector(settingsData);
 
   return (
@@ -16,11 +13,11 @@ const WorkProcess = () => {
       <div className="container">
         <div className="flex items-center flex-col gap-6">
           <p className="outlinedSecHead">
-            {t("how")} {settings?.company_name} {t("getsYouResults")}
+            {"Kako"} {settings?.company_name} {"daje rezultate?"}
           </p>
           <h1 className="landingSecHeader">
-            {t("unravelingThe")} {settings?.company_name} <br />{" "}
-            {t("workProcess")}
+            {"Upoznaj"} {settings?.company_name} <br />{" "}
+            {"proces rada"}
           </h1>
         </div>
         <div className="mt-20">
@@ -42,8 +39,8 @@ const WorkProcess = () => {
                 <span className="flex items-center justify-center text-white font-bold w-[40px] h-[40px] bg-primary rounded-full">
                   {step.id}
                 </span>
-                <h5 className="font-bold">{t(step.title)}</h5>
-                <p>{t(step.description)}</p>
+                <h5 className="font-bold">{step.title}</h5>
+                <p>{step.description}</p>
               </div>
             ))}
           </div>

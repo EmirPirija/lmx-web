@@ -242,7 +242,7 @@ const AdsStatusChangeCards = ({
       const res = await chanegItemStatusApi.changeItemStatus(apiParams);
       
       if (res?.data?.error === false) {
-        toast.success(res?.data?.message || t("statusUpdated") || "Status oglasa je uspješno ažuriran");
+        toast.success(res?.data?.message || "Status je ažuriran" || "Status oglasa je uspješno ažuriran");
 
         const responseData = res?.data?.data || {};
         const newStatus = responseData?.status || (saleDetails?.remainingAfterSale > 0 ? "approved" : "sold out");

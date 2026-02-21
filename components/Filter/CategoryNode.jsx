@@ -150,7 +150,7 @@ const CategoryNode = ({ category, extraDetails }) => {
               onClick={loadMore}
               className="w-full py-2 px-3 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
             >
-              {t("loadMore")}
+              {"Učitaj još"}
             </button>
           )}
         </div>

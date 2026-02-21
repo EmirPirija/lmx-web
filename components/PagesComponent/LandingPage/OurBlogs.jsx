@@ -50,11 +50,11 @@ const OurBlogs = () => {
     <section className="py-28 bg-muted" id="ourBlogs">
       <div className="container">
         <div className="flex items-center flex-col gap-6">
-          <p className="outlinedSecHead">{t("ourBlog")}</p>
+          <p className="outlinedSecHead">{"Naš blog"}</p>
           <h1 className="landingSecHeader">
-            {t("masteringMarketplace")}
+            {"Savladaj marketplace"}
             <br />
-            {t("withOurBlog")}
+            {"uz naš blog"}
           </h1>
         </div>
         <Carousel

@@ -146,7 +146,7 @@ const CityNode = ({ city, country, state }) => {
               className="text-primary text-center text-sm py-1 px-2"
               disabled={areas.isLoadMore}
             >
-              {areas.isLoadMore ? t("loading") : t("loadMore")}
+              {areas.isLoadMore ? "Učitavanje..." : "Učitaj još"}
             </button>
           )}
         </ul>

@@ -143,7 +143,7 @@ const ApplyJobModal = ({
       >
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {t("applyNow")}
+            {"Prijavi se"}
           </DialogTitle>
         </DialogHeader>
 
@@ -151,13 +151,13 @@ const ApplyJobModal = ({
           {/* Full Name */}
           <div className="labelInputCont">
             <Label htmlFor="fullName" className="requiredInputLabel">
-              {t("fullName")}
+              {"Puno ime"}
             </Label>
             <Input
               id="fullName"
               name="fullName"
               type="text"
-              placeholder={t("enterFullName")}
+              placeholder={"Unesi puno ime"}
               value={formData.fullName}
               onChange={handleInputChange}
               required
@@ -167,13 +167,13 @@ const ApplyJobModal = ({
           {/* Phone Number */}
           <div className="labelInputCont">
             <Label htmlFor="phoneNumber" className="requiredInputLabel">
-              {t("phoneNumber")}
+              {"Broj telefona"}
             </Label>
             <Input
               id="phoneNumber"
               name="phoneNumber"
               type="tel"
-              placeholder={t("enterPhoneNumber")}
+              placeholder={"Unesi broj telefona"}
               value={formData.phoneNumber}
               onChange={handleInputChange}
               required
@@ -185,13 +185,13 @@ const ApplyJobModal = ({
           {/* Email */}
           <div className="labelInputCont">
             <Label htmlFor="email" className="requiredInputLabel">
-              {t("email")}
+              {"E-mail"}
             </Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder={t("enterEmail")}
+              placeholder={"Unesi e-mail"}
               value={formData.email}
               onChange={handleInputChange}
               required
@@ -201,7 +201,7 @@ const ApplyJobModal = ({
           {/* Resume Upload */}
           <div className="labelInputCont">
             <Label>
-              {t("resume")} ({t("optional")})
+              {"CV"} ({"Opcionalno"})
             </Label>
             <div className="space-y-2">
               {!resumePreview ? (
@@ -215,10 +215,10 @@ const ApplyJobModal = ({
                   <HiOutlineUpload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
                     {isDragActive
-                      ? t("dropResumeHere")
-                      : t("dragAndDropResume")}
+                      ? "Spusti CV ovdje"
+                      : "Prevuci i spusti CV ovdje"}
                   </p>
-                  <p className="text-sm text-gray-600">{t("clickToSelect")}</p>
+                  <p className="text-sm text-gray-600">{"ili klikni da odabereš"}</p>
                   <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX</p>
                 </div>
               ) : (
@@ -235,7 +235,7 @@ const ApplyJobModal = ({
                       onClick={removeResume}
                       className="text-red-500 hover:text-red-700 text-sm"
                     >
-                      {t("remove")}
+                      {"Ukloni"}
                     </button>
                   </div>
                 </div>
@@ -252,10 +252,10 @@ const ApplyJobModal = ({
               className="flex-1"
               disabled={isSubmitting}
             >
-              {t("cancel")}
+              {"Otkaži"}
             </Button>
             <Button type="submit" disabled={isSubmitting} className="flex-1">
-              {isSubmitting ? t("submitting") : t("submit")}
+              {isSubmitting ? "Šaljem..." : "Pošalji"}
             </Button>
           </div>
         </form>

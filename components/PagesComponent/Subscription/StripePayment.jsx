@@ -8,7 +8,6 @@ import {
 import { loadStripe } from "@stripe/stripe-js";
 import { createPaymentIntentApi } from "@/utils/api";
 import { toast } from "@/utils/toastBs";
-import { t } from "@/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const StripePayment = ({
@@ -49,7 +48,7 @@ const StripePayment = ({
       setShowStripePayment(true);
     } catch (error) {
       console.error("Error during Stripe payment", error);
-      toast.error(t("errorOccurred"));
+      toast.error("Došlo je do greške.");
     } finally {
       setLoading(false);
     }
@@ -87,7 +86,16 @@ const StripePayment = ({
               updateActivePackage();
               PaymentModalClose();
             } else {
-              toast.error(t("paymentfail " + paymentIntent.status));
+              const stripeStatusMessageMap = {
+                processing: "Plaćanje je u obradi. Provjeri status za nekoliko trenutaka.",
+                requires_payment_method: "Plaćanje nije uspjelo. Provjeri podatke kartice i pokušaj ponovo.",
+                requires_action: "Plaćanje zahtijeva dodatnu potvrdu.",
+                canceled: "Plaćanje je otkazano.",
+              };
+              toast.error(
+                stripeStatusMessageMap[paymentIntent.status] ||
+                  `Plaćanje nije uspjelo (status: ${paymentIntent.status}).`
+              );
             }
           }
         } catch (error) {
@@ -105,7 +113,7 @@ const StripePayment = ({
             type="submit"
             disabled={!stripePromise}
           >
-            {t("pay")}
+            {"Plati"}
           </button>
         </div>
       </form>
@@ -130,7 +138,7 @@ const StripePayment = ({
         stripePromise &&
         clientSecret && (
           <div className="card">
-            {/* <div className="card-header">{t("payWithStripe")} :</div> */}
+            {/* <div className="card-header">{"Plaćanje Stripeom"} :</div> */}
             <div className="card-body">
               <Elements stripe={stripePromise}>
                 <ElementsConsumer>

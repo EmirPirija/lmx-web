@@ -38,7 +38,7 @@ const FeaturedSections = ({ featuredData, setFeaturedData, allEmpty }) => {
                       className="text-sm sm:text-base font-medium whitespace-nowrap"
                       prefetch={false}
                     >
-                      {t("viewAll")}
+                      {"Pogledaj sve"}
                     </CustomLink>
                   )}
                 </div>

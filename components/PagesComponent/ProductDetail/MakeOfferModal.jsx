@@ -48,13 +48,13 @@ const MakeOfferModal = ({ isOpen, onClose, productDetails }) => {
 
     const validateOffer = () => {
         if (!offerAmount.trim()) {
-            setError(t('offerAmountRequired'))
+            setError("Iznos ponude je obavezan")
             return false
         }
 
         const amount = Number(offerAmount)
         if (amount >= productDetails?.price) {
-            setError(t('offerMustBeLessThanSellerPrice'))
+            setError("Ponuda mora biti manja od cijene prodavača")
             return false
         }
 
@@ -77,14 +77,14 @@ const MakeOfferModal = ({ isOpen, onClose, productDetails }) => {
             })
 
             if (response?.data?.error === false) {
-                toast.success(t('offerSentSuccessfully'))
+                toast.success("Ponuda poslana")
                 onClose()
                 navigate('/chat?activeTab=buying&chatid=' + response?.data?.data?.id)
             } else {
-                toast.error(t('unableToSendOffer'))
+                toast.error("Ne mogu poslati ponudu")
             }
         } catch (error) {
-            toast.error(t('unableToSendOffer'))
+            toast.error("Ne mogu poslati ponudu")
             console.error(error)
         } finally {
             setIsSubmitting(false)
@@ -104,28 +104,28 @@ const MakeOfferModal = ({ isOpen, onClose, productDetails }) => {
         <div className="space-y-4">
             <DialogHeader>
                 <DialogTitle className="text-4xl font-normal">
-                    {t('makeAn')}
+                    {"Daj"}
                     <span className='text-primary'>
-                        &nbsp;{t('offer')}
+                        &nbsp;{"Ponuda"}
                     </span>
                 </DialogTitle>
-                <DialogDescription>{t('openToOffers')}</DialogDescription>
+                <DialogDescription>{"Otvoren/a za ponude. Javite se!"}</DialogDescription>
             </DialogHeader>
 
             <div className='flex flex-col gap-2 bg-muted py-6 px-3 rounded-md justify-center items-center'>
-                <span>{t('sellerPrice')}</span>
+                <span>{"Cijena prodavača"}</span>
                 <span className='text-2xl font-medium'>{formatPriceAbbreviated(productDetails?.price)}</span>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <div className="space-y-2">
-                    <Label htmlFor="offerAmount" className="requiredInputLabel">{t('yourOffer')}</Label>
+                    <Label htmlFor="offerAmount" className="requiredInputLabel">{"Tvoja ponuda"}</Label>
                     <Input
                         id="offerAmount"
                         type="number"
                         value={offerAmount}
                         onChange={handleChange}
-                        placeholder={t('typeOfferPrice')}
+                        placeholder={"Unesi ponudu"}
                         min={0}
                         className={error ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     />
@@ -136,7 +136,7 @@ const MakeOfferModal = ({ isOpen, onClose, productDetails }) => {
                     className="py-2 px-4 rounded-md"
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? t('sending') : t('sendOffer')}
+                    {isSubmitting ? "Šaljem..." : "Pošalji ponudu"}
                 </Button>
             </form>
         </div>
@@ -146,9 +146,9 @@ const MakeOfferModal = ({ isOpen, onClose, productDetails }) => {
         <>
             <DialogHeader>
                 <DialogTitle className="text-4xl text-center font-normal">
-                    {t('safety')}
+                    {"Sigurnost"}
                     <span className='text-primary'>
-                        &nbsp;{t('tips')}
+                        &nbsp;{"Savjeti"}
                     </span>
                 </DialogTitle>
             </DialogHeader>
@@ -174,7 +174,7 @@ const MakeOfferModal = ({ isOpen, onClose, productDetails }) => {
                 </div>
             )}
             <Button onClick={handleContinue}>
-                {t('continue')}
+                {"Nastavi"}
             </Button>
         </>
     )

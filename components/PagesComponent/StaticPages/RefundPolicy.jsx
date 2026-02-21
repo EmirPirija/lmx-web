@@ -13,7 +13,7 @@ const RefundPolicy = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("refundPolicy")} />
+      <BreadCrumb title2={"Politika povrata"} />
       <div className="container">
         <div className="max-w-full py-7 prose lg:prose-lg">
           {parse(privacy || "")}

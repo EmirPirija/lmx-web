@@ -77,7 +77,7 @@ const FilterTree = ({ extraDetails }) => {
             isSelected ? "text-primary" : "text-gray-700"
           )}
         >
-          {t("allCategories")}
+          {"Sve kategorije"}
         </button>
       </div>
 
@@ -97,7 +97,7 @@ const FilterTree = ({ extraDetails }) => {
               disabled={isCatLoadMore}
               className="w-full py-2 px-3 text-sm font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors disabled:opacity-50"
             >
-              {isCatLoadMore ? t("loading") : t("loadMore")}
+              {isCatLoadMore ? "Učitavanje..." : "Učitaj još"}
             </button>
           )}
         </div>

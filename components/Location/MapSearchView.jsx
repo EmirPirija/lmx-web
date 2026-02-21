@@ -79,7 +79,7 @@ const MapSearchView = ({
   };
 
   const formatPrice = (price) => {
-    if (!price) return t("priceOnRequest") || "Cijena na upit";
+    if (!price) return "Cijena na upit" || "Cijena na upit";
     return new Intl.NumberFormat("bs-BA", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
@@ -101,12 +101,12 @@ const MapSearchView = ({
           </div>
           <div>
             <h2 className="font-bold text-slate-800 text-lg">
-              {t("mapSearch") || "Pretraga na mapi"}
+              {"Pretraga na mapi" || "Pretraga na mapi"}
             </h2>
             <p className="text-xs text-slate-500">
               {isLoading 
-                ? t("loading") || "Učitavanje..."
-                : `${t("found") || "Pronađeno"} ${ads.length} ${t("ads") || "oglasa"}`
+                ? "Učitavanje..." || "Učitavanje..."
+                : `${"Pronađeno" || "Pronađeno"} ${ads.length} ${"Oglasi" || "oglasa"}`
               }
             </p>
           </div>
@@ -152,7 +152,7 @@ const MapSearchView = ({
                   : "text-slate-600 hover:text-slate-800"
               )}
             >
-              {t("both") || "Oboje"}
+              {"Oboje" || "Oboje"}
             </button>
             <button
               onClick={() => setViewMode("map")}
@@ -163,7 +163,7 @@ const MapSearchView = ({
                   : "text-slate-600 hover:text-slate-800"
               )}
             >
-              {t("map") || "Mapa"}
+              {"Mapa" || "Mapa"}
             </button>
             <button
               onClick={() => setViewMode("list")}
@@ -174,7 +174,7 @@ const MapSearchView = ({
                   : "text-slate-600 hover:text-slate-800"
               )}
             >
-              {t("list") || "Lista"}
+              {"Lista" || "Lista"}
             </button>
           </div>
 
@@ -202,11 +202,11 @@ const MapSearchView = ({
               value={localFilters.category || ""}
               onChange={(e) => handleFilterChange("category", e.target.value)}
             >
-              <option value="">{t("allCategories") || "Sve kategorije"}</option>
-              <option value="stanovi">{t("apartments") || "Stanovi"}</option>
-              <option value="kuce">{t("houses") || "Kuće"}</option>
-              <option value="automobili">{t("vehicles") || "Automobili"}</option>
-              <option value="ostalo">{t("other") || "Ostalo"}</option>
+              <option value="">{"Sve kategorije" || "Sve kategorije"}</option>
+              <option value="stanovi">{"Stanovi" || "Stanovi"}</option>
+              <option value="kuce">{"Kuće" || "Kuće"}</option>
+              <option value="automobili">{"Automobili" || "Automobili"}</option>
+              <option value="ostalo">{"Ostalo" || "Ostalo"}</option>
             </select>
 
             {/* Cijena */}
@@ -215,7 +215,7 @@ const MapSearchView = ({
               value={localFilters.priceRange || ""}
               onChange={(e) => handleFilterChange("priceRange", e.target.value)}
             >
-              <option value="">{t("allPrices") || "Sve cijene"}</option>
+              <option value="">{"Sve cijene" || "Sve cijene"}</option>
               <option value="0-50000">Do 50.000 KM</option>
               <option value="50000-100000">50.000 - 100.000 KM</option>
               <option value="100000-200000">100.000 - 200.000 KM</option>
@@ -228,9 +228,9 @@ const MapSearchView = ({
               value={localFilters.status || ""}
               onChange={(e) => handleFilterChange("status", e.target.value)}
             >
-              <option value="">{t("allStatuses") || "Svi statusi"}</option>
-              <option value="prodaja">{t("sale") || "Prodaja"}</option>
-              <option value="iznajmljivanje">{t("rent") || "Iznajmljivanje"}</option>
+              <option value="">{"Svi statusi" || "Svi statusi"}</option>
+              <option value="prodaja">{"Prodaja" || "Prodaja"}</option>
+              <option value="iznajmljivanje">{"Iznajmljivanje" || "Iznajmljivanje"}</option>
             </select>
 
             {/* Reset */}
@@ -241,7 +241,7 @@ const MapSearchView = ({
               }}
               className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-100"
             >
-              {t("reset") || "Resetuj"}
+              {"Resetuj" || "Resetuj"}
             </button>
           </div>
         </div>
@@ -265,7 +265,7 @@ const MapSearchView = ({
             ) : ads.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500">
                 <MdMap className="text-6xl text-slate-300" />
-                <p className="text-sm">{t("noAdsFound") || "Nema pronađenih oglasa"}</p>
+                <p className="text-sm">{"Nema oglasa" || "Nema pronađenih oglasa"}</p>
               </div>
             ) : (
               <div className="p-4 space-y-3">
@@ -358,7 +358,7 @@ const AdCard = ({
         {/* Badge */}
         {ad.featured && (
           <div className="absolute top-2 left-2 px-2 py-1 bg-primary/90 backdrop-blur-sm text-white text-xs font-medium rounded-md">
-            {t("featured") || "ISTAKNUTO"}
+            {"Istaknuto" || "ISTAKNUTO"}
           </div>
         )}
 
@@ -379,7 +379,7 @@ const AdCard = ({
         <div className="flex items-center gap-1 text-xs text-slate-500 mb-2">
           <IoLocationOutline className="text-sm flex-shrink-0" />
           <span className="truncate">
-            {ad.location || ad.address || ad.city || t("locationNotSpecified")}
+            {ad.location || ad.address || ad.city || "Lokacija nije navedena"}
           </span>
         </div>
 

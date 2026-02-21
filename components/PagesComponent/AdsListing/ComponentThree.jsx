@@ -111,7 +111,7 @@ const EnhancedDropdown = ({
       >
         <div className="flex items-center gap-3">
           <span className={`${currentValue ? "font-medium" : "text-gray-500"}`}>
-            {currentValue || `${t("select")} ${translated_name || name}`}
+            {currentValue || `${"Odaberi"} ${translated_name || name}`}
           </span>
         </div>
         <svg
@@ -145,7 +145,7 @@ const EnhancedDropdown = ({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={`${t("search")}...`}
+                    placeholder={`${"Pretraži"}...`}
                     className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200"
                     autoFocus
                   />
@@ -631,7 +631,7 @@ const ComponentThree = ({
     if (file) {
       const allowedExtensions = /\.(jpg|jpeg|svg|png|pdf)$/i;
       if (!allowedExtensions.test(file.name)) {
-        toast.error(t("notAllowedFile"));
+        toast.error("Podržano: JPG, JPEG, SVG, PNG i PDF");
         return;
       }
       const fileUrl = URL.createObjectURL(file);

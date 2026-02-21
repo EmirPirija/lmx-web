@@ -98,7 +98,7 @@ const ModernFilter = ({
         <div className="px-6 py-4 bg-gradient-to-r from-primary/5 via-primary/3 to-transparent border-b border-gray-200">
           <div className="flex items-center gap-3">
             <SlidersHorizontal className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-bold text-gray-900">{t("filters")}</h2>
+            <h2 className="text-xl font-bold text-gray-900">{"Filteri"}</h2>
           </div>
         </div>
 
@@ -114,29 +114,29 @@ const ModernFilter = ({
 
         {/* Filter Sections */}
         <div className="divide-y divide-gray-200">
-          <FilterSection title={t("category")} section="category">
+          <FilterSection title={"Kategorije"} section="category">
             <ModernFilterTree key={langId} extraDetails={extraDetails} />
           </FilterSection>
 
-          <FilterSection title={t("location")} section="location">
+          <FilterSection title={"Lokacija"} section="location">
             <ModernLocationTree />
           </FilterSection>
 
-          <FilterSection title={t("budget")} section="budget">
+          <FilterSection title={"Budžet"} section="budget">
             <ModernBudgetFilter />
           </FilterSection>
 
-          <FilterSection title={t("datePosted")} section="datePosted">
+          <FilterSection title={"Datum objave"} section="datePosted">
             <ModernDatePostedFilter />
           </FilterSection>
 
-          <FilterSection title={t("nearByKmRange")} section="range">
+          <FilterSection title={"U blizini (KM)"} section="range">
             <ModernRangeFilter />
           </FilterSection>
 
           {isShowCustomfieldFilter && (
             <FilterSection 
-              title={t("extradetails")} 
+              title={"Dodatni detalji"} 
               section="extraDetails"
               badge={Object.keys(extraDetails || {}).length || null}
             >

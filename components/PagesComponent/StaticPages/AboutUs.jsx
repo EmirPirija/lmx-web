@@ -37,7 +37,7 @@ const AboutUs = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("aboutUs")} />
+      <BreadCrumb title2={"O nama"} />
       <div className="container">
         <div className="py-7">
           {isFallback ? (

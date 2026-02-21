@@ -192,7 +192,7 @@ const HomeMobileMenu = ({
         onClick={() => setIsOpen(false)}
       >
         <IconBell size={22} />
-        <span>{t("notifications")}</span>
+        <span>{"Obavještenja"}</span>
       </CustomLink>
       <button
         type="button"
@@ -211,7 +211,7 @@ const HomeMobileMenu = ({
         onClick={() => setIsOpen(false)}
       >
         <IconHeart size={22} />
-        <span>{t("favorites")}</span>
+        <span>{"Favoriti"}</span>
       </CustomLink>
       <CustomLink
         href="/transactions"
@@ -219,7 +219,7 @@ const HomeMobileMenu = ({
         onClick={() => setIsOpen(false)}
       >
         <IconFileText size={22} />
-        <span>{t("transaction")}</span>
+        <span>{"Transakcije"}</span>
       </CustomLink>
       <CustomLink
         href="/reviews"
@@ -227,7 +227,7 @@ const HomeMobileMenu = ({
         onClick={() => setIsOpen(false)}
       >
         <IconMessage size={22} />
-        <span>{t("myReviews")}</span>
+        <span>{"Moje recenzije"}</span>
       </CustomLink>
       <CustomLink
         href="/job-applications"
@@ -235,21 +235,21 @@ const HomeMobileMenu = ({
         onClick={() => setIsOpen(false)}
       >
         <IconBriefcase size={22} />
-        <span>{t("jobApplications")}</span>
+        <span>{"Prijave za posao"}</span>
       </CustomLink>
       <button
         onClick={handleSignOut}
         className="flex items-center gap-2 py-3 text-left w-full"
       >
         <IconLogout size={22} />
-        <span>{t("signOut")}</span>
+        <span>{"Odjava"}</span>
       </button>
       <button
         onClick={handleDeleteAccount}
         className="flex items-center gap-2 text-destructive py-3 text-left w-full"
       >
         <IconTrash size={22} />
-        <span>{t("deleteAccount")}</span>
+        <span>{"Obriši račun"}</span>
       </button>
     </div>
   );
@@ -331,7 +331,7 @@ const HomeMobileMenu = ({
               )}
             </div>
             <span className="text-[11px] font-medium">
-              {t("adListing")}
+              {"Lista oglasa"}
             </span>
           </button>
 
@@ -349,7 +349,7 @@ const HomeMobileMenu = ({
                 isMyAdsActive ? "text-primary font-medium" : ""
               }`}
             >
-              {t("myAds")}
+              {"Moji oglasi"}
             </span>
           </CustomLink>
 
@@ -368,7 +368,7 @@ const HomeMobileMenu = ({
                 isProfileActive ? "text-primary font-medium" : ""
               }`}
             >
-              {t("myProfile")}
+              {"Moj profil"}
             </span>
           </CustomLink>
 

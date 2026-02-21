@@ -140,7 +140,7 @@ const UserVerification = () => {
             <Input
               type="number"
               inputMode="numeric"
-              placeholder={`${t("enter")} ${translated_name || name}`}
+              placeholder={`${"Unesi"} ${translated_name || name}`}
               {...inputProps}
               onKeyDown={(e) => handleKeyDown(e, max_length)}
               onKeyPress={(e) => inpNum(e)}
@@ -157,7 +157,7 @@ const UserVerification = () => {
         return (
           <div className=" flex flex-col">
             <Textarea
-              placeholder={`${t("enter")} ${translated_name || name}`}
+              placeholder={`${"Unesi"} ${translated_name || name}`}
               {...inputProps}
             />
             {max_length && (
@@ -181,13 +181,13 @@ const UserVerification = () => {
               <SelectTrigger className="outline-none focus:outline-none">
                 <SelectValue
                   className="font-semibold"
-                  placeholder={`${t("select")} ${translated_name || name}`}
+                  placeholder={`${"Odaberi"} ${translated_name || name}`}
                 />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel value="">
-                    {t("select")} {translated_name || name}
+                    {"Odaberi"} {translated_name || name}
                   </SelectLabel>
                   {values?.map((option, index) => (
                     <SelectItem
@@ -278,7 +278,7 @@ const UserVerification = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        {t("viewPdf")}
+                        {"Pogledaj PDF"}
                       </CustomLink>
                     </>
                   ) : (
@@ -301,7 +301,7 @@ const UserVerification = () => {
               onChange={(e) => handleFileChange(id, e.target.files[0])}
             />
             <span className="text-sm text-muted-foreground">
-              {t("allowedFileType")}
+              {"Dozvoljeno: PNG, JPG, JPEG, SVG, PDF"}
             </span>
           </>
         );
@@ -323,7 +323,7 @@ const UserVerification = () => {
     if (file) {
       const allowedExtensions = /\.(jpg|jpeg|svg|png|pdf)$/i;
       if (!allowedExtensions.test(file.name)) {
-        toast.error(t("notAllowedFile"));
+        toast.error("Podržano: JPG, JPEG, SVG, PNG i PDF");
         return;
       }
       const fileUrl = URL.createObjectURL(file);
@@ -352,7 +352,7 @@ const UserVerification = () => {
 
   const handleVerify = async () => {
     if (VerificationStatus === "approved") {
-      toast.error(t("verificationDoneAlready"));
+      toast.error("Već si odobren/a. Nema potrebe ponovo.");
       return;
     }
     if (
@@ -360,7 +360,7 @@ const UserVerification = () => {
       VerificationStatus === "pending" ||
       VerificationStatus === "submitted"
     ) {
-      toast.error(t("verificationAlreadyInReview"));
+      toast.error("Verifikacija je već na pregledu.");
       return;
     }
 
@@ -399,7 +399,7 @@ const UserVerification = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("userVerification")} />
+      <BreadCrumb title2={"Verifikacija korisnika"} />
 
       {verificationLoading ? (
         <PageLoader />
@@ -408,7 +408,7 @@ const UserVerification = () => {
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-3 justify-between">
               <h1 className="text-2xl font-semibold">
-                {t("userVerification")}
+                {"Verifikacija korisnika"}
               </h1>
               {hasTextbox && (
                 <AdLanguageSelector
@@ -450,7 +450,7 @@ const UserVerification = () => {
                 disabled={isVerifying}
                 onClick={handleVerify}
               >
-                {isVerifying ? t("loading") : t("verify")}
+                {isVerifying ? "Učitavanje..." : "Potvrdi"}
               </button>
             </div>
           </div>

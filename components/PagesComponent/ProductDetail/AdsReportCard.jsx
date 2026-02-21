@@ -28,19 +28,19 @@ const AdsReportCard = ({ productDetails, setProductDetails }) => {
   </g>
 </svg>
         </div>
-        <p className="text-base">{t("reportItmLabel")}</p>
+        <p className="text-base">{"Jesi li primijetio/la problem s oglasom?"}</p>
       </div>
       <div className="border-b w-full"></div>
       <div className="flex p-4 justify-between">
         <div className="flex items-center gap-2">
-          <p className="text-base font-medium">{t("adId")}</p>
+          <p className="text-base font-medium">{"ID oglasa"}</p>
           <p className="text-base font-medium"> #{productDetails?.id}</p>
         </div>
         <button
           className=" bg-muted text-primary font-semibold py-1 px-2 rounded-md text-sm"
           onClick={handleReportAd}
         >
-          {t("reportAd")}
+          {"Prijavi oglas"}
         </button>
       </div>
       <ReportModal

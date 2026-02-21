@@ -66,11 +66,11 @@ const JobApplications = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
-        return <Badge className="bg-yellow-500">{t("pending")}</Badge>;
+        return <Badge className="bg-yellow-500">{"Na čekanju"}</Badge>;
       case "accepted":
-        return <Badge className="bg-green-600">{t("accepted")}</Badge>;
+        return <Badge className="bg-green-600">{"Prihvaćeno"}</Badge>;
       case "rejected":
-        return <Badge className="bg-red-500">{t("rejected")}</Badge>;
+        return <Badge className="bg-red-500">{"Odbijeno"}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -89,11 +89,11 @@ const JobApplications = () => {
             <Table>
               <TableHeader className="bg-muted">
                 <TableRow className="text-xs sm:text-sm">
-                  <TableHead>{t("jobTitle")}</TableHead>
-                  <TableHead>{t("recruiter")}</TableHead>
-                  <TableHead>{t("status")}</TableHead>
-                  <TableHead>{t("appliedDate")}</TableHead>
-                  <TableHead>{t("resume")}</TableHead>
+                  <TableHead>{"Naziv posla"}</TableHead>
+                  <TableHead>{"Regruter"}</TableHead>
+                  <TableHead>{"Status"}</TableHead>
+                  <TableHead>{"Datum prijave"}</TableHead>
+                  <TableHead>{"CV"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs sm:text-sm">
@@ -118,11 +118,11 @@ const JobApplications = () => {
                           className="text-primary underline font-medium"
                           rel="noopener noreferrer"
                         >
-                          {t("viewResume")}
+                          {"Pogledaj CV"}
                         </CustomLink>
                       ) : (
                         <span className="text-muted-foreground italic text-sm">
-                          {t("notAvailable")}
+                          {"Nije dostupno"}
                         </span>
                       )}
                     </TableCell>
@@ -141,7 +141,7 @@ const JobApplications = () => {
           </div>
         </>
       ) : (
-        <NoData name={t("jobApplications")} />
+        <NoData name={"Prijave za posao"} />
       )}
     </>
   );

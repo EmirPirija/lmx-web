@@ -10,10 +10,10 @@ const NotFound = () => {
     <div className="flex flex-col items-center justify-center h-screen gap-3">
       <CustomImage src={notFoundImg} width={200} height={200} alt="not found" />
       <h3 className="text-2xl font-semibold text-primary text-center">
-        {t("pageNotFound")}
+        {"Stranica nije pronađena"}
       </h3>
       <Link href="/" className="flex items-center gap-2">
-        <FaArrowLeft /> {t("back")}
+        <FaArrowLeft /> {"Nazad"}
       </Link>
     </div>
   );

@@ -14,7 +14,7 @@ const PhonepePayment = ({ selectedPackage }) => {
 
   const handlePhonepePayment = async () => {
     if (!userData?.mobile) {
-      toast.error(t("addMobileNumberToProceed"));
+      toast.error("Dodaj broj telefona da nastaviš.");
       return;
     }
     try {
@@ -50,7 +50,7 @@ const PhonepePayment = ({ selectedPackage }) => {
       }
     } catch (error) {
       console.error("Error during PhonePe payment", error);
-      toast.error(t("errorOccurred"));
+      toast.error("Došlo je do greške.");
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +70,7 @@ const PhonepePayment = ({ selectedPackage }) => {
                 className="w-full h-full "
               />
             </div>
-            <p className="text-lg font-semibold">{t("phonepe")}</p>
+            <p className="text-lg font-semibold">{"PhonePe"}</p>
           </div>
           <div>
             {isLoading ? (

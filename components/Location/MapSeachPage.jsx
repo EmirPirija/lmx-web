@@ -19,7 +19,7 @@ const MapSearchView = dynamic(
       <div className="w-full h-[700px] flex items-center justify-center bg-slate-100 rounded-2xl border">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-slate-600">{t("loadingMap") || "Učitavanje mape..."}</p>
+          <p className="text-slate-600">{"Učitavanje mape..." || "Učitavanje mape..."}</p>
         </div>
       </div>
     ),
@@ -90,11 +90,11 @@ const MapSearchPage = () => {
         const formattedAds = transformItemsForMap(items);
         setAds(formattedAds);
       } else {
-        toast.error(response?.data?.message || t("errorFetchingAds"));
+        toast.error(response?.data?.message || "Greška pri učitavanju oglasa.");
       }
     } catch (error) {
       console.error("Error fetching map ads:", error);
-      toast.error(t("errorOccurred") || "Došlo je do greške");
+      toast.error("Došlo je do greške." || "Došlo je do greške");
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ const MapSearchPage = () => {
 
   const handleCurrentLocationClick = () => {
     // Could open LocationModal or do something else
-    toast.info(t("openLocationSettings") || "Otvorite postavke lokacije");
+    toast.info("Otvori postavke lokacije" || "Otvorite postavke lokacije");
   };
 
   // No location selected state
@@ -150,21 +150,21 @@ const MapSearchPage = () => {
               </svg>
             </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">
-              {t("selectLocationFirst") || "Odaberite lokaciju"}
+              {"Prvo odaberi lokaciju" || "Odaberite lokaciju"}
             </h2>
             <p className="text-slate-600 mb-6">
-              {t("selectLocationToSeeAdsOnMap") ||
+              {"Odaberi lokaciju da vidiš oglase na mapi" ||
                 "Molimo odaberite lokaciju da vidite oglase na mapi"}
             </p>
             <button
               onClick={() => {
                 // Trigger location modal
                 // You can dispatch an action or use a context
-                toast.info(t("openLocationSettings"));
+                toast.info("Otvori postavke lokacije");
               }}
               className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors"
             >
-              {t("selectLocation") || "Odaberi lokaciju"}
+              {"Odaberi lokaciju" || "Odaberi lokaciju"}
             </button>
           </div>
         </div>
@@ -178,24 +178,24 @@ const MapSearchPage = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-3xl font-bold text-slate-800">
-            {t("mapSearch") || "Pretraga na mapi"}
+            {"Pretraga na mapi" || "Pretraga na mapi"}
           </h1>
           {!loading && ads.length > 0 && (
             <div className="text-sm text-slate-600">
               <span className="font-semibold text-primary">{ads.length}</span>{" "}
-              {t("adsFound") || "oglasa"}
+              {"oglasa" || "oglasa"}
             </div>
           )}
         </div>
         <p className="text-slate-600">
           {cityData?.formattedAddress && (
             <>
-              {t("showingAdsNear") || "Prikazujem oglase blizu"}{" "}
+              {"Prikazujem oglase blizu" || "Prikazujem oglase blizu"}{" "}
               <span className="font-medium">{cityData.formattedAddress}</span>
               {kmRange > 0 && (
                 <span className="text-slate-500">
                   {" "}
-                  ({kmRange} km {t("radius") || "radius"})
+                  ({kmRange} km {"radijus" || "radius"})
                 </span>
               )}
             </>
@@ -223,10 +223,10 @@ const MapSearchPage = () => {
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" />
               </svg>
-              {t("tipTitle") || "Savjet"}
+              {"Savjet" || "Savjet"}
             </h3>
             <p className="text-sm text-blue-800">
-              {t("mapTip1") ||
+              {"Klikni na marker da vidiš detalje i otvoriš oglas." ||
                 "Kliknite na marker da vidite detalje oglasa, ili na karticu u listi za brzu navigaciju."}
             </p>
           </div>
@@ -240,10 +240,10 @@ const MapSearchPage = () => {
                   clipRule="evenodd"
                 />
               </svg>
-              {t("quickFilter") || "Brzi filteri"}
+              {"Brzi filteri" || "Brzi filteri"}
             </h3>
             <p className="text-sm text-green-800">
-              {t("mapTip2") ||
+              {"Koristi brze filtere i radijus da suziš rezultate." ||
                 "Koristite filtere iznad mape da suzite pretragu po kategoriji, cijeni ili statusu."}
             </p>
           </div>
@@ -269,10 +269,10 @@ const MapSearchPage = () => {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-slate-800 mb-2">
-            {t("noAdsInThisArea") || "Nema oglasa u ovoj oblasti"}
+            {"Nema oglasa u ovoj oblasti" || "Nema oglasa u ovoj oblasti"}
           </h3>
           <p className="text-slate-600 mb-4">
-            {t("tryExpandingSearch") ||
+            {"Pokušaj povećati radijus ili ukloniti neke filtere." ||
               "Pokušajte proširiti radius pretrage ili promijenite filtere"}
           </p>
           <button
@@ -286,7 +286,7 @@ const MapSearchPage = () => {
             }}
             className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition-colors"
           >
-            {t("resetFilters") || "Resetuj filtere"}
+            {"Resetuj filtere" || "Resetuj filtere"}
           </button>
         </div>
       )}

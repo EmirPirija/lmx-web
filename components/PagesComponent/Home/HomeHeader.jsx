@@ -9,7 +9,7 @@ import { toast } from "@/utils/toastBs";
 import { AnimatePresence, motion } from "framer-motion";
 
 import FirebaseData from "@/utils/Firebase.js";
-import { t, truncate } from "@/utils";
+import { truncate } from "@/utils";
 import { useNavigate } from "@/components/Common/useNavigate.jsx";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage.jsx";
@@ -250,7 +250,7 @@ const HomeHeader = () => {
 
       if (res?.data?.error === false) {
         logoutSuccess();
-        toast.success(t("signOutSuccess"));
+        toast.success("Odjava uspješna");
         setIsLogout(false);
         if (pathname !== "/") navigate("/");
       } else {
@@ -287,7 +287,7 @@ const HomeHeader = () => {
       if (res?.data?.error === false) {
         navigate("/ad-listing");
       } else {
-        toast.error(t("purchasePlan"));
+        toast.error("Za kreiranje oglasa moraš kupiti plan. Idi na Planove i cijene.");
         navigate("/subscription");
       }
     } catch (error) {
@@ -312,7 +312,7 @@ const HomeHeader = () => {
       await deleteUserApi.deleteUser();
 
       logoutSuccess();
-      toast.success(t("userDeleteSuccess"));
+      toast.success("Račun je obrisan");
       setManageDeleteAccount({ IsDeleteAccount: false, IsDeleting: false });
 
       if (pathname !== "/") navigate("/");
@@ -320,7 +320,7 @@ const HomeHeader = () => {
       console.error("Greška prilikom brisanja korisnika:", error?.message);
       if (error?.code === "auth/requires-recent-login") {
         logoutSuccess();
-        toast.error(t("deletePop"));
+        toast.error("Prijavi se ponovo da obrišeš račun");
         setManageDeleteAccount({ IsDeleteAccount: false, IsDeleting: false });
       } else {
         toast.error("Brisanje računa nije uspjelo. Pokušajte ponovo.");
@@ -926,7 +926,7 @@ const HomeHeader = () => {
                           href={link.href}
                           className={quickLinkChipClass}
                         >
-                          {link.label || t(link.labelKey)}
+                          {link.label}
                         </CustomLink>
                       ))}
 
@@ -956,7 +956,7 @@ const HomeHeader = () => {
                                   href={link.href}
                                   className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
                                 >
-                                  {link.label || t(link.labelKey)}
+                                  {link.label}
                                 </CustomLink>
                               </DropdownMenuItem>
                             ))}
@@ -995,7 +995,7 @@ const HomeHeader = () => {
                         type="button"
                         title="Prijava"
                       >
-                        {truncate(t("login"), 12)}
+                        {truncate("Prijava", 12)}
                       </button>
                       <button
                         onClick={() => setIsRegisterModalOpen(true)}
@@ -1003,7 +1003,7 @@ const HomeHeader = () => {
                         type="button"
                         title="Registracija"
                       >
-                        {truncate(t("register"), 12)}
+                        {truncate("Registracija", 12)}
                       </button>
                     </div>
                   )}
@@ -1275,7 +1275,7 @@ const HomeHeader = () => {
                                     onClick={closeMobileUtilityMenu}
                                     className="inline-flex h-9 items-center rounded-full border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
                                   >
-                                    {link.label || t(link.labelKey)}
+                                    {link.label}
                                   </CustomLink>
                                 ))}
 
@@ -1318,7 +1318,7 @@ const HomeHeader = () => {
                                             onClick={closeMobileUtilityMenu}
                                             className="w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                                           >
-                                            {link.label || t(link.labelKey)}
+                                            {link.label}
                                           </CustomLink>
                                         ))}
                                       </div>
@@ -1398,10 +1398,10 @@ const HomeHeader = () => {
         open={IsLogout}
         onCancel={() => setIsLogout(false)}
         onConfirm={handleLogout}
-        title={t("confirmLogout")}
-        description={t("areYouSureToLogout")}
-        cancelText={t("cancel")}
-        confirmText={t("yes")}
+        title={"Potvrdi odjavu"}
+        description={"Sigurno se želiš odjaviti? Morat ćeš se ponovo prijaviti."}
+        cancelText={"Otkaži"}
+        confirmText={"Da"}
         confirmDisabled={IsLoggingOut}
       />
 
@@ -1409,10 +1409,10 @@ const HomeHeader = () => {
         open={IsUpdatingProfile}
         onCancel={() => setIsUpdatingProfile(false)}
         onConfirm={handleUpdateProfile}
-        title={t("updateProfile")}
-        description={t("youNeedToUpdateProfile")}
-        confirmText={t("goToProfile")}
-        cancelText={t("cancel")}
+        title={"Ažuriraj profil"}
+        description={"Prvo ažuriraj profil da dodaš oglas!"}
+        confirmText={"Idi na profil"}
+        cancelText={"Otkaži"}
       />
 
       <ReusableAlertDialog
@@ -1421,10 +1421,10 @@ const HomeHeader = () => {
           setManageDeleteAccount((prev) => ({ ...prev, IsDeleteAccount: false }))
         }
         onConfirm={handleDeleteAcc}
-        title={t("deleteAccount")}
-        description={t("deleteAccountText")}
-        cancelText={t("cancel")}
-        confirmText={t("yes")}
+        title={"Obriši račun"}
+        description={"Brisanjem računa trajno gubiš oglase, poruke i postavke."}
+        cancelText={"Otkaži"}
+        confirmText={"Da"}
         confirmDisabled={manageDeleteAccount.IsDeleting}
       />
 

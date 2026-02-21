@@ -58,10 +58,10 @@ const Blogs = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("ourBlogs")} />
+      <BreadCrumb title2={"Naši blogovi"} />
       <div className="container">
         <div className="flex flex-col mt-8 gap-6">
-          <h1 className="text-2xl font-medium">{t("ourBlogs")}</h1>
+          <h1 className="text-2xl font-medium">{"Naši blogovi"}</h1>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-4 ">
             <div className="lg:col-span-8 col-span-12 order-2 lg:order-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -73,7 +73,7 @@ const Blogs = () => {
                   blogs?.map((blog) => <BlogCard key={blog?.id} blog={blog} />)
                 ) : (
                   <div className="col-span-full">
-                    <NoData name={t("blog")} />
+                    <NoData name={"Blog"} />
                   </div>
                 )}
               </div>
@@ -85,7 +85,7 @@ const Blogs = () => {
                     disabled={isLoading || isLoadMore}
                     onClick={handleLoadMore}
                   >
-                    {isLoadMore ? t("loading") : t("loadMore")}
+                    {isLoadMore ? "Učitavanje..." : "Učitaj još"}
                   </Button>
                 </div>
               )}

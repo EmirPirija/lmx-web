@@ -420,7 +420,7 @@ const ComponentFive = ({
 
   const handlePublishClick = () => {
     if (!hasAddressData) {
-      toast.error(t("pleaseSelectCity"));
+      toast.error("Odaberi lokaciju");
       return;
     }
 

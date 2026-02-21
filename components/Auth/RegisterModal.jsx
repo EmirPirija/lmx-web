@@ -130,15 +130,15 @@ const RegisterModal = ({
         sendOTP();
       } else {
         // Show an error message indicating that the phone number is not valid
-        toast.error(t("invalidPhoneNumber"));
+        toast.error("Neispravan broj telefona");
         setShowLoader(false);
       }
     } else {
       setShowLoader(false);
       if (email_authentication === 0 && mobile_authentication === 1) {
-        toast.error(t("invalidPhoneNumber"));
+        toast.error("Neispravan broj telefona");
       } else {
-        toast.error(t("invalidPhoneNumberOrEmail"));
+        toast.error("Unesi ispravan broj ili e-mail");
       }
     }
   };
@@ -239,12 +239,12 @@ const RegisterModal = ({
     try {
       const response = await getOtpApi.getOtp({ number: PhoneNumber });
       if (response?.data?.error === false) {
-        toast.success(t("otpSentSuccess"));
+        toast.success("OTP poslan");
         setIsOTPScreen(true);
         setIsLoginScreen(false);
         setResendTimer(60); // Start the 60-second timer
       } else {
-        toast.error(t("failedToSendOtp"));
+        toast.error("Slanje OTP koda nije uspjelo.");
       }
     } catch (error) {
       console.error("error", error);
@@ -266,7 +266,7 @@ const RegisterModal = ({
         appVerifier,
       );
       setConfirmationResult(confirmation);
-      toast.success(t("otpSentSuccess"));
+      toast.success("OTP poslan");
       setIsOTPScreen(true);
       setIsLoginScreen(false);
     } catch (error) {
@@ -291,21 +291,21 @@ const RegisterModal = ({
     e.preventDefault();
 
     if (!email) {
-      toast.error(t("emailRequired"));
+      toast.error("E-mail je obavezan");
       return;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      toast.error(t("emailInvalid"));
+      toast.error("Neispravan e-mail");
       return;
     }
     if (username?.trim() === "") {
-      toast.error(t("usernameRequired"));
+      toast.error("Korisničko ime je obavezno");
       return;
     }
     if (!password) {
-      toast.error(t("passwordRequired"));
+      toast.error("Lozinka je obavezna");
       return;
     } else if (password.length < 6) {
-      toast.error(t("passwordTooShort"));
+      toast.error("Lozinka mora imati najmanje 6 znakova");
       return;
     }
     try {
@@ -505,25 +505,23 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             email_authentication === 1 && (
                               <RegisterAuthInputField
                                 type={inputType === "number" ? "phone" : "text"}
-                                label="emailOrPhoneNumber"
-                                placeholder="enterEmailPhone"
+                                label="E-mail ili broj telefona"
+                                placeholder="Unesi e-mail ili broj"
                                 value={
                                   inputType === "number" ? number : inputValue
                                 }
                                 handleInputChange={handleInputChange}
                                 setCountryCode={setCountryCode}
-                                t={t}
                               />
                             )}
                           {email_authentication === 1 &&
                             mobile_authentication === 0 && (
                               <RegisterAuthInputField
                                 type="email"
-                                label="email"
-                                placeholder="enterEmail"
+                                label="E-mail"
+                                placeholder="Unesi e-mail"
                                 value={inputValue}
                                 handleInputChange={handleInputChange}
-                                t={t}
                               />
                             )}
 
@@ -531,12 +529,11 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             email_authentication === 0 && (
                               <RegisterAuthInputField
                                 type="phone"
-                                label="phoneNumber"
-                                placeholder="enterPhoneNumber"
+                                label="Broj telefona"
+                                placeholder="Unesi broj telefona"
                                 value={number}
                                 handleInputChange={handleInputChange}
                                 setCountryCode={setCountryCode}
-                                t={t}
                               />
                             )}
 

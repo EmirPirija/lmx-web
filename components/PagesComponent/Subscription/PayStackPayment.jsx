@@ -41,7 +41,7 @@ const PayStackPayment = ({ packageSettings, selectedPackage }) => {
       }
     } catch (error) {
       console.error("An error occurred while processing the payment:", error);
-      toast.error(t("errorOccurred"));
+      toast.error("Došlo je do greške.");
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +61,7 @@ const PayStackPayment = ({ packageSettings, selectedPackage }) => {
                 className="w-full h-full "
               />
             </div>
-            <p className="text-lg font-semibold">{t("payStack")}</p>
+            <p className="text-lg font-semibold">{"Paystack"}</p>
           </div>
           <div>
             {isLoading ? (

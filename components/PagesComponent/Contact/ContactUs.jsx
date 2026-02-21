@@ -108,28 +108,28 @@ const ContactUs = () => {
 
     // Name validation
     if (!trimmedData.name) {
-      newErrors.name = t("nameRequired");
+      newErrors.name = "Ime je obavezno";
       isValid = false;
     }
 
     // Email validation
     if (!trimmedData.email) {
-      newErrors.email = t("emailRequired");
+      newErrors.email = "E-mail je obavezan";
       isValid = false;
     } else if (!validateEmail(trimmedData.email)) {
-      newErrors.email = t("invalidEmail");
+      newErrors.email = "Neispravan e-mail.";
       isValid = false;
     }
 
     // Subject validation
     if (!trimmedData.subject) {
-      newErrors.subject = t("subjectRequired");
+      newErrors.subject = "Naslov je obavezan";
       isValid = false;
     }
 
     // Message validation
     if (!trimmedData.message) {
-      newErrors.message = t("messageRequired");
+      newErrors.message = "Poruka je obavezna";
       isValid = false;
     }
 
@@ -150,7 +150,7 @@ const ContactUs = () => {
         };
         const res = await contactUsApi.contactUs(payload);
         if (res?.data?.error === false) {
-          toast.success(t("thankForContacting"));
+          toast.success("Hvala na poruci! Javit ćemo se uskoro.");
           setFormData({
             name: "",
             email: "",
@@ -158,10 +158,10 @@ const ContactUs = () => {
             message: "",
           });
         } else {
-          toast.error(getApiErrorMessage(res?.data, t("errorOccurred")));
+          toast.error(getApiErrorMessage(res?.data, "Došlo je do greške."));
         }
       } catch (error) {
-        toast.error(getApiErrorMessage(error?.response?.data, t("errorOccurred")));
+        toast.error(getApiErrorMessage(error?.response?.data, "Došlo je do greške."));
         console.log(error);
       } finally {
         setIsLoading(false);
@@ -171,17 +171,17 @@ const ContactUs = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={t("contactUs")} />
+      <BreadCrumb title2={"Kontakt"} />
       <div className="container">
-        <h1 className="sectionTitle mt-8">{t("contactUs")}</h1>
+        <h1 className="sectionTitle mt-8">{"Kontakt"}</h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 mt-6 border rounded-lg">
           {/* Contact Form */}
           <div className="lg:col-span-2 p-4 sm:p-6 rounded-lg">
             <h2 className="text-lg sm:text-xl font-medium mb-2">
-              {t("sendMessage")}
+              {"Pošalji poruku"}
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground mb-6">
-              {t("contactIntro")}
+              {"Javi nam se za pitanja ili prijedloge."}
             </p>
 
             <form onSubmit={handleSubmit}>
@@ -189,13 +189,13 @@ const ContactUs = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="labelInputCont">
                     <Label htmlFor="name" className="requiredInputLabel">
-                      {t("name")}
+                      {"Ime"}
                     </Label>
                     <Input
                       id="name"
                       name="name"
                       type="text"
-                      placeholder={t("enterName")}
+                      placeholder={"Unesi ime"}
                       value={formData.name}
                       onChange={handleChange}
                       className={
@@ -213,13 +213,13 @@ const ContactUs = () => {
 
                   <div className="labelInputCont">
                     <Label htmlFor="email" className="requiredInputLabel">
-                      {t("email")}
+                      {"E-mail"}
                     </Label>
                     <Input
                       id="email"
                       name="email"
                       type="text"
-                      placeholder={t("enterEmail")}
+                      placeholder={"Unesi e-mail"}
                       value={formData.email}
                       onChange={handleChange}
                       className={
@@ -238,13 +238,13 @@ const ContactUs = () => {
 
                 <div className="labelInputCont">
                   <Label htmlFor="subject" className="requiredInputLabel">
-                    {t("subject")}
+                    {"Naslov"}
                   </Label>
                   <Input
                     id="subject"
                     name="subject"
                     type="text"
-                    placeholder={t("enterSubject")}
+                    placeholder={"Unesi naslov"}
                     value={formData.subject}
                     onChange={handleChange}
                     className={
@@ -262,12 +262,12 @@ const ContactUs = () => {
 
                 <div className="labelInputCont">
                   <Label htmlFor="message" className="requiredInputLabel">
-                    {t("message")}
+                    {"Poruka"}
                   </Label>
                   <Textarea
                     id="message"
                     name="message"
-                    placeholder={t("enterMessage")}
+                    placeholder={"Unesi poruku"}
                     value={formData.message}
                     onChange={handleChange}
                     className={
@@ -288,10 +288,10 @@ const ContactUs = () => {
                     {IsLoading ? (
                       <>
                         <Loader2 className="animate-spin" />
-                        {t("submitting")}
+                        {"Šaljem..."}
                       </>
                     ) : (
-                      t("submit")
+                      "Pošalji"
                     )}
                   </Button>
                 </div>
@@ -302,7 +302,7 @@ const ContactUs = () => {
           {/* Contact Information */}
           <div className="bg-[#1a1a1a] text-white p-4 sm:p-6 rounded-lg">
             <h2 className="text-lg sm:text-xl font-medium mb-6">
-              {t("contactInfo")}
+              {"Kontakt"}
             </h2>
             <div className="space-y-6">
               <div className="max-w-full prose lg:prose-lg prose-invert">
@@ -355,7 +355,7 @@ const ContactUs = () => {
 
               <div>
                 <h3 className="text-lg sm:text-xl font-medium mb-6">
-                  {t("socialMedia")}
+                  {"Društvene mreže"}
                 </h3>
                 <div className="flex flex-wrap gap-4">
                   {settings?.facebook_link && (

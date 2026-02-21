@@ -109,7 +109,7 @@ const OtpScreen = ({
   const verifyOTP = async (e) => {
     e.preventDefault();
     if (otp === "") {
-      toast.error(t("otpmissing"));
+      toast.error("Unesi OTP");
       return;
     }
     setShowLoader(true);
@@ -124,10 +124,10 @@ const OtpScreen = ({
     try {
       const response = await getOtpApi.getOtp({ number: PhoneNumber });
       if (response?.data?.error === false) {
-        toast.success(t("otpSentSuccess"));
+        toast.success("OTP poslan");
         setResendTimer(60); // Start the 60-second timer
       } else {
-        toast.error(t("failedToSendOtp"));
+        toast.error("Slanje OTP koda nije uspjelo.");
       }
     } catch (error) {
       console.log(error);
@@ -149,7 +149,7 @@ const OtpScreen = ({
         appVerifier,
       );
       setConfirmationResult(confirmation);
-      toast.success(t("otpSentSuccess"));
+      toast.success("OTP poslan");
     } catch (error) {
       handleFirebaseAuthError(error);
     } finally {
@@ -179,11 +179,11 @@ const OtpScreen = ({
 
       <div className="labelInputCont">
         <Label className="requiredInputLabel text-sm font-semibold text-slate-700">
-          {t("otp")}
+          {"OTP"}
         </Label>
         <Input
           type="text"
-          placeholder={t("enterOtp")}
+          placeholder={"Unesi OTP"}
           id="otp"
           name="otp"
           value={otp}
@@ -203,7 +203,7 @@ const OtpScreen = ({
         {showLoader ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
-          t("verify")
+          "Potvrdi"
         )}
       </Button>
 
@@ -218,9 +218,9 @@ const OtpScreen = ({
         {resendOtpLoader ? (
           <Loader2 className="size-6 animate-spin" />
         ) : resendTimer > 0 ? (
-          `${t("resendOtp")} ${resendTimer}s`
+          `${"Pošalji OTP ponovo"} ${resendTimer}s`
         ) : (
-          t("resendOtp")
+          "Pošalji OTP ponovo"
         )}
       </Button>
     </form>

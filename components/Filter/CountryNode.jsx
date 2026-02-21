@@ -148,7 +148,7 @@ const CountryNode = ({ country }) => {
               className="text-primary text-center text-sm py-1 px-2"
               disabled={states.isLoadMore}
             >
-              {states.isLoadMore ? t("loading") : t("loadMore")}
+              {states.isLoadMore ? "Učitavanje..." : "Učitaj još"}
             </button>
           )}
         </ul>

@@ -460,16 +460,16 @@ const LocationSelector = ({
             onClick={getCurrentLocation}
           >
             <p className="text-sm font-medium text-primary">
-              {t("useCurrentLocation")}
+              {"Koristi trenutnu lokaciju"}
             </p>
             <p className="text-xs font-normal m-0 text-gray-500">
               {locationStatus === "fetching"
-                ? t("gettingLocation")
+                ? "Učitavam lokaciju..."
                 : locationStatus === "denied"
-                ? t("locationPermissionDenied")
+                ? "Lokacija odbijena"
                 : locationStatus === "error"
-                ? t("error")
-                : t("automaticallyDetectLocation")}
+                ? "Greška"
+                : "Automatski pronađi lokaciju"}
             </p>
           </button>
         </div>

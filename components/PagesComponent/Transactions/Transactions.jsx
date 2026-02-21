@@ -34,10 +34,10 @@ import {
 
 function StatusBadge({ status }) {
   const configs = {
-    succeed: { icon: CheckCircle, text: t("completed"), color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-    pending: { icon: Clock, text: t("pending"), color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-    failed: { icon: XCircle, text: t("failed"), color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-    "under review": { icon: AlertCircle, text: t("underReview"), color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+    succeed: { icon: CheckCircle, text: "Završeno", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+    pending: { icon: Clock, text: "Na čekanju", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+    failed: { icon: XCircle, text: "Neuspješno", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+    "under review": { icon: AlertCircle, text: "Na pregledu", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
   };
 
   const config = configs[status] || { icon: AlertCircle, text: status, color: "bg-slate-100 text-slate-700" };
@@ -81,7 +81,7 @@ function TransactionCard({ transaction, onUploadReceipt }) {
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
               <CreditCard size={12} />
-              {t("paymentMethod")}
+              {"Način plaćanja"}
             </div>
             <div className="font-semibold text-slate-700 dark:text-slate-300">{transaction?.payment_gateway}</div>
           </div>
@@ -89,7 +89,7 @@ function TransactionCard({ transaction, onUploadReceipt }) {
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
               <Calendar size={12} />
-              {t("date")}
+              {"Datum"}
             </div>
             <div className="font-semibold text-slate-700 dark:text-slate-300">
               {formatDateMonthYear(transaction?.created_at)}
@@ -97,7 +97,7 @@ function TransactionCard({ transaction, onUploadReceipt }) {
           </div>
 
           <div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{t("price")}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{"Cijena"}</div>
             <div className="text-lg font-black text-slate-900 dark:text-white">{transaction?.amount}</div>
           </div>
         </div>
@@ -110,7 +110,7 @@ function TransactionCard({ transaction, onUploadReceipt }) {
               className="gap-2 bg-gradient-to-r from-primary to-orange-500 hover:opacity-90 rounded-xl"
             >
               <Upload size={16} />
-              {t("uploadReceipt")}
+              {"Otpremi potvrdu"}
             </Button>
           ) : (
             <StatusBadge status={transaction?.payment_status} />
@@ -121,7 +121,7 @@ function TransactionCard({ transaction, onUploadReceipt }) {
       {/* Transaction ID */}
       <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-500 dark:text-slate-400">{t("transactionId")}</span>
+          <span className="text-slate-500 dark:text-slate-400">{"ID transakcije"}</span>
           <span className="font-mono text-slate-700 dark:text-slate-300">{transaction?.order_id}</span>
         </div>
       </div>
@@ -186,7 +186,7 @@ const Transactions = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="py-16"
       >
-        <NoData name={t("transaction")} />
+        <NoData name={"Transakcije"} />
       </motion.div>
     );
   }

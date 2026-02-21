@@ -380,10 +380,10 @@ const Ads = () => {
     if (BreadcrumbPath.length > 2) {
       const last = BreadcrumbPath[BreadcrumbPath.length - 1]?.name;
       const secondLast = BreadcrumbPath[BreadcrumbPath.length - 2]?.name;
-      return `${last} ${t("in")} ${secondLast}`;
+      return `${last} ${"u"} ${secondLast}`;
     }
 
-    return t("ads");
+    return "Oglasi";
   }, [BreadcrumbPath, t]);
 
   const category =
@@ -795,7 +795,7 @@ const Ads = () => {
       dispatch(
         setBreadcrumbPath([
           {
-            name: t("allCategories"),
+            name: "Sve kategorije",
             key: "all-categories",
             slug: "/ads",
             isAllCategories: true,
@@ -859,7 +859,7 @@ const Ads = () => {
       }
       const breadcrumbArray = [
         {
-          name: t("allCategories"),
+          name: "Sve kategorije",
           key: "all-categories",
           slug: "/ads",
           isAllCategories: true,
@@ -1507,7 +1507,7 @@ const Ads = () => {
     )
   ) : (
     <div className="col-span-12 py-12 flex justify-center">
-      <NoData name={t("ads")} />
+      <NoData name={"Oglasi"} />
     </div>
   );
 
@@ -1794,7 +1794,7 @@ const Ads = () => {
                   onClick={handleClearAll}
                   className="text-sm text-red-500 hover:text-red-700 font-medium underline-offset-4 hover:underline transition-all ml-2"
                 >
-                  {t("clearAll")}
+                  {"Očisti"}
                 </button>
               )}
             </motion.div>
