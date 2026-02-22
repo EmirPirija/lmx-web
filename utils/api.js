@@ -671,6 +671,7 @@ export const updateProfileApi = {
     show_personal_details,
     country_code,
     region_code,
+    auth_token,
   } = {}) => {
     const formData = new FormData();
 
@@ -705,10 +706,16 @@ export const updateProfileApi = {
     }
     // -------------------------------------------------------------
 
+    const headers = {
+      "Content-Type": "multipart/form-data",
+    };
+
+    if (auth_token) {
+      headers.Authorization = `Bearer ${auth_token}`;
+    }
+
     return Api.post(UPDATE_PROFILE, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers,
     });
   },
 };
@@ -2573,7 +2580,7 @@ export const sellerSettingsApi = {
     const formData = new FormData();
 
     if (show_phone !== undefined) formData.append("show_phone", show_phone ? 1 : 0);
-    if (avatar_id) formData.append("avatar_id", avatar_id);
+    if (avatar_id !== undefined) formData.append("avatar_id", avatar_id || "");
     if (show_email !== undefined) formData.append("show_email", show_email ? 1 : 0);
     if (show_whatsapp !== undefined) formData.append("show_whatsapp", show_whatsapp ? 1 : 0);
     if (show_viber !== undefined) formData.append("show_viber", show_viber ? 1 : 0);

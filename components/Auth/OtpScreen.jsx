@@ -226,10 +226,7 @@ const OtpScreen = ({
   };
 
   return (
-    <form
-      className="flex flex-col gap-5 rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 shadow-sm sm:p-5"
-      onSubmit={verifyOTP}
-    >
+    <form className="flex flex-col gap-4 rounded-2xl bg-transparent p-0" onSubmit={verifyOTP}>
       <div className="rounded-xl border border-cyan-300/60 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-700 dark:text-cyan-300">
         Unesi šestocifreni kod koji je poslan na tvoj broj.
       </div>

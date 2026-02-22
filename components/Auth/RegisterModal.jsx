@@ -46,14 +46,18 @@ import {
   settingsData,
 } from "@/redux/reducer/settingSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import { loadUpdateData, loadUpdateUserData } from "@/redux/reducer/authSlice";
+import {
+  loadUpdateData,
+  loadUpdateUserData,
+  logoutSuccess,
+} from "@/redux/reducer/authSlice";
 import {
   getOtpApi,
   updateProfileApi,
   userSignUpApi,
 } from "@/utils/api";
 
-import AuthValuePanel, { AuthCompactHighlights } from "./AuthValuePanel";
+import AuthValuePanel from "./AuthValuePanel";
 import OtpScreen from "./OtpScreen";
 import TermsAndPrivacyLinks from "./TermsAndPrivacyLinks";
 import RegisterAuthInputField from "./RegisterAuthInputField";
@@ -354,6 +358,12 @@ const RegisterModal = ({
       }
     }
   }, [avatarMode, googleDraft?.photoURL, googleAvatarLoadError]);
+
+  useEffect(() => {
+    if (avatarMode !== "studio" && showStudio) {
+      setShowStudio(false);
+    }
+  }, [avatarMode, showStudio]);
 
   useEffect(() => {
     setCropX((prev) => clamp(prev, -cropMaxOffsetX, cropMaxOffsetX));
@@ -791,6 +801,46 @@ const RegisterModal = ({
     return null;
   };
 
+  const persistProfileSetup = async ({
+    name,
+    email,
+    profileFile,
+    countryCodeValue,
+    regionCodeValue,
+    mobileValue,
+    authToken,
+  }) => {
+    const attempts = [1, 2];
+
+    for (const attempt of attempts) {
+      try {
+        const response = await updateProfileApi.updateProfile({
+          name: String(name || "").trim(),
+          email: String(email || "").trim().toLowerCase(),
+          profile: profileFile || undefined,
+          country_code: String(countryCodeValue || "").replace(/\D/g, "") || undefined,
+          region_code: String(regionCodeValue || "").toUpperCase() || undefined,
+          mobile: String(mobileValue || "").trim() || undefined,
+          fcm_id: fetchFCM || "",
+          auth_token: authToken || undefined,
+        });
+
+        if (response?.data?.error === false) {
+          if (response?.data?.data) {
+            loadUpdateUserData(response.data.data);
+          }
+          return { ok: true, response };
+        }
+      } catch (error) {
+        if (attempt === attempts.length) {
+          return { ok: false, error };
+        }
+      }
+    }
+
+    return { ok: false };
+  };
+
   const finalizeEmailRegistration = async () => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedName = String(profileName || "").trim();
@@ -838,12 +888,33 @@ const RegisterModal = ({
         return;
       }
 
+      // Backend token omogućava dodatni "sync" profilnih podataka (posebno za avatar studio).
+      if (response?.data?.token) {
+        loadUpdateData(response.data);
+      }
+
+      if (selectedAvatarFile && response?.data?.token) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const profileSync = await persistProfileSetup({
+          name: normalizedName,
+          email: normalizedEmail,
+          profileFile: selectedAvatarFile,
+          authToken: response?.data?.token,
+        });
+        if (!profileSync?.ok) {
+          toast.warning(
+            "Račun je kreiran, ali profilna slika nije potvrđeno sačuvana. Dodaj je u profilu nakon prijave.",
+          );
+        }
+      }
+
       await sendEmailVerification(firebaseUser);
       try {
         await auth.signOut();
       } catch {
         // Firebase odjava ovdje nije kritična.
       }
+      logoutSuccess();
 
       toast.success(response?.data?.message || "Račun je kreiran. Potvrdi e-mail.");
       await OnHide();
@@ -871,21 +942,26 @@ const RegisterModal = ({
     setIsBusy(true);
     try {
       const selectedAvatarFile = await resolveSelectedAvatarFile();
+      const normalizedMobile = String(authPayload?.data?.mobile || formattedNumber || "").trim();
+      const normalizedCountryCode =
+        String(authPayload?.data?.country_code || countryCode || "").replace(/\D/g, "");
+      const normalizedRegionCode = String(
+        authPayload?.data?.region_code || regionCode || "",
+      ).toUpperCase();
 
-      const response = await updateProfileApi.updateProfile({
+      const profileSync = await persistProfileSetup({
         name: normalizedName,
-        profile: selectedAvatarFile,
-        fcm_id: fetchFCM || "",
+        email: authPayload?.data?.email || "",
+        profileFile: selectedAvatarFile,
+        mobileValue: normalizedMobile,
+        countryCodeValue: normalizedCountryCode,
+        regionCodeValue: normalizedRegionCode,
+        authToken: authPayload?.token,
       });
 
-      if (response?.data?.error === true) {
-        toast.error(response?.data?.message || "Završetak registracije nije uspio.");
+      if (!profileSync?.ok) {
+        toast.error("Završetak registracije nije uspio. Pokušaj ponovo.");
         return;
-      }
-
-      const updatedUser = response?.data?.data;
-      if (updatedUser) {
-        loadUpdateUserData(updatedUser);
       }
 
       toast.success("Registracija je uspješno završena.");
@@ -938,6 +1014,7 @@ const RegisterModal = ({
 
   const hasGooglePhotoUrl = Boolean(String(googleDraft?.photoURL || "").trim());
   const canShowGoogleAvatar = hasGooglePhotoUrl && !googleAvatarLoadError;
+  const canFinalizeAvatarSelection = avatarMode !== "studio" || Boolean(studioBlob);
 
   const openUploadPicker = () => {
     uploadInputRef.current?.click?.();
@@ -997,28 +1074,26 @@ const RegisterModal = ({
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
           className="
-w-[calc(100vw-0.75rem)]
-sm:w-full sm:max-w-6xl
+w-screen max-w-none
+h-dvh max-h-dvh
+overflow-hidden touch-pan-y
+!p-0 gap-0
+rounded-none border-0
+sm:w-[calc(100vw-1.2rem)]
+sm:h-[calc(100dvh-1.2rem)]
+sm:max-h-[calc(100dvh-1.2rem)]
+sm:rounded-[22px]
+sm:border-0
+sm:shadow-[0_24px_80px_-40px_rgba(15,23,42,0.62)]
+lg:max-w-6xl
 xl:max-w-7xl
-2xl:max-w-[1600px]
-max-w-none
-h-[calc(100dvh-0.75rem)]
-sm:h-auto
-max-h-[calc(100dvh-0.75rem)]
-sm:max-h-[calc(100dvh-2rem)]
-overflow-hidden
-touch-pan-y
-gap-0
-rounded-[24px] sm:rounded-[28px]
-border border-border/80
-bg-background
-shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
+2xl:max-w-[1520px]
 "
         >
           <div className="grid h-full min-h-0 lg:grid-cols-[0.95fr_1.25fr]">
             <AuthValuePanel mode={step === "otp" ? "otp" : "register"} />
 
-            <div className="min-h-0 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] bg-gradient-to-b from-background via-background to-muted/35 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+            <div className="h-full min-h-0 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] bg-background px-4 py-4 sm:px-7 sm:py-6 lg:px-8 lg:py-7">
               <div className="mx-auto w-full max-w-[620px]">
                 <DialogHeader className="space-y-3">
                   <div className="inline-flex w-max items-center rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -1043,42 +1118,22 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {STEP_META.map((label, idx) => {
-                    const isDone = idx < activeStepIndex;
-                    const isActive = idx === activeStepIndex;
-                    return (
-                      <motion.div
-                        key={label}
-                        animate={{ scale: isActive ? 1.015 : 1, y: isActive ? -1 : 0 }}
-                        transition={{ type: "spring", stiffness: 320, damping: 26 }}
-                        className={cn(
-                          "rounded-xl border px-2.5 py-2 text-center transition-all",
-                          isActive
-                            ? "border-primary bg-primary/10 text-primary shadow-[0_10px_30px_-22px_rgba(20,184,166,0.8)]"
-                            : isDone
-                              ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                              : "border-border bg-muted/40 text-muted-foreground",
-                        )}
-                      >
-                        <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em]">
-                          Korak {idx + 1}
-                        </div>
-                        <p className="text-[11px] font-medium leading-tight">{label}</p>
-                      </motion.div>
-                    );
-                  })}
+                <div className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-muted/35 px-3 py-2">
+                  <p className="text-xs font-medium text-foreground">
+                    {STEP_META[activeStepIndex]}
+                  </p>
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    {activeStepIndex + 1}/{STEP_META.length}
+                  </span>
                 </div>
 
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted/70">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-cyan-400/90"
+                    className="h-full rounded-full bg-primary"
                     animate={{ width: `${registerStepProgress}%` }}
                     transition={{ type: "spring", stiffness: 260, damping: 28 }}
                   />
                 </div>
-
-                <AuthCompactHighlights className="mt-4" />
 
                 {!hasAnyMethodEnabled ? (
                   <div className="mt-5 rounded-2xl border border-red-300/60 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
@@ -1093,7 +1148,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                       {...registerPrimaryStepMotion}
                       className="mt-5 space-y-4"
                     >
-                      <div className="rounded-2xl border border-border/80 bg-card/70 p-4 sm:p-5">
+                      <div className="space-y-3">
                         <p className="mb-3 text-sm font-semibold text-foreground">
                           Odaberi način registracije
                         </p>
@@ -1104,10 +1159,10 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             disabled={!availableMethods.email || isBusy}
                             onClick={() => handleMethodContinue("email")}
                             className={cn(
-                              "flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-all",
+                              "flex flex-col items-center gap-2 rounded-xl border border-transparent bg-muted/40 p-3 text-center transition-all",
                               availableMethods.email
-                                ? "border-border bg-background hover:border-primary/60 hover:bg-primary/5"
-                                : "cursor-not-allowed border-border/60 bg-muted/40 opacity-50",
+                                ? "hover:border-primary/40 hover:bg-primary/5"
+                                : "cursor-not-allowed opacity-50",
                             )}
                           >
                             <MdOutlineEmail className="h-6 w-6 text-primary" />
@@ -1120,10 +1175,10 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             disabled={!availableMethods.phone || isBusy}
                             onClick={() => handleMethodContinue("phone")}
                             className={cn(
-                              "flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-all",
+                              "flex flex-col items-center gap-2 rounded-xl border border-transparent bg-muted/40 p-3 text-center transition-all",
                               availableMethods.phone
-                                ? "border-border bg-background hover:border-primary/60 hover:bg-primary/5"
-                                : "cursor-not-allowed border-border/60 bg-muted/40 opacity-50",
+                                ? "hover:border-primary/40 hover:bg-primary/5"
+                                : "cursor-not-allowed opacity-50",
                             )}
                           >
                             <MdOutlineLocalPhone className="h-6 w-6 text-primary" />
@@ -1136,10 +1191,10 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             disabled={!availableMethods.google || isBusy}
                             onClick={() => handleMethodContinue("google")}
                             className={cn(
-                              "flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-all",
+                              "flex flex-col items-center gap-2 rounded-xl border border-transparent bg-muted/40 p-3 text-center transition-all",
                               availableMethods.google
-                                ? "border-border bg-background hover:border-primary/60 hover:bg-primary/5"
-                                : "cursor-not-allowed border-border/60 bg-muted/40 opacity-50",
+                                ? "hover:border-primary/40 hover:bg-primary/5"
+                                : "cursor-not-allowed opacity-50",
                             )}
                           >
                             <FcGoogle className="h-6 w-6" />
@@ -1160,7 +1215,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                       className="mt-5"
                     >
                       <form
-                        className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card/70 p-4 sm:p-5"
+                        className="flex flex-col gap-4"
                         onSubmit={handleEmailCredentials}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -1231,7 +1286,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                       className="mt-5"
                     >
                       <form
-                        className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card/70 p-4 sm:p-5"
+                        className="flex flex-col gap-4"
                         onSubmit={handleSendOtp}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -1314,7 +1369,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                     <motion.div
                       key="register-step-google-connecting"
                       {...registerPrimaryStepMotion}
-                      className="mt-5 rounded-2xl border border-border/80 bg-card/70 p-6 text-center"
+                      className="mt-5 rounded-xl bg-muted/35 p-5 text-center"
                     >
                       <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-primary" />
                       <p className="text-sm font-semibold text-foreground">Povezujem Google nalog...</p>
@@ -1329,7 +1384,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                       className="mt-5"
                     >
                       <form
-                        className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card/70 p-4 sm:p-5"
+                        className="flex flex-col gap-4"
                         onSubmit={handleNameContinue}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -1384,14 +1439,14 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                     <motion.div
                       key="register-step-avatar"
                       {...registerPrimaryStepMotion}
-                      className="mt-5 space-y-4"
+                      className="mt-5 space-y-3"
                     >
-                      <div className="rounded-2xl border border-border/80 bg-card/70 p-4 sm:p-5">
-                        <div className="mb-3 flex items-start justify-between gap-2">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="text-sm font-semibold text-foreground">Odaberi profilnu sliku</p>
                             <p className="text-xs text-muted-foreground">
-                              Možeš dodati svoju sliku, uzeti Google sliku ili kreirati avatar.
+                              Učitaj svoju sliku, koristi Google sliku ili kreiraj vlastiti avatar.
                             </p>
                           </div>
                           <Button
@@ -1414,15 +1469,15 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           onChange={handleUploadChange}
                         />
 
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={() => handleAvatarModeSelect("none")}
                             className={cn(
-                              "rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-all",
+                              "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                               avatarMode === "none"
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border bg-background hover:border-primary/50",
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted/60 text-muted-foreground hover:text-foreground",
                             )}
                           >
                             Bez slike
@@ -1431,10 +1486,10 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             type="button"
                             onClick={handleUploadModeSelect}
                             className={cn(
-                              "rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-all",
+                              "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                               avatarMode === "upload"
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border bg-background hover:border-primary/50",
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted/60 text-muted-foreground hover:text-foreground",
                             )}
                           >
                             Vlastita slika
@@ -1444,10 +1499,10 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             onClick={() => handleAvatarModeSelect("google")}
                             disabled={!hasGooglePhotoUrl || googleAvatarLoadError}
                             className={cn(
-                              "rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-all",
+                              "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                               avatarMode === "google"
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border bg-background hover:border-primary/50",
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted/60 text-muted-foreground hover:text-foreground",
                               !hasGooglePhotoUrl || googleAvatarLoadError
                                 ? "cursor-not-allowed opacity-50"
                                 : "",
@@ -1459,24 +1514,24 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             type="button"
                             onClick={() => handleAvatarModeSelect("studio")}
                             className={cn(
-                              "rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-all",
+                              "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                               avatarMode === "studio"
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border bg-background hover:border-primary/50",
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted/60 text-muted-foreground hover:text-foreground",
                             )}
                           >
                             Avatar studio
                           </button>
                         </div>
 
-                        <div className="mt-3 rounded-xl border border-border bg-background p-3 sm:p-4">
+                        <div className="mt-2 space-y-3">
                           {avatarMode === "none" ? (
-                            <div className="flex items-center gap-3 rounded-lg bg-muted/40 p-3">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                            <div className="flex items-center gap-3 rounded-lg px-1 py-1">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
                                 <User className="h-5 w-5 text-muted-foreground" />
                               </div>
                               <div>
-                                <p className="text-sm font-semibold text-foreground">Profil bez slike</p>
+                                <p className="text-sm font-semibold text-foreground">Nastavak bez slike</p>
                                 <p className="text-xs text-muted-foreground">
                                   Možeš kasnije dodati profilnu sliku iz postavki profila.
                                 </p>
@@ -1487,11 +1542,11 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           {avatarMode === "upload" ? (
                             <>
                               {uploadPreview ? (
-                                <div className="flex flex-wrap items-center gap-3 rounded-lg bg-muted/40 p-3">
+                                <div className="flex flex-wrap items-center gap-3 rounded-lg px-1 py-1">
                                   <img
                                     src={uploadPreview}
                                     alt="Pregled odabrane slike"
-                                    className="h-20 w-20 rounded-xl border border-border object-cover"
+                                    className="h-20 w-20 rounded-xl object-cover"
                                   />
                                   <div className="min-w-[180px] flex-1">
                                     <p className="text-sm font-semibold text-foreground">Vlastita slika je spremna</p>
@@ -1524,7 +1579,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                                 <button
                                   type="button"
                                   onClick={openUploadPicker}
-                                  className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-7 text-center hover:border-primary/50 hover:bg-primary/5"
+                                  className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 bg-background px-4 py-7 text-center hover:border-primary/40 hover:bg-primary/5"
                                 >
                                   <Camera className="h-5 w-5 text-primary" />
                                   <span className="text-sm font-semibold text-foreground">
@@ -1541,8 +1596,8 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           {avatarMode === "google" ? (
                             <>
                               {canShowGoogleAvatar ? (
-                                <div className="flex flex-wrap items-center gap-3 rounded-lg bg-muted/40 p-3">
-                                  <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-border">
+                                <div className="flex flex-wrap items-center gap-3 rounded-lg px-1 py-1">
+                                  <div className="relative h-20 w-20 overflow-hidden rounded-xl">
                                     {googleAvatarIsLoading ? (
                                       <Skeleton className="absolute inset-0 h-full w-full rounded-none border-0" />
                                     ) : null}
@@ -1570,8 +1625,8 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-3 rounded-lg bg-muted/40 p-3">
-                                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                                <div className="flex items-center gap-3 rounded-lg px-1 py-1">
+                                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
                                     <User className="h-5 w-5 text-muted-foreground" />
                                   </div>
                                   <div>
@@ -1589,12 +1644,12 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
 
                           {avatarMode === "studio" ? (
                             <>
-                              {studioPreview ? (
-                                <div className="flex flex-wrap items-center gap-3 rounded-lg bg-muted/40 p-3">
+                              {studioPreview && !showStudio ? (
+                                <div className="flex flex-wrap items-center gap-3 rounded-lg px-1 py-1">
                                   <img
                                     src={studioPreview}
                                     alt="Studio avatar"
-                                    className="h-20 w-20 rounded-xl border border-border object-cover"
+                                    className="h-20 w-20 rounded-xl object-cover"
                                   />
                                   <div className="min-w-[180px] flex-1">
                                     <p className="text-sm font-semibold text-foreground">Studio avatar je spreman</p>
@@ -1609,11 +1664,11 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                                     className="h-9"
                                     onClick={() => setShowStudio(true)}
                                   >
-                                    Uredi avatar
+                                    Uredi
                                   </Button>
                                 </div>
                               ) : (
-                                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-3">
+                                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg px-1 py-1">
                                   <div>
                                     <p className="text-sm font-semibold text-foreground">Kreiraj studio avatar</p>
                                     <p className="text-xs text-muted-foreground">
@@ -1625,10 +1680,10 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                                     variant="outline"
                                     size="sm"
                                     className="h-9"
-                                    onClick={() => setShowStudio(true)}
+                                    onClick={() => setShowStudio((prev) => !prev)}
                                   >
                                     <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                                    Otvori studio
+                                    {showStudio ? "Sakrij studio" : "Otvori studio"}
                                   </Button>
                                 </div>
                               )}
@@ -1636,35 +1691,22 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           ) : null}
                         </div>
 
-                        <div className="mt-3 rounded-xl border border-border bg-background p-3">
-                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-foreground">Avatar studio</p>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-2.5 text-xs"
-                              onClick={() => setShowStudio((prev) => !prev)}
-                            >
-                              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                              {showStudio ? "Sakrij studio" : "Otvori studio"}
-                            </Button>
+                        {avatarMode === "studio" && showStudio ? (
+                          <div className="mt-3">
+                            <LmxAvatarGenerator
+                              onSave={handleStudioSave}
+                              onCancel={() => setShowStudio(false)}
+                              isSaving={false}
+                              compact
+                            />
                           </div>
+                        ) : null}
 
-                          {showStudio ? (
-                            <div className="mt-2 rounded-xl border border-border bg-muted/40 p-2">
-                              <LmxAvatarGenerator
-                                onSave={handleStudioSave}
-                                onCancel={() => setShowStudio(false)}
-                                isSaving={false}
-                              />
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">
-                              Studio je opcionalan i možeš ga koristiti kad god želiš.
-                            </p>
-                          )}
-                        </div>
+                        {!canFinalizeAvatarSelection ? (
+                          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+                            Prije završetka klikni "Sačuvaj" unutar avatar studija.
+                          </p>
+                        ) : null}
 
                         <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
                           <Button
@@ -1680,7 +1722,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                             type="button"
                             className="h-10 w-full rounded-xl font-semibold sm:w-auto"
                             onClick={handleFinalize}
-                            disabled={isBusy}
+                            disabled={isBusy || !canFinalizeAvatarSelection}
                           >
                             {isBusy ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

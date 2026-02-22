@@ -29,7 +29,6 @@ import {
 
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import CustomLink from "@/components/Common/CustomLink";
-import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import {
   LMX_PHONE_DEFAULT_COUNTRY,
   LMX_PHONE_INPUT_PROPS,
@@ -77,7 +76,7 @@ function ProfileAvatar({ customAvatarUrl, avatarId, size = "lg", onImageClick })
         />
       ) : (
         <div className={`${sizeClasses[size]} rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-slate-100 shadow-sm dark:border-slate-700 dark:bg-primary/20`}>
-          <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-2/3 h-2/3 text-primary" />
+          <User className="h-8 w-8 text-primary/70" />
         </div>
       )}
       
@@ -221,7 +220,7 @@ export default function Profile() {
   // Profile state
   const [profileImage, setProfileImage] = useState("");
   const [profileFile, setProfileFile] = useState(null);
-  const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
+  const [sellerAvatarId, setSellerAvatarId] = useState("");
   
   // Form data
   const [formData, setFormData] = useState({
@@ -317,7 +316,7 @@ export default function Profile() {
 
         // Seller settings
         if (sellerRes?.data?.error === false && sellerRes.data.data) {
-          setSellerAvatarId(sellerRes.data.data.avatar_id || "lmx-01");
+          setSellerAvatarId(sellerRes.data.data.avatar_id || "");
         }
       } catch (error) {
         console.error("Greška pri učitavanju podataka:", error);

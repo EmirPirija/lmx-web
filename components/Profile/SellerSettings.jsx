@@ -6,20 +6,36 @@ import { toast } from "@/utils/toastBs";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
+import {
+  getAuth,
+  linkWithCredential,
+  onAuthStateChanged,
+  PhoneAuthProvider,
+  reload,
+  sendEmailVerification,
+  updatePhoneNumber,
+} from "firebase/auth";
 
 
 import {
   AlertCircle, Calendar, Camera, ChevronDown, Clock, Download, Eye, Globe, Mail,
   MessageCircle, Phone, RefreshCw, Save, Shield, Sparkles, Store, Users, Zap,
   CheckCircle2, Link as LinkIcon, Video, Music, QrCode, Copy, Loader2, Plane,
-  Star, LayoutGrid, Settings2, Truck, RotateCcw,
+  Star, LayoutGrid, Settings2, Truck, RotateCcw, User,
 } from "@/components/Common/UnifiedIconPack";
 
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
@@ -27,19 +43,31 @@ import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import {
+  getOtpApi,
+  verifyOtpApi,
   sellerSettingsApi,
   updateProfileApi,
   getVerificationStatusApi,
   membershipApi,
 } from "@/utils/api";
-import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
+import {
+  loadUpdateData,
+  userSignUpData,
+  userUpdateData,
+} from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
-import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
 import SellerDetailCard from "@/components/PagesComponent/Seller/SellerDetailCard";
+import { handleFirebaseAuthError } from "@/utils";
+import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
+import {
+  clearRecaptchaVerifier,
+  ensureRecaptchaVerifier,
+  isRecaptchaRecoverableError,
+} from "@/components/Auth/recaptchaManager";
 
 // ============================================
 // VERIFICATION BADGE
@@ -100,12 +128,7 @@ const defaultCardPreferences = {
   max_badges: 2,
 };
 
-const AVATAR_IDS = [
-  "lmx-01", "lmx-02", "lmx-03", "lmx-04",
-  "lmx-05", "lmx-06", "lmx-07", "lmx-08",
-  "lmx-09", "lmx-10", "lmx-11", "lmx-12",
-  "lmx-13", "lmx-14", "lmx-15", "lmx-16",
-];
+const SELLER_RECAPTCHA_CONTAINER_ID = "seller-verification-recaptcha-container";
 
 // ============================================
 // HELPERS
@@ -183,6 +206,51 @@ const normalizeCardPreferences = (raw) => {
 
 const safeUrl = (u) => { if (!u) return true; try { new URL(u.startsWith("http") ? u : `https://${u}`); return true; } catch { return false; } };
 const normalizePhone = (p) => (p || "").replace(/\s+/g, "").trim();
+const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+
+const stripCountryCodePrefix = (mobile, countryCode) => {
+  const mobileDigits = digitsOnly(mobile);
+  const ccDigits = digitsOnly(countryCode);
+  if (!mobileDigits) return "";
+  if (!ccDigits) return mobileDigits;
+  if (mobileDigits.startsWith(ccDigits)) {
+    return mobileDigits.slice(ccDigits.length);
+  }
+  return mobileDigits;
+};
+
+const toE164Phone = (countryCode, localNumber) => {
+  const ccDigits = digitsOnly(countryCode);
+  const numberDigits = digitsOnly(localNumber);
+  if (!ccDigits || !numberDigits) return "";
+  const normalizedLocal = numberDigits.startsWith(ccDigits)
+    ? numberDigits.slice(ccDigits.length)
+    : numberDigits;
+  return `+${ccDigits}${normalizedLocal}`;
+};
+
+const extractFirebaseIdentity = (user) => {
+  if (!user) return null;
+  return {
+    uid: user.uid || "",
+    email: user.email || "",
+    emailVerified: Boolean(user.emailVerified),
+    phoneNumber: user.phoneNumber || "",
+    providerIds: Array.isArray(user.providerData)
+      ? user.providerData
+          .map((provider) => provider?.providerId)
+          .filter(Boolean)
+      : [],
+  };
+};
+
+const toBoolLoose = (value) => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  const normalized = String(value).trim().toLowerCase();
+  return ["1", "true", "yes", "verified", "approved"].includes(normalized);
+};
 
 const normalizeMembershipTier = (value) => {
   const tier = String(value || "").trim().toLowerCase();
@@ -537,6 +605,9 @@ const PreviewPanel = ({
 const SellerSettings = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
+  const authToken = useSelector((state) => state?.UserSignup?.data?.token || "");
+  const otpServiceProvider = useSelector(getOtpServiceProvider);
+  const auth = useMemo(() => getAuth(), []);
   const isMountedRef = useRef(true);
   const [membershipContext, setMembershipContext] = useState(null);
   const resolvedMembership = useMemo(
@@ -563,9 +634,23 @@ const SellerSettings = () => {
   // Avatar
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
-  const [selectedAvatarId, setSelectedAvatarId] = useState("lmx-01");
+  const [selectedAvatarId, setSelectedAvatarId] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Account verification (real email + OTP phone)
+  const [firebaseIdentity, setFirebaseIdentity] = useState(null);
+  const [manualPhoneVerified, setManualPhoneVerified] = useState(false);
+  const [phoneCountryCode, setPhoneCountryCode] = useState("387");
+  const [phoneLocalNumber, setPhoneLocalNumber] = useState("");
+  const [phoneRegionCode, setPhoneRegionCode] = useState("BA");
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [phoneVerificationId, setPhoneVerificationId] = useState("");
+  const [phoneOtpTimer, setPhoneOtpTimer] = useState(0);
+  const [phoneOtpSending, setPhoneOtpSending] = useState(false);
+  const [phoneOtpVerifying, setPhoneOtpVerifying] = useState(false);
+  const [emailVerificationSending, setEmailVerificationSending] = useState(false);
+  const [emailVerificationRefreshing, setEmailVerificationRefreshing] = useState(false);
 
   // Contact
   const [showPhone, setShowPhone] = useState(true);
@@ -618,6 +703,46 @@ const SellerSettings = () => {
     if (currentUser?.profile) setPreviewImage(currentUser.profile);
   }, [currentUser]);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setFirebaseIdentity(extractFirebaseIdentity(firebaseUser));
+    });
+    return () => {
+      unsubscribe?.();
+      clearRecaptchaVerifier({ containerId: SELLER_RECAPTCHA_CONTAINER_ID });
+    };
+  }, [auth]);
+
+  useEffect(() => {
+    const country = digitsOnly(currentUser?.country_code) || "387";
+    const localNumber = stripCountryCodePrefix(currentUser?.mobile, country);
+    setPhoneCountryCode(country);
+    setPhoneLocalNumber(localNumber);
+    setPhoneRegionCode(String(currentUser?.region_code || "BA").toUpperCase());
+    setManualPhoneVerified(
+      toBoolLoose(currentUser?.mobile_verified) ||
+        toBoolLoose(currentUser?.phone_verified) ||
+        Boolean(currentUser?.mobile_verified_at) ||
+        Boolean(currentUser?.phone_verified_at),
+    );
+  }, [
+    currentUser?.country_code,
+    currentUser?.mobile,
+    currentUser?.region_code,
+    currentUser?.mobile_verified,
+    currentUser?.phone_verified,
+    currentUser?.mobile_verified_at,
+    currentUser?.phone_verified_at,
+  ]);
+
+  useEffect(() => {
+    if (phoneOtpTimer <= 0) return;
+    const timer = window.setInterval(() => {
+      setPhoneOtpTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [phoneOtpTimer]);
+
   const responseTimeOptions = [
     { value: "auto", label: "Auto" },
     { value: "instant", label: "Minuti" },
@@ -625,6 +750,312 @@ const SellerSettings = () => {
     { value: "same_day", label: "24h" },
     { value: "few_days", label: "Dani" },
   ];
+
+  const providerIds = useMemo(
+    () => new Set(firebaseIdentity?.providerIds || []),
+    [firebaseIdentity?.providerIds],
+  );
+  const hasPhoneProvider = useMemo(
+    () => providerIds.has("phone") || Boolean(firebaseIdentity?.phoneNumber),
+    [providerIds, firebaseIdentity?.phoneNumber],
+  );
+  const hasEmailIdentity = useMemo(
+    () => Boolean(firebaseIdentity?.email || currentUser?.email),
+    [firebaseIdentity?.email, currentUser?.email],
+  );
+  const backendEmailVerified = useMemo(
+    () =>
+      toBoolLoose(currentUser?.email_verified) ||
+      Boolean(currentUser?.email_verified_at),
+    [currentUser?.email_verified, currentUser?.email_verified_at],
+  );
+  const isEmailVerified = useMemo(
+    () =>
+      hasEmailIdentity
+        ? Boolean(firebaseIdentity?.emailVerified) || backendEmailVerified
+        : false,
+    [firebaseIdentity?.emailVerified, backendEmailVerified, hasEmailIdentity],
+  );
+  const registeredViaPhone = useMemo(() => {
+    if (providerIds.has("phone") && !providerIds.has("password") && !providerIds.has("google.com")) {
+      return true;
+    }
+    if (!currentUser?.email && Boolean(currentUser?.mobile)) {
+      return true;
+    }
+    return false;
+  }, [providerIds, currentUser?.email, currentUser?.mobile]);
+  const isPhoneVerified = useMemo(
+    () => hasPhoneProvider || manualPhoneVerified || registeredViaPhone,
+    [hasPhoneProvider, manualPhoneVerified, registeredViaPhone],
+  );
+
+  const syncProfileVerificationData = useCallback(
+    async ({
+      nextMobile,
+      nextCountryCode,
+      nextRegionCode,
+      nextEmail,
+      authTokenOverride,
+    } = {}) => {
+      const response = await withTimeout(
+        updateProfileApi.updateProfile({
+          mobile: nextMobile || undefined,
+          country_code: nextCountryCode || undefined,
+          region_code: nextRegionCode || undefined,
+          email: nextEmail || undefined,
+          auth_token: authTokenOverride || authToken || undefined,
+        }),
+        20000,
+      );
+
+      if (response?.data?.error === false && response?.data?.data) {
+        dispatch(userUpdateData({ data: response.data.data }));
+      }
+
+      return response;
+    },
+    [authToken, dispatch],
+  );
+
+  const refreshFirebaseIdentity = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      setFirebaseIdentity(null);
+      return null;
+    }
+    await reload(firebaseUser);
+    const refreshedUser = auth.currentUser;
+    const identity = extractFirebaseIdentity(refreshedUser);
+    setFirebaseIdentity(identity);
+    return identity;
+  }, [auth]);
+
+  const sendPhoneOtpWithTwilio = useCallback(async (phoneE164) => {
+    const response = await getOtpApi.getOtp({ number: phoneE164 });
+    if (response?.data?.error === false) {
+      setPhoneOtpTimer(60);
+      setPhoneVerificationId("twilio");
+      toast.success(response?.data?.message || "OTP kod je poslan.");
+      return true;
+    }
+    toast.error(response?.data?.message || "Slanje OTP koda nije uspjelo.");
+    return false;
+  }, []);
+
+  const sendPhoneOtpWithFirebase = useCallback(
+    async (phoneE164) => {
+      const requestOtp = async (forceRecreate = true) => {
+        const verifier = ensureRecaptchaVerifier({
+          auth,
+          containerId: SELLER_RECAPTCHA_CONTAINER_ID,
+          forceRecreate,
+        });
+        if (!verifier) {
+          handleFirebaseAuthError("auth/recaptcha-not-enabled");
+          return null;
+        }
+        const provider = new PhoneAuthProvider(auth);
+        return provider.verifyPhoneNumber(phoneE164, verifier);
+      };
+
+      try {
+        const verificationId = await requestOtp(true);
+        if (!verificationId) return false;
+        setPhoneVerificationId(verificationId);
+        setPhoneOtpTimer(60);
+        toast.success("OTP kod je poslan.");
+        return true;
+      } catch (error) {
+        if (isRecaptchaRecoverableError(error)) {
+          try {
+            const retriedVerificationId = await requestOtp(true);
+            if (!retriedVerificationId) return false;
+            setPhoneVerificationId(retriedVerificationId);
+            setPhoneOtpTimer(60);
+            toast.success("OTP kod je poslan.");
+            return true;
+          } catch (retryError) {
+            handleFirebaseAuthError(retryError);
+            return false;
+          }
+        }
+        handleFirebaseAuthError(error);
+        return false;
+      }
+    },
+    [auth],
+  );
+
+  const handleSendPhoneVerificationOtp = useCallback(async () => {
+    const phoneE164 = toE164Phone(phoneCountryCode, phoneLocalNumber);
+    if (!phoneE164 || digitsOnly(phoneLocalNumber).length < 6) {
+      toast.error("Unesite ispravan broj telefona.");
+      return;
+    }
+
+    setPhoneOtpSending(true);
+    try {
+      if (otpServiceProvider === "twilio") {
+        await sendPhoneOtpWithTwilio(phoneE164);
+      } else {
+        await sendPhoneOtpWithFirebase(phoneE164);
+      }
+    } finally {
+      setPhoneOtpSending(false);
+    }
+  }, [
+    otpServiceProvider,
+    phoneCountryCode,
+    phoneLocalNumber,
+    sendPhoneOtpWithTwilio,
+    sendPhoneOtpWithFirebase,
+  ]);
+
+  const handleVerifyPhoneOtp = useCallback(async () => {
+    const trimmedOtp = String(phoneOtp || "").trim();
+    const phoneE164 = toE164Phone(phoneCountryCode, phoneLocalNumber);
+    const normalizedCountryCode = digitsOnly(phoneCountryCode);
+    const normalizedLocalNumber = stripCountryCodePrefix(phoneLocalNumber, normalizedCountryCode);
+
+    if (!trimmedOtp || trimmedOtp.length < 4) {
+      toast.error("Unesite važeći OTP kod.");
+      return;
+    }
+    if (!phoneE164) {
+      toast.error("Broj telefona nije validan.");
+      return;
+    }
+
+    setPhoneOtpVerifying(true);
+    try {
+      if (otpServiceProvider === "twilio") {
+        const verifyResponse = await verifyOtpApi.verifyOtp({
+          number: phoneE164,
+          otp: trimmedOtp,
+        });
+
+        if (verifyResponse?.data?.error !== false) {
+          toast.error(verifyResponse?.data?.message || "OTP verifikacija nije uspjela.");
+          return;
+        }
+
+        if (verifyResponse?.data?.token) {
+          loadUpdateData(verifyResponse.data);
+        } else if (verifyResponse?.data?.data) {
+          dispatch(userUpdateData({ data: verifyResponse.data.data }));
+        }
+
+        await syncProfileVerificationData({
+          nextMobile: normalizedLocalNumber,
+          nextCountryCode: normalizedCountryCode,
+          nextRegionCode: phoneRegionCode || currentUser?.region_code || "BA",
+          authTokenOverride: verifyResponse?.data?.token || authToken,
+        });
+
+        setManualPhoneVerified(true);
+      } else {
+        if (!phoneVerificationId) {
+          toast.error("Prvo pošaljite OTP kod.");
+          return;
+        }
+        const firebaseUser = auth.currentUser;
+        if (!firebaseUser) {
+          toast.error("Sesija je istekla. Prijavite se ponovo.");
+          return;
+        }
+
+        const credential = PhoneAuthProvider.credential(phoneVerificationId, trimmedOtp);
+        const alreadyLinkedPhone = firebaseUser.providerData?.some(
+          (provider) => provider?.providerId === "phone",
+        );
+
+        if (alreadyLinkedPhone || firebaseUser.phoneNumber) {
+          await updatePhoneNumber(firebaseUser, credential);
+        } else {
+          await linkWithCredential(firebaseUser, credential);
+        }
+
+        await refreshFirebaseIdentity();
+
+        await syncProfileVerificationData({
+          nextMobile: normalizedLocalNumber,
+          nextCountryCode: normalizedCountryCode,
+          nextRegionCode: phoneRegionCode || currentUser?.region_code || "BA",
+        });
+      }
+
+      setPhoneOtp("");
+      setPhoneVerificationId("");
+      setPhoneOtpTimer(0);
+      clearRecaptchaVerifier({
+        containerId: SELLER_RECAPTCHA_CONTAINER_ID,
+      });
+      toast.success("Broj telefona je uspješno verificiran.");
+    } catch (error) {
+      if (otpServiceProvider === "twilio") {
+        toast.error(error?.response?.data?.message || "OTP verifikacija nije uspjela.");
+      } else {
+        handleFirebaseAuthError(error);
+      }
+    } finally {
+      setPhoneOtpVerifying(false);
+    }
+  }, [
+    auth,
+    authToken,
+    currentUser?.region_code,
+    dispatch,
+    otpServiceProvider,
+    phoneCountryCode,
+    phoneLocalNumber,
+    phoneOtp,
+    phoneRegionCode,
+    phoneVerificationId,
+    refreshFirebaseIdentity,
+    syncProfileVerificationData,
+  ]);
+
+  const handleSendEmailVerificationNow = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser?.email) {
+      toast.error("Nema aktivne e-mail adrese za verifikaciju.");
+      return;
+    }
+    if (firebaseUser.emailVerified) {
+      toast.success("E-mail adresa je već verificirana.");
+      return;
+    }
+
+    setEmailVerificationSending(true);
+    try {
+      await sendEmailVerification(firebaseUser);
+      toast.success("Link za verifikaciju je poslan na e-mail.");
+    } catch (error) {
+      handleFirebaseAuthError(error);
+    } finally {
+      setEmailVerificationSending(false);
+    }
+  }, [auth]);
+
+  const handleRefreshEmailVerification = useCallback(async () => {
+    setEmailVerificationRefreshing(true);
+    try {
+      const identity = await refreshFirebaseIdentity();
+      if (identity?.email && identity?.emailVerified) {
+        await syncProfileVerificationData({
+          nextEmail: identity.email,
+        });
+        toast.success("E-mail adresa je potvrđena.");
+      } else {
+        toast.info("E-mail još nije potvrđen. Otvorite link iz poruke i pokušajte ponovo.");
+      }
+    } catch (error) {
+      handleFirebaseAuthError(error);
+    } finally {
+      setEmailVerificationRefreshing(false);
+    }
+  }, [refreshFirebaseIdentity, syncProfileVerificationData]);
 
   const buildPayload = useCallback(() => ({
     avatar_id: selectedAvatarId,
@@ -718,7 +1149,7 @@ const SellerSettings = () => {
       if (response?.data?.error !== false || !response?.data?.data) { setLoadError(response?.data?.message || "Greška."); return; }
 
       const s = response.data.data;
-      setSelectedAvatarId(s.avatar_id || "lmx-01");
+      setSelectedAvatarId(s.avatar_id || "");
       setShowPhone(toBool(s.show_phone, true));
       setShowEmail(toBool(s.show_email, true));
       setShowWhatsapp(toBool(s.show_whatsapp, false));
@@ -748,7 +1179,7 @@ const SellerSettings = () => {
       setCardPreferences(normalizedPrefs);
 
       setInitialPayloadStr(stableStringify({
-        avatar_id: s.avatar_id || "lmx-01",
+        avatar_id: s.avatar_id || "",
         show_phone: toBool(s.show_phone, true), show_email: toBool(s.show_email, true),
         show_whatsapp: toBool(s.show_whatsapp, false), show_viber: toBool(s.show_viber, false),
         whatsapp_number: s.whatsapp_number || "", viber_number: s.viber_number || "",
@@ -815,11 +1246,13 @@ const SellerSettings = () => {
         profile: fileOrBlob, name: currentUser?.name, mobile: currentUser?.mobile,
         email: currentUser?.email, notification: currentUser?.notification ?? 0,
         show_personal_details: currentUser?.show_personal_details ?? 0, country_code: currentUser?.country_code,
+        auth_token: authToken || undefined,
       }), 20000);
 
       if (response?.data?.error === false) {
         toast.success("Slika ažurirana!");
         setIsAvatarModalOpen(false);
+        setSelectedAvatarId("");
         dispatch(userUpdateData({ data: response.data.data }));
       } else {
         toast.error(response?.data?.message || "Greška.");
@@ -908,7 +1341,7 @@ const SellerSettings = () => {
                   {previewImage ? (
                     <img src={previewImage} alt="Profil" className="w-full h-full object-cover" />
                   ) : (
-                    <LmxAvatarSvg avatarId={selectedAvatarId || "lmx-01"} className="w-9 h-9" />
+                    <User className="h-8 w-8 text-slate-400" />
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -921,33 +1354,215 @@ const SellerSettings = () => {
                       <Button variant="outline" size="sm" disabled={isAvatarUploading}><Sparkles className="w-3.5 h-3.5 mr-1" />Studio</Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none">
+                      <DialogHeader className="sr-only">
+                        <DialogTitle>Avatar studio</DialogTitle>
+                        <DialogDescription>Kreiranje profilne slike u avatar studiju.</DialogDescription>
+                      </DialogHeader>
                       <LmxAvatarGenerator onSave={updateProfileImage} onCancel={() => setIsAvatarModalOpen(false)} isSaving={isAvatarUploading} />
                     </DialogContent>
                   </Dialog>
                 </div>
               </div>
+            </div>
+          </SettingSection>
 
-              <div>
-                {/* <p className="text-xs font-medium text-slate-500 mb-2">LMX avatar set</p>
-                <div className="grid grid-cols-8 gap-2">
-                  {AVATAR_IDS.map((avatarId) => (
-                    <button
-                      key={avatarId}
-                      type="button"
-                      onClick={() => setSelectedAvatarId(avatarId)}
-                      className={cn(
-                        "h-11 w-11 rounded-xl border flex items-center justify-center transition-all",
-                        selectedAvatarId === avatarId
-                          ? "border-primary bg-primary/10 shadow-sm"
-                          : "border-slate-200 bg-white hover:border-slate-300"
-                      )}
-                      title={avatarId}
-                    >
-                      <LmxAvatarSvg avatarId={avatarId} className="w-6 h-6" />
-                    </button>
-                  ))}
-                </div> */}
+          <SettingSection
+            icon={Shield}
+            title="Verifikacija računa"
+            description="Potvrda e-maila i broja telefona za sigurniji profil i veću vjerodostojnost."
+            badge="SIGURNOST"
+          >
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">Stanje verifikacije</span>
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                      isPhoneVerified && isEmailVerified
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700",
+                    )}
+                  >
+                    {isPhoneVerified && isEmailVerified ? "Potpuno verificirano" : "Djelimično verificirano"}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-600">
+                  {registeredViaPhone
+                    ? "Nalog je registrovan putem broja telefona. Telefon je automatski tretiran kao verificiran."
+                    : "Nalog koristi e-mail pristup. Za puni status preporučeno je potvrditi i e-mail i broj telefona."}
+                </p>
               </div>
+
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-semibold text-slate-900">Verifikacija broja telefona</h4>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                        isPhoneVerified
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-600",
+                      )}
+                    >
+                      {isPhoneVerified ? "Verificiran" : "Nije verificiran"}
+                    </span>
+                  </div>
+
+                  {isPhoneVerified ? (
+                    <p className="text-xs text-slate-600">
+                      Broj je potvrđen. Trenutno povezan broj:{" "}
+                      <span className="font-semibold text-slate-900">
+                        {firebaseIdentity?.phoneNumber ||
+                          (phoneLocalNumber ? `+${digitsOnly(phoneCountryCode)}${digitsOnly(phoneLocalNumber)}` : "nije dostupan")}
+                      </span>
+                    </p>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <p className="text-xs text-slate-600">
+                        Unesi broj koji želiš potvrditi i pošalji OTP kod.
+                      </p>
+                      <div className="grid grid-cols-[110px_1fr] gap-2">
+                        <Input
+                          value={phoneCountryCode}
+                          onChange={(e) => setPhoneCountryCode(digitsOnly(e.target.value))}
+                          className="h-9 text-sm"
+                          placeholder="387"
+                        />
+                        <Input
+                          value={phoneLocalNumber}
+                          onChange={(e) => setPhoneLocalNumber(digitsOnly(e.target.value))}
+                          className="h-9 text-sm"
+                          placeholder="603342996"
+                        />
+                      </div>
+                      <Input
+                        value={phoneRegionCode}
+                        onChange={(e) => setPhoneRegionCode(String(e.target.value || "").toUpperCase())}
+                        className="h-9 text-sm"
+                        placeholder="BA"
+                        maxLength={3}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSendPhoneVerificationOtp}
+                          disabled={phoneOtpSending || phoneOtpTimer > 0}
+                          className="h-9"
+                        >
+                          {phoneOtpSending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            "Pošalji OTP"
+                          )}
+                        </Button>
+                        {phoneOtpTimer > 0 ? (
+                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                            Ponovno slanje za {phoneOtpTimer}s
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {phoneVerificationId ? (
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                          <Input
+                            value={phoneOtp}
+                            onChange={(e) => setPhoneOtp(e.target.value)}
+                            className="h-9 text-sm"
+                            placeholder="Unesi OTP kod"
+                            maxLength={6}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleVerifyPhoneOtp}
+                            disabled={phoneOtpVerifying}
+                            className="h-9"
+                          >
+                            {phoneOtpVerifying ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              "Potvrdi kod"
+                            )}
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-semibold text-slate-900">Verifikacija e-mail adrese</h4>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                        isEmailVerified
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-600",
+                      )}
+                    >
+                      {isEmailVerified ? "Verificiran" : "Nije verificiran"}
+                    </span>
+                  </div>
+
+                  {hasEmailIdentity ? (
+                    <div className="space-y-2.5">
+                      <p className="text-xs text-slate-600">
+                        Trenutni e-mail:{" "}
+                        <span className="font-semibold text-slate-900">
+                          {firebaseIdentity?.email || currentUser?.email}
+                        </span>
+                      </p>
+
+                      {isEmailVerified ? (
+                        <p className="text-xs text-emerald-700">
+                          E-mail adresa je potvrđena i spremna za sigurnosne akcije.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-9"
+                            onClick={handleSendEmailVerificationNow}
+                            disabled={emailVerificationSending}
+                          >
+                            {emailVerificationSending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              "Pošalji verifikacijski link"
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-9"
+                            onClick={handleRefreshEmailVerification}
+                            disabled={emailVerificationRefreshing}
+                          >
+                            {emailVerificationRefreshing ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              "Provjeri status"
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-600">
+                      Nema povezane e-mail adrese na aktivnoj sesiji. Dodaj e-mail u osnovnim podacima pa pokreni verifikaciju.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div id={SELLER_RECAPTCHA_CONTAINER_ID} className="hidden" />
             </div>
           </SettingSection>
 

@@ -43,11 +43,10 @@ import {
   IoImageOutline,
   IoStorefrontOutline,
   IoAlertCircleOutline,
+  User,
 } from "@/components/Common/UnifiedIconPack";
 import { MdVerified } from "@/components/Common/UnifiedIconPack";
 import { Loader2, MessageSquare, Package, ExternalLink } from "@/components/Common/UnifiedIconPack";
-
-import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 
 // ============================================
 // HELPERS
@@ -104,7 +103,7 @@ const UserAvatar = ({
           />
         ) : (
           <div className="w-full h-full bg-white flex items-center justify-center text-primary">
-            <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-2/3 h-2/3" />
+            <User className="h-[52%] w-[52%] text-primary/70" />
           </div>
         )}
       </div>
@@ -241,9 +240,9 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
 
         {/* Asker info */}
         <div className="flex items-start gap-3">
-        <UserAvatar
+<UserAvatar
   customAvatarUrl={question.user?.profile}
-  avatarId="lmx-01"
+  avatarId=""
   size={40}
   showVerified={
     question.user?.is_verified === true ||

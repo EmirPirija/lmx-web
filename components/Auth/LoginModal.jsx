@@ -44,7 +44,7 @@ import LoginWithMobileForm from "./LoginWithMobileForm";
 import OtpScreen from "./OtpScreen";
 import TermsAndPrivacyLinks from "./TermsAndPrivacyLinks";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import AuthValuePanel, { AuthCompactHighlights } from "./AuthValuePanel";
+import AuthValuePanel from "./AuthValuePanel";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -279,29 +279,27 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
           className="
-w-[calc(100vw-0.75rem)]
-sm:w-full sm:max-w-6xl
+w-screen max-w-none
+h-dvh max-h-dvh
+overflow-hidden touch-pan-y
+!p-0 gap-0
+rounded-none border-0
+sm:w-[calc(100vw-1.2rem)]
+sm:h-[calc(100dvh-1.2rem)]
+sm:max-h-[calc(100dvh-1.2rem)]
+sm:rounded-[22px]
+sm:border-0
+sm:shadow-[0_24px_80px_-40px_rgba(15,23,42,0.62)]
+lg:max-w-6xl
 xl:max-w-7xl
-2xl:max-w-[1600px]
-max-w-none
-h-[calc(100dvh-0.75rem)]
-sm:h-auto
-max-h-[calc(100dvh-0.75rem)]
-sm:max-h-[calc(100dvh-2rem)]
-overflow-hidden
-touch-pan-y
-gap-0
-rounded-[24px] sm:rounded-[28px]
-border border-border/80
-bg-background
-shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
+2xl:max-w-[1520px]
 "
 
         >
           <div className="grid h-full min-h-0 lg:grid-cols-[0.95fr_1.25fr]">
             <AuthValuePanel mode={IsOTPScreen ? "otp" : "login"} />
 
-            <div className="min-h-0 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] bg-gradient-to-b from-background via-background to-muted/35 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+            <div className="h-full min-h-0 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] bg-background px-4 py-4 sm:px-7 sm:py-6 lg:px-8 lg:py-7">
               <div className="mx-auto w-full max-w-[560px]">
                 <DialogHeader className="space-y-3">
                   {!IsOTPScreen ? (
@@ -340,46 +338,22 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  {["Odabir metode", "Potvrda koda", "Pristup računu"].map(
-                    (label, idx) => {
-                      const isDone = idx < activeLoginStepIndex;
-                      const isActive = idx === activeLoginStepIndex;
-                      return (
-                        <motion.div
-                          key={label}
-                          animate={{ scale: isActive ? 1.015 : 1, y: isActive ? -1 : 0 }}
-                          transition={{ type: "spring", stiffness: 320, damping: 26 }}
-                          className={cn(
-                            "rounded-xl border px-2.5 py-2 text-center transition-all",
-                            isActive
-                              ? "border-primary bg-primary/10 text-primary shadow-[0_10px_30px_-22px_rgba(20,184,166,0.8)]"
-                              : isDone
-                                ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                : "border-border bg-muted/40 text-muted-foreground",
-                          )}
-                        >
-                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em]">
-                            Korak {idx + 1}
-                          </div>
-                          <p className="text-[11px] font-medium leading-tight">
-                            {label}
-                          </p>
-                        </motion.div>
-                      );
-                    },
-                  )}
+                <div className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-muted/35 px-3 py-2">
+                  <p className="text-xs font-medium text-foreground">
+                    {["Odabir metode", "Potvrda koda", "Pristup računu"][activeLoginStepIndex]}
+                  </p>
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    {activeLoginStepIndex + 1}/3
+                  </span>
                 </div>
 
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted/70">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-cyan-400/90"
+                    className="h-full rounded-full bg-primary"
                     animate={{ width: `${loginStepProgress}%` }}
                     transition={{ type: "spring", stiffness: 260, damping: 28 }}
                   />
                 </div>
-
-                <AuthCompactHighlights className="mt-4" />
 
                 <AnimatePresence mode="wait" initial={false}>
                   {IsOTPScreen ? (
@@ -409,7 +383,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                       className="mt-5 flex flex-col gap-5"
                     >
                       {quickLoginProfiles.length > 0 && email_authentication === 1 ? (
-                        <div className="rounded-2xl border border-border/80 bg-card/80 p-3.5 shadow-sm">
+                        <div className="rounded-2xl bg-muted/35 p-3">
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                               Postojeći korisnici na ovom uređaju
@@ -494,7 +468,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                       ) : null}
 
                       {canUseBothMethods ? (
-                        <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-muted/70 p-1.5">
+                        <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-muted/60 p-1.5">
                           <button
                             type="button"
                             className={cn(
@@ -627,7 +601,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                         </Button>
                       ) : null}
 
-                      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/50 px-3 py-2.5">
+                      <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5">
                         <label
                           htmlFor="remember-login-device"
                           className="flex cursor-pointer items-center gap-2 text-sm text-foreground"

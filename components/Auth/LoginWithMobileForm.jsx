@@ -178,10 +178,7 @@ const LoginWithMobileForm = ({
   };
 
   return (
-    <form
-      className="flex flex-col gap-5 rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 shadow-sm sm:p-5"
-      onSubmit={handleMobileSubmit}
-    >
+    <form className="flex flex-col gap-4 rounded-2xl bg-transparent p-0" onSubmit={handleMobileSubmit}>
       <div className="labelInputCont">
         <Label className="text-sm font-semibold text-foreground after:content-['*'] after:text-red-500">
           {"Prijava brojem"}

@@ -390,7 +390,12 @@ const StyleRow = ({ options, selected, onSelect, label }) => (
 // ═══════════════════════════════════════════════════════════════════
 // GLAVNI KOMPONENTA
 // ═══════════════════════════════════════════════════════════════════
-const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
+const LmxAvatarGenerator = ({
+  onSave,
+  onCancel,
+  isSaving = false,
+  compact = false,
+}) => {
   const svgRef = useRef(null);
   
   const [config, setConfig] = useState({
@@ -450,9 +455,21 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
   }, [onSave]);
 
   return (
-    <div className="w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+    <div
+      className={
+        compact
+          ? "w-full"
+          : "w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+      }
+    >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+      <div
+        className={
+          compact
+            ? "flex items-center justify-between px-0 py-1"
+            : "flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700"
+        }
+      >
         <h2 className="font-semibold text-slate-800 dark:text-slate-100">Kreiraj avatar</h2>
         <div className="flex items-center gap-1">
           <Button 
@@ -462,9 +479,9 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
             disabled={isSaving}
             className="h-8 px-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
           >
-            <Sparkles size={14} className="mr-1" />
-            Nasumično
-          </Button>
+              <Sparkles size={14} className="mr-1" />
+              Nasumično
+            </Button>
           {onCancel && (
             <Button 
               variant="ghost" 
@@ -478,10 +495,16 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
         </div>
       </div>
 
-      <div className="p-4">
+      <div className={compact ? "p-0 pb-2" : "max-h-[70dvh] overflow-y-auto p-4"}>
         {/* Preview */}
         <div className="flex justify-center mb-4">
-          <div className="h-36 w-36 overflow-hidden rounded-full bg-slate-50 shadow-inner dark:bg-slate-800">
+          <div
+            className={
+              compact
+                ? "h-28 w-28 overflow-hidden rounded-full bg-slate-50 shadow-inner dark:bg-slate-800"
+                : "h-36 w-36 overflow-hidden rounded-full bg-slate-50 shadow-inner dark:bg-slate-800"
+            }
+          >
             <svg 
               ref={svgRef} 
               viewBox="0 0 200 200" 
@@ -550,7 +573,7 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
             onSelect={(c) => setConfig({...config, shirtColor: c})}
           />
           
-          <div className="border-t border-slate-100 pt-2 dark:border-slate-700">
+          <div className={compact ? "pt-1" : "border-t border-slate-100 pt-2 dark:border-slate-700"}>
             <StyleRow 
               label="Frizura"
               options={OPTIONS.hairTypes}
@@ -576,7 +599,13 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
       </div>
 
       {/* Footer */}
-      <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
+      <div
+        className={
+          compact
+            ? "flex gap-2 px-0 py-2"
+            : "flex gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70"
+        }
+      >
         {onCancel && (
           <Button 
             variant="outline" 

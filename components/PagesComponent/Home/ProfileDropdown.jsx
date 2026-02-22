@@ -21,8 +21,6 @@ import MembershipBadge from "@/components/Common/MembershipBadge";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 
-// ✅ LMX avatar
-import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { resolveMembership } from "@/lib/membership";
 import { resolveVerificationState } from "@/lib/verification";
 
@@ -53,6 +51,7 @@ import {
   Search,
   MessageSquare,
   MessageSquareMore,
+  User,
 } from "@/components/Common/UnifiedIconPack";
 import { Sparkles, TrendingUp } from "@/components/Common/UnifiedIconPack";
 import { MdVerified } from "@/components/Common/UnifiedIconPack";
@@ -124,8 +123,8 @@ function UserAvatar({
             onError={() => setImgErr(true)}
           />
         ) : (
-          <div className="w-full h-full bg-white flex items-center justify-center text-primary">
-            <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-2/3 h-2/3" />
+          <div className="w-full h-full bg-white flex items-center justify-center text-primary dark:bg-slate-900">
+            <User className="h-[52%] w-[52%] text-primary/70" />
           </div>
         )}
       </div>
@@ -281,7 +280,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
   const settings = useSelector(settingsData);
   const placeholderImage = settings?.placeholder_image;
 
-  const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
+  const [sellerAvatarId, setSellerAvatarId] = useState("");
 
   
 
@@ -308,7 +307,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
     try {
       const res = await sellerSettingsApi.getSettings();
       if (res?.data?.error === false && res?.data?.data) {
-        setSellerAvatarId(res.data.data.avatar_id || "lmx-01");
+        setSellerAvatarId(res.data.data.avatar_id || "");
       }
     } catch (e) {
       // silent fallback

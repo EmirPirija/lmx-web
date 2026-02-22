@@ -19,7 +19,6 @@ import {
 
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import CustomLink from "@/components/Common/CustomLink";
-import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import FirebaseData from "@/utils/Firebase";
@@ -43,6 +42,7 @@ import {
   IoSearchOutline,
   IoMenuOutline,
   IoCloseOutline,
+  User,
 } from "@/components/Common/UnifiedIconPack";
 import { Crown } from "@/components/Common/UnifiedIconPack";
 import { MdVerified } from "@/components/Common/UnifiedIconPack";
@@ -198,8 +198,8 @@ function UserAvatar({
             onError={() => setImgErr(true)}
           />
         ) : (
-          <div className="w-full h-full bg-white flex items-center justify-center text-primary">
-            <LmxAvatarSvg avatarId={avatarId || "lmx-01"} className="w-2/3 h-2/3" />
+          <div className="w-full h-full bg-white flex items-center justify-center text-primary dark:bg-slate-900">
+            <User className="h-[52%] w-[52%] text-primary/70" />
           </div>
         )}
       </div>
@@ -771,7 +771,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   const settings = useSelector(settingsData);
   const placeholderImage = settings?.placeholder_image;
 
-  const [sellerAvatarId, setSellerAvatarId] = useState("lmx-01");
+  const [sellerAvatarId, setSellerAvatarId] = useState("");
   const lastStatsFetchRef = useRef(0);
   const mobileMenuTimersRef = useRef({ open: null, close: null });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -807,7 +807,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     try {
       const res = await sellerSettingsApi.getSettings();
       if (res?.data?.error === false && res?.data?.data) {
-        setSellerAvatarId(res.data.data.avatar_id || "lmx-01");
+        setSellerAvatarId(res.data.data.avatar_id || "");
       }
     } catch (e) {
       // silent fallback
