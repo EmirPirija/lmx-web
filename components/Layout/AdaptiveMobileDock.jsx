@@ -263,7 +263,11 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () =>
       prefersReducedMotion
         ? { duration: 0.01 }
-        : { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
+        : {
+            y: { type: "spring", stiffness: 360, damping: 34, mass: 0.78, restDelta: 0.001 },
+            scale: { type: "spring", stiffness: 320, damping: 31, mass: 0.8, restDelta: 0.001 },
+            opacity: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
+          },
     [prefersReducedMotion]
   );
 
@@ -271,7 +275,11 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () =>
       prefersReducedMotion
         ? { duration: 0.01 }
-        : { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+        : {
+            y: { type: "spring", stiffness: 340, damping: 30, mass: 0.76, restDelta: 0.001 },
+            scale: { type: "spring", stiffness: 300, damping: 27, mass: 0.78, restDelta: 0.001 },
+            opacity: { duration: 0.18, ease: [0.16, 1, 0.3, 1] },
+          },
     [prefersReducedMotion]
   );
 
@@ -493,21 +501,30 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
             )}
 
             <motion.div
-              initial={{ y: 22, opacity: 0 }}
+              initial={
+                prefersReducedMotion
+                  ? { y: 0, opacity: 1, scale: 1 }
+                  : { y: "calc(100% + 14px)", opacity: 0, scale: 0.985 }
+              }
               animate={
                 effectiveSuspended
-                  ? { y: "120%", opacity: 0 }
+                  ? { y: "calc(100% + 18px)", opacity: 0, scale: 0.98 }
                   : isDockCollapsed && !isNavExpanded
-                    ? { y: "104%", opacity: 0 }
-                    : { y: 0, opacity: 1 }
+                    ? { y: "calc(100% + 10px)", opacity: 0, scale: 0.988 }
+                    : { y: 0, opacity: 1, scale: 1 }
               }
-              exit={{ y: 14, opacity: 0 }}
+              exit={
+                prefersReducedMotion
+                  ? { y: 0, opacity: 0, scale: 1 }
+                  : { y: "calc(100% + 14px)", opacity: 0, scale: 0.985 }
+              }
               transition={dockRootTransition}
               className="fixed inset-x-0 bottom-0 z-[65] pointer-events-none lg:hidden"
               style={{
                 bottom: "var(--lmx-mobile-viewport-bottom-offset, 0px)",
                 willChange: "transform, opacity",
                 transform: "translateZ(0)",
+                transformOrigin: "50% 100%",
               }}
             >
               <div
@@ -519,9 +536,17 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                     <AnimatePresence>
                       {hasCta && hasNav && isNavExpanded && (!effectiveSuspended || shouldKeepNavWhileSuspended) && (
                         <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                          initial={
+                            prefersReducedMotion
+                              ? { opacity: 1, y: 0, scale: 1 }
+                              : { opacity: 0, y: 22, scale: 0.972 }
+                          }
                           animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                          exit={
+                            prefersReducedMotion
+                              ? { opacity: 0, y: 0, scale: 1 }
+                              : { opacity: 0, y: 16, scale: 0.98 }
+                          }
                           transition={dockSheetTransition}
                           className="pointer-events-auto absolute inset-x-0 bottom-full mb-2"
                           onPointerDownCapture={beginDockInteraction}
@@ -540,7 +565,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                     </AnimatePresence>
 
                     <div
-                      className={`border border-slate-200/80 bg-white/95 p-2 shadow-[0_-12px_35px_-22px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
+                      className={`rounded-t-3xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_-18px_40px_-26px_rgba(15,23,42,0.42)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
                         effectiveSuspended ? "pointer-events-none" : "pointer-events-auto"
                       }`}
                       onPointerDownCapture={beginDockInteraction}

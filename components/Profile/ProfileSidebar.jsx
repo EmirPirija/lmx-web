@@ -185,25 +185,31 @@ export default function ProfileSidebar({ badges = {} }) {
   }, [navQuery, navigationSections]);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
-      setIsLoggingOut(true);
-      await signOut();
-      const res = await logoutApi.logoutApi({
-        ...(userData?.fcm_id && { fcm_token: userData?.fcm_id }),
-      });
-      if (res?.data?.error === false) {
-        logoutSuccess();
-        toast.success("Uspješno ste se odjavili");
-        setIsLogoutOpen(false);
-        if (pathname !== "/") {
-          navigate("/");
-        }
-      } else {
-        toast.error(res?.data?.message);
+      try {
+        await signOut();
+      } catch (error) {
+        console.warn("Firebase odjava nije završena, nastavljam lokalnu odjavu.", error);
       }
-    } catch (error) {
-      console.log("Failed to logout", error);
-      toast.error("Greška pri odjavi");
+
+      try {
+        await logoutApi.logoutApi({
+          ...(userData?.fcm_id && { fcm_token: userData?.fcm_id }),
+        });
+      } catch (error) {
+        const status = error?.response?.status;
+        if (status !== 401 && status !== 419) {
+          console.warn("Server odjava nije dostupna, nastavljam lokalnu odjavu.", error);
+        }
+      }
+
+      logoutSuccess();
+      setIsLogoutOpen(false);
+      toast.success("Odjava uspješna");
+      if (pathname !== "/") {
+        navigate("/");
+      }
     } finally {
       setIsLoggingOut(false);
     }

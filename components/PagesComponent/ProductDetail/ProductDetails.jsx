@@ -276,15 +276,6 @@ const MobileStickyBar = ({
         <div className="flex items-center gap-2">
           {isMyListing ? (
             <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1 dark:border-slate-700 dark:bg-slate-800/60">
-              <MobileProfileDockSlot
-                isLoggedIn={isLoggedIn}
-                onOpenLogin={onOpenLogin}
-                isLogoutOpen={isLogoutOpen}
-                setIsLogoutOpen={setIsLogoutOpen}
-                profileLabel={profileLabel}
-                showLabel={false}
-              />
-
               {/* UREDI */}
               <Link href={`/edit-listing/${productDetails.id}`} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl active:scale-95 transition-all border border-slate-200/80 dark:border-slate-700">
                 <MdEdit size={20} />
@@ -299,16 +290,18 @@ const MobileStickyBar = ({
               <button onClick={onStatusClick} className="px-4 h-10 flex items-center justify-center bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 rounded-xl font-bold text-sm active:scale-95 shadow-lg shadow-slate-900/20 dark:shadow-none border border-transparent dark:border-slate-700">
                 Opcije
               </button>
-            </div>
-          ) : (
-            <>
+
               <MobileProfileDockSlot
                 isLoggedIn={isLoggedIn}
                 onOpenLogin={onOpenLogin}
                 isLogoutOpen={isLogoutOpen}
                 setIsLogoutOpen={setIsLogoutOpen}
                 profileLabel={profileLabel}
+                showLabel={false}
               />
+            </div>
+          ) : (
+            <>
               <button 
                 onClick={onPhoneClick}
                 disabled={disableContactActions}
@@ -324,6 +317,13 @@ const MobileStickyBar = ({
                 <MdChat size={20} />
                 <span>Poruka</span>
               </button>
+              <MobileProfileDockSlot
+                isLoggedIn={isLoggedIn}
+                onOpenLogin={onOpenLogin}
+                isLogoutOpen={isLogoutOpen}
+                setIsLogoutOpen={setIsLogoutOpen}
+                profileLabel={profileLabel}
+              />
             </>
           )}
         </div>
@@ -624,25 +624,29 @@ const ProductDetails = ({ slug }) => {
   const hideBottomBar = showStatsModal || showStatusDrawer || showFeaturedDrawer || isDeleteOpen || isOpenInApp;
 
   const handleLogout = useCallback(async () => {
+    setIsLoggingOut(true);
     try {
-      setIsLoggingOut(true);
-      await signOut();
-
-      const res = await logoutApi.logoutApi({
-        ...(currentUser?.fcm_id && { fcm_token: currentUser?.fcm_id }),
-      });
-
-      if (res?.data?.error === false) {
-        dispatch(logoutSuccess());
-        toast.success("Odjava uspješna");
-        setIsLogout(false);
-        if (pathName !== "/") router.push("/");
-      } else {
-        toast.error(res?.data?.message || "Odjava nije uspjela. Pokušajte ponovo.");
+      try {
+        await signOut();
+      } catch (error) {
+        console.warn("Firebase odjava nije završena, nastavljam lokalnu odjavu.", error);
       }
-    } catch (error) {
-      console.log("Neuspješna odjava", error);
-      toast.error("Odjava nije uspjela. Pokušajte ponovo.");
+
+      try {
+        await logoutApi.logoutApi({
+          ...(currentUser?.fcm_id && { fcm_token: currentUser?.fcm_id }),
+        });
+      } catch (error) {
+        const status = error?.response?.status;
+        if (status !== 401 && status !== 419) {
+          console.warn("Server odjava nije dostupna, nastavljam lokalnu odjavu.", error);
+        }
+      }
+
+      dispatch(logoutSuccess());
+      setIsLogout(false);
+      toast.success("Odjava uspješna");
+      if (pathName !== "/") router.push("/");
     } finally {
       setIsLoggingOut(false);
     }

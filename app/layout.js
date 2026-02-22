@@ -62,9 +62,9 @@ export default function RootLayout({ children }) {
               {children}
               {/* <PromoWelcomeModal /> */}
               <CompareFloatingBar />
-              <Toaster position="top-center" />
             </Providers>
           </div>
+          <Toaster position="top-center" />
 
 
           {/* 4. Ostali globalni elementi */}

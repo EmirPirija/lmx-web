@@ -613,6 +613,21 @@ export const logoutApi = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+    }).catch((error) => {
+      const status = error?.response?.status;
+
+      // Treat expired/missing token as already-logged-out state.
+      if (status === 401 || status === 419) {
+        return {
+          data: {
+            error: false,
+            message: "Odjava uspješna",
+            already_logged_out: true,
+          },
+        };
+      }
+
+      return Promise.reject(error);
     });
   },
 };

@@ -11,7 +11,7 @@ const Toaster = ({
     (<Sonner
       theme={theme}
       className="toaster group"
-      style={{ zIndex: 2147483647 }}
+      style={{ zIndex: 2147483647, position: "fixed" }}
       toastOptions={{
         style: { zIndex: 2147483647 },
         classNames: {
