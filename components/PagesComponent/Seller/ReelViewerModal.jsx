@@ -371,11 +371,54 @@ const ReelViewerModal = ({
 
     if (isYouTube && ytPlayerRef.current) {
       try {
-        if (muted) ytPlayerRef.current.mute();
-        else ytPlayerRef.current.unMute();
+        if (muted) {
+          ytPlayerRef.current.mute();
+        } else {
+          ytPlayerRef.current.unMute();
+          const currentVolume = Number(ytPlayerRef.current.getVolume?.() || 0);
+          if (!Number.isFinite(currentVolume) || currentVolume <= 0) {
+            ytPlayerRef.current.setVolume?.(70);
+          }
+        }
       } catch {}
     }
   }, [muted, isIframeSource, isYouTube]);
+
+  const toggleMute = useCallback((e) => {
+    e?.stopPropagation?.();
+    const nextMuted = !muted;
+    setMuted(nextMuted);
+
+    if (isInstagramEmbed) {
+      if (!nextMuted) {
+        toast.info("Za Instagram zvuk koristite kontrolu zvuka unutar samog videa.");
+      }
+      return;
+    }
+
+    if (isYouTube && ytPlayerRef.current) {
+      try {
+        if (nextMuted) {
+          ytPlayerRef.current.mute();
+        } else {
+          ytPlayerRef.current.unMute();
+          const currentVolume = Number(ytPlayerRef.current.getVolume?.() || 0);
+          if (!Number.isFinite(currentVolume) || currentVolume <= 0) {
+            ytPlayerRef.current.setVolume?.(70);
+          }
+          ytPlayerRef.current.playVideo?.();
+        }
+      } catch {}
+      return;
+    }
+
+    if (vidRef.current) {
+      vidRef.current.muted = nextMuted;
+      if (!nextMuted && (vidRef.current.volume || 0) < 0.35) {
+        vidRef.current.volume = 0.8;
+      }
+    }
+  }, [isInstagramEmbed, isYouTube, muted]);
 
   const lockNavigation = useCallback(() => {
     navLockRef.current = true;
@@ -582,7 +625,7 @@ const ReelViewerModal = ({
       ytPlayerRef.current = null;
       setPaused(false);
     };
-  }, [open, isYouTube, vMeta?.videoId, muted, autoAdvance, goNext, queueProgress, resetProgress]);
+  }, [open, isYouTube, vMeta?.videoId, autoAdvance, goNext, queueProgress, resetProgress]);
 
   /* auto-advance */
   useEffect(() => {
@@ -968,14 +1011,8 @@ const ReelViewerModal = ({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isIframeSource) setMuted((p) => !p);
-                  }}
-                  disabled={isIframeSource}
-                  className={`w-8 h-8 rounded-full bg-black/35 backdrop-blur-md text-white flex items-center justify-center transition ${
-                    isIframeSource ? "opacity-50 cursor-not-allowed" : "hover:bg-black/50"
-                  }`}
+                  onClick={toggleMute}
+                  className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-md text-white flex items-center justify-center transition hover:bg-black/50"
                 >
                   {muted ? <MdVolumeOff size={16} /> : <MdVolumeUp size={16} />}
                 </button>

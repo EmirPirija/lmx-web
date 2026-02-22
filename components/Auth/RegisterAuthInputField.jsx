@@ -1,5 +1,6 @@
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import { useRef } from "react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import {
@@ -16,6 +17,14 @@ const RegisterAuthInputField = ({
   handleInputChange,
   setCountryCode,
 }) => {
+  const phoneInputRef = useRef(null);
+
+  const focusPhoneInput = () => {
+    window.setTimeout(() => {
+      phoneInputRef.current?.focus?.();
+    }, 0);
+  };
+
   return (
     <div className="labelInputCont">
       <Label className="requiredInputLabel text-sm font-semibold text-foreground">
@@ -25,20 +34,26 @@ const RegisterAuthInputField = ({
         <PhoneInput
           country={LMX_PHONE_DEFAULT_COUNTRY}
           value={value}
-          onChange={(phone, data) => handleInputChange(phone, data)}
-          onCountryChange={(countryData) =>
+          onChange={(phone, data) => {
+            handleInputChange(phone, data);
+          }}
+          onCountryChange={(countryData) => {
             setCountryCode(
               countryData?.dialCode
                 ? `+${countryData.dialCode}`
                 : `+${resolveLmxPhoneDialCode(
-                    typeof countryData === "string" ? countryData : countryData?.countryCode
-                  )}`
-            )
-          }
+                    typeof countryData === "string"
+                      ? countryData
+                      : countryData?.countryCode,
+                  )}`,
+            );
+            focusPhoneInput();
+          }}
           inputProps={{
             name: "phone",
             required: true,
             autoFocus: true,
+            ref: phoneInputRef,
           }}
           {...LMX_PHONE_INPUT_PROPS}
         />

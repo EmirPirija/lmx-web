@@ -341,7 +341,7 @@ function adjustColor(hex, amount) {
 // ═══════════════════════════════════════════════════════════════════
 const ColorRow = ({ colors, selected, onSelect, label }) => (
   <div className="flex items-center gap-3">
-    <span className="text-xs text-slate-500 w-16 shrink-0">{label}</span>
+    <span className="w-16 shrink-0 text-xs text-slate-500 dark:text-slate-400">{label}</span>
     <div className="flex gap-1.5 flex-wrap">
       {colors.map((color) => (
         <button
@@ -350,7 +350,7 @@ const ColorRow = ({ colors, selected, onSelect, label }) => (
           className={`
             w-7 h-7 rounded-full transition-all duration-150
             ${selected === color 
-              ? 'ring-2 ring-offset-1 ring-slate-800 scale-110' 
+              ? 'ring-2 ring-offset-1 ring-slate-800 dark:ring-slate-100 scale-110' 
               : 'hover:scale-105'
             }
           `}
@@ -366,7 +366,7 @@ const ColorRow = ({ colors, selected, onSelect, label }) => (
 // ═══════════════════════════════════════════════════════════════════
 const StyleRow = ({ options, selected, onSelect, label }) => (
   <div className="flex items-start gap-3">
-    <span className="text-xs text-slate-500 w-16 shrink-0 pt-1.5">{label}</span>
+    <span className="w-16 shrink-0 pt-1.5 text-xs text-slate-500 dark:text-slate-400">{label}</span>
     <div className="flex gap-1.5 flex-wrap">
       {options.map((option) => (
         <button
@@ -375,8 +375,8 @@ const StyleRow = ({ options, selected, onSelect, label }) => (
           className={`
             px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150
             ${selected === option.id 
-              ? 'bg-slate-800 text-white' 
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900' 
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
             }
           `}
         >
@@ -450,17 +450,17 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
   }, [onSave]);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-lg w-full">
+    <div className="w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-        <h2 className="font-semibold text-slate-800">Kreiraj avatar</h2>
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+        <h2 className="font-semibold text-slate-800 dark:text-slate-100">Kreiraj avatar</h2>
         <div className="flex items-center gap-1">
           <Button 
             variant="ghost" 
             size="sm"
             onClick={randomize}
             disabled={isSaving}
-            className="h-8 px-2 text-slate-500 hover:text-slate-800"
+            className="h-8 px-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
           >
             <Sparkles size={14} className="mr-1" />
             Nasumično
@@ -470,7 +470,7 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
               variant="ghost" 
               size="icon" 
               onClick={onCancel}
-              className="h-8 w-8 text-slate-400 hover:text-slate-600"
+              className="h-8 w-8 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-200"
             >
               <X size={18} />
             </Button>
@@ -481,7 +481,7 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
       <div className="p-4">
         {/* Preview */}
         <div className="flex justify-center mb-4">
-          <div className="w-36 h-36 rounded-full overflow-hidden bg-slate-50 shadow-inner">
+          <div className="h-36 w-36 overflow-hidden rounded-full bg-slate-50 shadow-inner dark:bg-slate-800">
             <svg 
               ref={svgRef} 
               viewBox="0 0 200 200" 
@@ -550,7 +550,7 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
             onSelect={(c) => setConfig({...config, shirtColor: c})}
           />
           
-          <div className="pt-2 border-t border-slate-100">
+          <div className="border-t border-slate-100 pt-2 dark:border-slate-700">
             <StyleRow 
               label="Frizura"
               options={OPTIONS.hairTypes}
@@ -576,7 +576,7 @@ const LmxAvatarGenerator = ({ onSave, onCancel, isSaving = false }) => {
       </div>
 
       {/* Footer */}
-      <div className="flex gap-2 px-4 py-3 bg-slate-50 border-t border-slate-100">
+      <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
         {onCancel && (
           <Button 
             variant="outline" 

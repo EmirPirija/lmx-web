@@ -903,7 +903,7 @@ const HomeHeader = () => {
           {isLargeScreen ? (
             <>
               <div className="py-3 lg:py-4">
-              <div className="rounded-3xl border border-slate-200/80 bg-white/85 p-3 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/75 lg:p-4">
+              <div className="backdrop-blur-xl dark:border-slate-700 lg:p-4">
               {/* DESKTOP: GORE utility + quick links rail */}
               <div className="space-y-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
                 <div className="flex items-center justify-between gap-3">

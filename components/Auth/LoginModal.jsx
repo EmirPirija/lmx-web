@@ -1,5 +1,5 @@
 "use client";
-import { handleFirebaseAuthError, t } from "@/utils";
+import { handleFirebaseAuthError } from "@/utils";
 import {
   Dialog,
   DialogContent,
@@ -16,15 +16,24 @@ import {
 } from "@/redux/reducer/settingSlice";
 import "react-phone-input-2/lib/style.css";
 import { Button } from "../ui/button";
-import { FcGoogle } from "@/components/Common/UnifiedIconPack";
+import {
+  FcGoogle,
+  X,
+  User,
+  Mail,
+  Smartphone,
+  Pin,
+} from "@/components/Common/UnifiedIconPack";
 import {
   MdOutlineEmail,
   MdOutlineLocalPhone,
 } from "@/components/Common/UnifiedIconPack";
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   getAuth,
   GoogleAuthProvider,
-  RecaptchaVerifier,
+  setPersistence,
   signInWithPopup,
 } from "firebase/auth";
 import { toast } from "@/utils/toastBs";
@@ -38,6 +47,19 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import AuthValuePanel, { AuthCompactHighlights } from "./AuthValuePanel";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  getDeviceLoginProfiles,
+  getLastUsedDeviceProfileKey,
+  getRememberMePreference,
+  removeDeviceLoginProfile,
+  setRememberMePreference,
+  upsertDeviceLoginProfile,
+} from "./deviceLoginProfiles";
+import {
+  clearRecaptchaVerifier,
+  ensureRecaptchaVerifier,
+} from "./recaptchaManager";
 
 const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   const settings = useSelector(settingsData);
@@ -52,6 +74,10 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
     showLoader: false,
     regionCode: "",
   });
+  const [rememberMe, setRememberMe] = useState(true);
+  const [deviceProfiles, setDeviceProfiles] = useState([]);
+  const [lastUsedProfileKey, setLastUsedProfileKey] = useState("");
+  const [prefilledIdentifier, setPrefilledIdentifier] = useState("");
 
   const [confirmationResult, setConfirmationResult] = useState(null);
 
@@ -102,6 +128,8 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
     setResendTimer(0);
     setConfirmationResult(null);
     setLoginStates(getInitialLoginState());
+    setPrefilledIdentifier("");
+    setLastUsedProfileKey("");
     setIsLoginWithEmail(
       mobile_authentication === 0 && email_authentication === 1,
     );
@@ -112,6 +140,9 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
       setIsLoginWithEmail(
         mobile_authentication === 0 && email_authentication === 1,
       );
+      setRememberMe(getRememberMePreference());
+      setDeviceProfiles(getDeviceLoginProfiles());
+      setLastUsedProfileKey(getLastUsedDeviceProfileKey());
       return;
     }
     resetState();
@@ -131,67 +162,31 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
     setIsLoginOpen(true);
   };
 
-  const generateRecaptcha = () => {
-    // Ensure auth object is properly initialized
+  const generateRecaptcha = (options = {}) => {
+    return ensureRecaptchaVerifier({
+      auth,
+      containerId: "recaptcha-container",
+      forceRecreate: Boolean(options?.forceRecreate),
+    });
+  };
 
-    if (!window.recaptchaVerifier) {
-      // Check if container element exists
-      const recaptchaContainer = document.getElementById("recaptcha-container");
-      if (!recaptchaContainer) {
-        console.error("Container element 'recaptcha-container' not found.");
-        return null; // Return null if container element not found
-      }
-
-      try {
-        // Clear any existing reCAPTCHA instance
-        recaptchaContainer.innerHTML = "";
-
-        // Initialize RecaptchaVerifier
-        window.recaptchaVerifier = new RecaptchaVerifier(
-          auth,
-          "recaptcha-container",
-          {
-            size: "invisible",
-          },
-        );
-        return window.recaptchaVerifier;
-      } catch (error) {
-        console.error("Error initializing RecaptchaVerifier:", error.message);
-        return null; // Return null if error occurs during initialization
-      }
-    }
-    return window.recaptchaVerifier;
+  const recaptchaClear = async () => {
+    clearRecaptchaVerifier({ containerId: "recaptcha-container" });
   };
 
   useEffect(() => {
-    generateRecaptcha();
-
     return () => {
-      // Clean up recaptcha container and verifier when component unmounts
-      const recaptchaContainer = document.getElementById("recaptcha-container");
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = "";
-      }
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null; // Clear the recaptchaVerifier reference
-      }
+      clearRecaptchaVerifier({ containerId: "recaptcha-container" });
     };
   }, []);
-
-  const recaptchaClear = async () => {
-    const recaptchaContainer = document.getElementById("recaptcha-container");
-    if (recaptchaContainer) {
-      recaptchaContainer.innerHTML = "";
-    }
-    if (window.recaptchaVerifier) {
-      window?.recaptchaVerifier?.recaptcha?.reset();
-    }
-  };
 
   const handleGoogleSignup = async () => {
     const provider = new GoogleAuthProvider();
     try {
+      await setPersistence(
+        auth,
+        rememberMe ? browserLocalPersistence : browserSessionPersistence,
+      );
       const res = await signInWithPopup(auth, provider);
       const user = res.user;
       try {
@@ -208,6 +203,10 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
           toast.error(data.message);
         } else {
           loadUpdateData(data);
+          handleAuthenticated(data, {
+            method: "google",
+            identifier: user?.email || "",
+          });
           toast.success(data.message);
         }
         OnHide();
@@ -223,6 +222,55 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   const handleCreateAnAccount = async () => {
     await OnHide();
     setIsRegisterModalOpen(true);
+  };
+
+  const handleRememberChange = (checked) => {
+    const nextValue = checked === true || checked === "indeterminate" ? true : Boolean(checked);
+    setRememberMe(nextValue);
+    setRememberMePreference(nextValue);
+  };
+
+  const handleAuthenticated = (payload, meta = {}) => {
+    const nextProfiles = upsertDeviceLoginProfile(payload, {
+      rememberMe,
+      method: meta?.method || "email",
+      identifier: meta?.identifier || "",
+    });
+    setDeviceProfiles(nextProfiles);
+    setLastUsedProfileKey(getLastUsedDeviceProfileKey());
+  };
+
+  const handlePickDeviceProfile = (profile) => {
+    const identifier = String(profile?.email || profile?.identifier || "").trim();
+    if (!identifier) return;
+    setIsLoginWithEmail(true);
+    setPrefilledIdentifier(identifier);
+  };
+
+  const handleRemoveDeviceProfile = (profileKey) => {
+    const nextProfiles = removeDeviceLoginProfile(profileKey);
+    setDeviceProfiles(nextProfiles);
+    setLastUsedProfileKey(getLastUsedDeviceProfileKey());
+  };
+
+  const quickLoginProfiles = deviceProfiles.filter(
+    (profile) => String(profile?.email || "").trim().length > 0,
+  );
+  const activeLoginStepIndex = IsOTPScreen ? 1 : IsLoginWithEmail ? 2 : 0;
+  const loginStepProgress = ((activeLoginStepIndex + 1) / 3) * 100;
+
+  const primaryStepMotion = {
+    initial: { opacity: 0, y: 16, scale: 0.992, filter: "blur(3px)" },
+    animate: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+    exit: { opacity: 0, y: -10, scale: 0.996, filter: "blur(2px)" },
+    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+  };
+
+  const secondaryStepMotion = {
+    initial: { opacity: 0, y: 10, scale: 0.995 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -8, scale: 0.997 },
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
   };
 
   return (
@@ -289,16 +337,52 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                   </DialogDescription>
                 </DialogHeader>
 
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {["Odabir metode", "Potvrda koda", "Pristup računu"].map(
+                    (label, idx) => {
+                      const isDone = idx < activeLoginStepIndex;
+                      const isActive = idx === activeLoginStepIndex;
+                      return (
+                        <motion.div
+                          key={label}
+                          animate={{ scale: isActive ? 1.015 : 1, y: isActive ? -1 : 0 }}
+                          transition={{ type: "spring", stiffness: 320, damping: 26 }}
+                          className={cn(
+                            "rounded-xl border px-2.5 py-2 text-center transition-all",
+                            isActive
+                              ? "border-primary bg-primary/10 text-primary shadow-[0_10px_30px_-22px_rgba(20,184,166,0.8)]"
+                              : isDone
+                                ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                : "border-border bg-muted/40 text-muted-foreground",
+                          )}
+                        >
+                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.08em]">
+                            Korak {idx + 1}
+                          </div>
+                          <p className="text-[11px] font-medium leading-tight">
+                            {label}
+                          </p>
+                        </motion.div>
+                      );
+                    },
+                  )}
+                </div>
+
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted/70">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-cyan-400/90"
+                    animate={{ width: `${loginStepProgress}%` }}
+                    transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                  />
+                </div>
+
                 <AuthCompactHighlights className="mt-4" />
 
                 <AnimatePresence mode="wait" initial={false}>
                   {IsOTPScreen ? (
                     <motion.div
                       key="otp-login"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.2 }}
+                      {...primaryStepMotion}
                       className="mt-5"
                     >
                       <OtpScreen
@@ -311,45 +395,150 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                         resendTimer={resendTimer}
                         setResendTimer={setResendTimer}
                         regionCode={loginStates.regionCode}
+                        onAuthSuccess={handleAuthenticated}
                         key={IsOTPScreen + "login-otp"}
                       />
                     </motion.div>
                   ) : (
                     <motion.div
                       key="login-methods"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.2 }}
+                      {...primaryStepMotion}
                       className="mt-5 flex flex-col gap-5"
                     >
+                      {quickLoginProfiles.length > 0 && email_authentication === 1 ? (
+                        <div className="rounded-2xl border border-border/80 bg-card/80 p-3.5 shadow-sm">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                              Postojeći korisnici na ovom uređaju
+                            </p>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                              Brza prijava
+                            </span>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {quickLoginProfiles.slice(0, 4).map((profile) => {
+                              const isLastUsed = profile.key === lastUsedProfileKey;
+                              return (
+                                <div
+                                  key={profile.key}
+                                  className={cn(
+                                    "group relative overflow-hidden rounded-xl border border-border bg-background/70 p-2.5 transition hover:border-primary/60 hover:shadow-sm",
+                                    isLastUsed
+                                      ? "border-primary/60 bg-primary/5 shadow-[0_12px_32px_-24px_rgba(20,184,166,0.9)]"
+                                      : "",
+                                  )}
+                                >
+                                  {isLastUsed ? (
+                                    <motion.span
+                                      layout
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                                    >
+                                      <Pin className="h-3 w-3" />
+                                      Zadnji korišten
+                                    </motion.span>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePickDeviceProfile(profile)}
+                                    className={cn(
+                                      "flex w-full items-center gap-2.5 text-left",
+                                      isLastUsed ? "pt-4" : "",
+                                    )}
+                                  >
+                                    {profile?.profile ? (
+                                      <img
+                                        src={profile.profile}
+                                        alt={profile?.name || "Profil"}
+                                        className="h-9 w-9 rounded-lg border border-border object-cover"
+                                        loading="lazy"
+                                      />
+                                    ) : (
+                                      <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted">
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-semibold text-foreground">
+                                        {profile?.name || "Sačuvani profil"}
+                                      </p>
+                                      <p className="truncate text-xs text-muted-foreground">
+                                        {profile?.email}
+                                      </p>
+                                    </div>
+                                    <Mail className="h-4 w-4 shrink-0 text-primary" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleRemoveDeviceProfile(profile.key)
+                                    }
+                                    className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-md border border-transparent bg-background/85 text-muted-foreground opacity-100 transition hover:border-border hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
+                                    aria-label="Ukloni profil sa uređaja"
+                                    title="Ukloni profil sa uređaja"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            Klik na profil automatski popunjava e-mail. Lozinku i dalje unosiš ručno radi sigurnosti.
+                          </p>
+                        </div>
+                      ) : null}
+
                       {canUseBothMethods ? (
                         <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-muted/70 p-1.5">
                           <button
                             type="button"
                             className={cn(
-                              "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+                              "relative inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                               IsLoginWithEmail
-                                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
-                                : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+                                ? "text-foreground"
+                                : "text-muted-foreground hover:text-foreground",
                             )}
                             onClick={() => setIsLoginWithEmail(true)}
                           >
-                            <MdOutlineEmail className="h-4 w-4" />
-                            Email
+                            {IsLoginWithEmail ? (
+                              <motion.span
+                                layoutId="login-auth-toggle-pill"
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 420,
+                                  damping: 32,
+                                }}
+                                className="absolute inset-0 rounded-xl bg-card shadow-sm ring-1 ring-border"
+                              />
+                            ) : null}
+                            <MdOutlineEmail className="relative z-10 h-4 w-4" />
+                            <span className="relative z-10">E-mail</span>
                           </button>
                           <button
                             type="button"
                             className={cn(
-                              "inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
+                              "relative inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all",
                               !IsLoginWithEmail
-                                ? "bg-card text-foreground shadow-sm ring-1 ring-border"
-                                : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+                                ? "text-foreground"
+                                : "text-muted-foreground hover:text-foreground",
                             )}
                             onClick={() => setIsLoginWithEmail(false)}
                           >
-                            <MdOutlineLocalPhone className="h-4 w-4" />
-                            Mobitel
+                            {!IsLoginWithEmail ? (
+                              <motion.span
+                                layoutId="login-auth-toggle-pill"
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 420,
+                                  damping: 32,
+                                }}
+                                className="absolute inset-0 rounded-xl bg-card shadow-sm ring-1 ring-border"
+                              />
+                            ) : null}
+                            <MdOutlineLocalPhone className="relative z-10 h-4 w-4" />
+                            <span className="relative z-10">Mobitel</span>
                           </button>
                         </div>
                       ) : null}
@@ -358,22 +547,21 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                         {canUseBothMethods && IsLoginWithEmail ? (
                           <motion.div
                             key="email-login"
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -6 }}
-                            transition={{ duration: 0.16 }}
+                            {...secondaryStepMotion}
                           >
-                            <LoginWithEmailForm OnHide={OnHide} />
+                            <LoginWithEmailForm
+                              OnHide={OnHide}
+                              prefillIdentifier={prefilledIdentifier}
+                              onAuthenticated={handleAuthenticated}
+                              rememberMe={rememberMe}
+                            />
                           </motion.div>
                         ) : null}
 
                         {canUseBothMethods && !IsLoginWithEmail ? (
                           <motion.div
                             key="phone-login"
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -6 }}
-                            transition={{ duration: 0.16 }}
+                            {...secondaryStepMotion}
                           >
                             <LoginWithMobileForm
                               formattedNumber={formattedNumber}
@@ -383,6 +571,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                               setIsOTPScreen={setIsOTPScreen}
                               setConfirmationResult={setConfirmationResult}
                               setResendTimer={setResendTimer}
+                              rememberMe={rememberMe}
                             />
                           </motion.div>
                         ) : null}
@@ -390,7 +579,12 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
 
                       {email_authentication === 1 &&
                       mobile_authentication === 0 ? (
-                        <LoginWithEmailForm OnHide={OnHide} />
+                        <LoginWithEmailForm
+                          OnHide={OnHide}
+                          prefillIdentifier={prefilledIdentifier}
+                          onAuthenticated={handleAuthenticated}
+                          rememberMe={rememberMe}
+                        />
                       ) : null}
 
                       {mobile_authentication === 1 &&
@@ -403,6 +597,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                           setIsOTPScreen={setIsOTPScreen}
                           setConfirmationResult={setConfirmationResult}
                           setResendTimer={setResendTimer}
+                          rememberMe={rememberMe}
                         />
                       ) : null}
 
@@ -429,8 +624,25 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
                         </Button>
                       ) : null}
 
+                      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/50 px-3 py-2.5">
+                        <label
+                          htmlFor="remember-login-device"
+                          className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                        >
+                          <Checkbox
+                            id="remember-login-device"
+                            checked={rememberMe}
+                            onCheckedChange={handleRememberChange}
+                          />
+                          <span>Zapamti me na ovom uređaju</span>
+                        </label>
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <Smartphone className="h-3.5 w-3.5" />
+                          Brži pristup
+                        </span>
+                      </div>
+
                       <TermsAndPrivacyLinks
-                        t={t}
                         settings={settings}
                         OnHide={OnHide}
                       />

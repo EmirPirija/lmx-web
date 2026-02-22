@@ -6,8 +6,11 @@ import useAutoFocus from "../Common/useAutoFocus";
 import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError } from "@/utils";
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   getAuth,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { authApi, userSignUpApi } from "@/utils/api";
@@ -15,12 +18,18 @@ import { useSelector } from "react-redux";
 import { Fcmtoken } from "@/redux/reducer/settingSlice";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
 
-const LoginWithEmailForm = ({ OnHide }) => {
+const LoginWithEmailForm = ({
+  OnHide,
+  prefillIdentifier = "",
+  onAuthenticated,
+  rememberMe = true,
+}) => {
   const emailRef = useAutoFocus();
+  const passwordRef = useRef(null);
   const auth = getAuth();
   const fetchFCM = useSelector(Fcmtoken);
   const [loginStates, setLoginStates] = useState({
@@ -31,6 +40,21 @@ const LoginWithEmailForm = ({ OnHide }) => {
   });
 
   const { identifier, password, IsPasswordVisible, showLoader } = loginStates;
+
+  useEffect(() => {
+    const nextIdentifier = String(prefillIdentifier || "").trim();
+    if (!nextIdentifier) return;
+
+    setLoginStates((prev) => ({
+      ...prev,
+      identifier: nextIdentifier,
+      password: "",
+    }));
+
+    window.setTimeout(() => {
+      passwordRef.current?.focus?.();
+    }, 680);
+  }, [prefillIdentifier]);
 
   const resolveEmailFromIdentifier = async (rawIdentifier) => {
     const normalizedIdentifier = String(rawIdentifier || "").trim();
@@ -62,6 +86,10 @@ const LoginWithEmailForm = ({ OnHide }) => {
 
   const signin = async (email, password) => {
     try {
+      await setPersistence(
+        auth,
+        rememberMe ? browserLocalPersistence : browserSessionPersistence,
+      );
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -122,6 +150,10 @@ const LoginWithEmailForm = ({ OnHide }) => {
           const data = response.data;
           if (data.error === false) {
             loadUpdateData(data);
+            onAuthenticated?.(data, {
+              method: "email",
+              identifier: resolvedEmail,
+            });
             toast.success(data.message);
             OnHide();
           } else {
@@ -205,13 +237,14 @@ const LoginWithEmailForm = ({ OnHide }) => {
               className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground ltr:pr-10 rtl:pl-10"
               value={password}
               autoComplete="current-password"
-              onChange={(e) =>
-                setLoginStates((prev) => ({
-                  ...prev,
-                  password: e.target.value,
-                }))
-              }
-            />
+            onChange={(e) =>
+              setLoginStates((prev) => ({
+                ...prev,
+                password: e.target.value,
+              }))
+            }
+            ref={passwordRef}
+          />
             <button
               type="button"
               className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-muted-foreground hover:text-foreground"

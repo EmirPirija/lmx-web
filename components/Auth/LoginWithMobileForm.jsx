@@ -6,8 +6,14 @@ import useAutoFocus from "../Common/useAutoFocus";
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
 import { toast } from "@/utils/toastBs";
-import { handleFirebaseAuthError, t } from "@/utils";
-import { getAuth, signInWithPhoneNumber } from "firebase/auth";
+import { handleFirebaseAuthError } from "@/utils";
+import {
+  browserLocalPersistence,
+  browserSessionPersistence,
+  getAuth,
+  setPersistence,
+  signInWithPhoneNumber,
+} from "firebase/auth";
 import { getOtpApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
@@ -17,6 +23,9 @@ import {
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
 import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
+import {
+  isRecaptchaRecoverableError,
+} from "./recaptchaManager";
 
 const LoginWithMobileForm = ({
   generateRecaptcha,
@@ -26,11 +35,18 @@ const LoginWithMobileForm = ({
   setIsOTPScreen,
   setConfirmationResult,
   setResendTimer,
+  rememberMe = true,
 }) => {
   const numberInputRef = useAutoFocus();
   const auth = getAuth();
   const otp_service_provider = useSelector(getOtpServiceProvider);
   const { number, countryCode, showLoader } = loginStates;
+
+  const focusPhoneInput = () => {
+    window.setTimeout(() => {
+      numberInputRef.current?.focus?.();
+    }, 0);
+  };
 
   const handleInputChange = (value, data) => {
     setLoginStates((prev) => ({
@@ -52,6 +68,7 @@ const LoginWithMobileForm = ({
       countryCode: dialCode,
       regionCode,
     }));
+    focusPhoneInput();
   };
 
   const sendOtpWithTwillio = async (phoneE164) => {
@@ -75,25 +92,60 @@ const LoginWithMobileForm = ({
   };
 
   const sendOtpWithFirebase = async (phoneE164) => {
-    try {
-      const appVerifier = generateRecaptcha();
+    const requestOtp = async (forceRecreate = true) => {
+      const appVerifier = generateRecaptcha({ forceRecreate });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
+        return null;
+      }
+      return signInWithPhoneNumber(auth, phoneE164, appVerifier);
+    };
+
+    try {
+      await setPersistence(
+        auth,
+        rememberMe ? browserLocalPersistence : browserSessionPersistence,
+      );
+      let confirmation = await requestOtp(true);
+      if (!confirmation) {
         return;
       }
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        phoneE164,
-        appVerifier,
-      );
+      if (!confirmation?.verificationId) {
+        toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
+        return;
+      }
       console.info("[Auth][Firebase] OTP request accepted", {
         phone: maskPhoneForDebug(phoneE164),
         verificationId: confirmation?.verificationId || null,
       });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
+      setResendTimer(60);
       setIsOTPScreen(true);
     } catch (error) {
+      if (isRecaptchaRecoverableError(error)) {
+        try {
+          const retriedConfirmation = await requestOtp(true);
+          if (retriedConfirmation) {
+            if (!retriedConfirmation?.verificationId) {
+              toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
+              return;
+            }
+            console.info("[Auth][Firebase] OTP request accepted after retry", {
+              phone: maskPhoneForDebug(phoneE164),
+              verificationId: retriedConfirmation?.verificationId || null,
+            });
+            setConfirmationResult(retriedConfirmation);
+            toast.success("OTP poslan");
+            setResendTimer(60);
+            setIsOTPScreen(true);
+            return;
+          }
+        } catch (retryError) {
+          handleFirebaseAuthError(retryError);
+          return;
+        }
+      }
       handleFirebaseAuthError(error);
     } finally {
       setLoginStates((prev) => ({

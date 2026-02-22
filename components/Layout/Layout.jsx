@@ -10,6 +10,7 @@ import CustomImage from "../Common/CustomImage";
 import ScrollToTopButton from "./ScrollToTopButton";
 import { AdaptiveMobileDockProvider } from "./AdaptiveMobileDock";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 
 export default function Layout({ children }) {
@@ -17,6 +18,38 @@ export default function Layout({ children }) {
     useClientLayoutLogic();
   const pathname = usePathname();
   const isHomepageRoute = pathname === "/";
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+
+    const root = document.documentElement;
+    let rafId = null;
+
+    const update = () => {
+      const y = window.scrollY || window.pageYOffset || 0;
+      const offset = Math.min(y * 0.42, 7200);
+      const wave = Math.sin(y * 0.009) * 34;
+      root.style.setProperty("--lmx-scroll-offset", `${offset.toFixed(2)}px`);
+      root.style.setProperty("--lmx-scroll-wave", `${wave.toFixed(2)}px`);
+      rafId = null;
+    };
+
+    const onScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+      root.style.removeProperty("--lmx-scroll-offset");
+      root.style.removeProperty("--lmx-scroll-wave");
+    };
+  }, []);
 
   if (isLoading) {
     return <Loading />;

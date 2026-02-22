@@ -557,7 +557,7 @@ const ERROR_CODES = {
   "auth/expired-action-code": "Link/kod je istekao",
   "auth/cancelled-popup-request": "Zahtjev za pop-up je istekao",
   "auth/invalid-api-key": "Neispravan API ključ",
-  "auth/invalid-app-credential": "Neispravna aplikacijska vjerodajnica",
+  "auth/invalid-app-credential": "Verifikacija uređaja nije uspjela. Provjeri da je domena dozvoljena u Firebase postavkama i pokušaj ponovo.",
   "auth/invalid-app-id": "Neispravan ID aplikacije",
   "auth/invalid-user-token": "Neispravna autentifikacija",
   "auth/invalid-auth-event": "Neispravan auth događaj",

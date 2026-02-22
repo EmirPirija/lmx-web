@@ -57,6 +57,12 @@
   }
 }
 
+@media (min-width: 1200px) {
+  .lmx-home-container-scope .container {
+    max-width: min(1840px, calc(100vw - 88px)) !important;
+  }
+}
+
 /* ============================================
    LMX BOJE (iz loga)
    - Tamno plava (l): #1B4B82
@@ -69,6 +75,8 @@
   --background-start-rgb: 250, 250, 252;
   --background-end-rgb: 255, 255, 255;
   --adaptive-mobile-dock-space: 0px;
+  --lmx-scroll-offset: 0px;
+  --lmx-scroll-wave: 0px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -634,6 +642,89 @@ input[type="number"]::-webkit-outer-spin-button {
 
 body {
   overflow-x: hidden !important;
+}
+
+.lmx-app-background {
+  position: relative;
+  overflow-x: clip;
+  background-color: #ecebe8;
+  background-image: url("/assets/lmx-pozadina.png");
+  background-repeat: repeat;
+  background-size: 960px auto;
+  background-position:
+    left calc((var(--lmx-scroll-offset, 0px) * -0.34) + (var(--lmx-scroll-wave, 0px) * 0.22));
+}
+
+.lmx-app-surface {
+  width: min(1600px, calc(100vw - 56px));
+  min-height: 100dvh;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  background: #f8fafd;
+  border-left: 1px solid #dde3ec;
+  border-right: 1px solid #dde3ec;
+  box-shadow: 0 0 0 1px rgba(248, 250, 253, 0.55);
+}
+
+.dark .lmx-app-background,
+.lmx-app-background.dark {
+  background-color: #0b1830;
+  background-image:
+    radial-gradient(1200px 520px at 10% -8%, rgba(0, 169, 157, 0.28), transparent 62%),
+    radial-gradient(1100px 560px at 92% -12%, rgba(59, 130, 246, 0.24), transparent 64%),
+    linear-gradient(rgba(8, 16, 32, 0.42), rgba(8, 16, 32, 0.48)),
+    url("/assets/lmx-pozadina-dark.png");
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
+  background-size: auto, auto, auto, 960px auto;
+  background-position:
+    left calc((var(--lmx-scroll-offset, 0px) * -0.2) + (var(--lmx-scroll-wave, 0px) * 0.32)),
+    right calc((var(--lmx-scroll-offset, 0px) * -0.14) + (var(--lmx-scroll-wave, 0px) * -0.28)),
+    top left,
+    left calc((var(--lmx-scroll-offset, 0px) * -0.48) + (var(--lmx-scroll-wave, 0px) * 0.16));
+  background-blend-mode: screen, screen, normal, normal;
+}
+
+.dark .lmx-app-surface,
+.lmx-app-surface.dark {
+  background: rgba(15, 23, 42, 0.9);
+  border-left-color: rgba(71, 85, 105, 0.55);
+  border-right-color: rgba(71, 85, 105, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(30, 41, 59, 0.75),
+    0 0 48px rgba(56, 189, 248, 0.08);
+  backdrop-filter: saturate(120%) blur(1.5px);
+}
+
+@media (max-width: 1023px) {
+  .lmx-app-background {
+    background-size: 960px auto;
+    background-position: top left;
+  }
+
+  .dark .lmx-app-background,
+  .lmx-app-background.dark {
+    background-size: auto, auto, auto, 960px auto;
+    background-position: top left, top right, top left, top left;
+  }
+
+  .lmx-app-surface {
+    width: 100%;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lmx-app-background {
+    background-position: top left;
+  }
+
+  .dark .lmx-app-background,
+  .lmx-app-background.dark {
+    background-position: top left, top right, top left, top left;
+  }
 }
 
 /* Selection color */

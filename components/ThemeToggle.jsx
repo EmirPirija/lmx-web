@@ -51,12 +51,9 @@ export function ThemeToggle() {
         isDark
           ? {
               borderColor: "rgba(56,189,248,0.55)",
-              
             }
           : {
               borderColor: "rgba(251,191,36,0.8)",
-              boxShadow:
-                "0 10px 22px rgba(245,158,11,0.24), inset 0 0 0 1px rgba(251,191,36,0.2)",
             }
       }
       whileHover={prefersReducedMotion ? undefined : { scale: 1.06, y: -1.5 }}
@@ -71,68 +68,6 @@ export function ThemeToggle() {
       aria-pressed={isDark}
       title={isDark ? "Tamna tema je aktivna" : "Svijetla tema je aktivna"}
     >
-      <motion.span
-        initial={false}
-        className="pointer-events-none absolute -inset-[36%] rounded-full"
-        style={{
-          background: isDark
-            ? "conic-gradient(from 20deg, rgba(56,189,248,0.42), rgba(59,130,246,0.16), rgba(15,23,42,0.06), rgba(56,189,248,0.42))"
-            : "conic-gradient(from 25deg, rgba(251,191,36,0.46), rgba(249,115,22,0.22), rgba(255,255,255,0.08), rgba(251,191,36,0.46))",
-        }}
-        animate={
-          prefersReducedMotion
-            ? { opacity: isDark ? 0.4 : 0.35, rotate: 0, scale: 1 }
-            : { opacity: [0.28, 0.48, 0.28], rotate: [0, 360], scale: [1, 1.07, 1] }
-        }
-        transition={
-          prefersReducedMotion
-            ? { duration: 0 }
-            : { duration: 14, repeat: Infinity, ease: "linear" }
-        }
-      />
-
-      <motion.span
-        initial={false}
-        className="pointer-events-none absolute inset-0 rounded-full"
-        animate={
-          isDark
-            ? {
-                opacity: prefersReducedMotion ? 0.34 : [0.28, 0.46, 0.28],
-                scale: prefersReducedMotion ? 1 : [1, 1.05, 1],
-                background:
-                  "radial-gradient(circle at 32% 28%, rgba(125,211,252,0.48), rgba(2,132,199,0.12) 52%, rgba(2,6,23,0.05) 72%)",
-              }
-            : {
-                opacity: prefersReducedMotion ? 0.36 : [0.3, 0.52, 0.3],
-                scale: prefersReducedMotion ? 1 : [1, 1.04, 1],
-                background:
-                  "radial-gradient(circle at 30% 26%, rgba(254,215,170,0.72), rgba(251,191,36,0.16) 52%, rgba(255,255,255,0.06) 72%)",
-              }
-        }
-        transition={
-          prefersReducedMotion
-            ? { duration: 0 }
-            : { duration: 4.4, repeat: Infinity, ease: "easeInOut" }
-        }
-      />
-
-      <motion.span
-        className="pointer-events-none absolute inset-[2px] rounded-full border"
-        animate={
-          prefersReducedMotion
-            ? { rotate: 0, opacity: 1 }
-            : { rotate: [0, 360], opacity: [0.7, 1, 0.7] }
-        }
-        transition={
-          prefersReducedMotion
-            ? { duration: 0 }
-            : { duration: 18, repeat: Infinity, ease: "linear" }
-        }
-        style={{
-          borderColor: isDark ? "rgba(125,211,252,0.32)" : "rgba(251,191,36,0.36)",
-        }}
-      />
-
       <AnimatePresence mode="wait" initial={false}>
         {isDark ? (
           <motion.div

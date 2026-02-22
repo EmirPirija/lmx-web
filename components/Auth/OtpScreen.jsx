@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { toast } from "@/utils/toastBs";
-import { handleFirebaseAuthError, t } from "@/utils";
+import { handleFirebaseAuthError } from "@/utils";
 import { getOtpApi, userSignUpApi, verifyOtpApi } from "@/utils/api";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
 import { useSelector } from "react-redux";
@@ -17,6 +17,9 @@ import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useState } from "react";
 import { useNavigate } from "../Common/useNavigate";
 import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
+import {
+  isRecaptchaRecoverableError,
+} from "./recaptchaManager";
 
 const OtpScreen = ({
   generateRecaptcha,
@@ -28,6 +31,8 @@ const OtpScreen = ({
   resendTimer,
   setResendTimer,
   regionCode,
+  onAuthSuccess,
+  autoCloseOnSuccess = true,
 }) => {
   const { navigate } = useNavigate();
   const otpInputRef = useAutoFocus();
@@ -60,15 +65,22 @@ const OtpScreen = ({
         otp: otp,
       });
       if (response?.data?.error === false) {
-        loadUpdateData(response?.data);
-        toast.success(response?.data?.message);
+        const authPayload = response?.data;
+        loadUpdateData(authPayload);
+        toast.success(authPayload?.message);
+        await onAuthSuccess?.(authPayload, {
+          method: "phone",
+          identifier: PhoneNumber,
+        });
         if (
-          response?.data?.data?.email === "" ||
-          response?.data?.data?.name === ""
+          autoCloseOnSuccess &&
+          (authPayload?.data?.email === "" || authPayload?.data?.name === "")
         ) {
           navigate("/profile");
         }
-        OnHide();
+        if (autoCloseOnSuccess) {
+          OnHide();
+        }
       } else {
         toast.error(response?.data?.message);
       }
@@ -84,6 +96,7 @@ const OtpScreen = ({
       const result = await confirmationResult.confirm(otp);
       // Access user information from the result
       const user = result.user;
+      const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
       const response = await userSignUpApi.userSignup({
         mobile: formattedNumber,
         firebase_id: user.uid, // Accessing UID directly from the user object
@@ -95,9 +108,18 @@ const OtpScreen = ({
       const data = response.data;
       loadUpdateData(data);
       toast.success(data.message);
-      OnHide();
-      if (data?.data?.email === "" || data?.data?.name === "") {
+      await onAuthSuccess?.(data, {
+        method: "phone",
+        identifier: phoneE164,
+      });
+      if (
+        autoCloseOnSuccess &&
+        (data?.data?.email === "" || data?.data?.name === "")
+      ) {
         navigate("/profile");
+      }
+      if (autoCloseOnSuccess) {
+        OnHide();
       }
     } catch (error) {
       console.log(error);
@@ -138,24 +160,54 @@ const OtpScreen = ({
   };
 
   const resendOtpWithFirebase = async (phoneE164) => {
-    try {
-      const appVerifier = generateRecaptcha();
+    const requestOtp = async (forceRecreate = true) => {
+      const appVerifier = generateRecaptcha({ forceRecreate });
       if (!appVerifier) {
         handleFirebaseAuthError("auth/recaptcha-not-enabled");
+        return null;
+      }
+      return signInWithPhoneNumber(auth, phoneE164, appVerifier);
+    };
+
+    try {
+      let confirmation = await requestOtp(true);
+      if (!confirmation) {
         return;
       }
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        phoneE164,
-        appVerifier,
-      );
+      if (!confirmation?.verificationId) {
+        toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
+        return;
+      }
       console.info("[Auth][Firebase] OTP resend accepted", {
         phone: maskPhoneForDebug(phoneE164),
         verificationId: confirmation?.verificationId || null,
       });
       setConfirmationResult(confirmation);
       toast.success("OTP poslan");
+      setResendTimer(60);
     } catch (error) {
+      if (isRecaptchaRecoverableError(error)) {
+        try {
+          const retriedConfirmation = await requestOtp(true);
+          if (retriedConfirmation) {
+            if (!retriedConfirmation?.verificationId) {
+              toast.error("Slanje OTP koda nije potvrđeno. Pokušaj ponovo.");
+              return;
+            }
+            console.info("[Auth][Firebase] OTP resend accepted after retry", {
+              phone: maskPhoneForDebug(phoneE164),
+              verificationId: retriedConfirmation?.verificationId || null,
+            });
+            setConfirmationResult(retriedConfirmation);
+            toast.success("OTP poslan");
+            setResendTimer(60);
+            return;
+          }
+        } catch (retryError) {
+          handleFirebaseAuthError(retryError);
+          return;
+        }
+      }
       handleFirebaseAuthError(error);
     } finally {
       setResendOtpLoader(false);

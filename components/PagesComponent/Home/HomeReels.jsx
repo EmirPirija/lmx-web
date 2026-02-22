@@ -272,6 +272,12 @@ const HomeReels = () => {
     };
   }, [sellerGroups, checkScroll]);
 
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTo({ left: 0, behavior: "auto" });
+  }, [sellerGroups.length]);
+
   const scrollBy = useCallback((dir = 1) => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -505,40 +511,42 @@ const HomeReels = () => {
           </div>
         </div>
       ) : (
-        <div className="relative">
-          <div className="hidden sm:block absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
-          <div className="hidden sm:block absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
+        <div className="container">
+          <div className="relative">
+            <div className="hidden sm:block absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#f0f3f9] dark:from-slate-900 to-transparent z-10 pointer-events-none" />
+            <div className="hidden sm:block absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#f0f3f9] dark:from-slate-900 to-transparent z-10 pointer-events-none" />
 
-          <div
-            ref={scrollerRef}
-            className="flex gap-3 overflow-x-visible pb-2 pl-4 pr-4 sm:pl-[max(1rem,calc((100vw-1280px)/2+1rem))] sm:pr-[max(1rem,calc((100vw-1280px)/2+1rem))] snap-x snap-mandatory scrollbar-hide scroll-smooth"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {sellerGroups.map((group, index) => {
-              const previewItem = group?.items?.[0];
-              if (!previewItem) return null;
+            <div
+              ref={scrollerRef}
+              className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide scroll-smooth"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {sellerGroups.map((group, index) => {
+                const previewItem = group?.items?.[0];
+                if (!previewItem) return null;
 
-              return (
-                <ReelCard
-                  key={`${group.sellerId || "seller"}-${previewItem.id || index}`}
-                  item={previewItem}
-                  sellerGroup={group}
-                  index={index}
-                  isLoggedIn={isLoggedIn}
-                  currentUser={currentUser}
-                  onLike={onToggleLike}
-                  onOpenStory={openStory}
-                  autoPlay={autoPlay}
-                  autoStory={autoStory}
-                  playSpeed={playSpeed}
-                  shuffled={shuffled}
-                  onToggleAutoPlay={toggleAutoPlay}
-                  onToggleAutoStory={toggleAutoStory}
-                  onCycleSpeed={cycleSpeed}
-                  onToggleShuffle={toggleShuffle}
-                />
-              );
-            })}
+                return (
+                  <ReelCard
+                    key={`${group.sellerId || "seller"}-${previewItem.id || index}`}
+                    item={previewItem}
+                    sellerGroup={group}
+                    index={index}
+                    isLoggedIn={isLoggedIn}
+                    currentUser={currentUser}
+                    onLike={onToggleLike}
+                    onOpenStory={openStory}
+                    autoPlay={autoPlay}
+                    autoStory={autoStory}
+                    playSpeed={playSpeed}
+                    shuffled={shuffled}
+                    onToggleAutoPlay={toggleAutoPlay}
+                    onToggleAutoStory={toggleAutoStory}
+                    onCycleSpeed={cycleSpeed}
+                    onToggleShuffle={toggleShuffle}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -731,12 +739,12 @@ const ReelCard = memo(({
 
   const toggleMute = (e) => {
     e?.stopPropagation();
+    const next = !isMuted;
+    setIsMuted(next);
     if (isEmbedSource) return;
     const el = videoRef.current;
     if (!el) return;
-    const next = !isMuted;
     el.muted = next;
-    setIsMuted(next);
   };
 
   const handleDoubleTap = (e) => {
@@ -988,10 +996,7 @@ const ReelCard = memo(({
         <button
           type="button"
           onClick={toggleMute}
-          disabled={isEmbedSource}
-          className={`w-7 h-7 rounded-full border border-white/30 bg-black/20 backdrop-blur-[2px] text-white flex items-center justify-center transition-transform ${
-            isEmbedSource ? "opacity-50 cursor-not-allowed" : "hover:scale-110"
-          }`}
+          className="w-7 h-7 rounded-full border border-white/30 bg-black/20 backdrop-blur-[2px] text-white flex items-center justify-center transition-transform hover:scale-110"
         >
           {isMuted ? <MdVolumeOff size={14} /> : <MdVolumeUp size={14} />}
         </button>

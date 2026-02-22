@@ -47,8 +47,8 @@ export default function RootLayout({ children }) {
       <body 
         className={`
           ${manrope.className} 
-          bg-white text-black 
-          dark:bg-gray-900 dark:text-white 
+          lmx-app-background text-black 
+          dark:text-white 
           transition-colors duration-300 
           !pointer-events-auto relative
         `}
@@ -57,12 +57,14 @@ export default function RootLayout({ children }) {
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           
           {/* 2. Redux Providers */}
-          <Providers>
-            {children}
-            {/* <PromoWelcomeModal /> */}
-            <CompareFloatingBar />
-            <Toaster position="top-center" />
-          </Providers>
+          <div className="lmx-app-surface">
+            <Providers>
+              {children}
+              {/* <PromoWelcomeModal /> */}
+              <CompareFloatingBar />
+              <Toaster position="top-center" />
+            </Providers>
+          </div>
 
 
           {/* 4. Ostali globalni elementi */}
