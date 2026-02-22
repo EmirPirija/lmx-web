@@ -49,7 +49,6 @@ import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import {
   loadUpdateData,
   loadUpdateUserData,
-  logoutSuccess,
 } from "@/redux/reducer/authSlice";
 import {
   getOtpApi,
@@ -62,6 +61,7 @@ import OtpScreen from "./OtpScreen";
 import TermsAndPrivacyLinks from "./TermsAndPrivacyLinks";
 import RegisterAuthInputField from "./RegisterAuthInputField";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
+import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   clearRecaptchaVerifier,
@@ -79,6 +79,14 @@ const STEP_META = [
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
 const AVATAR_CROP_FRAME_SIZE = 272;
 const AVATAR_OUTPUT_SIZE = 512;
+const REGISTER_LOCATION_STORAGE_KEY = "user_bih_location";
+const EMPTY_REGISTER_LOCATION = {
+  entityId: null,
+  regionId: null,
+  municipalityId: null,
+  address: "",
+  formattedAddress: "",
+};
 
 const clamp = (value, min, max) => {
   if (Number.isNaN(value)) return min;
@@ -117,11 +125,7 @@ const getStepIndex = (step) => {
   return 3;
 };
 
-const RegisterModal = ({
-  setIsMailSentSuccess,
-  IsRegisterModalOpen,
-  setIsRegisterModalOpen,
-}) => {
+const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   const settings = useSelector(settingsData);
   const auth = getAuth();
   const fetchFCM = useSelector(Fcmtoken);
@@ -177,6 +181,8 @@ const RegisterModal = ({
   const [studioBlob, setStudioBlob] = useState(null);
   const [studioPreview, setStudioPreview] = useState("");
   const [showStudio, setShowStudio] = useState(false);
+  const [locationSetupMode, setLocationSetupMode] = useState("later"); // now | later
+  const [registerLocation, setRegisterLocation] = useState(() => ({ ...EMPTY_REGISTER_LOCATION }));
 
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [pendingUploadFile, setPendingUploadFile] = useState(null);
@@ -274,6 +280,8 @@ const RegisterModal = ({
     setStudioBlob(null);
     setStudioPreview("");
     setShowStudio(false);
+    setLocationSetupMode("later");
+    setRegisterLocation({ ...EMPTY_REGISTER_LOCATION });
     setShowCropDialog(false);
     setPendingUploadFile(null);
     setPendingUploadPreview("");
@@ -801,6 +809,31 @@ const RegisterModal = ({
     return null;
   };
 
+  const resolveRegisterLocationAddress = (locationValue) => {
+    if (!locationValue?.municipalityId) return "";
+    const addressLine = String(locationValue.address || "").trim();
+    const formattedLine = String(locationValue.formattedAddress || "").trim();
+    if (addressLine && formattedLine) return `${addressLine}, ${formattedLine}`;
+    return addressLine || formattedLine || "";
+  };
+
+  const persistRegisterLocation = (userId, locationValue) => {
+    if (typeof window === "undefined") return;
+    if (!userId || !locationValue?.municipalityId) return;
+    try {
+      window.localStorage.setItem(
+        REGISTER_LOCATION_STORAGE_KEY,
+        JSON.stringify({
+          userId,
+          location: locationValue,
+          savedAt: new Date().toISOString(),
+        }),
+      );
+    } catch (error) {
+      console.error("Greška pri spremanju lokacije registracije:", error);
+    }
+  };
+
   const persistProfileSetup = async ({
     name,
     email,
@@ -808,6 +841,7 @@ const RegisterModal = ({
     countryCodeValue,
     regionCodeValue,
     mobileValue,
+    addressValue,
     authToken,
   }) => {
     const attempts = [1, 2];
@@ -821,6 +855,7 @@ const RegisterModal = ({
           country_code: String(countryCodeValue || "").replace(/\D/g, "") || undefined,
           region_code: String(regionCodeValue || "").toUpperCase() || undefined,
           mobile: String(mobileValue || "").trim() || undefined,
+          address: String(addressValue || "").trim() || undefined,
           fcm_id: fetchFCM || "",
           auth_token: authToken || undefined,
         });
@@ -844,6 +879,8 @@ const RegisterModal = ({
   const finalizeEmailRegistration = async () => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedName = String(profileName || "").trim();
+    const locationAddress =
+      locationSetupMode === "now" ? resolveRegisterLocationAddress(registerLocation) : "";
 
     if (!normalizedEmail || !EMAIL_REGEX.test(normalizedEmail)) {
       toast.error("Unesi ispravan e-mail");
@@ -893,32 +930,35 @@ const RegisterModal = ({
         loadUpdateData(response.data);
       }
 
-      if (selectedAvatarFile && response?.data?.token) {
+      if (response?.data?.token) {
         await new Promise((resolve) => setTimeout(resolve, 0));
         const profileSync = await persistProfileSetup({
           name: normalizedName,
           email: normalizedEmail,
           profileFile: selectedAvatarFile,
+          addressValue: locationAddress,
           authToken: response?.data?.token,
         });
         if (!profileSync?.ok) {
           toast.warning(
-            "Račun je kreiran, ali profilna slika nije potvrđeno sačuvana. Dodaj je u profilu nakon prijave.",
+            "Račun je kreiran, ali dio podataka profila nije potvrđeno sačuvan. Možeš ih doraditi u postavkama.",
           );
         }
       }
 
-      await sendEmailVerification(firebaseUser);
-      try {
-        await auth.signOut();
-      } catch {
-        // Firebase odjava ovdje nije kritična.
+      if (locationSetupMode === "now" && registerLocation?.municipalityId) {
+        persistRegisterLocation(response?.data?.data?.id, registerLocation);
       }
-      logoutSuccess();
 
-      toast.success(response?.data?.message || "Račun je kreiran. Potvrdi e-mail.");
+      sendEmailVerification(firebaseUser).catch(() => {
+        // Email verifikacija je opcionalna nakon registracije.
+      });
+
+      toast.success(
+        response?.data?.message ||
+          "Račun je kreiran. E-mail možeš verificirati kasnije u postavkama.",
+      );
       await OnHide();
-      setIsMailSentSuccess(true);
     } catch (error) {
       handleFirebaseAuthError(error);
     } finally {
@@ -928,6 +968,8 @@ const RegisterModal = ({
 
   const finalizeAuthenticatedRegistration = async () => {
     const normalizedName = String(profileName || "").trim();
+    const locationAddress =
+      locationSetupMode === "now" ? resolveRegisterLocationAddress(registerLocation) : "";
 
     if (!normalizedName) {
       toast.error("Ime je obavezno");
@@ -956,12 +998,17 @@ const RegisterModal = ({
         mobileValue: normalizedMobile,
         countryCodeValue: normalizedCountryCode,
         regionCodeValue: normalizedRegionCode,
+        addressValue: locationAddress,
         authToken: authPayload?.token,
       });
 
       if (!profileSync?.ok) {
         toast.error("Završetak registracije nije uspio. Pokušaj ponovo.");
         return;
+      }
+
+      if (locationSetupMode === "now" && registerLocation?.municipalityId) {
+        persistRegisterLocation(authPayload?.data?.id, registerLocation);
       }
 
       toast.success("Registracija je uspješno završena.");
@@ -974,6 +1021,10 @@ const RegisterModal = ({
   };
 
   const handleFinalize = async () => {
+    if (locationSetupMode === "now" && !registerLocation?.municipalityId) {
+      toast.error("Odaberi lokaciju ili nastavi opcijom 'Kasnije u postavkama'.");
+      return;
+    }
     if (registerMethod === "email") {
       await finalizeEmailRegistration();
       return;
@@ -1015,6 +1066,9 @@ const RegisterModal = ({
   const hasGooglePhotoUrl = Boolean(String(googleDraft?.photoURL || "").trim());
   const canShowGoogleAvatar = hasGooglePhotoUrl && !googleAvatarLoadError;
   const canFinalizeAvatarSelection = avatarMode !== "studio" || Boolean(studioBlob);
+  const canFinalizeLocationSelection =
+    locationSetupMode !== "now" || Boolean(registerLocation?.municipalityId);
+  const canFinalizeRegistration = canFinalizeAvatarSelection && canFinalizeLocationSelection;
 
   const openUploadPicker = () => {
     uploadInputRef.current?.click?.();
@@ -1524,6 +1578,55 @@ xl:max-w-7xl
                           </button>
                         </div>
 
+                        <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+                          <div className="mb-2">
+                            <p className="text-sm font-semibold text-foreground">Lokacija profila (opcionalno)</p>
+                            <p className="text-xs text-muted-foreground">
+                              Lokaciju možeš postaviti odmah ili kasnije iz postavki profila.
+                            </p>
+                          </div>
+
+                          <div className="mb-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setLocationSetupMode("now")}
+                              className={cn(
+                                "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+                                locationSetupMode === "now"
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-muted/60 text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              Postavi sada
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setLocationSetupMode("later")}
+                              className={cn(
+                                "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
+                                locationSetupMode === "later"
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-muted/60 text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              Kasnije u postavkama
+                            </button>
+                          </div>
+
+                          {locationSetupMode === "now" ? (
+                            <BiHLocationSelector
+                              value={registerLocation}
+                              onChange={setRegisterLocation}
+                              compact
+                              showAddress
+                            />
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              Lokaciju možeš bez problema dodati kasnije u sekciji profila.
+                            </p>
+                          )}
+                        </div>
+
                         <div className="mt-2 space-y-3">
                           {avatarMode === "none" ? (
                             <div className="flex items-center gap-3 rounded-lg px-1 py-1">
@@ -1707,6 +1810,11 @@ xl:max-w-7xl
                             Prije završetka klikni "Sačuvaj" unutar avatar studija.
                           </p>
                         ) : null}
+                        {locationSetupMode === "now" && !registerLocation?.municipalityId ? (
+                          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+                            Odaberi lokaciju ili prebaci na opciju "Kasnije u postavkama".
+                          </p>
+                        ) : null}
 
                         <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
                           <Button
@@ -1722,7 +1830,7 @@ xl:max-w-7xl
                             type="button"
                             className="h-10 w-full rounded-xl font-semibold sm:w-auto"
                             onClick={handleFinalize}
-                            disabled={isBusy || !canFinalizeAvatarSelection}
+                            disabled={isBusy || !canFinalizeRegistration}
                           >
                             {isBusy ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

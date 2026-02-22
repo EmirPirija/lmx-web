@@ -1299,6 +1299,14 @@ const SellerSettings = () => {
 
   const previewSeller = { ...currentUser, profile: previewImage || currentUser?.profile_image || currentUser?.profile };
   const previewSettings = { ...buildPayload(), verification_status: verificationStatus };
+  const verificationProgressCount = (isPhoneVerified ? 1 : 0) + (isEmailVerified ? 1 : 0);
+  const verificationProgressPercent = Math.round((verificationProgressCount / 2) * 100);
+  const phoneDraftE164 = toE164Phone(phoneCountryCode, phoneLocalNumber);
+  const fallbackPhoneE164 = toE164Phone(
+    currentUser?.country_code || "387",
+    stripCountryCodePrefix(currentUser?.mobile, currentUser?.country_code || "387"),
+  );
+  const resolvedPhoneDisplay = firebaseIdentity?.phoneNumber || phoneDraftE164 || fallbackPhoneE164 || "nije dostupan";
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
@@ -1373,136 +1381,237 @@ const SellerSettings = () => {
             badge="SIGURNOST"
           >
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-700">Stanje verifikacije</span>
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                      isPhoneVerified && isEmailVerified
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700",
-                    )}
-                  >
-                    {isPhoneVerified && isEmailVerified ? "Potpuno verificirano" : "Djelimično verificirano"}
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50 via-white to-slate-50/80 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/80 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                      Sigurnosni status
+                    </p>
+                    <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {verificationProgressPercent === 100
+                        ? "Račun je potpuno verificiran"
+                        : "Dovrši verifikaciju računa"}
+                    </h4>
+                  </div>
+                  <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    {verificationProgressPercent}% završeno
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-600">
+
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                  <motion.div
+                    className="h-full rounded-full bg-primary"
+                    animate={{ width: `${verificationProgressPercent}%` }}
+                    transition={{ type: "spring", stiffness: 260, damping: 24 }}
+                  />
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
+                    <Phone className={cn("h-3.5 w-3.5", isPhoneVerified ? "text-emerald-500" : "text-slate-400")} />
+                    <span className="font-medium text-slate-700 dark:text-slate-200">Telefon</span>
+                    <span
+                      className={cn(
+                        "ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        isPhoneVerified ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+                      )}
+                    >
+                      {isPhoneVerified ? "Verificiran" : "Čeka potvrdu"}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
+                    <Mail className={cn("h-3.5 w-3.5", isEmailVerified ? "text-emerald-500" : "text-slate-400")} />
+                    <span className="font-medium text-slate-700 dark:text-slate-200">E-mail</span>
+                    <span
+                      className={cn(
+                        "ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        isEmailVerified ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+                      )}
+                    >
+                      {isEmailVerified ? "Verificiran" : "Čeka potvrdu"}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
                   {registeredViaPhone
-                    ? "Nalog je registrovan putem broja telefona. Telefon je automatski tretiran kao verificiran."
-                    : "Nalog koristi e-mail pristup. Za puni status preporučeno je potvrditi i e-mail i broj telefona."}
+                    ? "Nalog je registrovan putem broja telefona, zato je telefon već tretiran kao verificiran."
+                    : "Za puni nivo sigurnosti potvrdi oba kanala: broj telefona i e-mail adresu."}
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-white p-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <h4 className="text-sm font-semibold text-slate-900">Verifikacija broja telefona</h4>
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                        <Phone className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Verifikacija broja telefona</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">OTP potvrda u jednom koraku</p>
+                      </div>
+                    </div>
                     <span
                       className={cn(
                         "rounded-full px-2 py-0.5 text-[11px] font-semibold",
                         isPhoneVerified
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-slate-100 text-slate-600",
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
                       )}
                     >
                       {isPhoneVerified ? "Verificiran" : "Nije verificiran"}
                     </span>
                   </div>
 
+                  {registeredViaPhone ? (
+                    <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Registriran putem telefona
+                    </div>
+                  ) : null}
+
                   {isPhoneVerified ? (
-                    <p className="text-xs text-slate-600">
-                      Broj je potvrđen. Trenutno povezan broj:{" "}
-                      <span className="font-semibold text-slate-900">
-                        {firebaseIdentity?.phoneNumber ||
-                          (phoneLocalNumber ? `+${digitsOnly(phoneCountryCode)}${digitsOnly(phoneLocalNumber)}` : "nije dostupan")}
-                      </span>
-                    </p>
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Broj je potvrđen
+                      </div>
+                      <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-200/90">
+                        Trenutno povezan broj: <span className="font-semibold">{resolvedPhoneDisplay}</span>
+                      </p>
+                    </div>
                   ) : (
-                    <div className="space-y-2.5">
-                      <p className="text-xs text-slate-600">
+                    <div className="space-y-3">
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
                         Unesi broj koji želiš potvrditi i pošalji OTP kod.
                       </p>
-                      <div className="grid grid-cols-[110px_1fr] gap-2">
-                        <Input
-                          value={phoneCountryCode}
-                          onChange={(e) => setPhoneCountryCode(digitsOnly(e.target.value))}
-                          className="h-9 text-sm"
-                          placeholder="387"
-                        />
-                        <Input
-                          value={phoneLocalNumber}
-                          onChange={(e) => setPhoneLocalNumber(digitsOnly(e.target.value))}
-                          className="h-9 text-sm"
-                          placeholder="603342996"
-                        />
+
+                      <div className="grid grid-cols-12 gap-2">
+                        <div className="col-span-4 sm:col-span-3">
+                          <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            Pozivni
+                          </Label>
+                          <Input
+                            value={phoneCountryCode}
+                            onChange={(e) => setPhoneCountryCode(digitsOnly(e.target.value))}
+                            className="h-10 text-sm"
+                            placeholder="387"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="col-span-8 sm:col-span-6">
+                          <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            Broj
+                          </Label>
+                          <Input
+                            value={phoneLocalNumber}
+                            onChange={(e) => setPhoneLocalNumber(digitsOnly(e.target.value))}
+                            className="h-10 text-sm"
+                            placeholder="603342996"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="col-span-12 sm:col-span-3">
+                          <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            Regija
+                          </Label>
+                          <Input
+                            value={phoneRegionCode}
+                            onChange={(e) => setPhoneRegionCode(String(e.target.value || "").toUpperCase())}
+                            className="h-10 text-sm"
+                            placeholder="BA"
+                            maxLength={3}
+                          />
+                        </div>
                       </div>
-                      <Input
-                        value={phoneRegionCode}
-                        onChange={(e) => setPhoneRegionCode(String(e.target.value || "").toUpperCase())}
-                        className="h-9 text-sm"
-                        placeholder="BA"
-                        maxLength={3}
-                      />
-                      <div className="flex flex-wrap gap-2">
+
+                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
+                        Format za verifikaciju:{" "}
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                          {phoneDraftE164 || "+387"}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           type="button"
-                          variant="outline"
                           size="sm"
                           onClick={handleSendPhoneVerificationOtp}
                           disabled={phoneOtpSending || phoneOtpTimer > 0}
-                          className="h-9"
+                          className="h-10 rounded-xl px-4"
                         >
                           {phoneOtpSending ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            "Pošalji OTP"
+                            "Pošalji OTP kod"
                           )}
                         </Button>
                         {phoneOtpTimer > 0 ? (
-                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            <Clock className="h-3.5 w-3.5" />
                             Ponovno slanje za {phoneOtpTimer}s
                           </span>
                         ) : null}
                       </div>
 
-                      {phoneVerificationId ? (
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
-                          <Input
-                            value={phoneOtp}
-                            onChange={(e) => setPhoneOtp(e.target.value)}
-                            className="h-9 text-sm"
-                            placeholder="Unesi OTP kod"
-                            maxLength={6}
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handleVerifyPhoneOtp}
-                            disabled={phoneOtpVerifying}
-                            className="h-9"
+                      <AnimatePresence initial={false}>
+                        {phoneVerificationId ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            className="rounded-xl border border-primary/20 bg-primary/5 p-3"
                           >
-                            {phoneOtpVerifying ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              "Potvrdi kod"
-                            )}
-                          </Button>
-                        </div>
-                      ) : null}
+                            <Label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-200">
+                              OTP kod
+                            </Label>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                              <Input
+                                value={phoneOtp}
+                                onChange={(e) => setPhoneOtp(e.target.value)}
+                                className="h-10 text-sm tracking-[0.18em]"
+                                placeholder="Unesi 6-cifreni kod"
+                                maxLength={6}
+                                inputMode="numeric"
+                              />
+                              <Button
+                                type="button"
+                                onClick={handleVerifyPhoneOtp}
+                                disabled={phoneOtpVerifying}
+                                className="h-10 rounded-xl px-4"
+                              >
+                                {phoneOtpVerifying ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Potvrdi kod"
+                                )}
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <h4 className="text-sm font-semibold text-slate-900">Verifikacija e-mail adrese</h4>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                        <Mail className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Verifikacija e-mail adrese</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Link potvrda + osvježenje statusa</p>
+                      </div>
+                    </div>
                     <span
                       className={cn(
                         "rounded-full px-2 py-0.5 text-[11px] font-semibold",
                         isEmailVerified
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-slate-100 text-slate-600",
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
                       )}
                     >
                       {isEmailVerified ? "Verificiran" : "Nije verificiran"}
@@ -1510,30 +1619,30 @@ const SellerSettings = () => {
                   </div>
 
                   {hasEmailIdentity ? (
-                    <div className="space-y-2.5">
-                      <p className="text-xs text-slate-600">
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
                         Trenutni e-mail:{" "}
-                        <span className="font-semibold text-slate-900">
+                        <span className="font-semibold break-all text-slate-900 dark:text-slate-100">
                           {firebaseIdentity?.email || currentUser?.email}
                         </span>
-                      </p>
+                      </div>
 
                       {isEmailVerified ? (
-                        <p className="text-xs text-emerald-700">
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
                           E-mail adresa je potvrđena i spremna za sigurnosne akcije.
-                        </p>
+                        </div>
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-9"
+                            className="h-10 rounded-xl"
                             onClick={handleSendEmailVerificationNow}
                             disabled={emailVerificationSending}
                           >
                             {emailVerificationSending ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               "Pošalji verifikacijski link"
                             )}
@@ -1541,12 +1650,12 @@ const SellerSettings = () => {
                           <Button
                             type="button"
                             size="sm"
-                            className="h-9"
+                            className="h-10 rounded-xl"
                             onClick={handleRefreshEmailVerification}
                             disabled={emailVerificationRefreshing}
                           >
                             {emailVerificationRefreshing ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               "Provjeri status"
                             )}
@@ -1555,9 +1664,9 @@ const SellerSettings = () => {
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-600">
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-3 py-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
                       Nema povezane e-mail adrese na aktivnoj sesiji. Dodaj e-mail u osnovnim podacima pa pokreni verifikaciju.
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1631,11 +1740,16 @@ const SellerSettings = () => {
           <SettingSection icon={Phone} title="Kontakt opcije">
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <CompactToggle title="Telefon" checked={showPhone} onCheckedChange={setShowPhone} />
+                <CompactToggle title="Prikaži telefon" checked={showPhone} onCheckedChange={setShowPhone} />
                 <CompactToggle title="Email" checked={showEmail} onCheckedChange={setShowEmail} />
                 <CompactToggle title="WhatsApp" checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
                 <CompactToggle title="Viber" checked={showViber} onCheckedChange={setShowViber} />
               </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {showPhone
+                  ? "Broj telefona je vidljiv kupcima na tvom javnom profilu."
+                  : "Broj telefona je skriven. Kupci te mogu kontaktirati preko poruka i drugih uključenih kanala."}
+              </p>
               {(showWhatsapp || showViber) && (
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   {showWhatsapp && (

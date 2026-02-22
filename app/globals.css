@@ -700,30 +700,100 @@ input[type="number"]::-webkit-outer-spin-button {
   transition: all 0.2s;
 }
 
-/* Dark Mode Overrides */
+/* ============================================================
+   Dark Mode Compatibility Sweep
+   Global fallback map for legacy light-only utility classes.
+   NOTE:
+   - Uses .dark scope only
+   - Uses :where(...) to keep specificity low enough that explicit
+     dark:* variants can still override when present.
+============================================================ */
 @layer utilities {
-  .dark .bg-white {
-    background-color: rgb(30 41 59) !important;
-    border-color: rgb(51 65 85) !important;
-    color: rgb(241 245 249);
+  /* Text fallback map */
+  .dark :where(.text-black, .text-slate-950, .text-gray-950, .text-zinc-950) {
+    color: rgb(248 250 252) !important;
   }
 
-  .dark .bg-gray-100,
-  .dark .bg-gray-50 {
-    background-color: rgb(15 23 42) !important;
-    border-color: rgb(51 65 85) !important;
-    color: rgb(226 232 240);
+  .dark :where(.text-slate-900, .text-gray-900, .text-zinc-900) {
+    color: rgb(241 245 249) !important;
   }
 
-  .dark .text-gray-500,
-  .dark .text-gray-600,
-  .dark .text-gray-700 {
-    color: rgb(148 163 184);
+  .dark :where(.text-slate-800, .text-gray-800, .text-zinc-800) {
+    color: rgb(226 232 240) !important;
   }
 
-  .dark [class*="bg-white/"] {
-    background-color: rgba(30, 41, 59, 0.95) !important;
-    border-color: rgba(51, 65, 85, 1) !important;
+  .dark :where(.text-slate-700, .text-gray-700, .text-zinc-700) {
+    color: rgb(203 213 225) !important;
+  }
+
+  .dark :where(.text-slate-600, .text-gray-600, .text-zinc-600) {
+    color: rgb(148 163 184) !important;
+  }
+
+  .dark :where(.text-slate-500, .text-gray-500, .text-zinc-500) {
+    color: rgb(148 163 184) !important;
+  }
+
+  .dark :where(.text-slate-400, .text-gray-400, .text-zinc-400) {
+    color: rgb(148 163 184) !important;
+  }
+
+  .dark :where(.text-slate-300, .text-gray-300, .text-zinc-300) {
+    color: rgb(226 232 240) !important;
+  }
+
+  /* Background fallback map */
+  .dark :where(.bg-white) {
+    background-color: rgba(15, 23, 42, 0.92) !important;
+  }
+
+  .dark :where([class*="bg-white/"]) {
+    background-color: rgba(15, 23, 42, 0.82) !important;
+  }
+
+  .dark :where(.bg-slate-50, .bg-gray-50, .bg-zinc-50) {
+    background-color: rgba(15, 23, 42, 0.78) !important;
+  }
+
+  .dark :where(.bg-slate-100, .bg-gray-100, .bg-zinc-100) {
+    background-color: rgba(30, 41, 59, 0.72) !important;
+  }
+
+  .dark :where(.bg-slate-200, .bg-gray-200, .bg-zinc-200) {
+    background-color: rgba(51, 65, 85, 0.7) !important;
+  }
+
+  .dark :where(.bg-slate-300, .bg-gray-300, .bg-zinc-300) {
+    background-color: rgba(71, 85, 105, 0.72) !important;
+  }
+
+  /* Border fallback map */
+  .dark :where(
+    .border-slate-50,
+    .border-slate-100,
+    .border-gray-50,
+    .border-gray-100,
+    .border-zinc-50,
+    .border-zinc-100
+  ) {
+    border-color: rgba(71, 85, 105, 0.45) !important;
+  }
+
+  .dark :where(.border-slate-200, .border-gray-200, .border-zinc-200) {
+    border-color: rgba(71, 85, 105, 0.62) !important;
+  }
+
+  .dark :where(.border-slate-300, .border-gray-300, .border-zinc-300) {
+    border-color: rgba(100, 116, 139, 0.7) !important;
+  }
+
+  .dark :where([class*="border-white/"]) {
+    border-color: rgba(71, 85, 105, 0.7) !important;
+  }
+
+  /* Subtle fallback for plain white text on very light custom blocks */
+  .dark :where(.text-white) {
+    color: rgb(248 250 252);
   }
 }
 

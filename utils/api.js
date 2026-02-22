@@ -1182,11 +1182,17 @@ const isFileLike = (v) =>
   typeof File !== "undefined" &&
   (v instanceof File || v instanceof Blob);
 
-const toCsv = (v) => {
-  if (!v) return "";
-  if (Array.isArray(v)) return v.filter(Boolean).join(",");
-  // ako već dođe "1,2,3"
-  return String(v).trim();
+const normalizeTempIdArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean);
+  }
+  return String(value)
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 };
 
 // =========================
@@ -1329,9 +1335,11 @@ export const addItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-    const galleryCsv = toCsv(temp_gallery_image_ids);
-    if (galleryCsv) {
-      formData.append("temp_gallery_image_ids", galleryCsv);
+    const normalizedGalleryTempIds = normalizeTempIdArray(temp_gallery_image_ids);
+    if (normalizedGalleryTempIds.length > 0) {
+      normalizedGalleryTempIds.forEach((tempId, index) => {
+        formData.append(`temp_gallery_image_ids[${index}]`, tempId);
+      });
     }
 
     if (temp_video_id) {
@@ -1685,9 +1693,11 @@ export const editItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-    const galleryCsv = toCsv(temp_gallery_image_ids);
-    if (galleryCsv) {
-      formData.append("temp_gallery_image_ids", galleryCsv);
+    const normalizedGalleryTempIds = normalizeTempIdArray(temp_gallery_image_ids);
+    if (normalizedGalleryTempIds.length > 0) {
+      normalizedGalleryTempIds.forEach((tempId, index) => {
+        formData.append(`temp_gallery_image_ids[${index}]`, tempId);
+      });
     }
 
     if (temp_video_id) {

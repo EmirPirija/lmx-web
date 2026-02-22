@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -439,9 +439,10 @@ const EnhancedDropdown = ({
   return (
     <div id={`dropdown-${id}`} className="w-full relative">
       {/* Trigger */}
-      <div
+      <button
+        type="button"
         onClick={handleOpen}
-        className={`w-full rounded-lg border px-4 py-3 bg-white cursor-pointer flex justify-between items-center transition-all duration-200 ${
+        className={`w-full touch-manipulation rounded-lg border px-4 py-3 bg-white cursor-pointer flex justify-between items-center transition-all duration-200 ${
           isDisabled
             ? "bg-gray-100 cursor-not-allowed opacity-60"
             : "hover:border-blue-400 hover:shadow-md focus:ring-2 focus:ring-blue-400"
@@ -449,7 +450,7 @@ const EnhancedDropdown = ({
       >
         <div className="flex items-center gap-3">
           <span className={`${currentValue ? "font-medium" : "text-gray-500"}`}>
-            {currentValue || `${"Odaberi"} ${translated_name || name}`}
+            {currentValue || getSelectPromptText(translated_name || name)}
           </span>
         </div>
         <svg
@@ -467,7 +468,7 @@ const EnhancedDropdown = ({
             d="M19 9l-7 7-7-7"
           />
         </svg>
-      </div>
+      </button>
 
       {/* Dropdown Content */}
       {isOpen && !isDisabled && (
@@ -510,10 +511,11 @@ const EnhancedDropdown = ({
                     const isSelected = currentValue === option;
 
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={`${option}-${idx}`}
                         onClick={() => handleSelect(option)}
-                        className={`px-4 py-3 cursor-pointer transition-all duration-200 flex items-center gap-3 ${
+                        className={`w-full px-4 py-3 cursor-pointer transition-all duration-200 flex items-center gap-3 text-left touch-manipulation ${
                           isSelected
                             ? "bg-blue-50 border-l-4 border-blue-500 font-medium"
                             : "hover:bg-gray-50 hover:pl-5"
@@ -535,7 +537,7 @@ const EnhancedDropdown = ({
                             />
                           </svg>
                         )}
-                      </div>
+                      </button>
                     );
                   })
                 ) : (
@@ -583,10 +585,11 @@ const EnhancedRadioGroup = ({
         const isSelected = currentValue === option;
 
         return (
-          <div
+          <button
+            type="button"
             key={uniqueId}
             onClick={() => onChange(option)}
-            className={`relative cursor-pointer rounded-xl border p-3 transition-colors duration-200 ${
+            className={`relative w-full touch-manipulation cursor-pointer rounded-xl border p-3 text-left transition-colors duration-200 ${
               isSelected
                 ? "border-primary bg-primary/10"
                 : "border-slate-200 bg-white hover:border-primary/50 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-primary/60"
@@ -612,7 +615,7 @@ const EnhancedRadioGroup = ({
                 {translated_value?.[index] || option}
               </span>
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
@@ -644,10 +647,11 @@ const EnhancedCheckboxGroup = ({
         const isChecked = currentValues.includes(value);
 
         return (
-          <div
+          <button
+            type="button"
             key={uniqueId}
             onClick={() => handleToggle(value)}
-            className={`relative cursor-pointer rounded-xl border p-3 transition-colors duration-200 ${
+            className={`relative w-full touch-manipulation cursor-pointer rounded-xl border p-3 text-left transition-colors duration-200 ${
               isChecked
                 ? "border-primary bg-primary/10"
                 : "border-slate-200 bg-white hover:border-primary/50 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-primary/60"
@@ -683,7 +687,7 @@ const EnhancedCheckboxGroup = ({
                 {translated_value?.[index] || value}
               </span>
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
@@ -755,12 +759,33 @@ const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExc
           enabled={isExchange}
           onToggle={() => setIsExchange(!isExchange)}
           activeLabel="Prihvatam zamjenu"
-          inactiveLabel="Ne nudim zamjenu"
+          inactiveLabel="Ne želim zamjenu"
           helper="Uključi samo ako stvarno želiš razmatrati razmjenu."
         />
       </div>
     </div>
   );
+};
+
+const getSelectPromptText = (label) => {
+  const cleanLabel = String(label || "").trim();
+  if (!cleanLabel) return "Odaberi vrijednost";
+  return `Odaberi vrijednost (${cleanLabel})`;
+};
+
+const isFieldValueFilled = (field, value) => {
+  const fieldType = String(field?.type || "").toLowerCase();
+
+  if (fieldType === "checkbox") {
+    return Array.isArray(value) ? value.length > 0 : Boolean(value);
+  }
+
+  if (fieldType === "fileinput") {
+    if (value instanceof File || value instanceof Blob) return true;
+    return Boolean(String(value || "").trim());
+  }
+
+  return Boolean(String(value ?? "").trim());
 };
 
 // ============================================
@@ -837,14 +862,16 @@ const AccordionSection = ({
   onToggle, 
   children,
   badge,
-  isCompleted 
+  isCompleted,
+  sectionRef,
 }) => {
   return (
-    <div className="overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
+    <div ref={sectionRef} className="overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
       {/* Header */}
-      <div 
+      <button
+        type="button"
         onClick={onToggle}
-        className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
+        className={`flex w-full touch-manipulation cursor-pointer items-center justify-between p-4 text-left transition-colors duration-200 sm:p-5 ${
           isOpen ? "border-b border-slate-200 bg-slate-50/90 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
         }`}
       >
@@ -891,7 +918,7 @@ const AccordionSection = ({
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-      </div>
+      </button>
 
       {/* Content */}
       {isOpen && (
@@ -926,6 +953,9 @@ const EditComponentTwo = ({
   const [requiredOpen, setRequiredOpen] = useState(true);
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const requiredSectionRef = useRef(null);
+  const optionalSectionRef = useRef(null);
+  const termsSectionRef = useRef(null);
   
   // Local state for edit flow
   const [agreedToTerms, setAgreedToTerms] = useState(true);
@@ -991,14 +1021,6 @@ const EditComponentTwo = ({
 
   const handleChange = (id, value) => write(id, value ?? "");
   
-  const handleNext = () => {
-    if (!agreedToTerms) {
-      toast.error("Molimo prihvatite uslove korištenja");
-      setTermsOpen(true);
-      return;
-    }
-    submitExtraDetails();
-  };
 
   const renderCustomFields = (field) => {
     let {
@@ -1236,6 +1258,58 @@ const EditComponentTwo = ({
 
   const sortedRequiredFields = sortFields(requiredFields);
   const sortedOptionalFields = sortFields(optionalFields);
+  const requiredFieldsCompleted = useMemo(
+    () =>
+      sortedRequiredFields.every((field) =>
+        isFieldValueFilled(field, currentExtraDetails?.[field?.id]),
+      ),
+    [sortedRequiredFields, currentExtraDetails],
+  );
+
+  const scrollToSection = (targetRef) => {
+    if (typeof window === "undefined" || !targetRef?.current) return;
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    targetRef.current.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "start",
+      inline: "nearest",
+    });
+  };
+
+  useEffect(() => {
+    if (!requiredFieldsCompleted || !requiredOpen) return;
+
+    if (sortedOptionalFields.length > 0) {
+      setRequiredOpen(false);
+      setOptionalOpen(true);
+      requestAnimationFrame(() => scrollToSection(optionalSectionRef));
+      return;
+    }
+
+    setRequiredOpen(false);
+    setTermsOpen(true);
+    requestAnimationFrame(() => scrollToSection(termsSectionRef));
+  }, [requiredFieldsCompleted, requiredOpen, sortedOptionalFields.length]);
+
+  const handleNext = () => {
+    if (!requiredFieldsCompleted) {
+      toast.error("Popuni sva obavezna polja prije nastavka.");
+      setRequiredOpen(true);
+      setOptionalOpen(false);
+      setTermsOpen(false);
+      requestAnimationFrame(() => scrollToSection(requiredSectionRef));
+      return;
+    }
+
+    if (!agreedToTerms) {
+      toast.error("Molimo prihvatite uslove korištenja");
+      setTermsOpen(true);
+      requestAnimationFrame(() => scrollToSection(termsSectionRef));
+      return;
+    }
+    submitExtraDetails();
+  };
 
   const renderFieldGroup = (fields) => {
     return (
@@ -1279,11 +1353,16 @@ const EditComponentTwo = ({
       {/* Required Fields Section */}
       {sortedRequiredFields.length > 0 && (
         <AccordionSection
+          sectionRef={requiredSectionRef}
           title="Obavezna polja"
           subtitle={`${sortedRequiredFields.length} ${sortedRequiredFields.length === 1 ? 'polje' : 'polja'} za popunjavanje`}
           icon={<span className="text-xl font-bold">1</span>}
           isOpen={requiredOpen}
-          onToggle={() => setRequiredOpen(!requiredOpen)}
+          onToggle={() => {
+            const next = !requiredOpen;
+            setRequiredOpen(next);
+            if (next) requestAnimationFrame(() => scrollToSection(requiredSectionRef));
+          }}
           badge="required"
         >
           {renderFieldGroup(sortedRequiredFields)}
@@ -1293,11 +1372,16 @@ const EditComponentTwo = ({
       {/* Optional Fields Section */}
       {sortedOptionalFields.length > 0 && (
         <AccordionSection
+          sectionRef={optionalSectionRef}
           title="Opcionalna polja"
           subtitle={`${sortedOptionalFields.length} dodatnih informacija`}
           icon={<span className="text-xl font-bold">2</span>}
           isOpen={optionalOpen}
-          onToggle={() => setOptionalOpen(!optionalOpen)}
+          onToggle={() => {
+            const next = !optionalOpen;
+            setOptionalOpen(next);
+            if (next) requestAnimationFrame(() => scrollToSection(optionalSectionRef));
+          }}
           badge="optional"
         >
           {renderFieldGroup(sortedOptionalFields)}
@@ -1306,11 +1390,16 @@ const EditComponentTwo = ({
       
       {/* Availability & Terms Section */}
       <AccordionSection
+        sectionRef={termsSectionRef}
         title="Dostupnost i uvjeti"
         subtitle="Jasno označi stanje oglasa i potvrdi sigurnosnu napomenu"
         icon={<span className="text-xl font-bold">3</span>}
         isOpen={termsOpen}
-        onToggle={() => setTermsOpen(!termsOpen)}
+        onToggle={() => {
+          const next = !termsOpen;
+          setTermsOpen(next);
+          if (next) requestAnimationFrame(() => scrollToSection(termsSectionRef));
+        }}
         badge="required"
         isCompleted={agreedToTerms}
       >

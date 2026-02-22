@@ -1071,7 +1071,7 @@ const HomeHeader = () => {
 
                 {/* extra: CTA */}
                 <button
-                  className="ml-1 inline-flex h-12 items-center gap-2 rounded-2xl bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_40px_-24px_rgba(13,148,136,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0"
+                  className="ml-1 inline-flex h-12 items-center gap-2 bg-primary px-5 text-sm font-semibold text-white shadow-[0_18px_40px_-24px_rgba(13,148,136,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0"
                   disabled={IsAdListingClicked}
                   onClick={handleAdListing}
                   title="Objavi oglas"
@@ -1276,11 +1276,11 @@ const HomeHeader = () => {
                             <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
                               Brzi linkovi
                             </p>
-                            <div className="space-y-2 pr-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                {primaryHeaderQuickLinks.map((link) => (
+                            <div className="overflow-x-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                              <div className="flex w-max min-w-full items-center gap-2 whitespace-nowrap">
+                                {availableHeaderQuickLinks.map((link) => (
                                   <CustomLink
-                                    key={`mobile-quick-link-${link.id}`}
+                                    key={`mobile-quick-link-inline-${link.id}`}
                                     href={link.href}
                                     onClick={closeMobileUtilityMenu}
                                     className="inline-flex h-9 items-center rounded-full border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
@@ -1288,53 +1288,7 @@ const HomeHeader = () => {
                                     {link.label}
                                   </CustomLink>
                                 ))}
-
-                                {overflowHeaderQuickLinks.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setIsMobileOverflowLinksOpen((prev) => !prev)
-                                    }
-                                    className="inline-flex h-9 items-center rounded-full border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
-                                    aria-label="Prikaži ostale linkove"
-                                    aria-expanded={isMobileOverflowLinksOpen}
-                                  >
-                                    Ostalo
-                                    <ChevronDown
-                                      size={13}
-                                      className={`ml-1 transition-transform duration-200 ${
-                                        isMobileOverflowLinksOpen ? "rotate-180" : ""
-                                      }`}
-                                    />
-                                  </button>
-                                )}
                               </div>
-
-                              <AnimatePresence initial={false}>
-                                {isMobileOverflowLinksOpen &&
-                                  overflowHeaderQuickLinks.length > 0 && (
-                                    <motion.div
-                                      initial={{ opacity: 0, y: -4, height: 0 }}
-                                      animate={{ opacity: 1, y: 0, height: "auto" }}
-                                      exit={{ opacity: 0, y: -4, height: 0 }}
-                                      transition={{ duration: 0.2 }}
-                                      className="overflow-hidden rounded-xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
-                                    >
-                                      <div className="grid grid-cols-1 gap-2">
-                                        {overflowHeaderQuickLinks.map((link) => (
-                                          <CustomLink
-                                            key={`mobile-overflow-link-${link.id}`}
-                                            href={link.href}
-                                            onClick={closeMobileUtilityMenu}
-                                            className="w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                                          >
-                                            {link.label}
-                                          </CustomLink>
-                                        ))}
-                                      </div>
-                                    </motion.div>
-                                  )}
-                              </AnimatePresence>
                             </div>
                           </div>
 

@@ -1042,7 +1042,7 @@ const ComponentFour = ({
                 </span>
                 {socialPostingUnavailable ? (
                   <span className="text-[11px] text-amber-600 dark:text-amber-300">
-                    {socialPostingUnavailableMessage}
+                    {/* {socialPostingUnavailableMessage} */}
                   </span>
                 ) : !instagramConnected ? (
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">

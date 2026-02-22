@@ -11,6 +11,7 @@ import {
   getAuth,
   sendPasswordResetEmail,
   setPersistence,
+  signOut,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { authApi, userSignUpApi } from "@/utils/api";
@@ -21,6 +22,11 @@ import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useRef, useState } from "react";
 
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
+const RETRYABLE_GATEWAY_STATUSES = new Set([502, 503, 504]);
+const sleep = (ms) =>
+  new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 
 const LoginWithEmailForm = ({
   OnHide,
@@ -106,6 +112,27 @@ const LoginWithEmailForm = ({
     }
   };
 
+  const syncSessionWithBackend = async (payload) => {
+    let lastError = null;
+    const maxRetries = 2;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      try {
+        return await userSignUpApi.userSignup(payload);
+      } catch (error) {
+        lastError = error;
+        const status = Number(error?.response?.status || 0);
+        const isRetryable = RETRYABLE_GATEWAY_STATUSES.has(status);
+        const isLastAttempt = attempt === maxRetries;
+
+        if (!isRetryable || isLastAttempt) break;
+        await sleep(450 * (attempt + 1));
+      }
+    }
+
+    throw lastError;
+  };
+
   const Signin = async (e) => {
     e.preventDefault();
     const normalizedIdentifier = String(identifier || "").trim();
@@ -138,33 +165,43 @@ const LoginWithEmailForm = ({
       const userCredential = await signin(resolvedEmail, password);
       const user = userCredential?.user;
       if (!user) return;
-      if (user.emailVerified) {
-        try {
-          const response = await userSignUpApi.userSignup({
-            name: user?.displayName || "",
-            email: user?.email,
-            firebase_id: user?.uid,
-            fcm_id: fetchFCM ? fetchFCM : "",
-            type: "email",
+      if (!user.emailVerified) {
+        toast.warning("E-mail nije potvrđen. Možete nastaviti i potvrditi ga kasnije.");
+      }
+
+      try {
+        const response = await syncSessionWithBackend({
+          name: user?.displayName || "",
+          email: user?.email,
+          firebase_id: user?.uid,
+          fcm_id: fetchFCM ? fetchFCM : "",
+          type: "email",
+        });
+        const data = response.data;
+        if (data.error === false) {
+          loadUpdateData(data);
+          onAuthenticated?.(data, {
+            method: "email",
+            identifier: resolvedEmail,
           });
-          const data = response.data;
-          if (data.error === false) {
-            loadUpdateData(data);
-            onAuthenticated?.(data, {
-              method: "email",
-              identifier: resolvedEmail,
-            });
-            toast.success(data.message);
-            OnHide();
-          } else {
-            toast.error(data.message);
-          }
-        } catch (error) {
-          console.error("Error:", error);
+          toast.success(data.message);
+          OnHide();
+        } else {
+          toast.error(data.message);
         }
-        // Add your logic here for verified users
-      } else {
-        toast.error("Prvo potvrdi e-mail!");
+      } catch (error) {
+        const status = Number(error?.response?.status || 0);
+        if (RETRYABLE_GATEWAY_STATUSES.has(status)) {
+          toast.error("Server trenutno ne odgovara (504). Pokušajte ponovo za 30-60 sekundi.");
+        } else {
+          toast.error(
+            error?.response?.data?.message || "Prijava nije uspjela. Pokušajte ponovo.",
+          );
+        }
+        try {
+          await signOut(auth);
+        } catch (_) {}
+        console.error("Prijava nije završena:", error);
       }
     } catch (error) {
       console.log("Error code:", error?.code);

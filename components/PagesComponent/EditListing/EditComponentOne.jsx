@@ -258,7 +258,7 @@ const RichTextarea = ({
           onInput={handleInput}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="w-full px-4 py-3 outline-none min-h-[140px] prose prose-sm max-w-none text-gray-700"
+          className="w-full px-4 py-3 outline-none min-h-[140px] prose prose-sm max-w-none bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100"
           style={{ minHeight: `${minHeight}px` }}
           data-placeholder={placeholder}
         />

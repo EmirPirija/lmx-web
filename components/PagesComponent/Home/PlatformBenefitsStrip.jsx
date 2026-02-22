@@ -1,7 +1,13 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import CustomLink from "@/components/Common/CustomLink";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 import {
   MdRocketLaunch,
   ShieldCheck,
@@ -9,6 +15,8 @@ import {
   MessageCircle,
   Search,
   Layers,
+  ArrowLeft,
+  ArrowRight,
 } from "@/components/Common/UnifiedIconPack";
 import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD } from "@/lib/promoMode";
 
@@ -51,7 +59,50 @@ const benefitItems = [
   },
 ];
 
-const PlatformBenefitsStrip = () => (
+const splitIntoSlides = (items, size = 2) => {
+  const result = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+  return result;
+};
+
+const PlatformBenefitsStrip = () => {
+  const [carouselApi, setCarouselApi] = useState(null);
+  const carouselCards = useMemo(
+    () => [
+      ...benefitItems,
+      {
+        id: "promo-offer",
+        type: "promo",
+      },
+    ],
+    [],
+  );
+  const carouselSlides = useMemo(() => splitIntoSlides(carouselCards, 2), [carouselCards]);
+
+  useEffect(() => {
+    if (!carouselApi || typeof window === "undefined") return undefined;
+
+    const isMobileViewport = () =>
+      window.matchMedia("(max-width: 991px)").matches;
+
+    const autoSlide = () => {
+      if (!isMobileViewport()) return;
+      if (document.hidden) return;
+
+      if (carouselApi.canScrollNext()) {
+        carouselApi.scrollNext();
+        return;
+      }
+      carouselApi.scrollTo(0);
+    };
+
+    const timer = window.setInterval(autoSlide, 10000);
+    return () => window.clearInterval(timer);
+  }, [carouselApi]);
+
+  return (
   <section className="container py-4 sm:py-6">
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -79,58 +130,111 @@ const PlatformBenefitsStrip = () => (
         </CustomLink>
       </div>
 
-      <div className="relative mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {benefitItems.map((item, idx) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.45 }}
-            transition={{ duration: 0.34, delay: idx * 0.05 }}
-            whileHover={{ y: -3 }}
-            className={`rounded-2xl border bg-gradient-to-br p-3.5 shadow-sm transition-all duration-200 dark:bg-slate-900/75 ${item.tone}`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className={`grid h-9 w-9 place-items-center rounded-lg bg-white/90 shadow-sm dark:bg-slate-900 ${item.iconTone}`}>
-                <item.icon size={17} />
-              </div>
-              <CustomLink
-                href={item.href}
-                className="text-[11px] font-semibold text-slate-500 transition-colors hover:text-primary dark:text-slate-400 dark:hover:text-primary"
-              >
-                Saznaj više
-              </CustomLink>
-            </div>
-            <p className="mt-3 text-sm font-bold text-slate-900 dark:text-slate-100">{item.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">{item.description}</p>
-          </motion.div>
-        ))}
-      </div>
+      <Carousel
+        setApi={setCarouselApi}
+        opts={{ align: "start", containScroll: "trimSnaps" }}
+        className="relative mt-4"
+      >
+        <CarouselContent className="-ml-3">
+          {carouselSlides.map((slide, slideIndex) => (
+            <CarouselItem key={`benefits-slide-${slideIndex}`} className="basis-full pl-3">
+              <div className="grid grid-cols-2 gap-3">
+                {slide.map((item, itemIndex) => {
+                  const isOnlyCardInSlide = slide.length === 1;
+                  if (item.type === "promo") {
+                    return (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.45 }}
+                        transition={{ duration: 0.34, delay: (slideIndex * 0.04) + itemIndex * 0.05 }}
+                        whileHover={{ y: -3 }}
+                        className={`relative rounded-2xl border border-emerald-200/85 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 p-4 shadow-sm dark:border-emerald-700/60 dark:from-emerald-900/25 dark:via-slate-900/90 dark:to-cyan-900/20 ${isOnlyCardInSlide ? "col-span-2" : ""}`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300">
+                              Promotivna ponuda
+                            </p>
+                            <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">{PROMO_HEADLINE}</p>
+                            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{PROMO_SUBHEAD}</p>
+                          </div>
+                          <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {PROMO_BENEFITS.map((benefit) => (
+                            <span
+                              key={benefit}
+                              className="rounded-full border border-emerald-300/80 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"
+                            >
+                              {benefit}
+                            </span>
+                          ))}
+                        </div>
+                      </motion.div>
+                    );
+                  }
 
-      <div className="relative mt-4 rounded-2xl border border-emerald-200/85 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 p-4 dark:border-emerald-700/60 dark:from-emerald-900/25 dark:via-slate-900/90 dark:to-cyan-900/20">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-300">
-              Promotivna ponuda
-            </p>
-            <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">{PROMO_HEADLINE}</p>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{PROMO_SUBHEAD}</p>
-          </div>
-          <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-300" />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {PROMO_BENEFITS.map((benefit) => (
-            <span
-              key={benefit}
-              className="rounded-full border border-emerald-300/80 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-slate-900 dark:text-emerald-200"
-            >
-              {benefit}
-            </span>
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.45 }}
+                      transition={{ duration: 0.34, delay: (slideIndex * 0.04) + itemIndex * 0.05 }}
+                      whileHover={{ y: -3 }}
+                      className={`h-full rounded-2xl border bg-gradient-to-br p-3.5 shadow-sm transition-all duration-200 dark:bg-slate-900/75 ${item.tone} ${isOnlyCardInSlide ? "col-span-2" : ""}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className={`grid h-9 w-9 place-items-center rounded-lg bg-white/90 shadow-sm dark:bg-slate-900 ${item.iconTone}`}>
+                          <item.icon size={17} />
+                        </div>
+                        <CustomLink
+                          href={item.href}
+                          className="text-[11px] font-semibold text-slate-500 transition-colors hover:text-primary dark:text-slate-400 dark:hover:text-primary"
+                        >
+                          Saznaj više
+                        </CustomLink>
+                      </div>
+                      <p className="mt-3 text-sm font-bold text-slate-900 dark:text-slate-100">{item.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">{item.description}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </CarouselItem>
           ))}
+        </CarouselContent>
+      </Carousel>
+
+      {carouselSlides.length > 1 ? (
+        <div className="relative mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => carouselApi?.scrollPrev()}
+              disabled={!carouselApi?.canScrollPrev()}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              aria-label="Prethodni slajd"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => carouselApi?.scrollNext()}
+              disabled={!carouselApi?.canScrollNext()}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              aria-label="Sljedeći slajd"
+            >
+              <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </motion.div>
   </section>
 );
+};
 
 export default PlatformBenefitsStrip;

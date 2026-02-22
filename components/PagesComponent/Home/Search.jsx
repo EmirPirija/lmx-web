@@ -750,7 +750,7 @@ const Search = ({
         <form
           onSubmit={handleSearchNav}
           className={cn(
-            "w-full flex items-center gap-2 rounded-2xl transition-all duration-200",
+            "w-full flex items-center gap-2 transition-all duration-200",
             minimal
               ? "bg-white/95 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.34)] dark:bg-slate-900/90"
               : "border border-slate-200/90 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90",
