@@ -560,10 +560,47 @@ const ProductDetails = ({ slug }) => {
   // 2. Fetch Seller Info
   useEffect(() => {
     const sellerId = productDetails?.user?.id;
-    if (sellerId) {
-      gamificationApi.getUserBadges({ user_id: sellerId }).then(res => !res?.data?.error && setBadges(res?.data?.data?.badges || []));
-      getSellerApi.getSeller({ id: sellerId }).then(res => !res?.data?.error && setSellerSettings(res.data.data?.seller_settings));
+    if (!sellerId) {
+      setBadges([]);
+      return;
     }
+
+    let isMounted = true;
+
+    gamificationApi
+      .getUserBadges({ user_id: sellerId })
+      .then((res) => {
+        if (!isMounted) return;
+        if (!res?.data?.error) {
+          setBadges(res?.data?.data?.badges || []);
+        }
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        const status = error?.response?.status;
+        if (status === 401 || status === 419) {
+          setBadges([]);
+          return;
+        }
+        console.warn("Ne mogu učitati bedževe prodavača.", error);
+        setBadges([]);
+      });
+
+    getSellerApi
+      .getSeller({ id: sellerId })
+      .then((res) => {
+        if (!isMounted) return;
+        if (!res?.data?.error) {
+          setSellerSettings(res.data.data?.seller_settings);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setSellerSettings(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [productDetails?.user?.id]);
 
   // 3. Effects
@@ -643,14 +680,14 @@ const ProductDetails = ({ slug }) => {
         }
       }
 
-      dispatch(logoutSuccess());
+      logoutSuccess();
       setIsLogout(false);
       toast.success("Odjava uspješna");
       if (pathName !== "/") router.push("/");
     } finally {
       setIsLoggingOut(false);
     }
-  }, [currentUser?.fcm_id, dispatch, pathName, router, signOut]);
+  }, [currentUser?.fcm_id, pathName, router, signOut]);
 
   const openFeaturedModal = useCallback(() => {
     if (!canManageFeaturedAd || !productDetails?.id) {

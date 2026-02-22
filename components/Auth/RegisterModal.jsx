@@ -1002,9 +1002,12 @@ sm:w-full sm:max-w-6xl
 xl:max-w-7xl
 2xl:max-w-[1600px]
 max-w-none
+h-[calc(100dvh-0.75rem)]
+sm:h-auto
 max-h-[calc(100dvh-0.75rem)]
 sm:max-h-[calc(100dvh-2rem)]
 overflow-hidden
+touch-pan-y
 gap-0
 rounded-[24px] sm:rounded-[28px]
 border border-border/80
@@ -1015,7 +1018,7 @@ shadow-[0_30px_90px_-45px_rgba(15,23,42,0.55)]
           <div className="grid h-full min-h-0 lg:grid-cols-[0.95fr_1.25fr]">
             <AuthValuePanel mode={step === "otp" ? "otp" : "register"} />
 
-            <div className="min-h-0 overflow-y-auto bg-gradient-to-b from-background via-background to-muted/35 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+            <div className="min-h-0 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] bg-gradient-to-b from-background via-background to-muted/35 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
               <div className="mx-auto w-full max-w-[620px]">
                 <DialogHeader className="space-y-3">
                   <div className="inline-flex w-max items-center rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">

@@ -45,6 +45,7 @@ export default function RootLayout({ children }) {
       </head>
       
       <body 
+        suppressHydrationWarning
         className={`
           ${manrope.className} 
           lmx-app-background text-black 
