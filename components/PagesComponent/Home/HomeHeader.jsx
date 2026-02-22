@@ -83,7 +83,7 @@ const LocationModal = dynamic(
 );
 
 const HeaderCategoriesSkeleton = () => (
-  <div className="container">
+  <div className="mx-auto w-full px-4 lg:px-5 2xl:px-6">
     <div className="py-1.5 border-b">
       <Skeleton className="w-full h-[40px]" />
     </div>
@@ -895,7 +895,7 @@ const HomeHeader = () => {
         }`}
       >
         <nav
-          className={`w-full lg:px-6 ${
+          className={`w-full ${
             !isLargeScreen && isMobileSearchExpanded ? "px-0" : "px-3 sm:px-4"
           }`}
         >
@@ -915,9 +915,9 @@ const HomeHeader = () => {
                     title="Lokacija"
                   >
                     <MapPin size={18} className="shrink-0 text-primary" />
-                    <span className="truncate text-sm font-medium">
+                    {/* <span className="truncate text-sm font-medium">
                       {locationText || "Dodaj lokaciju"}
-                    </span>
+                    </span> */}
                   </button>
 
                   <div className="flex items-center gap-2">

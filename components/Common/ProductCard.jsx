@@ -23,7 +23,6 @@ import { resolveMembership } from "@/lib/membership";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================
 // POMOĆNE FUNKCIJE
@@ -939,18 +938,18 @@ ProductCard.displayName = "ProductCard";
 // Skeleton Loading Component
 export const ProductCardSkeleton = () => {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden dark:bg-slate-900 dark:border-slate-800">
-      <Skeleton className="relative aspect-[4/3] w-full rounded-none border-0 shadow-none" />
-      <div className="p-2 flex flex-col gap-2">
+    <div className="lmx-product-skeleton-card">
+      <div className="lmx-product-skeleton-block relative aspect-[4/3] w-full rounded-none" />
+      <div className="p-2 flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-3 w-16 rounded" />
-          <Skeleton className="h-3 w-12 rounded" />
+          <div className="lmx-product-skeleton-block h-3 w-16 rounded-md" />
+          <div className="lmx-product-skeleton-block h-3 w-12 rounded-md" />
         </div>
-        <Skeleton className="h-4 w-3/4 rounded" />
-        <Skeleton className="h-3 w-2/3 rounded" />
-        <div className="flex gap-1">
-          <Skeleton className="h-4 w-12 rounded" />
-          <Skeleton className="h-4 w-10 rounded" />
+        <div className="lmx-product-skeleton-block h-4 w-3/4 rounded-md" />
+        <div className="lmx-product-skeleton-block h-3 w-2/3 rounded-md" />
+        <div className="flex gap-1.5 pt-0.5">
+          <div className="lmx-product-skeleton-block h-4 w-12 rounded-lg" />
+          <div className="lmx-product-skeleton-block h-4 w-10 rounded-lg" />
         </div>
       </div>
     </div>

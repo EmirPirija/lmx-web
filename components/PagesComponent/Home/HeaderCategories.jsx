@@ -307,6 +307,7 @@ const CategoryMegaContent = ({ category, containerWidth, buildCategoryUrl, maxIt
 const HeaderCategories = ({ cateData = [] }) => {
   const containerRef = useRef(null);
   const measureRef = useRef(null);
+  const overflowMeasureRef = useRef(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { navigate } = useNavigate();
@@ -323,16 +324,21 @@ const HeaderCategories = ({ cateData = [] }) => {
       if (!containerRef.current || !measureRef.current) return;
 
       const containerWidth = containerRef.current.offsetWidth || 0;
-      const reserved = 150; // space for Ostalo
-      const availableWidth = containerWidth - reserved;
+      const overflowTriggerWidth = overflowMeasureRef.current
+        ? Math.ceil(overflowMeasureRef.current.getBoundingClientRect().width) + 10
+        : 188;
+      const rightSafety = 8;
 
       const items = Array.from(measureRef.current.children);
       let total = 0;
       let visible = 0;
 
       for (const item of items) {
-        const w = item.getBoundingClientRect().width + 40;
-        if (total + w > availableWidth) break;
+        const w = Math.ceil(item.getBoundingClientRect().width) + 48; // trigger paddings + icon/gap compensation
+        const categoriesLeftAfterCurrent = cateData.length - (visible + 1);
+        const needsOverflow = categoriesLeftAfterCurrent > 0;
+        const projectedTotal = total + w + (needsOverflow ? overflowTriggerWidth : 0);
+        if (projectedTotal > containerWidth - rightSafety) break;
         total += w;
         visible++;
       }
@@ -384,7 +390,7 @@ const HeaderCategories = ({ cateData = [] }) => {
 
   return (
     <div className="hidden lg:block border-b bg-background z-[9]">
-      <div className="container" ref={containerRef}>
+      <div className="mx-auto w-full px-4 lg:px-5 2xl:px-6" ref={containerRef}>
         {/* Hidden measurement row */}
         <div
           ref={measureRef}
@@ -398,11 +404,22 @@ const HeaderCategories = ({ cateData = [] }) => {
               </span>
             </div>
           ))}
+          <div
+            ref={overflowMeasureRef}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
+          >
+            <Grid3X3 className="w-4 h-4" />
+            <span>Ostalo</span>
+            <span className="inline-flex items-center justify-center rounded-full border px-1.5 py-0.5 text-[11px]">
+              +99
+            </span>
+            <span className="w-4" aria-hidden="true" />
+          </div>
         </div>
 
         <div className="py-2">
-          <NavigationMenu>
-            <NavigationMenuList className="rtl:flex-row-reverse">
+          <NavigationMenu className="w-full max-w-none justify-center">
+            <NavigationMenuList className="w-full justify-center flex-nowrap pr-1 rtl:flex-row-reverse">
               {visibleCategories.map((category, index) => {
                 const isHot = index === 0 && getSubcatsCount(category) > 0;
 
