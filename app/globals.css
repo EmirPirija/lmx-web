@@ -811,9 +811,37 @@ body {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
+  .lmx-app-background,
+  .dark .lmx-app-background,
+  .lmx-app-background.dark {
+    background-image: none !important;
+    background-size: auto !important;
+    background-position: top left !important;
+    background-blend-mode: normal !important;
+  }
+
+  .lmx-app-background {
+    background-color: #eef1f6;
+  }
+
+  .dark .lmx-app-background,
+  .lmx-app-background.dark {
+    background-color: #0f172a;
+  }
+
   .lmx-app-surface {
-    width: calc(100vw - 18px);
+    width: 100%;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+  }
+
+  .dark .lmx-app-surface,
+  .lmx-app-surface.dark {
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
   }
 }
 

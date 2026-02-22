@@ -30,6 +30,7 @@ import { getIsFreAdListing, settingsData } from "@/redux/reducer/settingSlice";
 import { CategoryData, getIsCatLoading } from "@/redux/reducer/categorySlice.js";
 import { getCityData } from "@/redux/reducer/locationSlice";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
+import { cn } from "@/lib/utils";
 
 import ProfileDropdown from "./ProfileDropdown.jsx";
 import HeaderCategories from "./HeaderCategories.jsx";
@@ -364,6 +365,7 @@ const HomeHeader = () => {
   // Mobile menu items (postojeće, samo zadržano)
   const isChatActive = pathname.startsWith("/chat");
   const isMyAdsActive = pathname.startsWith("/my-ads");
+  const isAllUsersActive = pathname.startsWith("/svi-korisnici");
 
   const isOnHome = pathname === "/";
   const isAdsPage = pathname === "/ads" || pathname.startsWith("/ads/");
@@ -731,41 +733,26 @@ const HomeHeader = () => {
       }),
     [IsLoggedin]
   );
-  const unifiedHeaderQuickLinks = useMemo(
-    () => [
-      ...availableHeaderQuickLinks,
-      {
-        id: "all-users",
-        href: "/svi-korisnici",
-        label: (
-          <span className="inline-flex items-center justify-center">
-            <AllUsersIcon className="h-4 w-4" />
-            <span className="sr-only">Svi korisnici</span>
-          </span>
-        ),
-      },
-    ],
-    [availableHeaderQuickLinks]
-  );
   
   
   const primaryQuickLinkIds = useMemo(
-    () => new Set([1, 5, 6, 7, 2, "all-users"]),
+    // Kontakt i Česta pitanja idu u "Ostalo" meni po UX zahtjevu.
+    () => new Set([1, 6, 7]),
     []
   );
   const primaryHeaderQuickLinks = useMemo(
     () =>
-      unifiedHeaderQuickLinks.filter((link) =>
+      availableHeaderQuickLinks.filter((link) =>
         primaryQuickLinkIds.has(link.id)
       ),
-    [primaryQuickLinkIds, unifiedHeaderQuickLinks]
+    [availableHeaderQuickLinks, primaryQuickLinkIds]
   );
   const overflowHeaderQuickLinks = useMemo(
     () =>
-      unifiedHeaderQuickLinks.filter(
+      availableHeaderQuickLinks.filter(
         (link) => !primaryQuickLinkIds.has(link.id)
       ),
-    [primaryQuickLinkIds, unifiedHeaderQuickLinks]
+    [availableHeaderQuickLinks, primaryQuickLinkIds]
   );
   const quickLinkChipClass =
     "inline-flex h-9 items-center rounded-full border border-slate-200/90 bg-white px-3.5 text-sm font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600";
@@ -907,70 +894,82 @@ const HomeHeader = () => {
               {/* DESKTOP: GORE utility + quick links rail */}
               <div className="space-y-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
                 <div className="flex items-center justify-between gap-3">
-                  <button
-                    className="group inline-flex min-w-0 max-w-[220px] xl:max-w-[320px] items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
-                    onClick={() => setIsLocationModalOpen(true)}
-                    type="button"
-                    aria-label="Lokacija"
-                    title="Lokacija"
-                  >
-                    <MapPin size={18} className="shrink-0 text-primary" />
-                    {/* <span className="truncate text-sm font-medium">
-                      {locationText || "Dodaj lokaciju"}
-                    </span> */}
-                  </button>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/90 bg-white text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
+                        onClick={() => setIsLocationModalOpen(true)}
+                        type="button"
+                        aria-label="Lokacija"
+                        title="Lokacija"
+                      >
+                        <MapPin size={18} className="shrink-0 text-primary" />
+                      </button>
 
-                  <div className="flex items-center gap-2">
+                      <button
+                        className={cn(
+                          "group inline-flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm",
+                          isAllUsersActive
+                            ? "border-primary/50 bg-primary/10 text-primary dark:border-primary/60 dark:bg-primary/20 dark:text-primary"
+                            : "border-slate-200/90 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
+                        )}
+                        onClick={() => navigate("/svi-korisnici")}
+                        type="button"
+                        aria-label="Svi korisnici"
+                        title="Svi korisnici"
+                      >
+                        <AllUsersIcon className="h-5 w-5" />
+                      </button>
+                    </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 pr-1">
-                      {primaryHeaderQuickLinks.map((link) => (
-                        <CustomLink
-                          key={`desktop-quick-link-${link.id}`}
-                          href={link.href}
-                          className={quickLinkChipClass}
-                        >
-                          {link.label}
-                        </CustomLink>
-                      ))}
-
-                      {overflowHeaderQuickLinks.length > 0 && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              type="button"
-                              className={quickLinkChipClass}
-                              aria-label="Prikaži ostale linkove"
-                            >
-                              Ostalo
-                              <ChevronDown size={14} className="ml-1" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="start"
-                            className="w-60 rounded-2xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 pr-1">
+                        {primaryHeaderQuickLinks.map((link) => (
+                          <CustomLink
+                            key={`desktop-quick-link-${link.id}`}
+                            href={link.href}
+                            className={quickLinkChipClass}
                           >
-                            {overflowHeaderQuickLinks.map((link) => (
-                              <DropdownMenuItem
-                                asChild
-                                key={`desktop-overflow-link-${link.id}`}
-                                className="rounded-xl"
-                              >
-                                <CustomLink
-                                  href={link.href}
-                                  className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
-                                >
-                                  {link.label}
-                                </CustomLink>
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                            {link.label}
+                          </CustomLink>
+                        ))}
 
+                        {overflowHeaderQuickLinks.length > 0 && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className={quickLinkChipClass}
+                                aria-label="Prikaži ostale linkove"
+                              >
+                                Ostalo
+                                <ChevronDown size={14} className="ml-1" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="start"
+                              className="w-60 rounded-2xl border border-slate-200/80 bg-white/95 p-1 dark:border-slate-700 dark:bg-slate-900/95"
+                            >
+                              {overflowHeaderQuickLinks.map((link) => (
+                                <DropdownMenuItem
+                                  asChild
+                                  key={`desktop-overflow-link-${link.id}`}
+                                  className="rounded-xl"
+                                >
+                                  <CustomLink
+                                    href={link.href}
+                                    className="w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                                  >
+                                    {link.label}
+                                  </CustomLink>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
                   <div className="flex min-w-0 items-center gap-2">
                   {/* PROFIL (lijevo u ovom bloku) */}
