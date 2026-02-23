@@ -38,6 +38,8 @@ import AdSuccessModal from "./AdSuccessModal";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import Layout from "@/components/Layout/Layout";
 import Checkauth from "@/HOC/Checkauth";
+import CustomLink from "@/components/Common/CustomLink";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { getDefaultLanguageCode, getLanguages } from "@/redux/reducer/settingSlice";
@@ -60,6 +62,7 @@ import {
   ChevronRight,
   Loader2,
   Sparkles,
+  AlertCircle,
 } from "@/components/Common/UnifiedIconPack";
 import {
   resolveLmxPhoneCountry,
@@ -72,6 +75,7 @@ import {
 // - Video: we only validate size here (compression should be server-side)
 // =======================================================
 const WATERMARK_TEXT_DEFAULT = "lmx.ba";
+const WATERMARK_IMAGE_DEFAULT = "/assets/lmx-watermark.png";
 
 const isFileLike = (v) =>
   typeof File !== "undefined" &&
@@ -100,15 +104,41 @@ const loadImageElement = (src) =>
 const toCanvasBlob = (canvas, type = "image/jpeg", quality = 0.92) =>
   new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
 
+const randBetween = (min, max) => {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return min;
+  return min + Math.random() * (max - min);
+};
+
+const getRandomEdgePlacement = ({ width, height, watermarkWidth, watermarkHeight, padding }) => {
+  const minX = padding;
+  const maxX = Math.max(padding, width - watermarkWidth - padding);
+  const minY = padding;
+  const maxY = Math.max(padding, height - watermarkHeight - padding);
+  const edges = ["top", "right", "bottom", "left"];
+  const edge = edges[Math.floor(Math.random() * edges.length)];
+
+  if (edge === "top") {
+    return { x: Math.round(randBetween(minX, maxX)), y: Math.round(minY) };
+  }
+  if (edge === "right") {
+    return { x: Math.round(maxX), y: Math.round(randBetween(minY, maxY)) };
+  }
+  if (edge === "bottom") {
+    return { x: Math.round(randBetween(minX, maxX)), y: Math.round(maxY) };
+  }
+  return { x: Math.round(minX), y: Math.round(randBetween(minY, maxY)) };
+};
+
 // =======================================================
-// Nova funkcija za LOGO watermark (Gornji Desni Ugao)
+// Watermark: random uz jednu od ivica (nikad centar)
 // =======================================================
 const compressAndWatermarkImage = async (
   file,
   {
     maxSize = 2000,
     quality = 0.92,
-    watermarkUrl = "/assets/ad_icon.svg", // Tvoj logo
+    watermarkUrl = WATERMARK_IMAGE_DEFAULT,
+    watermarkText = WATERMARK_TEXT_DEFAULT,
     watermarkOpacity = 0.9,               // Providnost (0.0 - 1.0)
     watermarkScale = 0.15,                // Veličina: 15% širine slike
     watermarkPaddingPct = 0.03,           // Odmak: 3% od ivice
@@ -144,28 +174,61 @@ const compressAndWatermarkImage = async (
   // 2. Nacrtaj glavnu sliku
   ctx.drawImage(img, 0, 0, outW, outH);
 
-  // 3. Nacrtaj Watermark (Logo)
-  if (watermarkUrl) {
+  // 3. Nacrtaj watermark uz random ivicu
+  if (watermarkUrl || watermarkText) {
     try {
-      const wmImg = await loadImageElement(watermarkUrl);
-      
-      ctx.save();
-      ctx.globalAlpha = watermarkOpacity;
+      const padding = Math.max(8, Math.round(Math.min(outW, outH) * watermarkPaddingPct));
+      let drawn = false;
 
-      // Računanje veličine watermarka (npr. 15% širine slike)
-      const wmWidth = outW * watermarkScale;
-      // Očuvaj aspect ratio loga
-      const wmAspect = (wmImg.naturalWidth || wmImg.width) / (wmImg.naturalHeight || wmImg.height);
-      const wmHeight = wmWidth / wmAspect;
+      if (watermarkUrl) {
+        const wmImg = await loadImageElement(watermarkUrl);
+        const wmWidth = Math.max(32, Math.round(outW * watermarkScale));
+        const wmAspect =
+          (wmImg.naturalWidth || wmImg.width) /
+          Math.max(1, (wmImg.naturalHeight || wmImg.height));
+        const wmHeight = Math.max(16, Math.round(wmWidth / wmAspect));
+        const { x, y } = getRandomEdgePlacement({
+          width: outW,
+          height: outH,
+          watermarkWidth: wmWidth,
+          watermarkHeight: wmHeight,
+          padding,
+        });
 
-      // Računanje pozicije: GORNJI DESNI ĆOŠAK
-      const padding = outW * watermarkPaddingPct;
-      const x = outW - wmWidth - padding; // Skroz desno minus širina i padding
-      const y = padding;                  // Skroz gore plus padding
+        ctx.save();
+        ctx.globalAlpha = watermarkOpacity;
+        ctx.drawImage(wmImg, x, y, wmWidth, wmHeight);
+        ctx.restore();
+        drawn = true;
+      }
 
-      // Crtanje
-      ctx.drawImage(wmImg, x, y, wmWidth, wmHeight);
-      ctx.restore();
+      if (!drawn && watermarkText) {
+        const fontSize = Math.max(14, Math.round((outW / 1000) * 22));
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, watermarkOpacity + 0.05);
+        ctx.font = `700 ${fontSize}px sans-serif`;
+        ctx.textBaseline = "top";
+
+        const metrics = ctx.measureText(watermarkText);
+        const textW = Math.max(1, Math.round(metrics.width));
+        const textH = Math.max(fontSize, Math.round(fontSize * 1.12));
+        const { x, y } = getRandomEdgePlacement({
+          width: outW,
+          height: outH,
+          watermarkWidth: textW,
+          watermarkHeight: textH,
+          padding,
+        });
+
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.08));
+        ctx.strokeText(watermarkText, x, y);
+        ctx.fillText(watermarkText, x, y);
+        ctx.restore();
+      }
     } catch (e) {
       console.warn("Greška pri učitavanju watermarka:", e);
     }
@@ -203,6 +266,24 @@ const processImagesArray = async (files, opts) => {
 };
 
 const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
+
+const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+
+const stripCountryCodePrefix = (mobile, countryCode) => {
+  const mobileDigits = digitsOnly(mobile);
+  const ccDigits = digitsOnly(countryCode);
+  if (!mobileDigits) return "";
+  if (!ccDigits) return mobileDigits;
+  if (mobileDigits.startsWith(ccDigits)) return mobileDigits.slice(ccDigits.length);
+  return mobileDigits;
+};
+
+const toBoolLoose = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0" || value == null) return false;
+  const normalized = String(value).trim().toLowerCase();
+  return ["true", "yes", "da", "verified", "approved"].includes(normalized);
+};
 
 const extractTempMediaId = (value) => {
   if (!value || typeof value !== "object") return null;
@@ -325,8 +406,27 @@ const AdsListing = () => {
       process.env.NEXT_PUBLIC_DEFAULT_COUNTRY?.toLowerCase() ||
       "ba"
   );
-  const countryCode = userData?.country_code?.replace("+", "") || resolveLmxPhoneDialCode(regionCode);
-  const mobile = userData?.mobile || "";
+  const countryCode = digitsOnly(userData?.country_code) || resolveLmxPhoneDialCode(regionCode);
+  const mobile = stripCountryCodePrefix(userData?.mobile, countryCode);
+  const sellerPhoneDisplay = mobile ? `+${countryCode}${mobile}` : "";
+  const isPhoneVerified = useMemo(
+    () =>
+      toBoolLoose(userData?.mobile_verified) ||
+      toBoolLoose(userData?.phone_verified) ||
+      Boolean(userData?.mobile_verified_at) ||
+      Boolean(userData?.phone_verified_at),
+    [
+      userData?.mobile_verified,
+      userData?.phone_verified,
+      userData?.mobile_verified_at,
+      userData?.phone_verified_at,
+    ],
+  );
+  const isEmailVerified = useMemo(
+    () => toBoolLoose(userData?.email_verified) || Boolean(userData?.email_verified_at),
+    [userData?.email_verified, userData?.email_verified_at],
+  );
+  const hasVerificationWarnings = !isPhoneVerified || !isEmailVerified;
 
   const [translations, setTranslations] = useState({
     [langId]: {
@@ -343,6 +443,37 @@ const AdsListing = () => {
       scarcity_enabled: false,
     },
   });
+
+  useEffect(() => {
+    setTranslations((prev) => {
+      if (!prev || typeof prev !== "object") return prev;
+      const keys = Object.keys(prev);
+      if (keys.length === 0) return prev;
+      let changed = false;
+      const next = { ...prev };
+
+      keys.forEach((key) => {
+        const prevLang = prev?.[key] || {};
+        const nextRegion = String(regionCode || "").toLowerCase();
+        if (
+          String(prevLang?.contact || "") === String(mobile || "") &&
+          String(prevLang?.country_code || "") === String(countryCode || "") &&
+          String(prevLang?.region_code || "").toLowerCase() === nextRegion
+        ) {
+          return;
+        }
+        next[key] = {
+          ...prevLang,
+          contact: mobile,
+          country_code: countryCode,
+          region_code: regionCode,
+        };
+        changed = true;
+      });
+
+      return changed ? next : prev;
+    });
+  }, [countryCode, mobile, regionCode]);
 
   useEffect(() => {
     if (!showPublishFx) {
@@ -523,7 +654,7 @@ const AdsListing = () => {
   const completenessScore = useMemo(() => {
     let score = 0;
     if (categoryPath.length > 0) score += 20;
-    if (defaultDetails.name && defaultDetails.description && defaultDetails.contact) {
+    if (defaultDetails.name && defaultDetails.description && mobile) {
       score += 20;
     }
     if (customFields.length === 0) {
@@ -540,11 +671,11 @@ const AdsListing = () => {
       if (otherImages.length >= 3) score += 10;
       else score += (otherImages.length / 3) * 10;
     }
-    if (location?.country && location?.state && location?.city && location?.address) {
+    if (location?.country && location?.city && location?.address) {
       score += 20;
     }
     return Math.round(score);
-  }, [categoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, otherImages, location]);
+  }, [categoryPath, currentExtraDetails, customFields, defaultDetails, location, mobile, otherImages, uploadedImages]);
 
   useEffect(() => {
     const stored = localStorage.getItem("recentCategories");
@@ -939,7 +1070,9 @@ const AdsListing = () => {
   }, [fetchInstagramConnection]);
 
   const handleFullSubmission = (scheduledDateTime = null) => {
-    const { name, description, contact, country_code } = defaultDetails;
+    const { name, description } = defaultDetails;
+    const contact = mobile;
+    const country_code = countryCode;
     const catId = categoryPath.at(-1)?.id;
     const resolvedScarcityEnabled = parseBooleanSetting(
       getSharedDetailValue("scarcity_enabled", false),
@@ -958,13 +1091,18 @@ const AdsListing = () => {
 
     if (scheduledDateTime) setScheduledAt(scheduledDateTime);
 
-    if (isEmpty(name) || isEmpty(description) || isEmpty(contact)) {
+    if (isEmpty(name) || isEmpty(description)) {
       toast.error("Popuni obavezna polja.");
       return setStep(2);
     }
 
+    if (isEmpty(contact)) {
+      toast.error("Postavi broj telefona u Seller postavkama prije objave oglasa.");
+      return setStep(2);
+    }
+
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
-      toast.error("Neispravan broj telefona");
+      toast.error("Broj telefona iz postavki prodavača nije ispravan.");
       return setStep(2);
     }
 
@@ -989,7 +1127,7 @@ const AdsListing = () => {
       return setStep(4);
     }
 
-    if (!location?.country || !location?.state || !location?.city || !location?.address) {
+    if (!location?.country || !location?.city || !location?.address) {
       toast.error("Odaberi lokaciju");
       return;
     }
@@ -1071,7 +1209,8 @@ const AdsListing = () => {
         is_real_estate && effectiveRealEstateTotalPrice
           ? effectiveRealEstateTotalPrice
           : defaultDetails.price,
-      contact: defaultDetails.contact,
+      contact: mobile,
+      country_code: countryCode,
       available_now: Boolean(availableNow),
       exchange_possible: Boolean(exchangePossible),
       is_exchange: Boolean(exchangePossible),
@@ -1147,7 +1286,7 @@ const AdsListing = () => {
       ...(Object.keys(customFieldTranslations).length > 0 && {
         custom_field_translations: customFieldTranslations,
       }),
-      region_code: defaultDetails?.region_code?.toUpperCase() || "",
+      region_code: String(regionCode || "").toUpperCase(),
       ...(scheduledDateTime ? { scheduled_at: scheduledDateTime } : {}),
       
       // Dodano za akciju
@@ -1400,7 +1539,7 @@ const AdsListing = () => {
   }, [activeStepId, dismissActiveField, scrollWizardToTop]);
 
   const hasBaseLocation = Boolean(
-    location?.country && location?.state && location?.city && location?.address
+    location?.country && location?.city && location?.address
   );
   const hasPreciseLocation = Boolean(
     Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.long))
@@ -1481,9 +1620,9 @@ const AdsListing = () => {
           case 1:
             return categoryPath.length > 0 ? 100 : 0;
           case 2:
-            return defaultDetails.name && defaultDetails.description
+            return defaultDetails.name && defaultDetails.description && mobile
               ? 100
-              : defaultDetails.name || defaultDetails.description
+              : defaultDetails.name || defaultDetails.description || mobile
               ? 55
               : 0;
           case 3:
@@ -1510,6 +1649,7 @@ const AdsListing = () => {
       hasBaseLocation,
       is_real_estate,
       location?.address,
+      mobile,
       steps,
       uploadedImages.length,
     ]
@@ -1544,6 +1684,16 @@ const AdsListing = () => {
         fieldId: "description",
         label: "Dodaj opis oglasa",
         hint: "Kupci trebaju osnovne informacije prije upita.",
+      });
+    }
+
+    if (!String(mobile || "").trim()) {
+      issues.push({
+        id: "contact",
+        stepId: 2,
+        fieldId: "seller-contact-readonly",
+        label: "Postavi kontakt broj",
+        hint: "Kontakt broj se postavlja u Seller postavkama.",
       });
     }
 
@@ -1583,6 +1733,7 @@ const AdsListing = () => {
     defaultDetails?.description,
     defaultDetails?.name,
     hasValidLocation,
+    mobile,
     uploadedImages,
   ]);
 
@@ -1902,6 +2053,36 @@ const AdsListing = () => {
               </div>
             </div>
           </div>
+
+          {hasVerificationWarnings ? (
+            <Alert className="relative border-amber-200/80 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+              <AlertTitle>Nedovršena verifikacija naloga</AlertTitle>
+              <AlertDescription className="space-y-1 text-amber-800/95 dark:text-amber-100/90">
+                <p>
+                  Za sigurnije objave potvrdi{" "}
+                  {!isPhoneVerified && !isEmailVerified
+                    ? "telefon i e-mail"
+                    : !isPhoneVerified
+                    ? "telefon"
+                    : "e-mail"}
+                  .
+                </p>
+                <p>
+                  Aktivni kontakt za oglas:{" "}
+                  <span className="font-semibold">
+                    {sellerPhoneDisplay || "nije postavljen u Seller postavkama"}
+                  </span>
+                </p>
+                <CustomLink
+                  href="/profile?tab=seller-settings"
+                  className="inline-flex text-xs font-semibold text-amber-800 underline underline-offset-2 dark:text-amber-200"
+                >
+                  Otvori Seller postavke
+                </CustomLink>
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column */}

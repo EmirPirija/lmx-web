@@ -661,9 +661,9 @@ const ManualAddress = ({
             </Popover>
           </div>
 
-          {/* State Field */}
+          {/* City / Municipality Field */}
           <div className="flex flex-col gap-1">
-            {renderFieldLabel("Kanton/region", 'state')}
+            {renderFieldLabel("Grad / općina", 'state')}
             <Popover
               modal
               open={StateStore?.stateOpen}
@@ -686,20 +686,20 @@ const ManualAddress = ({
                 >
                   {StateStore?.SelectedState?.translated_name ||
                     StateStore?.SelectedState?.name ||
-                    "Odaberi kanton/region"}
+                    "Odaberi grad ili općinu"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               {fieldErrors.state && touched.state && (
                 <span className="text-red-500 text-xs mt-1 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
-                  {"Kanton/region je obavezan"}
+                  {"Grad ili općina su obavezni"}
                 </span>
               )}
               <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                 <Command shouldFilter={false}>
                   <CommandInput
-                    placeholder={"Pretraži kantone/regije..."}
+                    placeholder={"Pretraži gradove i općine..."}
                     value={StateStore.StateSearch || ""}
                     onValueChange={(val) => {
                       setStateStore((prev) => ({ ...prev, StateSearch: val }));
@@ -711,7 +711,7 @@ const ManualAddress = ({
                     ) : (
                       <div className="text-center py-4">
                         <p className="text-sm text-muted-foreground">
-                          {"Nema kantona/regija"}
+                          {"Nema gradova/općina"}
                         </p>
                       </div>
                     )}

@@ -23,8 +23,6 @@ import {
   REAL_ESTATE_PRICE_MODE_MANUAL,
   resolveRealEstatePerSquareValue,
 } from "@/utils/realEstatePricing";
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
 import { useDispatch, useSelector } from "react-redux";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { setUserMembership } from "@/redux/reducer/membershipSlice";
@@ -33,11 +31,7 @@ import { extractApiData, resolveMembership } from "@/lib/membership";
 import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
-import {
-  LMX_PHONE_DEFAULT_COUNTRY,
-  LMX_PHONE_INPUT_PROPS,
-  resolveLmxPhoneCountry,
-} from "@/components/Common/phoneInputTheme";
+import CustomLink from "@/components/Common/CustomLink";
 
 // ============================================
 // ACCORDION SECTION
@@ -536,23 +530,12 @@ const ComponentTwo = ({
     }));
   };
 
-  const handlePhoneChange = (value, data) => {
-    const dial = data?.dialCode || "";
-    const iso2 = data?.countryCode || "";
-
-    setTranslations((prev) => {
-      const pureMobile = value.startsWith(dial) ? value.slice(dial.length) : value;
-      return {
-        ...prev,
-        [langId]: {
-          ...prev[langId],
-          contact: pureMobile,
-          country_code: dial,
-          region_code: iso2,
-        },
-      };
-    });
-  };
+  const sellerPhoneDisplay = useMemo(() => {
+    const normalizedCountryCode = String(current?.country_code || "").replace(/\D/g, "");
+    const normalizedContact = String(current?.contact || "").replace(/\D/g, "");
+    if (!normalizedCountryCode || !normalizedContact) return "";
+    return `+${normalizedCountryCode}${normalizedContact}`;
+  }, [current?.contact, current?.country_code]);
 
   // Helper za izračun popusta
   const priceNum = Number(
@@ -1133,29 +1116,31 @@ const ComponentTwo = ({
       {isDefaultLang && (
         <AccordionSection
           title="Kontakt"
-          subtitle="Broj telefona koji kupci vide"
+          subtitle="Broj se preuzima iz Seller postavki"
           isOpen={contactOpen}
           onToggle={() => setContactOpen((v) => !v)}
           badge="required"
         >
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="phonenumber"
-              className={isDefaultLang ? "requiredInputLabel" : ""}
-            >
-              Broj telefona
-            </Label>
-
-            <PhoneInput
-              country={resolveLmxPhoneCountry(current?.region_code || LMX_PHONE_DEFAULT_COUNTRY)}
-              value={`${current.country_code || ""}${current.contact || ""}`}
-              onChange={(phone, data) => handlePhoneChange(phone, data)}
-              inputProps={{
-                name: "phonenumber",
-                id: "phonenumber",
-              }}
-              {...LMX_PHONE_INPUT_PROPS}
-            />
+          <div
+            id="seller-contact-readonly"
+            className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/60"
+          >
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Kontakt broj za oglas automatski dolazi iz <span className="font-semibold">Seller postavki</span>.
+            </p>
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+              {sellerPhoneDisplay || "Broj nije postavljen"}
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Za izmjenu broja idi na{" "}
+              <CustomLink
+                href="/profile?tab=seller-settings"
+                className="font-semibold text-primary underline underline-offset-2"
+              >
+                Seller postavke
+              </CustomLink>
+              .
+            </p>
           </div>
         </AccordionSection>
       )}

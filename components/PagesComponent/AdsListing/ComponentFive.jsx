@@ -17,6 +17,7 @@ import { useUserLocation } from "@/hooks/useUserLocation";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
 import { getLocationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
+import { isLocationComplete, resolveLocationSelection } from "@/lib/bih-locations";
 
 const GetLocationWithMap = dynamic(() => import("@/components/Location/GetLocationWithMap"), {
   ssr: false,
@@ -50,6 +51,7 @@ const ComponentFive = ({
     useUserLocation();
   const [bihLocation, setBihLocation] = useState({
     entityId: null,
+    cityId: null,
     regionId: null,
     municipalityId: null,
     address: "",
@@ -60,7 +62,7 @@ const ComponentFive = ({
   const [realEstateLocationMode, setRealEstateLocationMode] = useState("map"); // "map" | "profile"
   const [mapPreviewPosition, setMapPreviewPosition] = useState(null);
 
-  const hasAddressData = Boolean(location?.country && location?.state && location?.city && location?.address);
+  const hasAddressData = Boolean(location?.country && location?.city && location?.address);
   const hasPreciseLocation = hasPreciseCoordinates(location);
   const canPublish = hasAddressData;
 
@@ -128,11 +130,10 @@ const ComponentFive = ({
   );
 
   const loadProfileLocation = useCallback(() => {
-    if (isRealEstate || !userLocation?.municipalityId) return;
+    if (isRealEstate || !isLocationComplete(userLocation)) return;
 
     try {
-      const { getFullLocationFromMunicipalityId } = require("@/lib/bih-locations");
-      const fullLocation = getFullLocationFromMunicipalityId(userLocation.municipalityId);
+      const fullLocation = resolveLocationSelection(userLocation);
 
       if (fullLocation) {
         const formattedAddr = userLocation.address
@@ -142,8 +143,10 @@ const ComponentFive = ({
         setBihLocation(userLocation);
         setLocation({
           country: "Bosna i Hercegovina",
-          state: fullLocation.region?.name || "",
-          city: fullLocation.municipality?.name || "",
+          state: fullLocation.municipality?.name || "",
+          city: fullLocation.city?.name || "",
+          cityId: fullLocation.city?.id || null,
+          municipalityId: fullLocation.municipality?.id || null,
           address: formattedAddr,
           lat: BIH_DEFAULT_COORDS.lat,
           long: BIH_DEFAULT_COORDS.long,
@@ -218,7 +221,7 @@ const ComponentFive = ({
       return;
     }
 
-    if (!isRealEstate && hasLocation && userLocation?.municipalityId) {
+    if (!isRealEstate && hasLocation && isLocationComplete(userLocation)) {
       loadProfileLocation();
       setIsInitialized(true);
       return;
@@ -241,17 +244,16 @@ const ComponentFive = ({
     resolveApproximateMapPoint,
     convertApiLocationToBiH,
     setLocation,
-    userLocation?.municipalityId,
+    userLocation,
   ]);
 
   const handleBihLocationChange = (newBihLocation) => {
     setBihLocation(newBihLocation);
 
-    if (!newBihLocation?.municipalityId) return;
+    if (!isLocationComplete(newBihLocation)) return;
 
     try {
-      const { getFullLocationFromMunicipalityId } = require("@/lib/bih-locations");
-      const fullLocation = getFullLocationFromMunicipalityId(newBihLocation.municipalityId);
+      const fullLocation = resolveLocationSelection(newBihLocation);
 
       if (fullLocation) {
         const formattedAddr = newBihLocation.address
@@ -261,8 +263,10 @@ const ComponentFive = ({
         setLocation((prev) => ({
           ...prev,
           country: "Bosna i Hercegovina",
-          state: fullLocation.region?.name || "",
-          city: fullLocation.municipality?.name || "",
+          state: fullLocation.municipality?.name || "",
+          city: fullLocation.city?.name || "",
+          cityId: fullLocation.city?.id || null,
+          municipalityId: fullLocation.municipality?.id || null,
           address: formattedAddr,
           formattedAddress: formattedAddr,
           address_translated: formattedAddr,
@@ -287,6 +291,7 @@ const ComponentFive = ({
     setLocationSource("manual");
     setBihLocation({
       entityId: null,
+      cityId: null,
       regionId: null,
       municipalityId: null,
       address: "",
@@ -298,6 +303,8 @@ const ComponentFive = ({
         country: "",
         state: "",
         city: "",
+        cityId: null,
+        municipalityId: null,
         address: "",
         address_translated: "",
         lat: null,
@@ -350,16 +357,17 @@ const ComponentFive = ({
 
       const fallbackAddress = [resolvedCity, resolvedState].filter(Boolean).join(", ");
 
+      let convertedLocation = null;
       if (typeof convertApiLocationToBiH === "function") {
-        const converted = convertApiLocationToBiH({
+        convertedLocation = convertApiLocationToBiH({
           city: resolvedCity || result?.city || "",
           state: resolvedState || result?.state || "",
           country: result?.country_translation || result?.country || "Bosna i Hercegovina",
         });
-        if (converted) {
+        if (convertedLocation) {
           setBihLocation((prev) => ({
             ...prev,
-            ...converted,
+            ...convertedLocation,
           }));
         }
       }
@@ -383,6 +391,8 @@ const ComponentFive = ({
         lat,
         long: lng,
         area_id: result?.area_id ?? (isRealEstate ? null : prev?.area_id || null),
+        cityId: convertedLocation?.cityId || prev?.cityId || null,
+        municipalityId: convertedLocation?.municipalityId || prev?.municipalityId || null,
         location_source: isRealEstate ? "map" : "manual",
       }));
       setLocationSource("manual");
@@ -398,6 +408,8 @@ const ComponentFive = ({
               country: prev?.country || "Bosna i Hercegovina",
               state: prev?.state || "",
               city: prev?.city || "",
+              cityId: prev?.cityId || null,
+              municipalityId: prev?.municipalityId || null,
               address: prev?.address || "Odabrana lokacija na mapi",
               address_translated: prev?.address_translated || prev?.address || "Odabrana lokacija na mapi",
               lat,

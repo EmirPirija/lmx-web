@@ -37,6 +37,7 @@ import CustomImage from "@/components/Common/CustomImage";
 import CustomLink from "@/components/Common/CustomLink";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
@@ -263,7 +264,15 @@ const isCurrentlyOpen = (businessHours) => {
    CONTACT MODAL
 ===================================================== */
 
-const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick, onPhoneCall }) => {
+const ContactModal = ({
+  open,
+  onOpenChange,
+  seller,
+  settings,
+  onMessageClick,
+  onPhoneCall,
+  verificationStatus,
+}) => {
   const [copiedKey, setCopiedKey] = useState("");
 
   const copy = async (key, value) => {
@@ -286,6 +295,8 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick, on
   const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
   const viberNumber = settings?.viber_number || seller?.mobile;
   const email = seller?.email;
+  const missingPhone = !verificationStatus?.phoneVerified;
+  const missingEmail = !verificationStatus?.emailVerified;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -298,6 +309,21 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick, on
         </div>
 
         <div className="p-3 space-y-1.5">
+          {verificationStatus?.show ? (
+            <Alert className="mb-1 border-amber-200/90 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              <Info className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+              <AlertDescription className="text-xs leading-relaxed text-amber-800/95 dark:text-amber-100/90">
+                Dovrši verifikaciju naloga ({missingPhone ? "telefon" : null}
+                {missingPhone && missingEmail ? " + " : null}
+                {missingEmail ? "e-mail" : null}) za punu pouzdanost profila.
+                {" "}
+                <CustomLink href="/profile?tab=seller-settings" className="font-semibold underline underline-offset-2">
+                  Otvori Seller postavke
+                </CustomLink>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           <button
             type="button"
             onClick={() => { onMessageClick?.(); onOpenChange(false); }}
@@ -750,6 +776,15 @@ const ProductSellerDetailCard = ({
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
   const [isReelViewerOpen, setIsReelViewerOpen] = useState(false);
   const currentUser = useSelector(userSignUpData);
+  const isPhoneVerified = useMemo(
+    () => toBool(currentUser?.phone_verified) || Boolean(currentUser?.phone_verified_at),
+    [currentUser?.phone_verified, currentUser?.phone_verified_at]
+  );
+  const isEmailVerified = useMemo(
+    () => toBool(currentUser?.email_verified) || Boolean(currentUser?.email_verified_at),
+    [currentUser?.email_verified, currentUser?.email_verified_at]
+  );
+  const showVerificationReminder = Boolean(currentUser?.id) && (!isPhoneVerified || !isEmailVerified);
 
   if (!seller) return <ProductSellerCardSkeleton />;
 
@@ -849,6 +884,11 @@ const ProductSellerDetailCard = ({
         settings={settings}
         onMessageClick={handleChatClick}
         onPhoneCall={onPhoneClick}
+        verificationStatus={{
+          show: showVerificationReminder,
+          phoneVerified: isPhoneVerified,
+          emailVerified: isEmailVerified,
+        }}
       />
 
       <SendMessageModal
@@ -1091,6 +1131,20 @@ const ProductSellerDetailCard = ({
             <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-700/60 dark:bg-rose-900/30 dark:text-rose-200">
               {blockedContactCopy}
             </div>
+          ) : null}
+          {showVerificationReminder ? (
+            <Alert className="border-amber-200/80 bg-amber-50/70 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              <Info className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+              <AlertDescription className="text-xs leading-relaxed text-amber-800/95 dark:text-amber-100/90">
+                Verifikacija naloga nije završena ({!isPhoneVerified ? "telefon" : null}
+                {!isPhoneVerified && !isEmailVerified ? " + " : null}
+                {!isEmailVerified ? "e-mail" : null}).
+                {" "}
+                <CustomLink href="/profile?tab=seller-settings" className="font-semibold underline underline-offset-2">
+                  Dovrši verifikaciju
+                </CustomLink>
+              </AlertDescription>
+            </Alert>
           ) : null}
           <div className="flex items-center gap-2">
             <button

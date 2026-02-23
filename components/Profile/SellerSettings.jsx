@@ -28,6 +28,14 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +76,11 @@ import {
   ensureRecaptchaVerifier,
   isRecaptchaRecoverableError,
 } from "@/components/Auth/recaptchaManager";
+import {
+  LMX_PHONE_ALLOWED_COUNTRIES,
+  LMX_PHONE_DIAL_CODE_BY_COUNTRY,
+  resolveLmxPhoneCountry,
+} from "@/components/Common/phoneInputTheme";
 
 // ============================================
 // VERIFICATION BADGE
@@ -129,6 +142,22 @@ const defaultCardPreferences = {
 };
 
 const SELLER_RECAPTCHA_CONTAINER_ID = "seller-verification-recaptcha-container";
+
+const PHONE_COUNTRY_META = {
+  ba: { label: "Bosna i Hercegovina", region: "BA", flag: "🇧🇦" },
+  hr: { label: "Hrvatska", region: "HR", flag: "🇭🇷" },
+  rs: { label: "Srbija", region: "RS", flag: "🇷🇸" },
+  si: { label: "Slovenija", region: "SI", flag: "🇸🇮" },
+  me: { label: "Crna Gora", region: "ME", flag: "🇲🇪" },
+};
+
+const resolveIso2FromDialCode = (dialCode) => {
+  const normalizedDial = digitsOnly(dialCode);
+  const matched = Object.entries(LMX_PHONE_DIAL_CODE_BY_COUNTRY).find(
+    ([, code]) => String(code) === normalizedDial,
+  );
+  return matched?.[0] || "ba";
+};
 
 // ============================================
 // HELPERS
@@ -652,6 +681,26 @@ const SellerSettings = () => {
   const [emailVerificationSending, setEmailVerificationSending] = useState(false);
   const [emailVerificationRefreshing, setEmailVerificationRefreshing] = useState(false);
 
+  const phoneCountryOptions = useMemo(
+    () =>
+      LMX_PHONE_ALLOWED_COUNTRIES.map((iso2) => {
+        const dialCode = String(LMX_PHONE_DIAL_CODE_BY_COUNTRY[iso2] || "");
+        const meta = PHONE_COUNTRY_META[iso2] || {
+          label: String(iso2 || "").toUpperCase(),
+          region: String(iso2 || "").toUpperCase(),
+          flag: "🏳️",
+        };
+        return {
+          iso2,
+          dialCode,
+          regionCode: meta.region,
+          label: meta.label,
+          flag: meta.flag,
+        };
+      }),
+    [],
+  );
+
   // Contact
   const [showPhone, setShowPhone] = useState(true);
   const [showEmail, setShowEmail] = useState(true);
@@ -714,11 +763,22 @@ const SellerSettings = () => {
   }, [auth]);
 
   useEffect(() => {
-    const country = digitsOnly(currentUser?.country_code) || "387";
-    const localNumber = stripCountryCodePrefix(currentUser?.mobile, country);
-    setPhoneCountryCode(country);
+    const dialFromProfile = digitsOnly(currentUser?.country_code);
+    const iso2FromRegion = resolveLmxPhoneCountry(currentUser?.region_code || "");
+    const resolvedIso2 = dialFromProfile
+      ? resolveIso2FromDialCode(dialFromProfile)
+      : iso2FromRegion || "ba";
+    const dialCode = String(
+      dialFromProfile || LMX_PHONE_DIAL_CODE_BY_COUNTRY[resolvedIso2] || "387",
+    );
+    const localNumber = stripCountryCodePrefix(currentUser?.mobile, dialCode);
+    const normalizedRegion = (
+      PHONE_COUNTRY_META[resolvedIso2]?.region || String(resolvedIso2 || "BA").toUpperCase()
+    ).toUpperCase();
+
+    setPhoneCountryCode(dialCode);
     setPhoneLocalNumber(localNumber);
-    setPhoneRegionCode(String(currentUser?.region_code || "BA").toUpperCase());
+    setPhoneRegionCode(normalizedRegion);
     setManualPhoneVerified(
       toBoolLoose(currentUser?.mobile_verified) ||
         toBoolLoose(currentUser?.phone_verified) ||
@@ -788,6 +848,42 @@ const SellerSettings = () => {
   const isPhoneVerified = useMemo(
     () => hasPhoneProvider || manualPhoneVerified || registeredViaPhone,
     [hasPhoneProvider, manualPhoneVerified, registeredViaPhone],
+  );
+  const selectedPhoneCountryIso2 = useMemo(() => {
+    const byRegion = String(phoneRegionCode || "").toUpperCase();
+    const fromRegion = phoneCountryOptions.find(
+      (option) => String(option.regionCode || "").toUpperCase() === byRegion,
+    );
+    if (fromRegion) return fromRegion.iso2;
+
+    const normalizedDial = digitsOnly(phoneCountryCode);
+    const fromDial = phoneCountryOptions.find(
+      (option) => String(option.dialCode || "") === normalizedDial,
+    );
+    return fromDial?.iso2 || "ba";
+  }, [phoneCountryCode, phoneCountryOptions, phoneRegionCode]);
+  const selectedPhoneCountryOption = useMemo(
+    () =>
+      phoneCountryOptions.find((option) => option.iso2 === selectedPhoneCountryIso2) ||
+      phoneCountryOptions.find((option) => option.iso2 === "ba") ||
+      null,
+    [phoneCountryOptions, selectedPhoneCountryIso2],
+  );
+  const missingVerificationChannels = useMemo(() => {
+    const missing = [];
+    if (!isPhoneVerified) missing.push("telefon");
+    if (!isEmailVerified) missing.push("e-mail");
+    return missing;
+  }, [isEmailVerified, isPhoneVerified]);
+
+  const handlePhoneCountryPresetChange = useCallback(
+    (iso2) => {
+      const option = phoneCountryOptions.find((entry) => entry.iso2 === iso2);
+      if (!option) return;
+      setPhoneCountryCode(String(option.dialCode || ""));
+      setPhoneRegionCode(String(option.regionCode || "").toUpperCase());
+    },
+    [phoneCountryOptions],
   );
 
   const syncProfileVerificationData = useCallback(
@@ -1307,19 +1403,6 @@ const SellerSettings = () => {
     stripCountryCodePrefix(currentUser?.mobile, currentUser?.country_code || "387"),
   );
   const resolvedPhoneDisplay = firebaseIdentity?.phoneNumber || phoneDraftE164 || fallbackPhoneE164 || "nije dostupan";
-  const hasProfileIdentity = Boolean(
-    String(currentUser?.name || "").trim() &&
-      (previewImage || currentUser?.profile_image || currentUser?.profile),
-  );
-  const verificationStatusKey = String(verificationStatus || "").toLowerCase();
-  const isDocsVerified = verificationStatusKey === "approved";
-  const isDocsPending = ["pending", "submitted", "resubmitted"].includes(verificationStatusKey);
-  const trustCenterLabel =
-    verificationProgressPercent >= 100 && isDocsVerified
-      ? "Verifikovan"
-      : verificationProgressPercent > 0 || isDocsPending
-      ? "Djelimično verifikovan"
-      : "Nije verifikovan";
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
@@ -1350,6 +1433,18 @@ const SellerSettings = () => {
           Nesačuvane promjene
         </div>
       )}
+
+      {missingVerificationChannels.length > 0 ? (
+        <Alert className="border-amber-200 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+          <AlertTitle className="text-amber-900 dark:text-amber-200">
+            Potrebna je dodatna verifikacija
+          </AlertTitle>
+          <AlertDescription className="text-amber-800/95 dark:text-amber-200/90">
+            Za puni nivo povjerenja potvrdi: {missingVerificationChannels.join(" i ")}.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5">
         {/* Settings */}
@@ -1451,93 +1546,9 @@ const SellerSettings = () => {
                     ? "Nalog je registrovan putem broja telefona, zato je telefon već tretiran kao verificiran."
                     : "Za puni nivo sigurnosti potvrdi oba kanala: broj telefona i e-mail adresu."}
                 </p>
-              </div>
 
-              <div className="rounded-2xl border border-[#0ab6af]/30 bg-[#0ab6af]/8 p-4 sm:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">
-                      Seller Trust Center
-                    </p>
-                    <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      Jedna kartica za status povjerenja
-                    </h4>
-                  </div>
-                  <span className="rounded-full border border-[#0ab6af]/40 bg-white/85 px-2.5 py-1 text-xs font-semibold text-[#0ab6af] dark:bg-slate-900/70">
-                    {trustCenterLabel}
-                  </span>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
-                    <p className="font-semibold text-slate-700 dark:text-slate-200">Profil</p>
-                    <p className={cn("mt-0.5", hasProfileIdentity ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-300")}>
-                      {hasProfileIdentity ? "Spreman" : "Dopuniti ime/sliku"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
-                    <p className="font-semibold text-slate-700 dark:text-slate-200">Telefon</p>
-                    <p className={cn("mt-0.5", isPhoneVerified ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-300")}>
-                      {isPhoneVerified ? "Verifikovan" : "Čeka OTP"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
-                    <p className="font-semibold text-slate-700 dark:text-slate-200">E-mail</p>
-                    <p className={cn("mt-0.5", isEmailVerified ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-300")}>
-                      {isEmailVerified ? "Verifikovan" : "Čeka potvrdu"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
-                    <p className="font-semibold text-slate-700 dark:text-slate-200">Dokumenti</p>
-                    <p
-                      className={cn(
-                        "mt-0.5",
-                        isDocsVerified
-                          ? "text-emerald-600 dark:text-emerald-300"
-                          : isDocsPending
-                          ? "text-amber-600 dark:text-amber-300"
-                          : "text-slate-500 dark:text-slate-300",
-                      )}
-                    >
-                      {isDocsVerified ? "Verifikovani" : isDocsPending ? "Na pregledu" : "Nije poslano"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {!isPhoneVerified ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-9 rounded-xl"
-                      onClick={handleSendPhoneVerificationOtp}
-                      disabled={phoneOtpSending || phoneOtpTimer > 0}
-                    >
-                      {phoneOtpSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Pošalji OTP"}
-                    </Button>
-                  ) : null}
-                  {!isEmailVerified ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-9 rounded-xl"
-                      onClick={handleSendEmailVerificationNow}
-                      disabled={emailVerificationSending}
-                    >
-                      {emailVerificationSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Potvrdi e-mail"}
-                    </Button>
-                  ) : null}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-9 rounded-xl"
-                    onClick={() => setShowPhone((prev) => !prev)}
-                  >
-                    {showPhone ? "Sakrij broj" : "Prikaži broj"}
-                  </Button>
+                <div className="mt-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+                  Vidljivost broja telefona podešavaš u sekciji <span className="font-semibold">Kontakt opcije</span>.
                 </div>
               </div>
 
@@ -1588,20 +1599,48 @@ const SellerSettings = () => {
                         Unesi broj koji želiš potvrditi i pošalji OTP kod.
                       </p>
 
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-4 sm:col-span-3">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div>
                           <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            Pozivni
+                            Država i pozivni
                           </Label>
-                          <Input
-                            value={phoneCountryCode}
-                            onChange={(e) => setPhoneCountryCode(digitsOnly(e.target.value))}
-                            className="h-10 text-sm"
-                            placeholder="387"
-                            inputMode="numeric"
-                          />
+                          <Select
+                            value={selectedPhoneCountryIso2}
+                            onValueChange={handlePhoneCountryPresetChange}
+                          >
+                            <SelectTrigger className="h-10 text-sm">
+                              {selectedPhoneCountryOption ? (
+                                <span className="inline-flex min-w-0 items-center gap-2">
+                                  <span className="shrink-0 text-base" aria-hidden>
+                                    {selectedPhoneCountryOption.flag}
+                                  </span>
+                                  <span className="truncate">{selectedPhoneCountryOption.label}</span>
+                                  <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+                                    +{selectedPhoneCountryOption.dialCode}
+                                  </span>
+                                </span>
+                              ) : (
+                                <SelectValue placeholder="Odaberi državu" />
+                              )}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {phoneCountryOptions.map((option) => (
+                                <SelectItem key={option.iso2} value={option.iso2}>
+                                  <span className="inline-flex items-center gap-2">
+                                    <span className="text-base" aria-hidden>
+                                      {option.flag}
+                                    </span>
+                                    <span>{option.label}</span>
+                                    <span className="text-xs text-slate-500">
+                                      +{option.dialCode}
+                                    </span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div className="col-span-8 sm:col-span-6">
+                        <div>
                           <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                             Broj
                           </Label>
@@ -1609,20 +1648,8 @@ const SellerSettings = () => {
                             value={phoneLocalNumber}
                             onChange={(e) => setPhoneLocalNumber(digitsOnly(e.target.value))}
                             className="h-10 text-sm"
-                            placeholder="603342996"
+                            placeholder=""
                             inputMode="numeric"
-                          />
-                        </div>
-                        <div className="col-span-12 sm:col-span-3">
-                          <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            Regija
-                          </Label>
-                          <Input
-                            value={phoneRegionCode}
-                            onChange={(e) => setPhoneRegionCode(String(e.target.value || "").toUpperCase())}
-                            className="h-10 text-sm"
-                            placeholder="BA"
-                            maxLength={3}
                           />
                         </div>
                       </div>
@@ -1841,7 +1868,7 @@ const SellerSettings = () => {
           <SettingSection icon={Phone} title="Kontakt opcije">
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <CompactToggle title="Prikaži telefon" checked={showPhone} onCheckedChange={setShowPhone} />
+                <CompactToggle title="Prikaži broj telefona" checked={showPhone} onCheckedChange={setShowPhone} />
                 <CompactToggle title="Email" checked={showEmail} onCheckedChange={setShowEmail} />
                 <CompactToggle title="WhatsApp" checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
                 <CompactToggle title="Viber" checked={showViber} onCheckedChange={setShowViber} />

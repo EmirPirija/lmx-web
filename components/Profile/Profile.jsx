@@ -29,6 +29,7 @@ import {
 
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import CustomLink from "@/components/Common/CustomLink";
+import { isLocationComplete, resolveLocationSelection } from "@/lib/bih-locations";
 import {
   LMX_PHONE_DEFAULT_COUNTRY,
   LMX_PHONE_INPUT_PROPS,
@@ -238,6 +239,7 @@ export default function Profile() {
   const { userLocation, saveLocation } = useUserLocation();
   const [bihLocation, setBihLocation] = useState({
     entityId: null,
+    cityId: null,
     regionId: null,
     municipalityId: null,
     address: "",
@@ -257,7 +259,7 @@ export default function Profile() {
 
   // Effects
   useEffect(() => {
-    if (userLocation?.municipalityId) {
+    if (isLocationComplete(userLocation)) {
       setBihLocation(userLocation);
     }
   }, [userLocation]);
@@ -346,12 +348,24 @@ export default function Profile() {
 
     setSavingField(fieldName);
     try {
+      if (
+        fieldName === "location" &&
+        bihLocation?.cityId &&
+        !isLocationComplete(bihLocation)
+      ) {
+        return;
+      }
+
       if (fieldName === "location") {
         saveLocation(bihLocation);
       }
 
-      const formattedAddress = bihLocation?.formattedAddress 
-        ? `${bihLocation.address || ""}, ${bihLocation.formattedAddress}`.trim()
+      const resolvedLocation = resolveLocationSelection(bihLocation);
+      const formattedBase = bihLocation?.formattedAddress || resolvedLocation?.formatted || "";
+      const formattedAddress = formattedBase
+        ? `${bihLocation.address || ""}, ${formattedBase}`
+            .replace(/^,\s*/, "")
+            .trim()
         : formData.address;
 
       const response = await updateProfileApi.updateProfile({

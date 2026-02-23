@@ -164,7 +164,7 @@ const LocationPopup = ({ onClose, extraDetails = {}, country, state, city, area 
                 <p className="text-xs uppercase tracking-wide text-gray-400">Aktivna lokacija</p>
                 <p className="text-sm font-semibold text-gray-800">{locationSummary}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Brzo filtriraj oglase po gradu, regiji ili cijeloj državi.
+                  Brzo filtriraj oglase po gradu, općini ili cijeloj državi.
                 </p>
               </div>
               {currentLocationSlug && (

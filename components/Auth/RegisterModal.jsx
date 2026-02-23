@@ -64,6 +64,7 @@ import RegisterAuthInputField from "./RegisterAuthInputField";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
+import { isLocationComplete, resolveLocationSelection } from "@/lib/bih-locations";
 import {
   clearRecaptchaVerifier,
   ensureRecaptchaVerifier,
@@ -83,6 +84,7 @@ const AVATAR_OUTPUT_SIZE = 512;
 const REGISTER_LOCATION_STORAGE_KEY = "user_bih_location";
 const EMPTY_REGISTER_LOCATION = {
   entityId: null,
+  cityId: null,
   regionId: null,
   municipalityId: null,
   address: "",
@@ -832,16 +834,17 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   };
 
   const resolveRegisterLocationAddress = (locationValue) => {
-    if (!locationValue?.municipalityId) return "";
+    if (!isLocationComplete(locationValue)) return "";
+    const resolved = resolveLocationSelection(locationValue);
     const addressLine = String(locationValue.address || "").trim();
-    const formattedLine = String(locationValue.formattedAddress || "").trim();
+    const formattedLine = String(locationValue.formattedAddress || resolved?.formatted || "").trim();
     if (addressLine && formattedLine) return `${addressLine}, ${formattedLine}`;
     return addressLine || formattedLine || "";
   };
 
   const persistRegisterLocation = (userId, locationValue) => {
     if (typeof window === "undefined") return;
-    if (!userId || !locationValue?.municipalityId) return;
+    if (!userId || !isLocationComplete(locationValue)) return;
     try {
       window.localStorage.setItem(
         REGISTER_LOCATION_STORAGE_KEY,
@@ -968,7 +971,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         }
       }
 
-      if (locationSetupMode === "now" && registerLocation?.municipalityId) {
+      if (locationSetupMode === "now" && isLocationComplete(registerLocation)) {
         persistRegisterLocation(response?.data?.data?.id, registerLocation);
       }
 
@@ -1038,7 +1041,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         return;
       }
 
-      if (locationSetupMode === "now" && registerLocation?.municipalityId) {
+      if (locationSetupMode === "now" && isLocationComplete(registerLocation)) {
         persistRegisterLocation(authPayload?.data?.id, registerLocation);
       }
 
@@ -1052,7 +1055,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   };
 
   const handleFinalize = async () => {
-    if (locationSetupMode === "now" && !registerLocation?.municipalityId) {
+    if (locationSetupMode === "now" && !isLocationComplete(registerLocation)) {
       toast.error("Odaberi lokaciju ili nastavi opcijom 'Kasnije u postavkama'.");
       return;
     }
@@ -1098,7 +1101,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   const canShowGoogleAvatar = hasGooglePhotoUrl && !googleAvatarLoadError;
   const canFinalizeAvatarSelection = avatarMode !== "studio" || Boolean(studioBlob);
   const canFinalizeLocationSelection =
-    locationSetupMode !== "now" || Boolean(registerLocation?.municipalityId);
+    locationSetupMode !== "now" || isLocationComplete(registerLocation);
   const canFinalizeRegistration = canFinalizeAvatarSelection && canFinalizeLocationSelection;
 
   const openUploadPicker = () => {
@@ -1841,7 +1844,7 @@ xl:max-w-7xl
                             Prije završetka klikni "Sačuvaj" unutar avatar studija.
                           </p>
                         ) : null}
-                        {locationSetupMode === "now" && !registerLocation?.municipalityId ? (
+                        {locationSetupMode === "now" && !isLocationComplete(registerLocation) ? (
                           <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
                             Odaberi lokaciju ili prebaci na opciju "Kasnije u postavkama".
                           </p>

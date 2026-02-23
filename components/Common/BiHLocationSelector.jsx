@@ -1,6 +1,15 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
-import { Check, ChevronsUpDown, Search, MapPin, Building2, Map, X } from "@/components/Common/UnifiedIconPack";
+
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Check,
+  ChevronsUpDown,
+  Globe,
+  MapPin,
+  Search,
+  X,
+} from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,33 +24,51 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { t } from "@/utils";
 import {
-  ENTITIES,
-  getRegionsByEntity,
-  getMunicipalitiesByRegion,
-  searchMunicipalities,
-  formatBiHAddress,
+  BIH_COUNTRY,
   POPULAR_CITIES,
-  getFullLocationFromMunicipalityId,
+  getCities,
+  getCityById,
+  getMunicipalitiesByCity,
+  searchLocations,
+  formatBiHAddress,
+  isLocationComplete,
+  resolveLocationSelection,
 } from "@/lib/bih-locations";
 
-/**
- * BiHLocationSelector - Profesionalni selektor lokacije za BiH
- * 
- * Props:
- * - value: { entityId, regionId, municipalityId, address } - trenutna vrijednost
- * - onChange: (location) => void - callback kad se promijeni lokacija
- * - showAddress: boolean - da li prikazati polje za adresu (default: true)
- * - compact: boolean - kompaktni prikaz (default: false)
- * - disabled: boolean - onemogući
- * - error: string - poruka greške
- * - label: string - label iznad komponente
- */
+const CONTENT_ANIMATION = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
+  transition: { duration: 0.2, ease: "easeOut" },
+};
+
+const buildNextValue = (baseValue = {}, updates = {}) => ({
+  ...baseValue,
+  ...updates,
+  entityId: "bih",
+  regionId: updates.cityId ?? baseValue.regionId ?? null, // legacy kompatibilnost
+});
+
+const normalizeLocationValue = (value = {}) => {
+  const resolved = resolveLocationSelection(value);
+  if (!resolved) return value;
+
+  return {
+    ...value,
+    entityId: "bih",
+    cityId: value.cityId || resolved.city?.id || null,
+    regionId: value.regionId || resolved.city?.id || null,
+    municipalityId: value.municipalityId || resolved.municipality?.id || null,
+    formattedAddress:
+      value.formattedAddress ||
+      formatBiHAddress({ city: resolved.city, municipality: resolved.municipality }),
+  };
+};
+
 const BiHLocationSelector = ({
   value = {},
   onChange,
@@ -52,483 +79,455 @@ const BiHLocationSelector = ({
   label,
   className,
 }) => {
-  // State za dropdown-ove
-  const [entityOpen, setEntityOpen] = useState(false);
-  const [regionOpen, setRegionOpen] = useState(false);
+  const normalizedValue = useMemo(() => normalizeLocationValue(value), [value]);
+
+  const [cityOpen, setCityOpen] = useState(false);
   const [municipalityOpen, setMunicipalityOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showQuickSearch, setShowQuickSearch] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickSearch, setQuickSearch] = useState("");
 
-  // Dohvati trenutne selekcije
-  const selectedEntity = ENTITIES.find(e => e.id === value?.entityId);
-  const regions = useMemo(() => getRegionsByEntity(value?.entityId), [value?.entityId]);
-  const selectedRegion = regions.find(r => r.id === value?.regionId);
-  const municipalities = useMemo(() => getMunicipalitiesByRegion(value?.regionId), [value?.regionId]);
-  const selectedMunicipality = municipalities.find(m => m.id === value?.municipalityId);
+  const selectedCity = useMemo(
+    () => getCityById(normalizedValue?.cityId || normalizedValue?.regionId),
+    [normalizedValue?.cityId, normalizedValue?.regionId]
+  );
 
-  // Quick search rezultati
+  const municipalities = useMemo(
+    () => (selectedCity ? getMunicipalitiesByCity(selectedCity.id) : []),
+    [selectedCity]
+  );
+
+  const selectedMunicipality = useMemo(() => {
+    if (!normalizedValue?.municipalityId) return null;
+    return municipalities.find((item) => item.id === normalizedValue.municipalityId) || null;
+  }, [municipalities, normalizedValue?.municipalityId]);
+
+  const locationResolved = useMemo(
+    () => resolveLocationSelection(normalizedValue),
+    [normalizedValue]
+  );
+
+  const locationIsComplete = useMemo(
+    () => isLocationComplete(normalizedValue),
+    [normalizedValue]
+  );
+
   const searchResults = useMemo(() => {
-    if (searchQuery.length < 2) return [];
-    return searchMunicipalities(searchQuery);
-  }, [searchQuery]);
+    if (quickSearch.trim().length < 2) return [];
+    return searchLocations(quickSearch);
+  }, [quickSearch]);
 
-  // Handler za promjenu entiteta
-  const handleEntityChange = (entityId) => {
-    onChange?.({
-      entityId,
-      regionId: null,
-      municipalityId: null,
-      address: value?.address || "",
+  const summaryAddress = useMemo(() => {
+    if (!locationResolved) return "";
+
+    const base = formatBiHAddress({
+      city: locationResolved.city,
+      municipality: locationResolved.municipality,
     });
-    setEntityOpen(false);
+
+    if (normalizedValue?.address) {
+      return `${normalizedValue.address}, ${base}`;
+    }
+    return base;
+  }, [locationResolved, normalizedValue?.address]);
+
+  const handleCityChange = (cityId) => {
+    const city = getCityById(cityId);
+    if (!city) return;
+
+    const hasMunicipalities = city.municipalities.length > 0;
+    const nextValue = buildNextValue(normalizedValue, {
+      cityId,
+      municipalityId: null,
+      formattedAddress: formatBiHAddress({ city, municipality: null }),
+    });
+
+    onChange?.(nextValue);
+    setCityOpen(false);
+
+    if (hasMunicipalities) {
+      setMunicipalityOpen(true);
+    }
   };
 
-  // Handler za promjenu regije/kantona
-  const handleRegionChange = (regionId) => {
-    onChange?.({
-      ...value,
-      regionId,
-      municipalityId: null,
-    });
-    setRegionOpen(false);
-  };
-
-  // Handler za promjenu općine/grada
   const handleMunicipalityChange = (municipalityId) => {
-    const municipality = municipalities.find(m => m.id === municipalityId);
-    const region = regions.find(r => r.id === value?.regionId);
-    const entity = selectedEntity;
-    
-    onChange?.({
-      ...value,
-      municipalityId,
-      // Auto-generiši formatted adresu
-      formattedAddress: formatBiHAddress({ municipality, region, entity }),
+    if (!selectedCity) return;
+
+    const municipality = municipalities.find((item) => item.id === municipalityId) || null;
+    const nextValue = buildNextValue(normalizedValue, {
+      cityId: selectedCity.id,
+      municipalityId: municipality?.id || null,
+      formattedAddress: formatBiHAddress({ city: selectedCity, municipality }),
     });
+
+    onChange?.(nextValue);
     setMunicipalityOpen(false);
   };
 
-  // Handler za quick search selekciju
   const handleQuickSelect = (result) => {
-    onChange?.({
-      entityId: result.entityId,
-      regionId: result.regionId,
-      municipalityId: result.id,
-      address: value?.address || "",
-      formattedAddress: `${result.name}, ${result.regionName}, ${result.entityName}, Bosna i Hercegovina`,
-    });
-    setSearchQuery("");
-    setShowQuickSearch(false);
+    const city = getCityById(result.cityId);
+    if (!city) return;
+
+    const municipality =
+      city.municipalities.find((item) => item.id === result.municipalityId) || null;
+
+    onChange?.(
+      buildNextValue(normalizedValue, {
+        cityId: city.id,
+        municipalityId: municipality?.id || null,
+        formattedAddress: formatBiHAddress({ city, municipality }),
+      })
+    );
+
+    setQuickSearch("");
+    setQuickOpen(false);
   };
 
-  // Handler za popularni grad
-  const handlePopularCity = (city) => {
-    const fullLocation = getFullLocationFromMunicipalityId(city.id);
-    if (fullLocation) {
-      onChange?.({
-        entityId: fullLocation.entity?.id,
-        regionId: fullLocation.region?.id,
-        municipalityId: city.id,
-        address: value?.address || "",
-        formattedAddress: fullLocation.formatted,
-      });
-    }
-    setShowQuickSearch(false);
-  };
-
-  // Handler za adresu
-  const handleAddressChange = (e) => {
+  const handleAddressChange = (event) => {
     onChange?.({
-      ...value,
-      address: e.target.value,
+      ...normalizedValue,
+      address: event.target.value,
     });
   };
 
-  // Clear all
   const handleClear = () => {
     onChange?.({
-      entityId: null,
+      ...normalizedValue,
+      cityId: null,
       regionId: null,
       municipalityId: null,
       address: "",
       formattedAddress: "",
     });
+    setQuickSearch("");
   };
 
-  // Kompaktni prikaz - samo search
+  const compactTitle = summaryAddress || "Odaberi lokaciju";
+
   if (compact) {
     return (
       <div className={cn("space-y-2", className)}>
-        {label && <Label className="text-sm font-medium">{label}</Label>}
-        
-        <Popover open={showQuickSearch} onOpenChange={setShowQuickSearch}>
+        {label ? <Label className="text-sm font-medium">{label}</Label> : null}
+
+        <Popover open={quickOpen} onOpenChange={setQuickOpen}>
           <PopoverTrigger asChild>
             <Button
+              type="button"
               variant="outline"
-              role="combobox"
               disabled={disabled}
               className={cn(
-                "w-full justify-between",
-                error && "border-red-500",
-                !value?.municipalityId && "text-muted-foreground"
+                "h-11 w-full justify-between rounded-xl transition-all duration-200 hover:border-primary/40",
+                !locationResolved && "text-muted-foreground",
+                error && "border-red-500"
               )}
             >
-              <div className="flex items-center gap-2 truncate">
+              <span className="flex min-w-0 items-center gap-2">
                 <MapPin className="h-4 w-4 shrink-0" />
-                <span className="truncate">
-                  {value?.formattedAddress || value?.municipalityId 
-                    ? (selectedMunicipality?.name || value?.formattedAddress || "Odaberite lokaciju")
-                    : "Pretražite ili odaberite lokaciju"
-                  }
-                </span>
-              </div>
-              {value?.municipalityId ? (
-                <X 
-                  className="h-4 w-4 shrink-0 opacity-50 hover:opacity-100" 
-                  onClick={(e) => { e.stopPropagation(); handleClear(); }}
+                <span className="truncate">{compactTitle}</span>
+              </span>
+              {locationResolved ? (
+                <X
+                  className="h-4 w-4 shrink-0 opacity-60 hover:opacity-100"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleClear();
+                  }}
                 />
               ) : (
                 <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[350px] p-0" align="start">
+          <PopoverContent align="start" className="w-[min(90vw,420px)] p-0">
             <Command shouldFilter={false}>
-              <CommandInput 
-                placeholder="Pretražite grad ili općinu..." 
-                value={searchQuery}
-                onValueChange={setSearchQuery}
+              <CommandInput
+                placeholder="Pretraži grad ili općinu..."
+                value={quickSearch}
+                onValueChange={setQuickSearch}
               />
               <CommandList>
-                {searchQuery.length >= 2 ? (
-                  searchResults.length > 0 ? (
-                    <CommandGroup heading="Rezultati pretrage">
+                {quickSearch.trim().length >= 2 ? (
+                  searchResults.length ? (
+                    <CommandGroup heading="Rezultati">
                       {searchResults.map((result) => (
                         <CommandItem
-                          key={result.id}
-                          value={result.id}
+                          key={`${result.cityId}:${result.municipalityId || "city"}`}
+                          value={`${result.cityId}:${result.municipalityId || "city"}`}
                           onSelect={() => handleQuickSelect(result)}
                         >
-                          <div className="flex flex-col">
-                            <span className="font-medium">{result.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {result.regionName} • {result.entityName}
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate font-medium text-foreground">
+                              {result.displayName}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {result.formatted}
                             </span>
                           </div>
                         </CommandItem>
                       ))}
                     </CommandGroup>
                   ) : (
-                    <CommandEmpty>Nema rezultata za "{searchQuery}"</CommandEmpty>
+                    <CommandEmpty>Nema rezultata za pretragu.</CommandEmpty>
                   )
                 ) : (
-                  <>
-                    <CommandGroup heading="Popularni gradovi">
-                      {POPULAR_CITIES.slice(0, 8).map((city) => (
-                        <CommandItem
-                          key={city.id}
-                          value={city.id}
-                          onSelect={() => handlePopularCity(city)}
-                        >
-                          <MapPin className="mr-2 h-4 w-4 text-primary" />
-                          {city.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </>
+                  <CommandGroup heading="Popularni gradovi">
+                    {POPULAR_CITIES.map((city) => (
+                      <CommandItem
+                        key={city.id}
+                        value={city.id}
+                        onSelect={() => handleCityChange(city.id)}
+                      >
+                        <MapPin className="mr-2 h-4 w-4 text-primary" />
+                        <span>{city.name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
                 )}
               </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
-        
-        {error && <p className="text-xs text-red-500">{error}</p>}
+
+        {showAddress && locationIsComplete ? (
+          <Input
+            value={normalizedValue?.address || ""}
+            onChange={handleAddressChange}
+            disabled={disabled}
+            placeholder="Detaljnija lokacija (opcionalno)"
+            className="h-10 rounded-xl"
+          />
+        ) : null}
+
+        {error ? <p className="text-xs text-red-500">{error}</p> : null}
       </div>
     );
   }
 
-  // Puni prikaz sa 3 dropdown-a
   return (
     <div className={cn("space-y-4", className)}>
-      {label && (
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            {label}
-          </Label>
-          {value?.municipalityId && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleClear}
-              className="h-6 text-xs text-muted-foreground hover:text-foreground"
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-semibold text-foreground">
+          {label || "Lokacija"}
+        </Label>
+        {(normalizedValue?.cityId || normalizedValue?.municipalityId) && !disabled ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={handleClear}
+          >
+            Očisti
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="rounded-2xl border border-border/70 bg-background/80 p-3 sm:p-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Država</Label>
+            <div className="flex h-11 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3">
+              <Globe className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">{BIH_COUNTRY.name}</span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Grad</Label>
+            <Popover open={cityOpen} onOpenChange={setCityOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={disabled}
+                className={cn(
+                    "h-11 w-full justify-between rounded-xl transition-all duration-200 hover:border-primary/40",
+                    !selectedCity && "text-muted-foreground"
+                  )}
+                >
+                  <span className="truncate">{selectedCity?.name || "Odaberi grad"}</span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[min(92vw,340px)] p-0">
+                <Command>
+                  <CommandInput placeholder="Pretraži grad..." />
+                  <CommandList>
+                    <CommandEmpty>Nema rezultata.</CommandEmpty>
+                    <CommandGroup>
+                      {getCities().map((city) => (
+                        <CommandItem
+                          key={city.id}
+                          value={`${city.name} ${city.id}`}
+                          onSelect={() => handleCityChange(city.id)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedCity?.id === city.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="truncate">{city.name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Općina</Label>
+            <Popover open={municipalityOpen} onOpenChange={setMunicipalityOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={disabled || !selectedCity || municipalities.length === 0}
+                  className={cn(
+                    "h-11 w-full justify-between rounded-xl transition-all duration-200 hover:border-primary/40",
+                    !selectedMunicipality && "text-muted-foreground"
+                  )}
+                >
+                  <span className="truncate">
+                    {selectedMunicipality?.name || "Odaberi općinu"}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[min(92vw,340px)] p-0">
+                <Command>
+                  <CommandInput placeholder="Pretraži općinu..." />
+                  <CommandList>
+                    <CommandEmpty>Nema rezultata.</CommandEmpty>
+                    <CommandGroup>
+                      {municipalities.map((municipality) => (
+                        <CommandItem
+                          key={municipality.id}
+                          value={`${municipality.name} ${municipality.id}`}
+                          onSelect={() => handleMunicipalityChange(municipality.id)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedMunicipality?.id === municipality.id
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          <span className="truncate">{municipality.name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <Search className="h-3.5 w-3.5" />
+            Brza pretraga
+          </div>
+          <Popover open={quickOpen} onOpenChange={setQuickOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={disabled}
+              className="h-10 w-full justify-between rounded-xl transition-all duration-200 hover:border-primary/40"
+              >
+                <span className="truncate text-sm">
+                  {quickSearch || "Traži grad ili općinu"}
+                </span>
+                <ChevronsUpDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[min(92vw,440px)] p-0">
+              <Command shouldFilter={false}>
+                <CommandInput
+                  placeholder="Unesi naziv grada ili općine..."
+                  value={quickSearch}
+                  onValueChange={setQuickSearch}
+                />
+                <CommandList>
+                  {quickSearch.trim().length >= 2 ? (
+                    searchResults.length ? (
+                      <CommandGroup heading="Rezultati">
+                        {searchResults.map((result) => (
+                          <CommandItem
+                            key={`${result.cityId}:${result.municipalityId || "city"}`}
+                            value={`${result.cityId}:${result.municipalityId || "city"}`}
+                            onSelect={() => handleQuickSelect(result)}
+                          >
+                            <div className="flex min-w-0 flex-col">
+                              <span className="truncate font-medium text-foreground">
+                                {result.displayName}
+                              </span>
+                              <span className="truncate text-xs text-muted-foreground">
+                                {result.formatted}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ) : (
+                      <CommandEmpty>Nema rezultata za ovu pretragu.</CommandEmpty>
+                    )
+                  ) : (
+                    <CommandGroup heading="Popularni gradovi">
+                      {POPULAR_CITIES.map((city) => (
+                        <CommandItem
+                          key={city.id}
+                          value={city.id}
+                          onSelect={() => handleCityChange(city.id)}
+                        >
+                          <MapPin className="mr-2 h-4 w-4 text-primary" />
+                          <span>{city.name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <AnimatePresence mode="wait" initial={false}>
+          {locationResolved ? (
+            <motion.div
+              key="location-summary"
+              {...CONTENT_ANIMATION}
+              className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3 shadow-[0_8px_20px_-18px_rgba(14,165,233,0.55)]"
             >
-              Očisti
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Quick Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Brza pretraga grada ili općine..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-          disabled={disabled}
-        />
-        {searchQuery && searchResults.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-[240px] overflow-y-auto">
-            {searchResults.map((result) => (
-              <button
-                key={result.id}
-                onClick={() => handleQuickSelect(result)}
-                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 border-b last:border-b-0"
-              >
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                <div>
-                  <p className="font-medium">{result.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {result.regionName} • {result.entityName}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Popularni gradovi */}
-      {!value?.municipalityId && !searchQuery && (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground font-medium">Popularni gradovi:</p>
-          <div className="flex flex-wrap gap-2">
-            {POPULAR_CITIES.slice(0, 6).map((city) => (
-              <button
-                key={city.id}
-                onClick={() => handlePopularCity(city)}
-                disabled={disabled}
-                className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-primary/10 hover:text-primary rounded-full transition-colors disabled:opacity-50"
-              >
-                {city.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Separator */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-muted-foreground">ili odaberite ručno</span>
-        </div>
-      </div>
-
-      {/* 3 Dropdown-a */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {/* Entitet */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <Building2 className="h-3 w-3" />
-            Entitet
-          </Label>
-          <Popover open={entityOpen} onOpenChange={setEntityOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                disabled={disabled}
-                className={cn(
-                  "w-full justify-between",
-                  !selectedEntity && "text-muted-foreground"
-                )}
-              >
-                {selectedEntity?.shortName || "Odaberi..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0">
-              <Command>
-                <CommandList>
-                  <CommandGroup>
-                    {ENTITIES.map((entity) => (
-                      <CommandItem
-                        key={entity.id}
-                        value={entity.id}
-                        onSelect={() => handleEntityChange(entity.id)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value?.entityId === entity.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span>{entity.shortName}</span>
-                          <span className="text-xs text-muted-foreground">{entity.name}</span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Kanton/Regija */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <Map className="h-3 w-3" />
-            {value?.entityId === "fbih" ? "Kanton" : value?.entityId === "rs" ? "Regija" : "Oblast"}
-          </Label>
-          <Popover open={regionOpen} onOpenChange={setRegionOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                disabled={disabled || !value?.entityId}
-                className={cn(
-                  "w-full justify-between",
-                  !selectedRegion && "text-muted-foreground"
-                )}
-              >
-                <span className="truncate">
-                  {selectedRegion?.name || "Odaberi..."}
-                </span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[280px] p-0">
-              <Command>
-                <CommandInput placeholder="Pretraži..." />
-                <CommandList>
-                  <CommandEmpty>Nema rezultata.</CommandEmpty>
-                  <CommandGroup>
-                    {regions.map((region) => (
-                      <CommandItem
-                        key={region.id}
-                        value={region.name}
-                        onSelect={() => handleRegionChange(region.id)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value?.regionId === region.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {region.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Grad/Općina */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            Grad/Općina
-          </Label>
-          <Popover open={municipalityOpen} onOpenChange={setMunicipalityOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                disabled={disabled || !value?.regionId}
-                className={cn(
-                  "w-full justify-between",
-                  !selectedMunicipality && "text-muted-foreground"
-                )}
-              >
-                <span className="truncate">
-                  {selectedMunicipality?.name || "Odaberi..."}
-                </span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[250px] p-0">
-              <Command>
-                <CommandInput placeholder="Pretraži..." />
-                <CommandList>
-                  <CommandEmpty>Nema rezultata.</CommandEmpty>
-                  <CommandGroup>
-                    {municipalities.map((municipality) => (
-                      <CommandItem
-                        key={municipality.id}
-                        value={municipality.name}
-                        onSelect={() => handleMunicipalityChange(municipality.id)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value?.municipalityId === municipality.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex items-center gap-2">
-                          <span>{municipality.name}</span>
-                          {municipality.type === "grad" && (
-                            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                              Grad
-                            </span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
-      {/* Detaljnija lokacija (opcionalno) */}
-      {showAddress && value?.municipalityId && (
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
-            Detaljnija lokacija (opcionalno)
-          </Label>
-          <Input
-            placeholder="Npr. naselje, ulica ili prepoznatljiv orijentir..."
-            value={value?.address || ""}
-            onChange={handleAddressChange}
-            disabled={disabled}
-          />
-        </div>
-      )}
-
-      {/* Prikaz odabrane lokacije */}
-      {value?.municipalityId && (
-        <div className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-          <MapPin className="h-5 w-5 text-primary mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm">Odabrana lokacija</p>
-            <p className="text-sm text-muted-foreground truncate">
-              {value?.formattedAddress || formatBiHAddress({
-                municipality: selectedMunicipality,
-                region: selectedRegion,
-                entity: selectedEntity,
-              })}
-            </p>
-            {value?.address && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {value.address}
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                Odabrana lokacija
               </p>
-            )}
-          </div>
-        </div>
-      )}
+              <p className="mt-1 text-sm font-medium text-foreground">{summaryAddress}</p>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+        {showAddress && locationIsComplete ? (
+          <motion.div {...CONTENT_ANIMATION} className="mt-3 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">
+              Detaljnija lokacija (opcionalno)
+            </Label>
+            <Input
+              value={normalizedValue?.address || ""}
+              onChange={handleAddressChange}
+              disabled={disabled}
+              placeholder="Npr. ulica, broj ili orijentir"
+              className="h-10 rounded-xl"
+            />
+          </motion.div>
+        ) : null}
+      </div>
+
+      {error ? <p className="text-xs text-red-500">{error}</p> : null}
     </div>
   );
 };

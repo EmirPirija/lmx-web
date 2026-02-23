@@ -13,8 +13,9 @@ import StickyActionButtons from "@/components/Common/StickyActionButtons";
 // =======================================================
 // CONFIG
 // =======================================================
-// const WATERMARK_URL = "/assets/ad_icon.svg";
 const MAX_IMAGES = 15;
+const WATERMARK_URL = "/assets/lmx-watermark.png";
+const WATERMARK_TEXT_FALLBACK = "LMX.ba";
 
 // =======================================================
 // MEDIA HELPERS
@@ -62,6 +63,25 @@ const loadImageElement = (src) =>
 
 const toCanvasBlob = (canvas, type = "image/jpeg", quality = 0.8) =>
   new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
+
+const randBetween = (min, max) => {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return min;
+  return min + Math.random() * (max - min);
+};
+
+const getRandomEdgePlacement = ({ width, height, watermarkWidth, watermarkHeight, padding }) => {
+  const minX = padding;
+  const maxX = Math.max(padding, width - watermarkWidth - padding);
+  const minY = padding;
+  const maxY = Math.max(padding, height - watermarkHeight - padding);
+  const edges = ["top", "right", "bottom", "left"];
+  const edge = edges[Math.floor(Math.random() * edges.length)];
+
+  if (edge === "top") return { x: Math.round(randBetween(minX, maxX)), y: Math.round(minY) };
+  if (edge === "right") return { x: Math.round(maxX), y: Math.round(randBetween(minY, maxY)) };
+  if (edge === "bottom") return { x: Math.round(randBetween(minX, maxX)), y: Math.round(maxY) };
+  return { x: Math.round(minX), y: Math.round(randBetween(minY, maxY)) };
+};
 
 const getYouTubeEmbedUrl = (input) => {
   if (!input) return "";
@@ -173,7 +193,7 @@ const compressAndWatermarkImage = async (file) => {
   const opts = {
     maxSize: 1920,
     quality: 0.80,
-    watermarkUrl: null,
+    watermarkUrl: WATERMARK_URL,
     watermarkOpacity: 0.9,
     watermarkScale: 0.15,
     watermarkPaddingPct: 0.03,
@@ -218,16 +238,46 @@ const compressAndWatermarkImage = async (file) => {
       const wmImg = await loadImageElement(opts.watermarkUrl);
       ctx.save();
       ctx.globalAlpha = opts.watermarkOpacity;
-      const wmWidth = outW * opts.watermarkScale;
+      const wmWidth = Math.max(32, Math.round(outW * opts.watermarkScale));
       const wmAspect = (wmImg.naturalWidth || wmImg.width) / (wmImg.naturalHeight || wmImg.height);
-      const wmHeight = wmWidth / wmAspect;
-      const padding = outW * opts.watermarkPaddingPct;
-      const x = outW - wmWidth - padding;
-      const y = padding;
+      const wmHeight = Math.max(16, Math.round(wmWidth / wmAspect));
+      const padding = Math.max(8, Math.round(Math.min(outW, outH) * opts.watermarkPaddingPct));
+      const { x, y } = getRandomEdgePlacement({
+        width: outW,
+        height: outH,
+        watermarkWidth: wmWidth,
+        watermarkHeight: wmHeight,
+        padding,
+      });
       ctx.drawImage(wmImg, x, y, wmWidth, wmHeight);
       ctx.restore();
     } catch (e) {
       console.warn("Watermark error:", e);
+      if (WATERMARK_TEXT_FALLBACK) {
+        const padding = Math.max(10, Math.round(outW * 0.02));
+        const fontSize = Math.max(14, Math.round((outW / 1000) * 22));
+        ctx.save();
+        ctx.globalAlpha = 0.75;
+        ctx.font = `700 ${fontSize}px sans-serif`;
+        ctx.textBaseline = "top";
+        const textW = Math.max(1, Math.round(ctx.measureText(WATERMARK_TEXT_FALLBACK).width));
+        const textH = Math.max(fontSize, Math.round(fontSize * 1.12));
+        const { x, y } = getRandomEdgePlacement({
+          width: outW,
+          height: outH,
+          watermarkWidth: textW,
+          watermarkHeight: textH,
+          padding,
+        });
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.08));
+        ctx.strokeText(WATERMARK_TEXT_FALLBACK, x, y);
+        ctx.fillText(WATERMARK_TEXT_FALLBACK, x, y);
+        ctx.restore();
+      }
     }
   }
 

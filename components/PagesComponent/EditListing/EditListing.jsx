@@ -42,10 +42,13 @@ import Checkauth from "@/HOC/Checkauth";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 import AdsEditSuccessModal from "./AdsEditSuccessModal";
+import CustomLink from "@/components/Common/CustomLink";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   getDefaultLanguageCode,
   getLanguages,
 } from "@/redux/reducer/settingSlice";
+import { userSignUpData } from "@/redux/reducer/authSlice";
 import AdLanguageSelector from "../AdsListing/AdLanguageSelector";
 import PageLoader from "@/components/Common/PageLoader";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
@@ -58,7 +61,12 @@ import {
   Star, 
   ChevronRight,
   Sparkles,
+  AlertCircle,
 } from "@/components/Common/UnifiedIconPack";
+import {
+  resolveLmxPhoneCountry,
+  resolveLmxPhoneDialCode,
+} from "@/components/Common/phoneInputTheme";
 
 
 // =======================================================
@@ -67,6 +75,7 @@ import {
 // - Video: we only validate size here (compression should be server-side)
 // =======================================================
 const WATERMARK_TEXT_DEFAULT = "LMX.ba";
+const WATERMARK_IMAGE_DEFAULT = "/assets/lmx-watermark.png";
 
 const isFileLike = (v) =>
   typeof File !== "undefined" &&
@@ -98,11 +107,37 @@ const loadImageElement = (src) =>
 const toCanvasBlob = (canvas, type = "image/jpeg", quality = 0.92) =>
   new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
 
+const randBetween = (min, max) => {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return min;
+  return min + Math.random() * (max - min);
+};
+
+const getRandomEdgePlacement = ({ width, height, watermarkWidth, watermarkHeight, padding }) => {
+  const minX = padding;
+  const maxX = Math.max(padding, width - watermarkWidth - padding);
+  const minY = padding;
+  const maxY = Math.max(padding, height - watermarkHeight - padding);
+  const edges = ["top", "right", "bottom", "left"];
+  const edge = edges[Math.floor(Math.random() * edges.length)];
+
+  if (edge === "top") {
+    return { x: Math.round(randBetween(minX, maxX)), y: Math.round(minY) };
+  }
+  if (edge === "right") {
+    return { x: Math.round(maxX), y: Math.round(randBetween(minY, maxY)) };
+  }
+  if (edge === "bottom") {
+    return { x: Math.round(randBetween(minX, maxX)), y: Math.round(maxY) };
+  }
+  return { x: Math.round(minX), y: Math.round(randBetween(minY, maxY)) };
+};
+
 const compressAndWatermarkImage = async (
   file,
   {
     maxSize = 2000,
     quality = 0.92,
+    watermarkUrl = WATERMARK_IMAGE_DEFAULT,
     watermarkText = WATERMARK_TEXT_DEFAULT,
     watermarkOpacity = 0.55,
     watermarkPadding = 18,
@@ -142,34 +177,64 @@ const compressAndWatermarkImage = async (
 
   ctx.drawImage(img, 0, 0, outW, outH);
 
-  // Watermark (bottom-right)
-  if (watermarkText) {
-    ctx.save();
-    ctx.globalAlpha = watermarkOpacity;
+  // Watermark (random uz jednu od ivica, nikad centar)
+  if (watermarkUrl || watermarkText) {
+    try {
+      const pad = Math.max(10, Math.round((outW / 1000) * watermarkPadding));
+      let drawn = false;
 
-    const fontSize = Math.max(14, Math.round((outW / 1000) * watermarkFontSize));
-    ctx.font = `700 ${fontSize}px sans-serif`;
-    ctx.textBaseline = "bottom";
+      if (watermarkUrl) {
+        const wmImg = await loadImageElement(watermarkUrl);
+        const wmWidth = Math.max(32, Math.round(outW * 0.15));
+        const wmAspect =
+          (wmImg.naturalWidth || wmImg.width) /
+          Math.max(1, (wmImg.naturalHeight || wmImg.height));
+        const wmHeight = Math.max(16, Math.round(wmWidth / wmAspect));
+        const { x, y } = getRandomEdgePlacement({
+          width: outW,
+          height: outH,
+          watermarkWidth: wmWidth,
+          watermarkHeight: wmHeight,
+          padding: pad,
+        });
 
-    const text = watermarkText;
-    const metrics = ctx.measureText(text);
-    const textW = metrics.width;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, watermarkOpacity + 0.2);
+        ctx.drawImage(wmImg, x, y, wmWidth, wmHeight);
+        ctx.restore();
+        drawn = true;
+      }
 
-    const pad = Math.max(10, Math.round((outW / 1000) * watermarkPadding));
-    const x = outW - pad;
-    const y = outH - pad;
+      if (!drawn && watermarkText) {
+        const fontSize = Math.max(14, Math.round((outW / 1000) * watermarkFontSize));
+        ctx.save();
+        ctx.globalAlpha = watermarkOpacity;
+        ctx.font = `700 ${fontSize}px sans-serif`;
+        ctx.textBaseline = "top";
 
-    // shadow + stroke + fill (čita se na svemu)
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.strokeStyle = "rgba(0,0,0,0.55)";
-    ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.08));
+        const metrics = ctx.measureText(watermarkText);
+        const textW = Math.max(1, Math.round(metrics.width));
+        const textH = Math.max(fontSize, Math.round(fontSize * 1.12));
+        const { x, y } = getRandomEdgePlacement({
+          width: outW,
+          height: outH,
+          watermarkWidth: textW,
+          watermarkHeight: textH,
+          padding: pad,
+        });
 
-    ctx.strokeText(text, x - textW, y);
-    ctx.fillText(text, x - textW, y);
-
-    ctx.restore();
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.08));
+        ctx.strokeText(watermarkText, x, y);
+        ctx.fillText(watermarkText, x, y);
+        ctx.restore();
+      }
+    } catch (e) {
+      console.warn("Watermark error:", e);
+    }
   }
 
   const outBlob = await toCanvasBlob(canvas, "image/jpeg", quality);
@@ -202,6 +267,28 @@ const processImagesArray = async (files, opts) => {
 };
 
 const bytesToMB = (bytes = 0) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
+
+const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+
+const stripCountryCodePrefix = (mobile, countryCode) => {
+  const mobileDigits = digitsOnly(mobile);
+  const ccDigits = digitsOnly(countryCode);
+  if (!mobileDigits) return "";
+  if (!ccDigits) return mobileDigits;
+  if (mobileDigits.startsWith(ccDigits)) return mobileDigits.slice(ccDigits.length);
+  return mobileDigits;
+};
+
+const toBoolLoose = (value) => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "yes", "da", "on", "enabled", "verified", "verificiran"].includes(normalized)) return true;
+    if (["false", "no", "ne", "off", "disabled", "unverified", "nije verificiran"].includes(normalized)) return false;
+  }
+  return Boolean(value);
+};
 
 const extractTempMediaId = (value) => {
   if (!value || typeof value !== "object") return null;
@@ -503,9 +590,36 @@ const EditListing = ({ id }) => {
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
+  const userData = useSelector(userSignUpData);
   const defaultLangId = languages?.find(
     (lang) => lang.code === defaultLanguageCode
   )?.id;
+  const regionCode = resolveLmxPhoneCountry(
+    userData?.region_code?.toLowerCase() ||
+      process.env.NEXT_PUBLIC_DEFAULT_COUNTRY?.toLowerCase() ||
+      "ba"
+  );
+  const countryCode = digitsOnly(userData?.country_code) || resolveLmxPhoneDialCode(regionCode);
+  const mobile = stripCountryCodePrefix(userData?.mobile, countryCode);
+  const sellerPhoneDisplay = mobile ? `+${countryCode}${mobile}` : "";
+  const isPhoneVerified = useMemo(
+    () =>
+      toBoolLoose(userData?.mobile_verified) ||
+      toBoolLoose(userData?.phone_verified) ||
+      Boolean(userData?.mobile_verified_at) ||
+      Boolean(userData?.phone_verified_at),
+    [
+      userData?.mobile_verified,
+      userData?.phone_verified,
+      userData?.mobile_verified_at,
+      userData?.phone_verified_at,
+    ]
+  );
+  const isEmailVerified = useMemo(
+    () => toBoolLoose(userData?.email_verified) || Boolean(userData?.email_verified_at),
+    [userData?.email_verified, userData?.email_verified_at]
+  );
+  const hasVerificationWarnings = !isPhoneVerified || !isEmailVerified;
 
   const [extraDetails, setExtraDetails] = useState({
     [defaultLangId]: {},
@@ -515,6 +629,37 @@ const EditListing = ({ id }) => {
   const [translations, setTranslations] = useState({
     [defaultLangId]: {},
   });
+  useEffect(() => {
+    setTranslations((prev) => {
+      if (!prev || typeof prev !== "object") return prev;
+      const keys = Object.keys(prev);
+      if (keys.length === 0) return prev;
+      const normalizedRegion = String(regionCode || "").toLowerCase();
+      let changed = false;
+      const next = { ...prev };
+
+      keys.forEach((key) => {
+        const prevLang = prev?.[key] || {};
+        if (
+          String(prevLang?.contact || "") === String(mobile || "") &&
+          String(prevLang?.country_code || "") === String(countryCode || "") &&
+          String(prevLang?.region_code || "").toLowerCase() === normalizedRegion
+        ) {
+          return;
+        }
+        next[key] = {
+          ...prevLang,
+          contact: mobile,
+          country_code: countryCode,
+          region_code: regionCode,
+        };
+        changed = true;
+      });
+
+      return changed ? next : prev;
+    });
+  }, [countryCode, mobile, regionCode]);
+
   const hasTextbox = customFields.some((field) => field.type === "textbox");
   const primaryLangId = useMemo(() => {
     if (
@@ -584,7 +729,7 @@ const EditListing = ({ id }) => {
   const completenessScore = useMemo(() => {
     let score = 0;
     if (selectedCategoryPath.length > 0) score += 20;
-    if (defaultDetails.name && defaultDetails.description && defaultDetails.contact) {
+    if (defaultDetails.name && defaultDetails.description && mobile) {
       score += 20;
     }
     if (customFields.length === 0) {
@@ -600,11 +745,11 @@ const EditListing = ({ id }) => {
       if (OtherImages.length >= 3) score += 10;
       else score += (OtherImages.length / 3) * 10;
     }
-    if (Location?.country && Location?.state && Location?.city && Location?.address) {
+    if (Location?.country && Location?.city && Location?.address) {
       score += 20;
     }
     return Math.round(score);
-  }, [selectedCategoryPath, defaultDetails, customFields, currentExtraDetails, uploadedImages, OtherImages, Location]);
+  }, [Location, OtherImages, currentExtraDetails, customFields, defaultDetails, mobile, selectedCategoryPath, uploadedImages]);
 
   const qualityBadges = useMemo(() => {
     const badges = [];
@@ -703,8 +848,28 @@ const EditListing = ({ id }) => {
         languages,
         defaultLangId
       );
+      const translationKeys = Object.keys(mainDetailsTranslation || {});
+      const synchronizedMainDetails =
+        translationKeys.length > 0
+          ? translationKeys.reduce((acc, key) => {
+              const existing = mainDetailsTranslation?.[key] || {};
+              acc[key] = {
+                ...existing,
+                contact: mobile,
+                country_code: countryCode,
+                region_code: regionCode,
+              };
+              return acc;
+            }, {})
+          : {
+              [defaultLangId ?? "default"]: {
+                contact: mobile,
+                country_code: countryCode,
+                region_code: regionCode,
+              },
+            };
 
-      setTranslations(mainDetailsTranslation);
+      setTranslations(synchronizedMainDetails);
       setLocation({
         country: listingData?.country,
         state: listingData?.state,
@@ -922,12 +1087,12 @@ const EditListing = ({ id }) => {
       description,
       price,
       slug,
-      contact,
       video_link,
       min_salary,
       max_salary,
-      country_code,
     } = defaultDetails;
+    const contact = mobile;
+    const country_code = countryCode;
     const effectiveManualPrice =
       is_real_estate && effectiveRealEstateTotalPrice
         ? effectiveRealEstateTotalPrice
@@ -946,14 +1111,20 @@ const EditListing = ({ id }) => {
     const inventoryCount = Number(resolvedInventoryCount || 0);
     const lowThreshold = Math.max(1, Number(resolvedStockAlertThreshold || 3));
 
-    if (!name.trim() || !description.trim() || !contact) {
+    if (!name.trim() || !description.trim()) {
       toast.error("Popuni obavezna polja.");
       setStep(1);
       return;
     }
 
+    if (!contact) {
+      toast.error("Postavi broj telefona u Seller postavkama prije spremanja oglasa.");
+      setStep(1);
+      return;
+    }
+
     if (Boolean(contact) && !isValidPhoneNumber(`+${country_code}${contact}`)) {
-      toast.error("Neispravan broj telefona");
+      toast.error("Broj telefona iz Seller postavki nije ispravan.");
       return setStep(1);
     }
 
@@ -1050,12 +1221,7 @@ const EditListing = ({ id }) => {
       return;
     }
 
-    if (
-      !Location?.country ||
-      !Location?.state ||
-      !Location?.city ||
-      !Location?.address
-    ) {
+    if (!Location?.country || !Location?.city || !Location?.address) {
       toast.error("Odaberi lokaciju");
       return;
     }
@@ -1141,7 +1307,8 @@ const EditListing = ({ id }) => {
       is_real_estate && effectiveRealEstateTotalPrice
         ? effectiveRealEstateTotalPrice
         : defaultDetails.price,
-    contact: defaultDetails.contact,
+    contact: mobile,
+    country_code: countryCode,
     available_now: Boolean(availableNow),
     exchange_possible: Boolean(exchangePossible),
     is_exchange: Boolean(exchangePossible),
@@ -1181,7 +1348,7 @@ const EditListing = ({ id }) => {
     scarcity_enabled: is_real_estate
       ? false
       : parseBooleanSetting(getSharedDetailValue("scarcity_enabled", false), false),
-    region_code: defaultDetails?.region_code?.toUpperCase() || "",
+    region_code: String(regionCode || "").toUpperCase(),
     video_link: trimmedVideoLink,
     instagram_source_url: (instagramSourceUrl || "").trim(),
     publish_to_instagram: SOCIAL_POSTING_TEMP_UNAVAILABLE
@@ -1452,9 +1619,9 @@ const EditListing = ({ id }) => {
       if (stepIndex === activeStepIndex) {
         switch (stepId) {
           case 1:
-            return defaultDetails.name && defaultDetails.description && defaultDetails.contact
+            return defaultDetails.name && defaultDetails.description && mobile
               ? 100
-              : defaultDetails.name || defaultDetails.description || defaultDetails.contact
+              : defaultDetails.name || defaultDetails.description || mobile
               ? 55
               : 0;
           case 2:
@@ -1462,7 +1629,7 @@ const EditListing = ({ id }) => {
           case 3:
             return uploadedImages.length > 0 ? 100 : 0;
           case 4:
-            return Location?.address && Location?.city && Location?.state && Location?.country
+            return Location?.address && Location?.city && Location?.country
               ? 100
               : Location?.address
               ? 60
@@ -1477,19 +1644,18 @@ const EditListing = ({ id }) => {
       Location?.address,
       Location?.city,
       Location?.country,
-      Location?.state,
       activeStepIndex,
       currentExtraDetails,
-      defaultDetails.contact,
       defaultDetails.description,
       defaultDetails.name,
+      mobile,
       steps,
       uploadedImages.length,
     ]
   );
 
   const hasValidLocation = Boolean(
-    Location?.address && Location?.city && Location?.state && Location?.country
+    Location?.address && Location?.city && Location?.country
   );
 
   const listingFlowIssues = useMemo(() => {
@@ -1515,13 +1681,13 @@ const EditListing = ({ id }) => {
       });
     }
 
-    if (!String(defaultDetails?.contact || "").trim()) {
+    if (!String(mobile || "").trim()) {
       issues.push({
         id: "contact",
         stepId: 1,
-        fieldId: "phonenumber",
-        label: "Dodaj kontakt broj",
-        hint: "Kupci moraju imati kanal za dogovor.",
+        fieldId: "seller-contact-readonly",
+        label: "Postavi kontakt broj",
+        hint: "Kontakt broj se mijenja u Seller postavkama.",
       });
     }
 
@@ -1557,10 +1723,10 @@ const EditListing = ({ id }) => {
   }, [
     customFields?.length,
     currentExtraDetails,
-    defaultDetails?.contact,
     defaultDetails?.description,
     defaultDetails?.name,
     hasValidLocation,
+    mobile,
     uploadedImages,
   ]);
 
@@ -1911,11 +2077,41 @@ const EditListing = ({ id }) => {
                     <Award className="w-5 h-5 text-primary" />
                     <span className="font-semibold text-primary">{completenessScore}%</span>
                     <span className="text-sm text-muted-foreground">{"dovršen"}</span>
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
 
-              <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+          {hasVerificationWarnings ? (
+            <Alert className="relative border-amber-200/80 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+              <AlertTitle>Nedovršena verifikacija naloga</AlertTitle>
+              <AlertDescription className="space-y-1 text-amber-800/95 dark:text-amber-100/90">
+                <p>
+                  Za sigurnije oglase potvrdi{" "}
+                  {!isPhoneVerified && !isEmailVerified
+                    ? "telefon i e-mail"
+                    : !isPhoneVerified
+                    ? "telefon"
+                    : "e-mail"}
+                  .
+                </p>
+                <p>
+                  Aktivni kontakt za oglas:{" "}
+                  <span className="font-semibold">
+                    {sellerPhoneDisplay || "nije postavljen u Seller postavkama"}
+                  </span>
+                </p>
+                <CustomLink
+                  href="/profile?tab=seller-settings"
+                  className="inline-flex text-xs font-semibold text-amber-800 underline underline-offset-2 dark:text-amber-200"
+                >
+                  Otvori Seller postavke
+                </CustomLink>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
                 
                 <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
                   

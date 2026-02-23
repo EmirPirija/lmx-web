@@ -54,18 +54,12 @@ const parseLocationParts = (value) =>
     .map((part) => part.trim())
     .filter(Boolean);
 
-const REGION_SHORTCUTS = {
-  "Bosansko-podrinjski kanton Goražde": "BPK Goražde",
-  "Kanton Sarajevo": "KS",
-  "Tuzlanski kanton": "TK",
-  "Zeničko-dobojski kanton": "ZDK",
-  "Unsko-sanski kanton": "USK",
-  "Srednjobosanski kanton": "SBK",
-  "Hercegovačko-neretvanski kanton": "HNK",
-  "Zapadnohercegovački kanton": "ZHK",
-  "Posavski kanton": "PK",
-  "Kanton 10": "K10",
-};
+const LOCATION_DISCARDED_TOKENS = new Set([
+  "bih",
+  "bosna i hercegovina",
+  "federacija bosne i hercegovine",
+  "republika srpska",
+]);
 
 const normalizeLocationToken = (value) => {
   let token = String(value || "").trim();
@@ -76,22 +70,22 @@ const normalizeLocationToken = (value) => {
     .replace(/^Zona:\s*/i, "")
     .replace(/^Općina\s+/i, "")
     .replace(/^Opština\s+/i, "")
-    .replace(/\bBosna i Hercegovina\b/gi, "BiH")
-    .replace(/\bFederacija Bosne i Hercegovine\b/gi, "FBiH")
-    .replace(/\bRepublika Srpska\b/gi, "RS")
     .replace(/\bBrčko Distrikt\b/gi, "Brčko")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  if (REGION_SHORTCUTS[token]) return REGION_SHORTCUTS[token];
-
-  token = token
-    .replace(/Bosansko-podrinjski(?:\s+kanton)?\s+Goražde/gi, "BPK Goražde")
+    .replace(/Bosansko-podrinjski(?:\s+kanton)?\s+Goražde/gi, "Goražde")
     .replace(/\bkanton\b/gi, "")
+    .replace(/\bregija\b/gi, "")
     .replace(/\bžupanija\b/gi, "")
+    .replace(/\bdistrikt\b/gi, "")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+,/g, ",")
+    .replace(/,+/g, ",")
     .trim();
+
+  if (!token) return "";
+
+  if (LOCATION_DISCARDED_TOKENS.has(token.toLowerCase())) {
+    return "";
+  }
 
   return token;
 };
@@ -226,23 +220,64 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     ],
   );
 
+  const municipalityOrCityFallback = useMemo(() => {
+    const fromPinState = normalizeLocationToken(resolvedLocationByPin?.state || "");
+    const fromPinCity = normalizeLocationToken(resolvedLocationByPin?.city || "");
+    const fromDetailsState = normalizeLocationToken(
+      productDetails?.state_translation ||
+        productDetails?.state ||
+        productDetails?.translated_item?.state_translation ||
+        productDetails?.translated_item?.state ||
+        "",
+    );
+    const fromDetailsCity = normalizeLocationToken(
+      productDetails?.city_translation ||
+        productDetails?.city ||
+        productDetails?.translated_item?.city_translation ||
+        productDetails?.translated_item?.city ||
+        "",
+    );
+
+    return (
+      fromPinState ||
+      fromPinCity ||
+      fromDetailsState ||
+      fromDetailsCity ||
+      ""
+    );
+  }, [
+    resolvedLocationByPin?.state,
+    resolvedLocationByPin?.city,
+    productDetails?.state_translation,
+    productDetails?.state,
+    productDetails?.translated_item?.state_translation,
+    productDetails?.translated_item?.state,
+    productDetails?.city_translation,
+    productDetails?.city,
+    productDetails?.translated_item?.city_translation,
+    productDetails?.translated_item?.city,
+  ]);
+
   const effectiveLocationText = useMemo(() => {
     if (preciseLat !== null && preciseLng !== null) {
       return (
         resolvedLocationByPin?.address ||
         fallbackLocationText ||
         structuredLocationText ||
-        "Lokacija označena na mapi"
+        municipalityOrCityFallback ||
+        "Lokacija nije specificirana"
       );
     }
 
     return (
       fallbackLocationText ||
       resolvedLocationByPin?.address ||
-      structuredLocationText
+      structuredLocationText ||
+      municipalityOrCityFallback
     );
   }, [
     fallbackLocationText,
+    municipalityOrCityFallback,
     preciseLat,
     preciseLng,
     resolvedLocationByPin?.address,

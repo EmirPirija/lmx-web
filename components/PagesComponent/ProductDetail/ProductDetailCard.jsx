@@ -90,23 +90,10 @@ const resolvePriceOnRequestState = (item = {}) => {
   return isPriceRequestToken(item?.price) || isPriceRequestToken(item?.translated_item?.price);
 };
 
-const LOCATION_REGION_SHORTCUTS = {
-  "Bosansko-podrinjski kanton Goražde": "BPK Goražde",
-  "Kanton Sarajevo": "KS",
-  "Tuzlanski kanton": "TK",
-  "Zeničko-dobojski kanton": "ZDK",
-  "Unsko-sanski kanton": "USK",
-  "Srednjobosanski kanton": "SBK",
-  "Hercegovačko-neretvanski kanton": "HNK",
-  "Zapadnohercegovački kanton": "ZHK",
-  "Posavski kanton": "PK",
-  "Kanton 10": "K10",
-};
-
 const LOCATION_REDUNDANT_TAILS = new Set([
   "bih",
-  "fbih",
   "federacija bosne i hercegovine",
+  "republika srpska",
   "bosna i hercegovina",
 ]);
 
@@ -119,47 +106,53 @@ const normalizeLocationToken = (value) => {
     .replace(/^Zona:\s*/i, "")
     .replace(/^Općina\s+/i, "")
     .replace(/^Opština\s+/i, "")
-    .replace(/\bBosna i Hercegovina\b/gi, "BiH")
-    .replace(/\bFederacija Bosne i Hercegovine\b/gi, "FBiH")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  if (LOCATION_REGION_SHORTCUTS[token]) return LOCATION_REGION_SHORTCUTS[token];
-
-  return token
-    .replace(/Bosansko-podrinjski(?:\s+kanton)?\s+Goražde/gi, "BPK Goražde")
+    .replace(/\bBrčko Distrikt\b/gi, "Brčko")
+    .replace(/Bosansko-podrinjski(?:\s+kanton)?\s+Goražde/gi, "Goražde")
     .replace(/\bkanton\b/gi, "")
+    .replace(/\bregija\b/gi, "")
     .replace(/\bžupanija\b/gi, "")
+    .replace(/\bdistrikt\b/gi, "")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+,/g, ",")
+    .replace(/,+/g, ",")
     .trim();
 };
 
-const compactLocationLabel = (rawValue) => {
+const sanitizeMunicipalityCandidate = (value) => {
+  const normalized = normalizeLocationToken(value);
+  if (!normalized) return "";
+  if (LOCATION_REDUNDANT_TAILS.has(normalized.toLowerCase())) return "";
+  return normalized;
+};
+
+const resolveMunicipalityOrCityLabel = (rawValue) => {
   const parts = String(rawValue || "")
     .split(",")
     .map((part) => normalizeLocationToken(part))
     .filter(Boolean);
+
   if (!parts.length) return "";
 
-  const deduped = [];
-  const seen = new Set();
-  for (const part of parts) {
-    const key = part.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(part);
-  }
-
-  const shortened = [...deduped];
-  while (shortened.length > 2) {
-    const tail = shortened[shortened.length - 1]?.toLowerCase();
+  const trimmed = [...parts];
+  while (trimmed.length > 1) {
+    const tail = String(trimmed[trimmed.length - 1] || "").toLowerCase();
     if (!LOCATION_REDUNDANT_TAILS.has(tail)) break;
-    shortened.pop();
+    trimmed.pop();
   }
 
-  const output = shortened.length > 2 ? shortened.slice(0, 2) : shortened;
-  return output.join(", ");
+  const first = sanitizeMunicipalityCandidate(trimmed.at(0) || "");
+  const second = sanitizeMunicipalityCandidate(trimmed.at(1) || "");
+  const last = sanitizeMunicipalityCandidate(trimmed.at(-1) || "");
+  const prev = sanitizeMunicipalityCandidate(trimmed.at(-2) || "");
+
+  if (first) return first;
+  if (second) return second;
+
+  if (last && prev && last.toLowerCase() !== prev.toLowerCase()) {
+    return last;
+  }
+
+  return prev || last || "";
 };
 
 const formatSignedPriceDelta = (value) => {
@@ -1219,8 +1212,15 @@ const ProductDetailCard = ({
         ]
           .filter(Boolean)
           .join(", ");
+        const municipalityOrCity = (() => {
+          const municipality = sanitizeMunicipalityCandidate(
+            result?.area_translation || result?.area || result?.state_translation || result?.state
+          );
+          const city = sanitizeMunicipalityCandidate(result?.city_translation || result?.city);
+          return municipality || city || "";
+        })();
 
-        setResolvedLocationByPin(locationLabel);
+        setResolvedLocationByPin(municipalityOrCity || locationLabel);
       } catch {
         if (!cancelled) setResolvedLocationByPin("");
       }
@@ -1232,21 +1232,43 @@ const ProductDetailCard = ({
       cancelled = true;
     };
   }, [hasPreciseCoordinates, preciseLat, preciseLng, productDetails?.id]);
-  const areaName = productDetails?.area?.translated_name || productDetails?.area?.name;
-  const textualLocationLine =
-    productDetails?.address ||
-    productDetails?.formatted_address ||
-    productDetails?.address_translated ||
-    productDetails?.translated_address ||
-    productDetails?.translated_item?.address ||
-    [areaName, productDetails?.city, productDetails?.state].filter(Boolean).join(", ");
-  const compactLocationLine = useMemo(
-    () => compactLocationLabel(resolvedLocationByPin || textualLocationLine),
-    [resolvedLocationByPin, textualLocationLine]
+  const municipalityOrCityFromDetails = useMemo(() => {
+    const stateValue =
+      sanitizeMunicipalityCandidate(
+        productDetails?.state_translation ||
+          productDetails?.state ||
+          productDetails?.translated_item?.state_translation ||
+          productDetails?.translated_item?.state
+      ) || "";
+
+    const cityValue =
+      sanitizeMunicipalityCandidate(
+        productDetails?.city_translation ||
+          productDetails?.city ||
+          productDetails?.translated_item?.city_translation ||
+          productDetails?.translated_item?.city
+      ) || "";
+
+    return stateValue || cityValue || "";
+  }, [
+    productDetails?.state_translation,
+    productDetails?.state,
+    productDetails?.translated_item?.state_translation,
+    productDetails?.translated_item?.state,
+    productDetails?.city_translation,
+    productDetails?.city,
+    productDetails?.translated_item?.city_translation,
+    productDetails?.translated_item?.city,
+  ]);
+
+  const municipalityOrCityFromPin = useMemo(
+    () => resolveMunicipalityOrCityLabel(resolvedLocationByPin),
+    [resolvedLocationByPin]
   );
   const locationLine =
-    compactLocationLine ||
-    (hasPreciseCoordinates ? "Lokacija označena na mapi" : "Lokacija nije navedena");
+    municipalityOrCityFromPin ||
+    municipalityOrCityFromDetails ||
+    "Lokacija nije navedena";
   const availableNow = readAvailableNow(productDetails);
   const exchangePossible = readExchangePossible(productDetails);
   const availableNowLabel = availableNow === true ? "Da" : availableNow === false ? "Ne" : "Nije navedeno";

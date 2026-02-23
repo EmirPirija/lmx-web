@@ -1295,7 +1295,7 @@ const GeoInsightsSection = ({ geo }) => {
       <div className="bg-white rounded-2xl border border-slate-100 p-4">
         <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
           <IoLocationOutline className="text-emerald-500" />
-          Gradovi i regije
+          Gradovi i općine
         </h4>
         <div className="h-[140px] flex items-center justify-center text-slate-400 text-sm">
           Nema podataka
@@ -1308,7 +1308,7 @@ const GeoInsightsSection = ({ geo }) => {
     <div className="bg-white rounded-2xl border border-slate-100 p-4">
       <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm">
         <IoLocationOutline className="text-emerald-500" />
-        Gradovi i regije
+        Gradovi i općine
       </h4>
       <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 scrollbar-thin">
         {geo.slice(0, 10).map((city, index) => (

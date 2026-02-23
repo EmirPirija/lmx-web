@@ -121,6 +121,12 @@ const LanguageDropdown = () => {
       return;
     }
 
+    // Za hijerarhijski BiH odabir (država -> grad -> općina) zadržavamo
+    // lokalno formatiran naziv bez geokoderskog overwrite-a.
+    if (String(location?.location_source || "").toLowerCase() === "hierarchy") {
+      return;
+    }
+
     // If no country/state/city/area stored, skip API call
     if (
       !location?.country &&

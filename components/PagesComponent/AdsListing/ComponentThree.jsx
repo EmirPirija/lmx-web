@@ -99,7 +99,7 @@ const EnhancedDropdown = ({
   }, [isOpen, id]);
 
   return (
-    <div id={`dropdown-${id}`} className="w-full relative">
+    <div id={`dropdown-${id}`} className={`relative w-full ${isOpen ? "z-[120]" : "z-0"}`}>
       {/* Trigger */}
       <button
         type="button"
@@ -134,7 +134,7 @@ const EnhancedDropdown = ({
 
       {/* Dropdown Content */}
       {isOpen && !isDisabled && (
-        <div className="absolute z-50 w-full mt-2 bg-white border rounded-lg shadow-2xl max-h-96 overflow-hidden">
+        <div className="absolute left-0 z-[130] mt-2 max-h-96 w-full overflow-hidden rounded-lg border bg-white shadow-2xl">
           {isLoading ? (
             <SkeletonLoader />
           ) : (
@@ -535,7 +535,12 @@ const AccordionSection = ({
   sectionRef,
 }) => {
   return (
-    <div ref={sectionRef} className="lmx-guided-accordion overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
+    <div
+      ref={sectionRef}
+      className={`lmx-guided-accordion relative overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 ${
+        isOpen ? "z-30" : "z-0"
+      }`}
+    >
       {/* Header */}
       <button
         type="button"
@@ -939,6 +944,7 @@ const ComponentThree = ({
     [sortedRequiredFields, currentExtraDetails],
   );
   const missingRequiredCount = missingRequiredFields.length;
+  const requiredCompletionTransitionRef = useRef(requiredFieldsCompleted);
 
   const scrollToSection = (targetRef) => {
     if (typeof window === "undefined" || !targetRef?.current) return;
@@ -979,7 +985,11 @@ const ComponentThree = ({
   }, []);
 
   useEffect(() => {
-    if (!requiredFieldsCompleted || !requiredOpen) return;
+    const wasCompleted = requiredCompletionTransitionRef.current;
+    const justCompleted = !wasCompleted && requiredFieldsCompleted;
+    requiredCompletionTransitionRef.current = requiredFieldsCompleted;
+
+    if (!justCompleted) return;
 
     if (sortedOptionalFields.length > 0) {
       setRequiredOpen(false);
@@ -991,7 +1001,7 @@ const ComponentThree = ({
     setRequiredOpen(false);
     setTermsOpen(true);
     requestAnimationFrame(() => scrollToSection(termsSectionRef));
-  }, [requiredFieldsCompleted, requiredOpen, sortedOptionalFields.length]);
+  }, [requiredFieldsCompleted, sortedOptionalFields.length]);
 
   useEffect(() => {
     if (attemptedNext && missingRequiredCount === 0) {
