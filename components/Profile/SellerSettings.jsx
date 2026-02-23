@@ -20,7 +20,7 @@ import {
 import {
   AlertCircle, Calendar, Camera, ChevronDown, Clock, Download, Eye, Globe, Mail,
   MessageCircle, Phone, RefreshCw, Save, Shield, Sparkles, Store, Users, Zap,
-  CheckCircle2, Link as LinkIcon, Video, Music, QrCode, Copy, Loader2, Plane,
+  CheckCircle2, Link as LinkIcon, Video, Music, QrCode, Copy, Loader2, Plane, MapPin,
   Star, LayoutGrid, Settings2, Truck, RotateCcw, User,
 } from "@/components/Common/UnifiedIconPack";
 
@@ -69,13 +69,21 @@ import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
 import SellerDetailCard from "@/components/PagesComponent/Seller/SellerDetailCard";
+import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import { handleFirebaseAuthError } from "@/utils";
 import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
+import useUserLocation from "@/hooks/useUserLocation";
 import {
   clearRecaptchaVerifier,
   ensureRecaptchaVerifier,
   isRecaptchaRecoverableError,
 } from "@/components/Auth/recaptchaManager";
+import {
+  formatBiHAddress,
+  isLocationComplete,
+  resolveLocationSelection,
+  searchLocations,
+} from "@/lib/bih-locations";
 import {
   LMX_PHONE_ALLOWED_COUNTRIES,
   LMX_PHONE_DIAL_CODE_BY_COUNTRY,
@@ -149,6 +157,15 @@ const PHONE_COUNTRY_META = {
   rs: { label: "Srbija", region: "RS", flag: "🇷🇸" },
   si: { label: "Slovenija", region: "SI", flag: "🇸🇮" },
   me: { label: "Crna Gora", region: "ME", flag: "🇲🇪" },
+};
+
+const EMPTY_BIH_LOCATION = {
+  entityId: "bih",
+  cityId: null,
+  regionId: null,
+  municipalityId: null,
+  address: "",
+  formattedAddress: "",
 };
 
 const resolveIso2FromDialCode = (dialCode) => {
@@ -256,6 +273,48 @@ const toE164Phone = (countryCode, localNumber) => {
     ? numberDigits.slice(ccDigits.length)
     : numberDigits;
   return `+${ccDigits}${normalizedLocal}`;
+};
+
+const normalizeBiHLocation = (value = {}) => ({
+  entityId: "bih",
+  cityId: value?.cityId || value?.regionId || null,
+  regionId: value?.regionId || value?.cityId || null,
+  municipalityId: value?.municipalityId || null,
+  address: String(value?.address || "").trim(),
+  formattedAddress: String(value?.formattedAddress || "").trim(),
+});
+
+const inferBiHLocationFromAddress = (addressText) => {
+  const address = String(addressText || "").trim();
+  if (!address) return null;
+  const results = searchLocations(address);
+  if (!Array.isArray(results) || !results.length) return null;
+
+  const topMatch = results[0];
+  const formatted = String(topMatch?.formatted || "").trim();
+  const plainAddress = formatted
+    ? address.replace(formatted, "").replace(/,\s*$/, "").trim()
+    : address;
+
+  return normalizeBiHLocation({
+    cityId: topMatch?.cityId || null,
+    municipalityId: topMatch?.municipalityId || null,
+    address: plainAddress,
+    formattedAddress: formatted,
+  });
+};
+
+const buildProfileAddressFromBiHLocation = (location = {}) => {
+  const normalized = normalizeBiHLocation(location);
+  const resolved = resolveLocationSelection(normalized);
+  const formatted =
+    normalized.formattedAddress ||
+    formatBiHAddress({
+      city: resolved?.city || null,
+      municipality: resolved?.municipality || null,
+    });
+
+  return [normalized.address, formatted].filter(Boolean).join(", ").trim();
 };
 
 const extractFirebaseIdentity = (user) => {
@@ -636,8 +695,10 @@ const SellerSettings = () => {
   const currentUser = useSelector(userSignUpData);
   const authToken = useSelector((state) => state?.UserSignup?.data?.token || "");
   const otpServiceProvider = useSelector(getOtpServiceProvider);
+  const { userLocation, saveLocation, clearLocation } = useUserLocation();
   const auth = useMemo(() => getAuth(), []);
   const isMountedRef = useRef(true);
+  const locationInitRef = useRef(false);
   const [membershipContext, setMembershipContext] = useState(null);
   const resolvedMembership = useMemo(
     () =>
@@ -746,11 +807,40 @@ const SellerSettings = () => {
   );
 
   const [initialPayloadStr, setInitialPayloadStr] = useState(null);
+  const [sellerLocation, setSellerLocation] = useState(EMPTY_BIH_LOCATION);
+  const [initialLocationStr, setInitialLocationStr] = useState(
+    stableStringify(EMPTY_BIH_LOCATION),
+  );
+
+  const resolveInitialSellerLocation = useCallback(() => {
+    if (isLocationComplete(userLocation)) {
+      return normalizeBiHLocation(userLocation);
+    }
+    const inferred = inferBiHLocationFromAddress(currentUser?.address);
+    if (inferred && isLocationComplete(inferred)) {
+      return inferred;
+    }
+    return EMPTY_BIH_LOCATION;
+  }, [currentUser?.address, userLocation]);
 
   useEffect(() => {
     if (currentUser?.profile_image) setPreviewImage(currentUser.profile_image);
     if (currentUser?.profile) setPreviewImage(currentUser.profile);
   }, [currentUser]);
+
+  useEffect(() => {
+    locationInitRef.current = false;
+    setSellerLocation(EMPTY_BIH_LOCATION);
+    setInitialLocationStr(stableStringify(EMPTY_BIH_LOCATION));
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (locationInitRef.current || !currentUser) return;
+    const initialLocation = resolveInitialSellerLocation();
+    setSellerLocation(initialLocation);
+    setInitialLocationStr(stableStringify(initialLocation));
+    locationInitRef.current = true;
+  }, [currentUser, resolveInitialSellerLocation]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -1153,6 +1243,42 @@ const SellerSettings = () => {
     }
   }, [refreshFirebaseIdentity, syncProfileVerificationData]);
 
+  const normalizedSellerLocation = useMemo(
+    () => normalizeBiHLocation(sellerLocation),
+    [sellerLocation],
+  );
+
+  const hasSellerLocationDraft = useMemo(
+    () =>
+      Boolean(
+        normalizedSellerLocation?.cityId ||
+          normalizedSellerLocation?.municipalityId ||
+          normalizedSellerLocation?.address ||
+          normalizedSellerLocation?.formattedAddress,
+      ),
+    [normalizedSellerLocation],
+  );
+
+  const isSellerLocationComplete = useMemo(
+    () => isLocationComplete(normalizedSellerLocation),
+    [normalizedSellerLocation],
+  );
+
+  const sellerLocationAddressLine = useMemo(
+    () => buildProfileAddressFromBiHLocation(normalizedSellerLocation),
+    [normalizedSellerLocation],
+  );
+
+  const buildLocationSnapshot = useCallback(
+    () => ({
+      cityId: normalizedSellerLocation?.cityId || null,
+      municipalityId: normalizedSellerLocation?.municipalityId || null,
+      address: normalizedSellerLocation?.address || "",
+      formattedAddress: normalizedSellerLocation?.formattedAddress || "",
+    }),
+    [normalizedSellerLocation],
+  );
+
   const buildPayload = useCallback(() => ({
     avatar_id: selectedAvatarId,
     show_phone: showPhone, show_email: showEmail, show_whatsapp: showWhatsapp, show_viber: showViber,
@@ -1172,9 +1298,11 @@ const SellerSettings = () => {
       socialWebsite, normalizedCardPreferences]);
 
   const hasChanges = useMemo(() => {
-    if (!initialPayloadStr) return false;
-    return stableStringify(buildPayload()) !== initialPayloadStr;
-  }, [buildPayload, initialPayloadStr]);
+    if (!initialPayloadStr || !initialLocationStr) return false;
+    const settingsDirty = stableStringify(buildPayload()) !== initialPayloadStr;
+    const locationDirty = stableStringify(buildLocationSnapshot()) !== initialLocationStr;
+    return settingsDirty || locationDirty;
+  }, [buildLocationSnapshot, buildPayload, initialLocationStr, initialPayloadStr]);
 
   const errors = useMemo(() => {
     const e = {};
@@ -1183,8 +1311,21 @@ const SellerSettings = () => {
     if (socialFacebook && !safeUrl(socialFacebook)) e.socialFacebook = "Neispravan link.";
     if (socialInstagram && !safeUrl(socialInstagram)) e.socialInstagram = "Neispravan link.";
     if (socialWebsite && !safeUrl(socialWebsite)) e.socialWebsite = "Neispravan link.";
+    if (hasSellerLocationDraft && !isSellerLocationComplete) {
+      e.location = "Odaberi grad i općinu (ako postoji) kako bi lokacija bila potpuna.";
+    }
     return e;
-  }, [showWhatsapp, whatsappNumber, showViber, viberNumber, socialFacebook, socialInstagram, socialWebsite]);
+  }, [
+    hasSellerLocationDraft,
+    isSellerLocationComplete,
+    showWhatsapp,
+    whatsappNumber,
+    showViber,
+    viberNumber,
+    socialFacebook,
+    socialInstagram,
+    socialWebsite,
+  ]);
 
   const isValid = Object.keys(errors).length === 0;
 
@@ -1314,13 +1455,69 @@ const SellerSettings = () => {
     try {
       setIsSaving(true);
       const payload = buildPayload();
+      const locationSnapshot = buildLocationSnapshot();
+      const initialLocation = (() => {
+        try {
+          return initialLocationStr ? JSON.parse(initialLocationStr) : EMPTY_BIH_LOCATION;
+        } catch {
+          return EMPTY_BIH_LOCATION;
+        }
+      })();
+      const hadInitialLocation = Boolean(
+        initialLocation?.cityId ||
+          initialLocation?.municipalityId ||
+          initialLocation?.address ||
+          initialLocation?.formattedAddress,
+      );
+      const locationCleared = !hasSellerLocationDraft && hadInitialLocation;
+
       const response = await withTimeout(updateFn(payload), 15000);
-      if (response?.data?.error === false) {
-        setInitialPayloadStr(stableStringify(payload));
-        toast.success("Postavke sačuvane!");
-      } else {
+      if (response?.data?.error !== false) {
         toast.error(response?.data?.message || "Greška.");
+        return;
       }
+
+      if (hasSellerLocationDraft && isSellerLocationComplete) {
+        const locationAddress = buildProfileAddressFromBiHLocation(locationSnapshot);
+        const profileResponse = await withTimeout(
+          updateProfileApi.updateProfile({
+            address: locationAddress,
+            auth_token: authToken || undefined,
+          }),
+          15000,
+        );
+
+        if (profileResponse?.data?.error !== false) {
+          toast.error(profileResponse?.data?.message || "Lokacija nije sačuvana.");
+          return;
+        }
+
+        if (profileResponse?.data?.data) {
+          dispatch(userUpdateData({ data: profileResponse.data.data }));
+        }
+
+        saveLocation(locationSnapshot);
+      } else if (locationCleared) {
+        const profileResponse = await withTimeout(
+          updateProfileApi.updateProfile({
+            address: "",
+            auth_token: authToken || undefined,
+          }),
+          15000,
+        );
+        if (profileResponse?.data?.error !== false) {
+          toast.error(profileResponse?.data?.message || "Lokacija nije očišćena.");
+          return;
+        }
+        if (profileResponse?.data?.data) {
+          dispatch(userUpdateData({ data: profileResponse.data.data }));
+        }
+        clearLocation();
+      }
+
+      setInitialPayloadStr(stableStringify(payload));
+      setInitialLocationStr(stableStringify(locationSnapshot));
+      toast.success("Postavke sačuvane!");
     } catch (err) {
       console.error(err);
       toast.error(err?.message === "TIMEOUT" ? "Timeout." : "Greška.");
@@ -1329,7 +1526,20 @@ const SellerSettings = () => {
     }
   };
 
-  const handleReset = async () => { await fetchSettings(); toast.message("Vraćeno."); };
+  const handleReset = async () => {
+    await fetchSettings();
+    const initialLocation = (() => {
+      try {
+        return initialLocationStr ? normalizeBiHLocation(JSON.parse(initialLocationStr)) : EMPTY_BIH_LOCATION;
+      } catch {
+        return EMPTY_BIH_LOCATION;
+      }
+    })();
+    setSellerLocation(initialLocation);
+    setInitialLocationStr(stableStringify(initialLocation));
+    setSubmitAttempted(false);
+    toast.message("Vraćeno.");
+  };
 
   const updateProfileImage = async (fileOrBlob) => {
     if (!fileOrBlob) return;
@@ -1363,6 +1573,9 @@ const SellerSettings = () => {
   };
 
   const handleFileUpload = (e) => { const file = e.target.files?.[0]; if (file) updateProfileImage(file); };
+  const handleSellerLocationChange = (nextLocation) => {
+    setSellerLocation(normalizeBiHLocation(nextLocation));
+  };
 
   const setDay = (day, patch) => setBusinessHours((prev) => ({ ...prev, [day]: { ...prev[day], ...patch } }));
 
@@ -1800,6 +2013,45 @@ const SellerSettings = () => {
               </div>
 
               <div id={SELLER_RECAPTCHA_CONTAINER_ID} className="hidden" />
+            </div>
+          </SettingSection>
+
+          <SettingSection
+            icon={MapPin}
+            title="Lokacija prodavača"
+            description="Država BiH, grad i općina za prikaz profila i pretrage."
+          >
+            <div className="space-y-3">
+              <BiHLocationSelector
+                value={normalizedSellerLocation}
+                onChange={handleSellerLocationChange}
+                showAddress={true}
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-slate-500">
+                  Lokacija se čuva zajedno sa postavkama profila.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSellerLocation(EMPTY_BIH_LOCATION)}
+                  className="h-8 text-xs"
+                >
+                  Očisti lokaciju
+                </Button>
+              </div>
+
+              {errors.location ? (
+                <p className="text-xs font-medium text-red-600">{errors.location}</p>
+              ) : null}
+
+              {hasSellerLocationDraft && isSellerLocationComplete ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  Aktivna lokacija: <span className="font-semibold">{sellerLocationAddressLine}</span>
+                </div>
+              ) : null}
             </div>
           </SettingSection>
 

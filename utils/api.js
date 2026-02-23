@@ -686,7 +686,7 @@ export const updateProfileApi = {
     if (mobile) formData.append("mobile", mobile);
     
     if (fcm_id) formData.append("fcm_id", fcm_id);
-    if (address) formData.append("address", address);
+    if (address !== undefined && address !== null) formData.append("address", address);
     if (country_code) formData.append("country_code", country_code);
 
     if (profile) {
