@@ -82,9 +82,9 @@ const PublishOptionsModal = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="!max-w-[500px] overflow-hidden border border-slate-200 p-0 dark:border-slate-700 dark:bg-slate-900">
         {/* Header */}
-        <DialogHeader className="border-b bg-gradient-to-r from-primary/10 to-primary/5 p-6 pb-4 dark:border-slate-700 dark:from-primary/20 dark:to-primary/10">
+        <DialogHeader className="border-b bg-[#0ab6af]/10 p-6 pb-4 dark:border-slate-700 dark:bg-[#0ab6af]/16">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-slate-100">
-            <div className="p-2 bg-primary rounded-lg">
+            <div className="rounded-lg bg-[#0ab6af] p-2">
               <CalendarClock className="w-6 h-6 text-white" />
             </div>
             Opcije objave
@@ -101,14 +101,14 @@ const PublishOptionsModal = ({
             onClick={() => setSelectedOption("now")}
             className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
               selectedOption === "now"
-                ? "border-primary bg-primary/5 shadow-md dark:bg-primary/15"
+                ? "border-[#0ab6af] bg-[#0ab6af]/8 shadow-md dark:bg-[#0ab6af]/18"
                 : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-slate-600 dark:hover:bg-slate-800"
             }`}
           >
             <div className="flex items-start gap-4">
               <div className={`p-3 rounded-xl ${
                 selectedOption === "now" 
-                  ? "bg-primary text-white" 
+                  ? "bg-[#0ab6af] text-white"
                   : "bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400"
               }`}>
                 <Zap className="w-6 h-6" />
@@ -116,13 +116,13 @@ const PublishOptionsModal = ({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <h3 className={`font-semibold text-lg ${
-                    selectedOption === "now" ? "text-primary" : "text-gray-800 dark:text-slate-100"
+                    selectedOption === "now" ? "text-[#0ab6af]" : "text-gray-800 dark:text-slate-100"
                   }`}>
                     Objavi odmah
                   </h3>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                     selectedOption === "now" 
-                      ? "border-primary bg-primary" 
+                      ? "border-[#0ab6af] bg-[#0ab6af]"
                       : "border-gray-300 dark:border-slate-600"
                   }`}>
                     {selectedOption === "now" && (
@@ -142,14 +142,14 @@ const PublishOptionsModal = ({
             onClick={() => setSelectedOption("schedule")}
             className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
               selectedOption === "schedule"
-                ? "border-primary bg-primary/5 shadow-md dark:bg-primary/15"
+                ? "border-[#0ab6af] bg-[#0ab6af]/8 shadow-md dark:bg-[#0ab6af]/18"
                 : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:hover:border-slate-600 dark:hover:bg-slate-800"
             }`}
           >
             <div className="flex items-start gap-4">
               <div className={`p-3 rounded-xl ${
                 selectedOption === "schedule" 
-                  ? "bg-primary text-white" 
+                  ? "bg-[#0ab6af] text-white"
                   : "bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400"
               }`}>
                 <Calendar className="w-6 h-6" />
@@ -157,13 +157,13 @@ const PublishOptionsModal = ({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <h3 className={`font-semibold text-lg ${
-                    selectedOption === "schedule" ? "text-primary" : "text-gray-800 dark:text-slate-100"
+                    selectedOption === "schedule" ? "text-[#0ab6af]" : "text-gray-800 dark:text-slate-100"
                   }`}>
                     Zakaži objavu
                   </h3>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                     selectedOption === "schedule" 
-                      ? "border-primary bg-primary" 
+                      ? "border-[#0ab6af] bg-[#0ab6af]"
                       : "border-gray-300 dark:border-slate-600"
                   }`}>
                     {selectedOption === "schedule" && (
@@ -202,7 +202,7 @@ const PublishOptionsModal = ({
                     }}
                     min={minDate}
                     max={maxDate}
-                    className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                    className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#0ab6af] focus:ring-2 focus:ring-[#0ab6af]/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </div>
  
@@ -219,7 +219,7 @@ const PublishOptionsModal = ({
                       setScheduledTime(e.target.value);
                       setError("");
                     }}
-                    className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                    className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 outline-none transition-all focus:border-[#0ab6af] focus:ring-2 focus:ring-[#0ab6af]/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </div>
               </div>
@@ -235,7 +235,7 @@ const PublishOptionsModal = ({
                 <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
                   <p className="text-sm text-gray-600 dark:text-slate-300">
                     Oglas će biti objavljen:{" "}
-                    <span className="font-semibold text-primary block mt-1">
+                    <span className="mt-1 block font-semibold text-[#0ab6af]">
                       {formatDateBosnian(scheduledDate, scheduledTime)}
                     </span>
                   </p>
@@ -258,7 +258,7 @@ const PublishOptionsModal = ({
             <button
               onClick={handleConfirm}
               disabled={isSubmitting}
-              className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 rounded-lg bg-[#0ab6af] px-6 py-3 font-medium text-white transition-colors hover:bg-[#09a8a2] disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>

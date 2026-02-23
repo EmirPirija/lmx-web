@@ -1515,6 +1515,132 @@ const AdsListing = () => {
     ]
   );
 
+  const listingFlowIssues = useMemo(() => {
+    const issues = [];
+
+    if (!categoryPath?.length) {
+      issues.push({
+        id: "category",
+        stepId: 1,
+        label: "Odaberi kategoriju",
+        hint: "Bez kategorije oglas ne može biti objavljen.",
+      });
+    }
+
+    if (!String(defaultDetails?.name || "").trim()) {
+      issues.push({
+        id: "title",
+        stepId: 2,
+        fieldId: "name",
+        label: "Dodaj naslov oglasa",
+        hint: "Jasan naslov povećava vidljivost.",
+      });
+    }
+
+    if (!String(defaultDetails?.description || "").trim()) {
+      issues.push({
+        id: "description",
+        stepId: 2,
+        fieldId: "description",
+        label: "Dodaj opis oglasa",
+        hint: "Kupci trebaju osnovne informacije prije upita.",
+      });
+    }
+
+    if (customFields?.length > 0 && Object.keys(currentExtraDetails || {}).length === 0) {
+      issues.push({
+        id: "attributes",
+        stepId: 3,
+        label: "Popuni dodatne detalje",
+        hint: "Specifikacije povećavaju povjerenje kupca.",
+      });
+    }
+
+    if (!uploadedImages?.length) {
+      issues.push({
+        id: "images",
+        stepId: 4,
+        label: "Dodaj barem jednu fotografiju",
+        hint: "Oglasi bez fotografije imaju slabiji rezultat.",
+      });
+    }
+
+    if (!hasValidLocation) {
+      issues.push({
+        id: "location",
+        stepId: 5,
+        fieldId: "address",
+        label: "Postavi lokaciju",
+        hint: "Tačna lokacija ubrzava dogovor sa kupcem.",
+      });
+    }
+
+    return issues;
+  }, [
+    categoryPath,
+    currentExtraDetails,
+    customFields?.length,
+    defaultDetails?.description,
+    defaultDetails?.name,
+    hasValidLocation,
+    uploadedImages,
+  ]);
+
+  const listingFlowTotalSteps = 5;
+  const listingFlowCompleted = Math.max(0, listingFlowTotalSteps - listingFlowIssues.length);
+  const listingFlowPercent = Math.round((listingFlowCompleted / listingFlowTotalSteps) * 100);
+
+  const goToListingIssue = useCallback(
+    (issue) => {
+      if (!issue) return;
+      handleTabClick(issue.stepId);
+
+      if (typeof window === "undefined") return;
+      const prefersReducedMotion =
+        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+
+      const focusIssueField = (attempt = 0) => {
+        if (issue.fieldId) {
+          const selectors = [
+            `#${issue.fieldId}`,
+            `[id*="${issue.fieldId}"]`,
+            `[name="${issue.fieldId}"]`,
+            `[name*="${issue.fieldId}"]`,
+            `[data-field-id="${issue.fieldId}"]`,
+            `[data-field-id*="${issue.fieldId}"]`,
+          ];
+          const target = selectors
+            .map((selector) => document.querySelector(selector))
+            .find(Boolean);
+
+          if (target) {
+            target.scrollIntoView({
+              behavior: prefersReducedMotion ? "auto" : "smooth",
+              block: "center",
+              inline: "nearest",
+            });
+            if (typeof target?.focus === "function") {
+              window.setTimeout(
+                () => target.focus({ preventScroll: true }),
+                prefersReducedMotion ? 0 : 160
+              );
+            }
+            return;
+          }
+        }
+
+        if (attempt < 6) {
+          window.setTimeout(() => focusIssueField(attempt + 1), prefersReducedMotion ? 0 : 110);
+          return;
+        }
+        scrollWizardToTop();
+      };
+
+      window.requestAnimationFrame(() => focusIssueField(0));
+    },
+    [handleTabClick, scrollWizardToTop],
+  );
+
   // Preview Logic
   const isOnSale = defaultDetails.is_on_sale;
   const oldPrice = Number(defaultDetails.old_price);
@@ -1769,7 +1895,7 @@ const AdsListing = () => {
                 </p>
               </div>
 
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/15 to-primary/5 px-4 py-2 dark:border-primary/35 dark:from-primary/20 dark:to-primary/10">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2 dark:border-[#0ab6af]/45 dark:bg-[#0ab6af]/15">
                 <Award className="h-5 w-5 text-primary" />
                 <span className="text-sm font-semibold text-primary">{completenessScore}%</span>
                 <span className="text-xs text-slate-600 dark:text-slate-300">{"dovršen"}</span>
@@ -1785,7 +1911,7 @@ const AdsListing = () => {
                 className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
               >
                 <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
-                <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-300/20" />
+                <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-[#0ab6af]/15 blur-2xl dark:bg-[#0ab6af]/20" />
 
                 <div className="relative mb-5 flex flex-wrap items-center justify-between gap-2">
                   <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/20">
@@ -1804,7 +1930,7 @@ const AdsListing = () => {
                       className="pointer-events-none absolute inset-x-0 top-[16px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80 sm:top-[22px]"
                     />
                     <motion.div
-                      className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-gradient-to-r from-primary via-cyan-400 to-primary shadow-[0_0_20px_-4px_rgba(14,165,233,0.8)] sm:top-[22px]"
+                      className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-[#0ab6af] shadow-[0_0_20px_-4px_rgba(10,182,175,0.75)] sm:top-[22px]"
                       initial={false}
                       animate={{ left: stepRailFill.left, width: stepRailFill.width }}
                       transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
@@ -1908,7 +2034,7 @@ const AdsListing = () => {
 
                             <div className="hidden h-[3px] w-12 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70 sm:block sm:w-14">
                               <motion.div
-                                className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400"
+                                className="h-full rounded-full bg-[#0ab6af]"
                                 initial={false}
                                 animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
                                 transition={{ type: "spring", stiffness: 190, damping: 24 }}
@@ -2062,7 +2188,7 @@ const AdsListing = () => {
 
             {/* 📱 Right Column - Live Preview */}
             <div className="min-w-0 lg:col-span-1">
-              <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:from-slate-900/80 dark:to-slate-950/85">
+              <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-primary" />
@@ -2070,9 +2196,60 @@ const AdsListing = () => {
                       {"Pregled oglasa"}
                     </h3>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary dark:border-primary/35 dark:bg-primary/20">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#0ab6af]/40 bg-[#0ab6af]/12 px-2.5 py-1 text-[11px] font-semibold text-[#0ab6af] dark:bg-[#0ab6af]/16">
                     Uživo
                   </span>
+                </div>
+
+                <div className="mb-4 rounded-2xl border border-[#0ab6af]/30 bg-[#0ab6af]/8 p-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">Što je ostalo</p>
+                      <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {listingFlowIssues.length ? "Završi preostale stavke" : "Sve je spremno za objavu"}
+                      </h4>
+                    </div>
+                    <span className="rounded-full border border-[#0ab6af]/35 bg-white/85 px-2 py-0.5 text-xs font-semibold text-[#0ab6af] dark:bg-slate-900/75">
+                      {listingFlowPercent}%
+                    </span>
+                  </div>
+
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#0ab6af]/20">
+                    <motion.div
+                      className="h-full rounded-full bg-[#0ab6af]"
+                      initial={false}
+                      animate={{ width: `${listingFlowPercent}%` }}
+                      transition={{ type: "spring", stiffness: 220, damping: 28 }}
+                    />
+                  </div>
+
+                  {listingFlowIssues.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {listingFlowIssues.slice(0, 5).map((issue) => (
+                        <button
+                          key={`issue-${issue.id}`}
+                          type="button"
+                          onClick={() => goToListingIssue(issue)}
+                          className="group flex w-full items-center justify-between rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 text-left transition-all hover:border-[#0ab6af]/45 hover:bg-[#0ab6af]/10 dark:border-slate-700 dark:bg-slate-900/70"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                              {issue.label}
+                            </p>
+                            <p className="truncate text-[11px] text-slate-500 dark:text-slate-300">
+                              {issue.hint}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-[#0ab6af] transition-transform group-hover:translate-x-0.5" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Oglas je spreman za objavu
+                    </div>
+                  )}
                 </div>
 
                 <div className="pointer-events-none select-none">
@@ -2087,7 +2264,7 @@ const AdsListing = () => {
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                       <div
-                        className="h-full bg-gradient-to-r from-primary to-green-500 transition-all duration-500"
+                        className="h-full bg-[#0ab6af] transition-all duration-500"
                         style={{ width: `${completenessScore}%` }}
                       />
                     </div>
@@ -2165,7 +2342,7 @@ const AdsListing = () => {
                   <div className="mt-6 w-full">
                     <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
                       <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-primary via-cyan-400 to-fuchsia-400"
+                        className="h-full rounded-full bg-[#0ab6af]"
                         animate={{ width: `${publishProgressPct}%` }}
                         transition={{ duration: 0.35, ease: "easeOut" }}
                       />

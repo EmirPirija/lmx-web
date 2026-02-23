@@ -209,7 +209,7 @@ const AdSuccessModal = ({
               {createdAdSlug ? (
                 <CustomLink
                   href={`/my-listing/${createdAdSlug}`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0ab6af] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#09a8a2]"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Pregledaj oglas
@@ -217,7 +217,7 @@ const AdSuccessModal = ({
               ) : (
                 <CustomLink
                   href="/my-ads"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0ab6af] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#09a8a2]"
                 >
                   <Sparkles className="h-4 w-4" />
                   Moji oglasi

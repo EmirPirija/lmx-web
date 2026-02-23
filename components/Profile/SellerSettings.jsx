@@ -1307,6 +1307,19 @@ const SellerSettings = () => {
     stripCountryCodePrefix(currentUser?.mobile, currentUser?.country_code || "387"),
   );
   const resolvedPhoneDisplay = firebaseIdentity?.phoneNumber || phoneDraftE164 || fallbackPhoneE164 || "nije dostupan";
+  const hasProfileIdentity = Boolean(
+    String(currentUser?.name || "").trim() &&
+      (previewImage || currentUser?.profile_image || currentUser?.profile),
+  );
+  const verificationStatusKey = String(verificationStatus || "").toLowerCase();
+  const isDocsVerified = verificationStatusKey === "approved";
+  const isDocsPending = ["pending", "submitted", "resubmitted"].includes(verificationStatusKey);
+  const trustCenterLabel =
+    verificationProgressPercent >= 100 && isDocsVerified
+      ? "Verifikovan"
+      : verificationProgressPercent > 0 || isDocsPending
+      ? "Djelimično verifikovan"
+      : "Nije verifikovan";
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
@@ -1438,6 +1451,94 @@ const SellerSettings = () => {
                     ? "Nalog je registrovan putem broja telefona, zato je telefon već tretiran kao verificiran."
                     : "Za puni nivo sigurnosti potvrdi oba kanala: broj telefona i e-mail adresu."}
                 </p>
+              </div>
+
+              <div className="rounded-2xl border border-[#0ab6af]/30 bg-[#0ab6af]/8 p-4 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">
+                      Seller Trust Center
+                    </p>
+                    <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      Jedna kartica za status povjerenja
+                    </h4>
+                  </div>
+                  <span className="rounded-full border border-[#0ab6af]/40 bg-white/85 px-2.5 py-1 text-xs font-semibold text-[#0ab6af] dark:bg-slate-900/70">
+                    {trustCenterLabel}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">Profil</p>
+                    <p className={cn("mt-0.5", hasProfileIdentity ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-300")}>
+                      {hasProfileIdentity ? "Spreman" : "Dopuniti ime/sliku"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">Telefon</p>
+                    <p className={cn("mt-0.5", isPhoneVerified ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-300")}>
+                      {isPhoneVerified ? "Verifikovan" : "Čeka OTP"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">E-mail</p>
+                    <p className={cn("mt-0.5", isEmailVerified ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-300")}>
+                      {isEmailVerified ? "Verifikovan" : "Čeka potvrdu"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">Dokumenti</p>
+                    <p
+                      className={cn(
+                        "mt-0.5",
+                        isDocsVerified
+                          ? "text-emerald-600 dark:text-emerald-300"
+                          : isDocsPending
+                          ? "text-amber-600 dark:text-amber-300"
+                          : "text-slate-500 dark:text-slate-300",
+                      )}
+                    >
+                      {isDocsVerified ? "Verifikovani" : isDocsPending ? "Na pregledu" : "Nije poslano"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {!isPhoneVerified ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-9 rounded-xl"
+                      onClick={handleSendPhoneVerificationOtp}
+                      disabled={phoneOtpSending || phoneOtpTimer > 0}
+                    >
+                      {phoneOtpSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Pošalji OTP"}
+                    </Button>
+                  ) : null}
+                  {!isEmailVerified ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-9 rounded-xl"
+                      onClick={handleSendEmailVerificationNow}
+                      disabled={emailVerificationSending}
+                    >
+                      {emailVerificationSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Potvrdi e-mail"}
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-9 rounded-xl"
+                    onClick={() => setShowPhone((prev) => !prev)}
+                  >
+                    {showPhone ? "Sakrij broj" : "Prikaži broj"}
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">

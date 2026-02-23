@@ -134,6 +134,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
   const activeNav = useMemo(() => pickActiveItem(navRegistry), [navRegistry]);
   const activeCta = useMemo(() => pickActiveItem(ctaRegistry), [ctaRegistry]);
+  const shouldLockDockVisible = Boolean(activeCta?.preventAutoHide);
   const isSuspended = useMemo(() => Object.keys(suspendRegistry).length > 0, [suspendRegistry]);
   const keepNavDuringSuspend = useMemo(
     () => Object.values(suspendRegistry).some((entry) => Boolean(entry?.keepNavOpen)),
@@ -181,7 +182,15 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   }, [isDockInteracting]);
 
   useEffect(() => {
-    if (!ready || !isMobile || !showDock || effectiveSuspended || isNavExpanded || isDockInteracting) {
+    if (
+      !ready ||
+      !isMobile ||
+      !showDock ||
+      effectiveSuspended ||
+      isNavExpanded ||
+      isDockInteracting ||
+      shouldLockDockVisible
+    ) {
       setIsDockCollapsed(false);
       return undefined;
     }
@@ -257,15 +266,15 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [ready, isMobile, showDock, effectiveSuspended, isNavExpanded, isDockInteracting]);
+  }, [ready, isMobile, showDock, effectiveSuspended, isNavExpanded, isDockInteracting, shouldLockDockVisible]);
 
   const dockRootTransition = useMemo(
     () =>
       prefersReducedMotion
         ? { duration: 0.01 }
         : {
-            y: { type: "spring", stiffness: 360, damping: 34, mass: 0.78, restDelta: 0.001 },
-            scale: { type: "spring", stiffness: 320, damping: 31, mass: 0.8, restDelta: 0.001 },
+            y: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+            scale: { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
             opacity: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
           },
     [prefersReducedMotion]
@@ -276,8 +285,8 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
       prefersReducedMotion
         ? { duration: 0.01 }
         : {
-            y: { type: "spring", stiffness: 340, damping: 30, mass: 0.76, restDelta: 0.001 },
-            scale: { type: "spring", stiffness: 300, damping: 27, mass: 0.78, restDelta: 0.001 },
+            y: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+            scale: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
             opacity: { duration: 0.18, ease: [0.16, 1, 0.3, 1] },
           },
     [prefersReducedMotion]
@@ -446,7 +455,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     interactionReleaseTimerRef.current = window.setTimeout(() => {
       setIsDockInteracting(false);
       interactionReleaseTimerRef.current = null;
-    }, 110);
+    }, 140);
   }, []);
 
   const contextValue = useMemo(
@@ -496,7 +505,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 onPointerUp={endDockInteraction}
                 onPointerCancel={endDockInteraction}
                 onPointerLeave={endDockInteraction}
-                className="fixed inset-0 z-[64] bg-slate-950/20 backdrop-blur-[1.5px] lg:hidden"
+                className="fixed inset-0 z-[64] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
               />
             )}
 
@@ -506,20 +515,20 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                   ? { y: 0, opacity: 1, scale: 1 }
                   : { y: "calc(100% + 14px)", opacity: 0, scale: 0.985 }
               }
-              animate={
-                effectiveSuspended
-                  ? { y: "calc(100% + 18px)", opacity: 0, scale: 0.98 }
-                  : isDockCollapsed && !isNavExpanded
+                animate={
+                  effectiveSuspended
+                    ? { y: "calc(100% + 18px)", opacity: 0, scale: 0.98 }
+                  : isDockCollapsed && !isNavExpanded && !shouldLockDockVisible
                     ? { y: "calc(100% + 10px)", opacity: 0, scale: 0.988 }
                     : { y: 0, opacity: 1, scale: 1 }
-              }
+                }
               exit={
                 prefersReducedMotion
                   ? { y: 0, opacity: 0, scale: 1 }
                   : { y: "calc(100% + 14px)", opacity: 0, scale: 0.985 }
               }
               transition={dockRootTransition}
-              className="fixed inset-x-0 bottom-0 z-[65] pointer-events-none lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[65] pointer-events-none px-2 lg:hidden"
               style={{
                 bottom: "var(--lmx-mobile-viewport-bottom-offset, 0px)",
                 willChange: "transform, opacity",
@@ -527,10 +536,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 transformOrigin: "50% 100%",
               }}
             >
-              <div
-                ref={rowRef}
-                className="mx-auto w-full max-w-7xl sm:px-4"
-              >
+              <div ref={rowRef} className="mx-auto w-full max-w-7xl sm:px-2">
                 <LayoutGroup id="adaptive-mobile-dock">
                   <div className="relative">
                     <AnimatePresence>
@@ -556,7 +562,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                         >
                           <motion.div
                             layoutId="adaptive-dock-nav-shell"
-                            className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95"
+                            className="overflow-hidden rounded-2xl border border-slate-200/85 bg-white/96 p-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/96"
                           >
                             {activeNav?.renderFull?.({ closeNav })}
                           </motion.div>
@@ -565,7 +571,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                     </AnimatePresence>
 
                     <div
-                      className={`rounded-t-3xl border border-slate-200/80 bg-white/95 p-2 shadow-[0_-18px_40px_-26px_rgba(15,23,42,0.42)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
+                      className={`rounded-2xl border border-slate-200/80 bg-white/96 p-2 shadow-[0_-18px_40px_-26px_rgba(15,23,42,0.42)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/96 ${
                         effectiveSuspended ? "pointer-events-none" : "pointer-events-auto"
                       }`}
                       onPointerDownCapture={beginDockInteraction}

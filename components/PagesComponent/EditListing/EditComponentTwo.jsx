@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Select,
   SelectContent,
@@ -866,7 +866,7 @@ const AccordionSection = ({
   sectionRef,
 }) => {
   return (
-    <div ref={sectionRef} className="overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
+    <div ref={sectionRef} className="lmx-guided-accordion overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
       {/* Header */}
       <button
         type="button"
@@ -922,7 +922,7 @@ const AccordionSection = ({
 
       {/* Content */}
       {isOpen && (
-        <div className="animate-fadeIn bg-white p-4 dark:bg-slate-900/90 sm:p-5">
+        <div className="lmx-guided-accordion-content bg-white p-4 dark:bg-slate-900/90 sm:p-5">
           {children}
         </div>
       )}
@@ -953,9 +953,12 @@ const EditComponentTwo = ({
   const [requiredOpen, setRequiredOpen] = useState(true);
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [attemptedNext, setAttemptedNext] = useState(false);
+  const [highlightedFieldId, setHighlightedFieldId] = useState("");
   const requiredSectionRef = useRef(null);
   const optionalSectionRef = useRef(null);
   const termsSectionRef = useRef(null);
+  const fieldRefs = useRef({});
   
   // Local state for edit flow
   const [agreedToTerms, setAgreedToTerms] = useState(true);
@@ -1258,6 +1261,13 @@ const EditComponentTwo = ({
 
   const sortedRequiredFields = sortFields(requiredFields);
   const sortedOptionalFields = sortFields(optionalFields);
+  const missingRequiredFields = useMemo(
+    () =>
+      sortedRequiredFields.filter(
+        (field) => !isFieldValueFilled(field, currentExtraDetails?.[field?.id]),
+      ),
+    [sortedRequiredFields, currentExtraDetails],
+  );
   const requiredFieldsCompleted = useMemo(
     () =>
       sortedRequiredFields.every((field) =>
@@ -1265,6 +1275,7 @@ const EditComponentTwo = ({
       ),
     [sortedRequiredFields, currentExtraDetails],
   );
+  const missingRequiredCount = missingRequiredFields.length;
 
   const scrollToSection = (targetRef) => {
     if (typeof window === "undefined" || !targetRef?.current) return;
@@ -1276,6 +1287,33 @@ const EditComponentTwo = ({
       inline: "nearest",
     });
   };
+
+  const focusFieldById = useCallback((fieldId) => {
+    if (!fieldId || typeof window === "undefined") return;
+    const target = fieldRefs.current?.[fieldId];
+    if (!target) return;
+
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    setHighlightedFieldId(fieldId);
+
+    target.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "center",
+      inline: "nearest",
+    });
+
+    window.setTimeout(() => {
+      const focusable = target.querySelector(
+        "input, textarea, select, button, [role='combobox'], [tabindex]:not([tabindex='-1'])",
+      );
+      focusable?.focus?.({ preventScroll: true });
+    }, prefersReducedMotion ? 0 : 180);
+
+    window.setTimeout(() => {
+      setHighlightedFieldId((current) => (current === fieldId ? "" : current));
+    }, 1700);
+  }, []);
 
   useEffect(() => {
     if (!requiredFieldsCompleted || !requiredOpen) return;
@@ -1292,13 +1330,30 @@ const EditComponentTwo = ({
     requestAnimationFrame(() => scrollToSection(termsSectionRef));
   }, [requiredFieldsCompleted, requiredOpen, sortedOptionalFields.length]);
 
+  useEffect(() => {
+    if (attemptedNext && missingRequiredCount === 0) {
+      setAttemptedNext(false);
+    }
+  }, [attemptedNext, missingRequiredCount]);
+
   const handleNext = () => {
+    setAttemptedNext(true);
     if (!requiredFieldsCompleted) {
-      toast.error("Popuni sva obavezna polja prije nastavka.");
+      const firstMissingField = missingRequiredFields[0];
+      toast.error(
+        firstMissingField
+          ? `Popuni obavezno polje: ${firstMissingField?.translated_name || firstMissingField?.name}`
+          : "Popuni sva obavezna polja prije nastavka.",
+      );
       setRequiredOpen(true);
       setOptionalOpen(false);
       setTermsOpen(false);
-      requestAnimationFrame(() => scrollToSection(requiredSectionRef));
+      requestAnimationFrame(() => {
+        scrollToSection(requiredSectionRef);
+        if (firstMissingField?.id) {
+          window.setTimeout(() => focusFieldById(firstMissingField.id), 160);
+        }
+      });
       return;
     }
 
@@ -1308,6 +1363,7 @@ const EditComponentTwo = ({
       requestAnimationFrame(() => scrollToSection(termsSectionRef));
       return;
     }
+    setAttemptedNext(false);
     submitExtraDetails();
   };
 
@@ -1318,8 +1374,19 @@ const EditComponentTwo = ({
           const isFullWidth = field.type === "checkbox" || field.type === "radio";
 
           return (
-            <div 
-              className={`flex flex-col w-full gap-2 ${isFullWidth ? "md:col-span-2" : ""}`} 
+            <div
+              ref={(node) => {
+                if (node) fieldRefs.current[field?.id] = node;
+                else delete fieldRefs.current[field?.id];
+              }}
+              data-field-id={field?.id}
+              className={`flex flex-col w-full gap-2 transition-all duration-300 ${
+                isFullWidth ? "md:col-span-2" : ""
+              } ${
+                highlightedFieldId === field?.id
+                  ? "-m-2 rounded-xl border border-[#0ab6af]/60 bg-[#0ab6af]/5 p-2"
+                  : ""
+              }`}
               key={field?.id}
             >
               <div className="flex gap-2 items-center">
@@ -1365,6 +1432,25 @@ const EditComponentTwo = ({
           }}
           badge="required"
         >
+          {attemptedNext && missingRequiredCount > 0 ? (
+            <div className="mb-4 rounded-xl border border-[#0ab6af]/30 bg-[#0ab6af]/10 p-3">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-100">
+                Nedostaje još {missingRequiredCount} obaveznih polja. Dodirni polje da te odvede direktno.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {missingRequiredFields.slice(0, 8).map((field) => (
+                  <button
+                    key={`missing-${field?.id}`}
+                    type="button"
+                    onClick={() => focusFieldById(field?.id)}
+                    className="rounded-full border border-[#0ab6af]/40 bg-white/85 px-2.5 py-1 text-[11px] font-semibold text-[#0ab6af] transition-colors hover:bg-[#0ab6af]/10 dark:bg-slate-900/70"
+                  >
+                    {field?.translated_name || field?.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {renderFieldGroup(sortedRequiredFields)}
         </AccordionSection>
       )}

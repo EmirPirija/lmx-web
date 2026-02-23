@@ -63,7 +63,7 @@ const AccordionSection = ({
   children,
 }) => {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
+    <div className="lmx-guided-accordion overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
       <div
         onClick={onToggle}
         className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
@@ -119,7 +119,7 @@ const AccordionSection = ({
         </svg>
       </div>
 
-      {isOpen && <div className="bg-white p-4 dark:bg-slate-900/90 sm:p-5">{children}</div>}
+      {isOpen && <div className="lmx-guided-accordion-content bg-white p-4 dark:bg-slate-900/90 sm:p-5">{children}</div>}
     </div>
   );
 };

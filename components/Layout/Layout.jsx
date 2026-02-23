@@ -22,14 +22,15 @@ export default function Layout({ children }) {
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return undefined;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    if (window.matchMedia("(max-width: 991px)").matches) return undefined;
 
     const root = document.documentElement;
     let rafId = null;
 
     const update = () => {
       const y = window.scrollY || window.pageYOffset || 0;
-      const offset = Math.min(y * 0.42, 7200);
-      const wave = Math.sin(y * 0.009) * 34;
+      const offset = Math.min(y * 0.24, 4200);
+      const wave = Math.sin(y * 0.0065) * 14;
       root.style.setProperty("--lmx-scroll-offset", `${offset.toFixed(2)}px`);
       root.style.setProperty("--lmx-scroll-wave", `${wave.toFixed(2)}px`);
       rafId = null;

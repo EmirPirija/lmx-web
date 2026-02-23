@@ -1488,6 +1488,138 @@ const EditListing = ({ id }) => {
     ]
   );
 
+  const hasValidLocation = Boolean(
+    Location?.address && Location?.city && Location?.state && Location?.country
+  );
+
+  const listingFlowIssues = useMemo(() => {
+    const issues = [];
+
+    if (!String(defaultDetails?.name || "").trim()) {
+      issues.push({
+        id: "title",
+        stepId: 1,
+        fieldId: "name",
+        label: "Dodaj naslov oglasa",
+        hint: "Naslov je obavezan za kvalitetan prikaz.",
+      });
+    }
+
+    if (!String(defaultDetails?.description || "").trim()) {
+      issues.push({
+        id: "description",
+        stepId: 1,
+        fieldId: "description",
+        label: "Dodaj opis oglasa",
+        hint: "Opis pomaže kupcu da donese odluku.",
+      });
+    }
+
+    if (!String(defaultDetails?.contact || "").trim()) {
+      issues.push({
+        id: "contact",
+        stepId: 1,
+        fieldId: "phonenumber",
+        label: "Dodaj kontakt broj",
+        hint: "Kupci moraju imati kanal za dogovor.",
+      });
+    }
+
+    if (customFields?.length > 0 && Object.keys(currentExtraDetails || {}).length === 0) {
+      issues.push({
+        id: "attributes",
+        stepId: 2,
+        label: "Popuni dodatne detalje",
+        hint: "Specifikacije podižu relevantnost oglasa.",
+      });
+    }
+
+    if (!uploadedImages?.length) {
+      issues.push({
+        id: "images",
+        stepId: 3,
+        label: "Dodaj barem jednu fotografiju",
+        hint: "Fotografija je ključna za klik i pregled.",
+      });
+    }
+
+    if (!hasValidLocation) {
+      issues.push({
+        id: "location",
+        stepId: 4,
+        fieldId: "address",
+        label: "Upotpuni lokaciju oglasa",
+        hint: "Precizna lokacija ubrzava upite.",
+      });
+    }
+
+    return issues;
+  }, [
+    customFields?.length,
+    currentExtraDetails,
+    defaultDetails?.contact,
+    defaultDetails?.description,
+    defaultDetails?.name,
+    hasValidLocation,
+    uploadedImages,
+  ]);
+
+  const listingFlowTotalSteps = 4;
+  const listingFlowCompleted = Math.max(0, listingFlowTotalSteps - listingFlowIssues.length);
+  const listingFlowPercent = Math.round((listingFlowCompleted / listingFlowTotalSteps) * 100);
+
+  const goToListingIssue = useCallback(
+    (issue) => {
+      if (!issue) return;
+      handleTabClick(issue.stepId);
+
+      if (typeof window === "undefined") return;
+      const prefersReducedMotion =
+        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+
+      const focusIssueField = (attempt = 0) => {
+        if (issue.fieldId) {
+          const selectors = [
+            `#${issue.fieldId}`,
+            `[id*="${issue.fieldId}"]`,
+            `[name="${issue.fieldId}"]`,
+            `[name*="${issue.fieldId}"]`,
+            `[data-field-id="${issue.fieldId}"]`,
+            `[data-field-id*="${issue.fieldId}"]`,
+          ];
+          const target = selectors
+            .map((selector) => document.querySelector(selector))
+            .find(Boolean);
+
+          if (target) {
+            target.scrollIntoView({
+              behavior: prefersReducedMotion ? "auto" : "smooth",
+              block: "center",
+              inline: "nearest",
+            });
+            if (typeof target?.focus === "function") {
+              window.setTimeout(
+                () => target.focus({ preventScroll: true }),
+                prefersReducedMotion ? 0 : 160
+              );
+            }
+            return;
+          }
+        }
+
+        if (attempt < 6) {
+          window.setTimeout(() => focusIssueField(attempt + 1), prefersReducedMotion ? 0 : 110);
+          return;
+        }
+
+        scrollWizardToTop();
+      };
+
+      window.requestAnimationFrame(() => focusIssueField(0));
+    },
+    [handleTabClick, scrollWizardToTop],
+  );
+
   const getPreviewImage = () => {
     if (uploadedImages && uploadedImages.length > 0) {
       const img = uploadedImages[0];
@@ -1775,7 +1907,7 @@ const EditListing = ({ id }) => {
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-medium">{"Uredi oglas"}</h1>
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-2 rounded-full">
+                  <div className="flex items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2">
                     <Award className="w-5 h-5 text-primary" />
                     <span className="font-semibold text-primary">{completenessScore}%</span>
                     <span className="text-sm text-muted-foreground">{"dovršen"}</span>
@@ -1792,7 +1924,7 @@ const EditListing = ({ id }) => {
                     className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
                   >
                     <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
-                    <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl dark:bg-cyan-300/20" />
+                    <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-[#0ab6af]/15 blur-2xl dark:bg-[#0ab6af]/20" />
 
                     <div className="relative mb-5 flex flex-wrap items-center justify-between gap-2">
                       <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/20">
@@ -1811,7 +1943,7 @@ const EditListing = ({ id }) => {
                           className="pointer-events-none absolute inset-x-0 top-[16px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80 sm:top-[22px]"
                         />
                         <motion.div
-                          className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-gradient-to-r from-primary via-cyan-400 to-primary shadow-[0_0_20px_-4px_rgba(14,165,233,0.8)] sm:top-[22px]"
+                          className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-[#0ab6af] shadow-[0_0_20px_-4px_rgba(10,182,175,0.75)] sm:top-[22px]"
                           initial={false}
                           animate={{ left: stepRailFill.left, width: stepRailFill.width }}
                           transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
@@ -1915,7 +2047,7 @@ const EditListing = ({ id }) => {
 
                                 <div className="hidden h-[3px] w-12 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70 sm:block sm:w-14">
                                   <motion.div
-                                    className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400"
+                                    className="h-full rounded-full bg-[#0ab6af]"
                                     initial={false}
                                     animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
                                     transition={{ type: "spring", stiffness: 190, damping: 24 }}
@@ -2041,10 +2173,63 @@ const EditListing = ({ id }) => {
 
                 {/* 📱 DESNA STRANA - LIVE PREVIEW */}
                 <div className="min-w-0 lg:col-span-1">
-                  <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+                  <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
                     <div className="flex items-center gap-2 mb-4 px-1">
                       <Zap className="w-5 h-5 text-primary" />
                       <h3 className="font-semibold text-lg">{"Pregled oglasa"}</h3>
+                    </div>
+
+                    <div className="mb-4 rounded-2xl border border-[#0ab6af]/30 bg-[#0ab6af]/8 p-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">
+                            Što je ostalo
+                          </p>
+                          <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {listingFlowIssues.length ? "Dovrši preostale stavke" : "Sve je spremno za spremanje"}
+                          </h4>
+                        </div>
+                        <span className="rounded-full border border-[#0ab6af]/35 bg-white/85 px-2 py-0.5 text-xs font-semibold text-[#0ab6af] dark:bg-slate-900/75">
+                          {listingFlowPercent}%
+                        </span>
+                      </div>
+
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#0ab6af]/20">
+                        <motion.div
+                          className="h-full rounded-full bg-[#0ab6af]"
+                          initial={false}
+                          animate={{ width: `${listingFlowPercent}%` }}
+                          transition={{ type: "spring", stiffness: 220, damping: 28 }}
+                        />
+                      </div>
+
+                      {listingFlowIssues.length > 0 ? (
+                        <div className="mt-3 space-y-2">
+                          {listingFlowIssues.slice(0, 5).map((issue) => (
+                            <button
+                              key={`issue-${issue.id}`}
+                              type="button"
+                              onClick={() => goToListingIssue(issue)}
+                              className="group flex w-full items-center justify-between rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 text-left transition-all hover:border-[#0ab6af]/45 hover:bg-[#0ab6af]/10 dark:border-slate-700 dark:bg-slate-900/70"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                                  {issue.label}
+                                </p>
+                                <p className="truncate text-[11px] text-slate-500 dark:text-slate-300">
+                                  {issue.hint}
+                                </p>
+                              </div>
+                              <ChevronRight className="h-4 w-4 shrink-0 text-[#0ab6af] transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Oglas je spreman
+                        </div>
+                      )}
                     </div>
 
                     <div className="pointer-events-none select-none">
@@ -2059,7 +2244,7 @@ const EditListing = ({ id }) => {
                         </div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-primary to-green-500 transition-all duration-500"
+                            className="h-full bg-[#0ab6af] transition-all duration-500"
                             style={{ width: `${completenessScore}%` }}
                           />
                         </div>
