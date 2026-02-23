@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "usehooks-ts";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -68,6 +68,7 @@ import {
   getIsLoginModalOpen,
   setIsLoginOpen,
   getHideMobileBottomNav,
+  setHideMobileBottomNav,
 } from "@/redux/reducer/globalStateSlice.js";
 
 const Search = dynamic(() => import("./Search.jsx"), { ssr: false });
@@ -122,6 +123,7 @@ const HomeHeader = () => {
   const { navigate } = useNavigate();
   const { signOut } = FirebaseData();
   const pathname = usePathname();
+  const dispatch = useDispatch();
 
   const isLargeScreen = useMediaQuery("(min-width: 992px)");
 
@@ -385,6 +387,12 @@ const HomeHeader = () => {
   const mobileProfileLabel = userData?.name
     ? truncate(userData.name, 10)
     : "Profil";
+
+  useEffect(() => {
+    if (isLargeScreen || !isOnHome) return;
+    if (!hideMobileBottomNav) return;
+    dispatch(setHideMobileBottomNav(false));
+  }, [dispatch, hideMobileBottomNav, isLargeScreen, isOnHome]);
 
   const renderDockCompactNav = useCallback(
     ({ isExpanded }) => (

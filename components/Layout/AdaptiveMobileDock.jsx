@@ -505,7 +505,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 onPointerUp={endDockInteraction}
                 onPointerCancel={endDockInteraction}
                 onPointerLeave={endDockInteraction}
-                className="fixed inset-0 z-[64] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
+                className="fixed inset-0 z-[89] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
               />
             )}
 
@@ -528,7 +528,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                   : { y: "calc(100% + 14px)", opacity: 0, scale: 0.985 }
               }
               transition={dockRootTransition}
-              className="fixed inset-x-0 bottom-0 z-[65] pointer-events-none px-2 lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[90] pointer-events-none px-2 lg:hidden"
               style={{
                 bottom: "var(--lmx-mobile-viewport-bottom-offset, 0px)",
                 willChange: "transform, opacity",
@@ -562,7 +562,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                         >
                           <motion.div
                             layoutId="adaptive-dock-nav-shell"
-                            className="overflow-hidden rounded-2xl border border-slate-200/85 bg-white/96 p-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/96"
+                            className="overflow-hidden rounded-2xl border border-slate-200/85 bg-white p-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900"
                           >
                             {activeNav?.renderFull?.({ closeNav })}
                           </motion.div>
@@ -571,7 +571,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                     </AnimatePresence>
 
                     <div
-                      className={`rounded-2xl border border-slate-200/80 bg-white/96 p-2 shadow-[0_-18px_40px_-26px_rgba(15,23,42,0.42)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/96 ${
+                      className={`rounded-2xl border border-slate-200/80 bg-white p-2 shadow-[0_-18px_40px_-26px_rgba(15,23,42,0.42)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900 ${
                         effectiveSuspended ? "pointer-events-none" : "pointer-events-auto"
                       }`}
                       onPointerDownCapture={beginDockInteraction}

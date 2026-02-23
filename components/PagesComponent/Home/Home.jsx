@@ -129,7 +129,6 @@ const Home = () => {
         )
       )}
 
-      <PlatformBenefitsStrip />
       <PopularCategories />
       <HomeReels />
       {IsFeaturedLoading ? (
@@ -143,6 +142,7 @@ const Home = () => {
       )}
       
       <AllItems cityData={cityData} KmRange={KmRange} />
+      <PlatformBenefitsStrip />
     </>
   );
 };

@@ -81,7 +81,10 @@ export default function Layout({ children }) {
           className={`flex flex-col min-h-screen ${
             isHomepageRoute ? "lmx-home-container-scope" : "lmx-fullwidth-container-scope"
           }`}
-          style={{ paddingBottom: "var(--adaptive-mobile-dock-space, 0px)" }}
+          style={{
+            paddingBottom:
+              "calc(var(--adaptive-mobile-dock-space, 0px) + env(safe-area-inset-bottom, 0px) + 12px)",
+          }}
         >
           <Header />
           <div className="flex-1 bg-[#f0f3f9] dark:bg-slate-900 pb-8">
