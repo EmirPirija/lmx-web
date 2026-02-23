@@ -1,4 +1,4 @@
-import { getAuth, signInWithPhoneNumber } from "firebase/auth";
+import { getAuth, signInWithPhoneNumber, signOut as firebaseSignOut } from "firebase/auth";
 import useAutoFocus from "../Common/useAutoFocus";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -20,6 +20,18 @@ import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
+
+const isGatewayOrTimeoutError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  const code = String(error?.code || "").toUpperCase();
+  return (
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    code === "ECONNABORTED" ||
+    code === "ETIMEDOUT"
+  );
+};
 
 const OtpScreen = ({
   generateRecaptcha,
@@ -123,7 +135,16 @@ const OtpScreen = ({
       }
     } catch (error) {
       console.log(error);
-      handleFirebaseAuthError(error);
+      if (isGatewayOrTimeoutError(error)) {
+        toast.error(
+          "Prijava trenutno nije dostupna. Backend autentifikacija kasni (504/timeout).",
+        );
+        try {
+          await firebaseSignOut(auth);
+        } catch (_) {}
+      } else {
+        handleFirebaseAuthError(error);
+      }
     } finally {
       setShowLoader(false);
     }

@@ -554,6 +554,8 @@ export const getLanguageApi = {
   },
 };
 
+const USER_SIGNUP_TIMEOUT_MS = 15000;
+
 export const userSignUpApi = {
   userSignup: ({
     name,
@@ -589,6 +591,7 @@ export const userSignUpApi = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: USER_SIGNUP_TIMEOUT_MS,
     });
   },
 };

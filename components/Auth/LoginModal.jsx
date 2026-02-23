@@ -61,6 +61,18 @@ import {
   ensureRecaptchaVerifier,
 } from "./recaptchaManager";
 
+const isGatewayOrTimeoutError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  const code = String(error?.code || "").toUpperCase();
+  return (
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    code === "ECONNABORTED" ||
+    code === "ETIMEDOUT"
+  );
+};
+
 const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   const settings = useSelector(settingsData);
   const auth = getAuth();
@@ -212,7 +224,13 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
         OnHide();
       } catch (error) {
         console.error("Error:", error);
-        toast.error("Registracija nije završena. Pokušajte ponovo.");
+        if (isGatewayOrTimeoutError(error)) {
+          toast.error(
+            "Prijava trenutno nije dostupna. Server za autentifikaciju kasni (504/timeout).",
+          );
+        } else {
+          toast.error("Registracija nije završena. Pokušajte ponovo.");
+        }
       }
     } catch (error) {
       handleFirebaseAuthError(error);

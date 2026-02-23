@@ -22,11 +22,23 @@ import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useRef, useState } from "react";
 
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
-const RETRYABLE_GATEWAY_STATUSES = new Set([502, 503, 504]);
+const RETRYABLE_GATEWAY_STATUSES = new Set([502, 503]);
+const GATEWAY_TIMEOUT_STATUS = 504;
 const sleep = (ms) =>
   new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+
+const isGatewayOrTimeoutError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  const code = String(error?.code || "").toUpperCase();
+  return (
+    status === GATEWAY_TIMEOUT_STATUS ||
+    RETRYABLE_GATEWAY_STATUSES.has(status) ||
+    code === "ECONNABORTED" ||
+    code === "ETIMEDOUT"
+  );
+};
 
 const LoginWithEmailForm = ({
   OnHide,
@@ -191,8 +203,10 @@ const LoginWithEmailForm = ({
         }
       } catch (error) {
         const status = Number(error?.response?.status || 0);
-        if (RETRYABLE_GATEWAY_STATUSES.has(status)) {
-          toast.error("Server trenutno ne odgovara (504). Pokušajte ponovo za 30-60 sekundi.");
+        if (isGatewayOrTimeoutError(error)) {
+          toast.error(
+            "Prijava trenutno nije dostupna. Server za autentifikaciju kasni (504/timeout). Pokušajte ponovo uskoro.",
+          );
         } else {
           toast.error(
             error?.response?.data?.message || "Prijava nije uspjela. Pokušajte ponovo.",

@@ -14,6 +14,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   sendEmailVerification,
+  signOut,
   signInWithPhoneNumber,
   signInWithPopup,
 } from "firebase/auth";
@@ -91,6 +92,18 @@ const EMPTY_REGISTER_LOCATION = {
 const clamp = (value, min, max) => {
   if (Number.isNaN(value)) return min;
   return Math.min(Math.max(value, min), max);
+};
+
+const isGatewayOrTimeoutError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  const code = String(error?.code || "").toUpperCase();
+  return (
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    code === "ECONNABORTED" ||
+    code === "ETIMEDOUT"
+  );
 };
 
 const avatarBlobToFile = (blob, fileName = `avatar-${Date.now()}.png`) => {
@@ -515,7 +528,16 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       setStep("profile_name");
       toast.success("Google nalog je povezan. Dovrši profil.");
     } catch (error) {
-      handleFirebaseAuthError(error);
+      if (isGatewayOrTimeoutError(error)) {
+        toast.error(
+          "Registracija trenutno nije dostupna. Backend autentifikacija kasni (504/timeout).",
+        );
+        try {
+          await signOut(auth);
+        } catch (_) {}
+      } else {
+        handleFirebaseAuthError(error);
+      }
       setStep("method");
     } finally {
       setIsBusy(false);
@@ -960,7 +982,16 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       );
       await OnHide();
     } catch (error) {
-      handleFirebaseAuthError(error);
+      if (isGatewayOrTimeoutError(error)) {
+        toast.error(
+          "Račun je kreiran na Firebase strani, ali backend ne odgovara (504/timeout). Pokušaj prijavu za 1-2 minute.",
+        );
+        try {
+          await signOut(auth);
+        } catch (_) {}
+      } else {
+        handleFirebaseAuthError(error);
+      }
     } finally {
       setIsBusy(false);
     }

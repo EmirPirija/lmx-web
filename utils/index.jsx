@@ -660,13 +660,37 @@ const getFirebaseAuthErrorDetails = (errorLike) => {
 export const handleFirebaseAuthError = (errorLike) => {
   const { code, message } = getFirebaseAuthErrorDetails(errorLike);
   const resolvedCode = typeof code === "string" ? code.trim() : "";
+  const status = Number(
+    errorLike?.response?.status || errorLike?.status || 0
+  );
+  const normalizedCode = resolvedCode.toUpperCase();
+  const normalizedMessage = String(message || "").toLowerCase();
+  const isGatewayTimeoutError =
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    normalizedCode === "ERR_BAD_RESPONSE" ||
+    normalizedCode === "ECONNABORTED" ||
+    normalizedCode === "ETIMEDOUT" ||
+    normalizedMessage.includes("gateway time-out") ||
+    normalizedMessage.includes("gateway timeout") ||
+    normalizedMessage.includes("status code 504");
+  const isFirebaseCode = resolvedCode.startsWith("auth/");
 
   // Always log full auth failure details for production debugging.
-  console.error("Firebase auth error", {
+  console.error(isFirebaseCode ? "Firebase auth error" : "Auth flow error", {
     code: resolvedCode || null,
+    status: status || null,
     message: message || null,
     raw: errorLike,
   });
+
+  if (isGatewayTimeoutError) {
+    toast.error(
+      "Server trenutno ne odgovara (502/503/504). Pokušajte ponovo za 30-60 sekundi."
+    );
+    return;
+  }
 
   if (resolvedCode && ERROR_CODES.hasOwnProperty(resolvedCode)) {
     toast.error(ERROR_CODES[resolvedCode]);
