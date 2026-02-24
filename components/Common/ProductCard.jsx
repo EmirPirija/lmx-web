@@ -880,7 +880,7 @@ const ProductCard = ({
         ) : null}
 
         <div
-          className="mt-auto flex flex-col-reverse items-center justify-between gap-2 pt-2 sm:flex-row"
+          className="mt-auto flex flex-col-reverse justify-between gap-2 pt-2 sm:flex-row"
         >
           {publishedAgo ? (
             <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">

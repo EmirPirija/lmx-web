@@ -1566,7 +1566,7 @@ const SellerSettings = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3">
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
