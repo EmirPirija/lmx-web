@@ -3,9 +3,25 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "@/utils/toastBs";
 import Api from "@/api/AxiosInterceptors";
-import { 
-  Upload, X, Play, Pause, Image as ImageIcon, 
-  Star, Trash2, Loader2, GripVertical, Plus, CheckCircle2, MousePointerClick, Link2, ExternalLink, Instagram, ChevronLeft, ChevronRight
+import { getYouTubeVideoId } from "@/utils";
+import {
+  Upload,
+  X,
+  Play,
+  Pause,
+  Image as ImageIcon,
+  Star,
+  Trash2,
+  Loader2,
+  GripVertical,
+  Plus,
+  CheckCircle2,
+  MousePointerClick,
+  Link2,
+  ExternalLink,
+  Instagram,
+  ChevronLeft,
+  ChevronRight,
 } from "@/components/Common/UnifiedIconPack";
 import { cn } from "@/lib/utils";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
@@ -20,7 +36,8 @@ const WATERMARK_TEXT_FALLBACK = "lmx.ba";
 // =======================================================
 // MEDIA HELPERS
 // =======================================================
-const isFileLike = (v) => typeof File !== "undefined" && (v instanceof File || v instanceof Blob);
+const isFileLike = (v) =>
+  typeof File !== "undefined" && (v instanceof File || v instanceof Blob);
 const isBlobUrl = (v) => typeof v === "string" && v.startsWith("blob:");
 const isLikelyImageFile = (file) => {
   if (!file) return false;
@@ -36,14 +53,14 @@ const safeObjectUrl = (v) => {
     if (!v) return "";
     // 1. Ako je običan string (URL)
     if (typeof v === "string") return v;
-    
+
     // 2. Ako je objekat (sa servera ili temp upload)
     if (typeof v === "object") {
-        // Provjeri redom sva moguća polja gdje API može staviti URL
-        if (v.url) return v.url;           // Temp upload response
-        if (v.image) return v.image;       // Existing DB item
-        if (v.original_url) return v.original_url;
-        if (v.path) return v.path;
+      // Provjeri redom sva moguća polja gdje API može staviti URL
+      if (v.url) return v.url; // Temp upload response
+      if (v.image) return v.image; // Existing DB item
+      if (v.original_url) return v.original_url;
+      if (v.path) return v.path;
     }
 
     // 3. Ako je File/Blob (Local preview prije uploada)
@@ -69,7 +86,13 @@ const randBetween = (min, max) => {
   return min + Math.random() * (max - min);
 };
 
-const getRandomEdgePlacement = ({ width, height, watermarkWidth, watermarkHeight, padding }) => {
+const getRandomEdgePlacement = ({
+  width,
+  height,
+  watermarkWidth,
+  watermarkHeight,
+  padding,
+}) => {
   const minX = padding;
   const maxX = Math.max(padding, width - watermarkWidth - padding);
   const minY = padding;
@@ -77,31 +100,19 @@ const getRandomEdgePlacement = ({ width, height, watermarkWidth, watermarkHeight
   const edges = ["top", "right", "bottom", "left"];
   const edge = edges[Math.floor(Math.random() * edges.length)];
 
-  if (edge === "top") return { x: Math.round(randBetween(minX, maxX)), y: Math.round(minY) };
-  if (edge === "right") return { x: Math.round(maxX), y: Math.round(randBetween(minY, maxY)) };
-  if (edge === "bottom") return { x: Math.round(randBetween(minX, maxX)), y: Math.round(maxY) };
+  if (edge === "top")
+    return { x: Math.round(randBetween(minX, maxX)), y: Math.round(minY) };
+  if (edge === "right")
+    return { x: Math.round(maxX), y: Math.round(randBetween(minY, maxY)) };
+  if (edge === "bottom")
+    return { x: Math.round(randBetween(minX, maxX)), y: Math.round(maxY) };
   return { x: Math.round(minX), y: Math.round(randBetween(minY, maxY)) };
 };
 
 const getYouTubeEmbedUrl = (input) => {
   if (!input) return "";
-
-  try {
-    const url = new URL(input);
-    const host = url.hostname.replace("www.", "");
-
-    if (host === "youtube.com" || host === "m.youtube.com") {
-      const id = url.searchParams.get("v");
-      if (id) return `https://www.youtube.com/embed/${id}`;
-    }
-
-    if (host === "youtu.be") {
-      const id = url.pathname.replace("/", "").trim();
-      if (id) return `https://www.youtube.com/embed/${id}`;
-    }
-  } catch {}
-
-  return "";
+  const id = getYouTubeVideoId(input);
+  return id ? `https://www.youtube.com/embed/${id}` : "";
 };
 
 const extractTempUploadId = (value) => {
@@ -173,10 +184,10 @@ const compressAndWatermarkImage = async (file) => {
 
   const originalSizeKB = (file.size / 1024).toFixed(2);
   console.log(`📸 [Image Start] ${file.name} | Size: ${originalSizeKB} KB`);
-  
+
   const opts = {
     maxSize: 1920,
-    quality: 0.80,
+    quality: 0.8,
     watermarkUrl: WATERMARK_URL,
     watermarkOpacity: 0.9,
     watermarkScale: 0.15,
@@ -204,7 +215,7 @@ const compressAndWatermarkImage = async (file) => {
 
   const srcW = img.naturalWidth || img.width;
   const srcH = img.naturalHeight || img.height;
-  
+
   const scale = Math.min(1, opts.maxSize / Math.max(srcW, srcH));
   const outW = Math.max(1, Math.round(srcW * scale));
   const outH = Math.max(1, Math.round(srcH * scale));
@@ -223,9 +234,14 @@ const compressAndWatermarkImage = async (file) => {
       ctx.save();
       ctx.globalAlpha = opts.watermarkOpacity;
       const wmWidth = Math.max(32, Math.round(outW * opts.watermarkScale));
-      const wmAspect = (wmImg.naturalWidth || wmImg.width) / (wmImg.naturalHeight || wmImg.height);
+      const wmAspect =
+        (wmImg.naturalWidth || wmImg.width) /
+        (wmImg.naturalHeight || wmImg.height);
       const wmHeight = Math.max(16, Math.round(wmWidth / wmAspect));
-      const padding = Math.max(8, Math.round(Math.min(outW, outH) * opts.watermarkPaddingPct));
+      const padding = Math.max(
+        8,
+        Math.round(Math.min(outW, outH) * opts.watermarkPaddingPct),
+      );
       const { x, y } = getRandomEdgePlacement({
         width: outW,
         height: outH,
@@ -244,7 +260,10 @@ const compressAndWatermarkImage = async (file) => {
         ctx.globalAlpha = 0.75;
         ctx.font = `700 ${fontSize}px sans-serif`;
         ctx.textBaseline = "top";
-        const textW = Math.max(1, Math.round(ctx.measureText(WATERMARK_TEXT_FALLBACK).width));
+        const textW = Math.max(
+          1,
+          Math.round(ctx.measureText(WATERMARK_TEXT_FALLBACK).width),
+        );
         const textH = Math.max(fontSize, Math.round(fontSize * 1.12));
         const { x, y } = getRandomEdgePlacement({
           width: outW,
@@ -269,10 +288,14 @@ const compressAndWatermarkImage = async (file) => {
   if (!outBlob) return file;
 
   const compressedSizeKB = (outBlob.size / 1024).toFixed(2);
-  const reduction = ((1 - (outBlob.size / file.size)) * 100).toFixed(1);
-  console.log(`✅ [Image Done] ${file.name} | New Size: ${compressedSizeKB} KB | Saved: ${reduction}%`);
+  const reduction = ((1 - outBlob.size / file.size) * 100).toFixed(1);
+  console.log(
+    `✅ [Image Done] ${file.name} | New Size: ${compressedSizeKB} KB | Saved: ${reduction}%`,
+  );
 
-  const newName = (file.name || "image").replace(/\.(png|jpe?g|webp|heic|heif)$/i, "").concat(".jpg");
+  const newName = (file.name || "image")
+    .replace(/\.(png|jpe?g|webp|heic|heif)$/i, "")
+    .concat(".jpg");
   return new File([outBlob], newName, { type: "image/jpeg" });
 };
 
@@ -285,9 +308,9 @@ const ProgressBar = ({ progress, label }) => (
         <span>{Math.round(progress)}%</span>
       </div>
       <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
-        <div 
-          className="h-full bg-primary transition-all duration-300 ease-out rounded-full" 
-          style={{ width: `${progress}%` }} 
+        <div
+          className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
+          style={{ width: `${progress}%` }}
         />
       </div>
     </div>
@@ -327,7 +350,7 @@ const ComponentFour = ({
 }) => {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
-  
+
   const [imageUploadProgress, setImageUploadProgress] = useState({});
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
@@ -345,22 +368,22 @@ const ComponentFour = ({
   const instagramEmbedUrl =
     getInstagramEmbedUrl(videoLink) || getInstagramEmbedUrl(instagramSourceUrl);
   const hasAnyVideoSource = Boolean(
-    (videoLink && String(videoLink).trim()) || videoPreviewUrl
+    (videoLink && String(videoLink).trim()) || videoPreviewUrl,
   );
 
   useEffect(() => {
     // ✅ FIX: Robusnije rukovanje videom
     const rawVid = uploadedVideo;
     let u = null;
-    if (typeof rawVid === 'string') u = rawVid;
+    if (typeof rawVid === "string") u = rawVid;
     else if (rawVid?.url) u = rawVid.url;
     else if (rawVid instanceof File) u = URL.createObjectURL(rawVid);
-    
+
     setVideoPreviewUrl(u);
     setIsPlaying(false);
 
     return () => {
-        if (rawVid instanceof File && u) URL.revokeObjectURL(u);
+      if (rawVid instanceof File && u) URL.revokeObjectURL(u);
     };
   }, [uploadedVideo]);
 
@@ -411,17 +434,24 @@ const ComponentFour = ({
         const loaded = Number(progressEvent?.loaded || 0);
         const total = Number(progressEvent?.total || loaded || 1);
         const percent = Math.min(100, Math.round((loaded * 100) / total));
-        if(onProgress) onProgress(percent);
+        if (onProgress) onProgress(percent);
       },
     });
-    if (res?.data?.error !== false) throw new Error(res?.data?.message || `Upload nije uspio`);
-    const raw = Array.isArray(res?.data?.data) ? res.data.data?.[0] : res?.data?.data;
+    if (res?.data?.error !== false)
+      throw new Error(res?.data?.message || `Upload nije uspio`);
+    const raw = Array.isArray(res?.data?.data)
+      ? res.data.data?.[0]
+      : res?.data?.data;
     return normalizeTempUploadEntity(raw);
   };
 
   const deleteTemp = async (id) => {
     if (!id) return;
-    try { await Api.delete(`/upload-temp/${id}`); } catch (e) { console.error(e); }
+    try {
+      await Api.delete(`/upload-temp/${id}`);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // Handlers
@@ -430,7 +460,8 @@ const ComponentFour = ({
     if (!rawArr.length) return toast.error("Odaberite validne slike");
 
     const remainingSlots = MAX_IMAGES - currentCount;
-    if (remainingSlots <= 0) return toast.error(`Limit od ${MAX_IMAGES} slika dosegnut.`);
+    if (remainingSlots <= 0)
+      return toast.error(`Limit od ${MAX_IMAGES} slika dosegnut.`);
 
     let arrToProcess = rawArr;
     if (rawArr.length > remainingSlots) {
@@ -442,21 +473,27 @@ const ComponentFour = ({
 
     for (const file of arrToProcess) {
       const tempId = Math.random().toString(36).substring(7);
-      setImageUploadProgress(prev => ({ ...prev, [tempId]: 1 }));
+      setImageUploadProgress((prev) => ({ ...prev, [tempId]: 1 }));
 
       try {
-        setImageUploadProgress(prev => ({ ...prev, [tempId]: 10 }));
+        setImageUploadProgress((prev) => ({ ...prev, [tempId]: 10 }));
         // Server-side temp upload već radi watermark (random ivica),
         // pa ovdje šaljemo original da izbjegnemo dupliranje watermarka.
         const processedFile = file;
-        
-        const uploadedData = await uploadFile(processedFile, "image", (percent) => {
-          const totalPercent = 20 + (percent * 0.8);
-          setImageUploadProgress(prev => ({ ...prev, [tempId]: totalPercent }));
-        });
+
+        const uploadedData = await uploadFile(
+          processedFile,
+          "image",
+          (percent) => {
+            const totalPercent = 20 + percent * 0.8;
+            setImageUploadProgress((prev) => ({
+              ...prev,
+              [tempId]: totalPercent,
+            }));
+          },
+        );
 
         newUploadsBatch.push(uploadedData);
-
       } catch (e) {
         console.error(e);
         const errorMsg =
@@ -466,7 +503,7 @@ const ComponentFour = ({
         toast.error(`Greška (${file.name}): ${errorMsg}`);
       } finally {
         setTimeout(() => {
-          setImageUploadProgress(prev => {
+          setImageUploadProgress((prev) => {
             const ns = { ...prev };
             delete ns[tempId];
             return ns;
@@ -476,21 +513,28 @@ const ComponentFour = ({
     }
 
     if (newUploadsBatch.length > 0) {
-        const normalizedBatch = newUploadsBatch.map(normalizeTempUploadEntity).filter(Boolean);
-        if (!normalizedBatch.length) return;
-        if (uploadedImages.length === 0) {
-            setUploadedImages([normalizedBatch[0]]);
-            setOtherImages(prev => [...(prev || []), ...normalizedBatch.slice(1)]);
-        } else {
-            setOtherImages(prev => [...(prev || []), ...normalizedBatch]);
-        }
+      const normalizedBatch = newUploadsBatch
+        .map(normalizeTempUploadEntity)
+        .filter(Boolean);
+      if (!normalizedBatch.length) return;
+      if (uploadedImages.length === 0) {
+        setUploadedImages([normalizedBatch[0]]);
+        setOtherImages((prev) => [
+          ...(prev || []),
+          ...normalizedBatch.slice(1),
+        ]);
+      } else {
+        setOtherImages((prev) => [...(prev || []), ...normalizedBatch]);
+      }
     }
   };
 
   const handleSortStart = (e, index) => {
     dragItem.current = index;
     e.dataTransfer.effectAllowed = "move";
-    try { e.dataTransfer.setDragImage(e.target, 20, 20); } catch (e) {}
+    try {
+      e.dataTransfer.setDragImage(e.target, 20, 20);
+    } catch (e) {}
   };
 
   const handleSortEnter = (e, index) => {
@@ -502,9 +546,9 @@ const ComponentFour = ({
     const draggedIdx = dragItem.current;
     const overIdx = dragOverItem.current;
     if (draggedIdx === null || overIdx === null || draggedIdx === overIdx) {
-        dragItem.current = null;
-        dragOverItem.current = null;
-        return;
+      dragItem.current = null;
+      dragOverItem.current = null;
+      return;
     }
     const _allImages = [...allImages];
     const item = _allImages[draggedIdx];
@@ -513,8 +557,8 @@ const ComponentFour = ({
     dragItem.current = null;
     dragOverItem.current = null;
     if (_allImages.length > 0) {
-        setUploadedImages([_allImages[0]]);
-        setOtherImages(_allImages.slice(1));
+      setUploadedImages([_allImages[0]]);
+      setOtherImages(_allImages.slice(1));
     }
   };
 
@@ -533,7 +577,7 @@ const ComponentFour = ({
       setOtherImages(nextImages.slice(1));
       setFocusedImageId(null);
     },
-    [allImages, setUploadedImages, setOtherImages]
+    [allImages, setUploadedImages, setOtherImages],
   );
 
   const handleMoveImageLeft = useCallback(
@@ -541,7 +585,7 @@ const ComponentFour = ({
       if (index <= 0) return;
       moveImage(index, index - 1);
     },
-    [moveImage]
+    [moveImage],
   );
 
   const handleMoveImageRight = useCallback(
@@ -549,20 +593,20 @@ const ComponentFour = ({
       if (index >= allImages.length - 1) return;
       moveImage(index, index + 1);
     },
-    [allImages.length, moveImage]
+    [allImages.length, moveImage],
   );
 
   const handleDeleteImage = async (targetImg) => {
     try {
       const targetId = extractTempUploadId(targetImg);
       if (targetId) await deleteTemp(targetId);
-      
+
       const newAll = allImages.filter((img) => {
         const imgId = extractTempUploadId(img);
         if (targetId && imgId) return String(imgId) !== String(targetId);
         return img !== targetImg;
       });
-      
+
       if (newAll.length > 0) {
         setUploadedImages([newAll[0]]);
         setOtherImages(newAll.slice(1));
@@ -593,22 +637,24 @@ const ComponentFour = ({
 
   const handleVideoUpload = async (file) => {
     if (!file) return;
-    if (!file.type?.startsWith("video/")) return toast.error("Neispravan format videa.");
-    
+    if (!file.type?.startsWith("video/"))
+      return toast.error("Neispravan format videa.");
+
     console.log(`🎥 [Video Upload Start] ${file.name}`);
 
-    if (file.size > 50 * 1024 * 1024) return toast.error("Video može imati najviše 50 MB.");
+    if (file.size > 50 * 1024 * 1024)
+      return toast.error("Video može imati najviše 50 MB.");
 
     try {
       setIsUploadingVideo(true);
       setIsVideoProcessing(false);
       setVideoUploadProgress(0);
-      
+
       const data = await uploadFile(file, "video", (p) => {
         setVideoUploadProgress(p);
-        if(p === 100) setIsVideoProcessing(true);
+        if (p === 100) setIsVideoProcessing(true);
       });
-      
+
       setUploadedVideo(normalizeTempUploadEntity(data));
       onVideoSelected?.();
       toast.success("Video je postavljen.");
@@ -628,20 +674,25 @@ const ComponentFour = ({
     setVideoPreviewUrl(null);
   };
 
-  const handleDrop = useCallback((e, type) => {
-    e.preventDefault();
-    if(type === 'image') setIsDraggingFile(false);
-    else setIsDraggingVideo(false);
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-        if (type === 'image') handleImagesUpload(files);
+  const handleDrop = useCallback(
+    (e, type) => {
+      e.preventDefault();
+      if (type === "image") setIsDraggingFile(false);
+      else setIsDraggingVideo(false);
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        if (type === "image") handleImagesUpload(files);
         else handleVideoUpload(files[0]);
-    }
-  }, [allImages]);
+      }
+    },
+    [allImages],
+  );
 
   const handleStoryToggle = (checked) => {
     if (checked && !hasAnyVideoSource) {
-      toast.info("Story objava je dostupna tek kada dodate video ili video URL.");
+      toast.info(
+        "Story objava je dostupna tek kada dodate video ili video URL.",
+      );
       return;
     }
     setAddVideoToStory?.(checked);
@@ -682,248 +733,334 @@ const ComponentFour = ({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-red-50]:bg-red-500/10">
-      
       {/* 📸 SEKCIJA SLIKE */}
       <div className="space-y-5">
         <div className="flex items-center justify-between">
-            <div>
-              <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
-                  <ImageIcon className="w-5 h-5 text-primary" />
-                  Fotografije
-              </h3>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {isMobileImageUi
-                  ? "Prva slika je glavna. Na mobitelu koristite strelice za raspored."
-                  : "Prva slika je glavna. Prevucite za promjenu rasporeda."}
-              </p>
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              Fotografije
+            </h3>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {isMobileImageUi
+                ? "Prva slika je glavna. Na mobitelu koristite strelice za raspored."
+                : "Prva slika je glavna. Prevucite za promjenu rasporeda."}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 rounded-full border bg-white px-3 py-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <span
+              className={cn(
+                "text-xs font-bold",
+                currentCount >= MAX_IMAGES ? "text-red-500" : "text-primary",
+              )}
+            >
+              {currentCount} / {MAX_IMAGES}
+            </span>
+            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+              <div
+                className={cn(
+                  "h-full transition-all duration-500",
+                  currentCount >= MAX_IMAGES ? "bg-red-500" : "bg-primary",
+                )}
+                style={{ width: `${(currentCount / MAX_IMAGES) * 100}%` }}
+              />
             </div>
-            <div className="flex items-center gap-3 rounded-full border bg-white px-3 py-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <span className={cn("text-xs font-bold", currentCount >= MAX_IMAGES ? "text-red-500" : "text-primary")}>
-                    {currentCount} / {MAX_IMAGES}
-                </span>
-                <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
-                    <div 
-                        className={cn("h-full transition-all duration-500", currentCount >= MAX_IMAGES ? "bg-red-500" : "bg-primary")}
-                        style={{ width: `${(currentCount / MAX_IMAGES) * 100}%` }}
-                    />
-                </div>
-            </div>
+          </div>
         </div>
 
         {currentCount < MAX_IMAGES && (
-            <label
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
-                onDragLeave={() => setIsDraggingFile(false)}
-                onDrop={(e) => handleDrop(e, 'image')}
-                className={cn(
-                    "relative group flex flex-col items-center justify-center w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all duration-300 hover:bg-slate-50 dark:bg-slate-800/30 dark:hover:bg-slate-800",
-                    isDraggingFile ? "border-primary bg-primary/5 shadow-md" : "border-slate-300 hover:border-primary/50",
-                    isCompactMode ? "h-20 flex-row gap-4" : "h-48"
-                )}
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingFile(true);
+            }}
+            onDragLeave={() => setIsDraggingFile(false)}
+            onDrop={(e) => handleDrop(e, "image")}
+            className={cn(
+              "relative group flex flex-col items-center justify-center w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all duration-300 hover:bg-slate-50 dark:bg-slate-800/30 dark:hover:bg-slate-800",
+              isDraggingFile
+                ? "border-primary bg-primary/5 shadow-md"
+                : "border-slate-300 hover:border-primary/50",
+              isCompactMode ? "h-20 flex-row gap-4" : "h-48",
+            )}
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImagesUpload(e.target.files)}
+            />
+            <div
+              className={cn(
+                "flex items-center justify-center transition-all duration-300",
+                isCompactMode
+                  ? "h-10 w-10 rounded-lg bg-primary/10 text-primary"
+                  : "rounded-full bg-white p-4 text-slate-400 shadow-sm group-hover:text-primary dark:bg-slate-900 dark:text-slate-300",
+              )}
             >
-                <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleImagesUpload(e.target.files)} />
-                <div className={cn(
-                    "flex items-center justify-center transition-all duration-300",
-                    isCompactMode
-                      ? "h-10 w-10 rounded-lg bg-primary/10 text-primary"
-                      : "rounded-full bg-white p-4 text-slate-400 shadow-sm group-hover:text-primary dark:bg-slate-900 dark:text-slate-300"
-                )}>
-                    {isCompactMode ? <Plus className="w-6 h-6" /> : <Upload className="w-8 h-8" />}
+              {isCompactMode ? (
+                <Plus className="w-6 h-6" />
+              ) : (
+                <Upload className="w-8 h-8" />
+              )}
+            </div>
+            <div className={cn("text-center", isCompactMode && "text-left")}>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {isCompactMode
+                  ? "Dodaj još fotografija"
+                  : "Klikni ili prevuci slike ovdje"}
+              </p>
+              {!isCompactMode && (
+                <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                  JPG, PNG, WEBP • Max 10MB
+                </p>
+              )}
+            </div>
+            {Object.keys(imageUploadProgress).length > 0 && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 backdrop-blur-sm dark:bg-slate-900/85">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  <span className="text-xs font-bold text-primary">
+                    Obrađujem...
+                  </span>
                 </div>
-                <div className={cn("text-center", isCompactMode && "text-left")}>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        {isCompactMode ? "Dodaj još fotografija" : "Klikni ili prevuci slike ovdje"}
-                    </p>
-                    {!isCompactMode && (
-                        <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">JPG, PNG, WEBP • Max 10MB</p>
-                    )}
-                </div>
-                {Object.keys(imageUploadProgress).length > 0 && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 backdrop-blur-sm dark:bg-slate-900/85">
-                        <div className="flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                            <span className="text-xs font-bold text-primary">Obrađujem...</span>
-                        </div>
-                    </div>
-                )}
-            </label>
+              </div>
+            )}
+          </label>
         )}
 
         {/* IMAGE GRID */}
         {allImages.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 select-none animate-in fade-in zoom-in-95 duration-300">
-                {allImages.map((img, index) => {
-                    const isMain = index === 0;
-                    // ✅ Koristimo ispravljenu safeObjectUrl funkciju
-                    const imgSrc = safeObjectUrl(img);
-                    const imgId = extractTempUploadId(img) ?? img?.id ?? img?.url ?? index;
-                    const isFocused = focusedImageId === imgId;
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 select-none animate-in fade-in zoom-in-95 duration-300">
+            {allImages.map((img, index) => {
+              const isMain = index === 0;
+              // ✅ Koristimo ispravljenu safeObjectUrl funkciju
+              const imgSrc = safeObjectUrl(img);
+              const imgId =
+                extractTempUploadId(img) ?? img?.id ?? img?.url ?? index;
+              const isFocused = focusedImageId === imgId;
 
-                    return (
-                        <div 
-                            key={imgId}
-                            draggable={!isMobileImageUi}
-                            onDragStart={(e) => {
-                              if (isMobileImageUi) return;
-                              handleSortStart(e, index);
-                            }}
-                            onDragEnter={(e) => {
-                              if (isMobileImageUi) return;
-                              handleSortEnter(e, index);
-                            }}
-                            onDragEnd={(e) => {
-                              if (isMobileImageUi) return;
-                              handleSortEnd(e);
-                            }}
-                            onDragOver={(e) => {
-                              if (isMobileImageUi) return;
-                              e.preventDefault();
-                            }}
-                            onClick={(e) => {
-                              if (isMobileImageUi) return;
-                              toggleImageFocus(e, imgId);
-                            }}
-                            className={cn(
-                                "image-card-interactive group relative aspect-square overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900 touch-manipulation",
-                                isMobileImageUi ? "cursor-default" : "cursor-pointer",
-                                isFocused
-                                  ? "z-20 ring-2 ring-primary ring-offset-2 ring-offset-slate-100 shadow-lg dark:ring-offset-slate-950"
-                                  : "border-slate-200 hover:shadow-md dark:border-slate-700",
-                                isMain && !isFocused && "ring-2 ring-primary/50 border-transparent"
-                            )}
-                        >
-                            <img 
-                                src={imgSrc} 
-                                alt="Listing" 
-                                className="w-full h-full object-cover pointer-events-none" 
-                            />
+              return (
+                <div
+                  key={imgId}
+                  draggable={!isMobileImageUi}
+                  onDragStart={(e) => {
+                    if (isMobileImageUi) return;
+                    handleSortStart(e, index);
+                  }}
+                  onDragEnter={(e) => {
+                    if (isMobileImageUi) return;
+                    handleSortEnter(e, index);
+                  }}
+                  onDragEnd={(e) => {
+                    if (isMobileImageUi) return;
+                    handleSortEnd(e);
+                  }}
+                  onDragOver={(e) => {
+                    if (isMobileImageUi) return;
+                    e.preventDefault();
+                  }}
+                  onClick={(e) => {
+                    if (isMobileImageUi) return;
+                    toggleImageFocus(e, imgId);
+                  }}
+                  className={cn(
+                    "image-card-interactive group relative aspect-square overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900 touch-manipulation",
+                    isMobileImageUi ? "cursor-default" : "cursor-pointer",
+                    isFocused
+                      ? "z-20 ring-2 ring-primary ring-offset-2 ring-offset-slate-100 shadow-lg dark:ring-offset-slate-950"
+                      : "border-slate-200 hover:shadow-md dark:border-slate-700",
+                    isMain &&
+                      !isFocused &&
+                      "ring-2 ring-primary/50 border-transparent",
+                  )}
+                >
+                  <img
+                    src={imgSrc}
+                    alt="Listing"
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
 
-                            <div className={cn(
-                                "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300",
-                                isMobileImageUi ? "opacity-100" : isFocused ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                            )} />
+                  <div
+                    className={cn(
+                      "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300",
+                      isMobileImageUi
+                        ? "opacity-100"
+                        : isFocused
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100",
+                    )}
+                  />
 
-                            <div className={cn(
-                                "absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1 z-10 transition-all",
-                                isMain ? "bg-primary text-white" : "bg-black/60 text-white backdrop-blur-md",
-                                isFocused && !isMain && !isMobileImageUi ? "opacity-0" : "opacity-100"
-                            )}>
-                                {isMain ? <><Star className="w-3 h-3 fill-current" /> GLAVNA</> : <span>#{index + 1}</span>}
-                            </div>
+                  <div
+                    className={cn(
+                      "absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1 z-10 transition-all",
+                      isMain
+                        ? "bg-primary text-white"
+                        : "bg-black/60 text-white backdrop-blur-md",
+                      isFocused && !isMain && !isMobileImageUi
+                        ? "opacity-0"
+                        : "opacity-100",
+                    )}
+                  >
+                    {isMain ? (
+                      <>
+                        <Star className="w-3 h-3 fill-current" /> GLAVNA
+                      </>
+                    ) : (
+                      <span>#{index + 1}</span>
+                    )}
+                  </div>
 
-                            <div className={cn(
-                                "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-lg transition-opacity duration-300 pointer-events-none",
-                                isMobileImageUi ? "opacity-0" : isFocused ? "opacity-0" : "opacity-0 group-hover:opacity-100"
-                            )}>
-                                <GripVertical className="w-10 h-10" />
-                            </div>
+                  <div
+                    className={cn(
+                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-lg transition-opacity duration-300 pointer-events-none",
+                      isMobileImageUi
+                        ? "opacity-0"
+                        : isFocused
+                          ? "opacity-0"
+                          : "opacity-0 group-hover:opacity-100",
+                    )}
+                  >
+                    <GripVertical className="w-10 h-10" />
+                  </div>
 
-                            <div className={cn(
-                                "absolute top-2 right-2 z-30 transition-opacity duration-300",
-                                isMobileImageUi ? "opacity-100" : isFocused ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                            )}>
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteImage(img); }}
-                                    className={cn(
-                                      "rounded-full bg-white/90 p-1.5 text-red-500 shadow-md transition-colors dark:bg-slate-900/90",
-                                      isMobileImageUi
-                                        ? "active:bg-red-50"
-                                        : "hover:bg-red-50 hover:text-white dark:hover:bg-red-500/20"
-                                    )}
-                                    title="Izbriši sliku"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
+                  <div
+                    className={cn(
+                      "absolute top-2 right-2 z-30 transition-opacity duration-300",
+                      isMobileImageUi
+                        ? "opacity-100"
+                        : isFocused
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100",
+                    )}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteImage(img);
+                      }}
+                      className={cn(
+                        "rounded-full bg-white/90 p-1.5 text-red-500 shadow-md transition-colors dark:bg-slate-900/90",
+                        isMobileImageUi
+                          ? "active:bg-red-50"
+                          : "hover:bg-red-50 hover:text-white dark:hover:bg-red-500/20",
+                      )}
+                      title="Izbriši sliku"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                            {!isMain && (
-                                <div className={cn(
-                                    "absolute bottom-3 left-3 right-3 z-30 transition-all duration-300 transform",
-                                    isMobileImageUi
-                                      ? "opacity-100 translate-y-0"
-                                      : isFocused
-                                      ? "opacity-100 translate-y-0"
-                                      : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
-                                )}>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleSetMain(img); }}
-                                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/95 py-2 text-xs font-bold text-slate-800 shadow-lg backdrop-blur transition-all hover:bg-primary hover:text-white dark:bg-slate-900/90 dark:text-slate-100"
-                                    >
-                                        <MousePointerClick className="w-3.5 h-3.5" />
-                                        Postavi kao glavnu
-                                    </button>
-                                </div>
-                            )}
-
-                            {isMobileImageUi && (
-                                <div className="absolute inset-x-2 bottom-2 z-30">
-                                    <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-black/45 p-1.5 backdrop-blur-sm">
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleMoveImageLeft(index);
-                                            }}
-                                            disabled={index === 0}
-                                            className="inline-flex h-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
-                                            title="Pomjeri lijevo"
-                                        >
-                                            <ChevronLeft className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleMoveImageRight(index);
-                                            }}
-                                            disabled={index === allImages.length - 1}
-                                            className="inline-flex h-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
-                                            title="Pomjeri desno"
-                                        >
-                                            <ChevronRight className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (!isMain) handleSetMain(img);
-                                            }}
-                                            disabled={isMain}
-                                            className={cn(
-                                              "inline-flex h-8 items-center justify-center rounded-lg px-1 text-[11px] font-semibold disabled:cursor-not-allowed",
-                                              isMain
-                                                ? "bg-emerald-500 text-white disabled:opacity-95"
-                                                : "bg-white/90 text-slate-700 active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
-                                            )}
-                                            title={isMain ? "Već je glavna" : "Postavi kao glavnu"}
-                                        >
-                                            {isMain ? "Glavna" : "Na vrh"}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-                
-                {Object.keys(imageUploadProgress).map((key) => (
-                    <div key={key} className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70">
-                        <ProgressBar progress={imageUploadProgress[key]} label="Obrada" />
+                  {!isMain && (
+                    <div
+                      className={cn(
+                        "absolute bottom-3 left-3 right-3 z-30 transition-all duration-300 transform",
+                        isMobileImageUi
+                          ? "opacity-100 translate-y-0"
+                          : isFocused
+                            ? "opacity-100 translate-y-0"
+                            : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0",
+                      )}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetMain(img);
+                        }}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/95 py-2 text-xs font-bold text-slate-800 shadow-lg backdrop-blur transition-all hover:bg-primary hover:text-white dark:bg-slate-900/90 dark:text-slate-100"
+                      >
+                        <MousePointerClick className="w-3.5 h-3.5" />
+                        Postavi kao glavnu
+                      </button>
                     </div>
-                ))}
-            </div>
+                  )}
+
+                  {isMobileImageUi && (
+                    <div className="absolute inset-x-2 bottom-2 z-30">
+                      <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-black/45 p-1.5 backdrop-blur-sm">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveImageLeft(index);
+                          }}
+                          disabled={index === 0}
+                          className="inline-flex h-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
+                          title="Pomjeri lijevo"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveImageRight(index);
+                          }}
+                          disabled={index === allImages.length - 1}
+                          className="inline-flex h-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100"
+                          title="Pomjeri desno"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isMain) handleSetMain(img);
+                          }}
+                          disabled={isMain}
+                          className={cn(
+                            "inline-flex h-8 items-center justify-center rounded-lg px-1 text-[11px] font-semibold disabled:cursor-not-allowed",
+                            isMain
+                              ? "bg-emerald-500 text-white disabled:opacity-95"
+                              : "bg-white/90 text-slate-700 active:scale-[0.97] dark:bg-slate-900/90 dark:text-slate-100",
+                          )}
+                          title={
+                            isMain ? "Već je glavna" : "Postavi kao glavnu"
+                          }
+                        >
+                          {isMain ? "Glavna" : "Na vrh"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {Object.keys(imageUploadProgress).map((key) => (
+              <div
+                key={key}
+                className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70"
+              >
+                <ProgressBar
+                  progress={imageUploadProgress[key]}
+                  label="Obrada"
+                />
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
       {/* --- VIDEO SEKCIJA --- */}
       <div className="space-y-4 border-t border-slate-100 pt-8 dark:border-slate-700">
         <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-slate-100">
-            <Play className="w-5 h-5 text-red-500" />
-            Video prezentacija
+          <Play className="w-5 h-5 text-red-500" />
+          Video prezentacija
         </h3>
 
         <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/70">
-          <label className={cn("flex items-start gap-3 select-none", hasAnyVideoSource ? "cursor-pointer" : "cursor-not-allowed opacity-70")}>
+          <label
+            className={cn(
+              "flex items-start gap-3 select-none",
+              hasAnyVideoSource
+                ? "cursor-pointer"
+                : "cursor-not-allowed opacity-70",
+            )}
+          >
             <input
               type="checkbox"
               checked={Boolean(addVideoToStory)}
@@ -932,18 +1069,28 @@ const ComponentFour = ({
               className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
             />
             <span>
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Objavi video i na story</span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Objavi video i na story
+              </span>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Maksimalno 5 aktivnih story objava po profilu. (vrijedi za URL i upload video)
+                Maksimalno 5 aktivnih story objava po profilu. (vrijedi za URL i
+                upload video)
               </p>
             </span>
           </label>
-          <p className={cn("mt-2 text-xs", addVideoToStory ? "text-primary" : "text-slate-500 dark:text-slate-400")}>
+          <p
+            className={cn(
+              "mt-2 text-xs",
+              addVideoToStory
+                ? "text-primary"
+                : "text-slate-500 dark:text-slate-400",
+            )}
+          >
             {hasAnyVideoSource && addVideoToStory
               ? "Video će biti objavljen i na story."
               : hasAnyVideoSource
-              ? "Video će biti objavljen uz oglas, ali ne i na story."
-              : "Dodajte video URL ili upload videa da biste mogli uključiti story objavu."}
+                ? "Video će biti objavljen uz oglas, ali ne i na story."
+                : "Dodajte video URL ili upload videa da biste mogli uključiti story objavu."}
           </p>
         </div>
 
@@ -1013,17 +1160,25 @@ const ComponentFour = ({
             </p>
             {!uploadedVideo ? (
               <label
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingVideo(true); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingVideo(true);
+                }}
                 onDragLeave={() => setIsDraggingVideo(false)}
-                onDrop={(e) => handleDrop(e, 'video')}
+                onDrop={(e) => handleDrop(e, "video")}
                 className={cn(
-                    "relative flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all dark:bg-slate-800/30",
-                    isDraggingVideo
-                      ? "scale-[1.01] border-red-400 bg-red-50 dark:bg-red-500/10"
-                      : "border-slate-300 hover:border-red-300 hover:bg-red-50/10 dark:border-slate-600 dark:hover:border-red-400 dark:hover:bg-red-500/10"
+                  "relative flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50/30 transition-all dark:bg-slate-800/30",
+                  isDraggingVideo
+                    ? "scale-[1.01] border-red-400 bg-red-50 dark:bg-red-500/10"
+                    : "border-slate-300 hover:border-red-300 hover:bg-red-50/10 dark:border-slate-600 dark:hover:border-red-400 dark:hover:bg-red-500/10",
                 )}
               >
-                <input type="file" accept="video/*" className="hidden" onChange={(e) => handleVideoUpload(e.target.files[0])} />
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => handleVideoUpload(e.target.files[0])}
+                />
                 {isUploadingVideo ? (
                   <div className="w-full max-w-xs p-4">
                     {isVideoProcessing ? (
@@ -1031,7 +1186,10 @@ const ComponentFour = ({
                         Obrada na serveru... (sačekajte)
                       </div>
                     ) : (
-                      <ProgressBar progress={videoUploadProgress} label="Upload videa..." />
+                      <ProgressBar
+                        progress={videoUploadProgress}
+                        label="Upload videa..."
+                      />
                     )}
                   </div>
                 ) : (
@@ -1040,29 +1198,57 @@ const ComponentFour = ({
                       <Play className="w-6 h-6 text-red-500" />
                     </div>
                     <div className="text-left">
-                      <p className="font-semibold text-slate-700 dark:text-slate-200">Dodaj video (opcionalno)</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500">Max 50MB • MP4, WEBM</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200">
+                        Dodaj video (opcionalno)
+                      </p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Max 50MB • MP4, WEBM
+                      </p>
                     </div>
                   </div>
                 )}
               </label>
             ) : (
               <div className="group relative aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-black shadow-md dark:border-slate-700 sm:aspect-[21/9]">
-                <video id="tmp-video-preview" className="w-full h-full object-contain" src={videoPreviewUrl || undefined} playsInline muted loop controls={false} />
+                <video
+                  id="tmp-video-preview"
+                  className="w-full h-full object-contain"
+                  src={videoPreviewUrl || undefined}
+                  playsInline
+                  muted
+                  loop
+                  controls={false}
+                />
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <button onClick={() => {
-                            const el = document.getElementById("tmp-video-preview");
-                            if(el.paused) { el.play(); setIsPlaying(true); } else { el.pause(); setIsPlaying(false); }
-                        }} className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition-all hover:scale-110">
-                        {isPlaying ? <Pause className="fill-current w-6 h-6" /> : <Play className="fill-current w-6 h-6 ml-1" />}
-                    </button>
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById("tmp-video-preview");
+                      if (el.paused) {
+                        el.play();
+                        setIsPlaying(true);
+                      } else {
+                        el.pause();
+                        setIsPlaying(false);
+                      }
+                    }}
+                    className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition-all hover:scale-110"
+                  >
+                    {isPlaying ? (
+                      <Pause className="fill-current w-6 h-6" />
+                    ) : (
+                      <Play className="fill-current w-6 h-6 ml-1" />
+                    )}
+                  </button>
                 </div>
-                <button onClick={handleRemoveVideo} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm opacity-0 group-hover:opacity-100" title="Ukloni video">
-                    <X className="w-5 h-5" />
+                <button
+                  onClick={handleRemoveVideo}
+                  className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                  title="Ukloni video"
+                >
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             )}
-
           </div>
         </div>
 
@@ -1080,17 +1266,17 @@ const ComponentFour = ({
                     socialPostingUnavailable
                       ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
                       : instagramConnected
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                        : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
                   )}
                 >
                   {socialPostingUnavailable
                     ? "Privremeno nedostupno"
                     : instagramStatusLoading
-                    ? "Provjera..."
-                    : instagramConnected
-                    ? "Povezan"
-                    : "Nije povezan"}
+                      ? "Provjera..."
+                      : instagramConnected
+                        ? "Povezan"
+                        : "Nije povezan"}
                 </span>
                 {socialPostingUnavailable ? (
                   <span className="text-[11px] text-amber-600 dark:text-amber-300">
@@ -1163,7 +1349,11 @@ const ComponentFour = ({
               type="checkbox"
               checked={Boolean(publishToInstagram)}
               onChange={(e) => handleInstagramToggle(e.target.checked)}
-              disabled={socialPostingUnavailable || !instagramConnected || instagramStatusLoading}
+              disabled={
+                socialPostingUnavailable ||
+                !instagramConnected ||
+                instagramStatusLoading
+              }
               className="mt-0.5 h-4 w-4 rounded border-slate-300 text-pink-500 focus:ring-pink-400"
             />
             <span>
@@ -1174,8 +1364,8 @@ const ComponentFour = ({
                 {socialPostingUnavailable
                   ? socialPostingUnavailableMessage
                   : instagramConnected
-                  ? "Nakon objave oglasa, sadržaj će ići u red za Instagram objavu."
-                  : "Opcija je zaključana dok ne povežete Instagram nalog."}
+                    ? "Nakon objave oglasa, sadržaj će ići u red za Instagram objavu."
+                    : "Opcija je zaključana dok ne povežete Instagram nalog."}
               </p>
             </span>
           </label>
@@ -1187,15 +1377,15 @@ const ComponentFour = ({
             socialPostingUnavailable
               ? "text-amber-600 dark:text-amber-300"
               : publishToInstagram
-              ? "text-pink-600 dark:text-pink-300"
-              : "text-slate-500 dark:text-slate-400"
+                ? "text-pink-600 dark:text-pink-300"
+                : "text-slate-500 dark:text-slate-400",
           )}
         >
           {socialPostingUnavailable
             ? socialPostingUnavailableMessage
             : publishToInstagram
-            ? "Objava je uključena za Instagram."
-            : "Instagram objava trenutno nije uključena."}
+              ? "Objava je uključena za Instagram."
+              : "Instagram objava trenutno nije uključena."}
         </p>
 
         {isRealEstate ? (
@@ -1204,11 +1394,14 @@ const ComponentFour = ({
               Lokacija nekretnine
             </p>
             <p className="mt-1 text-xs text-cyan-800 dark:text-cyan-300">
-              U sljedećem koraku postavite tačnu lokaciju nekretnine na mapi. Lokacija profila se ne koristi automatski, a kupcima se prikazuje okvirna zona.
+              U sljedećem koraku postavite tačnu lokaciju nekretnine na mapi.
+              Lokacija profila se ne koristi automatski, a kupcima se prikazuje
+              okvirna zona.
             </p>
             {location?.address ? (
               <p className="mt-2 text-xs text-cyan-700 dark:text-cyan-300">
-                Trenutno odabrano: {location?.address_translated || location?.address}
+                Trenutno odabrano:{" "}
+                {location?.address_translated || location?.address}
               </p>
             ) : null}
           </div>

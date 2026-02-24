@@ -2,19 +2,19 @@
 import { useState, useRef, useEffect, useMemo, useId } from "react";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { 
+import {
   Box,
   CalendarDays,
   CheckCircle2,
   GitCompare,
   MapPin,
-  MdFavorite, 
-  MdFavoriteBorder, 
+  MdFavorite,
+  MdFavoriteBorder,
   MdStar,
   MdTrendingDown,
   MdTrendingUp,
   MdHistory,
-  MdInfoOutline
+  MdInfoOutline,
 } from "@/components/Common/UnifiedIconPack";
 import { IoClose } from "@/components/Common/UnifiedIconPack";
 import { toast } from "@/utils/toastBs";
@@ -32,10 +32,10 @@ import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 // HELPER FUNKCIJE
 // ============================================
 const formatCurrencyValue = (price) =>
-  new Intl.NumberFormat('bs-BA', {
+  new Intl.NumberFormat("bs-BA", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(price) + ' KM';
+  }).format(price) + " KM";
 
 const formatBosnianPrice = (price) => {
   if (!price || Number(price) === 0) return "Na upit";
@@ -68,7 +68,8 @@ const toBooleanFlag = (value) => {
   const normalized = String(value).trim().toLowerCase();
   if (!normalized) return null;
   if (["true", "yes", "da", "on", "enabled"].includes(normalized)) return true;
-  if (["false", "no", "ne", "off", "disabled"].includes(normalized)) return false;
+  if (["false", "no", "ne", "off", "disabled"].includes(normalized))
+    return false;
   return null;
 };
 
@@ -87,7 +88,10 @@ const resolvePriceOnRequestState = (item = {}) => {
     if (parsed !== null) return parsed;
   }
 
-  return isPriceRequestToken(item?.price) || isPriceRequestToken(item?.translated_item?.price);
+  return (
+    isPriceRequestToken(item?.price) ||
+    isPriceRequestToken(item?.translated_item?.price)
+  );
 };
 
 const LOCATION_REDUNDANT_TAILS = new Set([
@@ -125,7 +129,33 @@ const sanitizeMunicipalityCandidate = (value) => {
   return normalized;
 };
 
+const isPlaceholderLocationLabel = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized.includes("odabrana lokacija") ||
+    normalized.includes("lokacija na mapi") ||
+    normalized === "lokacija nije specificirana" ||
+    normalized === "lokacija nije navedena"
+  );
+};
+
+const isStreetLikeToken = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return false;
+  return (
+    /\d/.test(normalized) || /\b(ul\.?|ulica|bb|br\.?|broj)\b/i.test(normalized)
+  );
+};
+
 const resolveMunicipalityOrCityLabel = (rawValue) => {
+  if (rawValue == null) return "";
+  if (typeof rawValue === "object") return "";
+
   const parts = String(rawValue || "")
     .split(",")
     .map((part) => normalizeLocationToken(part))
@@ -140,19 +170,40 @@ const resolveMunicipalityOrCityLabel = (rawValue) => {
     trimmed.pop();
   }
 
-  const first = sanitizeMunicipalityCandidate(trimmed.at(0) || "");
-  const second = sanitizeMunicipalityCandidate(trimmed.at(1) || "");
-  const last = sanitizeMunicipalityCandidate(trimmed.at(-1) || "");
-  const prev = sanitizeMunicipalityCandidate(trimmed.at(-2) || "");
+  const deduped = trimmed
+    .map((token) => sanitizeMunicipalityCandidate(token))
+    .filter(Boolean)
+    .filter(
+      (token, idx, arr) =>
+        arr.findIndex(
+          (entry) => entry.toLowerCase() === token.toLowerCase(),
+        ) === idx,
+    );
 
-  if (first) return first;
-  if (second) return second;
+  if (!deduped.length) return "";
 
-  if (last && prev && last.toLowerCase() !== prev.toLowerCase()) {
-    return last;
+  const meaningful = deduped.filter(
+    (token) => !isPlaceholderLocationLabel(token) && !isStreetLikeToken(token),
+  );
+  const pool = meaningful.length
+    ? meaningful
+    : deduped.filter((token) => !isPlaceholderLocationLabel(token));
+
+  if (!pool.length) return "";
+  if (pool.length === 1) return pool[0];
+
+  const right = sanitizeMunicipalityCandidate(pool.at(-1) || "");
+  const leftOfRight = sanitizeMunicipalityCandidate(pool.at(-2) || "");
+
+  if (
+    leftOfRight &&
+    right &&
+    leftOfRight.toLowerCase() !== right.toLowerCase()
+  ) {
+    return leftOfRight;
   }
 
-  return prev || last || "";
+  return leftOfRight || right || pool.at(0) || "";
 };
 
 const formatSignedPriceDelta = (value) => {
@@ -172,7 +223,8 @@ const pluralizeBosnian = (count, one, few, many) => {
 const formatTimeAgoBs = (value) => {
   if (!value) return "nije dostupno";
 
-  const date = typeof value === "number" ? new Date(value) : new Date(String(value));
+  const date =
+    typeof value === "number" ? new Date(value) : new Date(String(value));
   if (isNaN(date.getTime())) return "nije dostupno";
 
   const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
@@ -207,11 +259,16 @@ const formatTimeAgoBs = (value) => {
   return `prije ${years} ${pluralizeBosnian(years, "godinu", "godine", "godina")}`;
 };
 
-const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnRequest = false) => {
+const buildPriceHistoryInsights = (
+  priceHistory,
+  currentPrice,
+  currentPriceOnRequest = false,
+) => {
   const rawHistory = Array.isArray(priceHistory) ? priceHistory : [];
   const timeline = rawHistory
     .map((entry, index) => {
-      const rawPrice = entry?.price ?? entry?.old_price ?? entry?.value ?? entry?.amount;
+      const rawPrice =
+        entry?.price ?? entry?.old_price ?? entry?.value ?? entry?.amount;
       const price = toPriceNumber(rawPrice);
       const onRequest =
         toBooleanFlag(entry?.price_on_request) === true ||
@@ -241,12 +298,14 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnReq
     .filter(Boolean);
 
   timeline.sort((a, b) => {
-    if (a.timestamp !== null && b.timestamp !== null) return a.timestamp - b.timestamp;
+    if (a.timestamp !== null && b.timestamp !== null)
+      return a.timestamp - b.timestamp;
     return a.index - b.index;
   });
 
   const currentPriceNumber = toPriceNumber(currentPrice);
-  const isCurrentOnRequest = Boolean(currentPriceOnRequest) || isPriceRequestToken(currentPrice);
+  const isCurrentOnRequest =
+    Boolean(currentPriceOnRequest) || isPriceRequestToken(currentPrice);
   const latestPoint = timeline[timeline.length - 1];
   if (isCurrentOnRequest) {
     if (!latestPoint || latestPoint.onRequest !== true) {
@@ -309,7 +368,7 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnReq
   }
 
   const numericTimeline = timeline.filter(
-    (point) => Number.isFinite(point?.price) && point?.onRequest !== true
+    (point) => Number.isFinite(point?.price) && point?.onRequest !== true,
   );
 
   if (!numericTimeline.length) {
@@ -352,7 +411,8 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnReq
     if (diff > 0) increaseCount += 1;
     if (diff < 0) decreaseCount += 1;
     if (diff !== 0) {
-      lastChangeAt = numericTimeline[i].timestamp || numericTimeline[i].dateValue || null;
+      lastChangeAt =
+        numericTimeline[i].timestamp || numericTimeline[i].dateValue || null;
     }
   }
 
@@ -383,15 +443,17 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnReq
     totalChange < 0
       ? `Ukupno sniženje: ${formatSignedPriceDelta(totalChange)}`
       : totalChange > 0
-      ? `Ukupno povećanje: ${formatSignedPriceDelta(totalChange)}`
-      : "Ukupna promjena: 0 KM";
+        ? `Ukupno povećanje: ${formatSignedPriceDelta(totalChange)}`
+        : "Ukupna promjena: 0 KM";
 
   const effectiveSummaryText = isCurrentOnRequest
     ? changeCount > 0
       ? `${summaryText} · trenutno na upit`
       : "Cijena je trenutno na upit"
     : summaryText;
-  const effectiveTotalText = isCurrentOnRequest ? "Trenutna cijena: Na upit" : totalText;
+  const effectiveTotalText = isCurrentOnRequest
+    ? "Trenutna cijena: Na upit"
+    : totalText;
 
   const badges = [];
   if (changeCount === 0) {
@@ -405,32 +467,38 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnReq
   }
 
   if (isCurrentLowest) {
-    badges.push({ key: "lowest", tone: "highlight", label: "Najniža cijena do sada" });
+    badges.push({
+      key: "lowest",
+      tone: "highlight",
+      label: "Najniža cijena do sada",
+    });
   }
   if (isCurrentOnRequest) {
-    badges.unshift({ key: "on-request", tone: "neutral", label: "Cijena na upit" });
+    badges.unshift({
+      key: "on-request",
+      tone: "neutral",
+      label: "Cijena na upit",
+    });
   }
 
-  const timelineDesc = [...timeline]
-    .reverse()
-    .map((point, index, list) => {
-      const olderPoint = list[index + 1];
-      let delta = null;
-      if (
-        olderPoint &&
-        point?.onRequest !== true &&
-        olderPoint?.onRequest !== true &&
-        Number.isFinite(point?.price) &&
-        Number.isFinite(olderPoint?.price)
-      ) {
-        delta = point.price - olderPoint.price;
-      }
-      return {
-        ...point,
-        delta,
-        isCurrent: index === 0,
-      };
-    });
+  const timelineDesc = [...timeline].reverse().map((point, index, list) => {
+    const olderPoint = list[index + 1];
+    let delta = null;
+    if (
+      olderPoint &&
+      point?.onRequest !== true &&
+      olderPoint?.onRequest !== true &&
+      Number.isFinite(point?.price) &&
+      Number.isFinite(olderPoint?.price)
+    ) {
+      delta = point.price - olderPoint.price;
+    }
+    return {
+      ...point,
+      delta,
+      isCurrent: index === 0,
+    };
+  });
 
   return {
     hasAnyPrice: true,
@@ -446,7 +514,9 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnReq
     isCurrentLowest,
     summaryText: effectiveSummaryText,
     totalText: effectiveTotalText,
-    lastChangeText: lastChangeAt ? `Zadnja promjena: ${formatTimeAgoBs(lastChangeAt)}` : "Zadnja promjena: nije bilo promjena",
+    lastChangeText: lastChangeAt
+      ? `Zadnja promjena: ${formatTimeAgoBs(lastChangeAt)}`
+      : "Zadnja promjena: nije bilo promjena",
     lastChangeAt,
     badges,
     currentOnRequest: isCurrentOnRequest,
@@ -455,7 +525,7 @@ const buildPriceHistoryInsights = (priceHistory, currentPrice, currentPriceOnReq
 
 const formatBosnianSalary = (min, max) => {
   if (!min && !max) return "Po dogovoru";
-  const formatNum = (num) => new Intl.NumberFormat('bs-BA').format(num);
+  const formatNum = (num) => new Intl.NumberFormat("bs-BA").format(num);
   if (min && max) return `${formatNum(min)} - ${formatNum(max)} KM`;
   if (min) return `Od ${formatNum(min)} KM`;
   return `Do ${formatNum(max)} KM`;
@@ -466,7 +536,20 @@ const formatShortDate = (dateString) => {
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return "";
   const day = date.getDate();
-  const months = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+  const months = [
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "maj",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "okt",
+    "nov",
+    "dec",
+  ];
   return `${day}. ${months[date.getMonth()]} ${date.getFullYear()}.`;
 };
 
@@ -561,7 +644,8 @@ const readBooleanFromCandidates = (candidates = []) => {
 const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
   const keysSet = new Set(keys);
   const parsedCustomFields = parseJsonSafe(customFieldsValue);
-  if (!parsedCustomFields || typeof parsedCustomFields !== "object") return null;
+  if (!parsedCustomFields || typeof parsedCustomFields !== "object")
+    return null;
 
   const walk = (node) => {
     if (!node || typeof node !== "object") return null;
@@ -608,7 +692,8 @@ const extractTranslatedFieldValues = (field) => {
   const flattened = [];
   for (const candidate of candidates) {
     if (Array.isArray(candidate)) flattened.push(...candidate);
-    else if (candidate !== undefined && candidate !== null) flattened.push(candidate);
+    else if (candidate !== undefined && candidate !== null)
+      flattened.push(candidate);
   }
 
   return flattened;
@@ -620,12 +705,16 @@ const readBooleanFromTranslatedFields = (item = {}, fieldNameHints = []) => {
   if (!translatedFields.length) return null;
 
   for (const field of translatedFields) {
-    const fieldName = normalizeText(field?.translated_name || field?.name || "");
+    const fieldName = normalizeText(
+      field?.translated_name || field?.name || "",
+    );
     if (!fieldName) continue;
 
     if (!hints.some((hint) => fieldName.includes(hint))) continue;
 
-    const value = readBooleanFromCandidates(extractTranslatedFieldValues(field));
+    const value = readBooleanFromCandidates(
+      extractTranslatedFieldValues(field),
+    );
     if (value !== null) return value;
   }
 
@@ -749,7 +838,10 @@ const AutoMarqueeText = ({ text, className }) => {
     };
 
     measure();
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(measure)
+        : null;
     observer?.observe(viewport);
     observer?.observe(content);
     window.addEventListener("resize", measure);
@@ -761,10 +853,20 @@ const AutoMarqueeText = ({ text, className }) => {
   }, [text]);
 
   return (
-    <span className={cn("block min-w-0 overflow-hidden whitespace-nowrap", className)} ref={viewportRef} title={text}>
+    <span
+      className={cn(
+        "block min-w-0 overflow-hidden whitespace-nowrap",
+        className,
+      )}
+      ref={viewportRef}
+      title={text}
+    >
       <span
         ref={contentRef}
-        className={cn("inline-block whitespace-nowrap", metrics.isOverflowing && "product-detail-pill-marquee")}
+        className={cn(
+          "inline-block whitespace-nowrap",
+          metrics.isOverflowing && "product-detail-pill-marquee",
+        )}
         style={
           metrics.isOverflowing
             ? {
@@ -780,7 +882,14 @@ const AutoMarqueeText = ({ text, className }) => {
   );
 };
 
-const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className, valueTitle }) => {
+const DetailInfoPill = ({
+  icon: Icon,
+  label,
+  value,
+  tone = "default",
+  className,
+  valueTitle,
+}) => {
   const isBadgeTone = tone !== "default";
   const isExchangeIcon = Icon === GitCompare;
 
@@ -788,20 +897,22 @@ const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className,
     <div
       className={cn(
         "group flex w-full min-w-0 items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-gradient-to-r from-white via-slate-50/80 to-white px-3 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.7)] transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] dark:border-slate-700/60 dark:from-slate-900/80 dark:via-slate-900 dark:to-slate-800/80 dark:shadow-none dark:hover:border-primary/40 dark:hover:bg-primary/10",
-        className
+        className,
       )}
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           className={cn(
             "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80",
-            isExchangeIcon && "text-slate-500 dark:text-slate-300"
+            isExchangeIcon && "text-slate-500 dark:text-slate-300",
           )}
         >
           <Icon
             className={cn(
               "h-3.5 w-3.5",
-              isExchangeIcon ? "text-slate-500 dark:text-slate-300" : "text-primary dark:text-primary"
+              isExchangeIcon
+                ? "text-slate-500 dark:text-slate-300"
+                : "text-primary dark:text-primary",
             )}
           />
         </span>
@@ -812,7 +923,7 @@ const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className,
       <p
         className={cn(
           "min-w-0 text-sm font-semibold leading-tight text-slate-900 dark:text-slate-100",
-          isBadgeTone ? "flex-none" : "flex-1"
+          isBadgeTone ? "flex-none" : "flex-1",
         )}
         title={valueTitle || String(value || "")}
       >
@@ -820,9 +931,12 @@ const DetailInfoPill = ({ icon: Icon, label, value, tone = "default", className,
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold",
-              tone === "positive" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-              tone === "negative" && "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-              tone === "neutral" && "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              tone === "positive" &&
+                "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+              tone === "negative" &&
+                "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+              tone === "neutral" &&
+                "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
             )}
           >
             {value}
@@ -850,7 +964,7 @@ const PriceHistoryBadge = ({ badge }) => (
   <span
     className={cn(
       "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-      HISTORY_BADGE_STYLES[badge?.tone] || HISTORY_BADGE_STYLES.neutral
+      HISTORY_BADGE_STYLES[badge?.tone] || HISTORY_BADGE_STYLES.neutral,
     )}
   >
     {badge?.label}
@@ -873,7 +987,8 @@ const PriceHistorySparkline = ({ points = [], trend = "stable" }) => {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const step = points.length > 1 ? (width - paddingX * 2) / (points.length - 1) : 0;
+  const step =
+    points.length > 1 ? (width - paddingX * 2) / (points.length - 1) : 0;
 
   const coordinates = points.map((point, index) => {
     const x = paddingX + step * index;
@@ -882,24 +997,32 @@ const PriceHistorySparkline = ({ points = [], trend = "stable" }) => {
     return { x, y };
   });
 
-  const linePath = coordinates.map((coord) => `${coord.x},${coord.y}`).join(" ");
+  const linePath = coordinates
+    .map((coord) => `${coord.x},${coord.y}`)
+    .join(" ");
   const areaPath = `M ${coordinates[0].x} ${height - paddingY} L ${coordinates
     .map((coord) => `${coord.x} ${coord.y}`)
-    .join(" L ")} L ${coordinates[coordinates.length - 1].x} ${height - paddingY} Z`;
+    .join(
+      " L ",
+    )} L ${coordinates[coordinates.length - 1].x} ${height - paddingY} Z`;
 
   const palette =
     trend === "down"
       ? { stroke: "#10b981", fill: "rgba(16, 185, 129, 0.16)" }
       : trend === "up"
-      ? { stroke: "#f43f5e", fill: "rgba(244, 63, 94, 0.16)" }
-      : trend === "mixed"
-      ? { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.14)" }
-      : { stroke: "#64748b", fill: "rgba(100, 116, 139, 0.14)" };
+        ? { stroke: "#f43f5e", fill: "rgba(244, 63, 94, 0.16)" }
+        : trend === "mixed"
+          ? { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.14)" }
+          : { stroke: "#64748b", fill: "rgba(100, 116, 139, 0.14)" };
 
   const last = coordinates[coordinates.length - 1];
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-[72px] w-full" aria-hidden="true">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="h-[72px] w-full"
+      aria-hidden="true"
+    >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={palette.fill} />
@@ -958,7 +1081,9 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
               <MdHistory className="text-lg" />
             </span>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">Historija cijene</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
+                Historija cijene
+              </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Mini trend, ključne promjene i vremenski slijed.
               </p>
@@ -978,7 +1103,10 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
           <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/30 sm:p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                Trenutna cijena: <span className="text-primary">{formatBosnianPrice(insights.latestPrice)}</span>
+                Trenutna cijena:{" "}
+                <span className="text-primary">
+                  {formatBosnianPrice(insights.latestPrice)}
+                </span>
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {insights.badges.map((badge) => (
@@ -989,12 +1117,20 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
 
             {Array.isArray(insights.points) && insights.points.length > 0 ? (
               <div className="mt-3 rounded-xl border border-slate-200 bg-white px-2 py-2 dark:border-slate-700 dark:bg-slate-900/70">
-                <PriceHistorySparkline points={insights.points} trend={insights.trend} />
+                <PriceHistorySparkline
+                  points={insights.points}
+                  trend={insights.trend}
+                />
               </div>
             ) : null}
 
             <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-2">
-              <p>Početna cijena: <span className="font-semibold text-slate-900 dark:text-slate-100">{formatBosnianPrice(insights.initialPrice)}</span></p>
+              <p>
+                Početna cijena:{" "}
+                <span className="font-semibold text-slate-900 dark:text-slate-100">
+                  {formatBosnianPrice(insights.initialPrice)}
+                </span>
+              </p>
               <p>{insights.totalText}</p>
               <p>{insights.summaryText}</p>
               <p>{insights.lastChangeText}</p>
@@ -1016,10 +1152,10 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
               const deltaLabel = isOnRequestPoint
                 ? "Na upit"
                 : !hasDelta
-                ? "—"
-                : point.delta === 0
-                ? "0 KM"
-                : formatSignedPriceDelta(point.delta);
+                  ? "—"
+                  : point.delta === 0
+                    ? "0 KM"
+                    : formatSignedPriceDelta(point.delta);
 
               return (
                 <div
@@ -1033,10 +1169,10 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
                         isOnRequestPoint
                           ? "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                           : isDown
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-700/50 dark:bg-emerald-900/25 dark:text-emerald-300"
-                          : isUp
-                          ? "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-700/50 dark:bg-rose-900/25 dark:text-rose-300"
-                          : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-700/50 dark:bg-emerald-900/25 dark:text-emerald-300"
+                            : isUp
+                              ? "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-700/50 dark:bg-rose-900/25 dark:text-rose-300"
+                              : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
                       )}
                     >
                       {isOnRequestPoint ? (
@@ -1051,10 +1187,14 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {isOnRequestPoint ? "Na upit" : formatBosnianPrice(point.price)}
+                        {isOnRequestPoint
+                          ? "Na upit"
+                          : formatBosnianPrice(point.price)}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {point.dateValue ? formatShortDate(point.dateValue) : "Datum nije dostupan"}
+                        {point.dateValue
+                          ? formatShortDate(point.dateValue)
+                          : "Datum nije dostupan"}
                       </p>
                     </div>
                   </div>
@@ -1071,10 +1211,10 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
                           isOnRequestPoint
                             ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
                             : isDown
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                            : isUp
-                            ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
-                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                              : isUp
+                                ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
                         )}
                       >
                         {deltaLabel}
@@ -1096,7 +1236,7 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
@@ -1115,7 +1255,7 @@ const ProductDetailCard = ({
   const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${path}`;
   const isLoggedIn = useSelector(getIsLoggedIn);
   const CompanyName = useSelector(getCompanyName);
-  
+
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [resolvedLocationByPin, setResolvedLocationByPin] = useState("");
 
@@ -1123,7 +1263,7 @@ const ProductDetailCard = ({
   const productName = translated_item?.name || productDetails?.name;
   const FbTitle = `${productName} | ${CompanyName}`;
   const headline = `🚀 Pogledaj ovu odličnu ponudu! "${productName}" na ${CompanyName}.`;
-  
+
   const isJobCategory = Number(productDetails?.category?.is_job_category) === 1;
   const normalizedPriceHistory = useMemo(() => {
     const candidates = [
@@ -1135,12 +1275,13 @@ const ProductDetailCard = ({
       productDetails?.history?.price_history,
       productDetails?.history?.prices,
     ];
-    const raw = candidates.find((entry) => {
-      if (entry == null) return false;
-      if (Array.isArray(entry)) return entry.length > 0;
-      if (typeof entry === "string") return entry.trim().length > 0;
-      return true;
-    }) ?? [];
+    const raw =
+      candidates.find((entry) => {
+        if (entry == null) return false;
+        if (Array.isArray(entry)) return entry.length > 0;
+        if (typeof entry === "string") return entry.trim().length > 0;
+        return true;
+      }) ?? [];
     if (Array.isArray(raw)) return raw.filter(Boolean);
     if (typeof raw === "string") {
       try {
@@ -1156,28 +1297,35 @@ const ProductDetailCard = ({
     return [];
   }, [productDetails]);
   // Statusi
-  const isReserved = productDetails?.status === 'reserved' || productDetails?.reservation_status === 'reserved';
-  const isSoldOut = productDetails?.status === 'sold out';
+  const isReserved =
+    productDetails?.status === "reserved" ||
+    productDetails?.reservation_status === "reserved";
+  const isSoldOut = productDetails?.status === "sold out";
   const isFeatured = productDetails?.is_feature === 1;
 
   // Cijene i Akcije
-  const isOnSale = productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
+  const isOnSale =
+    productDetails?.is_on_sale === true || productDetails?.is_on_sale === 1;
   const oldPrice = productDetails?.old_price;
   const currentPrice = productDetails?.price;
   const currentPriceOnRequest = useMemo(
     () => resolvePriceOnRequestState(productDetails),
-    [productDetails]
+    [productDetails],
   );
   const oldPriceNumber = Number(oldPrice);
   const currentPriceNumber = Number(currentPrice);
   const historyInsights = useMemo(
-    () => buildPriceHistoryInsights(normalizedPriceHistory, currentPrice, currentPriceOnRequest),
-    [normalizedPriceHistory, currentPrice, currentPriceOnRequest]
+    () =>
+      buildPriceHistoryInsights(
+        normalizedPriceHistory,
+        currentPrice,
+        currentPriceOnRequest,
+      ),
+    [normalizedPriceHistory, currentPrice, currentPriceOnRequest],
   );
   const showHistorySection = !isJobCategory && historyInsights.hasAnyPrice;
   const renewalSourceDate =
-    productDetails?.last_renewed_at ||
-    productDetails?.renewed_at;
+    productDetails?.last_renewed_at || productDetails?.renewed_at;
   const renewalDateTime = formatDateTimeEu(renewalSourceDate);
   const preciseLat = Number(productDetails?.latitude);
   const preciseLng = Number(productDetails?.longitude);
@@ -1203,7 +1351,9 @@ const ProductDetailCard = ({
         if (cancelled || response?.data?.error === true) return;
 
         const payload = response?.data?.data;
-        const result = Array.isArray(payload) ? payload[0] || {} : payload || {};
+        const result = Array.isArray(payload)
+          ? payload[0] || {}
+          : payload || {};
         const locationLabel = [
           result?.area_translation || result?.area,
           result?.city_translation || result?.city,
@@ -1214,9 +1364,14 @@ const ProductDetailCard = ({
           .join(", ");
         const municipalityOrCity = (() => {
           const municipality = sanitizeMunicipalityCandidate(
-            result?.area_translation || result?.area || result?.state_translation || result?.state
+            result?.area_translation ||
+              result?.area ||
+              result?.state_translation ||
+              result?.state,
           );
-          const city = sanitizeMunicipalityCandidate(result?.city_translation || result?.city);
+          const city = sanitizeMunicipalityCandidate(
+            result?.city_translation || result?.city,
+          );
           return municipality || city || "";
         })();
 
@@ -1238,7 +1393,15 @@ const ProductDetailCard = ({
         productDetails?.state_translation ||
           productDetails?.state ||
           productDetails?.translated_item?.state_translation ||
-          productDetails?.translated_item?.state
+          productDetails?.translated_item?.state,
+      ) || "";
+
+    const areaValue =
+      sanitizeMunicipalityCandidate(
+        productDetails?.area?.translated_name ||
+          productDetails?.area?.name ||
+          productDetails?.area_name ||
+          productDetails?.translated_item?.area_name,
       ) || "";
 
     const cityValue =
@@ -1246,48 +1409,124 @@ const ProductDetailCard = ({
         productDetails?.city_translation ||
           productDetails?.city ||
           productDetails?.translated_item?.city_translation ||
-          productDetails?.translated_item?.city
+          productDetails?.translated_item?.city,
       ) || "";
 
-    return stateValue || cityValue || "";
+    return stateValue || areaValue || cityValue || "";
   }, [
     productDetails?.state_translation,
     productDetails?.state,
     productDetails?.translated_item?.state_translation,
     productDetails?.translated_item?.state,
+    productDetails?.area?.translated_name,
+    productDetails?.area?.name,
+    productDetails?.area_name,
+    productDetails?.translated_item?.area_name,
     productDetails?.city_translation,
     productDetails?.city,
     productDetails?.translated_item?.city_translation,
     productDetails?.translated_item?.city,
   ]);
 
+  const municipalityOrCityFromAddress = useMemo(() => {
+    const candidates = [
+      productDetails?.address_translated,
+      productDetails?.translated_address,
+      productDetails?.formatted_address,
+      productDetails?.address,
+      productDetails?.translated_item?.address_translated,
+      productDetails?.translated_item?.translated_address,
+      productDetails?.translated_item?.formatted_address,
+      productDetails?.translated_item?.address,
+      productDetails?.location,
+      productDetails?.location_name,
+      productDetails?.translated_item?.location,
+      productDetails?.translated_item?.location_name,
+      productDetails?.area_name,
+      productDetails?.translated_item?.area_name,
+      productDetails?.area?.translated_name,
+      productDetails?.area?.name,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate == null) continue;
+      if (typeof candidate === "object") continue;
+      const parsed = resolveMunicipalityOrCityLabel(candidate);
+      if (parsed && !isPlaceholderLocationLabel(parsed)) return parsed;
+    }
+
+    return "";
+  }, [
+    productDetails?.address_translated,
+    productDetails?.translated_address,
+    productDetails?.formatted_address,
+    productDetails?.address,
+    productDetails?.translated_item?.address_translated,
+    productDetails?.translated_item?.translated_address,
+    productDetails?.translated_item?.formatted_address,
+    productDetails?.translated_item?.address,
+    productDetails?.location,
+    productDetails?.location_name,
+    productDetails?.translated_item?.location,
+    productDetails?.translated_item?.location_name,
+    productDetails?.area_name,
+    productDetails?.translated_item?.area_name,
+    productDetails?.area?.translated_name,
+    productDetails?.area?.name,
+  ]);
+
   const municipalityOrCityFromPin = useMemo(
     () => resolveMunicipalityOrCityLabel(resolvedLocationByPin),
-    [resolvedLocationByPin]
+    [resolvedLocationByPin],
   );
   const locationLine =
     municipalityOrCityFromPin ||
     municipalityOrCityFromDetails ||
+    municipalityOrCityFromAddress ||
     "Lokacija nije navedena";
   const availableNow = readAvailableNow(productDetails);
   const exchangePossible = readExchangePossible(productDetails);
-  const availableNowLabel = availableNow === true ? "Da" : availableNow === false ? "Ne" : "Nije navedeno";
-  const exchangeLabel = exchangePossible === true ? "Da" : exchangePossible === false ? "Ne" : "Nije navedeno";
-  const availableNowTone = availableNow === true ? "positive" : availableNow === false ? "negative" : "neutral";
-  const exchangeTone = exchangePossible === true ? "positive" : exchangePossible === false ? "negative" : "neutral";
+  const availableNowLabel =
+    availableNow === true
+      ? "Da"
+      : availableNow === false
+        ? "Ne"
+        : "Nije navedeno";
+  const exchangeLabel =
+    exchangePossible === true
+      ? "Da"
+      : exchangePossible === false
+        ? "Ne"
+        : "Nije navedeno";
+  const availableNowTone =
+    availableNow === true
+      ? "positive"
+      : availableNow === false
+        ? "negative"
+        : "neutral";
+  const exchangeTone =
+    exchangePossible === true
+      ? "positive"
+      : exchangePossible === false
+        ? "negative"
+        : "neutral";
   const renewalInfoValue = renewalDateTime || "Nije obnovljen";
   const renewalInfoTitle = renewalDateTime
     ? `Zadnja obnova: ${renewalDateTime}`
     : "Oglas još nije obnovljen.";
   const realEstatePricing = useMemo(
     () => resolveRealEstateDisplayPricing(productDetails),
-    [productDetails]
+    [productDetails],
   );
   const unitPriceNumber = realEstatePricing?.isRealEstate
     ? Number(realEstatePricing?.perM2Value)
     : Number(productDetails?.price_per_unit);
-  const minOrderQty = Math.max(1, Number(productDetails?.minimum_order_quantity || 1));
-  const hasUnitPrice = !isJobCategory && Number.isFinite(unitPriceNumber) && unitPriceNumber > 0;
+  const minOrderQty = Math.max(
+    1,
+    Number(productDetails?.minimum_order_quantity || 1),
+  );
+  const hasUnitPrice =
+    !isJobCategory && Number.isFinite(unitPriceNumber) && unitPriceNumber > 0;
   const unitPriceLabel = hasUnitPrice
     ? realEstatePricing?.isRealEstate
       ? `${formatBosnianPrice(unitPriceNumber)} / m²`
@@ -1300,17 +1539,35 @@ const ProductDetailCard = ({
           maximumFractionDigits: 2,
         })
       : null;
-  const hasDiscount = !currentPriceOnRequest && isOnSale && Number.isFinite(oldPriceNumber) && Number.isFinite(currentPriceNumber) && oldPriceNumber > currentPriceNumber && currentPriceNumber > 0;
+  const hasDiscount =
+    !currentPriceOnRequest &&
+    isOnSale &&
+    Number.isFinite(oldPriceNumber) &&
+    Number.isFinite(currentPriceNumber) &&
+    oldPriceNumber > currentPriceNumber &&
+    currentPriceNumber > 0;
   const displayPrice = isJobCategory
-    ? formatBosnianSalary(productDetails?.min_salary, productDetails?.max_salary)
+    ? formatBosnianSalary(
+        productDetails?.min_salary,
+        productDetails?.max_salary,
+      )
     : currentPriceOnRequest
-    ? "Na upit"
-    : formatBosnianPrice(productDetails?.price);
-  const scarcityState = useMemo(() => getScarcityState(productDetails), [productDetails]);
-  const scarcityCopy = useMemo(() => getScarcityCopy(scarcityState), [scarcityState]);
-  const showScarcityUi = Boolean(scarcityState?.isEligible && !isSoldOut && !isReserved);
+      ? "Na upit"
+      : formatBosnianPrice(productDetails?.price);
+  const scarcityState = useMemo(
+    () => getScarcityState(productDetails),
+    [productDetails],
+  );
+  const scarcityCopy = useMemo(
+    () => getScarcityCopy(scarcityState),
+    [scarcityState],
+  );
+  const showScarcityUi = Boolean(
+    scarcityState?.isEligible && !isSoldOut && !isReserved,
+  );
   const showOutOfStockUi = Boolean(!isSoldOut && scarcityState?.isOutOfStock);
-  const showPopularityHint = showScarcityUi && scarcityState?.popularity?.hasSignal;
+  const showPopularityHint =
+    showScarcityUi && scarcityState?.popularity?.hasSignal;
 
   const handleOpenHistoryModal = () => {
     setShowHistoryModal(true);
@@ -1323,10 +1580,19 @@ const ProductDetailCard = ({
       return;
     }
     try {
-      const response = await manageFavouriteApi.manageFavouriteApi({ item_id: productDetails?.id });
+      const response = await manageFavouriteApi.manageFavouriteApi({
+        item_id: productDetails?.id,
+      });
       if (response?.data?.error === false) {
-        setProductDetails((prev) => ({ ...prev, is_liked: !productDetails?.is_liked }));
-        toast.success(productDetails?.is_liked ? "Uklonjeno iz omiljenih" : "Dodano u omiljene");
+        setProductDetails((prev) => ({
+          ...prev,
+          is_liked: !productDetails?.is_liked,
+        }));
+        toast.success(
+          productDetails?.is_liked
+            ? "Uklonjeno iz omiljenih"
+            : "Dodano u omiljene",
+        );
         if (onFavoriteToggle) onFavoriteToggle(!productDetails?.is_liked);
       }
     } catch (error) {
@@ -1339,10 +1605,9 @@ const ProductDetailCard = ({
     <>
       <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-[0_18px_45px_-28px_rgba(2,6,23,0.45)] backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500 dark:border-slate-700/60 dark:bg-slate-900/95">
         <div className="p-4 sm:p-6">
-          
           {/* BADGES ROW */}
           <div className="mb-4 flex flex-wrap items-center gap-2.5">
-          {productDetails?.category?.name && (
+            {productDetails?.category?.name && (
               <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-100/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 {productDetails.category.name}
               </span>
@@ -1386,7 +1651,6 @@ const ProductDetailCard = ({
                 <h1 className="text-[clamp(1.6rem,4.7vw,2.15rem)] font-black leading-[1.08] tracking-[-0.02em] text-slate-900 break-words dark:text-white">
                   {productName}
                 </h1>
-
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -1407,12 +1671,24 @@ const ProductDetailCard = ({
                     "flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition-all active:scale-95",
                     productDetails?.is_liked
                       ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
-                      : "border-slate-200/80 bg-white text-slate-500 hover:border-red-200 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-900/40 dark:hover:text-red-400"
+                      : "border-slate-200/80 bg-white text-slate-500 hover:border-red-200 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-red-900/40 dark:hover:text-red-400",
                   )}
-                  title={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Sačuvaj oglas"}
-                  aria-label={productDetails?.is_liked ? "Ukloni iz omiljenih" : "Sačuvaj oglas"}
+                  title={
+                    productDetails?.is_liked
+                      ? "Ukloni iz omiljenih"
+                      : "Sačuvaj oglas"
+                  }
+                  aria-label={
+                    productDetails?.is_liked
+                      ? "Ukloni iz omiljenih"
+                      : "Sačuvaj oglas"
+                  }
                 >
-                  {productDetails?.is_liked ? <MdFavorite size={20} /> : <MdFavoriteBorder size={20} />}
+                  {productDetails?.is_liked ? (
+                    <MdFavorite size={20} />
+                  ) : (
+                    <MdFavoriteBorder size={20} />
+                  )}
                 </button>
               </div>
             </div>
@@ -1443,7 +1719,7 @@ const ProductDetailCard = ({
                           "break-words text-3xl font-black tracking-tight",
                           currentPriceOnRequest
                             ? "bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent"
-                            : "text-primary"
+                            : "text-primary",
                         )}
                       >
                         {displayPrice}
@@ -1472,22 +1748,24 @@ const ProductDetailCard = ({
                           ? ` • ${realEstateAreaLabel} m²`
                           : ""
                         : minOrderQty > 1
-                        ? ` • min ${minOrderQty} kom`
-                        : ""}
+                          ? ` • min ${minOrderQty} kom`
+                          : ""}
                     </div>
                   ) : null}
 
                   {showScarcityUi ? (
                     <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 p-3 dark:border-amber-700/50 dark:bg-amber-900/20">
                       <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                        {scarcityCopy?.priceHint || "Cijena važi do isteka zaliha"}
+                        {scarcityCopy?.priceHint ||
+                          "Cijena važi do isteka zaliha"}
                       </p>
                       <p className="mt-1 text-sm font-bold text-amber-900 dark:text-amber-100">
                         {scarcityCopy?.quantity}
                       </p>
                       {showPopularityHint ? (
                         <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-                          Popularno: ovaj oglas trenutno ima iznadprosječan interes kupaca.
+                          Popularno: ovaj oglas trenutno ima iznadprosječan
+                          interes kupaca.
                         </p>
                       ) : null}
                     </div>
@@ -1495,15 +1773,16 @@ const ProductDetailCard = ({
 
                   {showOutOfStockUi ? (
                     <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/90 p-3 dark:border-rose-700/50 dark:bg-rose-900/20">
-                      <p className="text-sm font-bold text-rose-800 dark:text-rose-200">Rasprodano</p>
+                      <p className="text-sm font-bold text-rose-800 dark:text-rose-200">
+                        Rasprodano
+                      </p>
                       <p className="mt-1 text-xs text-rose-700 dark:text-rose-300">
-                        Artikal trenutno nije dostupan. Nakon dopune zalihe, status se automatski ažurira.
+                        Artikal trenutno nije dostupan. Nakon dopune zalihe,
+                        status se automatski ažurira.
                       </p>
                     </div>
                   ) : null}
-
                 </div>
-
               </div>
             </div>
 
@@ -1534,14 +1813,13 @@ const ProductDetailCard = ({
               />
             </div>
           </div>
-
         </div>
       </div>
 
       {/* MODAL */}
-      <PriceHistoryModal 
-        isOpen={showHistoryModal} 
-        onClose={() => setShowHistoryModal(false)} 
+      <PriceHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
         insights={historyInsights}
       />
       <style jsx global>{`

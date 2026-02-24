@@ -70,8 +70,6 @@ export const getSlug = (pathname) => {
   return segments[segments.length - 1];
 };
 
-
-
 export const formatDate = (createdAt) => {
   const date = new Date(createdAt);
   const now = new Date();
@@ -421,7 +419,7 @@ export const formatSalaryRange = (minSalary, maxSalary) => {
 
   if (hasMin && hasMax) {
     return `${formatPriceAbbreviated(minSalary)} – ${formatPriceAbbreviated(
-      maxSalary
+      maxSalary,
     )}`;
   }
 
@@ -471,7 +469,8 @@ export const createStickyNote = () => {
 
   const message = document.createElement("span");
   message.setAttribute("data-sticky-message", "true");
-  message.innerText = "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
+  message.innerText =
+    "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
 
   const linkContainer = document.createElement("div"); // Changed to 'div' for better spacing
   linkContainer.style.display = "inline-block"; // Keeps links inline while allowing space
@@ -517,7 +516,8 @@ export const updateStickyNoteTranslations = () => {
   const appStoreLink = note.querySelector("[data-sticky-appstore]");
 
   if (message) {
-    message.innerText = "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
+    message.innerText =
+      "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
   }
   if (playStoreLink) {
     playStoreLink.innerText = "Play Store-a";
@@ -550,14 +550,16 @@ const ERROR_CODES = {
   "auth/credential-already-in-use": "Podaci za prijavu su već u upotrebi",
   "auth/custom-token-mismatch": "Token se ne poklapa",
   "auth/requires-recent-login": "Ponovno se prijavi",
-  "auth/dependent-sdk-initialized-before-auth": "SDK pokrenut prije autentifikacije",
+  "auth/dependent-sdk-initialized-before-auth":
+    "SDK pokrenut prije autentifikacije",
   "auth/dynamic-link-not-activated": "Dinamički link nije aktiviran",
   "auth/email-change-needs-verification": "Promjena e-maila traži potvrdu",
   "auth/emulator-config-failed": "Konfiguracija emulatora nije uspjela",
   "auth/expired-action-code": "Link/kod je istekao",
   "auth/cancelled-popup-request": "Zahtjev za pop-up je istekao",
   "auth/invalid-api-key": "Neispravan API ključ",
-  "auth/invalid-app-credential": "Verifikacija uređaja nije uspjela. Provjeri da je domena dozvoljena u Firebase postavkama i pokušaj ponovo.",
+  "auth/invalid-app-credential":
+    "Verifikacija uređaja nije uspjela. Provjeri da je domena dozvoljena u Firebase postavkama i pokušaj ponovo.",
   "auth/invalid-app-id": "Neispravan ID aplikacije",
   "auth/invalid-user-token": "Neispravna autentifikacija",
   "auth/invalid-auth-event": "Neispravan auth događaj",
@@ -603,12 +605,14 @@ const ERROR_CODES = {
   "auth/missing-recaptcha-version": "Nedostaje reCAPTCHA verzija",
   "auth/missing-verification-id": "Nedostaje info sesije",
   "auth/app-deleted": "Aplikacija je obrisana",
-  "auth/account-exists-with-different-credential": "Račun postoji s drugim načinom prijave",
+  "auth/account-exists-with-different-credential":
+    "Račun postoji s drugim načinom prijave",
   "auth/network-request-failed": "Mrežni zahtjev nije uspio",
   "auth/no-auth-event": "Nema auth događaja",
   "auth/no-such-provider": "Provider ne postoji",
   "auth/null-user": "Korisnik ne postoji",
-  "auth/operation-not-supported-in-this-environment": "Operacija nije podržana u ovom okruženju",
+  "auth/operation-not-supported-in-this-environment":
+    "Operacija nije podržana u ovom okruženju",
   "auth/popup-blocked": "Pop-up je blokiran",
   "auth/popup-closed-by-user": "Pop-up zatvoren",
   "auth/provider-already-linked": "Provider je već povezan",
@@ -618,7 +622,8 @@ const ERROR_CODES = {
   "auth/redirect-operation-pending": "Preusmjeravanje u toku",
   "auth/rejected-credential": "Vjerodajnica odbijena",
   "auth/second-factor-already-in-use": "Drugi faktor je već aktivan",
-  "auth/maximum-second-factor-count-exceeded": "Prekoračen limit drugog faktora",
+  "auth/maximum-second-factor-count-exceeded":
+    "Prekoračen limit drugog faktora",
   "auth/tenant-id-mismatch": "Tenant ID se ne poklapa",
   "auth/timeout": "Isteklo vrijeme",
   "auth/user-token-expired": "Token je istekao",
@@ -660,9 +665,7 @@ const getFirebaseAuthErrorDetails = (errorLike) => {
 export const handleFirebaseAuthError = (errorLike) => {
   const { code, message } = getFirebaseAuthErrorDetails(errorLike);
   const resolvedCode = typeof code === "string" ? code.trim() : "";
-  const status = Number(
-    errorLike?.response?.status || errorLike?.status || 0
-  );
+  const status = Number(errorLike?.response?.status || errorLike?.status || 0);
   const normalizedCode = resolvedCode.toUpperCase();
   const normalizedMessage = String(message || "").toLowerCase();
   const isGatewayTimeoutError =
@@ -687,7 +690,7 @@ export const handleFirebaseAuthError = (errorLike) => {
 
   if (isGatewayTimeoutError) {
     toast.error(
-      "Server trenutno ne odgovara (502/503/504). Pokušajte ponovo za 30-60 sekundi."
+      "Server trenutno ne odgovara (502/503/504). Pokušajte ponovo za 30-60 sekundi.",
     );
     return;
   }
@@ -698,9 +701,9 @@ export const handleFirebaseAuthError = (errorLike) => {
   }
 
   // Keep the user-facing toast clean even for non-Firebase/runtime errors.
-  const fallbackMessage = "Neočekivana greška. Pokušaj ponovo." || "Došlo je do greške.";
+  const fallbackMessage =
+    "Neočekivana greška. Pokušaj ponovo." || "Došlo je do greške.";
   toast.error(fallbackMessage);
-
 };
 
 export const truncate = (text, maxLength) => {
@@ -830,7 +833,6 @@ export const formatResponseTimeBs = (avgMinutes) => {
   return `${d} ${plural(d, "dan", "dana", "dana")}`;
 };
 
-
 export const formatTime = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -903,14 +905,53 @@ export const formatMessageDate = (dateString) => {
 };
 
 export const getYouTubeVideoId = (url) => {
-  const regExp =
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url?.match(regExp);
-  if (match) {
-    return match && match[2].length === 11 ? match[2] : null;
-  } else {
-    return false;
+  if (!url) return null;
+  const raw = String(url).trim();
+  if (!raw) return null;
+
+  const hasProtocol = /^https?:\/\//i.test(raw);
+  const candidateUrl = hasProtocol ? raw : `https://${raw}`;
+
+  try {
+    const parsed = new URL(candidateUrl);
+    const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+
+    if (host === "youtu.be") {
+      const shortId = pathParts[0];
+      if (shortId && /^[A-Za-z0-9_-]{11}$/.test(shortId)) return shortId;
+    }
+
+    if (
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "music.youtube.com" ||
+      host === "youtube-nocookie.com"
+    ) {
+      const watchId = parsed.searchParams.get("v");
+      if (watchId && /^[A-Za-z0-9_-]{11}$/.test(watchId)) return watchId;
+
+      const first = String(pathParts[0] || "").toLowerCase();
+      const second = String(pathParts[1] || "");
+      if (
+        ["shorts", "embed", "live", "v", "e", "watch"].includes(first) &&
+        second &&
+        /^[A-Za-z0-9_-]{11}$/.test(second)
+      ) {
+        return second;
+      }
+
+      const last = String(pathParts[pathParts.length - 1] || "");
+      if (last && /^[A-Za-z0-9_-]{11}$/.test(last)) return last;
+    }
+  } catch {
+    // fallback regex parsiranje ispod
   }
+
+  const match = raw.match(
+    /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:shorts\/|embed\/|watch\?(?:.*&)?v=|v\/|live\/|u\/\w\/))([A-Za-z0-9_-]{11})/i,
+  );
+  return match?.[1] || null;
 };
 
 export const validateExtraDetails = ({
@@ -1009,7 +1050,7 @@ export const prefillExtraDetails = ({
       if (!isDefault && field.type !== "textbox") return;
 
       const extraField = extraFieldValue.find(
-        (item) => item.language_id === lang.id && item.id === fieldId
+        (item) => item.language_id === lang.id && item.id === fieldId,
       );
       const fieldValue = extraField?.value || null;
 
@@ -1072,7 +1113,7 @@ export const prefillVerificationDetails = ({
       if (!isDefault && field.type !== "textbox") return;
 
       const extraField = extraFieldValue.find(
-        (item) => item.language_id === lang.id && item.id === fieldId
+        (item) => item.language_id === lang.id && item.id === fieldId,
       );
       const fieldValue = extraField?.value || null;
       switch (field.type) {
@@ -1111,15 +1152,17 @@ export const prefillVerificationDetails = ({
 export const getMainDetailsTranslations = (
   listingData,
   languages,
-  defaultLangId
+  defaultLangId,
 ) => {
   const parseBooleanSetting = (value, fallback = false) => {
     if (value === true || value === 1 || value === "1") return true;
     if (value === false || value === 0 || value === "0") return false;
     if (typeof value === "string") {
       const normalized = value.trim().toLowerCase();
-      if (["true", "da", "yes", "on", "enabled"].includes(normalized)) return true;
-      if (["false", "ne", "no", "off", "disabled"].includes(normalized)) return false;
+      if (["true", "da", "yes", "on", "enabled"].includes(normalized))
+        return true;
+      if (["false", "ne", "no", "off", "disabled"].includes(normalized))
+        return false;
     }
     return fallback;
   };
@@ -1131,7 +1174,8 @@ export const getMainDetailsTranslations = (
     listingData?.price !== undefined &&
     listingData?.price !== null &&
     String(listingData?.price).trim() !== "";
-  const inferredPriceOnRequestFromPrice = hasPersistedPrice && Number(listingData?.price) === 0;
+  const inferredPriceOnRequestFromPrice =
+    hasPersistedPrice && Number(listingData?.price) === 0;
   const inferredPerSquareMode = inferRealEstatePerSquareMode({
     perSquarePrice: listingData?.price_per_unit,
     totalPrice: listingData?.price,
@@ -1164,34 +1208,38 @@ export const getMainDetailsTranslations = (
             listingData?.translated_item?.price_on_request ??
             listingData?.translated_item?.is_price_on_request ??
             inferredPriceOnRequestFromPrice,
-          false
+          false,
         ),
         is_on_sale: listingData?.is_on_sale || false,
         old_price: listingData?.old_price || "",
         inventory_count:
-          listingData?.inventory_count !== undefined && listingData?.inventory_count !== null
+          listingData?.inventory_count !== undefined &&
+          listingData?.inventory_count !== null
             ? String(listingData.inventory_count)
             : "",
         price_per_unit:
-          listingData?.price_per_unit !== undefined && listingData?.price_per_unit !== null
+          listingData?.price_per_unit !== undefined &&
+          listingData?.price_per_unit !== null
             ? String(listingData.price_per_unit)
             : "",
         show_price_per_m2: Boolean(initialPerSquare),
         price_per_m2_mode: initialPerSquare ? inferredPerSquareMode : "auto",
         minimum_order_quantity:
-          listingData?.minimum_order_quantity !== undefined && listingData?.minimum_order_quantity !== null
+          listingData?.minimum_order_quantity !== undefined &&
+          listingData?.minimum_order_quantity !== null
             ? String(listingData.minimum_order_quantity)
             : "",
         stock_alert_threshold:
-          listingData?.stock_alert_threshold !== undefined && listingData?.stock_alert_threshold !== null
+          listingData?.stock_alert_threshold !== undefined &&
+          listingData?.stock_alert_threshold !== null
             ? String(listingData.stock_alert_threshold)
             : "",
         seller_product_code: listingData?.seller_product_code || "",
         scarcity_enabled: parseBooleanSetting(
           listingData?.scarcity_enabled ??
-          listingData?.is_scarcity_enabled ??
-          listingData?.translated_item?.scarcity_enabled ??
-          false
+            listingData?.is_scarcity_enabled ??
+            listingData?.translated_item?.scarcity_enabled ??
+            false,
         ),
         scarcity_toggle_locked_until:
           listingData?.scarcity_toggle_locked_until ||
@@ -1205,7 +1253,7 @@ export const getMainDetailsTranslations = (
     } else {
       // Other languages: get translation if available
       const translated = listingData?.translations?.find(
-        (tr) => tr.language_id === lang.id
+        (tr) => tr.language_id === lang.id,
       );
 
       translations[lang.id] = {
@@ -1328,7 +1376,7 @@ export const inpNum = (e) => {
 
 export const getFilteredCustomFields = (
   allTranslatedFields,
-  currentLanguageId
+  currentLanguageId,
 ) => {
   const fields = Array.isArray(allTranslatedFields) ? allTranslatedFields : [];
   const fieldMap = new Map();

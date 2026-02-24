@@ -15,6 +15,7 @@ import { getIsRtl } from "@/redux/reducer/languageSlice";
 import ReactPlayer from "react-player";
 import { getPlaceholderImage } from "@/redux/reducer/settingSlice";
 import CustomImage from "@/components/Common/CustomImage";
+import { getYouTubeVideoId } from "@/utils";
 
 // ✅ 1. ROBUSNA FUNKCIJA ZA IZVLAČENJE URL-A
 const getValidUrl = (item) => {
@@ -82,12 +83,9 @@ const ProductGallery = ({
     if (selectedIndex > maxIndex) setSelectedIndex(0);
   }, [totalItems, selectedIndex]);
 
-
   const getYouTubeThumbnail = (url) => {
     if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    const videoId = match && match[2].length === 11 ? match[2] : null;
+    const videoId = getYouTubeVideoId(url);
     if (videoId) {
       return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
     }
@@ -115,7 +113,11 @@ const ProductGallery = ({
   }, [isVideoSelected]);
 
   useEffect(() => {
-    if (selectedIndex >= 0 && selectedIndex < safeGalleryImages.length && onImageView) {
+    if (
+      selectedIndex >= 0 &&
+      selectedIndex < safeGalleryImages.length &&
+      onImageView
+    ) {
       onImageView(selectedIndex);
     }
   }, [selectedIndex, safeGalleryImages.length, onImageView]);
@@ -173,7 +175,11 @@ const ProductGallery = ({
     const deltaY = touch.clientY - startY;
     const swipeThreshold = 44;
 
-    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    if (
+      Math.abs(deltaX) < swipeThreshold ||
+      Math.abs(deltaX) < Math.abs(deltaY)
+    )
+      return;
 
     if (deltaX < 0) handleNextImage();
     else handlePrevImage();
@@ -268,14 +274,19 @@ const ProductGallery = ({
 
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="h-16 w-16 rounded-full bg-primary/90 flex items-center justify-center transition-all duration-300 group/play hover:scale-110 hover:bg-primary sm:h-20 sm:w-20">
-                      <RiPlayCircleFill size={40} className="ml-1 text-white sm:text-[48px]" />
+                      <RiPlayCircleFill
+                        size={40}
+                        className="ml-1 text-white sm:text-[48px]"
+                      />
                     </div>
                   </div>
 
                   <div className="absolute bottom-3 left-3 rounded-full bg-black/65 px-2.5 py-1 backdrop-blur-sm sm:bottom-4 sm:left-4 sm:px-3 sm:py-1.5">
                     <span className="flex items-center gap-1.5 text-xs font-medium text-white sm:gap-2 sm:text-sm">
                       <RiVideoLine size={16} />
-                      <span className="hidden sm:inline">Pokreni video prikaz</span>
+                      <span className="hidden sm:inline">
+                        Pokreni video prikaz
+                      </span>
                       <span className="sm:hidden">Video</span>
                     </span>
                   </div>
@@ -359,7 +370,9 @@ const ProductGallery = ({
                               ? "opacity-100 scale-100"
                               : "opacity-0 scale-105"
                           }`}
-                          onLoad={() => selectedIndex === index && setImageLoaded(true)}
+                          onLoad={() =>
+                            selectedIndex === index && setImageLoaded(true)
+                          }
                         />
                       </div>
                     </PhotoView>
@@ -405,7 +418,9 @@ const ProductGallery = ({
               </button>
             )}
             <div className="rounded-full bg-black/60 px-3 py-1.5 text-white shadow-lg backdrop-blur-xl sm:px-3.5">
-              <p className="text-xs font-bold leading-tight sm:text-sm">{currentMediaNumber}/{normalizedTotalItems}</p>
+              <p className="text-xs font-bold leading-tight sm:text-sm">
+                {currentMediaNumber}/{normalizedTotalItems}
+              </p>
             </div>
           </div>
 
@@ -486,7 +501,9 @@ const ProductGallery = ({
                   <div className="absolute inset-0 bg-black/30" />
                   <div className="absolute inset-0 flex items-center justify-center gap-1 text-white">
                     <RiPlayCircleFill size={18} />
-                    <span className="text-[11px] font-bold uppercase tracking-[0.06em]">Video</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.06em]">
+                      Video
+                    </span>
                   </div>
                 </button>
               )}
