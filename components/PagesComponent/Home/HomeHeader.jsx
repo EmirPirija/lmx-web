@@ -373,6 +373,7 @@ const HomeHeader = () => {
 
   const isOnHome = pathname === "/";
   const isAdsPage = pathname === "/ads" || pathname.startsWith("/ads/");
+  const isDetailRoute = pathname.startsWith("/ad-details/") || pathname.startsWith("/my-listing/");
   const isAdsMobileManagedHeader =
     !isLargeScreen && isAdsPage && adsMobileHeaderState.enabled;
   const shouldHideMobileHeader =
@@ -384,15 +385,18 @@ const HomeHeader = () => {
     !isMobileSearchFocused;
   const mobileDock = useAdaptiveMobileDock();
   const showMobileDockNav = !isLargeScreen && !hideMobileBottomNav;
+  const shouldAllowHiddenMobileDockNav =
+    isDetailRoute || (isAdsMobileManagedHeader && adsMobileHeaderState.hideHeader);
   const mobileProfileLabel = userData?.name
     ? truncate(userData.name, 10)
     : "Profil";
 
   useEffect(() => {
-    if (isLargeScreen || !isOnHome) return;
+    if (isLargeScreen) return;
     if (!hideMobileBottomNav) return;
+    if (shouldAllowHiddenMobileDockNav) return;
     dispatch(setHideMobileBottomNav(false));
-  }, [dispatch, hideMobileBottomNav, isLargeScreen, isOnHome]);
+  }, [dispatch, hideMobileBottomNav, isLargeScreen, shouldAllowHiddenMobileDockNav]);
 
   const renderDockCompactNav = useCallback(
     ({ isExpanded }) => (

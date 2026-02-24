@@ -15,6 +15,33 @@ const pickActiveItem = (registry) =>
       return (b.updatedAt || 0) - (a.updatedAt || 0);
     })[0] || null;
 
+const isTextualInputElement = (node) => {
+  if (!(node instanceof HTMLElement)) return false;
+  if (node.isContentEditable) return true;
+
+  const tag = String(node.tagName || "").toLowerCase();
+  if (tag === "textarea") return true;
+  if (tag !== "input") return false;
+
+  const type = String(node.getAttribute("type") || "text").toLowerCase();
+  return ![
+    "checkbox",
+    "radio",
+    "button",
+    "submit",
+    "reset",
+    "file",
+    "range",
+    "color",
+    "date",
+    "month",
+    "week",
+    "time",
+    "datetime-local",
+    "hidden",
+  ].includes(type);
+};
+
 const useMobileViewport = (query = "(max-width: 991px)") => {
   const [state, setState] = useState({ ready: false, isMobile: false });
 
@@ -40,6 +67,7 @@ const useMobileViewport = (query = "(max-width: 991px)") => {
 export const AdaptiveMobileDockProvider = ({ children }) => {
   const { ready, isMobile } = useMobileViewport("(max-width: 991px)");
   const prefersReducedMotion = useReducedMotion();
+  const enableAutoCollapse = false;
   const [navRegistry, setNavRegistry] = useState({});
   const [ctaRegistry, setCtaRegistry] = useState({});
   const [suspendRegistry, setSuspendRegistry] = useState({});
@@ -140,13 +168,41 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
     () => Object.values(suspendRegistry).some((entry) => Boolean(entry?.keepNavOpen)),
     [suspendRegistry]
   );
-  const isUiAutoSuspended = isTextInputActive || isVirtualKeyboardVisible;
+  const isUiAutoSuspended = isTextInputActive;
   const effectiveSuspended = isSuspended || isUiAutoSuspended;
   const shouldKeepNavWhileSuspended = isSuspended && keepNavDuringSuspend && !isUiAutoSuspended;
 
   const hasNav = Boolean(ready && isMobile && activeNav);
   const hasCta = Boolean(ready && isMobile && activeCta);
   const showDock = hasNav || hasCta;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !isMobile) return undefined;
+
+    const STALE_SUSPEND_TTL_MS = 3 * 60 * 1000;
+    const intervalId = window.setInterval(() => {
+      setSuspendRegistry((prev) => {
+        if (!prev || Object.keys(prev).length === 0) return prev;
+
+        const now = Date.now();
+        let mutated = false;
+        const next = {};
+
+        Object.entries(prev).forEach(([id, entry]) => {
+          const at = Number(entry?.at || 0);
+          if (at > 0 && now - at > STALE_SUSPEND_TTL_MS) {
+            mutated = true;
+            return;
+          }
+          next[id] = entry;
+        });
+
+        return mutated ? next : prev;
+      });
+    }, 45000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isMobile]);
 
   useEffect(() => {
     dockCollapsedRef.current = isDockCollapsed;
@@ -168,6 +224,37 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   }, [isMobile]);
 
   useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    if (typeof MutationObserver === "undefined") return undefined;
+
+    const root = document.documentElement;
+    let rafId = null;
+    const revealDock = () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(() => {
+        if (!ready || !isMobile || !showDock) return;
+        dockCollapsedRef.current = false;
+        setIsDockCollapsed(false);
+      });
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      const hasThemeMutation = mutations.some(
+        (mutation) => mutation.attributeName === "class" || mutation.attributeName === "data-theme"
+      );
+      if (!hasThemeMutation) return;
+      revealDock();
+    });
+
+    observer.observe(root, { attributes: true, attributeFilter: ["class", "data-theme"] });
+
+    return () => {
+      observer.disconnect();
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+    };
+  }, [ready, isMobile, showDock]);
+
+  useEffect(() => {
     if (effectiveSuspended) {
       if (!shouldKeepNavWhileSuspended) {
         setIsNavExpanded(false);
@@ -183,6 +270,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
   useEffect(() => {
     if (
+      !enableAutoCollapse ||
       !ready ||
       !isMobile ||
       !showDock ||
@@ -266,7 +354,16 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [ready, isMobile, showDock, effectiveSuspended, isNavExpanded, isDockInteracting, shouldLockDockVisible]);
+  }, [
+    enableAutoCollapse,
+    ready,
+    isMobile,
+    showDock,
+    effectiveSuspended,
+    isNavExpanded,
+    isDockInteracting,
+    shouldLockDockVisible,
+  ]);
 
   const dockRootTransition = useMemo(
     () =>
@@ -337,7 +434,9 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
           Math.round(window.innerHeight - (viewport.height + viewport.offsetTop))
         );
         root.style.setProperty("--lmx-mobile-viewport-bottom-offset", `${bottomOffset}px`);
-        const keyboardVisible = isMobile && bottomOffset > 80;
+        const focusedTextInput = isTextualInputElement(document.activeElement);
+        const keyboardVisible =
+          isMobile && (bottomOffset > 170 || (bottomOffset > 80 && focusedTextInput));
         setIsVirtualKeyboardVisible((prev) => (prev === keyboardVisible ? prev : keyboardVisible));
       });
     };
@@ -359,37 +458,10 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
 
-    const isTextualInput = (node) => {
-      if (!(node instanceof HTMLElement)) return false;
-      if (node.isContentEditable) return true;
-
-      const tag = String(node.tagName || "").toLowerCase();
-      if (tag === "textarea") return true;
-      if (tag !== "input") return false;
-
-      const type = String(node.getAttribute("type") || "text").toLowerCase();
-      return ![
-        "checkbox",
-        "radio",
-        "button",
-        "submit",
-        "reset",
-        "file",
-        "range",
-        "color",
-        "date",
-        "month",
-        "week",
-        "time",
-        "datetime-local",
-        "hidden",
-      ].includes(type);
-    };
-
     const syncInputState = () => {
       const active = document.activeElement;
       setIsTextInputActive((prev) => {
-        const next = isTextualInput(active);
+        const next = isTextualInputElement(active);
         return prev === next ? prev : next;
       });
     };
@@ -407,6 +479,19 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
       document.removeEventListener("focusout", onFocusOut);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isMobile) return undefined;
+    if (!isVirtualKeyboardVisible) return undefined;
+    if (isSuspended) return undefined;
+    if (isTextInputActive) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setIsVirtualKeyboardVisible(false);
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isMobile, isSuspended, isTextInputActive, isVirtualKeyboardVisible]);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -505,7 +590,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                 onPointerUp={endDockInteraction}
                 onPointerCancel={endDockInteraction}
                 onPointerLeave={endDockInteraction}
-                className="fixed inset-0 z-[89] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
+                className="fixed inset-0 z-[119] bg-slate-950/24 backdrop-blur-[2px] lg:hidden"
               />
             )}
 
@@ -528,7 +613,7 @@ export const AdaptiveMobileDockProvider = ({ children }) => {
                   : { y: "calc(100% + 14px)", opacity: 0, scale: 0.985 }
               }
               transition={dockRootTransition}
-              className="fixed inset-x-0 bottom-0 z-[90] pointer-events-none px-2 lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[120] pointer-events-none px-2 lg:hidden"
               style={{
                 bottom: "var(--lmx-mobile-viewport-bottom-offset, 0px)",
                 willChange: "transform, opacity",

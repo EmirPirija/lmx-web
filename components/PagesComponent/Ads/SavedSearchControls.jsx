@@ -292,7 +292,7 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
-            className="fixed inset-0 z-[94] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
+            className="fixed inset-0 z-[107] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
             onClick={handleBackdropClick}
           />
 
@@ -302,7 +302,7 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 31, stiffness: 320, mass: 0.92 }}
-            className="fixed bottom-0 left-0 right-0 z-[95] md:hidden"
+            className="fixed bottom-0 left-0 right-0 z-[108] md:hidden"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex max-h-[88vh] flex-col rounded-t-[1.75rem] border border-slate-200 bg-white/95 shadow-2xl shadow-slate-900/20 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-black/45">

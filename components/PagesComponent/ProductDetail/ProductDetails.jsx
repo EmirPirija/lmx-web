@@ -213,7 +213,7 @@ const MobileStickyBar = ({
   return (
     <div
       className={cn(
-        "lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-3 safe-area-bottom z-[40] transition-all duration-300 ease-out",
+        "lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-3 safe-area-bottom z-[108] transition-all duration-300 ease-out",
         hide ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
       )}
     >

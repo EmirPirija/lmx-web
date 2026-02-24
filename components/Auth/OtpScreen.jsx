@@ -45,6 +45,7 @@ const OtpScreen = ({
   regionCode,
   onAuthSuccess,
   autoCloseOnSuccess = true,
+  authIntent = "login",
 }) => {
   const { navigate } = useNavigate();
   const otpInputRef = useAutoFocus();
@@ -75,6 +76,10 @@ const OtpScreen = ({
       const response = await verifyOtpApi.verifyOtp({
         number: PhoneNumber,
         otp: otp,
+        intent: authIntent,
+        mobile: formattedNumber,
+        country_code: countryCode.replace(/\D/g, ""),
+        region_code: regionCode?.toUpperCase() || "",
       });
       if (response?.data?.error === false) {
         const authPayload = response?.data;
@@ -115,9 +120,14 @@ const OtpScreen = ({
         fcm_id: fetchFCM ? fetchFCM : "",
         country_code: countryCode.replace(/\D/g, ""),
         type: "phone",
+        auth_intent: authIntent,
         region_code: regionCode?.toUpperCase() || "",
       });
       const data = response.data;
+      if (data?.error === true) {
+        toast.error(data?.message || "Prijava/registracija nije uspjela.");
+        return;
+      }
       loadUpdateData(data);
       toast.success(data.message);
       await onAuthSuccess?.(data, {

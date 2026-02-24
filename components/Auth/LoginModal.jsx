@@ -390,6 +390,7 @@ xl:max-w-7xl
                         resendTimer={resendTimer}
                         setResendTimer={setResendTimer}
                         regionCode={loginStates.regionCode}
+                        authIntent="login"
                         onAuthSuccess={handleAuthenticated}
                         key={IsOTPScreen + "login-otp"}
                       />

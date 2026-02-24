@@ -1446,6 +1446,7 @@ xl:max-w-7xl
                         setResendTimer={setResendTimer}
                         resendTimer={resendTimer}
                         regionCode={regionCode}
+                        authIntent="register"
                         onAuthSuccess={handlePhoneOtpSuccess}
                         autoCloseOnSuccess={false}
                         key={`${IsRegisterModalOpen}-register-otp`}

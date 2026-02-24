@@ -1351,14 +1351,14 @@ const Ads = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={handleBackdropClick}
-              className="fixed inset-0 z-[70] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
+              className="fixed inset-0 z-[107] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
             />
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.9 }}
-              className="fixed inset-x-0 bottom-0 z-[71] md:hidden"
+              className="fixed inset-x-0 bottom-0 z-[108] md:hidden"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="rounded-t-[1.75rem] border border-slate-200 bg-white/95 px-4 pb-5 pt-3 shadow-[0_-20px_50px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-[0_-20px_50px_-28px_rgba(2,6,23,0.85)]">

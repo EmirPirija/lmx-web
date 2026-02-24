@@ -59,7 +59,6 @@ import {
   membershipApi,
 } from "@/utils/api";
 import {
-  loadUpdateData,
   userSignUpData,
   userUpdateData,
 } from "@/redux/reducer/authSlice";
@@ -893,6 +892,7 @@ const SellerSettings = () => {
       nextRegionCode,
       nextEmail,
       authTokenOverride,
+      markPhoneVerified = false,
     } = {}) => {
       const response = await withTimeout(
         updateProfileApi.updateProfile({
@@ -900,6 +900,7 @@ const SellerSettings = () => {
           country_code: nextCountryCode || undefined,
           region_code: nextRegionCode || undefined,
           email: nextEmail || undefined,
+          mark_phone_verified: markPhoneVerified ? 1 : undefined,
           auth_token: authTokenOverride || authToken || undefined,
         }),
         20000,
@@ -1029,6 +1030,10 @@ const SellerSettings = () => {
         const verifyResponse = await verifyOtpApi.verifyOtp({
           number: phoneE164,
           otp: trimmedOtp,
+          intent: "profile_verification",
+          mobile: normalizedLocalNumber,
+          country_code: normalizedCountryCode,
+          region_code: phoneRegionCode || currentUser?.region_code || "BA",
         });
 
         if (verifyResponse?.data?.error !== false) {
@@ -1036,18 +1041,17 @@ const SellerSettings = () => {
           return;
         }
 
-        if (verifyResponse?.data?.token) {
-          loadUpdateData(verifyResponse.data);
-        } else if (verifyResponse?.data?.data) {
-          dispatch(userUpdateData({ data: verifyResponse.data.data }));
-        }
-
-        await syncProfileVerificationData({
+        const syncResponse = await syncProfileVerificationData({
           nextMobile: normalizedLocalNumber,
           nextCountryCode: normalizedCountryCode,
           nextRegionCode: phoneRegionCode || currentUser?.region_code || "BA",
-          authTokenOverride: verifyResponse?.data?.token || authToken,
+          markPhoneVerified: true,
         });
+
+        if (syncResponse?.data?.error !== false) {
+          toast.error(syncResponse?.data?.message || "Broj je potvrđen, ali spremanje nije uspjelo.");
+          return;
+        }
 
         setManualPhoneVerified(true);
       } else {
@@ -1074,11 +1078,17 @@ const SellerSettings = () => {
 
         await refreshFirebaseIdentity();
 
-        await syncProfileVerificationData({
+        const syncResponse = await syncProfileVerificationData({
           nextMobile: normalizedLocalNumber,
           nextCountryCode: normalizedCountryCode,
           nextRegionCode: phoneRegionCode || currentUser?.region_code || "BA",
+          markPhoneVerified: true,
         });
+
+        if (syncResponse?.data?.error !== false) {
+          toast.error(syncResponse?.data?.message || "Broj je potvrđen, ali spremanje nije uspjelo.");
+          return;
+        }
       }
 
       setPhoneOtp("");

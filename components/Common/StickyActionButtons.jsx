@@ -103,7 +103,7 @@ const StickyActionButtons = ({
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-[68] pointer-events-none",
+        "fixed inset-x-0 bottom-0 z-[108] pointer-events-none",
         dock && "max-[991px]:hidden",
         containerClassName
       )}

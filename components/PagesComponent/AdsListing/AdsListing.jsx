@@ -654,7 +654,7 @@ const AdsListing = () => {
   const completenessScore = useMemo(() => {
     let score = 0;
     if (categoryPath.length > 0) score += 20;
-    if (defaultDetails.name && defaultDetails.description && mobile) {
+    if (defaultDetails.name && defaultDetails.description) {
       score += 20;
     }
     if (customFields.length === 0) {
@@ -675,7 +675,7 @@ const AdsListing = () => {
       score += 20;
     }
     return Math.round(score);
-  }, [categoryPath, currentExtraDetails, customFields, defaultDetails, location, mobile, otherImages, uploadedImages]);
+  }, [categoryPath, currentExtraDetails, customFields, defaultDetails, location, otherImages, uploadedImages]);
 
   useEffect(() => {
     const stored = localStorage.getItem("recentCategories");
@@ -1093,11 +1093,6 @@ const AdsListing = () => {
 
     if (isEmpty(name) || isEmpty(description)) {
       toast.error("Popuni obavezna polja.");
-      return setStep(2);
-    }
-
-    if (isEmpty(contact)) {
-      toast.error("Postavi broj telefona u Seller postavkama prije objave oglasa.");
       return setStep(2);
     }
 
@@ -1620,9 +1615,9 @@ const AdsListing = () => {
           case 1:
             return categoryPath.length > 0 ? 100 : 0;
           case 2:
-            return defaultDetails.name && defaultDetails.description && mobile
+            return defaultDetails.name && defaultDetails.description
               ? 100
-              : defaultDetails.name || defaultDetails.description || mobile
+              : defaultDetails.name || defaultDetails.description
               ? 55
               : 0;
           case 3:
@@ -1649,7 +1644,6 @@ const AdsListing = () => {
       hasBaseLocation,
       is_real_estate,
       location?.address,
-      mobile,
       steps,
       uploadedImages.length,
     ]
@@ -1684,16 +1678,6 @@ const AdsListing = () => {
         fieldId: "description",
         label: "Dodaj opis oglasa",
         hint: "Kupci trebaju osnovne informacije prije upita.",
-      });
-    }
-
-    if (!String(mobile || "").trim()) {
-      issues.push({
-        id: "contact",
-        stepId: 2,
-        fieldId: "seller-contact-readonly",
-        label: "Postavi kontakt broj",
-        hint: "Kontakt broj se postavlja u Seller postavkama.",
       });
     }
 
@@ -1733,7 +1717,6 @@ const AdsListing = () => {
     defaultDetails?.description,
     defaultDetails?.name,
     hasValidLocation,
-    mobile,
     uploadedImages,
   ]);
 

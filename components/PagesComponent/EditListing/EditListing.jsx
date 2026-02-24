@@ -729,7 +729,7 @@ const EditListing = ({ id }) => {
   const completenessScore = useMemo(() => {
     let score = 0;
     if (selectedCategoryPath.length > 0) score += 20;
-    if (defaultDetails.name && defaultDetails.description && mobile) {
+    if (defaultDetails.name && defaultDetails.description) {
       score += 20;
     }
     if (customFields.length === 0) {
@@ -749,7 +749,7 @@ const EditListing = ({ id }) => {
       score += 20;
     }
     return Math.round(score);
-  }, [Location, OtherImages, currentExtraDetails, customFields, defaultDetails, mobile, selectedCategoryPath, uploadedImages]);
+  }, [Location, OtherImages, currentExtraDetails, customFields, defaultDetails, selectedCategoryPath, uploadedImages]);
 
   const qualityBadges = useMemo(() => {
     const badges = [];
@@ -1113,12 +1113,6 @@ const EditListing = ({ id }) => {
 
     if (!name.trim() || !description.trim()) {
       toast.error("Popuni obavezna polja.");
-      setStep(1);
-      return;
-    }
-
-    if (!contact) {
-      toast.error("Postavi broj telefona u Seller postavkama prije spremanja oglasa.");
       setStep(1);
       return;
     }
@@ -1619,9 +1613,9 @@ const EditListing = ({ id }) => {
       if (stepIndex === activeStepIndex) {
         switch (stepId) {
           case 1:
-            return defaultDetails.name && defaultDetails.description && mobile
+            return defaultDetails.name && defaultDetails.description
               ? 100
-              : defaultDetails.name || defaultDetails.description || mobile
+              : defaultDetails.name || defaultDetails.description
               ? 55
               : 0;
           case 2:
@@ -1648,7 +1642,6 @@ const EditListing = ({ id }) => {
       currentExtraDetails,
       defaultDetails.description,
       defaultDetails.name,
-      mobile,
       steps,
       uploadedImages.length,
     ]
@@ -1678,16 +1671,6 @@ const EditListing = ({ id }) => {
         fieldId: "description",
         label: "Dodaj opis oglasa",
         hint: "Opis pomaže kupcu da donese odluku.",
-      });
-    }
-
-    if (!String(mobile || "").trim()) {
-      issues.push({
-        id: "contact",
-        stepId: 1,
-        fieldId: "seller-contact-readonly",
-        label: "Postavi kontakt broj",
-        hint: "Kontakt broj se mijenja u Seller postavkama.",
       });
     }
 
@@ -1726,7 +1709,6 @@ const EditListing = ({ id }) => {
     defaultDetails?.description,
     defaultDetails?.name,
     hasValidLocation,
-    mobile,
     uploadedImages,
   ]);
 

@@ -564,6 +564,7 @@ export const userSignUpApi = {
     fcm_id,
     firebase_id,
     type,
+    auth_intent,
     profile,
     country_code,
     registration,
@@ -578,6 +579,7 @@ export const userSignUpApi = {
     if (fcm_id) formData.append("fcm_id", fcm_id);
     if (firebase_id) formData.append("firebase_id", firebase_id);
     if (type) formData.append("type", type);
+    if (auth_intent) formData.append("auth_intent", auth_intent);
     if (region_code) formData.append("region_code", region_code);
 
     // Assuming `profile` is a file object. If it's a URL or other type, handle accordingly.
@@ -674,6 +676,7 @@ export const updateProfileApi = {
     show_personal_details,
     country_code,
     region_code,
+    mark_phone_verified,
     auth_token,
   } = {}) => {
     const formData = new FormData();
@@ -706,6 +709,10 @@ export const updateProfileApi = {
     
     if (region_code) {
         formData.append("region_code", region_code);
+    }
+
+    if (mark_phone_verified !== undefined && mark_phone_verified !== null) {
+      formData.append("mark_phone_verified", mark_phone_verified);
     }
     // -------------------------------------------------------------
 
@@ -1975,11 +1982,15 @@ export const updateJobStatusApi = {
 };
 
 export const verifyOtpApi = {
-  verifyOtp: ({ number, otp } = {}) => {
+  verifyOtp: ({ number, otp, intent, mobile, country_code, region_code } = {}) => {
     return Api.get(VERIFY_OTP, {
       params: {
         number: number,
         otp: otp,
+        intent: intent,
+        mobile: mobile,
+        country_code: country_code,
+        region_code: region_code,
       },
     });
   },
