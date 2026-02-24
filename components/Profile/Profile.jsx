@@ -332,7 +332,7 @@ export default function Profile() {
   }, [IsLoggedIn]);
 
   // Auto-save function
-  const autoSave = useCallback(async (fieldName, skipValidation = false) => {
+  const autoSave = useCallback(async (fieldName, skipValidation = false, options = {}) => {
     // Validation
     if (!skipValidation) {
       if (fieldName === "name" && !formData.name.trim()) {
@@ -346,24 +346,25 @@ export default function Profile() {
       }
     }
 
+    const locationToSave = options?.location || bihLocation;
     setSavingField(fieldName);
     try {
       if (
         fieldName === "location" &&
-        bihLocation?.cityId &&
-        !isLocationComplete(bihLocation)
+        locationToSave?.cityId &&
+        !isLocationComplete(locationToSave)
       ) {
         return;
       }
 
       if (fieldName === "location") {
-        saveLocation(bihLocation);
+        saveLocation(locationToSave);
       }
 
-      const resolvedLocation = resolveLocationSelection(bihLocation);
-      const formattedBase = bihLocation?.formattedAddress || resolvedLocation?.formatted || "";
+      const resolvedLocation = resolveLocationSelection(locationToSave);
+      const formattedBase = locationToSave?.formattedAddress || resolvedLocation?.formatted || "";
       const formattedAddress = formattedBase
-        ? `${bihLocation.address || ""}, ${formattedBase}`
+        ? `${locationToSave?.address || ""}, ${formattedBase}`
             .replace(/^,\s*/, "")
             .trim()
         : formData.address;
@@ -405,12 +406,12 @@ export default function Profile() {
   }, [formData, bihLocation, profileFile, fetchFCM, UserData?.fcm_id, saveLocation]);
 
   // Debounced auto-save
-  const debouncedSave = useCallback((fieldName) => {
+  const debouncedSave = useCallback((fieldName, options = {}) => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = setTimeout(() => {
-      autoSave(fieldName);
+      autoSave(fieldName, false, options);
     }, 1000);
   }, [autoSave]);
 
@@ -465,7 +466,7 @@ export default function Profile() {
 
   const handleLocationChange = (newLocation) => {
     setBihLocation(newLocation);
-    debouncedSave("location");
+    debouncedSave("location", { location: newLocation });
   };
 
   const sellerProfilePath = UserData?.id ? `/seller/${UserData.id}` : "";

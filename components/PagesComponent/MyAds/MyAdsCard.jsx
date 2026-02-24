@@ -1913,10 +1913,10 @@ const MyAdsCard = ({
         ) : null}
 
         <div
-          className="mt-auto flex flex-col-reverse items-center justify-between gap-2 pt-2 sm:flex-row"
+          className="mt-auto flex flex-col-reverse justify-between gap-2 pt-2 sm:flex-row"
         >
           {publishedAgo ? (
-            <div className="flex min-w-0 items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex min-w-0 gap-1 text-xs text-slate-500 dark:text-slate-400">
               {/* <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" /> */}
               <span className="truncate">{publishedAgo}</span>
             </div>
