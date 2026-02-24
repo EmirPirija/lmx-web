@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 
 const sharedButtonClasses =
-  "inline-flex h-11 min-w-[128px] flex-1 touch-manipulation items-center justify-center rounded-xl px-4 py-2.5 text-sm sm:min-w-[142px] sm:flex-none sm:text-base font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-12 min-h-[48px] min-w-[132px] flex-1 touch-manipulation items-center justify-center rounded-xl px-4 py-2.5 text-[15px] font-semibold transition-transform duration-200 will-change-transform sm:min-w-[146px] sm:flex-none sm:text-base disabled:cursor-not-allowed disabled:opacity-60";
 
 const secondaryButtonClasses =
-  "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100 dark:hover:bg-slate-800";
+  "border border-slate-200 bg-white text-slate-700 shadow-sm shadow-transparent hover:border-slate-300 hover:bg-slate-100 active:scale-[0.985] dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100 dark:hover:bg-slate-800";
 
 const primaryEnabledClasses =
   "bg-[#0ab6af] text-white shadow-sm shadow-[#0ab6af]/35 hover:bg-[#09a8a2] hover:scale-[1.01] active:scale-[0.99]";

@@ -46,12 +46,14 @@ const AccordionSection = ({
   children,
 }) => {
   return (
-    <div className="lmx-guided-accordion overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
-      <div
+    <div className="lmx-guided-accordion overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm transition-shadow duration-200 dark:border-slate-700 dark:bg-slate-900/90">
+      <button
+        type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
         className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
           isOpen ? "border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
-        }`}
+        } min-h-[64px] w-full text-left active:scale-[0.995] transform-gpu`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -95,7 +97,7 @@ const AccordionSection = ({
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-      </div>
+      </button>
 
       {isOpen && <div className="lmx-guided-accordion-content bg-white p-4 dark:bg-slate-900/90 sm:p-5">{children}</div>}
     </div>
@@ -326,6 +328,10 @@ const ComponentTwo = ({
   const [priceOpen, setPriceOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const basicSectionRef = useRef(null);
+  const priceSectionRef = useRef(null);
+  const stockSectionRef = useRef(null);
+  const contactSectionRef = useRef(null);
 
   const isDefaultLang = langId === defaultLangId;
   const sharedInventoryFields = useMemo(
@@ -553,17 +559,42 @@ const ComponentTwo = ({
   const discountPct = showDiscount
     ? Math.round(((oldPriceNum - priceNum) / oldPriceNum) * 100)
     : 0;
+  const focusSection = useCallback((sectionKey) => {
+    setBasicOpen(sectionKey === "basic");
+    setPriceOpen(sectionKey === "price");
+    setStockOpen(sectionKey === "stock");
+    setContactOpen(sectionKey === "contact");
+
+    if (typeof window === "undefined") return;
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    const refMap = {
+      basic: basicSectionRef,
+      price: priceSectionRef,
+      stock: stockSectionRef,
+      contact: contactSectionRef,
+    };
+    window.requestAnimationFrame(() => {
+      const target = refMap?.[sectionKey]?.current;
+      target?.scrollIntoView?.({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+    });
+  }, []);
 
   return (
     <div className="flex w-full flex-col gap-4 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-50\\/50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-300]:bg-slate-600 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-blue-50]:bg-blue-500/15 dark:[&_.bg-blue-100]:bg-blue-500/20 dark:[&_.border-blue-100]:border-blue-500/30 dark:[&_.bg-red-50]:bg-red-500/10 dark:[&_.bg-amber-50]:bg-amber-500/10">
       {/* BASIC */}
-      <AccordionSection
-        title="Osnovno"
-        subtitle="Naslov i opis oglasa"
-        isOpen={basicOpen}
-        onToggle={() => setBasicOpen((v) => !v)}
-        badge="required"
-      >
+      <div ref={basicSectionRef}>
+        <AccordionSection
+          title="Osnovno"
+          subtitle="Naslov i opis oglasa"
+          isOpen={basicOpen}
+          onToggle={() => focusSection("basic")}
+          badge="required"
+        >
         <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
   <Label
@@ -602,23 +633,25 @@ const ComponentTwo = ({
             required={isDefaultLang}
           />
         </div>
-      </AccordionSection>
+        </AccordionSection>
+      </div>
 
       {/* PRICE / SALARY + SALE (MERGED) */}
       {isDefaultLang && (
-        <AccordionSection
-          title={is_job_category ? "Plata" : "Cijena"}
-          subtitle={
-            is_job_category
-              ? "Minimalna i maksimalna plata"
-              : current.price_on_request
-              ? "Cijena na upit"
-              : "Postavite cijenu i opcionalno popust"
-          }
-          isOpen={priceOpen}
-          onToggle={() => setPriceOpen((v) => !v)}
-          badge={!is_job_category && current.price_on_request ? "optional" : "required"}
-        >
+        <div ref={priceSectionRef}>
+          <AccordionSection
+            title={is_job_category ? "Plata" : "Cijena"}
+            subtitle={
+              is_job_category
+                ? "Minimalna i maksimalna plata"
+                : current.price_on_request
+                ? "Cijena na upit"
+                : "Postavite cijenu i opcionalno popust"
+            }
+            isOpen={priceOpen}
+            onToggle={() => focusSection("price")}
+            badge={!is_job_category && current.price_on_request ? "optional" : "required"}
+          >
           {is_job_category ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
@@ -915,19 +948,21 @@ const ComponentTwo = ({
               )}
             </div>
           )}
-        </AccordionSection>
+          </AccordionSection>
+        </div>
       )}
 
       {/* STOCK */}
       {isDefaultLang && !is_real_estate && (
-        <AccordionSection
-          title="Zalihe"
-          subtitle="Shop može voditi zalihe i internu šifru artikla"
-          isOpen={stockOpen}
-          onToggle={() => setStockOpen((v) => !v)}
-          badge="optional"
-          planGate={<PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />}
-        >
+        <div ref={stockSectionRef}>
+          <AccordionSection
+            title="Zalihe"
+            subtitle="Shop može voditi zalihe i internu šifru artikla"
+            isOpen={stockOpen}
+            onToggle={() => focusSection("stock")}
+            badge="optional"
+            planGate={<PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />}
+          >
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-800">
@@ -1109,18 +1144,20 @@ const ComponentTwo = ({
               ) : null}
             </div>
           </div>
-        </AccordionSection>
+          </AccordionSection>
+        </div>
       )}
 
       {/* CONTACT */}
       {isDefaultLang && (
-        <AccordionSection
-          title="Kontakt"
-          subtitle="Broj se preuzima iz Seller postavki"
-          isOpen={contactOpen}
-          onToggle={() => setContactOpen((v) => !v)}
-          badge="required"
-        >
+        <div ref={contactSectionRef}>
+          <AccordionSection
+            title="Kontakt"
+            subtitle="Broj se preuzima iz Seller postavki"
+            isOpen={contactOpen}
+            onToggle={() => focusSection("contact")}
+            badge="required"
+          >
           <div
             id="seller-contact-readonly"
             className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/60"
@@ -1142,7 +1179,8 @@ const ComponentTwo = ({
               .
             </p>
           </div>
-        </AccordionSection>
+          </AccordionSection>
+        </div>
       )}
 
       {/* Sticky Action Buttons */}

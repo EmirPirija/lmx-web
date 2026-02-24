@@ -322,6 +322,54 @@ const extractTempMediaId = (value) => {
   return null;
 };
 
+const EDIT_DRAFT_STORAGE_PREFIX = "lmx:edit-ad-draft:v2:";
+const EDIT_DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const EDIT_DRAFT_DEBOUNCE_MS = 1800;
+const EDIT_SERVER_AUTOSAVE_DEBOUNCE_MS = 9000;
+
+const toDraftSafeValue = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (isFileLike(value)) return undefined;
+  if (typeof value === "function") return undefined;
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => toDraftSafeValue(entry))
+      .filter((entry) => entry !== undefined);
+  }
+
+  if (typeof value === "object") {
+    const out = {};
+    Object.entries(value).forEach(([key, entry]) => {
+      const normalized = toDraftSafeValue(entry);
+      if (normalized !== undefined) out[key] = normalized;
+    });
+    return out;
+  }
+
+  return value;
+};
+
+const formatDraftSavedAgo = (savedAtIso, nowTs = Date.now()) => {
+  if (!savedAtIso) return "";
+  const savedTs = new Date(savedAtIso).getTime();
+  if (!Number.isFinite(savedTs)) return "";
+
+  const diffSec = Math.max(0, Math.floor((nowTs - savedTs) / 1000));
+  if (diffSec < 3) return "upravo sada";
+  if (diffSec < 60) return `prije ${diffSec}s`;
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `prije ${diffMin}min`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `prije ${diffHours}h`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `prije ${diffDays}d`;
+};
+
 const parseJsonSafe = (value) => {
   if (typeof value !== "string") return value;
   try {
@@ -560,6 +608,13 @@ const EditListing = ({ id }) => {
   const stepNodeRefs = useRef([]);
   const wizardTopRef = useRef(null);
   const hasInitializedStepRef = useRef(false);
+  const hasAppliedLocalDraftRef = useRef(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const [draftStatus, setDraftStatus] = useState("idle");
+  const [draftLocalSavedAt, setDraftLocalSavedAt] = useState("");
+  const [draftServerSavedAt, setDraftServerSavedAt] = useState("");
+  const [draftTickerTs, setDraftTickerTs] = useState(() => Date.now());
+  const lastServerAutosaveHashRef = useRef("");
   useEffect(() => {
     otherImagesRef.current = OtherImages;
   }, [OtherImages]);
@@ -579,7 +634,6 @@ const EditListing = ({ id }) => {
     syncing: false,
   });
   const [deleteVideo, setDeleteVideo] = useState(false);
-  const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [scheduledAt, setScheduledAt] = useState(null);
   const [availableNow, setAvailableNow] = useState(false);
   const [exchangePossible, setExchangePossible] = useState(false);
@@ -620,6 +674,10 @@ const EditListing = ({ id }) => {
     [userData?.email_verified, userData?.email_verified_at]
   );
   const hasVerificationWarnings = !isPhoneVerified || !isEmailVerified;
+  const editDraftStorageKey = useMemo(
+    () => `${EDIT_DRAFT_STORAGE_PREFIX}${id || "unknown"}`,
+    [id]
+  );
 
   const [extraDetails, setExtraDetails] = useState({
     [defaultLangId]: {},
@@ -688,6 +746,197 @@ const EditListing = ({ id }) => {
   );
   const currentExtraDetails =
     extraDetails?.[langId] || extraDetails?.[primaryLangId] || {};
+  const draftSavedAgoLabel = useMemo(
+    () => formatDraftSavedAgo(draftLocalSavedAt, draftTickerTs),
+    [draftLocalSavedAt, draftTickerTs]
+  );
+  const draftServerSavedAgoLabel = useMemo(
+    () => formatDraftSavedAgo(draftServerSavedAt, draftTickerTs),
+    [draftServerSavedAt, draftTickerTs]
+  );
+
+  useEffect(() => {
+    if (!draftLocalSavedAt && !draftServerSavedAt) return undefined;
+    const intervalId = window.setInterval(() => {
+      setDraftTickerTs(Date.now());
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [draftLocalSavedAt, draftServerSavedAt]);
+
+  const localDraftSnapshot = useMemo(
+    () => ({
+      step,
+      langId,
+      translations: toDraftSafeValue(translations),
+      extraDetails: toDraftSafeValue(extraDetails),
+      uploadedImages: toDraftSafeValue(uploadedImages),
+      otherImages: toDraftSafeValue(OtherImages),
+      video: toDraftSafeValue(video),
+      location: toDraftSafeValue(Location),
+      addVideoToStory: Boolean(addVideoToStory),
+      publishToInstagram: Boolean(publishToInstagram),
+      instagramSourceUrl: String(instagramSourceUrl || ""),
+      availableNow: Boolean(availableNow),
+      exchangePossible: Boolean(exchangePossible),
+    }),
+    [
+      OtherImages,
+      Location,
+      addVideoToStory,
+      availableNow,
+      exchangePossible,
+      extraDetails,
+      instagramSourceUrl,
+      langId,
+      publishToInstagram,
+      step,
+      translations,
+      uploadedImages,
+      video,
+    ]
+  );
+  const serializedLocalDraftSnapshot = useMemo(
+    () => JSON.stringify(localDraftSnapshot),
+    [localDraftSnapshot]
+  );
+
+  useEffect(() => {
+    if (!draftHydrated || !editDraftStorageKey || typeof window === "undefined") return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      try {
+        setDraftStatus("saving");
+        const payload = {
+          savedAt: new Date().toISOString(),
+          data: localDraftSnapshot,
+        };
+        window.localStorage.setItem(editDraftStorageKey, JSON.stringify(payload));
+        setDraftLocalSavedAt(payload.savedAt);
+        setDraftTickerTs(Date.now());
+        setDraftStatus("saved");
+      } catch (error) {
+        console.error("Greška pri autosave nacrta izmjene:", error);
+        setDraftStatus("error");
+      }
+    }, EDIT_DRAFT_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [draftHydrated, editDraftStorageKey, localDraftSnapshot, serializedLocalDraftSnapshot]);
+
+  const serverAutosavePayload = useMemo(() => {
+    if (!id) return null;
+
+    const payload = {
+      id: Number(id),
+      name: String(defaultDetails?.name || "").trim(),
+      slug: String(defaultDetails?.slug || "").trim(),
+      description: String(defaultDetails?.description || "").trim(),
+      contact: mobile,
+      country_code: countryCode,
+      region_code: String(regionCode || "").toUpperCase(),
+      available_now: Boolean(availableNow),
+      exchange_possible: Boolean(exchangePossible),
+      is_exchange: Boolean(exchangePossible),
+      allow_exchange: Boolean(exchangePossible),
+      video_link: String(defaultDetails?.video_link || "").trim(),
+      instagram_source_url: String(instagramSourceUrl || "").trim(),
+      address: Location?.address || "",
+      formatted_address: Location?.formattedAddress || Location?.address || "",
+      address_translated: Location?.address_translated || Location?.address || "",
+      latitude: Location?.lat,
+      longitude: Location?.long,
+      country: Location?.country || "",
+      state: Location?.state || "",
+      city: Location?.city || "",
+      ...(Location?.area_id ? { area_id: Number(Location.area_id) } : {}),
+    };
+
+    if (!payload.name || !payload.description) return null;
+
+    if (is_job_category) {
+      if (defaultDetails?.min_salary !== undefined && defaultDetails?.min_salary !== null) {
+        payload.min_salary = defaultDetails.min_salary;
+      }
+      if (defaultDetails?.max_salary !== undefined && defaultDetails?.max_salary !== null) {
+        payload.max_salary = defaultDetails.max_salary;
+      }
+    } else {
+      const resolvedPrice =
+        is_real_estate && effectiveRealEstateTotalPrice
+          ? effectiveRealEstateTotalPrice
+          : defaultDetails?.price;
+      payload.price_on_request = Boolean(defaultDetails?.price_on_request);
+      payload.is_on_sale = Boolean(defaultDetails?.is_on_sale);
+      payload.old_price = defaultDetails?.is_on_sale ? defaultDetails?.old_price : null;
+      if (!payload.price_on_request && resolvedPrice !== undefined && resolvedPrice !== null) {
+        payload.price = resolvedPrice;
+      }
+    }
+
+    return payload;
+  }, [
+    Location?.address,
+    Location?.address_translated,
+    Location?.area_id,
+    Location?.city,
+    Location?.country,
+    Location?.formattedAddress,
+    Location?.lat,
+    Location?.long,
+    Location?.state,
+    availableNow,
+    countryCode,
+    defaultDetails?.description,
+    defaultDetails?.is_on_sale,
+    defaultDetails?.max_salary,
+    defaultDetails?.min_salary,
+    defaultDetails?.name,
+    defaultDetails?.old_price,
+    defaultDetails?.price,
+    defaultDetails?.price_on_request,
+    defaultDetails?.slug,
+    defaultDetails?.video_link,
+    effectiveRealEstateTotalPrice,
+    exchangePossible,
+    id,
+    instagramSourceUrl,
+    is_job_category,
+    is_real_estate,
+    mobile,
+    regionCode,
+  ]);
+  const serializedServerAutosavePayload = useMemo(
+    () => JSON.stringify(serverAutosavePayload || {}),
+    [serverAutosavePayload]
+  );
+
+  useEffect(() => {
+    if (!draftHydrated || !serverAutosavePayload || isLoading || isAdPlaced) return undefined;
+
+    const timeoutId = window.setTimeout(async () => {
+      if (serializedServerAutosavePayload === lastServerAutosaveHashRef.current) return;
+      try {
+        setDraftStatus("saving");
+        await editItemApi.editItem(serverAutosavePayload);
+        lastServerAutosaveHashRef.current = serializedServerAutosavePayload;
+        const nowIso = new Date().toISOString();
+        setDraftServerSavedAt(nowIso);
+        setDraftTickerTs(Date.now());
+        setDraftStatus("saved");
+      } catch (error) {
+        console.error("Server autosave draft (edit) nije uspio:", error);
+        setDraftStatus("error");
+      }
+    }, EDIT_SERVER_AUTOSAVE_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    draftHydrated,
+    isAdPlaced,
+    isLoading,
+    serializedServerAutosavePayload,
+    serverAutosavePayload,
+  ]);
 
   const is_job_category =
     Number(
@@ -891,9 +1140,80 @@ const EditListing = ({ id }) => {
             ? "map"
             : "profile"),
       });
+
+      if (!hasAppliedLocalDraftRef.current && typeof window !== "undefined") {
+        hasAppliedLocalDraftRef.current = true;
+        try {
+          const rawDraft = window.localStorage.getItem(editDraftStorageKey);
+          if (rawDraft) {
+            const parsedDraft = JSON.parse(rawDraft);
+            const savedAt = parsedDraft?.savedAt;
+            const savedTs = savedAt ? new Date(savedAt).getTime() : NaN;
+            const isExpired =
+              !Number.isFinite(savedTs) || Date.now() - savedTs > EDIT_DRAFT_TTL_MS;
+
+            if (isExpired) {
+              window.localStorage.removeItem(editDraftStorageKey);
+            } else {
+              const draftData = parsedDraft?.data || {};
+              if (Number.isFinite(Number(draftData?.step))) {
+                setStep(Number(draftData.step));
+              }
+              if (draftData?.translations && typeof draftData.translations === "object") {
+                setTranslations(draftData.translations);
+              }
+              if (draftData?.extraDetails && typeof draftData.extraDetails === "object") {
+                setExtraDetails(draftData.extraDetails);
+              }
+              if (Number.isFinite(Number(draftData?.langId))) {
+                setLangId(Number(draftData.langId));
+              }
+              if (Array.isArray(draftData?.uploadedImages)) {
+                setUploadedImages(draftData.uploadedImages.filter(Boolean).slice(0, 1));
+              }
+              if (Array.isArray(draftData?.otherImages)) {
+                setOtherImages(draftData.otherImages.filter(Boolean));
+              }
+              if (draftData?.video) {
+                setVideo(draftData.video);
+              }
+              if (draftData?.location && typeof draftData.location === "object") {
+                setLocation(draftData.location);
+              }
+              if (typeof draftData?.addVideoToStory === "boolean") {
+                setAddVideoToStory(draftData.addVideoToStory);
+              }
+              if (typeof draftData?.publishToInstagram === "boolean") {
+                setPublishToInstagram(draftData.publishToInstagram);
+              }
+              if (typeof draftData?.instagramSourceUrl === "string") {
+                setInstagramSourceUrl(draftData.instagramSourceUrl);
+              }
+              if (typeof draftData?.availableNow === "boolean") {
+                setAvailableNow(draftData.availableNow);
+              }
+              if (typeof draftData?.exchangePossible === "boolean") {
+                setExchangePossible(draftData.exchangePossible);
+              }
+              if (savedAt) {
+                setDraftLocalSavedAt(savedAt);
+                setDraftTickerTs(Date.now());
+                setDraftStatus("saved");
+              }
+            }
+          }
+        } catch (draftError) {
+          console.error("Greška pri učitavanju lokalnog nacrta izmjene:", draftError);
+        } finally {
+          setDraftHydrated(true);
+        }
+      } else {
+        setDraftHydrated(true);
+      }
     } catch (error) {
       console.log(error);
     } finally {
+      setDraftHydrated(true);
       if (latestListingFetchRef.current === fetchToken) {
         setIsLoading(false);
       }
@@ -1442,6 +1762,11 @@ const EditListing = ({ id }) => {
 
         setOpenSuccessModal(true);
         setCreatedAdSlug(res?.data?.data[0]?.slug);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(editDraftStorageKey);
+        }
+        setDraftStatus("idle");
+        setDraftLocalSavedAt("");
       } else {
         toast.error(res?.data?.message);
       }
@@ -1945,30 +2270,24 @@ const EditListing = ({ id }) => {
     : "";
 
   // =======================================================
-  // MEDIA: kompresija + watermark odmah na selekciju
-  // (EditComponentThree će i dalje samo zvati setUploadedImages / setOtherImages / setVideo)
+  // MEDIA:
+  // EditComponentThree već radi temp upload i vraća finalne temp objekte.
+  // Ovdje ne radimo dodatnu obradu da izbjegnemo dupli watermark/kompresiju.
   // =======================================================
   const setUploadedImagesProcessed = useCallback(
-    async (files) => {
+    (files) => {
       const arr = normalizeFilesArray(files);
-      if (!arr.length) return setUploadedImages([]);
-      try {
-        setIsMediaProcessing(true);
-        const [main] = await processImagesArray([arr[0]]);
-        setUploadedImages(main ? [main] : []);
-      } catch (e) {
-        console.error(e);
-        toast.error("Ne mogu obraditi sliku. Pokušaj ponovo.");
-        setUploadedImages(arr.slice(0, 1));
-      } finally {
-        setIsMediaProcessing(false);
+      if (!arr.length) {
+        setUploadedImages([]);
+        return;
       }
+      setUploadedImages(arr.slice(0, 1));
     },
     [setUploadedImages]
   );
 
   const setOtherImagesProcessed = useCallback(
-  async (next) => {
+  (next) => {
     // EditComponentThree nekad poziva setOtherImages sa functional updaterom
     // (prev => [...prev, ...files]). Moramo to podržati.
     const prev = otherImagesRef.current || [];
@@ -1976,30 +2295,7 @@ const EditListing = ({ id }) => {
     // 1) functional updater
     if (typeof next === "function") {
       const computed = next(prev);
-
-      // Ako se radi o brisanju / re-order i sl. (manji ili isti broj)
-      if (!Array.isArray(computed) || computed.length <= prev.length) {
-        setOtherImages(computed);
-        return;
-      }
-
-      // Pretpostavka: dodavanje na kraj (append)
-      const added = computed.slice(prev.length);
-
-      try {
-        setIsMediaProcessing(true);
-
-        // Obradi samo dodane fajlove (watermark + kompresija)
-        const processedAdded = await processImagesArray(added);
-
-        setOtherImages([...prev, ...processedAdded]);
-      } catch (e) {
-        console.error(e);
-        toast.error("Ne mogu obraditi slike. Pokušaj ponovo.");
-        setOtherImages(computed);
-      } finally {
-        setIsMediaProcessing(false);
-      }
+      setOtherImages(computed);
       return;
     }
 
@@ -2009,19 +2305,7 @@ const EditListing = ({ id }) => {
       setOtherImages([]);
       return;
     }
-
-    try {
-      setIsMediaProcessing(true);
-      const processed = await processImagesArray(arr);
-      // default: zamijeni kompletan set
-      setOtherImages(processed);
-    } catch (e) {
-      console.error(e);
-      toast.error("Ne mogu obraditi slike. Pokušaj ponovo.");
-      setOtherImages(arr);
-    } finally {
-      setIsMediaProcessing(false);
-    }
+    setOtherImages(arr);
   },
   [setOtherImages]
 );
@@ -2054,11 +2338,34 @@ const EditListing = ({ id }) => {
             <div className="mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-medium">{"Uredi oglas"}</h1>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2">
                     <Award className="w-5 h-5 text-primary" />
                     <span className="font-semibold text-primary">{completenessScore}%</span>
                     <span className="text-sm text-muted-foreground">{"dovršen"}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        draftStatus === "error"
+                          ? "bg-rose-500"
+                          : draftStatus === "saving"
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
+                      }`}
+                    />
+                    {draftStatus === "saving"
+                      ? "Čuvam nacrt…"
+                      : draftStatus === "error"
+                      ? "Greška pri čuvanju nacrta"
+                      : draftSavedAgoLabel
+                      ? `Zadnje sačuvano ${draftSavedAgoLabel}`
+                      : "Lokalni nacrt nije sačuvan"}
+                    <span className="text-slate-400">•</span>
+                    {draftServerSavedAgoLabel
+                      ? `Server ${draftServerSavedAgoLabel}`
+                      : "Server na čekanju"}
+                  </div>
               </div>
             </div>
           </div>
@@ -2461,7 +2768,6 @@ const EditListing = ({ id }) => {
                 </div>
 
               </div>
-            </div>
           </div>
           <AdsEditSuccessModal
             openSuccessModal={openSuccessModal}

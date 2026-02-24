@@ -9,10 +9,10 @@ import {
 import PopularCategoriesSkeleton from "./PopularCategoriesSkeleton.jsx";
 import PopularCategoryCard from "@/components/PagesComponent/Home/PopularCategoryCard";
 import { useSelector } from "react-redux";
-import { t } from "@/utils";
 import { getIsRtl } from "@/redux/reducer/languageSlice.js";
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import useGetCategories from "@/components/Layout/useGetCategories.jsx";
+import PopularCategoryFilterModal from "@/components/PagesComponent/Home/PopularCategoryFilterModal";
 
 const PopularCategories = () => {
   const {
@@ -27,9 +27,18 @@ const PopularCategories = () => {
   const isRTL = useSelector(getIsRtl);
   const [api, setApi] = useState();
   const [current, setCurrent] = useState(0);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const isNextDisabled =
     isCatLoadMore ||
     ((!api || !api.canScrollNext()) && catCurrentPage >= catLastPage);
+
+  const handleCategorySelect = (category) => {
+    if (!category?.slug) return;
+    setSelectedCategory(category);
+    setIsFilterModalOpen(true);
+  };
 
   useEffect(() => {
     if (!api) {
@@ -40,6 +49,33 @@ const PopularCategories = () => {
       setCurrent(api.selectedScrollSnap());
     });
   }, [api, cateData.length]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const media = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobileViewport(media.matches);
+    sync();
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", sync);
+      return () => media.removeEventListener("change", sync);
+    }
+
+    media.addListener(sync);
+    return () => media.removeListener(sync);
+  }, []);
+
+  useEffect(() => {
+    if (!api || !isMobileViewport || isFilterModalOpen) return undefined;
+    const intervalId = window.setInterval(() => {
+      if (api.canScrollNext()) {
+        api.scrollNext();
+      } else {
+        api.scrollTo(0);
+      }
+    }, 10000);
+    return () => window.clearInterval(intervalId);
+  }, [api, isMobileViewport, isFilterModalOpen]);
 
   const handleNext = async () => {
     if (api && api.canScrollNext()) {
@@ -110,11 +146,16 @@ const PopularCategories = () => {
                 key={item?.id}
                 className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-[16.66%] xl:basis-[12.5%] 2xl:basis-[11.11%] md:pl-[30px]"
               >
-                <PopularCategoryCard item={item} />
+                <PopularCategoryCard item={item} onSelect={handleCategorySelect} />
               </CarouselItem>
             ))}
           </CarouselContent>
         </Carousel>
+        <PopularCategoryFilterModal
+          open={isFilterModalOpen}
+          onOpenChange={setIsFilterModalOpen}
+          category={selectedCategory}
+        />
       </section>
     )
   );

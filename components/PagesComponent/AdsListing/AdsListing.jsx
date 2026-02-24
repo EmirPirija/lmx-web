@@ -318,6 +318,53 @@ const PUBLISH_STAGES = [
 
 const CATEGORY_CACHE_TTL = 1000 * 60 * 30; // 30min
 const CATEGORY_RESPONSE_CACHE = new Map();
+const CREATE_DRAFT_STORAGE_KEY = "lmx:create-ad-draft:v2";
+const CREATE_DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const CREATE_DRAFT_DEBOUNCE_MS = 1800;
+
+const toDraftSafeValue = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (isFileLike(value)) return undefined;
+  if (typeof value === "function") return undefined;
+
+  if (Array.isArray(value)) {
+    const arr = value
+      .map((entry) => toDraftSafeValue(entry))
+      .filter((entry) => entry !== undefined);
+    return arr;
+  }
+
+  if (typeof value === "object") {
+    const out = {};
+    Object.entries(value).forEach(([key, entry]) => {
+      const normalized = toDraftSafeValue(entry);
+      if (normalized !== undefined) out[key] = normalized;
+    });
+    return out;
+  }
+
+  return value;
+};
+
+const formatDraftSavedAgo = (savedAtIso, nowTs = Date.now()) => {
+  if (!savedAtIso) return "";
+  const savedTs = new Date(savedAtIso).getTime();
+  if (!Number.isFinite(savedTs)) return "";
+
+  const diffSec = Math.max(0, Math.floor((nowTs - savedTs) / 1000));
+  if (diffSec < 3) return "upravo sada";
+  if (diffSec < 60) return `prije ${diffSec}s`;
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `prije ${diffMin}min`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `prije ${diffHours}h`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `prije ${diffDays}d`;
+};
 
 const AdsListing = () => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -368,6 +415,11 @@ const AdsListing = () => {
   const stepNodeRefs = useRef([]);
   const wizardTopRef = useRef(null);
   const hasInitializedStepRef = useRef(false);
+  const hasHydratedDraftRef = useRef(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const [draftStatus, setDraftStatus] = useState("idle");
+  const [draftLocalSavedAt, setDraftLocalSavedAt] = useState("");
+  const [draftTickerTs, setDraftTickerTs] = useState(() => Date.now());
 
   useEffect(() => {
     uploadedImagesRef.current = uploadedImages;
@@ -381,7 +433,6 @@ const AdsListing = () => {
     uploadedVideoRef.current = uploadedVideo;
   }, [uploadedVideo]);
 
-  const [isMediaProcessing, setIsMediaProcessing] = useState(false);
   const [location, setLocation] = useState({});
   const [isAdPlaced, setIsAdPlaced] = useState(false);
   const [showPublishFx, setShowPublishFx] = useState(false);
@@ -516,6 +567,165 @@ const AdsListing = () => {
   );
   const currentExtraDetails =
     extraDetails?.[langId] || extraDetails?.[primaryLangId] || {};
+  const draftSavedAgoLabel = useMemo(
+    () => formatDraftSavedAgo(draftLocalSavedAt, draftTickerTs),
+    [draftLocalSavedAt, draftTickerTs]
+  );
+
+  useEffect(() => {
+    if (!draftLocalSavedAt) return undefined;
+    const intervalId = window.setInterval(() => {
+      setDraftTickerTs(Date.now());
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [draftLocalSavedAt]);
+
+  useEffect(() => {
+    if (hasHydratedDraftRef.current || typeof window === "undefined") return;
+    hasHydratedDraftRef.current = true;
+
+    try {
+      const rawDraft = window.localStorage.getItem(CREATE_DRAFT_STORAGE_KEY);
+      if (!rawDraft) return;
+
+      const parsedDraft = JSON.parse(rawDraft);
+      const savedAt = parsedDraft?.savedAt;
+      const savedTs = savedAt ? new Date(savedAt).getTime() : NaN;
+      const isExpired = !Number.isFinite(savedTs) || Date.now() - savedTs > CREATE_DRAFT_TTL_MS;
+
+      if (isExpired) {
+        window.localStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
+        return;
+      }
+
+      const draftData = parsedDraft?.data || {};
+
+      if (Number.isFinite(Number(draftData?.step))) {
+        setStep(Number(draftData.step));
+      }
+      if (Array.isArray(draftData?.categoryPath)) {
+        setCategoryPath(draftData.categoryPath.filter(Boolean));
+      }
+      if (draftData?.translations && typeof draftData.translations === "object") {
+        setTranslations(draftData.translations);
+      }
+      if (draftData?.extraDetails && typeof draftData.extraDetails === "object") {
+        setExtraDetails(draftData.extraDetails);
+      }
+      if (Number.isFinite(Number(draftData?.langId))) {
+        setLangId(Number(draftData.langId));
+      }
+      if (draftData?.location && typeof draftData.location === "object") {
+        setLocation(draftData.location);
+      }
+      if (Array.isArray(draftData?.uploadedImages)) {
+        setUploadedImages(draftData.uploadedImages.filter(Boolean).slice(0, 1));
+      }
+      if (Array.isArray(draftData?.otherImages)) {
+        setOtherImages(draftData.otherImages.filter(Boolean));
+      }
+      if (draftData?.uploadedVideo) {
+        setUploadedVideo(draftData.uploadedVideo);
+      }
+      if (typeof draftData?.addVideoToStory === "boolean") {
+        setAddVideoToStory(draftData.addVideoToStory);
+      }
+      if (typeof draftData?.publishToInstagram === "boolean") {
+        setPublishToInstagram(draftData.publishToInstagram);
+      }
+      if (typeof draftData?.instagramSourceUrl === "string") {
+        setInstagramSourceUrl(draftData.instagramSourceUrl);
+      }
+      if (draftData?.scheduledAt) {
+        setScheduledAt(draftData.scheduledAt);
+      }
+      if (typeof draftData?.availableNow === "boolean") {
+        setAvailableNow(draftData.availableNow);
+      }
+      if (typeof draftData?.exchangePossible === "boolean") {
+        setExchangePossible(draftData.exchangePossible);
+      }
+      if (draftData?.disabledTab && typeof draftData.disabledTab === "object") {
+        setDisabledTab((prev) => ({ ...prev, ...draftData.disabledTab }));
+      }
+      if (savedAt) {
+        setDraftLocalSavedAt(savedAt);
+        setDraftTickerTs(Date.now());
+        setDraftStatus("saved");
+      }
+    } catch (error) {
+      console.error("Greška pri učitavanju lokalnog nacrta objave:", error);
+    } finally {
+      setDraftHydrated(true);
+    }
+  }, []);
+
+  const localDraftSnapshot = useMemo(
+    () => ({
+      step,
+      categoryPath: toDraftSafeValue(categoryPath),
+      translations: toDraftSafeValue(translations),
+      extraDetails: toDraftSafeValue(extraDetails),
+      langId,
+      location: toDraftSafeValue(location),
+      uploadedImages: toDraftSafeValue(uploadedImages),
+      otherImages: toDraftSafeValue(otherImages),
+      uploadedVideo: toDraftSafeValue(uploadedVideo),
+      addVideoToStory: Boolean(addVideoToStory),
+      publishToInstagram: Boolean(publishToInstagram),
+      instagramSourceUrl: String(instagramSourceUrl || ""),
+      scheduledAt: scheduledAt || null,
+      availableNow: Boolean(availableNow),
+      exchangePossible: Boolean(exchangePossible),
+      disabledTab: toDraftSafeValue(disabledTab),
+    }),
+    [
+      addVideoToStory,
+      availableNow,
+      categoryPath,
+      disabledTab,
+      exchangePossible,
+      extraDetails,
+      instagramSourceUrl,
+      langId,
+      location,
+      otherImages,
+      publishToInstagram,
+      scheduledAt,
+      step,
+      translations,
+      uploadedImages,
+      uploadedVideo,
+    ]
+  );
+
+  const serializedLocalDraftSnapshot = useMemo(
+    () => JSON.stringify(localDraftSnapshot),
+    [localDraftSnapshot]
+  );
+
+  useEffect(() => {
+    if (!draftHydrated || typeof window === "undefined") return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      try {
+        setDraftStatus("saving");
+        const payload = {
+          savedAt: new Date().toISOString(),
+          data: localDraftSnapshot,
+        };
+        window.localStorage.setItem(CREATE_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+        setDraftLocalSavedAt(payload.savedAt);
+        setDraftTickerTs(Date.now());
+        setDraftStatus("saved");
+      } catch (error) {
+        console.error("Greška pri autosave nacrta objave:", error);
+        setDraftStatus("error");
+      }
+    }, CREATE_DRAFT_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [draftHydrated, localDraftSnapshot, serializedLocalDraftSnapshot]);
 
   const is_job_category = Number(categoryPath[categoryPath.length - 1]?.is_job_category) === 1;
   const isPriceOptional = Number(categoryPath[categoryPath.length - 1]?.price_optional) === 1;
@@ -1333,6 +1543,11 @@ const AdsListing = () => {
         setInstagramSourceUrl("");
         setOpenSuccessModal(true);
         setCreatedAdSlug(res?.data?.data[0]?.slug);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
+        }
+        setDraftStatus("idle");
+        setDraftLocalSavedAt("");
       } else {
         toast.error(res?.data?.message);
       }
@@ -1812,51 +2027,38 @@ const AdsListing = () => {
     : "";
 
   // =======================================================
-  // MEDIA: kompresija + watermark odmah na selekciju
-  // (ComponentFour će i dalje samo zvati setUploadedImages / setOtherImages / setUploadedVideo)
+  // MEDIA:
+  // ComponentFour već radi temp upload i vraća finalne temp objekte.
+  // Ovdje ne radimo dodatnu obradu da izbjegnemo dupli watermark/kompresiju.
   // =======================================================
   const setUploadedImagesProcessed = useCallback(
-    async (filesOrUpdater) => {
+    (filesOrUpdater) => {
       const resolved =
         typeof filesOrUpdater === "function"
           ? filesOrUpdater(uploadedImagesRef.current)
           : filesOrUpdater;
       const arr = normalizeFilesArray(resolved);
-      if (!arr.length) return setUploadedImages([]);
-      try {
-        setIsMediaProcessing(true);
-        const [main] = await processImagesArray([arr[0]]);
-        setUploadedImages(main ? [main] : []);
-      } catch (e) {
-        console.error(e);
-        toast.error("Ne mogu obraditi sliku. Pokušaj ponovo.");
-        setUploadedImages(arr.slice(0, 1));
-      } finally {
-        setIsMediaProcessing(false);
+      if (!arr.length) {
+        setUploadedImages([]);
+        return;
       }
+      setUploadedImages(arr.slice(0, 1));
     },
     [setUploadedImages]
   );
 
   const setOtherImagesProcessed = useCallback(
-    async (filesOrUpdater) => {
+    (filesOrUpdater) => {
       const resolved =
         typeof filesOrUpdater === "function"
           ? filesOrUpdater(otherImagesRef.current)
           : filesOrUpdater;
       const arr = normalizeFilesArray(resolved);
-      if (!arr.length) return setOtherImages([]);
-      try {
-        setIsMediaProcessing(true);
-        const processed = await processImagesArray(arr);
-        setOtherImages(processed);
-      } catch (e) {
-        console.error(e);
-        toast.error("Ne mogu obraditi slike. Pokušaj ponovo.");
-        setOtherImages(arr);
-      } finally {
-        setIsMediaProcessing(false);
+      if (!arr.length) {
+        setOtherImages([]);
+        return;
       }
+      setOtherImages(arr);
     },
     [setOtherImages]
   );
@@ -2029,10 +2231,30 @@ const AdsListing = () => {
                 </p>
               </div>
 
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2 dark:border-[#0ab6af]/45 dark:bg-[#0ab6af]/15">
-                <Award className="h-5 w-5 text-primary" />
-                <span className="text-sm font-semibold text-primary">{completenessScore}%</span>
-                <span className="text-xs text-slate-600 dark:text-slate-300">{"dovršen"}</span>
+              <div className="flex w-fit flex-wrap items-center justify-end gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2 dark:border-[#0ab6af]/45 dark:bg-[#0ab6af]/15">
+                  <Award className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-semibold text-primary">{completenessScore}%</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-300">{"dovršen"}</span>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      draftStatus === "error"
+                        ? "bg-rose-500"
+                        : draftStatus === "saving"
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                  />
+                  {draftStatus === "saving"
+                    ? "Čuvam nacrt…"
+                    : draftStatus === "error"
+                    ? "Greška pri čuvanju nacrta"
+                    : draftSavedAgoLabel
+                    ? `Zadnje sačuvano ${draftSavedAgoLabel}`
+                    : "Lokalni nacrt nije sačuvan"}
+                </div>
               </div>
             </div>
           </div>

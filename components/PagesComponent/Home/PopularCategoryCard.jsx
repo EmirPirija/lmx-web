@@ -1,8 +1,7 @@
-import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 import { resolveCategoryImage } from "@/utils/categoryImage";
 
-const PopularCategoryCard = ({ item }) => {
+const PopularCategoryCard = ({ item, onSelect }) => {
   const categoryLabel = item?.translated_name || item?.name || "Kategorija";
   const categoryImage = resolveCategoryImage(item, {
     // Prefer backend-provided category image URL.
@@ -13,10 +12,7 @@ const PopularCategoryCard = ({ item }) => {
   });
 
   return (
-    <CustomLink
-      href={`/ads?category=${item?.slug}`}
-      className="flex flex-col gap-4"
-    >
+    <button type="button" onClick={() => onSelect?.(item)} className="flex w-full flex-col gap-4">
       <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full border border-slate-200/90 bg-slate-50 shadow-sm sm:h-24 sm:w-24">
         <CustomImage
           src={categoryImage}
@@ -31,7 +27,7 @@ const PopularCategoryCard = ({ item }) => {
       <p className="text-sm sm:text-base line-clamp-2 font-medium text-center leading-tight">
         {categoryLabel}
       </p>
-    </CustomLink>
+    </button>
   );
 };
 

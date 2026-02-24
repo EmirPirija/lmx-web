@@ -483,7 +483,9 @@ const EditComponentThree = ({
 
       try {
         setImageUploadProgress(prev => ({ ...prev, [tempId]: 10 }));
-        const processedFile = await compressAndWatermarkImage(file);
+        // Server-side temp upload već radi watermark (random ivica),
+        // pa ovdje šaljemo original da izbjegnemo dupliranje watermarka.
+        const processedFile = file;
         
         const uploadedData = await uploadFile(processedFile, "image", (percent) => {
           const totalPercent = 20 + (percent * 0.8);

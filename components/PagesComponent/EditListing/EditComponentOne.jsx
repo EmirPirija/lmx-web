@@ -53,15 +53,23 @@ const AccordionSection = ({
   isOpen,
   onToggle,
   planGate,
+  sectionRef,
   children,
 }) => {
   return (
-    <div className="lmx-guided-accordion overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
-      <div
+    <div
+      ref={sectionRef}
+      className="lmx-guided-accordion overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm transition-shadow duration-200 dark:border-slate-700 dark:bg-slate-900/90"
+    >
+      <button
+        type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
         className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
-          isOpen ? "border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
-        }`}
+          isOpen
+            ? "border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70"
+            : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
+        } min-h-[64px] w-full text-left active:scale-[0.995] transform-gpu`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -110,9 +118,13 @@ const AccordionSection = ({
             d="M19 9l-7 7-7-7"
           />
         </svg>
-      </div>
+      </button>
 
-      {isOpen && <div className="lmx-guided-accordion-content bg-white p-4 dark:bg-slate-900/90 sm:p-5">{children}</div>}
+      {isOpen && (
+        <div className="lmx-guided-accordion-content bg-white p-4 dark:bg-slate-900/90 sm:p-5">
+          {children}
+        </div>
+      )}
     </div>
   );
 };
@@ -476,6 +488,38 @@ const EditComponentOne = ({
   const [saleOpen, setSaleOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const basicSectionRef = useRef(null);
+  const priceSectionRef = useRef(null);
+  const saleSectionRef = useRef(null);
+  const stockSectionRef = useRef(null);
+  const contactSectionRef = useRef(null);
+
+  const focusSection = useCallback((sectionKey) => {
+    setBasicOpen(sectionKey === "basic");
+    setPriceOpen(sectionKey === "price");
+    setSaleOpen(sectionKey === "sale");
+    setStockOpen(sectionKey === "stock");
+    setContactOpen(sectionKey === "contact");
+
+    requestAnimationFrame(() => {
+      const sectionRefMap = {
+        basic: basicSectionRef,
+        price: priceSectionRef,
+        sale: saleSectionRef,
+        stock: stockSectionRef,
+        contact: contactSectionRef,
+      };
+      const target = sectionRefMap[sectionKey]?.current;
+      if (!target) return;
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      target.scrollIntoView?.({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (hasShopAccess) return;
@@ -578,7 +622,8 @@ const EditComponentOne = ({
         subtitle="Naslov i opis"
         badge={isDefaultLang ? "required" : "optional"}
         isOpen={basicOpen}
-        onToggle={() => setBasicOpen((v) => !v)}
+        onToggle={() => focusSection("basic")}
+        sectionRef={basicSectionRef}
       >
         <div className="flex flex-col gap-4">
           {/* NASLOV */}
@@ -639,7 +684,8 @@ const EditComponentOne = ({
           // 👇 PROMJENA: Ovdje je uslov za obavezno polje. Ako je "na upit" (true), značka je "optional". Ako nije na upit (false), značka je "required".
           badge={!is_job_category && current?.price_on_request ? "optional" : "required"}
           isOpen={priceOpen}
-          onToggle={() => setPriceOpen((v) => !v)}
+          onToggle={() => focusSection("price")}
+          sectionRef={priceSectionRef}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {is_job_category ? (
@@ -877,7 +923,8 @@ const EditComponentOne = ({
           subtitle="Opcionalno: prikaži staru cijenu i izračunaj popust"
           badge="optional"
           isOpen={saleOpen}
-          onToggle={() => setSaleOpen((v) => !v)}
+          onToggle={() => focusSection("sale")}
+          sectionRef={saleSectionRef}
         >
           <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/70">
             <div className="flex items-start justify-between gap-4">
@@ -961,7 +1008,8 @@ const EditComponentOne = ({
           subtitle="Shop može voditi zalihe i internu šifru artikla"
           badge="optional"
           isOpen={stockOpen}
-          onToggle={() => setStockOpen((v) => !v)}
+          onToggle={() => focusSection("stock")}
+          sectionRef={stockSectionRef}
           planGate={<PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />}
         >
           <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/70">
@@ -1163,7 +1211,8 @@ const EditComponentOne = ({
           subtitle="Broj se preuzima iz Seller postavki"
           badge="required"
           isOpen={contactOpen}
-          onToggle={() => setContactOpen((v) => !v)}
+          onToggle={() => focusSection("contact")}
+          sectionRef={contactSectionRef}
         >
           <div
             id="seller-contact-readonly"

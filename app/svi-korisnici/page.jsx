@@ -77,6 +77,25 @@ const UserCardSkeleton = ({ view }) => {
   );
 };
 
+const isTruthyFlagValue = (value) => {
+  if (value === true || value === 1) return true;
+  if (typeof value === "number") return value > 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return false;
+    if (
+      ["1", "true", "yes", "y", "approved", "verified", "active"].includes(
+        normalized,
+      )
+    ) {
+      return true;
+    }
+    const numeric = Number(normalized);
+    return Number.isFinite(numeric) ? numeric > 0 : false;
+  }
+  return false;
+};
+
 /* =====================================================
    USER CARD KOMPONENTA
 ===================================================== */
@@ -85,7 +104,12 @@ const UserCard = ({ user, view }) => {
   const membership = resolveMembership(user, user?.membership);
   const isPro = membership.isPro;
   const isShop = membership.isShop;
-  const baseSellerSettings = user?.seller_settings || user?.sellerSettings || {};
+  const isVerified =
+    isTruthyFlagValue(user?.isVerified) ||
+    isTruthyFlagValue(user?.is_verified) ||
+    isTruthyFlagValue(user?.verified);
+  const baseSellerSettings =
+    user?.seller_settings || user?.sellerSettings || {};
   const rawCardPreferences = baseSellerSettings?.card_preferences;
   let parsedCardPreferences = rawCardPreferences;
 
@@ -117,14 +141,27 @@ const UserCard = ({ user, view }) => {
     user?.total_reviews ??
     user?.reviews ??
     0;
-  const ratingTotal = Number.isFinite(Number(ratingTotalRaw)) ? Number(ratingTotalRaw) : 0;
+  const ratingTotal = Number.isFinite(Number(ratingTotalRaw))
+    ? Number(ratingTotalRaw)
+    : 0;
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn("h-full lmx-hide", view === "list" && "w-full")}
+      className={cn("relative h-full lmx-hide", view === "list" && "w-full")}
     >
+      {isVerified ? (
+        <span
+          className={cn(
+            "absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-emerald-200/90 bg-emerald-50/95 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm backdrop-blur-sm dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200",
+            view === "list" && "right-4 top-4",
+          )}
+        >
+          <BadgeCheck className="h-3.5 w-3.5" />
+          Verificiran
+        </span>
+      ) : null}
       <ProductSellerDetailCard
         seller={user}
         sellerSettings={sellerSettings}
@@ -211,10 +248,14 @@ const FilterSidebar = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-primary" />
-            <h3 className="font-bold text-slate-900 dark:text-white">Filteri</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">
+              Filteri
+            </h3>
           </div>
           {totalUsers > 0 && (
-            <span className="text-xs text-slate-500">{totalUsers} korisnika</span>
+            <span className="text-xs text-slate-500">
+              {totalUsers} korisnika
+            </span>
           )}
         </div>
       </div>
@@ -324,8 +365,13 @@ const FilterSidebar = ({
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="sticky top-0 px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                  <h3 className="font-bold text-slate-900 dark:text-white">Filteri</h3>
-                  <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                  <h3 className="font-bold text-slate-900 dark:text-white">
+                    Filteri
+                  </h3>
+                  <button
+                    onClick={onClose}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                  >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -363,7 +409,8 @@ const SviKorisniciPage = () => {
     search: searchParams.get("search") || "",
     membership: searchParams.get("membership") || "",
     shop: searchParams.get("shop") || "",
-    verified: searchParams.get("verified") || searchParams.get("seller_verified") || "",
+    verified:
+      searchParams.get("verified") || searchParams.get("seller_verified") || "",
     online: searchParams.get("online") || "",
   });
 
@@ -390,21 +437,6 @@ const SviKorisniciPage = () => {
     sellerDetailsRef.current = sellerDetailsMap;
   }, [sellerDetailsMap]);
 
-  const isTruthyFlag = (value) => {
-    if (value === true || value === 1) return true;
-    if (typeof value === "number") return value > 0;
-    if (typeof value === "string") {
-      const normalized = value.trim().toLowerCase();
-      if (!normalized) return false;
-      if (["1", "true", "yes", "y", "approved", "verified", "active"].includes(normalized)) {
-        return true;
-      }
-      const numeric = Number(normalized);
-      return Number.isFinite(numeric) ? numeric > 0 : false;
-    }
-    return false;
-  };
-
   const resolveUserAvatar = (user = {}, details = {}) => {
     const seller = details?.seller || {};
     const raw =
@@ -430,18 +462,57 @@ const SviKorisniciPage = () => {
   };
 
   const toFiniteNumber = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (typeof value === "string") {
+      const normalized = value
+        .trim()
+        .replace(",", ".")
+        .replace(/[^\d.+-]/g, "");
+      if (!normalized) return null;
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
   };
 
+  const resolveVerifiedState = (user = {}, details = {}) => {
+    const seller = details?.seller || {};
+    const detailsUser = details?.user || {};
+
+    if (
+      isTruthyFlagValue(user?.isVerified) ||
+      isTruthyFlagValue(user?.is_verified) ||
+      isTruthyFlagValue(user?.verified) ||
+      isTruthyFlagValue(seller?.is_verified) ||
+      isTruthyFlagValue(seller?.verified) ||
+      isTruthyFlagValue(seller?.seller_verified) ||
+      isTruthyFlagValue(seller?.account_verified) ||
+      isTruthyFlagValue(detailsUser?.is_verified) ||
+      isTruthyFlagValue(detailsUser?.verified)
+    ) {
+      return true;
+    }
+
+    return isVerifiedUser(user, details);
+  };
+
   const resolveAverageRating = (user = {}, details = {}) => {
     const seller = details?.seller || {};
+    const detailsUser = details?.user || {};
     const candidates = [
+      seller?.avg_rating,
+      seller?.rating,
+      seller?.ratings_avg,
       seller?.average_rating,
       details?.average_rating,
       details?.ratings?.average_rating,
       details?.ratings?.avg_rating,
       details?.ratings?.meta?.average_rating,
+      detailsUser?.average_rating,
+      detailsUser?.avg_rating,
+      detailsUser?.rating,
       user?.average_rating,
       user?.rating,
       user?.ratings_avg,
@@ -452,7 +523,9 @@ const SviKorisniciPage = () => {
       if (parsed !== null) return parsed;
     }
 
-    const list = Array.isArray(details?.ratings?.data) ? details.ratings.data : [];
+    const list = Array.isArray(details?.ratings?.data)
+      ? details.ratings.data
+      : [];
     if (!list.length) return 0;
     const values = list
       .map((entry) => toFiniteNumber(entry?.ratings ?? entry?.rating))
@@ -480,7 +553,9 @@ const SviKorisniciPage = () => {
       if (parsed !== null) return Math.max(0, parsed);
     }
 
-    const ratingsList = Array.isArray(details?.ratings?.data) ? details.ratings.data : [];
+    const ratingsList = Array.isArray(details?.ratings?.data)
+      ? details.ratings.data
+      : [];
     return ratingsList.length;
   };
 
@@ -489,14 +564,21 @@ const SviKorisniciPage = () => {
 
   const isVerifiedUser = (user, details) => {
     const seller = details?.seller || {};
-    return isSellerVerified(user, seller, details, details?.user, user?.seller, user?.user);
+    return isSellerVerified(
+      user,
+      seller,
+      details,
+      details?.user,
+      user?.seller,
+      user?.user,
+    );
   };
 
   const normalizeUser = (user, details) => {
     if (!user) return user;
     const { isPro, isShop } = getMembershipFlags(user, details);
     const seller = details?.seller || {};
-    const verified = isVerifiedUser(user, details);
+    const verified = resolveVerifiedState(user, details);
     const averageRating = resolveAverageRating(user, details);
     const ratingCount = resolveRatingCount(user, details);
     const verificationStatus =
@@ -549,13 +631,18 @@ const SviKorisniciPage = () => {
       is_pro: isPro,
       is_shop: isShop,
       membership: details?.membership || user?.membership,
-      seller_settings: details?.seller_settings || seller?.seller_settings || user?.seller_settings || null,
+      seller_settings:
+        details?.seller_settings ||
+        seller?.seller_settings ||
+        user?.seller_settings ||
+        null,
     };
     return normalized;
   };
 
   const isOnline = (user) => {
-    const hasOnlineFlag = isTruthyFlag(user?.is_online) || isTruthyFlag(user?.online);
+    const hasOnlineFlag =
+      isTruthyFlagValue(user?.is_online) || isTruthyFlagValue(user?.online);
     if (hasOnlineFlag) return true;
 
     const lastSeen =
@@ -585,7 +672,7 @@ const SviKorisniciPage = () => {
     for (let i = 0; i < missingIds.length; i += chunkSize) {
       const chunk = missingIds.slice(i, i + chunkSize);
       const responses = await Promise.allSettled(
-        chunk.map((id) => getSellerApi.getSeller({ id }))
+        chunk.map((id) => getSellerApi.getSeller({ id })),
       );
 
       responses.forEach((res, idx) => {
@@ -654,59 +741,66 @@ const SviKorisniciPage = () => {
   // Apply client-side filters
   useEffect(() => {
     const mergedUsers = allUsers.map((user) =>
-      normalizeUser(user, sellerDetailsMap[user?.id])
+      normalizeUser(user, sellerDetailsMap[user?.id]),
     );
     let filteredUsers = [...mergedUsers];
-    
+
     // Filter by search
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filteredUsers = filteredUsers.filter((user) =>
-        user?.name?.toLowerCase().includes(searchLower) ||
-        user?.email?.toLowerCase().includes(searchLower) ||
-        user?.phone?.toLowerCase().includes(searchLower)
+      filteredUsers = filteredUsers.filter(
+        (user) =>
+          user?.name?.toLowerCase().includes(searchLower) ||
+          user?.email?.toLowerCase().includes(searchLower) ||
+          user?.phone?.toLowerCase().includes(searchLower),
       );
     }
-    
+
     // Filter by verified
     if (filters.verified === "1") {
       filteredUsers = filteredUsers.filter((user) =>
-        isVerifiedUser(user, sellerDetailsMap[user?.id])
+        resolveVerifiedState(user, sellerDetailsMap[user?.id]),
       );
     }
 
     // Filter by membership (pro)
     if (filters.membership === "pro") {
-      filteredUsers = filteredUsers.filter((user) =>
-        getMembershipFlags(user, sellerDetailsMap[user?.id]).isPro
+      filteredUsers = filteredUsers.filter(
+        (user) => getMembershipFlags(user, sellerDetailsMap[user?.id]).isPro,
       );
     }
 
     // Filter by shop
     if (filters.shop === "1") {
-      filteredUsers = filteredUsers.filter((user) =>
-        getMembershipFlags(user, sellerDetailsMap[user?.id]).isShop
+      filteredUsers = filteredUsers.filter(
+        (user) => getMembershipFlags(user, sellerDetailsMap[user?.id]).isShop,
       );
     }
-    
+
     // Filter by online
     if (filters.online === "1") {
-      filteredUsers = filteredUsers.filter(user =>
-        user?.is_online || user?.online || isOnline(user)
+      filteredUsers = filteredUsers.filter(
+        (user) => user?.is_online || user?.online || isOnline(user),
       );
     }
 
     const sorted = [...filteredUsers];
     if (sortBy === "newest") {
-      sorted.sort((a, b) => new Date(b?.created_at || 0) - new Date(a?.created_at || 0));
+      sorted.sort(
+        (a, b) => new Date(b?.created_at || 0) - new Date(a?.created_at || 0),
+      );
     } else if (sortBy === "oldest") {
-      sorted.sort((a, b) => new Date(a?.created_at || 0) - new Date(b?.created_at || 0));
+      sorted.sort(
+        (a, b) => new Date(a?.created_at || 0) - new Date(b?.created_at || 0),
+      );
     } else if (sortBy === "most_ads") {
       sorted.sort((a, b) => (b?.total_ads || 0) - (a?.total_ads || 0));
     } else if (sortBy === "top_rated") {
-      sorted.sort((a, b) => (b?.average_rating || 0) - (a?.average_rating || 0));
+      sorted.sort(
+        (a, b) => (b?.average_rating || 0) - (a?.average_rating || 0),
+      );
     }
-    
+
     const totalFiltered = sorted.length;
     const newTotalPages = Math.max(1, Math.ceil(totalFiltered / perPage));
     const safePage = currentPage > newTotalPages ? 1 : currentPage;
@@ -727,15 +821,18 @@ const SviKorisniciPage = () => {
   }, [fetchUsers, CurrentLanguage?.id]);
 
   // Update URL
-  const updateUrl = useCallback((key, value) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    window.history.replaceState(null, "", `?${params.toString()}`);
-  }, [searchParams]);
+  const updateUrl = useCallback(
+    (key, value) => {
+      const params = new URLSearchParams(searchParams);
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+      window.history.replaceState(null, "", `?${params.toString()}`);
+    },
+    [searchParams],
+  );
 
   const handleViewChange = (newView) => {
     setView(newView);
@@ -749,12 +846,17 @@ const SviKorisniciPage = () => {
 
   // Active filters count
   const activeFiltersCount = useMemo(() => {
-    return [filters.membership, filters.shop, filters.verified, filters.online].filter(Boolean).length;
+    return [
+      filters.membership,
+      filters.shop,
+      filters.verified,
+      filters.online,
+    ].filter(Boolean).length;
   }, [filters]);
 
   const directoryStats = useMemo(() => {
     const mergedUsers = allUsers.map((user) =>
-      normalizeUser(user, sellerDetailsMap[user?.id])
+      normalizeUser(user, sellerDetailsMap[user?.id]),
     );
 
     let proCount = 0;
@@ -766,7 +868,7 @@ const SviKorisniciPage = () => {
       const membership = getMembershipFlags(user, sellerDetailsMap[user?.id]);
       if (membership.isPro) proCount += 1;
       if (membership.isShop) shopCount += 1;
-      if (isVerifiedUser(user, sellerDetailsMap[user?.id])) {
+      if (resolveVerifiedState(user, sellerDetailsMap[user?.id])) {
         verifiedCount += 1;
       }
       if (user?.is_online || user?.online || isOnline(user)) {
@@ -800,28 +902,52 @@ const SviKorisniciPage = () => {
 
         <div className="mb-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Ukupno</p>
-            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{directoryStats.total}</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Ukupno
+            </p>
+            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+              {directoryStats.total}
+            </p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Prikazano</p>
-            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{totalUsers}</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Prikazano
+            </p>
+            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+              {totalUsers}
+            </p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Pro</p>
-            <p className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-300">{directoryStats.pro}</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Pro
+            </p>
+            <p className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-300">
+              {directoryStats.pro}
+            </p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Shop</p>
-            <p className="mt-1 text-xl font-bold text-indigo-600 dark:text-indigo-300">{directoryStats.shop}</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Shop
+            </p>
+            <p className="mt-1 text-xl font-bold text-indigo-600 dark:text-indigo-300">
+              {directoryStats.shop}
+            </p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Verificirani</p>
-            <p className="mt-1 text-xl font-bold text-sky-600 dark:text-sky-300">{directoryStats.verified}</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Verificirani
+            </p>
+            <p className="mt-1 text-xl font-bold text-sky-600 dark:text-sky-300">
+              {directoryStats.verified}
+            </p>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Online</p>
-            <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-300">{directoryStats.online}</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Online
+            </p>
+            <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-300">
+              {directoryStats.online}
+            </p>
           </div>
         </div>
 
@@ -871,7 +997,9 @@ const SviKorisniciPage = () => {
                       <SelectItem value="newest">Najnoviji</SelectItem>
                       <SelectItem value="oldest">Najstariji</SelectItem>
                       <SelectItem value="most_ads">Najviše oglasa</SelectItem>
-                      <SelectItem value="top_rated">Najbolje ocijenjeni</SelectItem>
+                      <SelectItem value="top_rated">
+                        Najbolje ocijenjeni
+                      </SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -890,7 +1018,7 @@ const SviKorisniciPage = () => {
                       "p-2 rounded-lg transition-colors",
                       view === "grid"
                         ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white"
-                        : "text-slate-500 hover:text-slate-700"
+                        : "text-slate-500 hover:text-slate-700",
                     )}
                   >
                     <LayoutGrid className="w-4 h-4" />
@@ -901,7 +1029,7 @@ const SviKorisniciPage = () => {
                       "p-2 rounded-lg transition-colors",
                       view === "list"
                         ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white"
-                        : "text-slate-500 hover:text-slate-700"
+                        : "text-slate-500 hover:text-slate-700",
                     )}
                   >
                     <LayoutList className="w-4 h-4" />
@@ -927,11 +1055,13 @@ const SviKorisniciPage = () => {
 
             {/* Users Grid/List */}
             {isLoading ? (
-              <div className={cn(
-                view === "list"
-                  ? "space-y-4"
-                  : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5"
-              )}>
+              <div
+                className={cn(
+                  view === "list"
+                    ? "space-y-4"
+                    : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5",
+                )}
+              >
                 {[...Array(12)].map((_, i) => (
                   <UserCardSkeleton key={i} view={view} />
                 ))}
@@ -939,18 +1069,16 @@ const SviKorisniciPage = () => {
             ) : users.length === 0 ? (
               <NoData name="Nema korisnika koji odgovaraju pretrazi." />
             ) : (
-              <div className={cn(
-                view === "list"
-                  ? "space-y-4"
-                  : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5"
-              )}>
+              <div
+                className={cn(
+                  view === "list"
+                    ? "space-y-4"
+                    : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5",
+                )}
+              >
                 <AnimatePresence mode="popLayout">
                   {users.map((user) => (
-                    <UserCard
-                      key={user.id}
-                      user={user}
-                      view={view}
-                    />
+                    <UserCard key={user.id} user={user} view={view} />
                   ))}
                 </AnimatePresence>
               </div>
