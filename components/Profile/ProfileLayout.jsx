@@ -1188,7 +1188,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         <div className="pointer-events-none absolute right-2 top-20 h-40 w-40 rounded-full bg-secondary/10 blur-3xl dark:bg-secondary/20" />
 
         {/* Mobile Header */}
-        <div className="sticky top-2 z-30 mb-4 lg:hidden">
+        <div
+          className="sticky z-30 mb-4 lg:hidden"
+          style={{ top: "calc(var(--lmx-mobile-header-offset, 0px) + 0.5rem)" }}
+        >
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
