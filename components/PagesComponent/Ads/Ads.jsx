@@ -41,7 +41,10 @@ import {
   setBreadcrumbPath,
 } from "@/redux/reducer/breadCrumbSlice";
 import { formatPriceAbbreviated, t, updateMetadata } from "@/utils";
-import { getSelectedLocation, setHideMobileBottomNav } from "@/redux/reducer/globalStateSlice";
+import {
+  getSelectedLocation,
+  setHideMobileBottomNav,
+} from "@/redux/reducer/globalStateSlice";
 import { resolveMembership } from "@/lib/membership";
 import { isSellerVerified } from "@/lib/seller-verification";
 import { AnimatePresence, motion } from "framer-motion";
@@ -73,16 +76,21 @@ const MapWithListingsMarkers = dynamic(
     loading: () => (
       <div className="h-full w-full animate-pulse bg-slate-100 dark:bg-slate-800" />
     ),
-  }
+  },
 );
 
-const buildQuickNavigationCategories = (items = [], categorySlugById = new Map()) => {
+const buildQuickNavigationCategories = (
+  items = [],
+  categorySlugById = new Map(),
+) => {
   const categoryMap = new Map();
 
   (items || []).forEach((item) => {
     const category = item?.category || null;
     const categoryId = Number(category?.id || item?.category_id);
-    const slugFromId = Number.isFinite(categoryId) ? categorySlugById.get(categoryId) : null;
+    const slugFromId = Number.isFinite(categoryId)
+      ? categorySlugById.get(categoryId)
+      : null;
     const slug = category?.slug || item?.category_slug || slugFromId || null;
     if (!slug) return;
 
@@ -108,7 +116,8 @@ const buildQuickNavigationCategories = (items = [], categorySlugById = new Map()
   });
 
   return Array.from(categoryMap.values()).sort((a, b) => {
-    if ((b.count || 0) !== (a.count || 0)) return (b.count || 0) - (a.count || 0);
+    if ((b.count || 0) !== (a.count || 0))
+      return (b.count || 0) - (a.count || 0);
     return String(a.label || "").localeCompare(String(b.label || ""));
   });
 };
@@ -163,9 +172,13 @@ const buildMapCardDetails = (ad, pinLocationLabel = "") => {
   const extra = tryParseObject(ad?.extra_details);
 
   const extractFromCustomFields = (candidateKeys = []) => {
-    const normalizedCandidates = candidateKeys.map((key) => normalizeMapText(key));
+    const normalizedCandidates = candidateKeys.map((key) =>
+      normalizeMapText(key),
+    );
     const field = customFields.find((entry) => {
-      const fieldName = normalizeMapText(entry?.translated_name || entry?.name || "");
+      const fieldName = normalizeMapText(
+        entry?.translated_name || entry?.name || "",
+      );
       return normalizedCandidates.includes(fieldName);
     });
     if (!field) return null;
@@ -179,31 +192,41 @@ const buildMapCardDetails = (ad, pinLocationLabel = "") => {
   };
 
   const extractFromExtra = (candidateKeys = []) => {
-    const normalizedCandidates = candidateKeys.map((key) => normalizeMapText(key));
+    const normalizedCandidates = candidateKeys.map((key) =>
+      normalizeMapText(key),
+    );
     const entries = Object.entries(extra || {});
     for (const [rawKey, rawValue] of entries) {
       if (!normalizedCandidates.includes(normalizeMapText(rawKey))) continue;
-      if (rawValue === null || rawValue === undefined || rawValue === "") continue;
+      if (rawValue === null || rawValue === undefined || rawValue === "")
+        continue;
       return rawValue;
     }
     return null;
   };
 
   const pickValue = (keys = []) =>
-    extractFromCustomFields(keys) ||
-    extractFromExtra(keys) ||
-    null;
+    extractFromCustomFields(keys) || extractFromExtra(keys) || null;
 
   const listingType =
-    pickValue(["tip oglasa", "tip ponude", "vrsta ponude", "listing type", "offer type"]) ||
-    null;
+    pickValue([
+      "tip oglasa",
+      "tip ponude",
+      "vrsta ponude",
+      "listing type",
+      "offer type",
+    ]) || null;
   const roomType =
     ad?.room_type ||
     pickValue(["broj soba", "sobe", "rooms", "room count"]) ||
     null;
   const propertyType =
-    pickValue(["vrsta objekta", "tip objekta", "property type", "object type"]) ||
-    null;
+    pickValue([
+      "vrsta objekta",
+      "tip objekta",
+      "property type",
+      "object type",
+    ]) || null;
   const condition =
     pickValue(["stanje oglasa", "stanje", "condition", "item condition"]) ||
     ad?.status ||
@@ -211,7 +234,15 @@ const buildMapCardDetails = (ad, pinLocationLabel = "") => {
   const areaRaw =
     ad?.area ||
     ad?.total_area ||
-    pickValue(["kvadratura", "kvadratura (m2)", "povrsina", "površina", "m2", "m²", "area"]) ||
+    pickValue([
+      "kvadratura",
+      "kvadratura (m2)",
+      "povrsina",
+      "površina",
+      "m2",
+      "m²",
+      "area",
+    ]) ||
     null;
   const areaClean = areaRaw
     ? String(areaRaw)
@@ -221,16 +252,21 @@ const buildMapCardDetails = (ad, pinLocationLabel = "") => {
   const areaValue = areaClean ? `${areaClean}m2` : null;
 
   const availableRaw =
-    pickValue(["available_now", "is_available", "is_avaible", "isavailable", "dostupno"]) ||
-    null;
+    pickValue([
+      "available_now",
+      "is_available",
+      "is_avaible",
+      "isavailable",
+      "dostupno",
+    ]) || null;
   const availableText =
     availableRaw === null
       ? null
       : ["1", "true", "da", "dostupno", "yes", "on"].includes(
-          normalizeMapText(String(availableRaw))
-        )
-      ? "Dostupno"
-      : "Nedostupno";
+            normalizeMapText(String(availableRaw)),
+          )
+        ? "Dostupno"
+        : "Nedostupno";
 
   const attributes = [listingType, roomType, propertyType, areaValue]
     .filter(Boolean)
@@ -242,9 +278,13 @@ const buildMapCardDetails = (ad, pinLocationLabel = "") => {
     ad?.city ||
     "";
   const hasCoordinates =
-    Number.isFinite(Number(ad?.latitude)) && Number.isFinite(Number(ad?.longitude));
-  const locationText = pinLocationLabel ||
-    (hasCoordinates ? "Lokacija označena na mapi" : rawLocationText || "Lokacija nije navedena");
+    Number.isFinite(Number(ad?.latitude)) &&
+    Number.isFinite(Number(ad?.longitude));
+  const locationText =
+    pinLocationLabel ||
+    (hasCoordinates
+      ? "Lokacija označena na mapi"
+      : rawLocationText || "Lokacija nije navedena");
   const locationSecondary = null;
 
   return {
@@ -276,7 +316,12 @@ const Ads = () => {
   // ============================================
   // SEARCH TRACKING HOOK
   // ============================================
-  const { trackSearchImpressions, trackSearchClick, getSearchId, getLastImpressionId } = useSearchTracking();
+  const {
+    trackSearchImpressions,
+    trackSearchClick,
+    getSearchId,
+    getLastImpressionId,
+  } = useSearchTracking();
   const lastImpressionIdRef = useRef(null);
   const searchIdRef = useRef(null);
 
@@ -428,11 +473,14 @@ const Ads = () => {
         const itemLng = Number(item?.longitude);
         return Number.isFinite(itemLat) && Number.isFinite(itemLng);
       }),
-    [realEstateMapAds]
+    [realEstateMapAds],
   );
 
   const realEstateMapById = useMemo(() => {
-    const entries = realEstateMapAdsWithCoords.map((entry) => [Number(entry?.id), entry]);
+    const entries = realEstateMapAdsWithCoords.map((entry) => [
+      Number(entry?.id),
+      entry,
+    ]);
     return new Map(entries);
   }, [realEstateMapAdsWithCoords]);
 
@@ -458,7 +506,9 @@ const Ads = () => {
         if (cancelled || response?.data?.error === true) return;
 
         const payload = response?.data?.data;
-        const result = Array.isArray(payload) ? payload[0] || {} : payload || {};
+        const result = Array.isArray(payload)
+          ? payload[0] || {}
+          : payload || {};
         const resolvedLabel = [
           result?.area_translation || result?.area,
           result?.city_translation || result?.city,
@@ -483,7 +533,7 @@ const Ads = () => {
 
   const mapCardDetails = useMemo(
     () => buildMapCardDetails(mapSelectedAd, mapSelectedLocationByPin),
-    [mapSelectedAd, mapSelectedLocationByPin]
+    [mapSelectedAd, mapSelectedLocationByPin],
   );
 
   const [customFields, setCustomFields] = useState([]);
@@ -502,8 +552,8 @@ const Ads = () => {
   }, [
     JSON.stringify(
       Array.from(searchParams.entries()).filter(
-        ([key]) => !knownParams.includes(key)
-      )
+        ([key]) => !knownParams.includes(key),
+      ),
     ),
   ]);
 
@@ -542,8 +592,17 @@ const Ads = () => {
     if (!query) return [];
     if (isQuickCategoryLoading) return searchQuickCategories;
     if (searchQuickCategories.length > 0) return searchQuickCategories;
-    return buildQuickNavigationCategories(advertisements?.data || [], categorySlugById);
-  }, [query, isQuickCategoryLoading, searchQuickCategories, advertisements?.data, categorySlugById]);
+    return buildQuickNavigationCategories(
+      advertisements?.data || [],
+      categorySlugById,
+    );
+  }, [
+    query,
+    isQuickCategoryLoading,
+    searchQuickCategories,
+    advertisements?.data,
+    categorySlugById,
+  ]);
   const isToolbarActionSheetOpen = isSortSheetOpen || isViewSheetOpen;
   const selectedLocationLabel =
     selectedLocation?.translated_name ||
@@ -571,7 +630,10 @@ const Ads = () => {
         if (Number.isFinite(id) && slug) {
           map.set(id, slug);
         }
-        if (Array.isArray(node?.subcategories) && node.subcategories.length > 0) {
+        if (
+          Array.isArray(node?.subcategories) &&
+          node.subcategories.length > 0
+        ) {
           mapCategoryTree(node.subcategories, map);
         }
       });
@@ -580,7 +642,10 @@ const Ads = () => {
 
     const loadCategorySlugMap = async () => {
       try {
-        const response = await categoryApi.getCategory({ page: 1, per_page: 100 });
+        const response = await categoryApi.getCategory({
+          page: 1,
+          per_page: 100,
+        });
         const roots = response?.data?.data?.data || [];
         const slugMap = mapCategoryTree(roots, new Map());
         if (!cancelled) {
@@ -611,38 +676,41 @@ const Ads = () => {
     };
   }, [dispatch]);
 
-  const emitMobileHeaderState = useCallback((payload) => {
-    if (typeof window === "undefined") return;
+  const emitMobileHeaderState = useCallback(
+    (payload) => {
+      if (typeof window === "undefined") return;
 
-    const nextDetail = {
-      enabled: true,
-      hideHeader: !!payload.hideHeader,
-      searchIconMode: !!payload.searchIconMode,
-      compactActions: !!payload.compactActions,
-      sortBy,
-      view,
-    };
+      const nextDetail = {
+        enabled: true,
+        hideHeader: !!payload.hideHeader,
+        searchIconMode: !!payload.searchIconMode,
+        compactActions: !!payload.compactActions,
+        sortBy,
+        view,
+      };
 
-    const prevDetail = lastEmittedMobileHeaderRef.current;
-    if (
-      prevDetail &&
-      prevDetail.enabled === nextDetail.enabled &&
-      prevDetail.hideHeader === nextDetail.hideHeader &&
-      prevDetail.searchIconMode === nextDetail.searchIconMode &&
-      prevDetail.compactActions === nextDetail.compactActions &&
-      prevDetail.sortBy === nextDetail.sortBy &&
-      prevDetail.view === nextDetail.view
-    ) {
-      return;
-    }
+      const prevDetail = lastEmittedMobileHeaderRef.current;
+      if (
+        prevDetail &&
+        prevDetail.enabled === nextDetail.enabled &&
+        prevDetail.hideHeader === nextDetail.hideHeader &&
+        prevDetail.searchIconMode === nextDetail.searchIconMode &&
+        prevDetail.compactActions === nextDetail.compactActions &&
+        prevDetail.sortBy === nextDetail.sortBy &&
+        prevDetail.view === nextDetail.view
+      ) {
+        return;
+      }
 
-    lastEmittedMobileHeaderRef.current = nextDetail;
-    window.dispatchEvent(
-      new CustomEvent("lmx:ads-mobile-header-state", {
-        detail: nextDetail,
-      })
-    );
-  }, [sortBy, view]);
+      lastEmittedMobileHeaderRef.current = nextDetail;
+      window.dispatchEvent(
+        new CustomEvent("lmx:ads-mobile-header-state", {
+          detail: nextDetail,
+        }),
+      );
+    },
+    [sortBy, view],
+  );
 
   useEffect(() => {
     if (!isMobile) {
@@ -654,8 +722,12 @@ const Ads = () => {
         lastEmittedMobileHeaderRef.current = null;
         window.dispatchEvent(
           new CustomEvent("lmx:ads-mobile-header-state", {
-            detail: { enabled: false, hideHeader: false, searchIconMode: false },
-          })
+            detail: {
+              enabled: false,
+              hideHeader: false,
+              searchIconMode: false,
+            },
+          }),
         );
       }
       return undefined;
@@ -698,7 +770,8 @@ const Ads = () => {
     const updateMobileUi = () => {
       const currentScrollY = window.scrollY || 0;
 
-      const stickyStartPoint = filterTriggerBottomRef.current || filterTriggerTopRef.current;
+      const stickyStartPoint =
+        filterTriggerBottomRef.current || filterTriggerTopRef.current;
       const triggerY = Math.max(0, stickyStartPoint - 14);
       const resetY = Math.max(0, filterTriggerTopRef.current - 88);
 
@@ -755,14 +828,17 @@ const Ads = () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
-      window.removeEventListener("lmx:ads-mobile-toolbar-reset", onForceHeaderReset);
+      window.removeEventListener(
+        "lmx:ads-mobile-toolbar-reset",
+        onForceHeaderReset,
+      );
       lastEmittedMobileHeaderRef.current = null;
       filterTriggerTopRef.current = 0;
       filterTriggerBottomRef.current = 0;
       window.dispatchEvent(
         new CustomEvent("lmx:ads-mobile-header-state", {
           detail: { enabled: false, hideHeader: false, searchIconMode: false },
-        })
+        }),
       );
     };
   }, [emitMobileHeaderState, isMobile, isToolbarActionSheetOpen]);
@@ -776,7 +852,7 @@ const Ads = () => {
         if (response?.data?.error === false) {
           setFeaturedTitle(
             response?.data?.data?.[0]?.translated_name ||
-              response?.data?.data?.[0]?.title
+              response?.data?.data?.[0]?.title,
           );
         }
       } catch (error) {
@@ -800,7 +876,7 @@ const Ads = () => {
             slug: "/ads",
             isAllCategories: true,
           },
-        ])
+        ]),
       );
       setCustomFields([]);
       setExtraDetails({});
@@ -811,9 +887,11 @@ const Ads = () => {
     try {
       const res = await getCustomFieldsApi.getCustomFields({
         category_ids: categoryIds,
-        filter: true,
+        // Always load full filter schema so labels/values remain available
+        // even when no ads currently use a given option.
+        filter: false,
       });
-      const data = res?.data?.data;
+      const data = Array.isArray(res?.data?.data) ? res.data.data : [];
       setCustomFields(data);
       const isShowCustomfieldFilter =
         data.length > 0 &&
@@ -821,7 +899,7 @@ const Ads = () => {
           (field) =>
             field.type === "checkbox" ||
             field.type === "radio" ||
-            field.type === "dropdown"
+            field.type === "dropdown",
         );
 
       if (isShowCustomfieldFilter) {
@@ -901,30 +979,37 @@ const Ads = () => {
     sellerVerified,
   ]);
 
-  const matchSellerType = useCallback((membership) => {
-    if (!hasSellerTypeFilter) return true;
-    if (sellerType === "shop") return membership.isShop;
-    if (sellerType === "pro") return membership.isPro && !membership.isShop;
-    if (sellerType === "free") return !membership.isPro && !membership.isShop;
-    if (sellerType === "premium") return membership.isPro || membership.isShop;
-    return true;
-  }, [hasSellerTypeFilter, sellerType]);
+  const matchSellerType = useCallback(
+    (membership) => {
+      if (!hasSellerTypeFilter) return true;
+      if (sellerType === "shop") return membership.isShop;
+      if (sellerType === "pro") return membership.isPro && !membership.isShop;
+      if (sellerType === "free") return !membership.isPro && !membership.isShop;
+      if (sellerType === "premium")
+        return membership.isPro || membership.isShop;
+      return true;
+    },
+    [hasSellerTypeFilter, sellerType],
+  );
 
-  const applySellerFilters = useCallback((items = []) => {
-    if (!hasSellerTypeFilter && !hasSellerVerifiedFilter) return items;
-    return items.filter((item) => {
-      const membership = resolveMembership(
-        item,
-        item?.membership,
-        item?.user,
-        item?.user?.membership
-      );
-      const typeMatch = matchSellerType(membership);
-      if (!typeMatch) return false;
-      if (!hasSellerVerifiedFilter) return true;
-      return isSellerVerified(item, item?.user, item?.seller);
-    });
-  }, [hasSellerTypeFilter, hasSellerVerifiedFilter, matchSellerType]);
+  const applySellerFilters = useCallback(
+    (items = []) => {
+      if (!hasSellerTypeFilter && !hasSellerVerifiedFilter) return items;
+      return items.filter((item) => {
+        const membership = resolveMembership(
+          item,
+          item?.membership,
+          item?.user,
+          item?.user?.membership,
+        );
+        const typeMatch = matchSellerType(membership);
+        if (!typeMatch) return false;
+        if (!hasSellerVerifiedFilter) return true;
+        return isSellerVerified(item, item?.user, item?.seller);
+      });
+    },
+    [hasSellerTypeFilter, hasSellerVerifiedFilter, matchSellerType],
+  );
 
   useEffect(() => {
     const normalizedQuery = String(query || "").trim();
@@ -937,7 +1022,10 @@ const Ads = () => {
     // Fast path: derive quick categories from already loaded cards
     // instead of triggering a second network request.
     setIsQuickCategoryLoading(false);
-    const categories = buildQuickNavigationCategories(advertisements?.data || [], categorySlugById).slice(0, 8);
+    const categories = buildQuickNavigationCategories(
+      advertisements?.data || [],
+      categorySlugById,
+    ).slice(0, 8);
     setSearchQuickCategories(categories);
   }, [query, advertisements?.data, categorySlugById]);
 
@@ -991,7 +1079,10 @@ const Ads = () => {
         parameters.search = query;
       }
       page === 1
-        ? setAdvertisements((prev) => ({ ...prev, isLoading: !prev?.data?.length }))
+        ? setAdvertisements((prev) => ({
+            ...prev,
+            isLoading: !prev?.data?.length,
+          }))
         : setAdvertisements((prev) => ({ ...prev, isLoadMore: true }));
 
       const res = await allItemApi.getItems(parameters);
@@ -1078,7 +1169,8 @@ const Ads = () => {
   ];
 
   const activeSortLabel =
-    sortOptions.find((option) => option.value === sortBy)?.label || "Poredaj oglase";
+    sortOptions.find((option) => option.value === sortBy)?.label ||
+    "Poredaj oglase";
 
   const contentSectionTransition = {
     type: "spring",
@@ -1128,7 +1220,9 @@ const Ads = () => {
     }
 
     if (!mapSelectedAd?.id) return;
-    const stillExists = realEstateMapAdsWithCoords.some((item) => Number(item?.id) === Number(mapSelectedAd.id));
+    const stillExists = realEstateMapAdsWithCoords.some(
+      (item) => Number(item?.id) === Number(mapSelectedAd.id),
+    );
     if (!stillExists) {
       setMapSelectedAd(null);
       setMapHoveredAd(null);
@@ -1269,16 +1363,16 @@ const Ads = () => {
     date_posted === "all-time"
       ? "Svi oglasi"
       : date_posted === "today"
-      ? "Danas"
-      : date_posted === "within-1-week"
-      ? "U proteklih 7 dana"
-      : date_posted === "within-2-week"
-      ? "U proteklih 14 dana"
-      : date_posted === "within-1-month"
-      ? "U proteklih 30 dana"
-      : date_posted === "within-3-month"
-      ? "U protekla 3 mjeseca"
-      : "";
+        ? "Danas"
+        : date_posted === "within-1-week"
+          ? "U proteklih 7 dana"
+          : date_posted === "within-2-week"
+            ? "U proteklih 14 dana"
+            : date_posted === "within-1-month"
+              ? "U proteklih 30 dana"
+              : date_posted === "within-3-month"
+                ? "U protekla 3 mjeseca"
+                : "";
 
   const FilterTag = ({ label, onClear }) => (
     <Badge
@@ -1334,7 +1428,8 @@ const Ads = () => {
     }, [open]);
 
     const handleBackdropClick = () => {
-      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const now =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
       if (now - openedAtRef.current < 220) return;
       onClose();
     };
@@ -1357,14 +1452,21 @@ const Ads = () => {
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.9 }}
+              transition={{
+                type: "spring",
+                stiffness: 320,
+                damping: 32,
+                mass: 0.9,
+              }}
               className="fixed inset-x-0 bottom-0 z-[108] md:hidden"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="rounded-t-[1.75rem] border border-slate-200 bg-white/95 px-4 pb-5 pt-3 shadow-[0_-20px_50px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-[0_-20px_50px_-28px_rgba(2,6,23,0.85)]">
                 <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <div className="mb-3 flex items-center justify-between border-b border-slate-100 px-1 pb-2 dark:border-slate-800">
-                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
+                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    {title}
+                  </h3>
                   <button
                     type="button"
                     onClick={onClose}
@@ -1435,7 +1537,7 @@ const Ads = () => {
         >
           <ProductCardSkeleton />
         </div>
-      )
+      ),
     )
   ) : advertisements.data && advertisements.data.length > 0 ? (
     advertisements.data?.map((item, index) =>
@@ -1503,7 +1605,7 @@ const Ads = () => {
             }
           />
         </motion.div>
-      )
+      ),
     )
   ) : (
     <div className="col-span-12 py-12 flex justify-center">
@@ -1546,7 +1648,9 @@ const Ads = () => {
             className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100"
           >
             <div className="space-y-1.5">
-              {query && (quickNavigationCategories.length > 0 || isQuickCategoryLoading) ? (
+              {query &&
+              (quickNavigationCategories.length > 0 ||
+                isQuickCategoryLoading) ? (
                 <motion.div
                   layout
                   initial={{ opacity: 0, y: -4 }}
@@ -1586,7 +1690,8 @@ const Ads = () => {
                       </span>
                     </button>
                   ))}
-                  {isQuickCategoryLoading && quickNavigationCategories.length === 0 ? (
+                  {isQuickCategoryLoading &&
+                  quickNavigationCategories.length === 0 ? (
                     <span className="text-slate-400 dark:text-slate-500">
                       Tražim kategorije...
                     </span>
@@ -1595,8 +1700,8 @@ const Ads = () => {
               ) : null}
               <p className="text-sm text-gray-500 mt-1">
                 {advertisements?.data?.length || 0}{" "}
-                {((advertisements?.data?.length || 0) % 10 === 1 &&
-                  (advertisements?.data?.length || 0) % 100 !== 11)
+                {(advertisements?.data?.length || 0) % 10 === 1 &&
+                (advertisements?.data?.length || 0) % 100 !== 11
                   ? "rezultat"
                   : "rezultata"}
               </p>
@@ -1665,7 +1770,6 @@ const Ads = () => {
                 </Button>
               ) : null}
             </div>
-
           </motion.div>
 
           {activeFilterCount > 0 && (
@@ -1763,31 +1867,35 @@ const Ads = () => {
               )}
 
               {initialExtraDetails &&
-                Object.entries(initialExtraDetails || {}).map(([key, value]) => {
-                  const field = customFields.find(
-                    (f) => f.id.toString() === key.toString()
-                  );
-                  const fieldName = field?.translated_name || field?.name;
+                Object.entries(initialExtraDetails || {}).map(
+                  ([key, value]) => {
+                    const field = customFields.find(
+                      (f) => f.id.toString() === key.toString(),
+                    );
+                    const fieldName =
+                      field?.translated_name || field?.name || `Filter ${key}`;
 
-                  const getTranslatedValue = (val) => {
-                    if (!field?.values || !field?.translated_value) return val;
-                    const idx = field.values.indexOf(val);
-                    return idx !== -1 ? field.translated_value[idx] : val;
-                  };
+                    const getTranslatedValue = (val) => {
+                      if (!field?.values || !field?.translated_value)
+                        return val;
+                      const idx = field.values.indexOf(val);
+                      return idx !== -1 ? field.translated_value[idx] : val;
+                    };
 
-                  const displayValue = Array.isArray(value)
-                    ? value.map((v) => getTranslatedValue(v)).join(", ")
-                    : getTranslatedValue(value);
+                    const displayValue = Array.isArray(value)
+                      ? value.map((v) => getTranslatedValue(v)).join(", ")
+                      : getTranslatedValue(value);
 
-                  return (
-                    <motion.div key={key} layout>
-                      <FilterTag
-                        label={`${fieldName}: ${displayValue}`}
-                        onClear={() => handleClearExtraDetail(key)}
-                      />
-                    </motion.div>
-                  );
-                })}
+                    return (
+                      <motion.div key={key} layout>
+                        <FilterTag
+                          label={`${fieldName}: ${displayValue}`}
+                          onClear={() => handleClearExtraDetail(key)}
+                        />
+                      </motion.div>
+                    );
+                  },
+                )}
 
               {activeFilterCount > 1 && (
                 <button
@@ -1832,7 +1940,6 @@ const Ads = () => {
 
           {isRealEstateSearch ? (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[repeat(16,minmax(0,1fr))] lg:items-start">
-
               {isListMapOpen ? (
                 <motion.section
                   layout
@@ -1907,14 +2014,16 @@ const Ads = () => {
 
                               {mapCardDetails.attributes.length > 0 ? (
                                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                  {mapCardDetails.attributes.map((attribute, attributeIndex) => (
-                                    <span
-                                      key={`${attribute}-${attributeIndex}`}
-                                      className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
-                                    >
-                                      {attribute}
-                                    </span>
-                                  ))}
+                                  {mapCardDetails.attributes.map(
+                                    (attribute, attributeIndex) => (
+                                      <span
+                                        key={`${attribute}-${attributeIndex}`}
+                                        className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
+                                      >
+                                        {attribute}
+                                      </span>
+                                    ),
+                                  )}
                                 </div>
                               ) : null}
 
@@ -1982,9 +2091,11 @@ const Ads = () => {
                       </div>
                     ) : null}
                   </div>
-                  {!advertisements?.isLoading && realEstateMapAdsWithCoords.length === 0 ? (
+                  {!advertisements?.isLoading &&
+                  realEstateMapAdsWithCoords.length === 0 ? (
                     <div className="border-t border-slate-200 px-4 py-3 text-xs text-amber-700 dark:border-slate-800 dark:text-amber-300">
-                      Trenutni rezultati nemaju dovoljno podataka o lokaciji za prikaz markera.
+                      Trenutni rezultati nemaju dovoljno podataka o lokaciji za
+                      prikaz markera.
                     </div>
                   ) : null}
                 </motion.section>
@@ -2002,7 +2113,6 @@ const Ads = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-12 gap-3 sm:gap-6 mt-6">
               {renderedAdsContent}
             </div>
-            
           )}
 
           {advertisements.data &&
@@ -2012,7 +2122,9 @@ const Ads = () => {
                 <Button
                   variant="outline"
                   className="min-w-[200px] border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
-                  disabled={advertisements.isLoading || advertisements.isLoadMore}
+                  disabled={
+                    advertisements.isLoading || advertisements.isLoadMore
+                  }
                   onClick={handleProdLoadMore}
                 >
                   {advertisements.isLoadMore ? (
@@ -2092,7 +2204,6 @@ const Ads = () => {
               </button>
             </div>
           </MobileActionSheet>
-
         </div>
       </motion.div>
     </Layout>
