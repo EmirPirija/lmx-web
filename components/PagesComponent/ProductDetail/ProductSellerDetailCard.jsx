@@ -33,6 +33,7 @@ import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CustomLink from "@/components/Common/CustomLink";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -44,6 +45,7 @@ import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal"
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
 import ExistingConversationBanner from "@/components/PagesComponent/ProductDetail/ExistingConversationBanner";
+import { resolveAvatarUrl } from "@/utils/avatar";
 
 /* =====================================================
    HELPER FUNKCIJE
@@ -101,19 +103,16 @@ const formatMemberSince = (dateStr) => {
 };
 
 const resolveSellerAvatar = (seller = {}) =>
-  (
-    seller?.profile ||
-    seller?.profile_image ||
-    seller?.profileImage ||
-    seller?.avatar ||
-    seller?.avatar_url ||
-    seller?.image ||
-    seller?.photo ||
-    seller?.svg_avatar ||
-    ""
-  )
-    .toString()
-    .trim();
+  resolveAvatarUrl([
+    seller?.profile,
+    seller?.profile_image,
+    seller?.profileImage,
+    seller?.avatar,
+    seller?.avatar_url,
+    seller?.image,
+    seller?.photo,
+    seller?.svg_avatar,
+  ]);
 
 const parseLastSeenDate = (seller = {}) => {
   const raw =
@@ -438,7 +437,13 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
-              <CustomImage src={resolveSellerAvatar(seller)} alt={seller?.name} width={32} height={32} className="w-full h-full object-cover" />
+              <UserAvatarMedia
+                src={resolveSellerAvatar(seller)}
+                alt={seller?.name || "Prodavač"}
+                className="w-8 h-8 rounded-lg"
+                roundedClassName="rounded-lg"
+                imageClassName="w-full h-full object-cover"
+              />
             </div>
             <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{seller?.name}</span>
           </div>
@@ -921,12 +926,12 @@ const ProductSellerDetailCard = ({
                           : "border border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors"
                       )}
                     >
-                      <CustomImage
+                      <UserAvatarMedia
                         src={sellerAvatar}
                         alt={seller?.name || "Prodavač"}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full rounded-xl"
+                        roundedClassName="rounded-xl"
+                        imageClassName="w-full h-full object-cover"
                       />
                     </div>
                   </motion.div>
@@ -966,12 +971,12 @@ const ProductSellerDetailCard = ({
                         : "border border-slate-200/60 dark:border-slate-700/60"
                     )}
                   >
-                    <CustomImage
+                    <UserAvatarMedia
                       src={sellerAvatar}
                       alt={seller?.name || "Prodavač"}
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full rounded-xl"
+                      roundedClassName="rounded-xl"
+                      imageClassName="w-full h-full object-cover"
                     />
                   </div>
                 </motion.div>

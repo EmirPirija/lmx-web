@@ -20,7 +20,7 @@ import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import { itemQuestionsApi } from "@/utils/api";
 import { useItemTracking } from "@/hooks/useItemTracking";
-import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { bs } from "date-fns/locale";
@@ -55,7 +55,12 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
         <div className="flex gap-3">
           <div className="flex-shrink-0">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <CustomImage src={question.user?.profile} alt={question.user?.name} width={40} height={40} className="w-full h-full object-cover" />
+              <UserAvatarMedia
+                sources={[question.user?.profile, question.user?.profile_image, question.user?.avatar]}
+                alt={question.user?.name || "Korisnik"}
+                className="w-full h-full"
+                imageClassName="w-full h-full object-cover"
+              />
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -341,7 +346,12 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-blue-900/10">
           <div className="flex gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <CustomImage src={currentUser?.profile} alt="Vi" width={40} height={40} className="w-full h-full object-cover" />
+              <UserAvatarMedia
+                sources={[currentUser?.profile, currentUser?.profile_image, currentUser?.avatar]}
+                alt="Vi"
+                className="w-full h-full"
+                imageClassName="w-full h-full object-cover"
+              />
             </div>
             <div className="flex-1">
               <textarea value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} placeholder="Napišite vaše pitanje..." rows={3} maxLength={500} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 dark:text-slate-100" />

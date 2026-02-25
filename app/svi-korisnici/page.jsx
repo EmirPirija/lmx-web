@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { isSellerVerified } from "@/lib/seller-verification";
+import { resolveAvatarUrl } from "@/utils/avatar";
 import { usersApi, getSellerApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
@@ -439,26 +440,27 @@ const SviKorisniciPage = () => {
 
   const resolveUserAvatar = (user = {}, details = {}) => {
     const seller = details?.seller || {};
-    const raw =
-      user?.profile ||
-      user?.profile_image ||
-      user?.profileImage ||
-      user?.avatar ||
-      user?.avatar_url ||
-      user?.image ||
-      user?.photo ||
-      user?.svg_avatar ||
-      seller?.profile ||
-      seller?.profile_image ||
-      seller?.profileImage ||
-      seller?.avatar ||
-      seller?.avatar_url ||
-      seller?.image ||
-      details?.profile ||
-      details?.profile_image ||
-      details?.avatar ||
-      "";
-    return String(raw || "").trim() || null;
+    return (
+      resolveAvatarUrl([
+        user?.profile,
+        user?.profile_image,
+        user?.profileImage,
+        user?.avatar,
+        user?.avatar_url,
+        user?.image,
+        user?.photo,
+        user?.svg_avatar,
+        seller?.profile,
+        seller?.profile_image,
+        seller?.profileImage,
+        seller?.avatar,
+        seller?.avatar_url,
+        seller?.image,
+        details?.profile,
+        details?.profile_image,
+        details?.avatar,
+      ]) || null
+    );
   };
 
   const toFiniteNumber = (value) => {

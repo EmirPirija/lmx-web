@@ -9,6 +9,7 @@ import { toast } from "@/utils/toastBs";
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CustomLink from "@/components/Common/CustomLink";
 import NoData from "@/components/EmptyStates/NoData";
 import { Button } from "@/components/ui/button";
@@ -184,7 +185,6 @@ const UserAvatar = ({ user, size = "md" }) => {
     lg: "w-16 h-16",
   };
 
-  const profileImage = user?.profile || user?.profile_image || user?.avatar;
   const isVerified = user?.is_verified || user?.verified;
   const isOnline = user?.is_online || user?.online;
 
@@ -194,21 +194,13 @@ const UserAvatar = ({ user, size = "md" }) => {
         sizes[size],
         "rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700"
       )}>
-        {profileImage ? (
-          <CustomImage
-            src={profileImage}
-            alt={user?.name || "Korisnik"}
-            width={64}
-            height={64}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <span className="text-lg font-bold text-primary">
-              {user?.name?.charAt(0)?.toUpperCase() || "?"}
-            </span>
-          </div>
-        )}
+        <UserAvatarMedia
+          sources={[user?.profile, user?.profile_image, user?.avatar]}
+          alt={user?.name || "Korisnik"}
+          className="h-full w-full rounded-xl"
+          imageClassName="w-full h-full object-cover"
+          roundedClassName="rounded-xl"
+        />
       </div>
       {isVerified && (
         <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">

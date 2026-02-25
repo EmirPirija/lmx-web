@@ -16,6 +16,7 @@ import { toast } from "@/utils/toastBs";
 import { useSelector } from "react-redux";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 
 const BlockedUsersMenu = ({ setSelectedChatDetails }) => {
   const [blockedUsersList, setBlockedUsersList] = useState([]);
@@ -103,11 +104,11 @@ const BlockedUsersMenu = ({ setSelectedChatDetails }) => {
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-200 relative">
-                      <CustomImage
-                        src={user?.profile}
-                        alt={user.name}
-                        fill
-                        className="object-cover"
+                      <UserAvatarMedia
+                        sources={[user?.profile, user?.profile_image, user?.avatar]}
+                        alt={user?.name || "Korisnik"}
+                        className="h-10 w-10"
+                        imageClassName="object-cover h-10 w-10"
                       />
                     </div>
                     <span className="truncate">{user.name}</span>

@@ -275,6 +275,26 @@ const getConditionLabel = (item) => {
   return String(rawValue).trim();
 };
 
+const getOfferModeFromValue = (value) => {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+
+  if (normalized.includes("iznajmlj") || normalized.includes("rent") || normalized.includes("lease")) {
+    return "Iznajmljivanje";
+  }
+
+  if (
+    normalized.includes("prodaj") ||
+    normalized.includes("sale") ||
+    normalized === "sell" ||
+    normalized.includes("kupovina")
+  ) {
+    return "Prodaja";
+  }
+
+  return null;
+};
+
 // Funkcija koja vraća najviše 3 tačke za indikaciju
 const getThreeDots = (total, current) => {
   if (total <= 3) {
@@ -1390,14 +1410,15 @@ const MyAdsCard = ({
   const currentPrice = data?.price;
   const metaValues = useMemo(() => {
     const values = Array.isArray(keyAttributes) ? [...keyAttributes] : [];
+    const withoutOfferMode = values.filter((entry) => !getOfferModeFromValue(entry));
     if (conditionLabel) {
       const normalizedCondition = normalizeText(conditionLabel);
-      const withoutCondition = values.filter(
+      const withoutCondition = withoutOfferMode.filter(
         (entry) => normalizeText(entry) !== normalizedCondition
       );
       return [conditionLabel, ...withoutCondition];
     }
-    return values;
+    return withoutOfferMode;
   }, [keyAttributes, conditionLabel]);
   const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(data), [data]);
   const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;

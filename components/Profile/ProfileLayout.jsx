@@ -25,6 +25,7 @@ import FirebaseData from "@/utils/Firebase";
 import { resolveMembership } from "@/lib/membership";
 import { resolveVerificationState } from "@/lib/verification";
 import { cn } from "@/lib/utils";
+import { resolveAvatarUrl } from "@/utils/avatar";
 import { toast } from "@/utils/toastBs";
 import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
 import { PROMO_BENEFITS, PROMO_HEADLINE, isPromoFreeAccessEnabled } from "@/lib/promoMode";
@@ -795,12 +796,14 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   });
 
   // Custom avatar URL
-  const customAvatarUrl = useMemo(() => {
-    const p = userData?.profile || "";
-    if (!p) return "";
-    if (placeholderImage && p === placeholderImage) return "";
-    return p;
-  }, [userData?.profile, placeholderImage]);
+  const customAvatarUrl = useMemo(
+    () =>
+      resolveAvatarUrl(
+        [userData?.profile, userData?.profile_image, userData?.avatar],
+        { placeholderImage }
+      ),
+    [placeholderImage, userData?.avatar, userData?.profile, userData?.profile_image]
+  );
 
   // Fetch seller avatar id
   const getSellerSettings = useCallback(async () => {

@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { useDropzone } from "react-dropzone";
 import { 
   MdClose, 
@@ -313,12 +314,12 @@ const SoldOutModal = ({
                   onClick={() => handleRadioButtonCheck(buyer?.id)}
                 >
                   <div className="flex gap-3 items-center">
-                    <CustomImage
-                      src={buyer?.profile}
-                      width={48}
-                      height={48}
-                      alt="Kupac"
-                      className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-sm"
+                    <UserAvatarMedia
+                      sources={[buyer?.profile, buyer?.profile_image, buyer?.avatar]}
+                      alt={buyer?.name || "Kupac"}
+                      size={48}
+                      className="border-2 border-white shadow-sm"
+                      imageClassName="h-12 w-12 rounded-full object-cover"
                     />
                     <div>
                       <span className="text-sm font-semibold text-slate-800 block">
@@ -411,12 +412,11 @@ const SoldOutModal = ({
           {selectedBuyer && (
             <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
               <MdCheck className="text-green-600" size={20} />
-              <CustomImage
-                src={selectedBuyer?.profile}
-                width={36}
-                height={36}
-                alt="Kupac"
-                className="h-9 w-9 rounded-full object-cover"
+              <UserAvatarMedia
+                sources={[selectedBuyer?.profile, selectedBuyer?.profile_image, selectedBuyer?.avatar]}
+                alt={selectedBuyer?.name || "Kupac"}
+                size={36}
+                imageClassName="h-9 w-9 rounded-full object-cover"
               />
               <div>
                 <span className="text-sm text-green-700">Prodaješ:</span>

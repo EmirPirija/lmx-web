@@ -25,6 +25,7 @@ import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import NoData from "@/components/EmptyStates/NoData";
 import PageLoader from "@/components/Common/PageLoader";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 
 const BlogDetailPage = ({ slug }) => {
   const CurrentLanguage = useSelector(CurrentLanguageData);
@@ -94,12 +95,12 @@ const BlogDetailPage = ({ slug }) => {
                 </h1>
                 <div className="flex items-center flex-wrap gap-2 opacity-60 text-sm">
                   <div className="flex gap-2 items-center">
-                    <CustomImage
-                      src={admin?.profile}
-                      alt={admin?.name || "Admin Image"}
-                      height={28}
-                      width={28}
-                      className="size-7 aspect-square rounded-md"
+                    <UserAvatarMedia
+                      sources={[admin?.profile, admin?.profile_image, admin?.avatar]}
+                      alt={admin?.name || "Admin"}
+                      size={28}
+                      roundedClassName="rounded-md"
+                      imageClassName="size-7 aspect-square rounded-md object-cover"
                     />
                     <p>{admin?.name}</p>
                   </div>

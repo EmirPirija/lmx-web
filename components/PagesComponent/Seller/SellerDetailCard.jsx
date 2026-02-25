@@ -54,6 +54,7 @@ import MembershipBadge from "@/components/Common/MembershipBadge";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
@@ -628,12 +629,12 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200/60 shadow-sm">
-                  <CustomImage
-                    src={seller?.profile || seller?.profile_image}
+                  <UserAvatarMedia
+                    sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
                     alt={seller?.name || "Prodavač"}
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full rounded-xl"
+                    roundedClassName="rounded-xl"
+                    imageClassName="w-full h-full object-cover"
                   />
                 </div>
                 {isVerified && (
@@ -1087,12 +1088,12 @@ export const SellerPreviewCard = ({
                           : "rounded-xl border border-slate-200/60 dark:border-slate-700/60"
                       )}
                     >
-                      <CustomImage
-                        src={seller?.profile || seller?.profile_image}
+                      <UserAvatarMedia
+                        sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
                         alt={seller?.name || "Prodavač"}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full rounded-xl"
+                        roundedClassName="rounded-xl"
+                        imageClassName="w-full h-full object-cover"
                       />
                     </div>
                   </div>

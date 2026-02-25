@@ -10,6 +10,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { itemQuestionsApi, itemStatisticsApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
+import { resolveAvatarUrl } from "@/utils/avatar";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,6 +78,7 @@ const formatDate = (dateString) => {
 // ============================================
 const UserAvatar = ({
   customAvatarUrl,
+  sources,
   avatarId,
   size = 36,
   className = "",
@@ -84,7 +86,11 @@ const UserAvatar = ({
   verifiedSize = 10,
 }) => {
   const [imgErr, setImgErr] = useState(false);
-  const showImg = Boolean(customAvatarUrl) && !imgErr;
+  const resolvedAvatarUrl = resolveAvatarUrl([
+    customAvatarUrl,
+    ...(Array.isArray(sources) ? sources : []),
+  ]);
+  const showImg = Boolean(resolvedAvatarUrl) && !imgErr;
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -96,7 +102,7 @@ const UserAvatar = ({
       >
         {showImg ? (
           <img
-            src={customAvatarUrl}
+            src={resolvedAvatarUrl}
             alt="Avatar"
             className="w-full h-full object-cover"
             onError={() => setImgErr(true)}
@@ -240,18 +246,19 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
 
         {/* Asker info */}
         <div className="flex items-start gap-3">
-<UserAvatar
-  customAvatarUrl={question.user?.profile}
-  avatarId=""
-  size={40}
-  showVerified={
-    question.user?.is_verified === true ||
-    question.user?.verified === true ||
-    Number(question.user?.is_verified) === 1 ||
-    Number(question.user?.verified) === 1
-  }
-  verifiedSize={10}
-/>
+          <UserAvatar
+            customAvatarUrl={question.user?.profile}
+            sources={[question.user?.profile_image, question.user?.avatar, question.user?.image]}
+            avatarId=""
+            size={40}
+            showVerified={
+              question.user?.is_verified === true ||
+              question.user?.verified === true ||
+              Number(question.user?.is_verified) === 1 ||
+              Number(question.user?.verified) === 1
+            }
+            verifiedSize={10}
+          />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

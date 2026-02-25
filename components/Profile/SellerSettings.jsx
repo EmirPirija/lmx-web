@@ -69,6 +69,7 @@ import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
 import SellerDetailCard from "@/components/PagesComponent/Seller/SellerDetailCard";
 import { handleFirebaseAuthError } from "@/utils";
+import { resolveAvatarUrl } from "@/utils/avatar";
 import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
 import {
   clearRecaptchaVerifier,
@@ -747,8 +748,12 @@ const SellerSettings = () => {
   const [initialPayloadStr, setInitialPayloadStr] = useState(null);
 
   useEffect(() => {
-    if (currentUser?.profile_image) setPreviewImage(currentUser.profile_image);
-    if (currentUser?.profile) setPreviewImage(currentUser.profile);
+    const resolved = resolveAvatarUrl([
+      currentUser?.profile,
+      currentUser?.profile_image,
+      currentUser?.avatar,
+    ]);
+    setPreviewImage(resolved || "");
   }, [currentUser]);
 
   useEffect(() => {
@@ -1417,7 +1422,16 @@ const SellerSettings = () => {
     );
   }
 
-  const previewSeller = { ...currentUser, profile: previewImage || currentUser?.profile_image || currentUser?.profile };
+  const previewSeller = {
+    ...currentUser,
+    profile:
+      resolveAvatarUrl([
+        previewImage,
+        currentUser?.profile,
+        currentUser?.profile_image,
+        currentUser?.avatar,
+      ]) || "",
+  };
   const previewSettings = { ...buildPayload(), verification_status: verificationStatus };
   const verificationProgressCount = (isPhoneVerified ? 1 : 0) + (isEmailVerified ? 1 : 0);
   const verificationProgressPercent = Math.round((verificationProgressCount / 2) * 100);

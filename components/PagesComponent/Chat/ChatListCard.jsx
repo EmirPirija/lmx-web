@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { formatTime } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -220,13 +221,12 @@ const ChatListCard = ({
 	            "relative rounded-full overflow-hidden ring-2 transition-all",
 	            isActive ? "ring-white/30" : "ring-slate-200 dark:ring-slate-700"
 	          )}>
-	            <CustomImage
-	              src={otherUser?.profile}
-	              alt={otherUser?.name}
-	              width={52}
-	              height={52}
-	              className="w-[52px] h-[52px] object-cover"
-	            />
+              <UserAvatarMedia
+                sources={[otherUser?.profile, otherUser?.profile_image, otherUser?.avatar]}
+                alt={otherUser?.name || "Korisnik"}
+                className="w-[52px] h-[52px]"
+                imageClassName="w-[52px] h-[52px] object-cover"
+              />
 	          </div>
 
 	          {/* Pinned indicator */}

@@ -140,11 +140,11 @@ const PopularCategories = () => {
             direction: isRTL ? "rtl" : "ltr",
           }}
         >
-          <CarouselContent className="-ml-3 md:-ml-[30px]">
+          <CarouselContent className="-ml-2 md:-ml-3">
             {cateData.map((item) => (
               <CarouselItem
                 key={item?.id}
-                className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-[16.66%] xl:basis-[12.5%] 2xl:basis-[11.11%] md:pl-[30px]"
+                className="basis-1/4 sm:basis-1/5 md:basis-1/6 lg:basis-[14.28%] xl:basis-[12.5%] 2xl:basis-[10%] pl-2 md:pl-3"
               >
                 <PopularCategoryCard item={item} onSelect={handleCategorySelect} />
               </CarouselItem>

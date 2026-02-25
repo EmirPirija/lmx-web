@@ -4,6 +4,7 @@ import { IoChevronDown, IoChevronUp } from "@/components/Common/UnifiedIconPack"
 import { HiOutlinePhotograph } from "@/components/Common/UnifiedIconPack";
 import StarRating from './StarRating';
 import CustomImage from '@/components/Common/CustomImage';
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from '@/lib/utils';
  
 const SellerReviewCard = ({ rating }) => {
@@ -55,12 +56,12 @@ const SellerReviewCard = ({ rating }) => {
           {/* Header - Korisnik i ocjena */}
           <div className="flex items-start gap-4">
             {/* Avatar */}
-            <CustomImage
-              src={rating?.buyer?.profile}
-              width={48}
-              height={48}
-              alt={rating?.buyer?.name || 'Korisnik'}
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+            <UserAvatarMedia
+              sources={[rating?.buyer?.profile, rating?.buyer?.profile_image, rating?.buyer?.avatar]}
+              alt={rating?.buyer?.name || "Korisnik"}
+              size={48}
+              className="ring-2 ring-gray-100 flex-shrink-0"
+              imageClassName="w-full h-full rounded-full object-cover"
             />
  
             {/* Informacije */}

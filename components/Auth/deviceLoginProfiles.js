@@ -1,5 +1,7 @@
 "use client";
 
+import { resolveAvatarUrl } from "@/utils/avatar";
+
 const STORAGE_KEY = "lmx_device_login_profiles_v1";
 const REMEMBER_KEY = "lmx_device_login_remember_v1";
 const LAST_USED_PROFILE_KEY = "lmx_device_login_last_used_profile_v1";
@@ -153,7 +155,7 @@ export const upsertDeviceLoginProfile = (payload, meta = {}) => {
   const name = normalizeText(meta?.nameOverride || user?.name || user?.displayName);
   const email = normalizeText(meta?.identifier || user?.email).toLowerCase();
   const mobile = normalizeText(user?.mobile);
-  const profile = normalizeText(user?.profile || user?.image);
+  const profile = resolveAvatarUrl([user?.profile, user?.image, user?.profile_image]);
   const userId = normalizeText(user?.id);
 
   const key = email || mobile || userId;

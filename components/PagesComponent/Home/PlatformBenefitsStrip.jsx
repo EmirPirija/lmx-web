@@ -15,8 +15,6 @@ import {
   MessageCircle,
   Search,
   Layers,
-  ArrowLeft,
-  ArrowRight,
 } from "@/components/Common/UnifiedIconPack";
 import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD } from "@/lib/promoMode";
 
@@ -84,11 +82,7 @@ const PlatformBenefitsStrip = () => {
   useEffect(() => {
     if (!carouselApi || typeof window === "undefined") return undefined;
 
-    const isMobileViewport = () =>
-      window.matchMedia("(max-width: 991px)").matches;
-
     const autoSlide = () => {
-      if (!isMobileViewport()) return;
       if (document.hidden) return;
 
       if (carouselApi.canScrollNext()) {
@@ -132,7 +126,7 @@ const PlatformBenefitsStrip = () => {
 
       <Carousel
         setApi={setCarouselApi}
-        opts={{ align: "start", containScroll: "trimSnaps" }}
+        opts={{ align: "start", containScroll: "trimSnaps", loop: true }}
         className="relative mt-4"
       >
         <CarouselContent className="-ml-3">
@@ -207,31 +201,6 @@ const PlatformBenefitsStrip = () => {
           ))}
         </CarouselContent>
       </Carousel>
-
-      {carouselSlides.length > 1 ? (
-        <div className="relative mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => carouselApi?.scrollPrev()}
-              disabled={!carouselApi?.canScrollPrev()}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              aria-label="Prethodni slajd"
-            >
-              <ArrowLeft size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => carouselApi?.scrollNext()}
-              disabled={!carouselApi?.canScrollNext()}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              aria-label="Sljedeći slajd"
-            >
-              <ArrowRight size={16} />
-            </button>
-          </div>
-        </div>
-      ) : null}
     </motion.div>
   </section>
 );

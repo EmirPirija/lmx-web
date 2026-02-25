@@ -19,7 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CategorySemanticIcon from "@/components/Common/CategorySemanticIcon";
+import { resolveAvatarUrl } from "@/utils/avatar";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://admin.lmx.ba").replace(/\/+$/, "");
 const API_ENDPOINT_PREFIX = (process.env.NEXT_PUBLIC_END_POINT || "/api/")
@@ -212,19 +214,13 @@ const UserListItem = memo(({ user, onClick }) => {
       "
     >
       <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden shrink-0 border border-gray-200 dark:bg-slate-800 dark:border-slate-700">
-        {user?.profile ? (
-          <CustomImage
-            src={user.profile}
-            alt={user.name}
-            height={40}
-            width={40}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-slate-400">
-            <User size={20} />
-          </div>
-        )}
+        <UserAvatarMedia
+          sources={[user?.profile, user?.profile_image, user?.avatar]}
+          alt={user?.name || "Korisnik"}
+          className="w-full h-full"
+          imageClassName="w-full h-full object-cover"
+          iconClassName="h-5 w-5 text-gray-400 dark:text-slate-400"
+        />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">{user?.name}</p>
@@ -395,7 +391,7 @@ const ComponentOne = ({
 
       return rows.map((user) => ({
         ...user,
-        profile: user?.profile || user?.avatar || user?.svg_avatar || null,
+        profile: resolveAvatarUrl([user?.profile, user?.profile_image, user?.avatar, user?.svg_avatar]) || null,
       }));
     } catch {
       return [];

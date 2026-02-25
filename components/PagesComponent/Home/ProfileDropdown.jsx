@@ -23,6 +23,7 @@ import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled
 
 import { resolveMembership } from "@/lib/membership";
 import { resolveVerificationState } from "@/lib/verification";
+import { resolveAvatarUrl } from "@/utils/avatar";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -295,12 +296,14 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
   });
 
   // ✅ same logic: if profile is placeholder -> treat as no custom image
-  const customAvatarUrl = useMemo(() => {
-    const p = userData?.profile || "";
-    if (!p) return "";
-    if (placeholderImage && p === placeholderImage) return "";
-    return p;
-  }, [userData?.profile, placeholderImage]);
+  const customAvatarUrl = useMemo(
+    () =>
+      resolveAvatarUrl(
+        [userData?.profile, userData?.profile_image, userData?.avatar],
+        { placeholderImage }
+      ),
+    [placeholderImage, userData?.avatar, userData?.profile, userData?.profile_image]
+  );
 
   // ✅ fetch seller avatar id for LMX fallback
   const getSellerSettings = useCallback(async () => {

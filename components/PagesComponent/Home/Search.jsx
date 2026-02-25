@@ -25,6 +25,7 @@ import {
   IconWorld,
   IconStarFilled,
 } from "@/components/Common/UnifiedIconPack";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 
 const SEARCH_HISTORY_KEY = "lmx_search_history";
 const SEARCH_HISTORY_ENABLED_KEY = "lmx_search_history_enabled";
@@ -1117,15 +1118,13 @@ const Search = ({
                     >
                       <div className="flex items-center gap-2">
                         <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600">
-                          {user.profile ? (
-                            <img
-                              src={user.profile}
-                              alt={user.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <IconUser className="h-3.5 w-3.5 text-slate-500 dark:text-slate-300" />
-                          )}
+                          <UserAvatarMedia
+                            sources={[user.profile, user.profile_image, user.avatar]}
+                            alt={user.name || "Korisnik"}
+                            className="h-full w-full"
+                            imageClassName="h-full w-full object-cover"
+                            iconClassName="h-3.5 w-3.5 text-slate-500 dark:text-slate-300"
+                          />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm text-slate-700 dark:text-slate-200">

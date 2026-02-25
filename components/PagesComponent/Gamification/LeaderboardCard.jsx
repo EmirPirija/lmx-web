@@ -1,11 +1,10 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Flame, BarChart3, Video, Store, ShoppingBag } from "@/components/Common/UnifiedIconPack";
 
-import LmxAvatarSvg from "@/components/Avatars/LmxAvatarSvg";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
 
 const RankMark = ({ rank }) => {
@@ -64,13 +63,12 @@ export default function LeaderboardCard({ user, rank }) {
         </div>
 
         <div className="relative h-12 w-12 overflow-hidden rounded-full border border-slate-200/70 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800">
-          {user?.profile ? (
-            <Image src={user.profile} alt={user?.name || "Korisnik"} fill className="object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <LmxAvatarSvg avatarId={user?.avatar_id || "lmx-01"} className="h-8 w-8" />
-            </div>
-          )}
+          <UserAvatarMedia
+            sources={[user?.profile, user?.profile_image, user?.avatar]}
+            alt={user?.name || "Korisnik"}
+            className="h-12 w-12"
+            imageClassName="h-12 w-12 object-cover"
+          />
 
           {isVerified ? (
             <span className="absolute -bottom-0.5 -right-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white bg-emerald-500 text-white dark:border-slate-900">

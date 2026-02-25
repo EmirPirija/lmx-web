@@ -18,6 +18,7 @@ import {
   MdMoreVert,
   MdVerified,
   MdStorefront,
+  User,
   MdPlayArrow,
   MdPause,
   MdLocationOn,
@@ -40,6 +41,7 @@ import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import { getYouTubeVideoId } from "@/utils";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
+import { resolveAvatarUrl } from "@/utils/avatar";
 
 /* ── helpers ────────────────────────────────────── */
 
@@ -258,7 +260,12 @@ const ReelViewerModal = ({
 
   const seller = cur?.seller || {};
   const sName = seller?.name || seller?.shop_name || "Prodavač";
-  const sImg = seller?.profile || seller?.image || seller?.profile_image || null;
+  const sImg = resolveAvatarUrl([
+    seller?.profile,
+    seller?.image,
+    seller?.profile_image,
+    seller?.avatar,
+  ]);
   const verified = seller?.is_verified || seller?.verified || false;
   const shop = !!(seller?.shop_name || seller?.is_shop);
   const nSellers = allSellers.length;
@@ -983,7 +990,7 @@ const ReelViewerModal = ({
                     <img src={sImg} alt="" className="w-full h-full rounded-full object-cover bg-white" />
                   ) : (
                     <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                      <MdStorefront className="w-4 h-4 text-slate-400" />
+                      <User className="w-4 h-4 text-primary/70" />
                     </div>
                   )}
                 </div>

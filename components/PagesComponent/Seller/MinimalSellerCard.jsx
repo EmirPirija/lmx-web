@@ -30,6 +30,7 @@ import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CustomLink from "@/components/Common/CustomLink";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -404,12 +405,12 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100">
-              <CustomImage
-                src={seller?.profile || seller?.profile_image}
-                alt={seller?.name}
-                width={32}
-                height={32}
-                className="w-full h-full object-cover"
+              <UserAvatarMedia
+                sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
+                alt={seller?.name || "Prodavač"}
+                className="w-8 h-8 rounded-lg"
+                roundedClassName="rounded-lg"
+                imageClassName="w-full h-full object-cover"
               />
             </div>
             <span className="text-sm font-semibold text-slate-900">{seller?.name}</span>
@@ -764,12 +765,12 @@ export const MinimalSellerCard = ({
                   variant === "compact" ? "w-10 h-10 rounded-[10px]" : "w-12 h-12 rounded-xl"
                 )}
               >
-                <CustomImage
-                  src={seller?.profile || seller?.profile_image}
+                <UserAvatarMedia
+                  sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
                   alt={seller?.name || "Prodavač"}
-                  width={variant === "compact" ? 40 : 48}
-                  height={variant === "compact" ? 40 : 48}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
+                  roundedClassName={variant === "compact" ? "rounded-[10px]" : "rounded-xl"}
+                  imageClassName="w-full h-full object-cover"
                 />
               </div>
             </div>

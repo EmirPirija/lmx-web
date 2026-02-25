@@ -46,6 +46,7 @@ import TermsAndPrivacyLinks from "./TermsAndPrivacyLinks";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
 import AuthValuePanel from "./AuthValuePanel";
 import { cn } from "@/lib/utils";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { AnimatePresence, motion } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -443,18 +444,14 @@ xl:max-w-7xl
                                       isLastUsed ? "pt-4" : "",
                                     )}
                                   >
-                                    {profile?.profile ? (
-                                      <img
-                                        src={profile.profile}
-                                        alt={profile?.name || "Profil"}
-                                        className="h-9 w-9 rounded-lg border border-border object-cover"
-                                        loading="lazy"
-                                      />
-                                    ) : (
-                                      <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted">
-                                        <User className="h-4 w-4 text-muted-foreground" />
-                                      </div>
-                                    )}
+                                    <UserAvatarMedia
+                                      sources={[profile?.profile]}
+                                      alt={profile?.name || "Profil"}
+                                      className="h-9 w-9 rounded-lg border border-border bg-muted"
+                                      roundedClassName="rounded-lg"
+                                      imageClassName="h-full w-full object-cover"
+                                      iconClassName="h-4 w-4 text-muted-foreground"
+                                    />
                                     <div className="min-w-0 flex-1">
                                       <p className="truncate text-sm font-semibold text-foreground">
                                         {profile?.name || "Sačuvani profil"}

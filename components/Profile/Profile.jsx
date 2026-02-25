@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { resolveAvatarUrl } from "@/utils/avatar";
 
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -305,7 +306,11 @@ export default function Profile() {
           };
 
           setFormData(nextForm);
-          setProfileImage(d?.profile || placeholder_image);
+          setProfileImage(
+            resolveAvatarUrl([d?.profile, d?.profile_image, d?.avatar], {
+              placeholderImage: placeholder_image,
+            })
+          );
           initialDataRef.current = { ...nextForm, bihLocation: userLocation };
           
           const currentFcmId = UserData?.fcm_id;

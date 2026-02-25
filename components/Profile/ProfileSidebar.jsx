@@ -10,7 +10,6 @@ import CustomLink from "@/components/Common/CustomLink";
 import { cn } from "@/lib/utils";
 import { isUserMarkedVerified } from "@/lib/verification";
 import {
-  User,
   LogOut,
   Trash2,
   ChevronRight,
@@ -29,6 +28,7 @@ import { deleteUserApi, logoutApi } from "@/utils/api";
 import { deleteUser, getAuth } from "firebase/auth";
 import ReusableAlertDialog from "../Common/ReusableAlertDialog";
 import { useNavigate } from "../Common/useNavigate";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 
 function SidebarNavItem({
   href,
@@ -248,18 +248,13 @@ export default function ProfileSidebar({ badges = {} }) {
       <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/90">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="h-12 w-12 rounded-xl bg-slate-900 flex items-center justify-center text-white overflow-hidden ring-2 ring-slate-100 dark:ring-slate-700">
-              {userData?.profile_image ? (
-                <img
-                  src={userData.profile_image}
-                  alt="User"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <User size={22} />
-              )}
-            </div>
+            <UserAvatarMedia
+              sources={[userData?.profile, userData?.profile_image, userData?.avatar]}
+              alt={userData?.name || "Korisnik"}
+              className="h-12 w-12 ring-2 ring-slate-100 dark:ring-slate-700 rounded-xl"
+              roundedClassName="rounded-xl"
+              imageClassName="h-full w-full object-cover"
+            />
             <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
           </div>
 

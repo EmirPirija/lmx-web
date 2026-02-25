@@ -26,6 +26,7 @@ import { toast } from "@/utils/toastBs";
 import { useSelector } from "react-redux";
 import { getIsRtl } from "@/redux/reducer/languageSlice";
 import CustomImage from "@/components/Common/CustomImage";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
@@ -182,12 +183,11 @@ const SelectedChatHeader = ({
         <div className="relative flex-shrink-0">
           <CustomLink href={`/seller/${userData?.id}`}>
             <div className="relative group cursor-pointer">
-              <CustomImage
-                src={userData?.profile}
-                alt="avatar"
-                width={48}
-                height={48}
-                className="w-[48px] h-[48px] object-cover rounded-full ring-2 ring-slate-100 dark:ring-slate-700 group-hover:ring-primary transition-all"
+              <UserAvatarMedia
+                sources={[userData?.profile, userData?.profile_image, userData?.avatar]}
+                alt={userData?.name || "Korisnik"}
+                className="w-[48px] h-[48px] ring-2 ring-slate-100 dark:ring-slate-700 group-hover:ring-primary transition-all"
+                imageClassName="w-[48px] h-[48px] object-cover"
               />
               {isOnline && (
                 <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></span>

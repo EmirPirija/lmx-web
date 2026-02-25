@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import MembershipBadge from "@/components/Common/MembershipBadge";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { savedCollectionsApi } from "@/utils/api";
@@ -97,11 +98,13 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 min-w-0">
           <div className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 shrink-0">
-            {seller?.profile || seller?.profile_image ? (
-              <img src={seller?.profile || seller?.profile_image} alt={seller?.name || ""} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">Nema</div>
-            )}
+            <UserAvatarMedia
+              sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
+              alt={seller?.name || "Korisnik"}
+              className="w-full h-full rounded-2xl"
+              roundedClassName="rounded-2xl"
+              imageClassName="w-full h-full object-cover"
+            />
           </div>
 
           <div className="min-w-0">

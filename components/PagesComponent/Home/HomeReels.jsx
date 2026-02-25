@@ -20,6 +20,7 @@ import MembershipBadge from "@/components/Common/MembershipBadge";
 import { getYouTubeVideoId } from "@/utils";
 import { cn } from "@/lib/utils";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
+import { resolveAvatarUrl } from "@/utils/avatar";
 import {
   ensureHomeReelsFallbackItems,
   isHomeDemoFillEnabled,
@@ -38,6 +39,7 @@ import {
   MdMoreVert,
   MdVerified,
   MdStorefront,
+  User,
   MdChevronLeft,
   MdChevronRight,
   MdLocationOn,
@@ -423,12 +425,12 @@ const HomeReels = () => {
         <div className="container mb-4">
           <div
             ref={storyScrollRef}
-            className="flex gap-4 overflow-x-auto overflow-x-visible pb-2 scrollbar-hide"
+            className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {sellerGroups.map((group, idx) => {
               const s = group.seller;
-              const sImg = s?.profile || s?.image || s?.profile_image || null;
+              const sImg = resolveAvatarUrl([s?.profile, s?.image, s?.profile_image, s?.avatar]);
               const sName = s?.name || s?.shop_name || "Prodavač";
               const vCount = group.items.length;
 
@@ -458,7 +460,7 @@ const HomeReels = () => {
                           <img src={sImg} alt="" className="w-full h-full rounded-full object-cover" />
                         ) : (
                           <div className="w-full h-full rounded-full bg-black/25 dark:bg-black/30 backdrop-blur-[1px] flex items-center justify-center">
-                            <MdStorefront className="w-6 h-6 text-white/90" />
+                            <User className="w-6 h-6 text-white/90" />
                           </div>
                         )}
                       </div>
@@ -619,7 +621,12 @@ const ReelCard = memo(({
 
   const seller = sellerGroup?.seller || item?.user || item?.seller || {};
   const sellerName = seller?.name || seller?.shop_name || "Prodavač";
-  const sellerImage = seller?.profile || seller?.image || null;
+  const sellerImage = resolveAvatarUrl([
+    seller?.profile,
+    seller?.image,
+    seller?.profile_image,
+    seller?.avatar,
+  ]);
   const isVerified = seller?.is_verified || seller?.verified || false;
   const isShop = !!(seller?.shop_name || seller?.is_shop);
   const city = item?.translated_city || item?.city || null;
@@ -981,7 +988,7 @@ const ReelCard = memo(({
               <img src={sellerImage} alt="" className="w-full h-full rounded-full object-cover ring-1 ring-white/60" />
             ) : (
               <div className="w-full h-full rounded-full bg-black/25 backdrop-blur-[2px] border border-white/45 flex items-center justify-center">
-                <MdStorefront className="w-3.5 h-3.5 text-white/90" />
+                <User className="w-3.5 h-3.5 text-white/90" />
               </div>
             )}
           </div>

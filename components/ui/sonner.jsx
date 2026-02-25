@@ -12,6 +12,8 @@ const Toaster = ({
       theme={theme}
       className="toaster group"
       style={{ zIndex: 2147483647, position: "fixed" }}
+      expand
+      visibleToasts={4}
       toastOptions={{
         style: { zIndex: 2147483647 },
         classNames: {

@@ -6,6 +6,7 @@ import { HiOutlinePhotograph } from "@/components/Common/UnifiedIconPack";
 import StarRating from './StarRating';
 import ReportReviewModal from './ReportReviewModal';
 import CustomImage from '@/components/Common/CustomImage';
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -65,12 +66,12 @@ const MyReviewsCard = ({ rating, setMyReviews }) => {
           <div className="flex items-start gap-4">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <CustomImage
-                src={rating?.buyer?.profile}
-                width={48}
-                height={48}
-                alt={rating?.buyer?.name || 'Korisnik'}
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100"
+              <UserAvatarMedia
+                sources={[rating?.buyer?.profile, rating?.buyer?.profile_image, rating?.buyer?.avatar]}
+                alt={rating?.buyer?.name || "Korisnik"}
+                size={48}
+                className="ring-2 ring-gray-100"
+                imageClassName="w-full h-full rounded-full object-cover"
               />
               {/* Mala slika proizvoda */}
               {rating?.item?.image && (
