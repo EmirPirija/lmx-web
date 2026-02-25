@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RiArrowLeftLine, RiArrowRightLine } from "@/components/Common/UnifiedIconPack";
 import {
   Carousel,
@@ -20,6 +20,7 @@ import { getIsRtl } from "@/redux/reducer/languageSlice.js";
 import { IoGrid, Loader2 } from "@/components/Common/UnifiedIconPack";
 import useGetCategories from "@/components/Layout/useGetCategories.jsx";
 import PopularCategoryFilterModal from "@/components/PagesComponent/Home/PopularCategoryFilterModal";
+import { categoryApi } from "@/utils/api";
 
 const PopularCategories = () => {
   const {
@@ -38,6 +39,11 @@ const PopularCategories = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isAllCategoriesModalOpen, setIsAllCategoriesModalOpen] = useState(false);
+  const [allCategories, setAllCategories] = useState([]);
+  const [isAllCategoriesLoading, setIsAllCategoriesLoading] = useState(false);
+  const [allCategoriesLoaded, setAllCategoriesLoaded] = useState(false);
+  const [allCategoriesError, setAllCategoriesError] = useState("");
+  const allCategoriesPrefetchStartedRef = useRef(false);
   const isNextDisabled =
     isCatLoadMore ||
     ((!api || !api.canScrollNext()) && catCurrentPage >= catLastPage);
@@ -53,6 +59,107 @@ const PopularCategories = () => {
     setIsAllCategoriesModalOpen(false);
     setSelectedCategory(category);
     setIsFilterModalOpen(true);
+  };
+
+  const loadAllRootCategories = async () => {
+    if (allCategoriesLoaded || isAllCategoriesLoading) return;
+    setIsAllCategoriesLoading(true);
+    setAllCategoriesError("");
+    try {
+      const perPage = 100;
+      const firstPageResponse = await categoryApi.getCategory({
+        page: 1,
+        per_page: perPage,
+      });
+      const firstPayload = firstPageResponse?.data?.data;
+      const firstPageItems = Array.isArray(firstPayload?.data)
+        ? firstPayload.data
+        : [];
+      const lastPage = Number(firstPayload?.last_page || 1);
+      const expectedTotal = Number(firstPayload?.total || 0);
+      const collected = [...firstPageItems];
+
+      if (lastPage > 1) {
+        const requestedPages = Array.from(
+          { length: lastPage - 1 },
+          (_, index) => index + 2,
+        );
+        const pageRequests = requestedPages.map((pageNumber) =>
+          categoryApi.getCategory({
+            page: pageNumber,
+            per_page: perPage,
+          }),
+        );
+        const pageResults = await Promise.allSettled(pageRequests);
+        const failedPages = [];
+
+        pageResults.forEach((result, resultIndex) => {
+          if (result.status !== "fulfilled") {
+            const failedPage = requestedPages[resultIndex];
+            if (Number.isFinite(failedPage)) failedPages.push(failedPage);
+            return;
+          }
+          const payload = result.value?.data?.data;
+          const items = Array.isArray(payload?.data) ? payload.data : [];
+          collected.push(...items);
+        });
+
+        // Retry failed pages once, sequentially (stabilnije na sporijoj mreži/backendu)
+        for (const failedPage of failedPages) {
+          try {
+            const retryResponse = await categoryApi.getCategory({
+              page: failedPage,
+              per_page: perPage,
+            });
+            const retryPayload = retryResponse?.data?.data;
+            const retryItems = Array.isArray(retryPayload?.data)
+              ? retryPayload.data
+              : [];
+            collected.push(...retryItems);
+          } catch {
+            // keep going, we'll surface a soft warning below if dataset is incomplete
+          }
+        }
+      }
+
+      const uniqueById = new Map();
+      collected.forEach((entry) => {
+        const key = Number(entry?.id);
+        if (!Number.isFinite(key) || uniqueById.has(key)) return;
+        uniqueById.set(key, entry);
+      });
+
+      const normalized = Array.from(uniqueById.values()).sort((a, b) => {
+        const left = String(a?.translated_name || a?.name || "").toLowerCase();
+        const right = String(b?.translated_name || b?.name || "").toLowerCase();
+        return left.localeCompare(right);
+      });
+
+      const hasCompleteDataset = expectedTotal
+        ? normalized.length >= expectedTotal
+        : normalized.length > 0;
+
+      setAllCategories(normalized);
+      setAllCategoriesLoaded(hasCompleteDataset);
+      if (!hasCompleteDataset) {
+        setAllCategoriesError(
+          "Nisu učitane sve kategorije. Pokušaj ponovo za kompletan spisak.",
+        );
+      }
+    } catch (error) {
+      console.error("Popular categories modal load failed:", error);
+      setAllCategoriesLoaded(false);
+      setAllCategoriesError("Učitavanje svih kategorija nije uspjelo.");
+    } finally {
+      setIsAllCategoriesLoading(false);
+    }
+  };
+
+  const handleOpenAllCategories = () => {
+    setIsAllCategoriesModalOpen(true);
+    if (!allCategoriesLoaded) {
+      loadAllRootCategories();
+    }
   };
 
   useEffect(() => {
@@ -91,6 +198,34 @@ const PopularCategories = () => {
     }, 10000);
     return () => window.clearInterval(intervalId);
   }, [api, isMobileViewport, isFilterModalOpen]);
+
+  useEffect(() => {
+    if (!cateData?.length) return undefined;
+    if (allCategoriesLoaded || isAllCategoriesLoading) return undefined;
+    if (allCategoriesPrefetchStartedRef.current) return undefined;
+
+    allCategoriesPrefetchStartedRef.current = true;
+    let cancelled = false;
+
+    const runPrefetch = () => {
+      if (cancelled) return;
+      loadAllRootCategories();
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(runPrefetch, { timeout: 1800 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timeoutId = window.setTimeout(runPrefetch, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [cateData, allCategoriesLoaded, isAllCategoriesLoading]);
 
   const handleNext = async () => {
     if (api && api.canScrollNext()) {
@@ -148,7 +283,7 @@ const PopularCategories = () => {
         <div className="mt-6 flex items-start gap-3">
           <button
             type="button"
-            onClick={() => setIsAllCategoriesModalOpen(true)}
+            onClick={handleOpenAllCategories}
             className="sticky left-0 z-20 flex w-[92px] shrink-0 flex-col gap-2.5"
             aria-label="Prikaži sve popularne kategorije"
           >
@@ -200,16 +335,31 @@ const PopularCategories = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="max-h-[62dvh] overflow-y-auto pr-1">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {cateData.map((item) => (
-                  <div key={`all-cat-${item?.id}`} className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700/80">
-                    <PopularCategoryCard
-                      item={item}
-                      onSelect={handleAllCategoriesSelect}
-                    />
+              {isAllCategoriesLoading && (
+                <div className="mb-3 flex items-center justify-start">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                    <Loader2 size={14} className="animate-spin" />
+                    Učitavanje svih kategorija...
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+              {!isAllCategoriesLoading && allCategoriesError ? (
+                <div className="rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200">
+                  {allCategoriesError}
+                </div>
+              ) : null}
+              {allCategories.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  {allCategories.map((item) => (
+                    <div key={`all-cat-${item?.id}`} className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700/80">
+                      <PopularCategoryCard
+                        item={item}
+                        onSelect={handleAllCategoriesSelect}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </DialogContent>
         </Dialog>
