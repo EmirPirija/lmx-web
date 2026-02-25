@@ -322,6 +322,10 @@ const CREATE_DRAFT_STORAGE_KEY = "lmx:create-ad-draft:v2";
 const CREATE_DRAFT_RESUME_QUERY_PARAM = "resume_draft";
 const CREATE_DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const CREATE_DRAFT_DEBOUNCE_MS = 1800;
+const DEFAULT_BIH_COORDS = {
+  lat: 43.8563,
+  lng: 18.4131,
+};
 
 const toDraftSafeValue = (value) => {
   if (value === undefined) return undefined;
@@ -1413,6 +1417,10 @@ const AdsListing = () => {
     const galleryFallbackFiles = (otherImages || []).filter(
       (entry) => entry instanceof File || entry instanceof Blob
     );
+    const latNum = Number(location?.lat);
+    const lngNum = Number(location?.long);
+    const resolvedLatitude = Number.isFinite(latNum) ? latNum : DEFAULT_BIH_COORDS.lat;
+    const resolvedLongitude = Number.isFinite(lngNum) ? lngNum : DEFAULT_BIH_COORDS.lng;
 
     const allData = {
       name: defaultDetails.name,
@@ -1479,8 +1487,8 @@ const AdsListing = () => {
       address: location?.address,
       formatted_address: location?.formattedAddress || location?.address || "",
       address_translated: location?.address_translated || location?.address || "",
-      latitude: location?.lat,
-      longitude: location?.long,
+      latitude: resolvedLatitude,
+      longitude: resolvedLongitude,
       location_source: is_real_estate
         ? String(location?.location_source || "").toLowerCase() === "profile"
           ? "profile"
