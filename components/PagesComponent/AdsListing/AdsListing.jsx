@@ -319,6 +319,7 @@ const PUBLISH_STAGES = [
 const CATEGORY_CACHE_TTL = 1000 * 60 * 30; // 30min
 const CATEGORY_RESPONSE_CACHE = new Map();
 const CREATE_DRAFT_STORAGE_KEY = "lmx:create-ad-draft:v2";
+const CREATE_DRAFT_RESUME_QUERY_PARAM = "resume_draft";
 const CREATE_DRAFT_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const CREATE_DRAFT_DEBOUNCE_MS = 1800;
 
@@ -585,6 +586,15 @@ const AdsListing = () => {
     hasHydratedDraftRef.current = true;
 
     try {
+      const shouldResumeDraft =
+        new URLSearchParams(window.location.search).get(CREATE_DRAFT_RESUME_QUERY_PARAM) === "1";
+      if (!shouldResumeDraft) {
+        // "Objavi novi oglas" uvijek kreće od praznog stanja.
+        // Draft se učitava samo ako je eksplicitno traženo query parametrom (?resume_draft=1).
+        window.localStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
+        return;
+      }
+
       const rawDraft = window.localStorage.getItem(CREATE_DRAFT_STORAGE_KEY);
       if (!rawDraft) return;
 

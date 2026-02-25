@@ -108,6 +108,12 @@ const isGatewayOrTimeoutError = (error) => {
   );
 };
 
+const AUTH_SYNC_RETRYABLE_STATUSES = new Set([502, 503]);
+const sleep = (ms) =>
+  new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+
 const avatarBlobToFile = (blob, fileName = `avatar-${Date.now()}.png`) => {
   if (!blob) return null;
   return new File([blob], fileName, { type: blob.type || "image/png" });
@@ -901,6 +907,27 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     return { ok: false };
   };
 
+  const syncEmailSessionToken = async (payload) => {
+    let lastError = null;
+    const maxRetries = 2;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      try {
+        return await userSignUpApi.userSignup(payload);
+      } catch (error) {
+        lastError = error;
+        const status = Number(error?.response?.status || 0);
+        const isRetryable = AUTH_SYNC_RETRYABLE_STATUSES.has(status);
+        const isLastAttempt = attempt === maxRetries;
+
+        if (!isRetryable || isLastAttempt) break;
+        await sleep(450 * (attempt + 1));
+      }
+    }
+
+    throw lastError;
+  };
+
   const finalizeEmailRegistration = async () => {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedName = String(profileName || "").trim();
@@ -935,44 +962,58 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       }
 
       const selectedAvatarFile = await resolveSelectedAvatarFile();
-
-      const response = await userSignUpApi.userSignup({
+      const signupPayload = {
         name: normalizedName,
         email: normalizedEmail,
         firebase_id: firebaseUser.uid,
+        fcm_id: fetchFCM || "",
         type: "email",
-        registration: true,
+        auth_intent: "register",
         profile: selectedAvatarFile,
-      });
+      };
 
-      if (response?.data?.error === true) {
-        toast.error(response?.data?.message || "Registracija nije uspjela.");
+      const signupResponse = await userSignUpApi.userSignup(signupPayload);
+      let authData = signupResponse?.data;
+
+      if (authData?.error === true) {
+        toast.error(authData?.message || "Registracija nije uspjela.");
         return;
       }
 
-      // Backend token omogućava dodatni "sync" profilnih podataka (posebno za avatar studio).
-      if (response?.data?.token) {
-        loadUpdateData(response.data);
+      if (!authData?.token) {
+        const fallbackResponse = await syncEmailSessionToken({
+          ...signupPayload,
+          auth_intent: "login",
+        });
+        authData = fallbackResponse?.data;
       }
 
-      if (response?.data?.token) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        const profileSync = await persistProfileSetup({
-          name: normalizedName,
-          email: normalizedEmail,
-          profileFile: selectedAvatarFile,
-          addressValue: locationAddress,
-          authToken: response?.data?.token,
-        });
-        if (!profileSync?.ok) {
-          toast.warning(
-            "Račun je kreiran, ali dio podataka profila nije potvrđeno sačuvan. Možeš ih doraditi u postavkama.",
-          );
-        }
+      if (!authData?.token || authData?.error === true) {
+        toast.error(
+          authData?.message ||
+            "Račun je kreiran, ali automatska prijava nije uspjela. Pokušaj prijavu ručno.",
+        );
+        return;
+      }
+
+      loadUpdateData(authData);
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const profileSync = await persistProfileSetup({
+        name: normalizedName,
+        email: normalizedEmail,
+        profileFile: selectedAvatarFile,
+        addressValue: locationAddress,
+        authToken: authData?.token,
+      });
+      if (!profileSync?.ok) {
+        toast.warning(
+          "Račun je kreiran, ali dio podataka profila nije potvrđeno sačuvan. Možeš ih doraditi u postavkama.",
+        );
       }
 
       if (locationSetupMode === "now" && isLocationComplete(registerLocation)) {
-        persistRegisterLocation(response?.data?.data?.id, registerLocation);
+        persistRegisterLocation(authData?.data?.id, registerLocation);
       }
 
       sendEmailVerification(firebaseUser).catch(() => {
@@ -980,7 +1021,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       });
 
       toast.success(
-        response?.data?.message ||
+        authData?.message ||
           "Račun je kreiran. E-mail možeš verificirati kasnije u postavkama.",
       );
       await OnHide();
