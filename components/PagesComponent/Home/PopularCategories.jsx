@@ -250,7 +250,7 @@ const PopularCategories = () => {
           <div className="flex items-center justify-center gap-2 sm:gap-4">
             <button
               onClick={() => api && api.scrollTo(current - 1)}
-              className={`bg-primary p-1 sm:p-2 rounded-full ${
+              className={`bg-primary p-1 sm:p-2 rounded-full outline-none transition-transform duration-200 hover:-translate-y-0.5 hover:scale-[1.04] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
                 !api?.canScrollPrev() ? "opacity-65 cursor-default" : ""
               }`}
               disabled={!api?.canScrollPrev()}
@@ -263,7 +263,7 @@ const PopularCategories = () => {
             </button>
             <button
               onClick={handleNext}
-              className={`bg-primary p-1 sm:p-2 rounded-full ${
+              className={`bg-primary p-1 sm:p-2 rounded-full outline-none transition-transform duration-200 hover:-translate-y-0.5 hover:scale-[1.04] active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${
                 isNextDisabled ? "opacity-65 cursor-default" : ""
               }`}
               disabled={isNextDisabled}
@@ -284,15 +284,15 @@ const PopularCategories = () => {
           <button
             type="button"
             onClick={handleOpenAllCategories}
-            className="sticky left-0 z-20 flex w-[92px] shrink-0 flex-col gap-2.5"
+            className="group sticky left-0 z-20 flex w-[92px] shrink-0 flex-col gap-2.5 rounded-xl outline-none [will-change:transform] transform-gpu transition-transform duration-200 ease-out motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-reduce:transform-none active:scale-[0.98] hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900"
             aria-label="Prikaži sve popularne kategorije"
           >
-            <div className="relative mx-auto h-14 w-14 overflow-hidden rounded-full border border-slate-200/90 bg-slate-50 shadow-sm sm:h-16 sm:w-16 md:h-[4.5rem] md:w-[4.5rem]">
-              <span className="absolute inset-0 flex items-center justify-center text-primary">
+            <div className="relative mx-auto h-14 w-14 overflow-hidden rounded-full border border-slate-200/90 bg-slate-50 shadow-sm transition-all duration-200 ease-out group-hover:border-primary/40 group-hover:bg-primary/[0.07] group-hover:shadow-[0_10px_22px_-16px_rgba(2,6,23,0.55)] dark:border-slate-700/90 dark:bg-slate-900/80 dark:group-hover:border-primary/50 dark:group-hover:bg-primary/15 sm:h-16 sm:w-16 md:h-[4.5rem] md:w-[4.5rem]">
+              <span className="absolute inset-0 flex items-center justify-center text-primary transition-transform duration-200 ease-out group-hover:scale-110">
                 <IoGrid size={22} />
               </span>
             </div>
-            <p className="text-xs sm:text-sm line-clamp-2 font-medium text-center leading-tight">
+            <p className="text-xs sm:text-sm line-clamp-2 font-medium text-center leading-tight transition-colors duration-200 group-hover:text-primary">
               Sve kategorije
             </p>
           </button>
@@ -309,12 +309,17 @@ const PopularCategories = () => {
               }}
             >
               <CarouselContent className="-ml-2 md:-ml-3">
-                {cateData.map((item) => (
+                {cateData.map((item, index) => (
                   <CarouselItem
                     key={item?.id}
-                    className="basis-1/4 sm:basis-1/5 md:basis-1/6 lg:basis-[14.28%] xl:basis-[12.5%] 2xl:basis-[10%] pl-2 md:pl-3"
+                    style={{ animationDelay: `${Math.min(index * 28, 280)}ms` }}
+                    className="basis-1/4 sm:basis-1/5 md:basis-1/6 lg:basis-[14.28%] xl:basis-[12.5%] 2xl:basis-[10%] pl-2 md:pl-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
                   >
-                    <PopularCategoryCard item={item} onSelect={handleCategorySelect} />
+                    <PopularCategoryCard
+                      item={item}
+                      onSelect={handleCategorySelect}
+                      index={index}
+                    />
                   </CarouselItem>
                 ))}
               </CarouselContent>
@@ -350,11 +355,16 @@ const PopularCategories = () => {
               ) : null}
               {allCategories.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {allCategories.map((item) => (
-                    <div key={`all-cat-${item?.id}`} className="rounded-xl border border-slate-200/80 p-2 dark:border-slate-700/80">
+                  {allCategories.map((item, index) => (
+                    <div
+                      key={`all-cat-${item?.id}`}
+                      style={{ animationDelay: `${Math.min(index * 20, 220)}ms` }}
+                      className="rounded-xl border border-slate-200/80 p-2 transition-all duration-200 ease-out motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_14px_24px_-18px_rgba(2,6,23,0.6)] dark:border-slate-700/80 dark:hover:border-primary/50 dark:hover:bg-slate-800/60"
+                    >
                       <PopularCategoryCard
                         item={item}
                         onSelect={handleAllCategoriesSelect}
+                        index={index}
                       />
                     </div>
                   ))}

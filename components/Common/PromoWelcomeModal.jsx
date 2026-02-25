@@ -57,7 +57,7 @@ export default function PromoWelcomeModal() {
               Dobrodošli! 🎉
             </DialogTitle>
             <DialogDescription className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              Drago nam je što ste ovdje. Trenutno su sve funkcionalnosti aplikacije dostupne potpuno besplatno u okviru promotivne ponude. Istražite sve mogućnosti i uživajte u iskustvu bez ograničenja. Želimo vam sretnu i uspješnu kupoprodaju.
+              Drago nam je što ste ovdje. Trenutno su sve funkcionalnosti stranice dostupne potpuno besplatno u okviru promotivne ponude. Istražite sve mogućnosti i uživajte u iskustvu bez ograničenja. Želimo vam sretnu i uspješnu kupoprodaju.
             </DialogDescription>
           </DialogHeader>
         </div>
