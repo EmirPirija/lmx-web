@@ -10,6 +10,10 @@ import { Info } from "@/components/Common/UnifiedIconPack";
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
+import {
+  ensureHomeAllItemsDemoFill,
+  isHomeDemoFillEnabled,
+} from "./homeDemoPool";
 
 const formatLocationAlertMessage = (message = "") => {
   const raw = String(message || "").trim();
@@ -83,9 +87,16 @@ const AllItems = ({ cityData, KmRange }) => {
         const featuredOnly = Array.isArray(data)
           ? data.filter((entry) => isHomeFeaturedItem(entry, { strict: true }))
           : [];
+        const pageItems =
+          page === 1 && isHomeDemoFillEnabled
+            ? ensureHomeAllItemsDemoFill(featuredOnly)
+            : featuredOnly;
+        const hasSeededFallbackOnPage = pageItems.some(
+          (entry) => Boolean(entry?.is_seeded_home_item || entry?.is_demo_item)
+        );
 
         if (page === 1) {
-          setAllItem(featuredOnly);
+          setAllItem(pageItems);
         } else {
           setAllItem((prevData) => {
             const mergedById = new Map();
@@ -106,16 +117,24 @@ const AllItems = ({ cityData, KmRange }) => {
         }
         const currentPage = response?.data?.data?.current_page;
         const lastPage = response?.data?.data?.last_page;
-        setHasMore(currentPage < lastPage);
+        if (page === 1 && hasSeededFallbackOnPage) {
+          setHasMore(false);
+        } else {
+          setHasMore(currentPage < lastPage);
+        }
         setCurrentPage(currentPage);
       } else {
         if (page === 1) {
-          setAllItem([]);
+          setAllItem(isHomeDemoFillEnabled ? ensureHomeAllItemsDemoFill([]) : []);
         }
         setHasMore(false);
       }
     } catch (error) {
       console.error("Error:", error);
+      if (page === 1 && isHomeDemoFillEnabled) {
+        setAllItem(ensureHomeAllItemsDemoFill([]));
+        setHasMore(false);
+      }
     } finally {
       setIsLoading(false);
       setIsLoadMore(false);

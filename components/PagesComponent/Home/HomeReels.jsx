@@ -20,6 +20,10 @@ import MembershipBadge from "@/components/Common/MembershipBadge";
 import { getYouTubeVideoId } from "@/utils";
 import { cn } from "@/lib/utils";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
+import {
+  ensureHomeReelsFallbackItems,
+  isHomeDemoFillEnabled,
+} from "./homeDemoPool";
 
 import {
   MdFavorite,
@@ -210,11 +214,15 @@ const HomeReels = () => {
       });
       if (res?.data?.error === true) throw new Error(res?.data?.message || "API error");
       const arr = pickArr(res) || [];
-      setItems(arr.filter((x) => !!buildVideoMeta(x)));
+      const sourceItems = arr.filter((x) => !!buildVideoMeta(x));
+      const finalItems = isHomeDemoFillEnabled
+        ? ensureHomeReelsFallbackItems(sourceItems)
+        : sourceItems;
+      setItems(finalItems);
     } catch (e) {
       console.error("HomeReels fetch:", e);
       toast.error(e?.message || "Ne mogu učitati videe");
-      setItems([]);
+      setItems(isHomeDemoFillEnabled ? ensureHomeReelsFallbackItems([]) : []);
     } finally {
       setIsLoading(false);
     }

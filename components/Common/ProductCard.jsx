@@ -442,6 +442,7 @@ const ProductCard = ({
   const dispatch = useDispatch();
   const userData = useSelector(userSignUpData);
   const compareList = useSelector(selectCompareList);
+  const isDemoItem = Boolean(item?.is_demo_item || item?.is_seeded_home_item);
   const isInCompare = compareList?.some((i) => i.id === item?.id);
 
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
@@ -571,6 +572,7 @@ const ProductCard = ({
   const handleLikeItem = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isDemoItem) return;
     try {
       if (!userData) {
         dispatch(setIsLoginOpen(true));
@@ -600,6 +602,7 @@ const ProductCard = ({
   const handleCompare = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isDemoItem) return;
     if (isInCompare) {
       dispatch(removeFromCompare(item.id));
     } else {
@@ -616,8 +619,9 @@ const ProductCard = ({
       )
     : false;
 
-  const productLinkBase =
-    userData?.id === item?.user_id
+  const productLinkBase = isDemoItem
+    ? "/ads"
+    : userData?.id === item?.user_id
       ? `/my-listing/${item?.slug}`
       : `/ad-details/${item?.slug}`;
   const productLink = trackingParams
@@ -689,7 +693,7 @@ const ProductCard = ({
 
           {/* Dugmad za akcije gore-desno */}
           <div className="absolute top-2 right-2 z-30 flex items-center gap-1">
-            {isHovered && (
+            {!isDemoItem && isHovered && (
               <Button
                 variant="outline"
                 size="icon"
@@ -710,7 +714,7 @@ const ProductCard = ({
               </Button>
             )}
 
-            {isHovered && (
+            {!isDemoItem && isHovered && (
               <Button
                 variant="outline"
                 size="icon"

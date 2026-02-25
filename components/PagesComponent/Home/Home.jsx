@@ -16,6 +16,10 @@ import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
 import LowInventoryItems from "./LowInventoryItems";
 import { buildHomeLocationKey, buildHomeLocationParams } from "./locationParams";
+import {
+  ensureFeaturedSectionsDemoFill,
+  isHomeDemoFillEnabled,
+} from "./homeDemoPool";
 
 const OfferSlider = dynamic(() => import("./OfferSlider"), {
   ssr: false,
@@ -109,9 +113,16 @@ const Home = () => {
           };
         });
 
-        setFeaturedData(mergedFeaturedSections);
+        const finalSections = isHomeDemoFillEnabled
+          ? ensureFeaturedSectionsDemoFill(mergedFeaturedSections)
+          : mergedFeaturedSections;
+
+        setFeaturedData(finalSections);
       } catch (error) {
         console.error("Error:", error);
+        if (isHomeDemoFillEnabled) {
+          setFeaturedData(ensureFeaturedSectionsDemoFill([]));
+        }
       } finally {
         setIsFeaturedLoading(false);
       }
