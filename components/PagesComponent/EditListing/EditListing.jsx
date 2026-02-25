@@ -823,6 +823,43 @@ const EditListing = ({ id }) => {
     return () => window.clearTimeout(timeoutId);
   }, [draftHydrated, editDraftStorageKey, localDraftSnapshot, serializedLocalDraftSnapshot]);
 
+  const is_job_category =
+    Number(
+      selectedCategoryPath[selectedCategoryPath.length - 1]?.is_job_category
+    ) === 1;
+  const isPriceOptional =
+    Number(
+      selectedCategoryPath[selectedCategoryPath.length - 1]?.price_optional
+    ) === 1;
+  const is_real_estate = useMemo(
+    () => isRealEstateCategoryPath(selectedCategoryPath),
+    [selectedCategoryPath]
+  );
+  const realEstateAreaM2 = useMemo(
+    () =>
+      extractAreaM2FromCustomFieldValues({
+        customFields,
+        extraDetails,
+        languageId: langId,
+        fallbackLanguageId: defaultLangId,
+      }),
+    [customFields, defaultLangId, extraDetails, langId]
+  );
+  const realEstatePriceState = useMemo(
+    () =>
+      resolveRealEstatePerSquareValue({
+        details: defaultDetails,
+        areaM2: realEstateAreaM2,
+        totalPrice: defaultDetails?.price,
+      }),
+    [defaultDetails, realEstateAreaM2]
+  );
+  const effectiveRealEstateTotalPrice = useMemo(() => {
+    if (!is_real_estate || !realEstatePriceState.enabled) return null;
+    if (realEstatePriceState.mode !== REAL_ESTATE_PRICE_MODE_MANUAL) return null;
+    return realEstatePriceState.derivedTotalPrice;
+  }, [is_real_estate, realEstatePriceState]);
+
   const serverAutosavePayload = useMemo(() => {
     if (!id) return null;
 
@@ -937,43 +974,6 @@ const EditListing = ({ id }) => {
     serializedServerAutosavePayload,
     serverAutosavePayload,
   ]);
-
-  const is_job_category =
-    Number(
-      selectedCategoryPath[selectedCategoryPath.length - 1]?.is_job_category
-    ) === 1;
-  const isPriceOptional =
-    Number(
-      selectedCategoryPath[selectedCategoryPath.length - 1]?.price_optional
-    ) === 1;
-  const is_real_estate = useMemo(
-    () => isRealEstateCategoryPath(selectedCategoryPath),
-    [selectedCategoryPath]
-  );
-  const realEstateAreaM2 = useMemo(
-    () =>
-      extractAreaM2FromCustomFieldValues({
-        customFields,
-        extraDetails,
-        languageId: langId,
-        fallbackLanguageId: defaultLangId,
-      }),
-    [customFields, defaultLangId, extraDetails, langId]
-  );
-  const realEstatePriceState = useMemo(
-    () =>
-      resolveRealEstatePerSquareValue({
-        details: defaultDetails,
-        areaM2: realEstateAreaM2,
-        totalPrice: defaultDetails?.price,
-      }),
-    [defaultDetails, realEstateAreaM2]
-  );
-  const effectiveRealEstateTotalPrice = useMemo(() => {
-    if (!is_real_estate || !realEstatePriceState.enabled) return null;
-    if (realEstatePriceState.mode !== REAL_ESTATE_PRICE_MODE_MANUAL) return null;
-    return realEstatePriceState.derivedTotalPrice;
-  }, [is_real_estate, realEstatePriceState]);
 
   const completenessScore = useMemo(() => {
     let score = 0;
