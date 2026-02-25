@@ -467,10 +467,10 @@ export const createStickyNote = () => {
   const playStoreLink = getSafeState()?.Settings?.data?.data?.play_store_link;
   const appStoreLink = getSafeState()?.Settings?.data?.data?.app_store_link;
 
-  const message = document.createElement("span");
-  message.setAttribute("data-sticky-message", "true");
-  message.innerText =
-    "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
+  // const message = document.createElement("span");
+  // message.setAttribute("data-sticky-message", "true");
+  // message.innerText =
+  //   "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
 
   const linkContainer = document.createElement("div"); // Changed to 'div' for better spacing
   linkContainer.style.display = "inline-block"; // Keeps links inline while allowing space
@@ -515,16 +515,16 @@ export const updateStickyNoteTranslations = () => {
   const playStoreLink = note.querySelector("[data-sticky-playstore]");
   const appStoreLink = note.querySelector("[data-sticky-appstore]");
 
-  if (message) {
-    message.innerText =
-      "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
-  }
-  if (playStoreLink) {
-    playStoreLink.innerText = "Play Store-a";
-  }
-  if (appStoreLink) {
-    appStoreLink.innerText = "App Store-a";
-  }
+  // if (message) {
+  //   message.innerText =
+  //     "Chat i obavještenja nisu podržani u ovom pregledniku. Koristi mobilnu aplikaciju.";
+  // }
+  // if (playStoreLink) {
+  //   playStoreLink.innerText = "Play Store-a";
+  // }
+  // if (appStoreLink) {
+  //   appStoreLink.innerText = "App Store-a";
+  // }
 };
 
 const ERROR_CODES = {

@@ -585,22 +585,41 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
   };
 
   const handleTouchStart = (e) => {
-    touchStartX.current = e.touches?.[0]?.clientX || 0;
+    const startX = e.touches?.[0]?.clientX || 0;
+    touchStartX.current = startX;
+    touchEndX.current = startX;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches?.[0]?.clientX || 0;
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
+    const endX = e.changedTouches?.[0]?.clientX;
+    if (typeof endX === "number") {
+      touchEndX.current = endX;
+    }
+
     const swipeDistance = touchStartX.current - touchEndX.current;
-    if (Math.abs(swipeDistance) <= 50) return;
+    if (Math.abs(swipeDistance) <= 50) {
+      touchStartX.current = 0;
+      touchEndX.current = 0;
+      return;
+    }
 
     if (swipeDistance > 0 && currentSlide < totalSlides - 1) {
       setCurrentSlide((prev) => prev + 1);
     } else if (swipeDistance < 0 && currentSlide > 0) {
       setCurrentSlide((prev) => prev - 1);
     }
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
+
+  const handleTouchCancel = () => {
+    touchStartX.current = 0;
+    touchEndX.current = 0;
   };
 
   return (
@@ -620,6 +639,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         <div className="relative h-full min-h-[120px] bg-slate-50 dark:bg-slate-950 sm:min-h-[200px] md:min-h-[230px]">
           {slides.map((slide, index) => (

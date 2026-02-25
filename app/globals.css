@@ -87,6 +87,20 @@
   }
 }
 
+/* iOS Safari: prevent double-tap-to-activate behavior on interactive controls */
+@media (hover: none) and (pointer: coarse) {
+  a,
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  summary,
+  label[for] {
+    touch-action: manipulation;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

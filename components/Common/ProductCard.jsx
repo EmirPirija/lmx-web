@@ -572,22 +572,41 @@ const ProductCard = ({
 
   // Logika za dodir
   const handleTouchStart = (e) => {
-    touchStartX.current = e.touches?.[0]?.clientX || 0;
+    const startX = e.touches?.[0]?.clientX || 0;
+    touchStartX.current = startX;
+    touchEndX.current = startX;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches?.[0]?.clientX || 0;
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
+    const endX = e.changedTouches?.[0]?.clientX;
+    if (typeof endX === "number") {
+      touchEndX.current = endX;
+    }
+
     const swipeDistance = touchStartX.current - touchEndX.current;
-    if (Math.abs(swipeDistance) <= 50) return;
+    if (Math.abs(swipeDistance) <= 50) {
+      touchStartX.current = 0;
+      touchEndX.current = 0;
+      return;
+    }
 
     if (swipeDistance > 0 && currentSlide < totalSlides - 1) {
       setCurrentSlide((prev) => prev + 1);
     } else if (swipeDistance < 0 && currentSlide > 0) {
       setCurrentSlide((prev) => prev - 1);
     }
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
+
+  const handleTouchCancel = () => {
+    touchStartX.current = 0;
+    touchEndX.current = 0;
   };
 
   const handleLikeItem = async (e) => {
@@ -673,6 +692,7 @@ const ProductCard = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-950">
           <div className="absolute inset-0 w-full h-full">

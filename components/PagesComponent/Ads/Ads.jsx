@@ -1527,14 +1527,11 @@ const Ads = () => {
   const renderedAdsContent = advertisements?.isLoading ? (
     Array.from({ length: 12 }).map((_, index) =>
       view === "list" ? (
-        <div className="col-span-12 mb-4" key={index}>
+        <div className="col-span-full mb-4" key={index}>
           <ProductHorizontalCardSkeleton />
         </div>
       ) : (
-        <div
-          className="col-span-6 sm:col-span-6 lg:col-span-4 xl:col-span-3"
-          key={index}
-        >
+        <div className="col-span-1" key={index}>
           <ProductCardSkeleton />
         </div>
       ),
@@ -1543,7 +1540,7 @@ const Ads = () => {
     advertisements.data?.map((item, index) =>
       view === "list" ? (
         <motion.div
-          className="col-span-12 mb-4"
+          className="col-span-full mb-4"
           key={item.id || index}
           variants={cardAnimation}
           initial="hidden"
@@ -1575,7 +1572,7 @@ const Ads = () => {
         </motion.div>
       ) : (
         <motion.div
-          className="col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-2 mb-4"
+          className="col-span-1 mb-4"
           key={item.id || index}
           variants={cardAnimation}
           initial="hidden"
@@ -1608,10 +1605,19 @@ const Ads = () => {
       ),
     )
   ) : (
-    <div className="col-span-12 py-12 flex justify-center">
+    <div className="col-span-full py-12 flex justify-center">
       <NoData name={"Oglasi"} />
     </div>
   );
+
+  const adsGridClasses =
+    view === "list"
+      ? "grid grid-cols-1 gap-4 mt-4"
+      : `grid grid-cols-2 gap-3 sm:gap-6 mt-6 ${
+          isRealEstateSearch && isListMapOpen
+            ? "lg:grid-cols-2 xl:grid-cols-3"
+            : "lg:grid-cols-4 xl:grid-cols-6"
+        }`;
 
   return (
     <Layout>
@@ -2102,15 +2108,15 @@ const Ads = () => {
               ) : null}
 
               <div
-                className={`grid grid-cols-5 gap-6 ${
-                  isListMapOpen ? "lg:col-span-6" : "lg:col-span-6"
+                className={`${adsGridClasses} ${
+                  isListMapOpen ? "lg:col-span-10" : "lg:col-span-full"
                 }`}
               >
                 {renderedAdsContent}
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-12 gap-3 sm:gap-6 mt-6">
+            <div className={adsGridClasses}>
               {renderedAdsContent}
             </div>
           )}

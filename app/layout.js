@@ -61,7 +61,7 @@ export default function RootLayout({ children }) {
           <div className="lmx-app-surface">
             <Providers>
               {children}
-              {/* <PromoWelcomeModal /> */}
+              <PromoWelcomeModal />
               <CompareFloatingBar />
             </Providers>
           </div>

@@ -1496,7 +1496,9 @@ const MyAdsCard = ({
 
   // Logika za dodir
   const handleTouchStart = (e) => {
-    touchStartX.current = e.touches?.[0]?.clientX || 0;
+    const startX = e.touches?.[0]?.clientX || 0;
+    touchStartX.current = startX;
+    touchEndX.current = startX;
     
     // Long press logic
     if (!isSelectable) {
@@ -1518,7 +1520,7 @@ const MyAdsCard = ({
     }
   };
   
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
     // Otkaži long press
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
@@ -1527,14 +1529,35 @@ const MyAdsCard = ({
     
     if (isSelectable) return;
 
+    const endX = e.changedTouches?.[0]?.clientX;
+    if (typeof endX === "number") {
+      touchEndX.current = endX;
+    }
+
     const swipeDistance = touchStartX.current - touchEndX.current;
-    if (Math.abs(swipeDistance) <= 50) return;
+    if (Math.abs(swipeDistance) <= 50) {
+      touchStartX.current = 0;
+      touchEndX.current = 0;
+      return;
+    }
 
     if (swipeDistance > 0 && currentSlide < totalSlides - 1) {
       setCurrentSlide((prev) => prev + 1);
     } else if (swipeDistance < 0 && currentSlide > 0) {
       setCurrentSlide((prev) => prev - 1);
     }
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
+
+  const handleTouchCancel = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      setIsLongPressing(false);
+    }
+    touchStartX.current = 0;
+    touchEndX.current = 0;
   };
 
   const handleSoldOutClick = () => {
@@ -1626,6 +1649,7 @@ const MyAdsCard = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-950">
           <AnimatePresence mode="wait">
