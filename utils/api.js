@@ -1205,6 +1205,16 @@ const normalizeTempIdArray = (value) => {
     .filter(Boolean);
 };
 
+const normalizeJsonFormValue = (value) => {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "";
+  }
+};
+
 // =========================
 // add item api (FULL FIXED)
 // =========================
@@ -1439,10 +1449,15 @@ export const addItemApi = {
       formData.append("is_scarcity_enabled", scarcityEnabled01);
     }
 
-    if (custom_field_translations)
-      formData.append("custom_field_translations", custom_field_translations);
+    const normalizedCustomFieldTranslations = normalizeJsonFormValue(custom_field_translations);
+    if (normalizedCustomFieldTranslations) {
+      formData.append("custom_field_translations", normalizedCustomFieldTranslations);
+    }
 
-    if (translations) formData.append("translations", translations);
+    const normalizedTranslations = normalizeJsonFormValue(translations);
+    if (normalizedTranslations) {
+      formData.append("translations", normalizedTranslations);
+    }
 
     // ✅ always send 0/1
     formData.append("show_only_to_premium", show_only_to_premium ? 1 : 0);
@@ -1747,10 +1762,15 @@ export const editItemApi = {
       }
     });
 
-    if (custom_field_translations)
-      formData.append("custom_field_translations", custom_field_translations);
+    const normalizedCustomFieldTranslations = normalizeJsonFormValue(custom_field_translations);
+    if (normalizedCustomFieldTranslations) {
+      formData.append("custom_field_translations", normalizedCustomFieldTranslations);
+    }
 
-    if (translations) formData.append("translations", translations);
+    const normalizedTranslations = normalizeJsonFormValue(translations);
+    if (normalizedTranslations) {
+      formData.append("translations", normalizedTranslations);
+    }
 
     return Api.post(UPDATE_LISTING, formData, {
       headers: { "Content-Type": "multipart/form-data" },

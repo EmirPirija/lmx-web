@@ -1559,10 +1559,32 @@ const AdsListing = () => {
         setDraftStatus("idle");
         setDraftLocalSavedAt("");
       } else {
-        toast.error(res?.data?.message);
+        const responseCode = Number(res?.data?.code || 0);
+        const hasTempMediaRefs = Boolean(
+          mainTempId || galleryTempIds.length > 0 || tempVideoId,
+        );
+
+        if (responseCode === 103 && hasTempMediaRefs) {
+          setUploadedImages([]);
+          setOtherImages([]);
+          setUploadedVideo(null);
+          setAddVideoToStory(false);
+          setPublishToInstagram(false);
+          setInstagramSourceUrl("");
+          setStep(4);
+          toast.error(
+            "Privremeni mediji iz nacrta više nisu dostupni. Dodaj slike/video ponovo i pokušaj objavu.",
+          );
+          return;
+        }
+
+        toast.error(res?.data?.message || "Došlo je do greške. Pokušajte ponovo.");
       }
     } catch (error) {
       console.error(error);
+      toast.error(
+        error?.response?.data?.message || "Došlo je do greške pri objavi oglasa. Pokušaj ponovo.",
+      );
     } finally {
       setIsAdPlaced(false);
       setShowPublishFx(false);
