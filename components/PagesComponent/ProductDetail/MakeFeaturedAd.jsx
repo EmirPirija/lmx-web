@@ -216,7 +216,7 @@ const MakeFeaturedAd = ({
       toast.error(
         getApiErrorMessage(
           res?.data,
-          "Izdvajanje nije uspjelo. Provjeri paket/limite i pokušaj ponovo."
+          "Izdvajanje nije uspjelo. Provjeri status oglasa i pokušaj ponovo."
         )
       );
     } catch (error) {
@@ -252,7 +252,7 @@ const MakeFeaturedAd = ({
                     : "Podigni oglas na vrh i povećaj vidljivost."}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
-                  Limiti: standard korisnik do 8 izdvojenih, Pro/Shop do 20 aktivnih oglasa.
+                  Odaberi poziciju i trajanje izdvajanja za bolju vidljivost oglasa.
                 </p>
               </div>
             </div>
@@ -371,7 +371,7 @@ const MakeFeaturedAd = ({
                     Odabrano: {selectedPlacementMeta?.label} • {selectedDuration} dana
                   </p>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Nakon potvrde, oglas će biti aktiviran prema ovom planu (ako imaš aktivan paket).
+                    Nakon potvrde, oglas će biti aktiviran prema odabranom planu izdvajanja.
                   </p>
                 </div>
 

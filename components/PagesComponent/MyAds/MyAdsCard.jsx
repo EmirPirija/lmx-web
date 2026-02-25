@@ -826,7 +826,7 @@ const FeaturedPlanModal = ({
                 Odabrano: {selectedPlacementMeta?.label} • {duration} dana
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Nakon potvrde, oglas će biti aktiviran prema ovom planu (ako imaš aktivan paket).
+                Nakon potvrde, oglas će biti aktiviran prema odabranom planu izdvajanja.
               </p>
             </div>
 
