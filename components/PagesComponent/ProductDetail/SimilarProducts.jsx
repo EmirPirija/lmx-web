@@ -51,10 +51,6 @@ const SimilarProducts = ({ productDetails }) => {
     }
   }, [productDetails?.category_id]);
 
-  if (similarData && similarData.length === 0) {
-    return null;
-  }
-
   const handleLikeAllData = useCallback((id) => {
     setSimilarData((prevItems) =>
       prevItems.map((item) =>
@@ -62,6 +58,10 @@ const SimilarProducts = ({ productDetails }) => {
       )
     );
   }, []);
+
+  if (similarData && similarData.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col gap-5 mt-8">
