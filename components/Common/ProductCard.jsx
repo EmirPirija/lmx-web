@@ -416,6 +416,19 @@ const getListingStatusMeta = (item = {}, availableNow = null) => {
   };
 };
 
+const getPrimaryStatusBadgeMeta = (conditionLabel = "", fallbackMeta) => {
+  const normalizedCondition = normalizeText(conditionLabel);
+  if (normalizedCondition === "novo") {
+    return {
+      label: "Novo",
+      className:
+        "border-sky-300 bg-sky-100 text-sky-800 dark:border-sky-700/70 dark:bg-sky-900/40 dark:text-sky-200",
+    };
+  }
+
+  return fallbackMeta;
+};
+
 // ============================================
 // UI KOMPONENTE
 // ============================================
@@ -478,6 +491,10 @@ const ProductCard = ({
   const conditionLabel = getConditionLabel(item);
   const availableNow = readAvailableNow(item);
   const statusMeta = useMemo(() => getListingStatusMeta(item, availableNow), [item, availableNow]);
+  const topStatusMeta = useMemo(
+    () => getPrimaryStatusBadgeMeta(conditionLabel, statusMeta),
+    [conditionLabel, statusMeta]
+  );
   const isShopSeller = resolveMembership(
     item,
     item?.membership,
@@ -505,6 +522,9 @@ const ProductCard = ({
       const withoutCondition = withoutOfferMode.filter(
         (entry) => normalizeText(entry) !== normalizedCondition
       );
+      if (normalizedCondition === "novo") {
+        return withoutCondition;
+      }
       return [conditionLabel, ...withoutCondition];
     }
     return withoutOfferMode;
@@ -793,7 +813,7 @@ const ProductCard = ({
           {/* Primarni status (Dostupno/Rezervisano/Prodano) + Izdvojeno na prelomu slike i sadržaja */}
           {!isViewMoreSlide ? (
             <div className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5">
-              <span className={cn(STATUS_CHIP_BASE_CLASS, statusMeta.className)}>{statusMeta.label}</span>
+              <span className={cn(STATUS_CHIP_BASE_CLASS, topStatusMeta.className)}>{topStatusMeta.label}</span>
               {item?.is_feature ? (
                 <span
                   className={cn(

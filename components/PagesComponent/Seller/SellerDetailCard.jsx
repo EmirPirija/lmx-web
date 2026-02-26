@@ -46,7 +46,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
-import { hasSellerActiveReel } from "@/lib/seller-reel";
+import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
 import { isSellerVerified } from "@/lib/seller-verification";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
@@ -643,7 +643,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
-                  Pošalji poruku
+                Poruka
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {seller?.name || "Prodavač"}
@@ -712,7 +712,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
                 disabled={!message.trim()}
               >
                 <Send2 size={18} />
-                Pošalji poruku
+                Poruka
               </PrimaryButton>
             </div>
           </div>
@@ -915,7 +915,7 @@ const ContactSheet = ({
               )}
             >
               <ChatRound size={20} />
-              Pošalji poruku
+              Poruka
             </motion.button>
           </motion.div>
         </motion.div>
@@ -1278,7 +1278,7 @@ export const SellerPreviewCard = ({
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white disabled:opacity-50 text-white dark:text-slate-900 text-sm font-medium rounded-xl transition-colors"
             >
               <ChatRound className="w-4 h-4" />
-              Pošalji poruku
+              Poruka
             </button>
 
             <SavedToListButton
@@ -1467,9 +1467,8 @@ const SocialPill = ({ icon: Icon, label, href }) => {
 ===================================================== */
 
 /**
- * Drži lokalni reel state sinkroniziran sa reel signalom iz seller payload-a.
- * Namjerno bez fallback-a na obične video oglase kako ne bi palilo reel ring
- * kada prodavač nema stvarni reels/story sadržaj.
+ * Drži lokalni state sinkroniziran sa signalom da prodavač ima video sadržaj.
+ * Ring se pali isključivo kada postoji video/reel/story signal.
  */
 const useSellerHasReel = (_sellerId, localHasReel) => {
   const [hasReel, setHasReel] = useState(localHasReel);
@@ -1544,8 +1543,13 @@ const SellerDetailCard = ({
 
   const isVerified = localVerified || verifiedRemote;
 
-  // ── Reel detection (definisano PRIJE korištenja) ──
-  const localHasReel = Boolean(hasSellerActiveReel(seller));
+  // ── Video/Reel detection (definisano PRIJE korištenja) ──
+  const localHasReel = Boolean(
+    hasSellerActiveReel(seller) ||
+      hasSellerActiveReel(settings) ||
+      hasItemVideo(seller) ||
+      hasItemVideo(settings)
+  );
   const [hasReel, setHasReel] = useSellerHasReel(mainSellerId, localHasReel);
 
   // ── Modali ──

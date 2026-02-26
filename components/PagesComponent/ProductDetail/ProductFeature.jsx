@@ -216,7 +216,7 @@ const ProductFeature = ({ filteredFields, productDetails }) => {
                   >
                     <div className={cn("flex items-start justify-between gap-3", isCheckbox && "flex-col")}>
                       <span className="inline-flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
+                        <span className="inline-flex h-8 w-8 items-center justify-center bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
                           <CustomFieldSemanticIcon fieldLabel={fieldLabel} className="w-[17px] h-[17px]" />
                         </span>
                         <span className="font-semibold">{fieldLabel}</span>

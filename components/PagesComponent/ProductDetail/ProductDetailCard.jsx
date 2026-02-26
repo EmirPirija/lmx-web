@@ -48,6 +48,30 @@ const toPriceNumber = (value) => {
   return parsed > 0 ? parsed : null;
 };
 
+const parseCoordinateValue = (value) => {
+  if (value === null || value === undefined || value === "") return NaN;
+  const normalized = String(value).trim().replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+};
+
+const parseExtraDetailsSafe = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === "object" ? value : null;
+};
+
+const isMeaningfulCoordinatePair = (lat, lng) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  return !(Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001);
+};
+
 const isPriceRequestToken = (value) => {
   if (value == null) return false;
   const normalized = String(value).trim().toLowerCase();
@@ -120,6 +144,8 @@ const normalizeLocationToken = (value) => {
     .replace(/\s+,/g, ",")
     .replace(/,+/g, ",")
     .trim();
+
+  return token;
 };
 
 const sanitizeMunicipalityCandidate = (value) => {
@@ -154,7 +180,29 @@ const isStreetLikeToken = (value) => {
 
 const resolveMunicipalityOrCityLabel = (rawValue) => {
   if (rawValue == null) return "";
-  if (typeof rawValue === "object") return "";
+  if (typeof rawValue === "object") {
+    const objectCandidates = [
+      rawValue?.area_translation,
+      rawValue?.area,
+      rawValue?.state_translation,
+      rawValue?.state,
+      rawValue?.city_translation,
+      rawValue?.city,
+      rawValue?.translated_name,
+      rawValue?.name,
+      rawValue?.title,
+      rawValue?.label,
+      rawValue?.address,
+    ]
+      .filter(
+        (value) => typeof value === "string" || typeof value === "number",
+      )
+      .map((value) => String(value).trim())
+      .filter(Boolean);
+
+    if (!objectCandidates.length) return "";
+    return resolveMunicipalityOrCityLabel(objectCandidates.join(", "));
+  }
 
   const parts = String(rawValue || "")
     .split(",")
@@ -1327,10 +1375,13 @@ const ProductDetailCard = ({
   const renewalSourceDate =
     productDetails?.last_renewed_at || productDetails?.renewed_at;
   const renewalDateTime = formatDateTimeEu(renewalSourceDate);
-  const preciseLat = Number(productDetails?.latitude);
-  const preciseLng = Number(productDetails?.longitude);
-  const hasPreciseCoordinates =
-    Number.isFinite(preciseLat) && Number.isFinite(preciseLng);
+  const parsedExtraDetails = useMemo(
+    () => parseExtraDetailsSafe(productDetails?.extra_details),
+    [productDetails?.extra_details],
+  );
+  const preciseLat = parseCoordinateValue(productDetails?.latitude);
+  const preciseLng = parseCoordinateValue(productDetails?.longitude);
+  const hasPreciseCoordinates = isMeaningfulCoordinatePair(preciseLat, preciseLng);
 
   useEffect(() => {
     let cancelled = false;
@@ -1442,6 +1493,12 @@ const ProductDetailCard = ({
       productDetails?.location_name,
       productDetails?.translated_item?.location,
       productDetails?.translated_item?.location_name,
+      parsedExtraDetails?.address,
+      parsedExtraDetails?.location,
+      parsedExtraDetails?.city,
+      parsedExtraDetails?.state,
+      parsedExtraDetails?.area,
+      parsedExtraDetails?.area_name,
       productDetails?.area_name,
       productDetails?.translated_item?.area_name,
       productDetails?.area?.translated_name,
@@ -1450,7 +1507,6 @@ const ProductDetailCard = ({
 
     for (const candidate of candidates) {
       if (candidate == null) continue;
-      if (typeof candidate === "object") continue;
       const parsed = resolveMunicipalityOrCityLabel(candidate);
       if (parsed && !isPlaceholderLocationLabel(parsed)) return parsed;
     }
@@ -1469,6 +1525,12 @@ const ProductDetailCard = ({
     productDetails?.location_name,
     productDetails?.translated_item?.location,
     productDetails?.translated_item?.location_name,
+    parsedExtraDetails?.address,
+    parsedExtraDetails?.location,
+    parsedExtraDetails?.city,
+    parsedExtraDetails?.state,
+    parsedExtraDetails?.area,
+    parsedExtraDetails?.area_name,
     productDetails?.area_name,
     productDetails?.translated_item?.area_name,
     productDetails?.area?.translated_name,
@@ -1483,6 +1545,7 @@ const ProductDetailCard = ({
     municipalityOrCityFromPin ||
     municipalityOrCityFromDetails ||
     municipalityOrCityFromAddress ||
+    (hasPreciseCoordinates ? "Okvirna lokacija" : "") ||
     "Lokacija nije navedena";
   const availableNow = readAvailableNow(productDetails);
   const exchangePossible = readExchangePossible(productDetails);

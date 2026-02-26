@@ -24,7 +24,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
-import { hasSellerActiveReel } from "@/lib/seller-reel";
+import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
 import { isSellerVerified } from "@/lib/seller-verification";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
@@ -231,7 +231,7 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
             className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium"
           >
             <MessageCircle className="w-4 h-4" />
-            Pošalji poruku
+            Poruka
           </button>
 
           {showPhone && (
@@ -626,6 +626,7 @@ export const MinimalSellerCard = ({
   // Product context
   itemId,
   itemPrice,
+  productDetails,
   acceptsOffers = false,
   // UI Preferences (from SellerSettings)
   variant = "default", // "default" | "compact" | "inline"
@@ -644,7 +645,17 @@ export const MinimalSellerCard = ({
     () => isSellerVerified(seller, settings, seller?.user, seller?.seller, seller?.account),
     [seller, settings]
   );
-  const hasReel = useMemo(() => hasSellerActiveReel(seller), [seller]);
+  const hasReel = useMemo(
+    () =>
+      Boolean(
+        hasSellerActiveReel(seller) ||
+          hasSellerActiveReel(settings) ||
+          hasItemVideo(seller) ||
+          hasItemVideo(settings) ||
+          hasItemVideo(productDetails)
+      ),
+    [productDetails, seller, settings]
+  );
 
   
   
@@ -881,7 +892,7 @@ export const MinimalSellerCard = ({
             )}
           >
             <MessageCircle className="w-4 h-4" />
-            Pošalji poruku
+            Poruka
           </button>
 
           {/* Make offer - if allowed and has item */}

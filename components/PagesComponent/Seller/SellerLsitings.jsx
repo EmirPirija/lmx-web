@@ -606,7 +606,7 @@ const SellerLsitings = ({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex flex-col gap-2 w-full sm:flex-row sm:space-between sm:space-between">
             <Select value={sortBy} onValueChange={handleSortBy}>
               <SelectTrigger className="h-10 w-full border-gray-200 bg-white font-medium focus:ring-1 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 sm:w-[170px]">
                 <div className="mr-1 inline-flex items-center gap-2 text-gray-600 dark:text-slate-300">

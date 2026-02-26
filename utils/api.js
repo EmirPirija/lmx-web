@@ -3041,6 +3041,8 @@ const CITY_COORDINATE_FALLBACK = [
   { key: "sarajevo", lat: 43.8563, lng: 18.4131 },
   { key: "ilidza", lat: 43.8295, lng: 18.3010 },
   { key: "mostar", lat: 43.3438, lng: 17.8078 },
+  { key: "berkovici", lat: 43.0935, lng: 18.1713 },
+  { key: "berkovići", lat: 43.0935, lng: 18.1713 },
   { key: "banja luka", lat: 44.7722, lng: 17.1910 },
   { key: "banjaluka", lat: 44.7722, lng: 17.1910 },
   { key: "tuzla", lat: 44.5384, lng: 18.6671 },
@@ -3097,6 +3099,12 @@ const normalizeText = (value) =>
 
 const isValidLatitude = (lat) => lat !== null && lat >= -90 && lat <= 90;
 const isValidLongitude = (lng) => lng !== null && lng >= -180 && lng <= 180;
+const isNullIslandCoordinatePair = (lat, lng) =>
+  Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001;
+const isValidCoordinatePair = (lat, lng) =>
+  isValidLatitude(lat) &&
+  isValidLongitude(lng) &&
+  !isNullIslandCoordinatePair(lat, lng);
 
 const toReadableText = (value) => {
   if (value === null || value === undefined) return "";
@@ -3173,7 +3181,7 @@ const resolveCoordinatesFromCoordinateArray = (coordinates, precision) => {
   if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
   const lng = toFiniteNumber(coordinates[0]);
   const lat = toFiniteNumber(coordinates[1]);
-  if (isValidLatitude(lat) && isValidLongitude(lng)) {
+  if (isValidCoordinatePair(lat, lng)) {
     return { latitude: lat, longitude: lng, precision };
   }
   return null;
@@ -3192,7 +3200,7 @@ const resolveCoordinatesFromObject = (source, precision) => {
   for (const [latValue, lngValue] of candidates) {
     const lat = toFiniteNumber(latValue);
     const lng = toFiniteNumber(lngValue);
-    if (isValidLatitude(lat) && isValidLongitude(lng)) {
+    if (isValidCoordinatePair(lat, lng)) {
       return { latitude: lat, longitude: lng, precision };
     }
   }
@@ -3307,7 +3315,7 @@ const resolveCoordinatesFromItem = (item, extraDetails) => {
   for (const [latValue, lngValue, precision] of candidates) {
     const lat = toFiniteNumber(latValue);
     const lng = toFiniteNumber(lngValue);
-    if (isValidLatitude(lat) && isValidLongitude(lng)) {
+    if (isValidCoordinatePair(lat, lng)) {
       return { latitude: lat, longitude: lng, precision };
     }
   }
@@ -3333,21 +3341,28 @@ const resolveCoordinatesFromItem = (item, extraDetails) => {
   if (nestedResolved) return nestedResolved;
 
   return resolveCoordinatesFromLocationText(
-    item?.name,
-    item?.title,
-    item?.translated_item?.name,
     item?.city,
+    item?.city_translation,
     item?.translated_item?.city,
     item?.state,
+    item?.state_translation,
     item?.translated_item?.state,
+    item?.country,
+    item?.country_translation,
+    item?.translated_item?.country,
     item?.address,
     item?.translated_item?.address,
     item?.translated_item?.location,
     item?.location,
+    item?.area_name,
     item?.area?.name,
     item?.area?.translated_name,
+    item?.translated_item?.area_name,
     extraDetails?.city,
     extraDetails?.state,
+    extraDetails?.country,
+    extraDetails?.area,
+    extraDetails?.area_name,
     extraDetails?.address,
     extraDetails?.location
   );

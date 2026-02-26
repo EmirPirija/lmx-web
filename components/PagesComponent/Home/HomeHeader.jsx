@@ -1279,7 +1279,21 @@ const HomeHeader = () => {
                               <MapPin size={16} className="shrink-0 text-primary" />
                               <span className="truncate">{locationText || "Dodaj lokaciju"}</span>
                             </button>
-                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/90 dark:bg-slate-900/90">
+                            <button
+                              type="button"
+                              onClick={() => runMobileMenuAction(() => navigate("/svi-korisnici"))}
+                              className={cn(
+                                "grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition-all duration-200",
+                                isAllUsersActive
+                                  ? "border-primary/50 bg-primary/10 text-primary dark:border-primary/60 dark:bg-primary/20 dark:text-primary"
+                                  : "border-slate-200/80 bg-white/90 text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200"
+                              )}
+                              aria-label="Svi korisnici"
+                              title="Svi korisnici"
+                            >
+                              <AllUsersIcon className="h-5 w-5" />
+                            </button>
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200/80 bg-white/90 dark:border-slate-700 dark:bg-slate-900/90">
                               <ThemeToggle />
                             </div>
                           </div>

@@ -16,18 +16,18 @@ import {
 
 const PLAN_FEATURES = {
   shop: [
-    "Storefront za tvoje proizvode i oglase",
-    "Cijena po komadu + zalihe + auto status",
+    "Izlog trgovine za tvoje proizvode i oglase",
+    "Cijena po komadu + zalihe + automatski status",
     "Osnovna analitika prodaje i pregleda",
     SOCIAL_POSTING_TEMP_UNAVAILABLE
       ? "Instagram/Facebook/TikTok objave: privremeno nedostupno"
-      : "Instagram povezivanje i ručni sync",
+      : "Instagram povezivanje i ručna sinkronizacija",
   ],
   pro: [
-    "Custom domena i napredni brending shopa",
-    "Boost ROI dashboard i detaljne metrike",
-    "Bulk alati: izdvajanje, obnova, pauza, relist",
-    "SLA badge i istaknuta reputacija prodavača",
+    "Prilagođena domena i napredni brending trgovine",
+    "Napredna ROI kontrolna tabla i detaljne metrike",
+    "Skupni alati: izdvajanje, obnova, pauza, ponovna objava",
+    "SLA oznaka i istaknuta reputacija prodavača",
   ],
 };
 
@@ -130,7 +130,7 @@ export default function PlansShowcase({ mode = "pricing" }) {
                 <div className="mb-2 flex items-center gap-2">
                   {plan === "shop" ? <Store className="h-4 w-4 text-emerald-600" /> : <ShieldCheck className="h-4 w-4 text-sky-600" />}
                   <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    {plan === "shop" ? "Shop plan" : "Pro plan"}
+                    {plan === "shop" ? "Shop paket" : "Pro paket"}
                   </p>
                 </div>
                 {promoEnabled ? (
@@ -169,12 +169,12 @@ export default function PlansShowcase({ mode = "pricing" }) {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {[
-                  ["Storefront + proizvodi", true, true],
+                  ["Izlog trgovine + proizvodi", true, true],
                   ["Cijena po komadu + zalihe", true, true],
-                  ["Bulk akcije", false, true],
-                  ["Custom domena", false, true],
-                  ["Boost ROI analitika", false, true],
-                  ["SLA badge prodavača", false, true],
+                  ["Skupne akcije", false, true],
+                  ["Prilagođena domena", false, true],
+                  ["Napredna ROI analitika", false, true],
+                  ["SLA oznaka prodavača", false, true],
                 ].map(([label, shop, pro]) => (
                   <tr key={label}>
                     <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">{label}</td>

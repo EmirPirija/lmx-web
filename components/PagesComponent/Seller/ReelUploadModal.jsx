@@ -634,9 +634,9 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             </div>
 
             <div className="min-w-0">
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Reel upload studio</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Studio za video objave</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                Odaberite oglase, pregledajte postojeće videe i dodajte nove upload/YouTube video objave.
+                Odaberite oglase, pregledajte postojeće videe i dodajte nove video objave putem prijenosa ili YouTube linka.
               </p>
             </div>
           </div>
@@ -654,7 +654,7 @@ const ReelUploadModal = ({ open, onOpenChange, onUploaded }) => {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">1. Odaberi oglase</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Dropdown sa searchom i bulk selekcijom.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Padajući izbornik sa pretragom i skupnim odabirom.</p>
               </div>
             </div>
 

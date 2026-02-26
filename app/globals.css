@@ -64,6 +64,95 @@
 }
 
 /* ============================================
+   LISTING FLOW (OBJAVA / EDIT)
+   - Širi desktop kontekst
+   - Mobile fullscreen iskustvo sa manje "box" efekta
+============================================ */
+.lmx-listing-flow {
+  isolation: isolate;
+}
+
+.lmx-listing-flow .lmx-flow-shell,
+.lmx-listing-flow .lmx-flow-wizard,
+.lmx-listing-flow .lmx-flow-category-trail,
+.lmx-listing-flow .lmx-flow-panel {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.24s ease,
+    background-color 0.2s ease;
+}
+
+.lmx-listing-flow .lmx-guided-accordion,
+.lmx-listing-flow .lmx-guided-accordion-content {
+  overflow: visible !important;
+}
+
+.lmx-listing-flow .lmx-flow-wizard,
+.lmx-listing-flow .lmx-flow-panel,
+.lmx-listing-flow .lmx-guided-accordion {
+  isolation: isolate;
+}
+
+@media (max-width: 991px) {
+  .lmx-listing-flow {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .lmx-listing-flow .lmx-flow-shell,
+  .lmx-listing-flow .lmx-flow-wizard,
+  .lmx-listing-flow .lmx-flow-category-trail,
+  .lmx-listing-flow .lmx-flow-panel {
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .lmx-listing-flow .lmx-flow-shell {
+    background: transparent !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .lmx-listing-flow .lmx-flow-wizard,
+  .lmx-listing-flow .lmx-flow-panel,
+  .lmx-listing-flow .lmx-flow-category-trail {
+    padding-left: clamp(10px, 3.4vw, 16px) !important;
+    padding-right: clamp(10px, 3.4vw, 16px) !important;
+    border-top-width: 1px !important;
+    border-bottom-width: 1px !important;
+  }
+
+  .lmx-listing-flow .lmx-guided-accordion > button {
+    min-height: 48px;
+  }
+
+  .lmx-listing-flow .lmx-guided-accordion {
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-radius: 16px !important;
+  }
+
+  .lmx-listing-flow .lmx-guided-accordion-content {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .lmx-listing-flow button,
+  .lmx-listing-flow [role="button"],
+  .lmx-listing-flow input,
+  .lmx-listing-flow select,
+  .lmx-listing-flow textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ============================================
    LMX BOJE (iz loga)
    - Tamno plava (l): #1B4B82
    - Narandžasta (m): #F7941D

@@ -309,7 +309,7 @@ const ContactModal = ({
             className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium"
           >
             <MessageCircle className="w-4 h-4" />
-            Pošalji poruku
+            Poruka
           </button>
 
           {showPhone && (
@@ -770,6 +770,7 @@ const ProductSellerDetailCard = ({
     currentUser?.id && String(currentUser.id) === String(sellerId)
   );
   const hasVideo = Boolean(hasItemVideo(productDetails));
+  const showStoryRing = Boolean(hasReel || hasVideo);
   const canManageReels = Boolean(enableOwnerReelControls && isOwner);
 
   const shareUrl = sellerId
@@ -913,7 +914,7 @@ const ProductSellerDetailCard = ({
                   <motion.div
                     className={cn(
                       "rounded-[14px] p-[2px]",
-                      hasReel ? "reel-ring" : "bg-transparent"
+                      showStoryRing ? "reel-ring" : "bg-transparent"
                     )}
                     animate={ringMotion}
                     transition={ringTransition}
@@ -921,7 +922,7 @@ const ProductSellerDetailCard = ({
                     <div
                       className={cn(
                         "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
-                        hasReel
+                        showStoryRing
                           ? "border border-white/70 dark:border-slate-700/80"
                           : "border border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors"
                       )}
@@ -958,7 +959,7 @@ const ProductSellerDetailCard = ({
                 <motion.div
                   className={cn(
                     "rounded-[14px] p-[2px]",
-                    hasReel ? "reel-ring" : "bg-transparent"
+                    showStoryRing ? "reel-ring" : "bg-transparent"
                   )}
                   animate={ringMotion}
                   transition={ringTransition}
@@ -966,7 +967,7 @@ const ProductSellerDetailCard = ({
                   <div
                     className={cn(
                       "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
-                      hasReel
+                      showStoryRing
                         ? "border border-white/70 dark:border-slate-700/80"
                         : "border border-slate-200/60 dark:border-slate-700/60"
                     )}
@@ -1111,7 +1112,7 @@ const ProductSellerDetailCard = ({
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-900 dark:disabled:hover:bg-slate-100"
             >
               <MessageCircle className="w-4 h-4" />
-              Pošalji poruku
+              Poruka
             </button>
 
             {canMakeOffer && itemId && (

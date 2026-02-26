@@ -2333,10 +2333,12 @@ const EditListing = ({ id }) => {
         <PageLoader />
       ) : (
         <>
-          <BreadCrumb title2={"Uredi oglas"} />
-          <div className="container relative overflow-x-hidden">
-            <div className="mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden">
-              <div className="flex items-center justify-between">
+          <div className="hidden md:block">
+            <BreadCrumb title2={"Uredi oglas"} />
+          </div>
+          <div className="lmx-listing-flow relative mx-auto w-full max-w-[min(2280px,calc(100vw-8px))] px-1 sm:px-2.5 lg:px-4 xl:px-6 2xl:px-8">
+            <div className="mt-2 flex min-w-0 min-h-[100dvh] flex-col gap-5 md:mt-5 md:gap-7">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <h1 className="text-2xl font-medium">{"Uredi oglas"}</h1>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2">
@@ -2366,9 +2368,8 @@ const EditListing = ({ id }) => {
                       ? `Server ${draftServerSavedAgoLabel}`
                       : "Server na čekanju"}
                   </div>
+                </div>
               </div>
-            </div>
-          </div>
 
           {hasVerificationWarnings ? (
             <Alert className="relative border-amber-200/80 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
@@ -2400,13 +2401,13 @@ const EditListing = ({ id }) => {
             </Alert>
           ) : null}
 
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                 
                 <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
                   
                   <div
                     ref={wizardTopRef}
-                    className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
+                    className="lmx-flow-wizard relative overflow-visible rounded-2xl border border-slate-200/60 bg-white/95 px-3 py-4 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/82 sm:rounded-[24px] sm:px-6 sm:py-6"
                   >
                     <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
                     <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-[#0ab6af]/15 blur-2xl dark:bg-[#0ab6af]/20" />
@@ -2435,7 +2436,7 @@ const EditListing = ({ id }) => {
                         />
 
                         <div
-                          className="relative z-[2] grid gap-2 sm:gap-4"
+                          className="relative z-[5] grid gap-2 sm:gap-4"
                           style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
                         >
                           {steps.map((s, idx) => {
@@ -2547,7 +2548,7 @@ const EditListing = ({ id }) => {
                   </div>
 
                   {renderedStep === 1 && selectedCategoryPath?.length > 0 && (
-                    <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="lmx-flow-category-trail flex flex-col gap-3 rounded-2xl border border-slate-200/60 bg-white/92 p-3 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/78 sm:p-4">
                       <div className="flex items-center justify-between">
                         <p className="font-medium text-sm text-gray-500">
                           {"Odabrana kategorija"}
@@ -2578,7 +2579,7 @@ const EditListing = ({ id }) => {
                     </div>
                   )}
 
-                  <div className="border rounded-lg p-6 bg-white shadow-sm">
+                  <div className="lmx-flow-panel relative z-10 overflow-visible rounded-2xl border border-slate-200/60 bg-white/95 p-2.5 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/82 sm:p-4">
                     {renderedStep === 1 && (
                       <EditComponentOne
                         setTranslations={setTranslations}
@@ -2657,8 +2658,8 @@ const EditListing = ({ id }) => {
                 </div>
 
                 {/* 📱 DESNA STRANA - LIVE PREVIEW */}
-                <div className="min-w-0 lg:col-span-1">
-                  <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
+                <div className="hidden min-w-0 lg:col-span-1 lg:block">
+                  <div className="sticky top-4 min-w-0 overflow-visible rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-sm backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
                     <div className="flex items-center gap-2 mb-4 px-1">
                       <Zap className="w-5 h-5 text-primary" />
                       <h3 className="font-semibold text-lg">{"Pregled oglasa"}</h3>
@@ -2768,6 +2769,7 @@ const EditListing = ({ id }) => {
                 </div>
 
               </div>
+            </div>
           </div>
           <AdsEditSuccessModal
             openSuccessModal={openSuccessModal}

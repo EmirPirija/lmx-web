@@ -605,6 +605,19 @@ const getListingStatusMeta = (item = {}, availableNow = null) => {
   };
 };
 
+const getPrimaryStatusBadgeMeta = (conditionLabel = "", fallbackMeta) => {
+  const normalizedCondition = normalizeText(conditionLabel);
+  if (normalizedCondition === "novo") {
+    return {
+      label: "Novo",
+      className:
+        "border-sky-300 bg-sky-100 text-sky-800 dark:border-sky-700/70 dark:bg-sky-900/40 dark:text-sky-200",
+    };
+  }
+
+  return fallbackMeta;
+};
+
 // ============================================
 // UI KOMPONENTE
 // ============================================
@@ -1271,6 +1284,10 @@ const MyAdsCard = ({
   const conditionLabel = getConditionLabel(data);
   const availableNow = readAvailableNow(data);
   const statusMeta = useMemo(() => getListingStatusMeta(data, availableNow), [data, availableNow]);
+  const topStatusMeta = useMemo(
+    () => getPrimaryStatusBadgeMeta(conditionLabel, statusMeta),
+    [conditionLabel, statusMeta]
+  );
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -1416,6 +1433,9 @@ const MyAdsCard = ({
       const withoutCondition = withoutOfferMode.filter(
         (entry) => normalizeText(entry) !== normalizedCondition
       );
+      if (normalizedCondition === "novo") {
+        return withoutCondition;
+      }
       return [conditionLabel, ...withoutCondition];
     }
     return withoutOfferMode;
@@ -1781,8 +1801,8 @@ const MyAdsCard = ({
               transition={{ delay: 0.15 }}
               className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5"
             >
-              <span className={cn(STATUS_CHIP_BASE_CLASS, statusMeta.className)}>
-                {statusMeta.label}
+              <span className={cn(STATUS_CHIP_BASE_CLASS, topStatusMeta.className)}>
+                {topStatusMeta.label}
               </span>
               {data?.is_feature ? (
                 <span

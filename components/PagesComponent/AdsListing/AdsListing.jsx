@@ -2250,13 +2250,15 @@ const AdsListing = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={"Lista oglasa"} />
-      <div className="container relative overflow-x-hidden">
-        <div className="relative mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden pb-10">
+      <div className="hidden md:block">
+        <BreadCrumb title2={"Lista oglasa"} />
+      </div>
+      <div className="lmx-listing-flow relative mx-auto w-full max-w-[min(2280px,calc(100vw-8px))] px-1 sm:px-2.5 lg:px-4 xl:px-6 2xl:px-8">
+        <div className="relative mt-2 flex min-w-0 min-h-[100dvh] flex-col gap-5 pb-10 md:mt-5 md:gap-7">
           <div className="pointer-events-none absolute -top-14 left-0 h-52 w-52 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
           <div className="pointer-events-none absolute -right-10 top-8 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/30" />
 
-          <div className="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white/90 p-6 shadow-[0_20px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80 md:p-8">
+          <div className="lmx-flow-shell relative overflow-visible rounded-2xl border border-slate-200/70 bg-white/92 p-4 shadow-[0_20px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/82 sm:rounded-3xl sm:p-6 md:p-8">
             <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-primary/10 blur-3xl dark:bg-primary/30" />
             <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div className="space-y-2">
@@ -2329,12 +2331,12 @@ const AdsListing = () => {
             </Alert>
           ) : null}
 
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
             {/* Left Column */}
             <div className="relative flex min-w-0 flex-col gap-6 lg:col-span-2">
               <div
                 ref={wizardTopRef}
-                className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
+                className="lmx-flow-wizard relative overflow-visible rounded-2xl border border-slate-200/60 bg-white/95 px-3 py-4 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/82 sm:rounded-[24px] sm:px-6 sm:py-6"
               >
                 <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
                 <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-[#0ab6af]/15 blur-2xl dark:bg-[#0ab6af]/20" />
@@ -2363,7 +2365,7 @@ const AdsListing = () => {
                     />
 
                     <div
-                      className="relative z-[2] grid gap-2 sm:gap-4"
+                      className="relative z-[5] grid gap-2 sm:gap-4"
                       style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
                     >
                       {steps.map((s, idx) => {
@@ -2475,7 +2477,7 @@ const AdsListing = () => {
               </div>
 
               {(renderedStep === 1 || renderedStep === 2) && categoryPath?.length > 0 && (
-                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75">
+                <div className="lmx-flow-category-trail flex flex-col gap-3 rounded-2xl border border-slate-200/60 bg-white/92 p-3 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/78 sm:p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-300">{"Odabrana kategorija"}</p>
                     <button 
@@ -2520,7 +2522,7 @@ const AdsListing = () => {
                 </div>
               )}
 
-              <div className="rounded-2xl border p-3 border-slate-200/70 bg-white/95 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
+              <div className="lmx-flow-panel relative z-10 overflow-visible rounded-2xl border border-slate-200/60 bg-white/95 p-2.5 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/82 sm:p-4">
                 {renderedStep === 1 && (
                   <ComponentOne
                     categories={categories}
@@ -2613,8 +2615,8 @@ const AdsListing = () => {
             </div>
 
             {/* 📱 Right Column - Live Preview */}
-            <div className="min-w-0 lg:col-span-1">
-              <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
+            <div className="hidden min-w-0 lg:col-span-1 lg:block">
+              <div className="sticky top-4 min-w-0 overflow-visible rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-primary" />

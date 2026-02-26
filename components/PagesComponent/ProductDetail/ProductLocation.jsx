@@ -18,8 +18,174 @@ const Map = dynamic(() => import("@/components/Location/Map"), {
 });
 
 const parseCoordinate = (value) => {
-  const num = Number(value);
+  if (value === null || value === undefined || value === "") return null;
+  const normalized = String(value).trim().replace(",", ".");
+  const num = Number(normalized);
   return Number.isFinite(num) ? num : null;
+};
+
+const isValidLatitude = (lat) =>
+  lat !== null && Number.isFinite(lat) && lat >= -90 && lat <= 90;
+const isValidLongitude = (lng) =>
+  lng !== null && Number.isFinite(lng) && lng >= -180 && lng <= 180;
+const isNullIslandCoordinatePair = (lat, lng) =>
+  Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001;
+const isMeaningfulCoordinatePair = (lat, lng) =>
+  isValidLatitude(lat) &&
+  isValidLongitude(lng) &&
+  !isNullIslandCoordinatePair(lat, lng);
+
+const normalizeText = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const LOCATION_COORDINATE_FALLBACK = [
+  { key: "sarajevo", lat: 43.8563, lng: 18.4131 },
+  { key: "mostar", lat: 43.3438, lng: 17.8078 },
+  { key: "bihac", lat: 44.8167, lng: 15.87 },
+  { key: "bihać", lat: 44.8167, lng: 15.87 },
+  { key: "tuzla", lat: 44.5384, lng: 18.6671 },
+  { key: "zenica", lat: 44.2034, lng: 17.9077 },
+  { key: "banja luka", lat: 44.7722, lng: 17.191 },
+  { key: "banjaluka", lat: 44.7722, lng: 17.191 },
+  { key: "brcko", lat: 44.8728, lng: 18.8102 },
+  { key: "brčko", lat: 44.8728, lng: 18.8102 },
+  { key: "berkovici", lat: 43.0935, lng: 18.1713 },
+  { key: "berkovići", lat: 43.0935, lng: 18.1713 },
+  { key: "trebinje", lat: 42.7119, lng: 18.3436 },
+];
+
+const resolveCoordinatesFromLocationText = (...chunks) => {
+  const normalizedJoined = normalizeText(chunks.filter(Boolean).join(" | "));
+  if (!normalizedJoined) return null;
+
+  const match = LOCATION_COORDINATE_FALLBACK.find((entry) =>
+    normalizedJoined.includes(entry.key),
+  );
+  if (!match) return null;
+
+  return { lat: match.lat, lng: match.lng };
+};
+
+const parseExtraDetailsSafe = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === "object" ? value : null;
+};
+
+const resolveCoordinatesFromCoordinateArray = (coordinates) => {
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const lng = parseCoordinate(coordinates[0]);
+  const lat = parseCoordinate(coordinates[1]);
+  if (!isMeaningfulCoordinatePair(lat, lng)) return null;
+  return { lat, lng };
+};
+
+const resolveCoordinatesFromObject = (source) => {
+  if (!source || typeof source !== "object") return null;
+
+  const directCandidates = [
+    [source?.latitude, source?.longitude],
+    [source?.lat, source?.lng],
+    [source?.lat, source?.long],
+    [source?.lat, source?.lon],
+    [source?.y, source?.x],
+  ];
+
+  for (const [latRaw, lngRaw] of directCandidates) {
+    const lat = parseCoordinate(latRaw);
+    const lng = parseCoordinate(lngRaw);
+    if (isMeaningfulCoordinatePair(lat, lng)) {
+      return { lat, lng };
+    }
+  }
+
+  const coordinateArrays = [
+    source?.coordinates,
+    source?.coordinate,
+    source?.center,
+    source?.centroid,
+    source?.geometry?.coordinates,
+    source?.geojson?.coordinates,
+  ];
+
+  for (const coordinateArray of coordinateArrays) {
+    const resolved = resolveCoordinatesFromCoordinateArray(coordinateArray);
+    if (resolved) return resolved;
+  }
+
+  return null;
+};
+
+const resolvePrimaryCoordinates = (details) => {
+  if (!details || typeof details !== "object") return null;
+
+  const extraDetails = parseExtraDetailsSafe(details?.extra_details);
+
+  const directCandidates = [
+    [details?.latitude, details?.longitude],
+    [details?.lat, details?.lng],
+    [details?.lat, details?.long],
+    [details?.location_latitude, details?.location_longitude],
+    [details?.location_lat, details?.location_lng],
+    [details?.translated_item?.latitude, details?.translated_item?.longitude],
+    [details?.translated_item?.lat, details?.translated_item?.lng],
+    [details?.area?.latitude, details?.area?.longitude],
+    [details?.area?.lat, details?.area?.lng],
+    [details?.city?.latitude, details?.city?.longitude],
+    [details?.city?.lat, details?.city?.lng],
+    [details?.state?.latitude, details?.state?.longitude],
+    [details?.state?.lat, details?.state?.lng],
+    [details?.country?.latitude, details?.country?.longitude],
+    [details?.country?.lat, details?.country?.lng],
+    [extraDetails?.latitude, extraDetails?.longitude],
+    [extraDetails?.lat, extraDetails?.lng],
+    [extraDetails?.lat, extraDetails?.long],
+    [extraDetails?.location?.latitude, extraDetails?.location?.longitude],
+    [extraDetails?.location?.lat, extraDetails?.location?.lng],
+    [extraDetails?.location?.lat, extraDetails?.location?.long],
+  ];
+
+  for (const [latRaw, lngRaw] of directCandidates) {
+    const lat = parseCoordinate(latRaw);
+    const lng = parseCoordinate(lngRaw);
+    if (isMeaningfulCoordinatePair(lat, lng)) {
+      return { lat, lng };
+    }
+  }
+
+  const objectCandidates = [
+    details?.location,
+    details?.coordinates,
+    details?.geo,
+    details?.geometry,
+    details?.area,
+    details?.city,
+    details?.state,
+    details?.country,
+    details?.translated_item,
+    details?.translated_item?.location,
+    extraDetails,
+    extraDetails?.location,
+    extraDetails?.coordinates,
+    extraDetails?.geometry,
+  ];
+
+  for (const candidate of objectCandidates) {
+    const resolved = resolveCoordinatesFromObject(candidate);
+    if (resolved) return resolved;
+  }
+
+  return null;
 };
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -60,6 +226,26 @@ const LOCATION_DISCARDED_TOKENS = new Set([
   "federacija bosne i hercegovine",
   "republika srpska",
 ]);
+
+const BOSNIA_COUNTRY_TOKENS = new Set([
+  "bih",
+  "bosna i hercegovina",
+  "federacija bosne i hercegovine",
+  "republika srpska",
+]);
+
+const normalizeCountryLabel = (value) => {
+  const token = normalizeLocationToken(value);
+  if (!token) return "";
+  const lowered = token.toLowerCase();
+  if (
+    BOSNIA_COUNTRY_TOKENS.has(lowered) ||
+    lowered.includes("bosna i hercegovina")
+  ) {
+    return "BiH";
+  }
+  return token;
+};
 
 const normalizeLocationToken = (value) => {
   let token = String(value || "").trim();
@@ -123,9 +309,15 @@ const toText = (value) => {
 const ProductLocation = ({ productDetails, onMapOpen }) => {
   const currentLanguage = useSelector(CurrentLanguageData);
   const [resolvedLocationByPin, setResolvedLocationByPin] = useState(null);
+  const [resolvedCoordinatesBySearch, setResolvedCoordinatesBySearch] =
+    useState(null);
 
-  const preciseLat = parseCoordinate(productDetails?.latitude);
-  const preciseLng = parseCoordinate(productDetails?.longitude);
+  const preciseCoordinates = useMemo(
+    () => resolvePrimaryCoordinates(productDetails),
+    [productDetails],
+  );
+  const preciseLat = preciseCoordinates?.lat ?? null;
+  const preciseLng = preciseCoordinates?.lng ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -292,44 +484,248 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     [locationParts],
   );
 
-  const countryLabel = useMemo(
-    () => normalizedLocationParts.at(-1) || "BiH",
-    [normalizedLocationParts],
-  );
+  const countryLabel = useMemo(() => {
+    const localityToken = normalizeLocationToken(municipalityOrCityFallback);
+    const localityCollisionTokens = new Set(
+      [
+        localityToken,
+        ...normalizedLocationParts,
+        normalizeLocationToken(
+          productDetails?.state_translation ||
+            productDetails?.state ||
+            productDetails?.translated_item?.state_translation ||
+            productDetails?.translated_item?.state,
+        ),
+        normalizeLocationToken(
+          productDetails?.city_translation ||
+            productDetails?.city ||
+            productDetails?.translated_item?.city_translation ||
+            productDetails?.translated_item?.city,
+        ),
+        normalizeLocationToken(
+          productDetails?.area?.translated_name ||
+            productDetails?.area?.name ||
+            productDetails?.area_name ||
+            productDetails?.translated_item?.area_name,
+        ),
+      ]
+        .map((entry) => String(entry || "").toLowerCase().trim())
+        .filter(Boolean),
+    );
+    const explicitCountryCandidates = [
+      resolvedLocationByPin?.country,
+      productDetails?.country_translation,
+      productDetails?.country,
+      productDetails?.translated_item?.country_translation,
+      productDetails?.translated_item?.country,
+    ];
+
+    for (const candidate of explicitCountryCandidates) {
+      const normalizedCountry = normalizeCountryLabel(candidate);
+      if (!normalizedCountry) continue;
+      if (
+        localityToken &&
+        normalizedCountry.toLowerCase() === localityToken.toLowerCase()
+      ) {
+        continue;
+      }
+      if (localityCollisionTokens.has(normalizedCountry.toLowerCase())) {
+        continue;
+      }
+      if (normalizedCountry) return normalizedCountry;
+    }
+
+    if (normalizedLocationParts.length > 1) {
+      const inferredCountry = normalizeCountryLabel(normalizedLocationParts.at(-1));
+      if (inferredCountry) return inferredCountry;
+    }
+
+    return "BiH";
+  }, [
+    normalizedLocationParts,
+    productDetails?.country_translation,
+    productDetails?.country,
+    productDetails?.translated_item?.country_translation,
+    productDetails?.translated_item?.country,
+    municipalityOrCityFallback,
+    productDetails?.state_translation,
+    productDetails?.state,
+    productDetails?.translated_item?.state_translation,
+    productDetails?.translated_item?.state,
+    productDetails?.city_translation,
+    productDetails?.city,
+    productDetails?.translated_item?.city_translation,
+    productDetails?.translated_item?.city,
+    productDetails?.area?.translated_name,
+    productDetails?.area?.name,
+    productDetails?.area_name,
+    productDetails?.translated_item?.area_name,
+    resolvedLocationByPin?.country,
+  ]);
+  const locationPartsWithoutCountry = useMemo(() => {
+    if (!normalizedLocationParts.length) return [];
+    return normalizedLocationParts.filter((part, index) => {
+      if (normalizedLocationParts.length <= 1) return true;
+      const isLastToken = index === normalizedLocationParts.length - 1;
+      if (!isLastToken) return true;
+      return normalizeCountryLabel(part) !== countryLabel;
+    });
+  }, [countryLabel, normalizedLocationParts]);
   const regionLabel = useMemo(
-    () => normalizedLocationParts.at(-2) || "",
-    [normalizedLocationParts],
+    () => municipalityOrCityFallback || locationPartsWithoutCountry.at(-1) || "",
+    [locationPartsWithoutCountry, municipalityOrCityFallback],
   );
   const zoneLocation = useMemo(() => {
-    if (!normalizedLocationParts.length) return "";
-    const zoneParts = normalizedLocationParts.slice(
-      0,
-      Math.max(0, normalizedLocationParts.length - 2),
-    );
-    return zoneParts.slice(0, 2).join(", ");
-  }, [normalizedLocationParts]);
+    if (municipalityOrCityFallback) return municipalityOrCityFallback;
+    if (!locationPartsWithoutCountry.length) return "";
+    return locationPartsWithoutCountry.slice(0, 2).join(", ");
+  }, [locationPartsWithoutCountry, municipalityOrCityFallback]);
   const shortLocation = useMemo(() => {
-    const primary =
-      zoneLocation || [regionLabel, countryLabel].filter(Boolean).join(", ");
+    const primary = zoneLocation || regionLabel || locationPartsWithoutCountry.at(0);
     return primary || "Lokacija nije specificirana";
-  }, [countryLabel, regionLabel, zoneLocation]);
+  }, [locationPartsWithoutCountry, regionLabel, zoneLocation]);
 
-  const obscuredCoordinates = useMemo(() => {
-    if (preciseLat === null || preciseLng === null) return null;
-    return obfuscateCoordinates(
-      preciseLat,
-      preciseLng,
-      `${productDetails?.id || productDetails?.slug || "listing"}-${effectiveLocationText}`,
-    );
+  const searchLocationQuery = useMemo(() => {
+    const candidates = [
+      municipalityOrCityFallback,
+      regionLabel,
+      zoneLocation,
+      shortLocation,
+      productDetails?.state_translation,
+      productDetails?.state,
+      productDetails?.city_translation,
+      productDetails?.city,
+      productDetails?.area?.translated_name,
+      productDetails?.area?.name,
+      fallbackLocationText,
+      structuredLocationText,
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = normalizeLocationToken(candidate);
+      if (!normalized) continue;
+      if (
+        normalized.toLowerCase() === "lokacija nije specificirana" ||
+        normalized.toLowerCase() === "lokacija nije navedena"
+      ) {
+        continue;
+      }
+      return normalized;
+    }
+
+    return "";
+  }, [
+    municipalityOrCityFallback,
+    regionLabel,
+    zoneLocation,
+    shortLocation,
+    productDetails?.state_translation,
+    productDetails?.state,
+    productDetails?.city_translation,
+    productDetails?.city,
+    productDetails?.area?.translated_name,
+    productDetails?.area?.name,
+    fallbackLocationText,
+    structuredLocationText,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveBySearch = async () => {
+      if (isMeaningfulCoordinatePair(preciseLat, preciseLng)) {
+        setResolvedCoordinatesBySearch(null);
+        return;
+      }
+      if (!searchLocationQuery) {
+        setResolvedCoordinatesBySearch(null);
+        return;
+      }
+
+      try {
+        const response = await getLocationApi.getLocation({
+          search: searchLocationQuery,
+          lang: currentLanguage?.code || "bs",
+        });
+
+        if (cancelled) return;
+        if (response?.data?.error === true) {
+          const fallbackResolved =
+            resolveCoordinatesFromLocationText(searchLocationQuery);
+          setResolvedCoordinatesBySearch(fallbackResolved || null);
+          return;
+        }
+
+        const payload = response?.data?.data;
+        const firstResult = Array.isArray(payload)
+          ? payload[0] || null
+          : payload?.results?.[0] || payload || null;
+
+        const resolved =
+          resolveCoordinatesFromObject(firstResult) ||
+          resolveCoordinatesFromLocationText(searchLocationQuery);
+        if (!cancelled) {
+          setResolvedCoordinatesBySearch(resolved || null);
+        }
+      } catch {
+        if (!cancelled) {
+          const fallbackResolved =
+            resolveCoordinatesFromLocationText(searchLocationQuery);
+          setResolvedCoordinatesBySearch(fallbackResolved || null);
+        }
+      }
+    };
+
+    resolveBySearch();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentLanguage?.code, preciseLat, preciseLng, searchLocationQuery]);
+
+  const effectiveCoordinates = useMemo(() => {
+    if (isMeaningfulCoordinatePair(preciseLat, preciseLng)) {
+      return { lat: preciseLat, lng: preciseLng };
+    }
+    if (
+      isMeaningfulCoordinatePair(
+        resolvedCoordinatesBySearch?.lat ?? null,
+        resolvedCoordinatesBySearch?.lng ?? null,
+      )
+    ) {
+      return {
+        lat: resolvedCoordinatesBySearch.lat,
+        lng: resolvedCoordinatesBySearch.lng,
+      };
+    }
+    return null;
   }, [
     preciseLat,
     preciseLng,
+    resolvedCoordinatesBySearch?.lat,
+    resolvedCoordinatesBySearch?.lng,
+  ]);
+
+  const obscuredCoordinates = useMemo(() => {
+    if (!effectiveCoordinates) return null;
+    return obfuscateCoordinates(
+      effectiveCoordinates.lat,
+      effectiveCoordinates.lng,
+      `${productDetails?.id || productDetails?.slug || "listing"}-${effectiveLocationText}`,
+    );
+  }, [
+    effectiveCoordinates,
     productDetails?.id,
     productDetails?.slug,
     effectiveLocationText,
   ]);
 
   const hasCoordinates = Boolean(obscuredCoordinates);
+  const shortLocationDisplay = useMemo(() => {
+    if (!shortLocation || shortLocation === "Lokacija nije specificirana") {
+      return shortLocation;
+    }
+    return hasCoordinates ? `Okvirno ${shortLocation}` : shortLocation;
+  }, [hasCoordinates, shortLocation]);
   const locationHeaderHint = hasCoordinates
     ? "Prikazujemo okvirnu zonu radi privatnosti prodavača."
     : "Lokacija je informativna (grad/općina), a tačnu adresu potvrđuje prodavač.";
@@ -420,10 +816,10 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
       rooms,
       roomType,
       createdAt: productDetails?.created_at,
-      location: shortLocation,
+      location: shortLocationDisplay,
       privacyMode: true,
     };
-  }, [productDetails, shortLocation]);
+  }, [productDetails, shortLocationDisplay]);
 
   return (
     <div className="flex flex-col rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 dark:border-slate-800 dark:bg-slate-900">
@@ -471,7 +867,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-700 break-words leading-relaxed dark:text-slate-200">
-              {shortLocation}
+              {shortLocationDisplay}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {regionLabel ? (

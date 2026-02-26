@@ -648,7 +648,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
           <Link
             href="/ad-listing"
             onClick={() => closeAndRestoreDockImmediately()}
-            className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl font-semibold hover:scale-[1.01] transition-all duration-200 w-full group shadow-sm shadow-primary/20"
+            className="flex items-center justify-center gap-2 py-3 bg-[#11b7b0] text-white rounded-xl font-semibold hover:scale-[1.01] hover:bg-[#0fa8a2] transition-all duration-200 w-full group shadow-sm shadow-primary/20"
           >
             <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
             {"Dodaj oglas"}

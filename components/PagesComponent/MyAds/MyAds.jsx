@@ -209,7 +209,11 @@ function SelectionBar({ count, onSelectAll, onCancel, allSelected, onDelete, onR
             <Trash2 size={16} />
             Ukloni
           </Button>
-          <Button onClick={onRenew} disabled={isRenewing} className="flex-1 sm:flex-none gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-500 hover:opacity-90">
+          <Button
+            onClick={onRenew}
+            disabled={isRenewing}
+            className="flex-1 sm:flex-none gap-2 rounded-xl bg-[#11b7b0] text-white hover:bg-[#0fa8a2]"
+          >
             {isRenewing ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
             Obnovi
           </Button>
@@ -787,7 +791,7 @@ const MyAds = () => {
   const openBulkConfirm = useCallback(
     (action) => {
       if (!hasBulkSelection) {
-        toast.error("Označite barem jedan oglas za bulk akciju.");
+        toast.error("Označite barem jedan oglas za skupnu akciju.");
         return;
       }
       setBulkConfirm({ open: true, action });
@@ -1067,14 +1071,14 @@ const MyAds = () => {
 
         await refreshAfterMutation();
       } else {
-        toast.error(getApiErrorMessage(res?.data, "Bulk akcija nije uspjela."));
+        toast.error(getApiErrorMessage(res?.data, "Skupna akcija nije uspjela."));
       }
     } catch (error) {
       console.error(error);
       toast.error(
         getApiErrorMessage(
           error?.response?.data,
-          error?.message || "Greška pri bulk akciji."
+          error?.message || "Greška pri skupnoj akciji."
         )
       );
     } finally {
@@ -1215,7 +1219,7 @@ const MyAds = () => {
                 }}
                 className="h-11 gap-2 rounded-2xl"
               >
-                {bulkMode ? "Zatvori bulk" : "Bulk akcije"}
+                {bulkMode ? "Zatvori skupni odabir" : "Skupne akcije"}
                 {bulkMode && bulkSelectionCount > 0 ? (
                   <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
                     {bulkSelectionCount}
@@ -1269,7 +1273,7 @@ const MyAds = () => {
               }}
               className="h-11 w-full gap-2 rounded-2xl"
             >
-              {bulkMode ? "Zatvori bulk" : "Bulk akcije"}
+              {bulkMode ? "Zatvori skupni odabir" : "Skupne akcije"}
               {bulkMode && bulkSelectionCount > 0 ? (
                 <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
                   {bulkSelectionCount}
@@ -1313,7 +1317,7 @@ const MyAds = () => {
         <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 dark:border-slate-700 dark:bg-slate-900/80">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Rezultat bulk akcije
+              Rezultat skupne akcije
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-300">
               Uspješno: {Number(bulkResult?.summary?.success || 0)} / Neuspješno:{" "}
@@ -1423,7 +1427,7 @@ const MyAds = () => {
         open={bulkConfirm.open}
         onCancel={closeBulkConfirm}
         onConfirm={handleApplyBulkAction}
-        title="Potvrda bulk akcije"
+        title="Potvrda skupne akcije"
         description={
           <div className="space-y-3">
             <p>
@@ -1487,7 +1491,7 @@ const MyAds = () => {
 
             {bulkConfirm.action === "renew" && !isFreeAdListing ? (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-700/60 dark:bg-amber-950/25 dark:text-amber-300">
-                Napomena: za istekle oglase potreban je aktivan paket. Ako neki oglas ne ispunjava uslove, dobit ćete partial rezultat.
+                Napomena: za istekle oglase potreban je aktivan paket. Ako neki oglas ne ispunjava uslove, dobit ćete djelimičan rezultat.
               </p>
             ) : null}
           </div>

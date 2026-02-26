@@ -129,6 +129,139 @@ const normalizeMapText = (value = "") =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+const LOCATION_REDUNDANT_TAILS = new Set([
+  "bih",
+  "bosna i hercegovina",
+  "federacija bosne i hercegovine",
+  "republika srpska",
+]);
+
+const normalizeLocationToken = (value) =>
+  String(value || "")
+    .replace(/^Područje:\s*/i, "")
+    .replace(/^Zona:\s*/i, "")
+    .replace(/^Općina\s+/i, "")
+    .replace(/^Opština\s+/i, "")
+    .replace(/\bBrčko Distrikt\b/gi, "Brčko")
+    .replace(/Bosansko-podrinjski(?:\s+kanton)?\s+Goražde/gi, "Goražde")
+    .replace(/\bkanton\b/gi, "")
+    .replace(/\bregija\b/gi, "")
+    .replace(/\bžupanija\b/gi, "")
+    .replace(/\bdistrikt\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+,/g, ",")
+    .replace(/,+/g, ",")
+    .trim();
+
+const sanitizeLocationToken = (value) => {
+  const normalized = normalizeLocationToken(value);
+  if (!normalized) return "";
+  if (LOCATION_REDUNDANT_TAILS.has(normalized.toLowerCase())) return "";
+  return normalized;
+};
+
+const isStreetLikeToken = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return false;
+  return (
+    /\d/.test(normalized) || /\b(ul\.?|ulica|bb|br\.?|broj)\b/i.test(normalized)
+  );
+};
+
+const isPlaceholderLocationLabel = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized.includes("odabrana lokacija") ||
+    normalized.includes("lokacija na mapi") ||
+    normalized === "lokacija nije specificirana" ||
+    normalized === "lokacija nije navedena"
+  );
+};
+
+const resolveMunicipalityOrCityLabel = (rawValue) => {
+  if (rawValue == null) return "";
+  if (typeof rawValue === "object") {
+    const objectCandidates = [
+      rawValue?.area_translation,
+      rawValue?.area,
+      rawValue?.state_translation,
+      rawValue?.state,
+      rawValue?.city_translation,
+      rawValue?.city,
+      rawValue?.translated_name,
+      rawValue?.name,
+      rawValue?.title,
+      rawValue?.label,
+      rawValue?.address,
+    ]
+      .filter((value) => typeof value === "string" || typeof value === "number")
+      .map((value) => String(value).trim())
+      .filter(Boolean);
+
+    if (!objectCandidates.length) return "";
+    return resolveMunicipalityOrCityLabel(objectCandidates.join(", "));
+  }
+
+  const parts = String(rawValue || "")
+    .split(",")
+    .map((part) => sanitizeLocationToken(part))
+    .filter(Boolean);
+  if (!parts.length) return "";
+
+  const trimmed = [...parts];
+  while (trimmed.length > 1) {
+    const tail = String(trimmed[trimmed.length - 1] || "").toLowerCase();
+    if (!LOCATION_REDUNDANT_TAILS.has(tail)) break;
+    trimmed.pop();
+  }
+
+  const deduped = trimmed.filter(
+    (token, idx, arr) =>
+      arr.findIndex((entry) => entry.toLowerCase() === token.toLowerCase()) ===
+      idx,
+  );
+  if (!deduped.length) return "";
+
+  const meaningful = deduped.filter(
+    (token) => !isPlaceholderLocationLabel(token) && !isStreetLikeToken(token),
+  );
+  const pool = meaningful.length
+    ? meaningful
+    : deduped.filter((token) => !isPlaceholderLocationLabel(token));
+  if (!pool.length) return "";
+  if (pool.length === 1) return pool[0];
+
+  const right = sanitizeLocationToken(pool.at(-1) || "");
+  const leftOfRight = sanitizeLocationToken(pool.at(-2) || "");
+
+  if (
+    leftOfRight &&
+    right &&
+    leftOfRight.toLowerCase() !== right.toLowerCase()
+  ) {
+    return leftOfRight;
+  }
+
+  return leftOfRight || right || pool.at(0) || "";
+};
+
+const parseCoordinateValue = (value) => {
+  if (value === null || value === undefined || value === "") return NaN;
+  const normalized = String(value).trim().replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+};
+
+const isMeaningfulCoordinatePair = (lat, lng) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  return !(Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001);
+};
+
 const tryParseObject = (value) => {
   if (!value) return {};
   if (typeof value === "object") return value;
@@ -277,14 +410,28 @@ const buildMapCardDetails = (ad, pinLocationLabel = "") => {
     [ad?.area_name, ad?.city, ad?.state].filter(Boolean).join(", ") ||
     ad?.city ||
     "";
-  const hasCoordinates =
-    Number.isFinite(Number(ad?.latitude)) &&
-    Number.isFinite(Number(ad?.longitude));
-  const locationText =
-    pinLocationLabel ||
-    (hasCoordinates
-      ? "Lokacija označena na mapi"
-      : rawLocationText || "Lokacija nije navedena");
+  const parsedLat = parseCoordinateValue(
+    ad?.map_display_latitude ?? ad?.display_latitude ?? ad?.latitude,
+  );
+  const parsedLng = parseCoordinateValue(
+    ad?.map_display_longitude ?? ad?.display_longitude ?? ad?.longitude,
+  );
+  const hasCoordinates = isMeaningfulCoordinatePair(parsedLat, parsedLng);
+  const derivedApproxLocation =
+    resolveMunicipalityOrCityLabel(pinLocationLabel) ||
+    resolveMunicipalityOrCityLabel(rawLocationText) ||
+    resolveMunicipalityOrCityLabel(
+      [ad?.area_name, ad?.state, ad?.city, ad?.country]
+        .filter(Boolean)
+        .join(", "),
+    );
+  const locationText = derivedApproxLocation
+    ? hasCoordinates
+      ? `Okvirno ${derivedApproxLocation}`
+      : derivedApproxLocation
+    : hasCoordinates
+      ? "Okvirna lokacija"
+      : "Lokacija nije navedena";
   const locationSecondary = null;
 
   return {
@@ -300,8 +447,8 @@ const buildMapCardDetails = (ad, pinLocationLabel = "") => {
     location: locationText,
     locationSecondary,
     slug: ad?.slug || null,
-    latitude: Number(ad?.latitude),
-    longitude: Number(ad?.longitude),
+    latitude: hasCoordinates ? parsedLat : NaN,
+    longitude: hasCoordinates ? parsedLng : NaN,
   };
 };
 
@@ -469,9 +616,9 @@ const Ads = () => {
   const realEstateMapAdsWithCoords = useMemo(
     () =>
       (realEstateMapAds || []).filter((item) => {
-        const itemLat = Number(item?.latitude);
-        const itemLng = Number(item?.longitude);
-        return Number.isFinite(itemLat) && Number.isFinite(itemLng);
+        const itemLat = parseCoordinateValue(item?.latitude);
+        const itemLng = parseCoordinateValue(item?.longitude);
+        return isMeaningfulCoordinatePair(itemLat, itemLng);
       }),
     [realEstateMapAds],
   );
@@ -488,9 +635,13 @@ const Ads = () => {
     let cancelled = false;
 
     const resolveSelectedMapLocation = async () => {
-      const latNum = Number(mapSelectedAd?.latitude);
-      const lngNum = Number(mapSelectedAd?.longitude);
-      const hasCoordinates = Number.isFinite(latNum) && Number.isFinite(lngNum);
+      const latNum = parseCoordinateValue(
+        mapSelectedAd?.map_display_latitude ?? mapSelectedAd?.latitude,
+      );
+      const lngNum = parseCoordinateValue(
+        mapSelectedAd?.map_display_longitude ?? mapSelectedAd?.longitude,
+      );
+      const hasCoordinates = isMeaningfulCoordinatePair(latNum, lngNum);
 
       if (!mapSelectedAd || !hasCoordinates) {
         setMapSelectedLocationByPin("");
@@ -509,14 +660,17 @@ const Ads = () => {
         const result = Array.isArray(payload)
           ? payload[0] || {}
           : payload || {};
-        const resolvedLabel = [
-          result?.area_translation || result?.area,
-          result?.city_translation || result?.city,
-          result?.state_translation || result?.state,
-          result?.country_translation || result?.country,
-        ]
-          .filter(Boolean)
-          .join(", ");
+        const resolvedLabel =
+          resolveMunicipalityOrCityLabel(result) ||
+          resolveMunicipalityOrCityLabel(
+            [
+              result?.area_translation || result?.area,
+              result?.state_translation || result?.state,
+              result?.city_translation || result?.city,
+            ]
+              .filter(Boolean)
+              .join(", "),
+          );
 
         setMapSelectedLocationByPin(resolvedLabel);
       } catch {
@@ -1551,7 +1705,12 @@ const Ads = () => {
           onMouseEnter={() => {
             if (!isRealEstateSearch) return;
             const markerCandidate = realEstateMapById.get(Number(item?.id));
-            if (markerCandidate?.latitude && markerCandidate?.longitude) {
+            if (
+              isMeaningfulCoordinatePair(
+                parseCoordinateValue(markerCandidate?.latitude),
+                parseCoordinateValue(markerCandidate?.longitude),
+              )
+            ) {
               setMapHoveredAd(markerCandidate || null);
             }
           }}
@@ -1583,7 +1742,12 @@ const Ads = () => {
           onMouseEnter={() => {
             if (!isRealEstateSearch) return;
             const markerCandidate = realEstateMapById.get(Number(item?.id));
-            if (markerCandidate?.latitude && markerCandidate?.longitude) {
+            if (
+              isMeaningfulCoordinatePair(
+                parseCoordinateValue(markerCandidate?.latitude),
+                parseCoordinateValue(markerCandidate?.longitude),
+              )
+            ) {
               setMapHoveredAd(markerCandidate || null);
             }
           }}
@@ -1971,6 +2135,8 @@ const Ads = () => {
                       onMarkerClick={handleMapMarkerClick}
                       showCurrentLocationButton={false}
                       showMarkerPopup={false}
+                      useApproximateZoneMarkers={true}
+                      approximateZoneRadiusMeters={1100}
                     />
                     {mapCardDetails ? (
                       <div className="pointer-events-none absolute left-3 top-3 z-[550] w-[min(460px,calc(100%-1.5rem))]">
@@ -2067,8 +2233,10 @@ const Ads = () => {
                                     </a>
                                   ) : null}
 
-                                  {Number.isFinite(mapCardDetails.latitude) &&
-                                  Number.isFinite(mapCardDetails.longitude) ? (
+                                  {isMeaningfulCoordinatePair(
+                                    mapCardDetails.latitude,
+                                    mapCardDetails.longitude,
+                                  ) ? (
                                     <a
                                       href={`https://www.google.com/maps/dir/?api=1&destination=${mapCardDetails.latitude},${mapCardDetails.longitude}`}
                                       target="_blank"
@@ -2116,9 +2284,7 @@ const Ads = () => {
               </div>
             </div>
           ) : (
-            <div className={adsGridClasses}>
-              {renderedAdsContent}
-            </div>
+            <div className={adsGridClasses}>{renderedAdsContent}</div>
           )}
 
           {advertisements.data &&

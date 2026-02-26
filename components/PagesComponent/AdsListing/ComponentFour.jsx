@@ -335,7 +335,7 @@ const ComponentFour = ({
   instagramStatusLoading = false,
   onConnectInstagram,
   socialPostingUnavailable = false,
-  socialPostingUnavailableMessage = "Privremeno nedostupno, hvala na razumijevanju.",
+  socialPostingUnavailableMessage = "",
   instagramSourceUrl = "",
   onInstagramSourceUrlChange,
   onUseInstagramAsVideoLink,
@@ -352,6 +352,7 @@ const ComponentFour = ({
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
 
   const [imageUploadProgress, setImageUploadProgress] = useState({});
+  const [pendingImageUploads, setPendingImageUploads] = useState([]);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isVideoProcessing, setIsVideoProcessing] = useState(false);
@@ -361,6 +362,7 @@ const ComponentFour = ({
 
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
+  const pendingPreviewUrlsRef = useRef(new Set());
 
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -418,6 +420,18 @@ const ComponentFour = ({
     return () => document.removeEventListener("click", handleClickOutside);
   }, [isMobileImageUi]);
 
+  useEffect(() => {
+    return () => {
+      pendingPreviewUrlsRef.current.forEach((url) => {
+        if (!isBlobUrl(url)) return;
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      });
+      pendingPreviewUrlsRef.current.clear();
+    };
+  }, []);
+
   const allImages = React.useMemo(() => {
     return [...(uploadedImages || []), ...(otherImages || [])];
   }, [uploadedImages, otherImages]);
@@ -473,6 +487,16 @@ const ComponentFour = ({
 
     for (const file of arrToProcess) {
       const tempId = Math.random().toString(36).substring(7);
+      const previewUrl = URL.createObjectURL(file);
+      pendingPreviewUrlsRef.current.add(previewUrl);
+      setPendingImageUploads((prev) => [
+        ...prev,
+        {
+          uploadId: tempId,
+          previewUrl,
+          fileName: file.name || "Slika",
+        },
+      ]);
       setImageUploadProgress((prev) => ({ ...prev, [tempId]: 1 }));
 
       try {
@@ -508,6 +532,15 @@ const ComponentFour = ({
             delete ns[tempId];
             return ns;
           });
+          setPendingImageUploads((prev) =>
+            prev.filter((item) => item.uploadId !== tempId),
+          );
+          pendingPreviewUrlsRef.current.delete(previewUrl);
+          if (isBlobUrl(previewUrl)) {
+            try {
+              URL.revokeObjectURL(previewUrl);
+            } catch {}
+          }
         }, 500);
       }
     }
@@ -817,21 +850,11 @@ const ComponentFour = ({
                 </p>
               )}
             </div>
-            {Object.keys(imageUploadProgress).length > 0 && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 backdrop-blur-sm dark:bg-slate-900/85">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                  <span className="text-xs font-bold text-primary">
-                    Obrađujem...
-                  </span>
-                </div>
-              </div>
-            )}
           </label>
         )}
 
         {/* IMAGE GRID */}
-        {allImages.length > 0 && (
+        {(allImages.length > 0 || pendingImageUploads.length > 0) && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 select-none animate-in fade-in zoom-in-95 duration-300">
             {allImages.map((img, index) => {
               const isMain = index === 0;
@@ -1030,14 +1053,22 @@ const ComponentFour = ({
               );
             })}
 
-            {Object.keys(imageUploadProgress).map((key) => (
+            {pendingImageUploads.map((pendingUpload) => (
               <div
-                key={key}
+                key={pendingUpload.uploadId}
                 className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70"
               >
+                <img
+                  src={pendingUpload.previewUrl}
+                  alt={`Upload u toku: ${pendingUpload.fileName}`}
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-x-2 top-2 z-10 rounded-full bg-black/55 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+                  Upload slike...
+                </div>
                 <ProgressBar
-                  progress={imageUploadProgress[key]}
-                  label="Obrada"
+                  progress={imageUploadProgress[pendingUpload.uploadId] ?? 1}
+                  label="Upload"
                 />
               </div>
             ))}
@@ -1094,7 +1125,7 @@ const ComponentFour = ({
           </p>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 dark:border-slate-700 dark:bg-slate-900">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-slate-800 flex items-center gap-2 dark:text-slate-100">
@@ -1296,7 +1327,7 @@ const ComponentFour = ({
                   disabled
                   className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700 opacity-70 dark:border-amber-400/30 dark:text-amber-300"
                 >
-                  Privremeno nedostupno
+                  {/* Privremeno nedostupno */}
                 </button>
               ) : !instagramConnected ? (
                 <button

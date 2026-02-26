@@ -313,7 +313,7 @@ const PopularCategories = () => {
                   <CarouselItem
                     key={item?.id}
                     style={{ animationDelay: `${Math.min(index * 28, 280)}ms` }}
-                    className="basis-1/4 sm:basis-1/5 md:basis-1/6 lg:basis-[14.28%] xl:basis-[12.5%] 2xl:basis-[10%] pl-2 md:pl-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
+                    className="basis-1/3 sm:basis-1/5 md:basis-1/6 lg:basis-[14.28%] xl:basis-[12.5%] 2xl:basis-[10%] pl-2 md:pl-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
                   >
                     <PopularCategoryCard
                       item={item}

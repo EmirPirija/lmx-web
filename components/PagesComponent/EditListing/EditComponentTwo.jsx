@@ -414,15 +414,17 @@ const EnhancedDropdown = ({
     setSearchQuery("");
   };
 
-  // Simulate loading when opening
+  // Open/close dropdown
   const handleOpen = () => {
     if (isDisabled) return;
-    setIsOpen(true);
-    setIsLoading(true);
-
-    setTimeout(() => {
+    if (isOpen) {
+      setIsOpen(false);
+      setSearchQuery("");
       setIsLoading(false);
-    }, 500);
+      return;
+    }
+    setIsLoading(false);
+    setIsOpen(true);
   };
 
   // Close dropdown when clicking outside
@@ -433,11 +435,15 @@ const EnhancedDropdown = ({
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, [isOpen, id]);
 
   return (
-    <div id={`dropdown-${id}`} className={`relative w-full ${isOpen ? "z-[180]" : "z-0"}`}>
+    <div id={`dropdown-${id}`} className="relative w-full">
       {/* Trigger */}
       <button
         type="button"
@@ -472,7 +478,7 @@ const EnhancedDropdown = ({
 
       {/* Dropdown Content */}
       {isOpen && !isDisabled && (
-        <div className="absolute left-0 z-[190] mt-2 max-h-96 w-full overflow-hidden rounded-lg border bg-white shadow-2xl">
+        <div className="pointer-events-auto relative mt-2 max-h-[min(62vh,26rem)] w-full overflow-hidden rounded-lg border bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
           {isLoading ? (
             <SkeletonLoader />
           ) : (
@@ -505,7 +511,7 @@ const EnhancedDropdown = ({
               </div>
 
               {/* Options List */}
-              <div className="overflow-y-auto max-h-80">
+              <div className="max-h-[min(60vh,19rem)] overflow-y-auto">
                 {filteredOptions.length > 0 ? (
                   filteredOptions.map((option, idx) => {
                     const isSelected = currentValue === option;
@@ -868,8 +874,8 @@ const AccordionSection = ({
   return (
     <div
       ref={sectionRef}
-      className={`lmx-guided-accordion relative overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 ${
-        isOpen ? "z-[140]" : "z-0"
+      className={`lmx-guided-accordion relative isolate overflow-visible rounded-2xl border border-slate-200/70 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 ${
+        isOpen ? "z-[2000]" : "z-[10]"
       }`}
     >
       {/* Header */}
@@ -927,7 +933,7 @@ const AccordionSection = ({
 
       {/* Content */}
       {isOpen && (
-        <div className="lmx-guided-accordion-content bg-white p-4 dark:bg-slate-900/90 sm:p-5">
+        <div className="lmx-guided-accordion-content relative z-[2010] overflow-visible bg-white p-4 dark:bg-slate-900/90 sm:p-5">
           {children}
         </div>
       )}
@@ -958,6 +964,7 @@ const EditComponentTwo = ({
   const [requiredOpen, setRequiredOpen] = useState(true);
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [autoAdvanceSections, setAutoAdvanceSections] = useState(true);
   const [attemptedNext, setAttemptedNext] = useState(false);
   const [highlightedFieldId, setHighlightedFieldId] = useState("");
   const requiredSectionRef = useRef(null);
@@ -1322,6 +1329,13 @@ const EditComponentTwo = ({
   }, []);
 
   useEffect(() => {
+    if (!requiredFieldsCompleted && !autoAdvanceSections) {
+      setAutoAdvanceSections(true);
+    }
+  }, [requiredFieldsCompleted, autoAdvanceSections]);
+
+  useEffect(() => {
+    if (!autoAdvanceSections) return;
     const wasCompleted = requiredCompletionTransitionRef.current;
     const justCompleted = !wasCompleted && requiredFieldsCompleted;
     requiredCompletionTransitionRef.current = requiredFieldsCompleted;
@@ -1338,7 +1352,7 @@ const EditComponentTwo = ({
     setRequiredOpen(false);
     setTermsOpen(true);
     requestAnimationFrame(() => scrollToSection(termsSectionRef));
-  }, [requiredFieldsCompleted, sortedOptionalFields.length]);
+  }, [requiredFieldsCompleted, sortedOptionalFields.length, autoAdvanceSections]);
 
   useEffect(() => {
     if (attemptedNext && missingRequiredCount === 0) {
@@ -1426,7 +1440,7 @@ const EditComponentTwo = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-300]:bg-slate-600 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-blue-50]:bg-blue-500/15 dark:[&_.bg-blue-100]:bg-blue-500/20 dark:[&_.border-blue-100]:border-blue-500/30 dark:[&_.bg-amber-50]:bg-amber-500/10">
+    <div className="relative z-[5] flex flex-col gap-4 overflow-visible pb-24 dark:[&_.bg-white]:bg-slate-900 dark:[&_.bg-gray-50]:bg-slate-800/70 dark:[&_.bg-gray-100]:bg-slate-800 dark:[&_.bg-gray-200]:bg-slate-700 dark:[&_.bg-gray-300]:bg-slate-600 dark:[&_.text-gray-900]:text-slate-100 dark:[&_.text-gray-800]:text-slate-100 dark:[&_.text-gray-700]:text-slate-200 dark:[&_.text-gray-600]:text-slate-300 dark:[&_.text-gray-500]:text-slate-400 dark:[&_.text-gray-400]:text-slate-500 dark:[&_.border-gray-100]:border-slate-700 dark:[&_.border-gray-200]:border-slate-700 dark:[&_.border-gray-300]:border-slate-600 dark:[&_.bg-blue-50]:bg-blue-500/15 dark:[&_.bg-blue-100]:bg-blue-500/20 dark:[&_.border-blue-100]:border-blue-500/30 dark:[&_.bg-amber-50]:bg-amber-500/10">
       {/* Required Fields Section */}
       {sortedRequiredFields.length > 0 && (
         <AccordionSection
@@ -1437,6 +1451,7 @@ const EditComponentTwo = ({
           isOpen={requiredOpen}
           onToggle={() => {
             const next = !requiredOpen;
+            setAutoAdvanceSections(false);
             setRequiredOpen(next);
             if (next) requestAnimationFrame(() => scrollToSection(requiredSectionRef));
           }}
@@ -1475,6 +1490,7 @@ const EditComponentTwo = ({
           isOpen={optionalOpen}
           onToggle={() => {
             const next = !optionalOpen;
+            setAutoAdvanceSections(false);
             setOptionalOpen(next);
             if (next) requestAnimationFrame(() => scrollToSection(optionalSectionRef));
           }}
@@ -1493,6 +1509,7 @@ const EditComponentTwo = ({
         isOpen={termsOpen}
         onToggle={() => {
           const next = !termsOpen;
+          setAutoAdvanceSections(false);
           setTermsOpen(next);
           if (next) requestAnimationFrame(() => scrollToSection(termsSectionRef));
         }}

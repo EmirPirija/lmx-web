@@ -107,7 +107,7 @@ function TransactionCard({ transaction, onUploadReceipt }) {
           {isPending ? (
             <Button
               onClick={() => onUploadReceipt(transaction?.id)}
-              className="gap-2 bg-gradient-to-r from-primary to-orange-500 hover:opacity-90 rounded-xl"
+              className="gap-2 rounded-xl bg-[#11b7b0] text-white hover:bg-[#0fa8a2]"
             >
               <Upload size={16} />
               {"Otpremi potvrdu"}

@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Circle,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { BiCurrentLocation } from "@/components/Common/UnifiedIconPack";
 import { t } from "@/utils";
@@ -32,21 +39,136 @@ const formatTimeAgo = (dateString) => {
   const diffMonths = Math.floor(diffDays / 30);
 
   if (diffMins < 60) return `prije ${diffMins} min`;
-  if (diffHours < 24) return `prije ${diffHours} ${diffHours === 1 ? "sat" : diffHours < 5 ? "sata" : "sati"}`;
-  if (diffDays < 7) return `prije ${diffDays} ${diffDays === 1 ? "dan" : "dana"}`;
-  if (diffWeeks < 4) return `prije ${diffWeeks} ${diffWeeks === 1 ? "sedmica" : "sedmica"}`;
+  if (diffHours < 24)
+    return `prije ${diffHours} ${diffHours === 1 ? "sat" : diffHours < 5 ? "sata" : "sati"}`;
+  if (diffDays < 7)
+    return `prije ${diffDays} ${diffDays === 1 ? "dan" : "dana"}`;
+  if (diffWeeks < 4)
+    return `prije ${diffWeeks} ${diffWeeks === 1 ? "sedmica" : "sedmica"}`;
   return `prije ${diffMonths} ${diffMonths === 1 ? "mjesec" : "mjeseci"}`;
+};
+
+const LOCATION_REDUNDANT_TAILS = new Set([
+  "bih",
+  "bosna i hercegovina",
+  "federacija bosne i hercegovine",
+  "republika srpska",
+]);
+
+const normalizeLocationToken = (value) =>
+  String(value || "")
+    .replace(/^Područje:\s*/i, "")
+    .replace(/^Zona:\s*/i, "")
+    .replace(/^Općina\s+/i, "")
+    .replace(/^Opština\s+/i, "")
+    .replace(/\bBrčko Distrikt\b/gi, "Brčko")
+    .replace(/Bosansko-podrinjski(?:\s+kanton)?\s+Goražde/gi, "Goražde")
+    .replace(/\bkanton\b/gi, "")
+    .replace(/\bregija\b/gi, "")
+    .replace(/\bžupanija\b/gi, "")
+    .replace(/\bdistrikt\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+,/g, ",")
+    .replace(/,+/g, ",")
+    .trim();
+
+const sanitizeLocationToken = (value) => {
+  const normalized = normalizeLocationToken(value);
+  if (!normalized) return "";
+  if (LOCATION_REDUNDANT_TAILS.has(normalized.toLowerCase())) return "";
+  return normalized;
+};
+
+const isStreetLikeToken = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return false;
+  return (
+    /\d/.test(normalized) || /\b(ul\.?|ulica|bb|br\.?|broj)\b/i.test(normalized)
+  );
+};
+
+const parseCoordinateValue = (value) => {
+  if (value === null || value === undefined || value === "") return NaN;
+  const normalized = String(value).trim().replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+};
+
+const isMeaningfulCoordinatePair = (lat, lng) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  return !(Math.abs(lat) < 0.0001 && Math.abs(lng) < 0.0001);
+};
+
+const createDeterministicHash = (value) => {
+  const input = String(value || "");
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const getApproximateZoneRadiusByZoom = (zoom, fallbackRadiusMeters = 950) => {
+  if (Number.isFinite(fallbackRadiusMeters) && fallbackRadiusMeters > 0) {
+    return fallbackRadiusMeters;
+  }
+  if (zoom <= 10) return 1800;
+  if (zoom <= 12) return 1300;
+  if (zoom <= 14) return 950;
+  if (zoom <= 16) return 700;
+  return 520;
+};
+
+const getApproximateZonePointForAd = (ad, zoom, fallbackRadiusMeters = 0) => {
+  const baseLat = parseCoordinateValue(ad?.latitude);
+  const baseLng = parseCoordinateValue(ad?.longitude);
+  if (!isMeaningfulCoordinatePair(baseLat, baseLng)) return null;
+
+  const seed = createDeterministicHash(
+    `${ad?.id || ""}|${ad?.slug || ""}|${baseLat.toFixed(5)}|${baseLng.toFixed(5)}`,
+  );
+  const angle = ((seed % 360) * Math.PI) / 180;
+  const offsetMeters = 180 + (seed % 420); // 180m - 599m
+
+  const latOffset = (offsetMeters / 111320) * Math.cos(angle);
+  const cosLat = Math.cos((baseLat * Math.PI) / 180);
+  const lngOffset =
+    (offsetMeters / (111320 * Math.max(0.25, Math.abs(cosLat)))) *
+    Math.sin(angle);
+
+  return {
+    lat: baseLat + latOffset,
+    lng: baseLng + lngOffset,
+    radiusMeters: getApproximateZoneRadiusByZoom(zoom, fallbackRadiusMeters),
+  };
 };
 
 const toApproximateLocationLabel = (locationValue) => {
   if (!locationValue) return "";
   const parts = String(locationValue)
     .split(",")
-    .map((part) => part.trim())
+    .map((part) => sanitizeLocationToken(part))
     .filter(Boolean);
   if (!parts.length) return "";
-  if (parts.length === 1) return parts[0];
-  return parts.slice(-2).join(", ");
+
+  const meaningful = parts.filter((token) => !isStreetLikeToken(token));
+  const pool = meaningful.length ? meaningful : parts;
+  if (pool.length === 1) return pool[0];
+
+  const right = sanitizeLocationToken(pool.at(-1) || "");
+  const leftOfRight = sanitizeLocationToken(pool.at(-2) || "");
+
+  if (
+    leftOfRight &&
+    right &&
+    leftOfRight.toLowerCase() !== right.toLowerCase()
+  ) {
+    return leftOfRight;
+  }
+  return leftOfRight || right || pool.at(0) || "";
 };
 
 const escapeHtml = (value) =>
@@ -84,13 +206,15 @@ const clusterAdsForCurrentZoom = (ads, map) => {
 
   const points = (ads || [])
     .map((ad) => {
-      const lat = Number(ad?.latitude);
-      const lng = Number(ad?.longitude);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      const lat = parseCoordinateValue(ad?.latitude);
+      const lng = parseCoordinateValue(ad?.longitude);
+      if (!isMeaningfulCoordinatePair(lat, lng)) return null;
       const projected = map.project([lat, lng], zoom);
       return {
         ad,
         projected,
+        lat,
+        lng,
       };
     })
     .filter(Boolean);
@@ -99,8 +223,8 @@ const clusterAdsForCurrentZoom = (ads, map) => {
     return points.map((point) => ({
       type: "single",
       ads: [point.ad],
-      lat: Number(point.ad.latitude),
-      lng: Number(point.ad.longitude),
+      lat: point.lat,
+      lng: point.lng,
     }));
   }
 
@@ -132,7 +256,7 @@ const clusterAdsForCurrentZoom = (ads, map) => {
     const sumY = targetCluster.points.reduce((acc, p) => acc + p.y, 0);
     targetCluster.centerPoint = L.point(
       sumX / targetCluster.points.length,
-      sumY / targetCluster.points.length
+      sumY / targetCluster.points.length,
     );
   });
 
@@ -205,7 +329,7 @@ const CurrentLocationButton = ({ onClick }) => {
         },
         (error) => {
           console.error("Error getting location:", error);
-        }
+        },
       );
     }
   };
@@ -241,34 +365,81 @@ const MarkerUpdater = ({
   onMarkerClick,
   layerGroupRef,
   showMarkerPopup = true,
+  useApproximateZoneMarkers = false,
+  approximateZoneRadiusMeters = 0,
 }) => {
   const map = useMap();
   const lastAutoFitSignatureRef = useRef("");
+  const lastHoveredFocusIdRef = useRef(null);
+
+  const resolveDisplayPositionForAd = (ad) => {
+    if (!ad) return null;
+
+    const preferredLat = parseCoordinateValue(ad?.map_display_latitude);
+    const preferredLng = parseCoordinateValue(ad?.map_display_longitude);
+    if (isMeaningfulCoordinatePair(preferredLat, preferredLng)) {
+      return [preferredLat, preferredLng];
+    }
+
+    if (useApproximateZoneMarkers) {
+      const approxPoint = getApproximateZonePointForAd(
+        ad,
+        map.getZoom(),
+        approximateZoneRadiusMeters,
+      );
+      if (approxPoint) return [approxPoint.lat, approxPoint.lng];
+    }
+
+    const fallbackLat = parseCoordinateValue(ad?.latitude);
+    const fallbackLng = parseCoordinateValue(ad?.longitude);
+    if (isMeaningfulCoordinatePair(fallbackLat, fallbackLng)) {
+      return [fallbackLat, fallbackLng];
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (!map || !layerGroupRef.current) return;
 
     const layerGroup = layerGroupRef.current;
-    
+
     // Clear existing markers
     layerGroup.clearLayers();
 
     // Add new markers / clusters
     const mapPointsBounds = [];
     let markerToOpen = null;
-    const clusteredGroups = clusterAdsForCurrentZoom(ads, map);
+    const clusteredGroups = useApproximateZoneMarkers
+      ? (ads || [])
+          .map((ad) => {
+            const approx = getApproximateZonePointForAd(
+              ad,
+              map.getZoom(),
+              approximateZoneRadiusMeters,
+            );
+            if (!approx) return null;
+            return {
+              type: "single",
+              ads: [ad],
+              lat: approx.lat,
+              lng: approx.lng,
+              approxRadius: approx.radiusMeters,
+            };
+          })
+          .filter(Boolean)
+      : clusterAdsForCurrentZoom(ads, map);
 
     clusteredGroups.forEach((group) => {
-      const groupLat = Number(group?.lat);
-      const groupLng = Number(group?.lng);
-      if (!Number.isFinite(groupLat) || !Number.isFinite(groupLng)) return;
+      const groupLat = parseCoordinateValue(group?.lat);
+      const groupLng = parseCoordinateValue(group?.lng);
+      if (!isMeaningfulCoordinatePair(groupLat, groupLng)) return;
 
       const position = [groupLat, groupLng];
       mapPointsBounds.push(position);
 
-      if (group.type === "cluster") {
+      if (!useApproximateZoneMarkers && group.type === "cluster") {
         const containsSelected = group.ads.some(
-          (entry) => Number(entry?.id) === Number(selectedAd?.id)
+          (entry) => Number(entry?.id) === Number(selectedAd?.id),
         );
         const clusterMarker = L.marker(position, {
           icon: createClusterMarker(group.ads.length, containsSelected),
@@ -291,13 +462,59 @@ const MarkerUpdater = ({
       }
 
       const ad = group.ads[0];
-      const parsedLat = Number(ad?.latitude);
-      const parsedLng = Number(ad?.longitude);
-      if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return;
+      const parsedLat = parseCoordinateValue(ad?.latitude);
+      const parsedLng = parseCoordinateValue(ad?.longitude);
+      if (!isMeaningfulCoordinatePair(parsedLat, parsedLng)) return;
 
-      const adPosition = [parsedLat, parsedLng];
+      const displayLat = parseCoordinateValue(group?.lat);
+      const displayLng = parseCoordinateValue(group?.lng);
+      if (!isMeaningfulCoordinatePair(displayLat, displayLng)) return;
+
+      const adPosition = [displayLat, displayLng];
       const isSelected = selectedAd?.id === ad.id;
       const isHovered = hoveredAd?.id === ad.id;
+      const displayRadiusMeters =
+        Number(group?.approxRadius) > 0
+          ? Number(group.approxRadius)
+          : getApproximateZoneRadiusByZoom(
+              map.getZoom(),
+              approximateZoneRadiusMeters,
+            );
+      const markerPayload = useApproximateZoneMarkers
+        ? {
+            ...ad,
+            map_display_latitude: displayLat,
+            map_display_longitude: displayLng,
+            map_display_radius_m: displayRadiusMeters,
+            coordinate_precision: "approx_zone",
+          }
+        : ad;
+
+      if (useApproximateZoneMarkers) {
+        const zoneCircle = L.circle(adPosition, {
+          radius: displayRadiusMeters,
+          color: "#0ab6af",
+          fillColor: "#0ab6af",
+          fillOpacity: isSelected ? 0.2 : 0.14,
+          weight: isSelected ? 2.3 : 1.8,
+          dashArray: isSelected ? "6 4" : "8 5",
+          interactive: true,
+        });
+
+        zoneCircle.bindTooltip("Okvirna zona lokacije", {
+          direction: "top",
+          opacity: 0.92,
+          offset: [0, -6],
+        });
+
+        zoneCircle.on("click", () => {
+          const nextZoom = Math.max(map.getZoom() || 12, 12);
+          map.setView(adPosition, nextZoom, { animate: true });
+          if (onMarkerClick) onMarkerClick(markerPayload);
+        });
+
+        layerGroup.addLayer(zoneCircle);
+      }
 
       const marker = L.marker(adPosition, {
         icon: createPriceMarker(ad.price, isSelected, isHovered),
@@ -307,17 +524,19 @@ const MarkerUpdater = ({
       // Helper za formatiranje cijene
       const formatPopupPrice = (price) => {
         if (!price || price <= 0) return "Na upit";
-        return new Intl.NumberFormat("bs-BA", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }).format(price) + " KM";
+        return (
+          new Intl.NumberFormat("bs-BA", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(price) + " KM"
+        );
       };
 
       // Helper za dobivanje tipa nekretnine
       const getRoomType = (rooms, roomTypeFromApi) => {
         // Prefer API-provided room type if available
         if (roomTypeFromApi) return roomTypeFromApi;
-        
+
         if (!rooms) return null;
         const roomNum = parseInt(rooms);
         if (isNaN(roomNum)) return null;
@@ -332,13 +551,19 @@ const MarkerUpdater = ({
       const roomType = getRoomType(ad.rooms, ad.room_type);
       const timeAgo = formatTimeAgo(ad.created_at);
       const imageUrl = ad.image || ad.images?.[0];
-      const rawLocationLabel = ad.location || ad.address || ad.city || ad.state || ad.country;
-      const approximateLocationLabel = toApproximateLocationLabel(rawLocationLabel);
-      const locationLabel = approximateLocationLabel || "Lokacija sa mape";
+      const rawLocationLabel =
+        ad.location || ad.address || ad.city || ad.state || ad.country;
+      const approximateLocationLabel =
+        toApproximateLocationLabel(rawLocationLabel);
+      const locationLabel = approximateLocationLabel
+        ? `Okvirno ${approximateLocationLabel}`
+        : "Okvirna lokacija";
       const locationSecondaryLabel = "";
       const hasViews = typeof ad.views === "number" && ad.views >= 0;
       const statusLabel = ad.status ? String(ad.status) : null;
-      const isApproximateCoordinate = String(ad?.coordinate_precision || "").startsWith("approx");
+      const isApproximateCoordinate =
+        useApproximateZoneMarkers ||
+        String(ad?.coordinate_precision || "").startsWith("approx");
       const locationPrivacyHint = isApproximateCoordinate
         ? "Lokacija je prikazana okvirno prema zoni."
         : locationLabel
@@ -360,6 +585,8 @@ const MarkerUpdater = ({
       const safePrice = escapeHtml(formatPopupPrice(ad.price));
       const safeTimeAgo = timeAgo ? escapeHtml(timeAgo) : "";
       const safePopupHint = escapeHtml(popupHint);
+      const routeLat = useApproximateZoneMarkers ? displayLat : parsedLat;
+      const routeLng = useApproximateZoneMarkers ? displayLng : parsedLng;
       const listingUrl = ad?.slug
         ? `/ad-details/${encodeURI(String(ad.slug).replace(/^\/+/, ""))}`
         : "";
@@ -375,13 +602,16 @@ const MarkerUpdater = ({
           </button>
           <div class="popup-content">
             <div class="popup-media">
-              ${safeImage ? `
+              ${
+                safeImage
+                  ? `
                 <img
                   src="${safeImage}"
                   alt="${safeTitle}"
                   onerror="this.parentElement.innerHTML='<div class=\\'popup-no-image\\'><svg width=\\'24\\' height=\\'24\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'m21 15-5-5L5 21\\'/></svg></div>'"
                 />
-              ` : `
+              `
+                  : `
                 <div class="popup-no-image">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -389,7 +619,8 @@ const MarkerUpdater = ({
                     <path d="m21 15-5-5L5 21"/>
                   </svg>
                 </div>
-              `}
+              `
+              }
               ${ad.featured ? `<span class="popup-pill popup-pill-featured">Istaknuto</span>` : ""}
             </div>
             <div class="popup-info">
@@ -415,7 +646,7 @@ const MarkerUpdater = ({
                       : `<span class="popup-open-link popup-open-link-disabled">Detalji uskoro</span>`
                   }
                   <a
-                    href="https://www.google.com/maps/dir/?api=1&destination=${parsedLat},${parsedLng}"
+                    href="https://www.google.com/maps/dir/?api=1&destination=${routeLat},${routeLng}"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="popup-open-link popup-open-link-route"
@@ -444,7 +675,7 @@ const MarkerUpdater = ({
         if (showMarkerPopup) {
           marker.openPopup();
         }
-        if (onMarkerClick) onMarkerClick(ad);
+        if (onMarkerClick) onMarkerClick(markerPayload);
       });
 
       // Tooltip on hover
@@ -479,8 +710,28 @@ const MarkerUpdater = ({
     }
 
     // Center on selected marker
-    if (selectedAd?.latitude && selectedAd?.longitude) {
-      const selectedPos = [parseFloat(selectedAd.latitude), parseFloat(selectedAd.longitude)];
+    let selectedLat = parseCoordinateValue(selectedAd?.map_display_latitude);
+    let selectedLng = parseCoordinateValue(selectedAd?.map_display_longitude);
+
+    if (!isMeaningfulCoordinatePair(selectedLat, selectedLng)) {
+      if (useApproximateZoneMarkers) {
+        const approxSelected = getApproximateZonePointForAd(
+          selectedAd,
+          map.getZoom(),
+          approximateZoneRadiusMeters,
+        );
+        if (approxSelected) {
+          selectedLat = approxSelected.lat;
+          selectedLng = approxSelected.lng;
+        }
+      } else {
+        selectedLat = parseCoordinateValue(selectedAd?.latitude);
+        selectedLng = parseCoordinateValue(selectedAd?.longitude);
+      }
+    }
+
+    if (isMeaningfulCoordinatePair(selectedLat, selectedLng)) {
+      const selectedPos = [selectedLat, selectedLng];
       if (!isNaN(selectedPos[0]) && !isNaN(selectedPos[1])) {
         map.setView(selectedPos, 14, { animate: true });
       }
@@ -489,7 +740,38 @@ const MarkerUpdater = ({
     if (markerToOpen) {
       markerToOpen.openPopup();
     }
-  }, [ads, selectedAd, hoveredAd, map, layerGroupRef, onMarkerClick, showMarkerPopup]);
+
+    const hoveredId = Number(hoveredAd?.id);
+    if (!Number.isFinite(hoveredId)) {
+      lastHoveredFocusIdRef.current = null;
+      return;
+    }
+
+    // Ne pomjeramo mapu hover-om ako korisnik ručno selektuje marker.
+    if (selectedAd?.id) return;
+
+    if (lastHoveredFocusIdRef.current === hoveredId) return;
+
+    const hoveredPosition = resolveDisplayPositionForAd(hoveredAd);
+    if (!hoveredPosition) return;
+
+    map.panTo(hoveredPosition, {
+      animate: true,
+      duration: 0.35,
+      easeLinearity: 0.25,
+    });
+    lastHoveredFocusIdRef.current = hoveredId;
+  }, [
+    ads,
+    selectedAd,
+    hoveredAd,
+    map,
+    layerGroupRef,
+    onMarkerClick,
+    showMarkerPopup,
+    useApproximateZoneMarkers,
+    approximateZoneRadiusMeters,
+  ]);
 
   return null;
 };
@@ -505,16 +787,23 @@ const MapWithListingsMarkers = ({
   showCurrentLocationButton = true,
   onCurrentLocationClick,
   showMarkerPopup = true,
+  useApproximateZoneMarkers = false,
+  approximateZoneRadiusMeters = 0,
 }) => {
   const layerGroupRef = useRef(null);
   const [map, setMap] = useState(null);
   const tileTheme = useLeafletTileTheme();
+  const cityLat = parseCoordinateValue(cityData?.lat);
+  const cityLng = parseCoordinateValue(cityData?.long);
+  const hasMeaningfulCityCoordinates = isMeaningfulCoordinatePair(
+    cityLat,
+    cityLng,
+  );
 
   // Default center (Sarajevo ili iz cityData)
-  const defaultCenter = [
-    cityData?.lat || 43.8563,
-    cityData?.long || 18.4131,
-  ];
+  const defaultCenter = hasMeaningfulCityCoordinates
+    ? [cityLat, cityLng]
+    : [43.8563, 18.4131];
 
   // Initialize marker layer when map is ready
   useEffect(() => {
@@ -539,7 +828,7 @@ const MapWithListingsMarkers = ({
           background: transparent !important;
           border: none !important;
         }
-        
+
         .price-marker-wrapper {
           display: flex;
           flex-direction: column;
@@ -547,16 +836,16 @@ const MapWithListingsMarkers = ({
           cursor: pointer;
           transition: transform 0.2s ease;
         }
-        
+
         .price-marker-wrapper:hover {
           transform: scale(1.05);
         }
-        
+
         .price-marker-wrapper.marker-selected {
           transform: scale(1.1);
           z-index: 1000 !important;
         }
-        
+
         .price-marker-bubble {
           padding: 6px 12px;
           border-radius: 6px;
@@ -569,18 +858,18 @@ const MapWithListingsMarkers = ({
           border: 2px solid #1f2937;
           transition: all 0.2s ease;
         }
-        
+
         .price-marker-bubble.selected {
           background: var(--primary, #3b82f6);
           border-color: var(--primary, #3b82f6);
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
-        
+
         .price-marker-bubble.hovered {
           background: #4b5563;
           border-color: #374151;
         }
-        
+
         .price-marker-arrow {
           width: 0;
           height: 0;
@@ -589,13 +878,16 @@ const MapWithListingsMarkers = ({
           border-top: 6px solid #1f2937;
           margin-top: -1px;
         }
-        
+
         .price-marker-arrow.active {
           border-top-color: var(--primary, #3b82f6);
         }
-        
+
         .price-text {
-          font-family: system-ui, -apple-system, sans-serif;
+          font-family:
+            system-ui,
+            -apple-system,
+            sans-serif;
         }
 
         .custom-cluster-marker {
@@ -613,7 +905,9 @@ const MapWithListingsMarkers = ({
           color: #ffffff;
           border: 3px solid rgba(255, 255, 255, 0.95);
           box-shadow: 0 10px 22px -14px rgba(124, 58, 237, 0.7);
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease;
         }
 
         .cluster-marker-shell:hover {
@@ -630,9 +924,12 @@ const MapWithListingsMarkers = ({
           font-size: 13px;
           font-weight: 800;
           line-height: 1;
-          font-family: system-ui, -apple-system, sans-serif;
+          font-family:
+            system-ui,
+            -apple-system,
+            sans-serif;
         }
-        
+
         /* Popup Styles */
         .custom-map-popup .leaflet-popup-content-wrapper {
           padding: 0;
@@ -650,7 +947,7 @@ const MapWithListingsMarkers = ({
         .custom-map-popup .leaflet-popup-tip-container {
           display: none;
         }
-        
+
         .custom-map-popup .leaflet-popup-close-button {
           display: none;
         }
@@ -663,7 +960,7 @@ const MapWithListingsMarkers = ({
           border-radius: 12px;
           overflow: hidden;
         }
-        
+
         .popup-close-btn {
           position: absolute;
           top: 8px;
@@ -682,30 +979,30 @@ const MapWithListingsMarkers = ({
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
           transition: all 0.2s ease;
         }
-        
+
         .popup-close-btn:hover {
           background: white;
           color: #1e293b;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
-        
+
         .popup-content {
           display: block;
         }
-        
+
         .popup-media {
           position: relative;
           width: 100%;
           height: 150px;
           overflow: hidden;
         }
-        
+
         .popup-media img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-        
+
         .popup-no-image {
           width: 100%;
           height: 100%;
@@ -738,7 +1035,7 @@ const MapWithListingsMarkers = ({
           flex-direction: column;
           gap: 6px;
         }
-        
+
         .popup-title {
           font-weight: 700;
           font-size: 14px;
@@ -751,14 +1048,14 @@ const MapWithListingsMarkers = ({
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        
+
         .popup-tags {
           display: flex;
           flex-wrap: wrap;
           gap: 4px;
           margin-bottom: 6px;
         }
-        
+
         .popup-tag {
           display: inline-flex;
           padding: 2px 8px;
@@ -790,7 +1087,7 @@ const MapWithListingsMarkers = ({
           border-color: #fed7aa;
           color: #c2410c;
         }
-        
+
         .popup-price {
           font-weight: 700;
           font-size: 15px;
@@ -844,7 +1141,7 @@ const MapWithListingsMarkers = ({
           border-radius: 999px;
           white-space: nowrap;
         }
-        
+
         .popup-time {
           font-size: 11px;
           color: #94a3b8;
@@ -912,17 +1209,19 @@ const MapWithListingsMarkers = ({
         />
 
         {/* User location circle */}
-        {cityData?.lat && cityData?.long && kmRange > 0 && (
+        {hasMeaningfulCityCoordinates && kmRange > 0 && (
           <Circle
-            center={[cityData.lat, cityData.long]}
+            center={[cityLat, cityLng]}
             radius={kmRange * 1000}
             pathOptions={{
-              color: getComputedStyle(document.documentElement)
-                .getPropertyValue("--primary")
-                ?.trim() || "#3b82f6",
-              fillColor: getComputedStyle(document.documentElement)
-                .getPropertyValue("--primary")
-                ?.trim() || "#3b82f6",
+              color:
+                getComputedStyle(document.documentElement)
+                  .getPropertyValue("--primary")
+                  ?.trim() || "#3b82f6",
+              fillColor:
+                getComputedStyle(document.documentElement)
+                  .getPropertyValue("--primary")
+                  ?.trim() || "#3b82f6",
               fillOpacity: 0.1,
               weight: 2,
             }}
@@ -930,10 +1229,8 @@ const MapWithListingsMarkers = ({
         )}
 
         {/* User location marker */}
-        {cityData?.lat && cityData?.long && (
-          <Marker 
-            position={[cityData.lat, cityData.long]}
-          />
+        {hasMeaningfulCityCoordinates && (
+          <Marker position={[cityLat, cityLng]} />
         )}
 
         {/* Bounds change handler */}
@@ -953,6 +1250,8 @@ const MapWithListingsMarkers = ({
             onMarkerClick={onMarkerClick}
             layerGroupRef={layerGroupRef}
             showMarkerPopup={showMarkerPopup}
+            useApproximateZoneMarkers={useApproximateZoneMarkers}
+            approximateZoneRadiusMeters={approximateZoneRadiusMeters}
           />
         )}
       </MapContainer>
