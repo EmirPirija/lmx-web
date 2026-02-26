@@ -80,16 +80,16 @@ const PublishOptionsModal = ({
  
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="!max-w-[500px] overflow-hidden border border-slate-200 p-0 dark:border-slate-700 dark:bg-slate-900">
+      <DialogContent className="max-lg:fixed max-lg:inset-0 max-lg:!m-0 max-lg:!max-w-none max-lg:!translate-x-0 max-lg:!translate-y-0 max-lg:rounded-none max-lg:border-0 !max-w-[480px] overflow-hidden bg-white p-0 dark:bg-slate-950 lg:rounded-2xl lg:dark:bg-slate-900">
         {/* Header */}
-        <DialogHeader className="border-b bg-[#0ab6af]/10 p-6 pb-4 dark:border-slate-700 dark:bg-[#0ab6af]/16">
-          <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-slate-100">
-            <div className="rounded-lg bg-[#0ab6af] p-2">
-              <CalendarClock className="w-6 h-6 text-white" />
+        <DialogHeader className="p-5 pb-4 sm:p-6 sm:pb-4">
+          <DialogTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-slate-100">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0ab6af]/10">
+              <CalendarClock className="w-5 h-5 text-[#0ab6af]" />
             </div>
             Opcije objave
           </DialogTitle>
-          <DialogDescription className="mt-2 text-slate-600 dark:text-slate-300">
+          <DialogDescription className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Odaberite kada želite da se vaš oglas pojavi na platformi.
           </DialogDescription>
         </DialogHeader>
@@ -246,19 +246,12 @@ const PublishOptionsModal = ({
         </div>
  
         {/* Footer */}
-        <DialogFooter className="border-t bg-gray-50 p-6 pt-4 dark:border-slate-700 dark:bg-slate-900">
-          <div className="flex gap-3 w-full">
-            <button
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="flex-1 rounded-lg border-2 border-gray-300 px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
-            >
-              Odustani
-            </button>
+        <DialogFooter className="p-5 pt-2 sm:p-6 sm:pt-2 max-lg:pb-[max(env(safe-area-inset-bottom),20px)]">
+          <div className="flex flex-col gap-2 w-full sm:flex-row sm:justify-end">
             <button
               onClick={handleConfirm}
               disabled={isSubmitting}
-              className="flex-1 rounded-lg bg-[#0ab6af] px-6 py-3 font-medium text-white transition-colors hover:bg-[#09a8a2] disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+              className="h-12 w-full rounded-xl bg-[#0ab6af] font-semibold text-white transition-colors hover:bg-[#09a8a2] disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2 sm:w-auto sm:min-w-[200px]"
             >
               {isSubmitting ? (
                 <>
@@ -271,6 +264,13 @@ const PublishOptionsModal = ({
                   <ChevronRight className="w-5 h-5" />
                 </>
               )}
+            </button>
+            <button
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="h-11 w-full rounded-xl text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-800 sm:w-auto sm:min-w-[120px]"
+            >
+              Odustani
             </button>
           </div>
         </DialogFooter>

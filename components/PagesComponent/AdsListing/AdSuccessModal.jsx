@@ -34,12 +34,12 @@ const formatDateTime = (value) => {
 };
 
 const SummaryItem = ({ icon: Icon, label, value }) => (
-  <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/70">
-    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-      <Icon className="h-3.5 w-3.5 text-primary" />
+  <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
+    <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+      <Icon className="h-3 w-3" />
       <span>{label}</span>
     </div>
-    <p className="mt-1.5 line-clamp-2 break-words text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100 sm:line-clamp-1" title={value}>
+    <p className="mt-1 line-clamp-2 break-words text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100" title={value}>
       {value}
     </p>
   </div>
@@ -165,51 +165,50 @@ const AdSuccessModal = ({
     <Dialog open={openSuccessModal} onOpenChange={closeSuccessModal}>
       <DialogContent
         showCloseButton={false}
-        className="w-[min(96vw,560px)] max-h-[92dvh] overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl sm:rounded-3xl dark:border-slate-700 dark:bg-slate-900"
+        className="max-lg:fixed max-lg:inset-0 max-lg:!m-0 max-lg:!max-w-none max-lg:!translate-x-0 max-lg:!translate-y-0 max-lg:rounded-none max-lg:border-0 w-[min(96vw,480px)] max-h-[92dvh] overflow-hidden rounded-2xl bg-white p-0 dark:bg-slate-950 lg:dark:bg-slate-900"
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <div className="flex max-h-[92dvh] flex-col">
-          <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-4 py-4 dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 sm:px-5 sm:py-5">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {isScheduled ? <Calendar className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                {isScheduled ? "Zakazana objava" : "Uspješna objava"}
+        <div className="flex h-full max-h-[100dvh] flex-col lg:max-h-[92dvh]">
+          <div className="shrink-0 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0ab6af]/10">
+                {isScheduled ? <Calendar className="h-6 w-6 text-[#0ab6af]" /> : <CheckCircle2 className="h-6 w-6 text-[#0ab6af]" />}
               </div>
               <button
                 type="button"
                 onClick={closeSuccessModal}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                aria-label="Zatvori modal"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                aria-label="Zatvori"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{title}</h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
 
             {scheduledDateLabel ? (
-              <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300">
+              <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                 <Clock className="h-3.5 w-3.5" />
                 {scheduledDateLabel}
               </div>
             ) : null}
           </div>
 
-          <div className="min-h-0 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex-1 space-y-4 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6">
             {summary.length > 0 ? (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2">
                 {summary.map((item) => (
                   <SummaryItem key={`${item.label}-${item.value}`} icon={item.icon} label={item.label} value={item.value} />
                 ))}
               </div>
             ) : null}
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
               {createdAdSlug ? (
                 <CustomLink
                   href={`/my-listing/${createdAdSlug}`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0ab6af] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#09a8a2]"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0ab6af] text-sm font-semibold text-white transition-colors hover:bg-[#09a8a2]"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Pregledaj oglas
@@ -217,42 +216,44 @@ const AdSuccessModal = ({
               ) : (
                 <CustomLink
                   href="/my-ads"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0ab6af] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#09a8a2]"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0ab6af] text-sm font-semibold text-white transition-colors hover:bg-[#09a8a2]"
                 >
                   <Sparkles className="h-4 w-4" />
                   Moji oglasi
                 </CustomLink>
               )}
 
+              <div className="grid grid-cols-2 gap-2">
+                {createdAdSlug && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+                    >
+                      <Copy className={cn("h-4 w-4", copied && "text-emerald-500")} />
+                      {copied ? "Kopirano" : "Kopiraj"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Podijeli
+                    </button>
+                  </>
+                )}
+              </div>
+
               <CustomLink
                 href="/"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
               >
                 <Home className="h-4 w-4" />
                 Početna
               </CustomLink>
             </div>
-
-            {createdAdSlug ? (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  <Copy className={cn("h-4 w-4", copied && "text-emerald-500")} />
-                  {copied ? "Kopirano" : "Kopiraj link"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Podijeli
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
       </DialogContent>

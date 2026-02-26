@@ -41,25 +41,25 @@ const AccordionSection = ({
   subtitle,
   isOpen,
   onToggle,
-  badge, 
+  badge,
   planGate,
   children,
 }) => {
   return (
-    <div className="lmx-guided-accordion overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm transition-shadow duration-200 dark:border-slate-700 dark:bg-slate-900/90">
+    <div className="lmx-guided-accordion overflow-visible">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className={`flex cursor-pointer items-center justify-between p-4 transition-colors duration-200 sm:p-5 ${
-          isOpen ? "border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
-        } min-h-[64px] w-full text-left active:scale-[0.995] transform-gpu`}
+        className={`flex cursor-pointer items-center justify-between py-3 transition-colors duration-200 sm:py-4 ${
+          isOpen ? "" : ""
+        } w-full text-left`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3
-              className={`text-base sm:text-lg font-semibold ${
-                isOpen ? "text-primary" : "text-slate-900 dark:text-slate-100"
+              className={`text-[15px] sm:text-base font-semibold ${
+                isOpen ? "text-slate-900 dark:text-slate-100" : "text-slate-700 dark:text-slate-200"
               }`}
             >
               {title}
@@ -69,10 +69,10 @@ const AccordionSection = ({
 
             {badge && (
               <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
                   badge === "required"
-                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                    ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300"
+                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
                 }`}
               >
                 {badge === "required" ? "Obavezno" : "Opcionalno"}
@@ -81,14 +81,14 @@ const AccordionSection = ({
           </div>
 
           {subtitle ? (
-            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               {subtitle}
             </p>
           ) : null}
         </div>
 
         <svg
-          className={`ml-2 h-6 w-6 flex-shrink-0 text-slate-400 transition-transform duration-300 dark:text-slate-500 ${
+          className={`ml-2 h-5 w-5 flex-shrink-0 text-slate-400 transition-transform duration-200 dark:text-slate-500 ${
             isOpen ? "rotate-180" : "rotate-0"
           }`}
           fill="none"
@@ -99,7 +99,7 @@ const AccordionSection = ({
         </svg>
       </button>
 
-      {isOpen && <div className="lmx-guided-accordion-content bg-white p-4 dark:bg-slate-900/90 sm:p-5">{children}</div>}
+      {isOpen && <div className="lmx-guided-accordion-content pb-4">{children}</div>}
     </div>
   );
 };

@@ -128,69 +128,52 @@ const CategoryListItem = memo(({ category, onClick, showPath = false, adCount = 
       type="button"
       onClick={() => onClick(category)}
       className="
-        group w-full flex items-center p-3 md:p-4 
-        bg-white border border-gray-100 rounded-xl md:rounded-2xl
-        hover:border-blue-300 hover:shadow-md hover:bg-blue-50/30
-        dark:bg-slate-900 dark:border-slate-700 dark:hover:border-blue-500 dark:hover:bg-blue-500/10
-        transition-all duration-200
+        group w-full flex items-center p-3 md:p-3.5
+        rounded-xl
+        hover:bg-slate-50
+        dark:hover:bg-slate-800/60
+        transition-colors duration-150
       "
     >
       {/* Icon */}
       <div className="
-        shrink-0 mr-4
-        w-10 h-10 md:w-12 md:h-12 
-        rounded-lg md:rounded-xl 
-        bg-gray-50 border border-gray-100 
-        flex items-center justify-center 
-        dark:bg-slate-800 dark:border-slate-700
-        group-hover:bg-white group-hover:border-blue-100 transition-colors
+        shrink-0 mr-3
+        w-10 h-10 md:w-11 md:h-11
+        rounded-xl
+        bg-slate-50
+        flex items-center justify-center
+        dark:bg-slate-800
+        transition-colors
       ">
-        {isRootCategory(category) ? (
-          <CategorySemanticIcon
-            category={category}
-            className="w-6 h-6 md:w-7 md:h-7 opacity-90 group-hover:scale-110 transition-transform"
-            preferBackendImage={false}
-          />
-        ) : (
-          <CategorySemanticIcon
-            category={category}
-            className="w-6 h-6 md:w-7 md:h-7 opacity-90 group-hover:scale-110 transition-transform"
-            preferBackendImage={false}
-          />
-        )}
+        <CategorySemanticIcon
+          category={category}
+          className="w-5 h-5 md:w-6 md:h-6 opacity-80"
+          preferBackendImage={false}
+        />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0 text-left">
-        <span className="line-clamp-1 text-sm font-semibold text-gray-800 transition-colors group-hover:text-blue-700 dark:text-slate-100 dark:group-hover:text-blue-300 md:text-base">
+        <span className="line-clamp-1 text-sm font-semibold text-slate-800 dark:text-slate-100 md:text-[15px]">
           {category?.search_name || category?.translated_name || category?.name}
         </span>
-        
+
         {showPath && category?.full_path ? (
-          <span className="mt-0.5 block truncate text-[10px] text-gray-400 dark:text-slate-400 md:text-xs">
+          <span className="mt-0.5 block truncate text-[11px] text-slate-400 dark:text-slate-500">
             {category.full_path}
           </span>
         ) : (
-          <div className="flex items-center gap-2 mt-0.5 md:mt-1">
-            {hasChildren && (
-              <span className="text-[10px] text-gray-500 dark:text-slate-400 md:text-xs">
-                {category?.subcategories_count} podkategorija
-              </span>
-            )}
-          </div>
+          hasChildren && (
+            <span className="mt-0.5 block text-[11px] text-slate-400 dark:text-slate-500">
+              {category?.subcategories_count} podkategorija
+            </span>
+          )
         )}
       </div>
 
-      {/* Right Side Info & Arrow */}
-      <div className="flex items-center gap-3 ml-2 shrink-0">
-        {adCount !== null && adCount > 0 && (
-          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700 dark:bg-slate-800 dark:text-slate-300 dark:group-hover:bg-blue-500/20 dark:group-hover:text-blue-300">
-            {adCount}
-          </span>
-        )}
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 transition-colors group-hover:bg-blue-500 dark:bg-slate-800 dark:group-hover:bg-blue-500">
-          <ChevronRight size={16} className="text-gray-400 transition-colors group-hover:text-white dark:text-slate-400" />
-        </div>
+      {/* Arrow */}
+      <div className="ml-2 shrink-0">
+        <ChevronRight size={18} className="text-slate-300 dark:text-slate-600" />
       </div>
     </motion.button>
   );

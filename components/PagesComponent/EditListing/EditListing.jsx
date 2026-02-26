@@ -2333,45 +2333,66 @@ const EditListing = ({ id }) => {
         <PageLoader />
       ) : (
         <>
-          <BreadCrumb title2={"Uredi oglas"} />
-          <div className="container relative overflow-x-hidden">
-            <div className="mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-medium">{"Uredi oglas"}</h1>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2">
-                    <Award className="w-5 h-5 text-primary" />
-                    <span className="font-semibold text-primary">{completenessScore}%</span>
-                    <span className="text-sm text-muted-foreground">{"dovršen"}</span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        draftStatus === "error"
-                          ? "bg-rose-500"
-                          : draftStatus === "saving"
-                          ? "bg-amber-500"
-                          : "bg-emerald-500"
-                      }`}
-                    />
-                    {draftStatus === "saving"
-                      ? "Čuvam nacrt…"
-                      : draftStatus === "error"
-                      ? "Greška pri čuvanju nacrta"
-                      : draftSavedAgoLabel
-                      ? `Zadnje sačuvano ${draftSavedAgoLabel}`
-                      : "Lokalni nacrt nije sačuvan"}
-                    <span className="text-slate-400">•</span>
-                    {draftServerSavedAgoLabel
-                      ? `Server ${draftServerSavedAgoLabel}`
-                      : "Server na čekanju"}
-                  </div>
+          <div className="hidden lg:block">
+            <BreadCrumb title2={"Uredi oglas"} />
+          </div>
+          <div className="relative max-lg:min-h-[100dvh] max-lg:bg-white max-lg:dark:bg-slate-950 lg:container">
+            <div className="relative flex min-w-0 flex-col gap-0 pb-6 lg:mt-6 lg:gap-5 lg:pb-10">
+
+          {/* Hero - desktop only */}
+          <div className="hidden lg:block">
+            <div className="flex items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 dark:bg-slate-900">
+              <div>
+                <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Uredi oglas</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#0ab6af]/10 px-4 py-2">
+                  <Award className="h-4 w-4 text-[#0ab6af]" />
+                  <span className="text-sm font-semibold text-[#0ab6af]">{completenessScore}%</span>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      draftStatus === "error"
+                        ? "bg-rose-500"
+                        : draftStatus === "saving"
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                  />
+                  {draftStatus === "saving"
+                    ? "Čuvam nacrt…"
+                    : draftStatus === "error"
+                    ? "Greška"
+                    : draftSavedAgoLabel
+                    ? draftSavedAgoLabel
+                    : "Nacrt"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile compact header */}
+          <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+            <div className="flex items-center gap-3">
+              <button onClick={() => window.history.back()} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <ChevronRight className="h-4 w-4 rotate-180" />
+              </button>
+              <div>
+                <h1 className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">Uredi oglas</h1>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">Korak {activeStepIndex + 1} od {steps.length}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#0ab6af]">{completenessScore}%</span>
+              <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="h-full rounded-full bg-[#0ab6af] transition-all duration-500" style={{ width: `${completenessScore}%` }} />
               </div>
             </div>
           </div>
 
           {hasVerificationWarnings ? (
-            <Alert className="relative border-amber-200/80 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            <Alert className="mx-4 mt-3 border-amber-200/80 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100 lg:mx-0 lg:mt-0">
               <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
               <AlertTitle>Nedovršena verifikacija naloga</AlertTitle>
               <AlertDescription className="space-y-1 text-amber-800/95 dark:text-amber-100/90">
@@ -2400,35 +2421,22 @@ const EditListing = ({ id }) => {
             </Alert>
           ) : null}
 
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[1fr_340px] lg:gap-5 xl:grid-cols-[1fr_380px]">
                 
-                <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-                  
+                <div className="relative flex min-w-0 flex-col gap-0 lg:gap-4">
+
                   <div
                     ref={wizardTopRef}
-                    className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
+                    className="relative bg-white px-4 py-4 dark:bg-slate-950 max-lg:border-b max-lg:border-slate-100 max-lg:dark:border-slate-800 lg:rounded-2xl lg:bg-white lg:px-6 lg:py-5 lg:dark:bg-slate-900"
                   >
-                    <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
-                    <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-[#0ab6af]/15 blur-2xl dark:bg-[#0ab6af]/20" />
-
-                    <div className="relative mb-5 flex flex-wrap items-center justify-between gap-2">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/20">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Korak {activeStepIndex + 1} od {steps.length}
-                      </div>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-300">
-                        Preostalo: {Math.max(steps.length - (activeStepIndex + 1), 0)}
-                      </p>
-                    </div>
-
                     <div className="relative">
                       <div className="relative">
                         <div
                           ref={stepRailRef}
-                          className="pointer-events-none absolute inset-x-0 top-[16px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80 sm:top-[22px]"
+                          className="pointer-events-none absolute inset-x-0 top-[16px] h-[3px] rounded-full bg-slate-100 dark:bg-slate-800 sm:top-[22px]"
                         />
                         <motion.div
-                          className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-[#0ab6af] shadow-[0_0_20px_-4px_rgba(10,182,175,0.75)] sm:top-[22px]"
+                          className="pointer-events-none absolute top-[16px] h-[3px] rounded-full bg-[#0ab6af] sm:top-[22px]"
                           initial={false}
                           animate={{ left: stepRailFill.left, width: stepRailFill.width }}
                           transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
@@ -2461,83 +2469,37 @@ const EditListing = ({ id }) => {
                                   }}
                                   className="relative"
                                 >
-                                  {isActive && (
-                                    <motion.span
-                                      className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 blur-md"
-                                      initial={{ opacity: 0.2, scale: 0.8 }}
-                                      animate={{ opacity: 0.45, scale: 1.18 }}
-                                      transition={{ duration: 0.35, ease: "easeOut" }}
-                                    />
-                                  )}
+                                  {/* active indicator handled by bg color */}
 
-                                  <motion.span
-                                    initial={false}
-                                    animate={
+                                  <span
+                                    className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:w-10 sm:text-sm transition-colors ${
                                       isActive
-                                        ? { scale: 1.08, y: -1 }
-                                        : isCompleted
-                                        ? { scale: 1 }
-                                        : { scale: 0.98 }
-                                    }
-                                    transition={{ type: "spring", stiffness: 280, damping: 22 }}
-                                    className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold sm:h-11 sm:w-11 sm:text-sm ${
-                                      isActive
-                                        ? "border-primary bg-white text-primary shadow-[0_10px_24px_-14px_rgba(8,145,178,0.9)] dark:bg-slate-950"
+                                        ? "bg-[#0ab6af] text-white"
                                         : ""
                                     } ${
-                                      isCompleted ? "border-primary bg-primary text-white" : ""
+                                      isCompleted ? "bg-[#0ab6af] text-white" : ""
                                     } ${
                                       !isActive && !isCompleted
-                                        ? "border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                                        ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
                                         : ""
                                     }`}
                                   >
-                                    <AnimatePresence mode="wait" initial={false}>
-                                      {isCompleted ? (
-                                        <motion.span
-                                          key={`done-${s.id}`}
-                                          initial={{ opacity: 0, scale: 0.7, y: 4 }}
-                                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                                          exit={{ opacity: 0, scale: 0.8, y: -4 }}
-                                          transition={{ duration: 0.2 }}
-                                        >
-                                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        </motion.span>
-                                      ) : (
-                                        <motion.span
-                                          key={`index-${s.id}`}
-                                          initial={{ opacity: 0, y: 4 }}
-                                          animate={{ opacity: 1, y: 0 }}
-                                          exit={{ opacity: 0, y: -4 }}
-                                          transition={{ duration: 0.18 }}
-                                        >
-                                          {idx + 1}
-                                        </motion.span>
-                                      )}
-                                    </AnimatePresence>
-                                  </motion.span>
+                                    {isCompleted ? (
+                                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                                    ) : (
+                                      idx + 1
+                                    )}
+                                  </span>
                                 </div>
 
-                                <motion.span
-                                  initial={false}
-                                  animate={{ y: isActive ? 0 : 1 }}
-                                  transition={{ duration: 0.2, ease: "easeOut" }}
-                                  className={`line-clamp-2 max-w-[58px] text-[10px] font-medium leading-[1.1] sm:max-w-[120px] sm:text-xs sm:leading-tight ${
-                                    isActive ? "font-semibold text-primary" : "text-slate-500 dark:text-slate-300"
+                                <span
+                                  className={`line-clamp-1 max-w-[52px] text-[10px] font-medium leading-tight sm:max-w-[120px] sm:text-xs ${
+                                    isActive ? "font-semibold text-[#0ab6af]" : isCompleted ? "text-slate-600 dark:text-slate-300" : "text-slate-400 dark:text-slate-500"
                                   }`}
                                 >
                                   <span className="sm:hidden">{s.mobileLabel || s.label}</span>
                                   <span className="hidden sm:inline">{s.label}</span>
-                                </motion.span>
-
-                                <div className="hidden h-[3px] w-12 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70 sm:block sm:w-14">
-                                  <motion.div
-                                    className="h-full rounded-full bg-[#0ab6af]"
-                                    initial={false}
-                                    animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
-                                    transition={{ type: "spring", stiffness: 190, damping: 24 }}
-                                  />
-                                </div>
+                                </span>
                               </motion.button>
                             );
                           })}
@@ -2547,38 +2509,27 @@ const EditListing = ({ id }) => {
                   </div>
 
                   {renderedStep === 1 && selectedCategoryPath?.length > 0 && (
-                    <div className="flex flex-col gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-sm text-gray-500">
-                          {"Odabrana kategorija"}
-                        </p>
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center gap-2">
-                        {selectedCategoryPath?.map((item, index) => (
-                          <div key={item.id} className="flex items-center">
-                            <span
-                              className={`
-                                text-sm px-3 py-1.5 rounded-lg transition-all duration-200 cursor-default
-                                ${index === selectedCategoryPath.length - 1 
-                                  ? "bg-primary/10 text-primary font-semibold border border-primary/20" 
-                                  : "bg-gray-50 text-gray-700 border border-gray-200"
-                                }
-                              `}
-                            >
-                              {item.translated_name || item.name}
-                            </span>
-                            
-                            {index !== selectedCategoryPath.length - 1 && (
-                              <ChevronRight size={16} className="text-gray-400 mx-1" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                    <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 max-lg:border-b max-lg:border-slate-100 max-lg:dark:border-slate-800 lg:px-0 lg:py-0">
+                      {selectedCategoryPath?.map((item, index) => (
+                        <div key={item.id} className="flex shrink-0 items-center">
+                          <span
+                            className={`whitespace-nowrap rounded-lg px-2.5 py-1 text-[13px] transition-colors ${
+                              index === selectedCategoryPath.length - 1
+                                ? "bg-[#0ab6af]/10 font-semibold text-[#0ab6af]"
+                                : "text-slate-500 dark:text-slate-400"
+                            }`}
+                          >
+                            {item.translated_name || item.name}
+                          </span>
+                          {index !== selectedCategoryPath.length - 1 && (
+                            <ChevronRight size={14} className="mx-0.5 text-slate-300 dark:text-slate-600" />
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
 
-                  <div className="border rounded-lg p-6 bg-white shadow-sm">
+                  <div className="bg-white px-4 dark:bg-slate-950 lg:rounded-2xl lg:bg-white lg:p-5 lg:dark:bg-slate-900">
                     {renderedStep === 1 && (
                       <EditComponentOne
                         setTranslations={setTranslations}
@@ -2656,118 +2607,67 @@ const EditListing = ({ id }) => {
                   </div>
                 </div>
 
-                {/* 📱 DESNA STRANA - LIVE PREVIEW */}
-                <div className="min-w-0 lg:col-span-1">
-                  <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
-                    <div className="flex items-center gap-2 mb-4 px-1">
-                      <Zap className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold text-lg">{"Pregled oglasa"}</h3>
+                {/* Right Column - Live Preview (desktop only) */}
+                <div className="hidden min-w-0 lg:block">
+                  <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl bg-white p-5 dark:bg-slate-900">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Pregled</h3>
                     </div>
 
-                    <div className="mb-4 rounded-2xl border border-[#0ab6af]/30 bg-[#0ab6af]/8 p-3.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">
-                            Što je ostalo
-                          </p>
-                          <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {listingFlowIssues.length ? "Dovrši preostale stavke" : "Sve je spremno za spremanje"}
-                          </h4>
-                        </div>
-                        <span className="rounded-full border border-[#0ab6af]/35 bg-white/85 px-2 py-0.5 text-xs font-semibold text-[#0ab6af] dark:bg-slate-900/75">
-                          {listingFlowPercent}%
-                        </span>
+                    {listingFlowIssues.length > 0 && (
+                      <div className="mb-4 space-y-1.5">
+                        {listingFlowIssues.slice(0, 4).map((issue) => (
+                          <button
+                            key={`issue-${issue.id}`}
+                            type="button"
+                            onClick={() => goToListingIssue(issue)}
+                            className="group flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-left transition-colors hover:bg-[#0ab6af]/8 dark:bg-slate-800 dark:hover:bg-[#0ab6af]/10"
+                          >
+                            <p className="truncate text-xs font-medium text-slate-600 group-hover:text-[#0ab6af] dark:text-slate-300">
+                              {issue.label}
+                            </p>
+                            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300 group-hover:text-[#0ab6af] dark:text-slate-600" />
+                          </button>
+                        ))}
                       </div>
-
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#0ab6af]/20">
-                        <motion.div
-                          className="h-full rounded-full bg-[#0ab6af]"
-                          initial={false}
-                          animate={{ width: `${listingFlowPercent}%` }}
-                          transition={{ type: "spring", stiffness: 220, damping: 28 }}
-                        />
-                      </div>
-
-                      {listingFlowIssues.length > 0 ? (
-                        <div className="mt-3 space-y-2">
-                          {listingFlowIssues.slice(0, 5).map((issue) => (
-                            <button
-                              key={`issue-${issue.id}`}
-                              type="button"
-                              onClick={() => goToListingIssue(issue)}
-                              className="group flex w-full items-center justify-between rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 text-left transition-all hover:border-[#0ab6af]/45 hover:bg-[#0ab6af]/10 dark:border-slate-700 dark:bg-slate-900/70"
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
-                                  {issue.label}
-                                </p>
-                                <p className="truncate text-[11px] text-slate-500 dark:text-slate-300">
-                                  {issue.hint}
-                                </p>
-                              </div>
-                              <ChevronRight className="h-4 w-4 shrink-0 text-[#0ab6af] transition-transform group-hover:translate-x-0.5" />
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Oglas je spreman
-                        </div>
-                      )}
-                    </div>
+                    )}
 
                     <div className="pointer-events-none select-none">
                       <ProductCard item={previewCardItem} />
                     </div>
 
-                    <div className="mt-6 space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">{"Ocjena kvaliteta oglasa"}</span>
-                          <span className="text-primary font-semibold">{completenessScore}%</span>
+                    <div className="mt-4 space-y-3">
+                      <div>
+                        <div className="mb-1.5 flex justify-between text-xs">
+                          <span className="text-slate-500 dark:text-slate-400">Kvalitet oglasa</span>
+                          <span className="font-semibold text-[#0ab6af]">{completenessScore}%</span>
                         </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-[#0ab6af] transition-all duration-500"
+                        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                          <div
+                            className="h-full rounded-full bg-[#0ab6af] transition-all duration-500"
                             style={{ width: `${completenessScore}%` }}
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        {uploadedImages.length === 0 && (
-                          <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <TrendingUp className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-yellow-800">
-                              {"Dodaj barem jednu sliku!"} (+20% {"vidljivost"})
-                            </p>
-                          </div>
-                        )}
-
-                        {uploadedImages.length > 0 && OtherImages.length < 3 && (
-                          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <Star className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-blue-800">
-                              {"Dodaj još {count} fotografija".replace("{count}", 3 - OtherImages.length)} (+{(3 - OtherImages.length) * 5}% {"veća vidljivost!"})
-                            </p>
-                          </div>
-                        )}
-
-                        {defaultDetails.description && defaultDetails.description.length < 100 && (
-                          <div className="flex items-start gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                            <Award className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-purple-800">
-                              {"Detaljan opis"} (+10% {"pouzdanost"})
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                      {uploadedImages.length === 0 && (
+                        <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-500/10">
+                          <TrendingUp className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                          <p className="text-[11px] text-amber-700 dark:text-amber-200">Dodaj barem jednu sliku (+20% vidljivost)</p>
+                        </div>
+                      )}
+                      {uploadedImages.length > 0 && OtherImages.length < 3 && (
+                        <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 dark:bg-blue-500/10">
+                          <Star className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                          <p className="text-[11px] text-blue-700 dark:text-blue-200">Dodaj još {3 - OtherImages.length} fotografija</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
               </div>
+            </div>
           </div>
           <AdsEditSuccessModal
             openSuccessModal={openSuccessModal}

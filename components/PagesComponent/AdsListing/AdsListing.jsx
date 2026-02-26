@@ -2250,36 +2250,29 @@ const AdsListing = () => {
 
   return (
     <Layout>
-      <BreadCrumb title2={"Lista oglasa"} />
-      <div className="container relative overflow-x-hidden">
-        <div className="relative mt-8 flex min-w-0 flex-col gap-8 overflow-x-hidden pb-10">
-          <div className="pointer-events-none absolute -top-14 left-0 h-52 w-52 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
-          <div className="pointer-events-none absolute -right-10 top-8 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/30" />
+      <div className="hidden lg:block">
+        <BreadCrumb title2={"Lista oglasa"} />
+      </div>
+      <div className="relative max-lg:min-h-[100dvh] max-lg:bg-white max-lg:dark:bg-slate-950 lg:container">
+        <div className="relative flex min-w-0 flex-col gap-0 pb-6 lg:mt-6 lg:gap-5 lg:pb-10">
 
-          <div className="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white/90 p-6 shadow-[0_20px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80 md:p-8">
-            <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-primary/10 blur-3xl dark:bg-primary/30" />
-            <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70 dark:text-primary/80">
-                  LMX Studio
-                </p>
-                <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 md:text-3xl">
-                  {"Lista oglasa"}
-                </h1>
-                <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-                  Kreirajte oglas uz prikaz uživo, pametan medijski tok i jasne korake do objave.
+          {/* Hero - desktop only */}
+          <div className="hidden lg:block">
+            <div className="flex items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 dark:bg-slate-900">
+              <div>
+                <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Novi oglas</h1>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Kreirajte oglas uz pametan medijski tok i jasne korake do objave.
                 </p>
               </div>
-
-              <div className="flex w-fit flex-wrap items-center justify-end gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2 dark:border-[#0ab6af]/45 dark:bg-[#0ab6af]/15">
-                  <Award className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">{completenessScore}%</span>
-                  <span className="text-xs text-slate-600 dark:text-slate-300">{"dovršen"}</span>
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#0ab6af]/10 px-4 py-2">
+                  <Award className="h-4 w-4 text-[#0ab6af]" />
+                  <span className="text-sm font-semibold text-[#0ab6af]">{completenessScore}%</span>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
+                <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                   <span
-                    className={`h-2 w-2 rounded-full ${
+                    className={`h-1.5 w-1.5 rounded-full ${
                       draftStatus === "error"
                         ? "bg-rose-500"
                         : draftStatus === "saving"
@@ -2290,17 +2283,36 @@ const AdsListing = () => {
                   {draftStatus === "saving"
                     ? "Čuvam nacrt…"
                     : draftStatus === "error"
-                    ? "Greška pri čuvanju nacrta"
+                    ? "Greška"
                     : draftSavedAgoLabel
-                    ? `Zadnje sačuvano ${draftSavedAgoLabel}`
-                    : "Lokalni nacrt nije sačuvan"}
+                    ? draftSavedAgoLabel
+                    : "Nacrt"}
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Mobile compact header */}
+          <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+            <div className="flex items-center gap-3">
+              <CustomLink href="/" className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <ArrowLeft className="h-4 w-4" />
+              </CustomLink>
+              <div>
+                <h1 className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">Novi oglas</h1>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">Korak {activeStepIndex + 1} od {steps.length}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#0ab6af]">{completenessScore}%</span>
+              <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="h-full rounded-full bg-[#0ab6af] transition-all duration-500" style={{ width: `${completenessScore}%` }} />
+              </div>
+            </div>
+          </div>
+
           {hasVerificationWarnings ? (
-            <Alert className="relative border-amber-200/80 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            <Alert className="mx-4 mt-3 border-amber-200/80 bg-amber-50/80 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100 lg:mx-0 lg:mt-0">
               <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
               <AlertTitle>Nedovršena verifikacija naloga</AlertTitle>
               <AlertDescription className="space-y-1 text-amber-800/95 dark:text-amber-100/90">
@@ -2329,34 +2341,21 @@ const AdsListing = () => {
             </Alert>
           ) : null}
 
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[1fr_340px] lg:gap-5 xl:grid-cols-[1fr_380px]">
             {/* Left Column */}
-            <div className="relative flex min-w-0 flex-col gap-6 lg:col-span-2">
+            <div className="relative flex min-w-0 flex-col gap-0 lg:gap-4">
               <div
                 ref={wizardTopRef}
-                className="relative overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 px-4 py-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 sm:py-6"
+                className="relative bg-white px-4 py-4 dark:bg-slate-950 max-lg:border-b max-lg:border-slate-100 max-lg:dark:border-slate-800 lg:rounded-2xl lg:bg-white lg:px-6 lg:py-5 lg:dark:bg-slate-900"
               >
-                <div className="pointer-events-none absolute -right-14 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
-                <div className="pointer-events-none absolute -left-12 bottom-0 h-24 w-24 rounded-full bg-[#0ab6af]/15 blur-2xl dark:bg-[#0ab6af]/20" />
-
-                <div className="relative mb-5 flex flex-wrap items-center justify-between gap-2">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/20">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Korak {activeStepIndex + 1} od {steps.length}
-                  </div>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-300">
-                    Preostalo: {Math.max(steps.length - (activeStepIndex + 1), 0)}
-                  </p>
-                </div>
-
                 <div className="relative">
                   <div className="relative">
                     <div
                       ref={stepRailRef}
-                      className="pointer-events-none absolute inset-x-0 top-[16px] h-1 rounded-full bg-slate-200/90 dark:bg-slate-700/80 sm:top-[22px]"
+                      className="pointer-events-none absolute inset-x-0 top-[16px] h-[3px] rounded-full bg-slate-100 dark:bg-slate-800 sm:top-[22px]"
                     />
                     <motion.div
-                      className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-[#0ab6af] shadow-[0_0_20px_-4px_rgba(10,182,175,0.75)] sm:top-[22px]"
+                      className="pointer-events-none absolute top-[16px] h-[3px] rounded-full bg-[#0ab6af] sm:top-[22px]"
                       initial={false}
                       animate={{ left: stepRailFill.left, width: stepRailFill.width }}
                       transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
@@ -2389,83 +2388,37 @@ const AdsListing = () => {
                               }}
                               className="relative"
                             >
-                              {isActive && (
-                                <motion.span
-                                  className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 blur-md"
-                                  initial={{ opacity: 0.2, scale: 0.8 }}
-                                  animate={{ opacity: 0.45, scale: 1.18 }}
-                                  transition={{ duration: 0.35, ease: "easeOut" }}
-                                />
-                              )}
+                              {/* active indicator handled by bg color */}
 
-                              <motion.span
-                                initial={false}
-                                animate={
+                              <span
+                                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:w-10 sm:text-sm transition-colors ${
                                   isActive
-                                    ? { scale: 1.08, y: -1 }
-                                    : isCompleted
-                                    ? { scale: 1 }
-                                    : { scale: 0.98 }
-                                }
-                                transition={{ type: "spring", stiffness: 280, damping: 22 }}
-                                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold sm:h-11 sm:w-11 sm:text-sm ${
-                                  isActive
-                                    ? "border-primary bg-white text-primary shadow-[0_10px_24px_-14px_rgba(8,145,178,0.9)] dark:bg-slate-950"
+                                    ? "bg-[#0ab6af] text-white"
                                     : ""
                                 } ${
-                                  isCompleted ? "border-primary bg-primary text-white" : ""
+                                  isCompleted ? "bg-[#0ab6af] text-white" : ""
                                 } ${
                                   !isActive && !isCompleted
-                                    ? "border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+                                    ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
                                     : ""
                                 }`}
                               >
-                                <AnimatePresence mode="wait" initial={false}>
-                                  {isCompleted ? (
-                                    <motion.span
-                                      key={`done-${s.id}`}
-                                      initial={{ opacity: 0, scale: 0.7, y: 4 }}
-                                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                                      exit={{ opacity: 0, scale: 0.8, y: -4 }}
-                                    transition={{ duration: 0.2 }}
-                                  >
-                                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                                    </motion.span>
-                                  ) : (
-                                    <motion.span
-                                      key={`index-${s.id}`}
-                                      initial={{ opacity: 0, y: 4 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      exit={{ opacity: 0, y: -4 }}
-                                      transition={{ duration: 0.18 }}
-                                    >
-                                      {idx + 1}
-                                    </motion.span>
-                                  )}
-                                </AnimatePresence>
-                              </motion.span>
+                                {isCompleted ? (
+                                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                                ) : (
+                                  idx + 1
+                                )}
+                              </span>
                             </div>
 
-                            <motion.span
-                              initial={false}
-                              animate={{ y: isActive ? 0 : 1 }}
-                              transition={{ duration: 0.2, ease: "easeOut" }}
-                              className={`line-clamp-2 max-w-[58px] text-[10px] font-medium leading-[1.1] sm:max-w-[120px] sm:text-xs sm:leading-tight ${
-                                isActive ? "font-semibold text-primary" : "text-slate-500 dark:text-slate-300"
+                            <span
+                              className={`line-clamp-1 max-w-[52px] text-[10px] font-medium leading-tight sm:max-w-[120px] sm:text-xs ${
+                                isActive ? "font-semibold text-[#0ab6af]" : isCompleted ? "text-slate-600 dark:text-slate-300" : "text-slate-400 dark:text-slate-500"
                               }`}
                             >
                               <span className="sm:hidden">{s.mobileLabel || s.label}</span>
                               <span className="hidden sm:inline">{s.label}</span>
-                            </motion.span>
-
-                            <div className="hidden h-[3px] w-12 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70 sm:block sm:w-14">
-                              <motion.div
-                                className="h-full rounded-full bg-[#0ab6af]"
-                                initial={false}
-                                animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
-                                transition={{ type: "spring", stiffness: 190, damping: 24 }}
-                              />
-                            </div>
+                            </span>
                           </motion.button>
                         );
                       })}
@@ -2475,52 +2428,44 @@ const AdsListing = () => {
               </div>
 
               {(renderedStep === 1 || renderedStep === 2) && categoryPath?.length > 0 && (
-                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-300">{"Odabrana kategorija"}</p>
-                    <button 
-                      onClick={handleCategoryReset}
-                      className="flex items-center gap-1 text-xs font-medium text-red-500 transition-colors hover:text-red-600"
-                    >
-                      <X size={14} />
-                      Očisti sve
-                    </button>
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={handleCategoryBack}
-                      className="mr-1 rounded-full border border-slate-200 bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                      title="Vrati se korak nazad"
-                    >
-                      <ArrowLeft size={16} />
-                    </button>
+                <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 max-lg:border-b max-lg:border-slate-100 max-lg:dark:border-slate-800 lg:px-0 lg:py-0">
+                  <button
+                    onClick={handleCategoryBack}
+                    className="shrink-0 rounded-lg bg-slate-100 p-1.5 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                    title="Vrati se korak nazad"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
 
-                    {categoryPath?.map((item, index) => (
-                      <div key={item.id} className="flex items-center">
-                        <button
-                          className={`
-                            text-sm px-3 py-1.5 rounded-lg transition-all duration-200
-                            ${index === categoryPath.length - 1 
-                              ? "border border-primary/25 bg-primary/10 font-semibold text-primary dark:border-primary/35 dark:bg-primary/20"
-                              : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                            }
-                          `}
-                          onClick={() => handleSelectedTabClick(item?.id)}
-                        >
-                          {item.translated_name || item.name}
-                        </button>
-                        
-                        {index !== categoryPath.length - 1 && (
-                          <ChevronRight size={16} className="mx-1 text-slate-400 dark:text-slate-500" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {categoryPath?.map((item, index) => (
+                    <div key={item.id} className="flex shrink-0 items-center">
+                      <button
+                        className={`whitespace-nowrap rounded-lg px-2.5 py-1 text-[13px] transition-colors ${
+                          index === categoryPath.length - 1
+                            ? "bg-[#0ab6af]/10 font-semibold text-[#0ab6af]"
+                            : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                        }`}
+                        onClick={() => handleSelectedTabClick(item?.id)}
+                      >
+                        {item.translated_name || item.name}
+                      </button>
+                      {index !== categoryPath.length - 1 && (
+                        <ChevronRight size={14} className="mx-0.5 text-slate-300 dark:text-slate-600" />
+                      )}
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={handleCategoryReset}
+                    className="ml-auto shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                    title="Očisti sve"
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               )}
 
-              <div className="rounded-2xl border p-3 border-slate-200/70 bg-white/95 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/80">
+              <div className="bg-white px-4 dark:bg-slate-950 lg:rounded-2xl lg:bg-white lg:p-5 lg:dark:bg-slate-900">
                 {renderedStep === 1 && (
                   <ComponentOne
                     categories={categories}
@@ -2612,114 +2557,64 @@ const AdsListing = () => {
               </div>
             </div>
 
-            {/* 📱 Right Column - Live Preview */}
-            <div className="min-w-0 lg:col-span-1">
-              <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-[0_18px_55px_-38px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {"Pregled oglasa"}
-                    </h3>
-                  </div>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#0ab6af]/40 bg-[#0ab6af]/12 px-2.5 py-1 text-[11px] font-semibold text-[#0ab6af] dark:bg-[#0ab6af]/16">
+            {/* Right Column - Live Preview (desktop only) */}
+            <div className="hidden min-w-0 lg:block">
+              <div className="sticky top-4 min-w-0 overflow-hidden rounded-2xl bg-white p-5 dark:bg-slate-900">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Pregled</h3>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#0ab6af]/10 px-2 py-0.5 text-[11px] font-semibold text-[#0ab6af]">
                     Uživo
                   </span>
                 </div>
 
-                <div className="mb-4 rounded-2xl border border-[#0ab6af]/30 bg-[#0ab6af]/8 p-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">Što je ostalo</p>
-                      <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {listingFlowIssues.length ? "Završi preostale stavke" : "Sve je spremno za objavu"}
-                      </h4>
-                    </div>
-                    <span className="rounded-full border border-[#0ab6af]/35 bg-white/85 px-2 py-0.5 text-xs font-semibold text-[#0ab6af] dark:bg-slate-900/75">
-                      {listingFlowPercent}%
-                    </span>
+                {listingFlowIssues.length > 0 && (
+                  <div className="mb-4 space-y-1.5">
+                    {listingFlowIssues.slice(0, 4).map((issue) => (
+                      <button
+                        key={`issue-${issue.id}`}
+                        type="button"
+                        onClick={() => goToListingIssue(issue)}
+                        className="group flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-left transition-colors hover:bg-[#0ab6af]/8 dark:bg-slate-800 dark:hover:bg-[#0ab6af]/10"
+                      >
+                        <p className="truncate text-xs font-medium text-slate-600 group-hover:text-[#0ab6af] dark:text-slate-300">
+                          {issue.label}
+                        </p>
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300 group-hover:text-[#0ab6af] dark:text-slate-600" />
+                      </button>
+                    ))}
                   </div>
-
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#0ab6af]/20">
-                    <motion.div
-                      className="h-full rounded-full bg-[#0ab6af]"
-                      initial={false}
-                      animate={{ width: `${listingFlowPercent}%` }}
-                      transition={{ type: "spring", stiffness: 220, damping: 28 }}
-                    />
-                  </div>
-
-                  {listingFlowIssues.length > 0 ? (
-                    <div className="mt-3 space-y-2">
-                      {listingFlowIssues.slice(0, 5).map((issue) => (
-                        <button
-                          key={`issue-${issue.id}`}
-                          type="button"
-                          onClick={() => goToListingIssue(issue)}
-                          className="group flex w-full items-center justify-between rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 text-left transition-all hover:border-[#0ab6af]/45 hover:bg-[#0ab6af]/10 dark:border-slate-700 dark:bg-slate-900/70"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
-                              {issue.label}
-                            </p>
-                            <p className="truncate text-[11px] text-slate-500 dark:text-slate-300">
-                              {issue.hint}
-                            </p>
-                          </div>
-                          <ChevronRight className="h-4 w-4 shrink-0 text-[#0ab6af] transition-transform group-hover:translate-x-0.5" />
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-200">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Oglas je spreman za objavu
-                    </div>
-                  )}
-                </div>
+                )}
 
                 <div className="pointer-events-none select-none">
                   <ProductCard item={previewCardItem} />
                 </div>
 
-                <div className="mt-6 space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-slate-700 dark:text-slate-200">{"Ocjena kvaliteta oglasa"}</span>
-                      <span className="text-primary font-semibold">{completenessScore}%</span>
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <div className="mb-1.5 flex justify-between text-xs">
+                      <span className="text-slate-500 dark:text-slate-400">Kvalitet oglasa</span>
+                      <span className="font-semibold text-[#0ab6af]">{completenessScore}%</span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div
-                        className="h-full bg-[#0ab6af] transition-all duration-500"
+                        className="h-full rounded-full bg-[#0ab6af] transition-all duration-500"
                         style={{ width: `${completenessScore}%` }}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    {uploadedImages.length === 0 && (
-                      <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-500/40 dark:bg-yellow-500/10">
-                        <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600 dark:text-yellow-300" />
-                        <p className="text-xs text-yellow-800 dark:text-yellow-100">
-                          {"Dodaj barem jednu sliku!"} (+20% {"vidljivost"})
-                        </p>
-                      </div>
-                    )}
-                    {uploadedImages.length > 0 && otherImages.length < 3 && (
-                      <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
-                        <Star className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-300" />
-                        <p className="text-xs text-blue-800 dark:text-blue-100">
-                          {"Dodaj još {count} fotografija".replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {"veća vidljivost!"})
-                        </p>
-                      </div>
-                    )}
-                    {defaultDetails.description && defaultDetails.description.length < 100 && (
-                      <div className="flex items-start gap-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50 p-3 dark:border-fuchsia-500/40 dark:bg-fuchsia-500/10">
-                        <Award className="mt-0.5 h-4 w-4 shrink-0 text-fuchsia-600 dark:text-fuchsia-300" />
-                        <p className="text-xs text-fuchsia-800 dark:text-fuchsia-100">{"Detaljan opis"} (+10% {"pouzdanost"})</p>
-                      </div>
-                    )}
-                  </div>
+                  {uploadedImages.length === 0 && (
+                    <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 dark:bg-amber-500/10">
+                      <TrendingUp className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      <p className="text-[11px] text-amber-700 dark:text-amber-200">Dodaj barem jednu sliku (+20% vidljivost)</p>
+                    </div>
+                  )}
+                  {uploadedImages.length > 0 && otherImages.length < 3 && (
+                    <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 dark:bg-blue-500/10">
+                      <Star className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                      <p className="text-[11px] text-blue-700 dark:text-blue-200">Dodaj još {3 - otherImages.length} fotografija</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2732,74 +2627,54 @@ const AdsListing = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md"
+              className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 backdrop-blur-sm"
             >
-              <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/35 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-28 -right-20 h-72 w-72 rounded-full bg-cyan-400/35 blur-3xl" />
-
               <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                initial={{ opacity: 0, y: 16, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                transition={{ duration: 0.25 }}
-                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-6 text-white shadow-[0_24px_90px_-35px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-7"
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                className="mx-4 w-full max-w-sm overflow-hidden rounded-2xl bg-white p-6 text-center dark:bg-slate-900"
               >
-                <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#0ab6af]/10">
+                  <Loader2 className="h-7 w-7 animate-spin text-[#0ab6af]" />
+                </div>
 
-                <div className="relative flex flex-col items-center text-center">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{currentPublishStage.title}</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{currentPublishStage.subtitle}</p>
+
+                <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                   <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2.1, repeat: Infinity, ease: "linear" }}
-                    className="relative mb-5 h-24 w-24 rounded-full bg-[conic-gradient(from_180deg,#1d4ed8,#06b6d4,#ec4899,#1d4ed8)] p-[3px]"
-                  >
-                    <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-950/80">
-                      <Loader2 className="h-8 w-8 animate-spin text-white" />
-                    </div>
-                  </motion.div>
+                    className="h-full rounded-full bg-[#0ab6af]"
+                    animate={{ width: `${publishProgressPct}%` }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                  />
+                </div>
 
-                  <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Objava u toku
-                  </div>
-
-                  <h3 className="text-xl font-semibold sm:text-2xl">{currentPublishStage.title}</h3>
-                  <p className="mt-2 text-sm text-white/80">{currentPublishStage.subtitle}</p>
-
-                  <div className="mt-6 w-full">
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
-                      <motion.div
-                        className="h-full rounded-full bg-[#0ab6af]"
-                        animate={{ width: `${publishProgressPct}%` }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                      />
-                    </div>
-
-                    <div className="mt-4 flex flex-col gap-2 text-left">
-                      {PUBLISH_STAGES.map((stage, idx) => {
-                        const isDone = idx < publishStageIndex;
-                        const isCurrent = idx === publishStageIndex;
-                        return (
-                          <div
-                            key={stage.title}
-                            className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all ${
-                              isCurrent
-                                ? "bg-white/20 text-white"
-                                : isDone
-                                ? "bg-emerald-400/20 text-emerald-100"
-                                : "bg-white/5 text-white/70"
-                            }`}
-                          >
-                            {isDone ? (
-                              <CheckCircle2 className="h-4 w-4 shrink-0" />
-                            ) : (
-                              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-white/70" />
-                            )}
-                            <span>{stage.title}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <div className="mt-4 flex flex-col gap-1.5">
+                  {PUBLISH_STAGES.map((stage, idx) => {
+                    const isDone = idx < publishStageIndex;
+                    const isCurrent = idx === publishStageIndex;
+                    return (
+                      <div
+                        key={stage.title}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${
+                          isCurrent
+                            ? "bg-[#0ab6af]/10 font-medium text-[#0ab6af]"
+                            : isDone
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-slate-300 dark:text-slate-600"
+                        }`}
+                      >
+                        {isDone ? (
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${isCurrent ? 'bg-[#0ab6af]' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                        )}
+                        <span>{stage.title}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </motion.div>
             </motion.div>
