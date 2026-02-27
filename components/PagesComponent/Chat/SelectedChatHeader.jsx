@@ -213,10 +213,10 @@ const SelectedChatHeader = ({
           
           <div className="flex items-center gap-2 text-xs h-4">
             {isOnline ? (
-              <span className="text-green-600 font-medium">Online</span>
+              <span className="text-green-600 font-medium">Na mreži</span>
             ) : (
               <span className="text-slate-500 dark:text-slate-400 font-medium truncate">
-                {lastSeenText ? `Viđen/a: ${lastSeenText}` : "Offline"}
+                {lastSeenText ? `Na mreži prije: ${lastSeenText}` : "Van mreže"}
               </span>
             )}
           </div>

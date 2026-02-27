@@ -374,6 +374,8 @@ const HomeHeader = () => {
   const isOnHome = pathname === "/";
   const isAdsPage = pathname === "/ads" || pathname.startsWith("/ads/");
   const isDetailRoute = pathname.startsWith("/ad-details/") || pathname.startsWith("/my-listing/");
+  const isListingWizardRoute =
+    pathname === "/ad-listing" || pathname.startsWith("/edit-listing/");
   const isAdsMobileManagedHeader =
     !isLargeScreen && isAdsPage && adsMobileHeaderState.enabled;
   const shouldHideMobileHeader =
@@ -386,7 +388,9 @@ const HomeHeader = () => {
   const mobileDock = useAdaptiveMobileDock();
   const showMobileDockNav = !isLargeScreen && !hideMobileBottomNav;
   const shouldAllowHiddenMobileDockNav =
-    isDetailRoute || (isAdsMobileManagedHeader && adsMobileHeaderState.hideHeader);
+    isDetailRoute ||
+    isListingWizardRoute ||
+    (isAdsMobileManagedHeader && adsMobileHeaderState.hideHeader);
   const mobileProfileLabel = userData?.name
     ? truncate(userData.name, 10)
     : "Profil";

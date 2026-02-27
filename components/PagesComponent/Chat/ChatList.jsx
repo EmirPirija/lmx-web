@@ -83,9 +83,9 @@ const ChatList = ({
 
   const roleFilters = [
     { id: "all", label: "Sve", icon: SlidersHorizontal },
-    { id: "selling", label: "Prodajem", icon: Store },
-    { id: "buying", label: "Kupujem", icon: ShoppingBag },
-    { id: "online", label: "Online", icon: Wifi },
+    { id: "selling", label: "Prodaja", icon: Store },
+    { id: "buying", label: "Kupovina", icon: ShoppingBag },
+    { id: "online", label: "Na mreži", icon: Wifi },
   ];
   
 

@@ -262,7 +262,7 @@ const ChatListCard = ({
                     : "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300"
                 )}>
                   {isSelling ? <Store size={10} /> : <ShoppingBag size={10} />}
-                  {isSelling ? "Prodajem" : "Kupujem"}
+                  {isSelling ? "Prodaja" : "Kupovina"}
                 </span>
               )}
             </div>

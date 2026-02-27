@@ -70,6 +70,7 @@
 ============================================ */
 .lmx-listing-flow {
   isolation: isolate;
+  overflow-x: clip;
 }
 
 .lmx-listing-flow .lmx-flow-shell,

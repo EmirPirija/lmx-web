@@ -33,7 +33,7 @@ import ComponentThree from "./ComponentThree";
 import ComponentFour from "./ComponentFour";
 import ComponentFive from "./ComponentFive";
 import ProductCard from "@/components/Common/ProductCard";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import AdSuccessModal from "./AdSuccessModal";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import Layout from "@/components/Layout/Layout";
@@ -52,6 +52,7 @@ import {
   getCatCurrentPage,
   getCatLastPage,
 } from "@/redux/reducer/categorySlice";
+import { setHideMobileBottomNav } from "@/redux/reducer/globalStateSlice";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
 import {
   CheckCircle2,
@@ -391,6 +392,7 @@ const formatDraftSavedAgo = (savedAtIso, nowTs = Date.now()) => {
 };
 
 const AdsListing = () => {
+  const dispatch = useDispatch();
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const userData = useSelector(userSignUpData);
 
@@ -1781,6 +1783,18 @@ const AdsListing = () => {
     }
   }, [step, resolveNearestStep]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+
+  useEffect(() => {
+    dispatch(setHideMobileBottomNav(true));
+    return () => {
+      dispatch(setHideMobileBottomNav(false));
+    };
+  }, [dispatch]);
+
   const handleGoBack = useCallback(() => {
     const normalizedStep = resolveNearestStep(step);
     const currentIndex = stepIdSequence.indexOf(normalizedStep);
@@ -2461,7 +2475,7 @@ const AdsListing = () => {
       <div className="hidden md:block">
         <BreadCrumb title2={"Lista oglasa"} />
       </div>
-      <div className="lmx-listing-flow relative mx-auto w-full max-w-[min(2280px,calc(100vw-8px))] px-1 sm:px-2.5 lg:px-4 xl:px-6 2xl:px-8">
+      <div className="lmx-listing-flow relative mx-auto w-full max-w-[min(2280px,calc(100vw-8px))] overflow-x-clip px-1 sm:px-2.5 lg:px-4 xl:px-6 2xl:px-8">
         <div className="relative mt-2 flex min-w-0 min-h-[100dvh] flex-col gap-5 pb-10 md:mt-5 md:gap-7">
           <div className="pointer-events-none absolute -top-14 left-0 h-52 w-52 rounded-full bg-primary/15 blur-3xl dark:bg-primary/20" />
           <div className="pointer-events-none absolute -right-10 top-8 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-400/30" />

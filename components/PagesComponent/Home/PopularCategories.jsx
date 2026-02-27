@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RiArrowLeftLine, RiArrowRightLine } from "@/components/Common/UnifiedIconPack";
 import {
   Carousel,
@@ -66,7 +66,7 @@ const PopularCategories = () => {
     setIsAllCategoriesLoading(true);
     setAllCategoriesError("");
     try {
-      const perPage = 100;
+      const perPage = 500;
       const firstPageResponse = await categoryApi.getCategory({
         page: 1,
         per_page: perPage,
@@ -77,7 +77,18 @@ const PopularCategories = () => {
         : [];
       const lastPage = Number(firstPayload?.last_page || 1);
       const expectedTotal = Number(firstPayload?.total || 0);
-      const collected = [...firstPageItems];
+      const uniqueById = new Map();
+      firstPageItems.forEach((entry) => {
+        const key = Number(entry?.id);
+        if (!Number.isFinite(key) || uniqueById.has(key)) return;
+        uniqueById.set(key, entry);
+      });
+
+      // Prikaži odmah prvu stranicu (instant UX), pa u pozadini dopuni ostalo.
+      const firstChunk = Array.from(uniqueById.values());
+      if (firstChunk.length > 0) {
+        setAllCategories(firstChunk);
+      }
 
       if (lastPage > 1) {
         const requestedPages = Array.from(
@@ -101,39 +112,40 @@ const PopularCategories = () => {
           }
           const payload = result.value?.data?.data;
           const items = Array.isArray(payload?.data) ? payload.data : [];
-          collected.push(...items);
+          items.forEach((entry) => {
+            const key = Number(entry?.id);
+            if (!Number.isFinite(key) || uniqueById.has(key)) return;
+            uniqueById.set(key, entry);
+          });
         });
 
-        // Retry failed pages once, sequentially (stabilnije na sporijoj mreži/backendu)
-        for (const failedPage of failedPages) {
-          try {
-            const retryResponse = await categoryApi.getCategory({
-              page: failedPage,
-              per_page: perPage,
-            });
-            const retryPayload = retryResponse?.data?.data;
+        // Retry failed pages once, paralelno (brže od sekvencijalnog retry-a)
+        if (failedPages.length > 0) {
+          const retryResults = await Promise.allSettled(
+            failedPages.map((failedPage) =>
+              categoryApi.getCategory({
+                page: failedPage,
+                per_page: perPage,
+              }),
+            ),
+          );
+
+          retryResults.forEach((result) => {
+            if (result.status !== "fulfilled") return;
+            const retryPayload = result.value?.data?.data;
             const retryItems = Array.isArray(retryPayload?.data)
               ? retryPayload.data
               : [];
-            collected.push(...retryItems);
-          } catch {
-            // keep going, we'll surface a soft warning below if dataset is incomplete
-          }
+            retryItems.forEach((entry) => {
+              const key = Number(entry?.id);
+              if (!Number.isFinite(key) || uniqueById.has(key)) return;
+              uniqueById.set(key, entry);
+            });
+          });
         }
       }
 
-      const uniqueById = new Map();
-      collected.forEach((entry) => {
-        const key = Number(entry?.id);
-        if (!Number.isFinite(key) || uniqueById.has(key)) return;
-        uniqueById.set(key, entry);
-      });
-
-      const normalized = Array.from(uniqueById.values()).sort((a, b) => {
-        const left = String(a?.translated_name || a?.name || "").toLowerCase();
-        const right = String(b?.translated_name || b?.name || "").toLowerCase();
-        return left.localeCompare(right);
-      });
+      const normalized = Array.from(uniqueById.values());
 
       const hasCompleteDataset = expectedTotal
         ? normalized.length >= expectedTotal
@@ -157,6 +169,15 @@ const PopularCategories = () => {
 
   const handleOpenAllCategories = () => {
     setIsAllCategoriesModalOpen(true);
+    if (!allCategories.length && Array.isArray(cateData) && cateData.length > 0) {
+      const seedById = new Map();
+      cateData.forEach((entry) => {
+        const key = Number(entry?.id);
+        if (!Number.isFinite(key) || seedById.has(key)) return;
+        seedById.set(key, entry);
+      });
+      setAllCategories(Array.from(seedById.values()));
+    }
     if (!allCategoriesLoaded) {
       loadAllRootCategories();
     }
@@ -213,19 +234,53 @@ const PopularCategories = () => {
     };
 
     if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(runPrefetch, { timeout: 1800 });
+      const idleId = window.requestIdleCallback(runPrefetch, { timeout: 500 });
       return () => {
         cancelled = true;
         window.cancelIdleCallback?.(idleId);
       };
     }
 
-    const timeoutId = window.setTimeout(runPrefetch, 350);
+    const timeoutId = window.setTimeout(runPrefetch, 120);
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
   }, [cateData, allCategoriesLoaded, isAllCategoriesLoading]);
+
+  const orderedAllCategories = useMemo(() => {
+    if (!allCategories.length) return [];
+
+    const categoryOrderMap = new Map();
+    (cateData || []).forEach((cat, index) => {
+      const id = Number(cat?.id);
+      if (!Number.isFinite(id) || categoryOrderMap.has(id)) return;
+      categoryOrderMap.set(id, index);
+    });
+    const allCategoriesOrderMap = new Map();
+    allCategories.forEach((cat, index) => {
+      const id = Number(cat?.id);
+      if (!Number.isFinite(id) || allCategoriesOrderMap.has(id)) return;
+      allCategoriesOrderMap.set(id, index);
+    });
+
+    return [...allCategories].sort((a, b) => {
+      const aId = Number(a?.id);
+      const bId = Number(b?.id);
+      const aOrder = categoryOrderMap.has(aId)
+        ? categoryOrderMap.get(aId)
+        : Number.POSITIVE_INFINITY;
+      const bOrder = categoryOrderMap.has(bId)
+        ? categoryOrderMap.get(bId)
+        : Number.POSITIVE_INFINITY;
+
+      if (aOrder !== bOrder) return aOrder - bOrder;
+
+      const aOriginalOrder = allCategoriesOrderMap.get(aId) ?? Number.MAX_SAFE_INTEGER;
+      const bOriginalOrder = allCategoriesOrderMap.get(bId) ?? Number.MAX_SAFE_INTEGER;
+      return aOriginalOrder - bOriginalOrder;
+    });
+  }, [allCategories, cateData]);
 
   const handleNext = async () => {
     if (api && api.canScrollNext()) {
@@ -332,7 +387,7 @@ const PopularCategories = () => {
           category={selectedCategory}
         />
         <Dialog open={isAllCategoriesModalOpen} onOpenChange={setIsAllCategoriesModalOpen}>
-          <DialogContent className="sm:max-w-4xl">
+          <DialogContent className="sm:max-w-4xl [&>button]:right-3 [&>button]:top-3 [&>button]:h-9 [&>button]:w-9 [&>button]:rounded-full [&>button]:border [&>button]:border-slate-200/90 [&>button]:bg-white [&>button]:text-slate-500 [&>button]:opacity-100 [&>button]:shadow-sm [&>button]:transition-colors [&>button]:duration-150 hover:[&>button]:bg-slate-100 hover:[&>button]:text-slate-700 dark:[&>button]:border-slate-700 dark:[&>button]:bg-slate-900 dark:[&>button]:text-slate-300 dark:hover:[&>button]:bg-slate-800 dark:hover:[&>button]:text-slate-100">
             <DialogHeader>
               <DialogTitle>Sve popularne kategorije</DialogTitle>
               <DialogDescription>
@@ -353,9 +408,9 @@ const PopularCategories = () => {
                   {allCategoriesError}
                 </div>
               ) : null}
-              {allCategories.length > 0 ? (
+              {orderedAllCategories.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {allCategories.map((item, index) => (
+                  {orderedAllCategories.map((item, index) => (
                     <div
                       key={`all-cat-${item?.id}`}
                       style={{ animationDelay: `${Math.min(index * 20, 220)}ms` }}

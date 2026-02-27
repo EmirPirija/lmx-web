@@ -40,7 +40,7 @@ import { toast } from "@/utils/toastBs";
 import Layout from "@/components/Layout/Layout";
 import Checkauth from "@/HOC/Checkauth";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import AdsEditSuccessModal from "./AdsEditSuccessModal";
 import CustomLink from "@/components/Common/CustomLink";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -49,6 +49,7 @@ import {
   getLanguages,
 } from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
+import { setHideMobileBottomNav } from "@/redux/reducer/globalStateSlice";
 import AdLanguageSelector from "../AdsListing/AdLanguageSelector";
 import PageLoader from "@/components/Common/PageLoader";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
@@ -643,6 +644,7 @@ const readExchangeFromListingData = (listingData = {}) => {
 };
 
 const EditListing = ({ id }) => {
+  const dispatch = useDispatch();
   const CurrentLanguage = useSelector(CurrentLanguageData);
   const [step, setStep] = useState(1);
   const [CreatedAdSlug, setCreatedAdSlug] = useState("");
@@ -2000,6 +2002,18 @@ const EditListing = ({ id }) => {
     }
   }, [resolveNearestStep, step]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+
+  useEffect(() => {
+    dispatch(setHideMobileBottomNav(true));
+    return () => {
+      dispatch(setHideMobileBottomNav(false));
+    };
+  }, [dispatch]);
+
   const activeStepId = resolveNearestStep(step);
   const activeStepIndex = Math.max(
     0,
@@ -2547,7 +2561,7 @@ const EditListing = ({ id }) => {
           <div className="hidden md:block">
             <BreadCrumb title2={"Uredi oglas"} />
           </div>
-          <div className="lmx-listing-flow relative mx-auto w-full max-w-[min(2280px,calc(100vw-8px))] px-1 sm:px-2.5 lg:px-4 xl:px-6 2xl:px-8">
+          <div className="lmx-listing-flow relative mx-auto w-full max-w-[min(2280px,calc(100vw-8px))] overflow-x-clip px-1 sm:px-2.5 lg:px-4 xl:px-6 2xl:px-8">
             <div className="mt-2 flex min-w-0 min-h-[100dvh] flex-col gap-5 md:mt-5 md:gap-7">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h1 className="text-2xl font-medium">{"Uredi oglas"}</h1>
