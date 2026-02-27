@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useInView } from "react-intersection-observer";
 import { usePathname } from "next/navigation";
 import { useNavigate } from "@/components/Common/useNavigate";
@@ -13,6 +14,7 @@ import { settingsData } from "@/redux/reducer/settingSlice";
 import { useSavedSearches } from "@/hooks/useSavedSearches";
 import { useSearchTracking } from "@/hooks/useItemTracking";
 import { Switch } from "@/components/ui/switch";
+import { allItemApi } from "@/utils/api";
 
 import {
   IconSearch,
@@ -26,6 +28,11 @@ import {
   IconStarFilled,
 } from "@/components/Common/UnifiedIconPack";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
+
+const ReelViewerModal = dynamic(
+  () => import("@/components/PagesComponent/Seller/ReelViewerModal"),
+  { ssr: false }
+);
 
 const SEARCH_HISTORY_KEY = "lmx_search_history";
 const SEARCH_HISTORY_ENABLED_KEY = "lmx_search_history_enabled";
@@ -155,6 +162,33 @@ const formatSavedSearchSubtitle = (qs) => {
   return parts.slice(0, 3).join(" • ");
 };
 
+const extractItemsFromResponse = (response) => {
+  const payload = response?.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.result)) return payload.result;
+  return [];
+};
+
+const hasVideoSource = (item) => {
+  const raw = item?.video || item?.video_link;
+  return Boolean(raw && String(raw).trim());
+};
+
+const getVideoSellerId = (item) => {
+  const raw =
+    item?.user?.id ??
+    item?.seller?.id ??
+    item?.user_id ??
+    item?.seller_id ??
+    item?.user?.user_id ??
+    item?.seller?.user_id;
+
+  if (raw == null || raw === "") return null;
+  return String(raw);
+};
+
 const Search = ({
   hideBrand = false,
   compact = false,
@@ -197,6 +231,10 @@ const Search = ({
   const [searchHistory, setSearchHistory] = useState([]);
   const [isHistoryEnabled, setIsHistoryEnabled] = useState(true);
   const [didYouMean, setDidYouMean] = useState([]);
+  const [videoStorySellers, setVideoStorySellers] = useState([]);
+  const [isVideoStoriesLoading, setIsVideoStoriesLoading] = useState(false);
+  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+  const [activeStorySellerIndex, setActiveStorySellerIndex] = useState(0);
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -206,6 +244,7 @@ const Search = ({
   const searchResultCacheRef = useRef(new Map());
   const searchContainerRef = useRef(null);
   const inputRef = useRef(null);
+  const didLoadVideoStoriesRef = useRef(false);
   const dropdownId = "lmx-search-dropdown";
 
   useEffect(() => {
@@ -227,6 +266,54 @@ const Search = ({
       console.error("Failed to load search history:", e);
     }
   }, []);
+
+  const loadVideoStorySellers = useCallback(async () => {
+    setIsVideoStoriesLoading(true);
+    try {
+      const response = await allItemApi.getItems({
+        status: "approved",
+        limit: 60,
+        page: 1,
+        sort_by: "new-to-old",
+      });
+
+      const items = extractItemsFromResponse(response);
+      const groupedBySeller = new Map();
+
+      items.forEach((item) => {
+        if (!hasVideoSource(item)) return;
+        const sellerId = getVideoSellerId(item);
+        if (!sellerId) return;
+
+        const existing = groupedBySeller.get(sellerId);
+        if (existing) {
+          existing.videosCount += 1;
+          existing.items.push(item);
+          return;
+        }
+
+        groupedBySeller.set(sellerId, {
+          sellerId,
+          seller: item?.user || item?.seller || {},
+          items: [item],
+          videosCount: 1,
+        });
+      });
+
+      setVideoStorySellers(Array.from(groupedBySeller.values()).slice(0, 14));
+    } catch (error) {
+      console.error("Video stories load error:", error);
+    } finally {
+      setIsVideoStoriesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showSuggestions || searchQuery.length >= 2) return;
+    if (didLoadVideoStoriesRef.current) return;
+    didLoadVideoStoriesRef.current = true;
+    loadVideoStorySellers();
+  }, [showSuggestions, searchQuery.length, loadVideoStorySellers]);
 
   const saveToHistory = useCallback((query) => {
     if (!isHistoryEnabled) return;
@@ -646,6 +733,15 @@ const Search = ({
     [handleSearchNav]
   );
 
+  const handleVideoStorySellerClick = useCallback(
+    (sellerIndex) => {
+      setShowSuggestions(false);
+      setActiveStorySellerIndex(sellerIndex);
+      setIsStoryViewerOpen(true);
+    },
+    []
+  );
+
   const handleDidYouMeanClick = useCallback(
     (term) => {
       setSearchQuery(term);
@@ -705,7 +801,17 @@ const Search = ({
   const isSearchActive = isSearchFocused || !!searchQuery || showSuggestions;
 
   return (
-    <div className={cn("relative z-40 flex w-full items-center", compact ? "gap-2" : "gap-2.5 sm:gap-3")}>
+    <>
+      <ReelViewerModal
+        open={isStoryViewerOpen}
+        onOpenChange={setIsStoryViewerOpen}
+        sellers={videoStorySellers}
+        initialSellerIndex={activeStorySellerIndex}
+        initialItemIndex={0}
+        autoAdvance={true}
+        advanceAcrossSellers={false}
+      />
+      <div className={cn("relative z-40 flex w-full items-center", compact ? "gap-2" : "gap-2.5 sm:gap-3")}>
       {settings?.header_logo && !hideBrand && (
         <div
           className={cn(
@@ -945,6 +1051,71 @@ const Search = ({
               </div>
             )}
 
+            {searchQuery.length < 2 &&
+              (isVideoStoriesLoading || videoStorySellers.length > 0) && (
+                <div className="border-b border-slate-100 px-3 py-3 dark:border-slate-800">
+                  <div
+                    className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {isVideoStoriesLoading
+                      ? Array.from({ length: 7 }).map((_, index) => (
+                          <div
+                            key={`video-story-skeleton-${index}`}
+                            className="shrink-0"
+                          >
+                            <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800" />
+                            <div className="mx-auto mt-1.5 h-2 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+                          </div>
+                        ))
+                      : videoStorySellers.map((storySeller, sellerIndex) => {
+                          const seller = storySeller?.seller || {};
+                          const sellerName =
+                            seller?.name || seller?.shop_name || "Prodavač";
+
+                          return (
+                            <button
+                              key={`video-story-seller-${storySeller.sellerId}`}
+                              type="button"
+                              onClick={() => handleVideoStorySellerClick(sellerIndex)}
+                              className="group shrink-0"
+                            >
+                              <div className="relative">
+                                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#F7941D] via-[#E1306C] to-[#833AB4] p-[2px]">
+                                  <div className="h-full w-full rounded-full bg-white p-[2px] dark:bg-slate-900">
+                                    <div className="h-full w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                      <UserAvatarMedia
+                                        sources={[
+                                          seller?.profile,
+                                          seller?.image,
+                                          seller?.profile_image,
+                                          seller?.avatar,
+                                        ]}
+                                        alt={sellerName}
+                                        className="h-full w-full"
+                                        imageClassName="h-full w-full object-cover"
+                                        iconClassName="h-4 w-4 text-slate-500 dark:text-slate-300"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {storySeller.videosCount > 1 && (
+                                  <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-semibold text-white">
+                                    {storySeller.videosCount}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="mt-1 block max-w-[56px] truncate text-center text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                                {sellerName}
+                              </span>
+                            </button>
+                          );
+                        })}
+                  </div>
+                </div>
+              )}
+
             {showHistoryPanel && (
               <div className="border-b border-slate-100 p-3 dark:border-slate-800">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -1149,7 +1320,8 @@ const Search = ({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

@@ -10,8 +10,8 @@ import OfferSliderSkeleton from "@/components/PagesComponent/Home/OfferSliderSke
 import FeaturedSectionsSkeleton from "./FeaturedSectionsSkeleton";
 import PopularCategories from "./PopularCategories";
 import dynamic from "next/dynamic";
-
 import HomeReels from "./HomeReels";
+
 import PlatformBenefitsStrip from "./PlatformBenefitsStrip";
 import { isHomeFeaturedItem } from "@/utils/featuredPlacement";
 import LowInventoryItems from "./LowInventoryItems";

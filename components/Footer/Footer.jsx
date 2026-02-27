@@ -67,7 +67,7 @@ export default function Footer() {
   const showDownloadLinks = settings?.play_store_link && settings?.app_store_link;
 
   return (
-    <footer className="mt-16 border-t border-slate-200/70 bg-gradient-to-b from-slate-50 via-white to-white text-slate-700 dark:border-slate-800 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-slate-200">
+    <footer className="border-t border-slate-200/70 bg-gradient-to-b from-slate-50 via-white to-white text-slate-700 dark:border-slate-800 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-slate-200">
       <div className="container py-10 md:py-12">
         <section className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-[0_22px_50px_-36px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/70 md:p-5">
           <div className="grid gap-2.5 md:grid-cols-3">

@@ -422,7 +422,7 @@ const HomeReels = () => {
 
       {/* ── story circles ── */}
       {!isLoading && sellerGroups.length > 0 && (
-        <div className="container mb-4">
+        <div className="container mb-4 hidden">
           <div
             ref={storyScrollRef}
             className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
