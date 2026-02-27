@@ -297,10 +297,10 @@ const PopularCategories = () => {
     <PopularCategoriesSkeleton />
   ) : (
     cateData && cateData.length > 0 && (
-      <section className="container mt-12">
+      <section className="container mt-6">
         <div className="space-between">
           <h5 className="text-xl sm:text-2xl font-medium">
-            {"Popularne kategorije"}
+            Istraži sve kategorije
           </h5>
           <div className="flex items-center justify-center gap-2 sm:gap-4">
             <button
