@@ -724,7 +724,7 @@ const Search = ({
               alt="lmx logo"
               className={cn(
                 "w-full object-contain ltr:object-left rtl:object-right",
-                compact ? "h-[34px] sm:h-[42px]" : "h-[42px] sm:h-[70px]"
+                compact ? "h-[34px] sm:h-[42px]" : "h-[42px] sm:h-[80px]"
               )}
             />
           </Link>
