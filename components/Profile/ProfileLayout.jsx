@@ -1193,13 +1193,13 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         {/* Mobile Header */}
         <div
           className="sticky z-30 mb-4 lg:hidden"
-          style={{ top: "calc(var(--lmx-mobile-header-offset, 0px) + 0.5rem)" }}
+          style={{ top: "calc(var(--lmx-mobile-header-offset, 0px))" }}
         >
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.6)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85"
+            className="bg-white/90 p-3 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.6)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85"
           >
             {MobileSidebar}
 

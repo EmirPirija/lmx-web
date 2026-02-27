@@ -866,9 +866,8 @@ export const formatTime = (dateString) => {
 export const formatChatMessageTime = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
-  const langCode = store
-    .getState()
-    ?.CurrentLanguage?.language?.code?.toLowerCase();
+  const langCode =
+    getSafeState()?.CurrentLanguage?.language?.code?.toLowerCase();
   const locale = languageLocaleMap?.[langCode] || "en-US";
 
   return date.toLocaleTimeString(locale, {

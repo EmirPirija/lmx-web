@@ -1,6 +1,6 @@
 import { logoutSuccess } from "@/redux/reducer/authSlice";
 import { setIsUnauthorized } from "@/redux/reducer/globalStateSlice";
-import { store } from "@/redux/store";
+import { getAppStore } from "@/redux/store/storeRef";
 import axios from "axios";
 
 const Api = axios.create({
@@ -16,7 +16,7 @@ Api.interceptors.request.use(function (config) {
   let langCode = undefined;
 
   if (typeof window !== "undefined") {
-    const state = store.getState();
+    const state = getAppStore()?.getState?.();
     token = state?.UserSignup?.data?.token;
     langCode = state?.CurrentLanguage?.language?.code;
   }
@@ -35,10 +35,12 @@ Api.interceptors.response.use(
   function (error) {
     const status = error?.response?.status;
     if (status === 401) {
-      const state = store.getState();
+      const appStore = getAppStore();
+      const state = appStore?.getState?.();
       const hasTokenInStore = Boolean(state?.UserSignup?.data?.token);
       const hadAuthHeader = Boolean(
-        error?.config?.headers?.authorization || error?.config?.headers?.Authorization
+        error?.config?.headers?.authorization ||
+        error?.config?.headers?.Authorization,
       );
       const requestUrl = String(error?.config?.url || "");
       const isLogoutRequest = requestUrl.includes("logout");
@@ -46,12 +48,15 @@ Api.interceptors.response.use(
       // Avoid endless unauthorized popups for guests/public requests.
       // Only handle when there was an authenticated session/request.
       if (!isLogoutRequest && (hasTokenInStore || hadAuthHeader)) {
-        logoutSuccess();
+        if (appStore?.dispatch) {
+          appStore.dispatch(logoutSuccess());
+        }
 
         const now = Date.now();
-        const canShowModal = now - lastUnauthorizedAt >= UNAUTHORIZED_COOLDOWN_MS;
+        const canShowModal =
+          now - lastUnauthorizedAt >= UNAUTHORIZED_COOLDOWN_MS;
         if (!isUnauthorizedToastShown && canShowModal) {
-          store.dispatch(setIsUnauthorized(true));
+          appStore?.dispatch?.(setIsUnauthorized(true));
           isUnauthorizedToastShown = true;
           lastUnauthorizedAt = now;
 
@@ -62,7 +67,7 @@ Api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default Api;

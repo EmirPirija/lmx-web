@@ -15,7 +15,7 @@ const NoChatListFound = () => {
         {"Nema razgovora"}
       </h3>
       <span className="text-sm text-slate-500 dark:text-slate-400 text-center">
-        {"Nema dostupnih chatova."}
+        {"Lista je prazna"}
       </span>
     </div>
   );
