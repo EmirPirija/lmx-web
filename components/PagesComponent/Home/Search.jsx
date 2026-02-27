@@ -747,7 +747,7 @@ const Search = ({
         </div>
       </div>
 
-      <div ref={searchContainerRef} className="relative flex-1 z-[9]">
+      <div ref={searchContainerRef} className="relative flex-1 z-[90]">
         <form
           onSubmit={handleSearchNav}
           className={cn(

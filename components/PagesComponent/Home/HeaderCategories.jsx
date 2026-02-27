@@ -389,7 +389,7 @@ const HeaderCategories = ({ cateData = [] }) => {
   if (!Array.isArray(cateData) || cateData.length === 0) return null;
 
   return (
-    <div className="hidden lg:block border-b bg-background z-[9]">
+    <div className="hidden lg:block border-b bg-background z-[30]">
       <div className="mx-auto w-full px-4 lg:px-5 2xl:px-6" ref={containerRef}>
         {/* Hidden measurement row */}
         <div

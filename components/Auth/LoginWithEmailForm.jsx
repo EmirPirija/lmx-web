@@ -6,11 +6,16 @@ import useAutoFocus from "../Common/useAutoFocus";
 import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError } from "@/utils";
 import {
+  EmailAuthProvider,
+  GoogleAuthProvider,
   browserLocalPersistence,
   browserSessionPersistence,
+  fetchSignInMethodsForEmail,
   getAuth,
+  linkWithCredential,
   sendPasswordResetEmail,
   setPersistence,
+  signInWithPopup,
   signOut,
   signInWithEmailAndPassword,
 } from "firebase/auth";
@@ -24,6 +29,14 @@ import { useEffect, useRef, useState } from "react";
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
 const RETRYABLE_GATEWAY_STATUSES = new Set([502, 503]);
 const GATEWAY_TIMEOUT_STATUS = 504;
+const GOOGLE_PROVIDER_ID = "google.com";
+const PASSWORD_PROVIDER_ID = "password";
+const GOOGLE_LINK_FALLBACK_CODES = new Set([
+  "auth/invalid-login-credentials",
+  "auth/invalid-credential",
+  "auth/wrong-password",
+  "auth/user-not-found",
+]);
 const sleep = (ms) =>
   new Promise((resolve) => {
     window.setTimeout(resolve, ms);
@@ -89,7 +102,8 @@ const LoginWithEmailForm = ({
       const resolvedEmail = String(resolved?.data?.data?.email || "")
         .trim()
         .toLowerCase();
-      if (resolvedEmail && EMAIL_REGEX.test(resolvedEmail)) return resolvedEmail;
+      if (resolvedEmail && EMAIL_REGEX.test(resolvedEmail))
+        return resolvedEmail;
     } catch (error) {
       if (error?.response?.status === 429) {
         toast.error("Previše pokušaja. Pokušaj ponovo za minutu.");
@@ -122,6 +136,59 @@ const LoginWithEmailForm = ({
       console.error("Error signing in:", error);
       throw error;
     }
+  };
+
+  const linkGoogleAccountWithPassword = async ({ email, password }) => {
+    const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+    const hasGoogleMethod = signInMethods.includes(GOOGLE_PROVIDER_ID);
+    const hasPasswordMethod = signInMethods.includes(PASSWORD_PROVIDER_ID);
+
+    if (!hasGoogleMethod || hasPasswordMethod) {
+      return null;
+    }
+
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+
+    const popupResult = await signInWithPopup(auth, provider);
+    const googleUser = popupResult?.user;
+    const googleEmail = String(googleUser?.email || "")
+      .trim()
+      .toLowerCase();
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+
+    if (!googleUser || !googleEmail) {
+      const error = new Error("Google prijava nije vratila korisnika.");
+      error.code = "auth/user-not-found";
+      throw error;
+    }
+
+    if (googleEmail !== normalizedEmail) {
+      await signOut(auth).catch(() => {});
+      const mismatchError = new Error(
+        "Google nalog se ne poklapa s unesenim e-mailom.",
+      );
+      mismatchError.code = "auth/google-account-mismatch";
+      throw mismatchError;
+    }
+
+    const emailCredential = EmailAuthProvider.credential(email, password);
+    try {
+      await linkWithCredential(googleUser, emailCredential);
+      toast.success(
+        "Google nalog je povezan s lozinkom. Sljedeći put se možeš prijaviti e-mailom i lozinkom.",
+      );
+    } catch (linkError) {
+      const linkCode = String(linkError?.code || "");
+      const canContinue =
+        linkCode === "auth/provider-already-linked" ||
+        linkCode === "auth/credential-already-in-use";
+      if (!canContinue) throw linkError;
+    }
+
+    return signInWithEmailAndPassword(auth, email, password);
   };
 
   const syncSessionWithBackend = async (payload) => {
@@ -162,23 +229,58 @@ const LoginWithEmailForm = ({
 
     try {
       setLoginStates((prev) => ({ ...prev, showLoader: true }));
-      const resolvedEmail = await resolveEmailFromIdentifier(
-        normalizedIdentifier,
-      );
+      const resolvedEmail =
+        await resolveEmailFromIdentifier(normalizedIdentifier);
 
       if (resolvedEmail === null) {
         return;
       }
       if (!resolvedEmail) {
-        toast.error("Nalog nije pronađen. Provjerite e-mail ili korisničko ime.");
+        toast.error(
+          "Nalog nije pronađen. Provjerite e-mail ili korisničko ime.",
+        );
         return;
       }
 
-      const userCredential = await signin(resolvedEmail, password);
+      let userCredential = null;
+      try {
+        userCredential = await signin(resolvedEmail, password);
+      } catch (signInError) {
+        const code = String(signInError?.code || "");
+        const shouldTryGoogleFallback = GOOGLE_LINK_FALLBACK_CODES.has(code);
+
+        if (!shouldTryGoogleFallback) {
+          throw signInError;
+        }
+
+        try {
+          const linkedCredential = await linkGoogleAccountWithPassword({
+            email: resolvedEmail,
+            password,
+          });
+          if (!linkedCredential?.user) {
+            throw signInError;
+          }
+          userCredential = linkedCredential;
+        } catch (fallbackError) {
+          if (
+            String(fallbackError?.code || "") === "auth/google-account-mismatch"
+          ) {
+            toast.error(
+              "Odabran je drugi Google nalog. Odaberi isti nalog kao uneseni e-mail.",
+            );
+            return;
+          }
+          throw fallbackError;
+        }
+      }
+
       const user = userCredential?.user;
       if (!user) return;
       if (!user.emailVerified) {
-        toast.warning("E-mail nije potvrđen. Možete nastaviti i potvrditi ga kasnije.");
+        toast.warning(
+          "E-mail nije potvrđen. Možete nastaviti i potvrditi ga kasnije.",
+        );
       }
 
       try {
@@ -209,7 +311,8 @@ const LoginWithEmailForm = ({
           );
         } else {
           toast.error(
-            error?.response?.data?.message || "Prijava nije uspjela. Pokušajte ponovo.",
+            error?.response?.data?.message ||
+              "Prijava nije uspjela. Pokušajte ponovo.",
           );
         }
         try {
@@ -233,7 +336,8 @@ const LoginWithEmailForm = ({
       return;
     }
 
-    const resolvedEmail = await resolveEmailFromIdentifier(normalizedIdentifier);
+    const resolvedEmail =
+      await resolveEmailFromIdentifier(normalizedIdentifier);
     if (resolvedEmail === null) {
       return;
     }
@@ -254,7 +358,10 @@ const LoginWithEmailForm = ({
 
   return (
     <>
-      <form className="flex flex-col gap-4 rounded-2xl bg-transparent p-0" onSubmit={Signin}>
+      <form
+        className="flex flex-col gap-4 rounded-2xl bg-transparent p-0"
+        onSubmit={Signin}
+      >
         <div className="labelInputCont">
           <Label className="requiredInputLabel text-sm font-semibold text-foreground">
             E-mail ili korisničko ime
@@ -285,14 +392,14 @@ const LoginWithEmailForm = ({
               className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground ltr:pr-10 rtl:pl-10"
               value={password}
               autoComplete="current-password"
-            onChange={(e) =>
-              setLoginStates((prev) => ({
-                ...prev,
-                password: e.target.value,
-              }))
-            }
-            ref={passwordRef}
-          />
+              onChange={(e) =>
+                setLoginStates((prev) => ({
+                  ...prev,
+                  password: e.target.value,
+                }))
+              }
+              ref={passwordRef}
+            />
             <button
               type="button"
               className="absolute ltr:right-3 rtl:left-3 cursor-pointer text-muted-foreground hover:text-foreground"

@@ -42,7 +42,10 @@ import CustomLink from "@/components/Common/CustomLink";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
-import { getDefaultLanguageCode, getLanguages } from "@/redux/reducer/settingSlice";
+import {
+  getDefaultLanguageCode,
+  getLanguages,
+} from "@/redux/reducer/settingSlice";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import {
   CategoryData,
@@ -78,15 +81,19 @@ const WATERMARK_TEXT_DEFAULT = "lmx.ba";
 const WATERMARK_IMAGE_DEFAULT = "/assets/lmx-watermark.png";
 
 const isFileLike = (v) =>
-  typeof File !== "undefined" &&
-  (v instanceof File || v instanceof Blob);
+  typeof File !== "undefined" && (v instanceof File || v instanceof Blob);
 
-// ✅ FIX 1: Ažurirana funkcija da podržava {url: ...} objekte
 const safeObjectUrl = (v) => {
   try {
     if (!v) return "";
     if (typeof v === "string") return v;
-    if (typeof v === "object" && v.url) return v.url; // Dodano za objekte sa backend-a
+    if (typeof v === "object") {
+      if (v.url) return v.url;
+      if (v.image) return v.image;
+      if (v.original_url) return v.original_url;
+      if (v.path) return v.path;
+      if (v.file_url) return v.file_url;
+    }
     if (isFileLike(v)) return URL.createObjectURL(v);
   } catch {}
   return "";
@@ -109,7 +116,13 @@ const randBetween = (min, max) => {
   return min + Math.random() * (max - min);
 };
 
-const getRandomEdgePlacement = ({ width, height, watermarkWidth, watermarkHeight, padding }) => {
+const getRandomEdgePlacement = ({
+  width,
+  height,
+  watermarkWidth,
+  watermarkHeight,
+  padding,
+}) => {
   const minX = padding;
   const maxX = Math.max(padding, width - watermarkWidth - padding);
   const minY = padding;
@@ -139,11 +152,11 @@ const compressAndWatermarkImage = async (
     quality = 0.92,
     watermarkUrl = WATERMARK_IMAGE_DEFAULT,
     watermarkText = WATERMARK_TEXT_DEFAULT,
-    watermarkOpacity = 0.9,               // Providnost (0.0 - 1.0)
-    watermarkScale = 0.15,                // Veličina: 15% širine slike
-    watermarkPaddingPct = 0.03,           // Odmak: 3% od ivice
+    watermarkOpacity = 0.9, // Providnost (0.0 - 1.0)
+    watermarkScale = 0.15, // Veličina: 15% širine slike
+    watermarkPaddingPct = 0.03, // Odmak: 3% od ivice
     minBytesToProcess = 0,
-  } = {}
+  } = {},
 ) => {
   if (!isFileLike(file)) return file;
   if (file.size && file.size < minBytesToProcess) return file;
@@ -155,7 +168,9 @@ const compressAndWatermarkImage = async (
   try {
     img = await loadImageElement(src);
   } finally {
-    try { URL.revokeObjectURL(src); } catch {}
+    try {
+      URL.revokeObjectURL(src);
+    } catch {}
   }
 
   // 1. Izračunaj dimenzije za resize glavne slike
@@ -177,7 +192,10 @@ const compressAndWatermarkImage = async (
   // 3. Nacrtaj watermark uz random ivicu
   if (watermarkUrl || watermarkText) {
     try {
-      const padding = Math.max(8, Math.round(Math.min(outW, outH) * watermarkPaddingPct));
+      const padding = Math.max(
+        8,
+        Math.round(Math.min(outW, outH) * watermarkPaddingPct),
+      );
       let drawn = false;
 
       if (watermarkUrl) {
@@ -185,7 +203,7 @@ const compressAndWatermarkImage = async (
         const wmWidth = Math.max(32, Math.round(outW * watermarkScale));
         const wmAspect =
           (wmImg.naturalWidth || wmImg.width) /
-          Math.max(1, (wmImg.naturalHeight || wmImg.height));
+          Math.max(1, wmImg.naturalHeight || wmImg.height);
         const wmHeight = Math.max(16, Math.round(wmWidth / wmAspect));
         const { x, y } = getRandomEdgePlacement({
           width: outW,
@@ -245,7 +263,6 @@ const compressAndWatermarkImage = async (
   return new File([outBlob], newName, { type: "image/jpeg" });
 };
 
-
 const normalizeFilesArray = (maybe) => {
   if (!maybe) return [];
   if (Array.isArray(maybe)) return maybe;
@@ -274,13 +291,15 @@ const stripCountryCodePrefix = (mobile, countryCode) => {
   const ccDigits = digitsOnly(countryCode);
   if (!mobileDigits) return "";
   if (!ccDigits) return mobileDigits;
-  if (mobileDigits.startsWith(ccDigits)) return mobileDigits.slice(ccDigits.length);
+  if (mobileDigits.startsWith(ccDigits))
+    return mobileDigits.slice(ccDigits.length);
   return mobileDigits;
 };
 
 const toBoolLoose = (value) => {
   if (value === true || value === 1 || value === "1") return true;
-  if (value === false || value === 0 || value === "0" || value == null) return false;
+  if (value === false || value === 0 || value === "0" || value == null)
+    return false;
   const normalized = String(value).trim().toLowerCase();
   return ["true", "yes", "da", "verified", "approved"].includes(normalized);
 };
@@ -449,7 +468,9 @@ const AdsListing = () => {
 
   const languages = useSelector(getLanguages);
   const defaultLanguageCode = useSelector(getDefaultLanguageCode);
-  const defaultLangId = languages?.find((lang) => lang.code === defaultLanguageCode)?.id;
+  const defaultLangId = languages?.find(
+    (lang) => lang.code === defaultLanguageCode,
+  )?.id;
   const sharedRootCategories = useSelector(CategoryData);
   const sharedRootCurrentPage = useSelector(getCatCurrentPage);
   const sharedRootLastPage = useSelector(getCatLastPage);
@@ -460,9 +481,10 @@ const AdsListing = () => {
   const regionCode = resolveLmxPhoneCountry(
     userData?.region_code?.toLowerCase() ||
       process.env.NEXT_PUBLIC_DEFAULT_COUNTRY?.toLowerCase() ||
-      "ba"
+      "ba",
   );
-  const countryCode = digitsOnly(userData?.country_code) || resolveLmxPhoneDialCode(regionCode);
+  const countryCode =
+    digitsOnly(userData?.country_code) || resolveLmxPhoneDialCode(regionCode);
   const mobile = stripCountryCodePrefix(userData?.mobile, countryCode);
   const sellerPhoneDisplay = mobile ? `+${countryCode}${mobile}` : "";
   const isPhoneVerified = useMemo(
@@ -479,7 +501,9 @@ const AdsListing = () => {
     ],
   );
   const isEmailVerified = useMemo(
-    () => toBoolLoose(userData?.email_verified) || Boolean(userData?.email_verified_at),
+    () =>
+      toBoolLoose(userData?.email_verified) ||
+      Boolean(userData?.email_verified_at),
     [userData?.email_verified, userData?.email_verified_at],
   );
   const hasVerificationWarnings = !isPhoneVerified || !isEmailVerified;
@@ -557,7 +581,7 @@ const AdsListing = () => {
       return langId;
     }
     const firstTranslationKey = Object.keys(translations || {}).find(
-      (key) => translations?.[key] && typeof translations[key] === "object"
+      (key) => translations?.[key] && typeof translations[key] === "object",
     );
     return firstTranslationKey ?? defaultLangId ?? langId;
   }, [defaultLangId, langId, translations]);
@@ -568,13 +592,13 @@ const AdsListing = () => {
       ...(translations?.[primaryLangId] || {}),
       ...(translations?.[langId] || {}),
     }),
-    [langId, primaryLangId, translations]
+    [langId, primaryLangId, translations],
   );
   const currentExtraDetails =
     extraDetails?.[langId] || extraDetails?.[primaryLangId] || {};
   const draftSavedAgoLabel = useMemo(
     () => formatDraftSavedAgo(draftLocalSavedAt, draftTickerTs),
-    [draftLocalSavedAt, draftTickerTs]
+    [draftLocalSavedAt, draftTickerTs],
   );
 
   useEffect(() => {
@@ -591,7 +615,9 @@ const AdsListing = () => {
 
     try {
       const shouldResumeDraft =
-        new URLSearchParams(window.location.search).get(CREATE_DRAFT_RESUME_QUERY_PARAM) === "1";
+        new URLSearchParams(window.location.search).get(
+          CREATE_DRAFT_RESUME_QUERY_PARAM,
+        ) === "1";
       if (!shouldResumeDraft) {
         // "Objavi novi oglas" uvijek kreće od praznog stanja.
         // Draft se učitava samo ako je eksplicitno traženo query parametrom (?resume_draft=1).
@@ -605,7 +631,8 @@ const AdsListing = () => {
       const parsedDraft = JSON.parse(rawDraft);
       const savedAt = parsedDraft?.savedAt;
       const savedTs = savedAt ? new Date(savedAt).getTime() : NaN;
-      const isExpired = !Number.isFinite(savedTs) || Date.now() - savedTs > CREATE_DRAFT_TTL_MS;
+      const isExpired =
+        !Number.isFinite(savedTs) || Date.now() - savedTs > CREATE_DRAFT_TTL_MS;
 
       if (isExpired) {
         window.localStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
@@ -620,10 +647,16 @@ const AdsListing = () => {
       if (Array.isArray(draftData?.categoryPath)) {
         setCategoryPath(draftData.categoryPath.filter(Boolean));
       }
-      if (draftData?.translations && typeof draftData.translations === "object") {
+      if (
+        draftData?.translations &&
+        typeof draftData.translations === "object"
+      ) {
         setTranslations(draftData.translations);
       }
-      if (draftData?.extraDetails && typeof draftData.extraDetails === "object") {
+      if (
+        draftData?.extraDetails &&
+        typeof draftData.extraDetails === "object"
+      ) {
         setExtraDetails(draftData.extraDetails);
       }
       if (Number.isFinite(Number(draftData?.langId))) {
@@ -710,12 +743,12 @@ const AdsListing = () => {
       translations,
       uploadedImages,
       uploadedVideo,
-    ]
+    ],
   );
 
   const serializedLocalDraftSnapshot = useMemo(
     () => JSON.stringify(localDraftSnapshot),
-    [localDraftSnapshot]
+    [localDraftSnapshot],
   );
 
   useEffect(() => {
@@ -728,7 +761,10 @@ const AdsListing = () => {
           savedAt: new Date().toISOString(),
           data: localDraftSnapshot,
         };
-        window.localStorage.setItem(CREATE_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+        window.localStorage.setItem(
+          CREATE_DRAFT_STORAGE_KEY,
+          JSON.stringify(payload),
+        );
         setDraftLocalSavedAt(payload.savedAt);
         setDraftTickerTs(Date.now());
         setDraftStatus("saved");
@@ -741,11 +777,13 @@ const AdsListing = () => {
     return () => window.clearTimeout(timeoutId);
   }, [draftHydrated, localDraftSnapshot, serializedLocalDraftSnapshot]);
 
-  const is_job_category = Number(categoryPath[categoryPath.length - 1]?.is_job_category) === 1;
-  const isPriceOptional = Number(categoryPath[categoryPath.length - 1]?.price_optional) === 1;
+  const is_job_category =
+    Number(categoryPath[categoryPath.length - 1]?.is_job_category) === 1;
+  const isPriceOptional =
+    Number(categoryPath[categoryPath.length - 1]?.price_optional) === 1;
   const is_real_estate = useMemo(
     () => isRealEstateCategoryPath(categoryPath),
-    [categoryPath]
+    [categoryPath],
   );
   const realEstateAreaM2 = useMemo(
     () =>
@@ -755,7 +793,7 @@ const AdsListing = () => {
         languageId: langId,
         fallbackLanguageId: defaultLangId,
       }),
-    [customFields, defaultLangId, extraDetails, langId]
+    [customFields, defaultLangId, extraDetails, langId],
   );
   const realEstatePriceState = useMemo(
     () =>
@@ -764,15 +802,18 @@ const AdsListing = () => {
         areaM2: realEstateAreaM2,
         totalPrice: defaultDetails?.price,
       }),
-    [defaultDetails, realEstateAreaM2]
+    [defaultDetails, realEstateAreaM2],
   );
   const effectiveRealEstateTotalPrice = useMemo(() => {
     if (!is_real_estate || !realEstatePriceState.enabled) return null;
-    if (realEstatePriceState.mode !== REAL_ESTATE_PRICE_MODE_MANUAL) return null;
+    if (realEstatePriceState.mode !== REAL_ESTATE_PRICE_MODE_MANUAL)
+      return null;
     return realEstatePriceState.derivedTotalPrice;
   }, [is_real_estate, realEstatePriceState]);
 
-  const allCategoryIdsString = categoryPath.map((category) => category.id).join(",");
+  const allCategoryIdsString = categoryPath
+    .map((category) => category.id)
+    .join(",");
   const lastItemId = categoryPath[categoryPath.length - 1]?.id;
 
   // Caching refs
@@ -781,7 +822,7 @@ const AdsListing = () => {
   const categoriesReqSeqRef = useRef(0);
   const customFieldsLoadedForCategoriesRef = useRef("");
 
-  const ROOT_PER_PAGE = 50; 
+  const ROOT_PER_PAGE = 50;
   const CHILD_PER_PAGE = 50;
 
   const fetchCategories = useCallback(
@@ -853,14 +894,18 @@ const AdsListing = () => {
         else setIsLoadMoreCat(false);
       }
     },
-    [CurrentLanguage?.id]
+    [CurrentLanguage?.id],
   );
 
   const handleFetchCategories = useCallback(
     async (id) => {
-      await fetchCategories({ categoryId: id || lastItemId || null, page: 1, append: false });
+      await fetchCategories({
+        categoryId: id || lastItemId || null,
+        page: 1,
+        append: false,
+      });
     },
-    [fetchCategories, lastItemId]
+    [fetchCategories, lastItemId],
   );
 
   const fetchMoreCategory = useCallback(async () => {
@@ -872,7 +917,14 @@ const AdsListing = () => {
       page: currentPage + 1,
       append: true,
     });
-  }, [categoriesLoading, isLoadMoreCat, currentPage, lastPage, lastItemId, fetchCategories]);
+  }, [
+    categoriesLoading,
+    isLoadMoreCat,
+    currentPage,
+    lastPage,
+    lastItemId,
+    fetchCategories,
+  ]);
 
   // Completeness Score
   const completenessScore = useMemo(() => {
@@ -886,7 +938,7 @@ const AdsListing = () => {
     } else {
       const filledFields =
         Object.keys(currentExtraDetails).filter(
-          (key) => currentExtraDetails[key] && currentExtraDetails[key] !== ""
+          (key) => currentExtraDetails[key] && currentExtraDetails[key] !== "",
         ).length || 0;
       score += (filledFields / customFields.length) * 20;
     }
@@ -899,7 +951,15 @@ const AdsListing = () => {
       score += 20;
     }
     return Math.round(score);
-  }, [categoryPath, currentExtraDetails, customFields, defaultDetails, location, otherImages, uploadedImages]);
+  }, [
+    categoryPath,
+    currentExtraDetails,
+    customFields,
+    defaultDetails,
+    location,
+    otherImages,
+    uploadedImages,
+  ]);
 
   useEffect(() => {
     const stored = localStorage.getItem("recentCategories");
@@ -916,7 +976,11 @@ const AdsListing = () => {
   };
 
   useEffect(() => {
-    if (!Array.isArray(sharedRootCategories) || sharedRootCategories.length === 0) return;
+    if (
+      !Array.isArray(sharedRootCategories) ||
+      sharedRootCategories.length === 0
+    )
+      return;
     const langKey = CurrentLanguage?.id || "lang";
     const cacheKey = `${langKey}:root:1`;
 
@@ -952,65 +1016,72 @@ const AdsListing = () => {
       handleFetchCategories();
     }
   }, [step, lastItemId, CurrentLanguage?.id, handleFetchCategories]);
-  
-  const getCustomFieldsData = useCallback(async (categoryIds) => {
-    if (!categoryIds) {
-      setCustomFields([]);
-      setIsCustomFieldsLoading(false);
-      return;
-    }
 
-    setIsCustomFieldsLoading(true);
-    try {
-      const res = await getCustomFieldsApi.getCustomFields({
-        category_ids: categoryIds,
-      });
-      const normalizedFields = Array.isArray(res?.data?.data) ? res.data.data : [];
-      setCustomFields(normalizedFields);
+  const getCustomFieldsData = useCallback(
+    async (categoryIds) => {
+      if (!categoryIds) {
+        setCustomFields([]);
+        setIsCustomFieldsLoading(false);
+        return;
+      }
 
-      const initializedDetails = {};
-      const languagePool =
-        Array.isArray(languages) && languages.length > 0
-          ? languages.filter((lang) => lang?.id)
-          : [{ id: defaultLangId || CurrentLanguage?.id }].filter((lang) => lang?.id);
-
-      languagePool.forEach((lang) => {
-        const langFields = {};
-        normalizedFields.forEach((item) => {
-          if (lang.id !== defaultLangId && item.type !== "textbox") return;
-          let initialValue = "";
-          switch (item.type) {
-            case "checkbox":
-            case "radio":
-              initialValue = [];
-              break;
-            case "fileinput":
-              initialValue = null;
-              break;
-            default:
-              initialValue = "";
-              break;
-          }
-          langFields[item.id] = initialValue;
+      setIsCustomFieldsLoading(true);
+      try {
+        const res = await getCustomFieldsApi.getCustomFields({
+          category_ids: categoryIds,
         });
-        initializedDetails[lang.id] = langFields;
-      });
+        const normalizedFields = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : [];
+        setCustomFields(normalizedFields);
 
-      if (defaultLangId && !initializedDetails[defaultLangId]) {
-        initializedDetails[defaultLangId] = {};
-      }
+        const initializedDetails = {};
+        const languagePool =
+          Array.isArray(languages) && languages.length > 0
+            ? languages.filter((lang) => lang?.id)
+            : [{ id: defaultLangId || CurrentLanguage?.id }].filter(
+                (lang) => lang?.id,
+              );
 
-      setExtraDetails(initializedDetails);
-    } catch (error) {
-      console.log(error);
-      setCustomFields([]);
-      if (defaultLangId) {
-        setExtraDetails({ [defaultLangId]: {} });
+        languagePool.forEach((lang) => {
+          const langFields = {};
+          normalizedFields.forEach((item) => {
+            if (lang.id !== defaultLangId && item.type !== "textbox") return;
+            let initialValue = "";
+            switch (item.type) {
+              case "checkbox":
+              case "radio":
+                initialValue = [];
+                break;
+              case "fileinput":
+                initialValue = null;
+                break;
+              default:
+                initialValue = "";
+                break;
+            }
+            langFields[item.id] = initialValue;
+          });
+          initializedDetails[lang.id] = langFields;
+        });
+
+        if (defaultLangId && !initializedDetails[defaultLangId]) {
+          initializedDetails[defaultLangId] = {};
+        }
+
+        setExtraDetails(initializedDetails);
+      } catch (error) {
+        console.log(error);
+        setCustomFields([]);
+        if (defaultLangId) {
+          setExtraDetails({ [defaultLangId]: {} });
+        }
+      } finally {
+        setIsCustomFieldsLoading(false);
       }
-    } finally {
-      setIsCustomFieldsLoading(false);
-    }
-  }, [CurrentLanguage?.id, defaultLangId, languages]);
+    },
+    [CurrentLanguage?.id, defaultLangId, languages],
+  );
 
   useEffect(() => {
     if (!allCategoryIdsString) {
@@ -1067,7 +1138,12 @@ const AdsListing = () => {
     saveRecentCategory(nextPath[nextPath.length - 1] || category);
 
     const activeCategory = nextPath[nextPath.length - 1] || category;
-    const hasChildren = Number(activeCategory?.subcategories_count ?? category?.subcategories_count ?? 0) > 0;
+    const hasChildren =
+      Number(
+        activeCategory?.subcategories_count ??
+          category?.subcategories_count ??
+          0,
+      ) > 0;
 
     if (!hasChildren) {
       setIsCustomFieldsLoading(true);
@@ -1093,7 +1169,7 @@ const AdsListing = () => {
       const newPath = categoryPath.slice(0, -1);
       setCategoryPath(newPath);
       if (newPath.length === 0) {
-        setCategories([]); 
+        setCategories([]);
         handleSelectedTabClick(null);
       } else {
         const prevId = newPath[newPath.length - 1].id;
@@ -1141,9 +1217,9 @@ const AdsListing = () => {
     }
 
     if (id === null) {
-        setCategories([]);
-        setCategoryPath([]);
-        return;
+      setCategories([]);
+      setCategoryPath([]);
+      return;
     }
 
     const index = categoryPath.findIndex((item) => item.id === id);
@@ -1168,8 +1244,10 @@ const AdsListing = () => {
     if (value === false || value === 0 || value === "0") return false;
     if (typeof value === "string") {
       const normalized = value.trim().toLowerCase();
-      if (["true", "da", "yes", "on", "enabled"].includes(normalized)) return true;
-      if (["false", "ne", "no", "off", "disabled"].includes(normalized)) return false;
+      if (["true", "da", "yes", "on", "enabled"].includes(normalized))
+        return true;
+      if (["false", "ne", "no", "off", "disabled"].includes(normalized))
+        return false;
     }
     return fallback;
   }, []);
@@ -1185,7 +1263,9 @@ const AdsListing = () => {
       if (langId !== undefined && langId !== null) {
         candidateKeys.push(String(langId));
       }
-      Object.keys(translations || {}).forEach((key) => candidateKeys.push(String(key)));
+      Object.keys(translations || {}).forEach((key) =>
+        candidateKeys.push(String(key)),
+      );
 
       const uniqueKeys = [...new Set(candidateKeys)];
       for (const key of uniqueKeys) {
@@ -1195,7 +1275,7 @@ const AdsListing = () => {
 
       return fallback;
     },
-    [defaultLangId, langId, primaryLangId, translations]
+    [defaultLangId, langId, primaryLangId, translations],
   );
 
   const handleVideoLinkChange = useCallback(
@@ -1212,7 +1292,7 @@ const AdsListing = () => {
         };
       });
     },
-    [defaultLangId, langId, primaryLangId]
+    [defaultLangId, langId, primaryLangId],
   );
 
   const handleUseInstagramAsVideoLink = useCallback(() => {
@@ -1237,8 +1317,11 @@ const AdsListing = () => {
       const res = await socialMediaApi.getConnectedAccounts();
       const accounts = res?.data?.data?.accounts || [];
       const igAccount =
-        Array.isArray(accounts) && accounts.find((entry) => entry?.platform === "instagram");
-      const connected = Boolean(igAccount?.connected || igAccount?.status === "connected");
+        Array.isArray(accounts) &&
+        accounts.find((entry) => entry?.platform === "instagram");
+      const connected = Boolean(
+        igAccount?.connected || igAccount?.status === "connected",
+      );
 
       setInstagramConnection((prev) => ({
         ...prev,
@@ -1277,7 +1360,10 @@ const AdsListing = () => {
 
     try {
       setInstagramConnection((prev) => ({ ...prev, syncing: true }));
-      const res = await socialMediaApi.connectAccount({ platform: "instagram", mode: "oauth" });
+      const res = await socialMediaApi.connectAccount({
+        platform: "instagram",
+        mode: "oauth",
+      });
       const authUrl = res?.data?.data?.auth_url;
       if (!authUrl) {
         throw new Error(res?.data?.message || "OAuth link nije dostupan.");
@@ -1287,7 +1373,11 @@ const AdsListing = () => {
       toast.success("Instagram je uspješno povezan.");
       await fetchInstagramConnection();
     } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || "Povezivanje Instagrama nije uspjelo.");
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Povezivanje Instagrama nije uspjelo.",
+      );
     } finally {
       setInstagramConnection((prev) => ({ ...prev, syncing: false }));
     }
@@ -1300,10 +1390,13 @@ const AdsListing = () => {
     const catId = categoryPath.at(-1)?.id;
     const resolvedScarcityEnabled = parseBooleanSetting(
       getSharedDetailValue("scarcity_enabled", false),
-      false
+      false,
     );
     const resolvedInventoryCount = getSharedDetailValue("inventory_count", 0);
-    const resolvedStockAlertThreshold = getSharedDetailValue("stock_alert_threshold", 3);
+    const resolvedStockAlertThreshold = getSharedDetailValue(
+      "stock_alert_threshold",
+      3,
+    );
     const scarcityEnabled = !is_real_estate && Boolean(resolvedScarcityEnabled);
     const inventoryCount = Number(resolvedInventoryCount || 0);
     const lowThreshold = Math.max(1, Number(resolvedStockAlertThreshold || 3));
@@ -1325,7 +1418,10 @@ const AdsListing = () => {
       return setStep(2);
     }
 
-    if (!isEmpty(defaultDetails?.video_link) && !isValidURL(defaultDetails?.video_link)) {
+    if (
+      !isEmpty(defaultDetails?.video_link) &&
+      !isValidURL(defaultDetails?.video_link)
+    ) {
       toast.error("Unesi ispravan URL.");
       return setStep(4);
     }
@@ -1342,7 +1438,9 @@ const AdsListing = () => {
     }
 
     if (publishToInstagram && !instagramConnection.connected) {
-      toast.error("Instagram nalog nije povezan. Povežite Instagram pa pokušajte ponovo.");
+      toast.error(
+        "Instagram nalog nije povezan. Povežite Instagram pa pokušajte ponovo.",
+      );
       return setStep(4);
     }
 
@@ -1351,21 +1449,34 @@ const AdsListing = () => {
       return;
     }
 
-    const realEstateLocationSource = String(location?.location_source || "").toLowerCase();
+    const realEstateLocationSource = String(
+      location?.location_source || "",
+    ).toLowerCase();
     const hasPreciseRealEstatePin =
-      Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.long));
+      Number.isFinite(Number(location?.lat)) &&
+      Number.isFinite(Number(location?.long));
     const usesRealEstateProfileLocation =
       is_real_estate &&
       (realEstateLocationSource === "profile" ||
         (!hasPreciseRealEstatePin && realEstateLocationSource !== "map"));
 
-    if (is_real_estate && !usesRealEstateProfileLocation && !hasPreciseRealEstatePin) {
+    if (
+      is_real_estate &&
+      !usesRealEstateProfileLocation &&
+      !hasPreciseRealEstatePin
+    ) {
       toast.error("Za nekretninu označite tačnu lokaciju na mapi.");
       return setStep(5);
     }
 
-    if (is_real_estate && realEstatePriceState.enabled && !realEstatePriceState.hasArea) {
-      toast.error("Unesite površinu nekretnine (m²) prije prikaza cijene po m².");
+    if (
+      is_real_estate &&
+      realEstatePriceState.enabled &&
+      !realEstatePriceState.hasArea
+    ) {
+      toast.error(
+        "Unesite površinu nekretnine (m²) prije prikaza cijene po m².",
+      );
       return setStep(customFields?.length ? 3 : 2);
     }
 
@@ -1375,7 +1486,9 @@ const AdsListing = () => {
       realEstatePriceState.mode === "auto" &&
       (defaultDetails?.price_on_request || !Number(defaultDetails?.price))
     ) {
-      toast.error("Za automatsku cijenu po m² prvo unesite ukupnu cijenu oglasa.");
+      toast.error(
+        "Za automatsku cijenu po m² prvo unesite ukupnu cijenu oglasa.",
+      );
       return setStep(2);
     }
 
@@ -1389,13 +1502,20 @@ const AdsListing = () => {
       return setStep(2);
     }
 
-    if (scarcityEnabled && (!Number.isFinite(inventoryCount) || inventoryCount <= 0)) {
-      toast.error("Za opciju 'Do isteka zaliha' unesite količinu na zalihi veću od 0.");
+    if (
+      scarcityEnabled &&
+      (!Number.isFinite(inventoryCount) || inventoryCount <= 0)
+    ) {
+      toast.error(
+        "Za opciju 'Do isteka zaliha' unesite količinu na zalihi veću od 0.",
+      );
       return setStep(2);
     }
 
     if (scarcityEnabled && inventoryCount > lowThreshold) {
-      toast.info("Oznaka 'Do isteka zaliha' će se automatski aktivirati kada zaliha padne na zadani prag.");
+      toast.info(
+        "Oznaka 'Do isteka zaliha' će se automatski aktivirati kada zaliha padne na zadani prag.",
+      );
     }
 
     postAd(scheduledDateTime);
@@ -1403,24 +1523,37 @@ const AdsListing = () => {
 
   const postAd = async (scheduledDateTime = null) => {
     const catId = categoryPath.at(-1)?.id;
-    const customFieldTranslations = prepareCustomFieldTranslations(extraDetails);
-    const customFieldFiles = prepareCustomFieldFiles(extraDetails, primaryLangId);
-    const nonDefaultTranslations = filterNonDefaultTranslations(translations, primaryLangId);
+    const customFieldTranslations =
+      prepareCustomFieldTranslations(extraDetails);
+    const customFieldFiles = prepareCustomFieldFiles(
+      extraDetails,
+      primaryLangId,
+    );
+    const nonDefaultTranslations = filterNonDefaultTranslations(
+      translations,
+      primaryLangId,
+    );
     const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
     const mainTempId = extractTempMediaId(uploadedImages?.[0]);
-    const galleryTempIds = (otherImages || []).map(extractTempMediaId).filter(Boolean);
+    const galleryTempIds = (otherImages || [])
+      .map(extractTempMediaId)
+      .filter(Boolean);
     const tempVideoId = extractTempMediaId(uploadedVideo);
     const mainImageFallback =
       uploadedImages?.[0] instanceof File || uploadedImages?.[0] instanceof Blob
         ? uploadedImages?.[0]
         : null;
     const galleryFallbackFiles = (otherImages || []).filter(
-      (entry) => entry instanceof File || entry instanceof Blob
+      (entry) => entry instanceof File || entry instanceof Blob,
     );
     const latNum = Number(location?.lat);
     const lngNum = Number(location?.long);
-    const resolvedLatitude = Number.isFinite(latNum) ? latNum : DEFAULT_BIH_COORDS.lat;
-    const resolvedLongitude = Number.isFinite(lngNum) ? lngNum : DEFAULT_BIH_COORDS.lng;
+    const resolvedLatitude = Number.isFinite(latNum)
+      ? latNum
+      : DEFAULT_BIH_COORDS.lat;
+    const resolvedLongitude = Number.isFinite(lngNum)
+      ? lngNum
+      : DEFAULT_BIH_COORDS.lng;
 
     const allData = {
       name: defaultDetails.name,
@@ -1445,10 +1578,9 @@ const AdsListing = () => {
         String(getSharedDetailValue("inventory_count")).trim() !== ""
           ? Number(getSharedDetailValue("inventory_count"))
           : null,
-      price_per_unit:
-        is_real_estate
-          ? realEstatePriceState.resolvedValue
-          : defaultDetails?.price_per_unit !== undefined &&
+      price_per_unit: is_real_estate
+        ? realEstatePriceState.resolvedValue
+        : defaultDetails?.price_per_unit !== undefined &&
             defaultDetails?.price_per_unit !== null &&
             String(defaultDetails.price_per_unit).trim() !== ""
           ? Number(defaultDetails.price_per_unit)
@@ -1472,13 +1604,22 @@ const AdsListing = () => {
         : String(getSharedDetailValue("seller_product_code", "") || "").trim(),
       scarcity_enabled: is_real_estate
         ? false
-        : parseBooleanSetting(getSharedDetailValue("scarcity_enabled", false), false),
+        : parseBooleanSetting(
+            getSharedDetailValue("scarcity_enabled", false),
+            false,
+          ),
       video_link: trimmedVideoLink,
       ...(mainTempId ? { temp_main_image_id: mainTempId } : {}),
-      ...(galleryTempIds.length ? { temp_gallery_image_ids: galleryTempIds } : {}),
-      ...(tempVideoId && !trimmedVideoLink ? { temp_video_id: tempVideoId } : {}),
+      ...(galleryTempIds.length
+        ? { temp_gallery_image_ids: galleryTempIds }
+        : {}),
+      ...(tempVideoId && !trimmedVideoLink
+        ? { temp_video_id: tempVideoId }
+        : {}),
       ...(mainImageFallback ? { image: mainImageFallback } : {}),
-      ...(galleryFallbackFiles.length ? { gallery_images: galleryFallbackFiles } : {}),
+      ...(galleryFallbackFiles.length
+        ? { gallery_images: galleryFallbackFiles }
+        : {}),
       add_video_to_story: Boolean(addVideoToStory),
       publish_to_instagram: SOCIAL_POSTING_TEMP_UNAVAILABLE
         ? false
@@ -1486,7 +1627,8 @@ const AdsListing = () => {
       instagram_source_url: (instagramSourceUrl || "").trim(),
       address: location?.address,
       formatted_address: location?.formattedAddress || location?.address || "",
-      address_translated: location?.address_translated || location?.address || "",
+      address_translated:
+        location?.address_translated || location?.address || "",
       latitude: resolvedLatitude,
       longitude: resolvedLongitude,
       location_source: is_real_estate
@@ -1498,29 +1640,29 @@ const AdsListing = () => {
       country: location?.country,
       state: location?.state,
       city: location?.city,
-      ...(
-        is_real_estate
-          ? { area_id: location?.area_id ? Number(location?.area_id) : "" }
-          : location?.area_id
+      ...(is_real_estate
+        ? { area_id: location?.area_id ? Number(location?.area_id) : "" }
+        : location?.area_id
           ? { area_id: Number(location?.area_id) }
-          : {}
-      ),
-      ...(Object.keys(nonDefaultTranslations).length > 0 && { translations: nonDefaultTranslations }),
+          : {}),
+      ...(Object.keys(nonDefaultTranslations).length > 0 && {
+        translations: nonDefaultTranslations,
+      }),
       ...(Object.keys(customFieldTranslations).length > 0 && {
         custom_field_translations: customFieldTranslations,
       }),
       region_code: String(regionCode || "").toUpperCase(),
       ...(scheduledDateTime ? { scheduled_at: scheduledDateTime } : {}),
-      
+
       // Dodano za akciju
       is_on_sale: defaultDetails.is_on_sale || false,
       old_price: defaultDetails.is_on_sale ? defaultDetails.old_price : null,
       price_on_request: Boolean(defaultDetails.price_on_request),
     };
-    
+
     // Ako je cijena na upit
     if (defaultDetails.price_on_request) {
-        allData.price = 0;
+      allData.price = 0;
     }
 
     try {
@@ -1531,7 +1673,11 @@ const AdsListing = () => {
 
       if (res?.data?.error === false) {
         const createdItemId = res?.data?.data?.[0]?.id;
-        if (!SOCIAL_POSTING_TEMP_UNAVAILABLE && publishToInstagram && createdItemId) {
+        if (
+          !SOCIAL_POSTING_TEMP_UNAVAILABLE &&
+          publishToInstagram &&
+          createdItemId
+        ) {
           try {
             await socialMediaApi.schedulePost({
               item_id: createdItemId,
@@ -1544,7 +1690,8 @@ const AdsListing = () => {
           } catch (scheduleError) {
             const apiMessage = scheduleError?.response?.data?.message;
             toast.warning(
-              apiMessage || "Oglas je objavljen, ali Instagram objava nije zakazana."
+              apiMessage ||
+                "Oglas je objavljen, ali Instagram objava nije zakazana.",
             );
           }
         }
@@ -1586,12 +1733,15 @@ const AdsListing = () => {
           return;
         }
 
-        toast.error(res?.data?.message || "Došlo je do greške. Pokušajte ponovo.");
+        toast.error(
+          res?.data?.message || "Došlo je do greške. Pokušajte ponovo.",
+        );
       }
     } catch (error) {
       console.error(error);
       toast.error(
-        error?.response?.data?.message || "Došlo je do greške pri objavi oglasa. Pokušaj ponovo.",
+        error?.response?.data?.message ||
+          "Došlo je do greške pri objavi oglasa. Pokušaj ponovo.",
       );
     } finally {
       setIsAdPlaced(false);
@@ -1616,11 +1766,12 @@ const AdsListing = () => {
         const closestDistance = Math.abs(closest - targetStep);
 
         if (candidateDistance < closestDistance) return candidate;
-        if (candidateDistance === closestDistance && candidate > closest) return candidate;
+        if (candidateDistance === closestDistance && candidate > closest)
+          return candidate;
         return closest;
       });
     },
-    [stepIdSequence]
+    [stepIdSequence],
   );
 
   useEffect(() => {
@@ -1653,7 +1804,14 @@ const AdsListing = () => {
       if (tabDisabled) return;
       setStep(tab);
     },
-    [disabledTab.categoryTab, disabledTab.detailTab, disabledTab.extraDetailTabl, disabledTab.images, disabledTab.location, stepIdSequence]
+    [
+      disabledTab.categoryTab,
+      disabledTab.detailTab,
+      disabledTab.extraDetailTabl,
+      disabledTab.images,
+      disabledTab.location,
+      stepIdSequence,
+    ],
   );
 
   const handleDeatilsBack = () => {
@@ -1718,8 +1876,20 @@ const AdsListing = () => {
             },
           ]
         : []),
-      { id: 4, label: "Mediji", mobileLabel: "Mediji", icon: Circle, disabled: disabledTab.images },
-      { id: 5, label: "Lokacija", mobileLabel: "Lokacija", icon: Circle, disabled: disabledTab.location },
+      {
+        id: 4,
+        label: "Mediji",
+        mobileLabel: "Mediji",
+        icon: Circle,
+        disabled: disabledTab.images,
+      },
+      {
+        id: 5,
+        label: "Lokacija",
+        mobileLabel: "Lokacija",
+        icon: Circle,
+        disabled: disabledTab.location,
+      },
     ],
     [
       customFields?.length,
@@ -1728,11 +1898,14 @@ const AdsListing = () => {
       disabledTab.extraDetailTabl,
       disabledTab.images,
       disabledTab.location,
-    ]
+    ],
   );
 
   const activeStepId = resolveNearestStep(step);
-  const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
+  const activeStepIndex = Math.max(
+    0,
+    steps.findIndex((s) => s.id === activeStepId),
+  );
   const renderedStep = activeStepId;
 
   const dismissActiveField = useCallback(() => {
@@ -1753,7 +1926,9 @@ const AdsListing = () => {
     const topOffset = 12;
     const targetRect = wizardTopRef.current?.getBoundingClientRect?.();
     const targetTop =
-      typeof targetRect?.top === "number" ? window.scrollY + targetRect.top - topOffset : 0;
+      typeof targetRect?.top === "number"
+        ? window.scrollY + targetRect.top - topOffset
+        : 0;
 
     window.scrollTo({
       top: Math.max(0, targetTop),
@@ -1789,16 +1964,20 @@ const AdsListing = () => {
   }, [activeStepId, dismissActiveField, scrollWizardToTop]);
 
   const hasBaseLocation = Boolean(
-    location?.country && location?.city && location?.address
+    location?.country && location?.city && location?.address,
   );
   const hasPreciseLocation = Boolean(
-    Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.long))
+    Number.isFinite(Number(location?.lat)) &&
+    Number.isFinite(Number(location?.long)),
   );
   const usesProfileLocation =
     is_real_estate &&
     (String(location?.location_source || "").toLowerCase() === "profile" ||
-      (!hasPreciseLocation && String(location?.location_source || "").toLowerCase() !== "map"));
-  const hasValidLocation = hasBaseLocation && (!is_real_estate || usesProfileLocation || hasPreciseLocation);
+      (!hasPreciseLocation &&
+        String(location?.location_source || "").toLowerCase() !== "map"));
+  const hasValidLocation =
+    hasBaseLocation &&
+    (!is_real_estate || usesProfileLocation || hasPreciseLocation);
 
   const syncStepRailFill = useCallback(() => {
     const railEl = stepRailRef.current;
@@ -1825,8 +2004,14 @@ const AdsListing = () => {
     const clampedStart = Math.max(0, Math.min(startX, railRect.width));
     const clampedEnd = Math.max(clampedStart, Math.min(endX, railRect.width));
     const rawWidth = clampedEnd - clampedStart;
-    const minVisibleWidth = Math.min(2, Math.max(0, railRect.width - clampedStart));
-    const nextFill = { left: clampedStart, width: rawWidth > 1 ? rawWidth : minVisibleWidth };
+    const minVisibleWidth = Math.min(
+      2,
+      Math.max(0, railRect.width - clampedStart),
+    );
+    const nextFill = {
+      left: clampedStart,
+      width: rawWidth > 1 ? rawWidth : minVisibleWidth,
+    };
 
     setStepRailFill((prev) => {
       const deltaLeft = Math.abs(prev.left - nextFill.left);
@@ -1873,8 +2058,8 @@ const AdsListing = () => {
             return defaultDetails.name && defaultDetails.description
               ? 100
               : defaultDetails.name || defaultDetails.description
-              ? 55
-              : 0;
+                ? 55
+                : 0;
           case 3:
             return Object.keys(currentExtraDetails).length > 0 ? 100 : 0;
           case 4:
@@ -1901,7 +2086,7 @@ const AdsListing = () => {
       location?.address,
       steps,
       uploadedImages.length,
-    ]
+    ],
   );
 
   const listingFlowIssues = useMemo(() => {
@@ -1936,7 +2121,10 @@ const AdsListing = () => {
       });
     }
 
-    if (customFields?.length > 0 && Object.keys(currentExtraDetails || {}).length === 0) {
+    if (
+      customFields?.length > 0 &&
+      Object.keys(currentExtraDetails || {}).length === 0
+    ) {
       issues.push({
         id: "attributes",
         stepId: 3,
@@ -1976,8 +2164,13 @@ const AdsListing = () => {
   ]);
 
   const listingFlowTotalSteps = 5;
-  const listingFlowCompleted = Math.max(0, listingFlowTotalSteps - listingFlowIssues.length);
-  const listingFlowPercent = Math.round((listingFlowCompleted / listingFlowTotalSteps) * 100);
+  const listingFlowCompleted = Math.max(
+    0,
+    listingFlowTotalSteps - listingFlowIssues.length,
+  );
+  const listingFlowPercent = Math.round(
+    (listingFlowCompleted / listingFlowTotalSteps) * 100,
+  );
 
   const goToListingIssue = useCallback(
     (issue) => {
@@ -1986,7 +2179,8 @@ const AdsListing = () => {
 
       if (typeof window === "undefined") return;
       const prefersReducedMotion =
-        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ??
+        false;
 
       const focusIssueField = (attempt = 0) => {
         if (issue.fieldId) {
@@ -2011,7 +2205,7 @@ const AdsListing = () => {
             if (typeof target?.focus === "function") {
               window.setTimeout(
                 () => target.focus({ preventScroll: true }),
-                prefersReducedMotion ? 0 : 160
+                prefersReducedMotion ? 0 : 160,
               );
             }
             return;
@@ -2019,7 +2213,10 @@ const AdsListing = () => {
         }
 
         if (attempt < 6) {
-          window.setTimeout(() => focusIssueField(attempt + 1), prefersReducedMotion ? 0 : 110);
+          window.setTimeout(
+            () => focusIssueField(attempt + 1),
+            prefersReducedMotion ? 0 : 110,
+          );
           return;
         }
         scrollWizardToTop();
@@ -2036,35 +2233,40 @@ const AdsListing = () => {
   const currentPrice = Number(
     is_real_estate && effectiveRealEstateTotalPrice
       ? effectiveRealEstateTotalPrice
-      : defaultDetails.price
+      : defaultDetails.price,
   );
   const hasCurrentPrice = Number.isFinite(currentPrice) && currentPrice > 0;
-  const showDiscount = isOnSale && oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice;
-  const publishProgressPct = ((publishStageIndex + 1) / PUBLISH_STAGES.length) * 100;
-  const currentPublishStage = PUBLISH_STAGES[publishStageIndex] || PUBLISH_STAGES[0];
+  const showDiscount =
+    isOnSale && oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice;
+  const publishProgressPct =
+    ((publishStageIndex + 1) / PUBLISH_STAGES.length) * 100;
+  const currentPublishStage =
+    PUBLISH_STAGES[publishStageIndex] || PUBLISH_STAGES[0];
   const successCategoryLabel =
     categoryPath?.[categoryPath.length - 1]?.translated_name ||
     categoryPath?.[categoryPath.length - 1]?.name ||
     "";
   const successLocationLabel =
-    [location?.city, location?.state, location?.country].filter(Boolean).join(", ") ||
+    [location?.city, location?.state, location?.country]
+      .filter(Boolean)
+      .join(", ") ||
     location?.address ||
     "";
   const successPriceLabel = is_job_category
     ? defaultDetails?.min_salary && defaultDetails?.max_salary
       ? `${formatPriceAbbreviated(defaultDetails.min_salary)} - ${formatPriceAbbreviated(defaultDetails.max_salary)}`
       : defaultDetails?.min_salary
-      ? `Od ${formatPriceAbbreviated(defaultDetails.min_salary)}`
-      : defaultDetails?.max_salary
-      ? `Do ${formatPriceAbbreviated(defaultDetails.max_salary)}`
-      : ""
+        ? `Od ${formatPriceAbbreviated(defaultDetails.min_salary)}`
+        : defaultDetails?.max_salary
+          ? `Do ${formatPriceAbbreviated(defaultDetails.max_salary)}`
+          : ""
     : defaultDetails?.price_on_request
-    ? "Na upit"
-    : showDiscount
-    ? `${formatPriceAbbreviated(currentPrice)} (sniženo sa ${formatPriceAbbreviated(oldPrice)})`
-    : hasCurrentPrice
-    ? formatPriceAbbreviated(currentPrice)
-    : "";
+      ? "Na upit"
+      : showDiscount
+        ? `${formatPriceAbbreviated(currentPrice)} (sniženo sa ${formatPriceAbbreviated(oldPrice)})`
+        : hasCurrentPrice
+          ? formatPriceAbbreviated(currentPrice)
+          : "";
 
   // =======================================================
   // MEDIA:
@@ -2084,7 +2286,7 @@ const AdsListing = () => {
       }
       setUploadedImages(arr.slice(0, 1));
     },
-    [setUploadedImages]
+    [setUploadedImages],
   );
 
   const setOtherImagesProcessed = useCallback(
@@ -2100,7 +2302,7 @@ const AdsListing = () => {
       }
       setOtherImages(arr);
     },
-    [setOtherImages]
+    [setOtherImages],
   );
 
   const setUploadedVideoValidated = useCallback(
@@ -2116,12 +2318,14 @@ const AdsListing = () => {
       if (isFileLike(file)) {
         const maxMb = 40; // promijeni po želji
         if (bytesToMB(file.size) > maxMb) {
-          toast.error(`Video je prevelik (${bytesToMB(file.size)}MB). Maks: ${maxMb}MB.`);
+          toast.error(
+            `Video je prevelik (${bytesToMB(file.size)}MB). Maks: ${maxMb}MB.`,
+          );
         }
       }
       setUploadedVideo(file);
     },
-    [setUploadedVideo]
+    [setUploadedVideo],
   );
 
   const getPreviewImage = useCallback(() => {
@@ -2189,8 +2393,8 @@ const AdsListing = () => {
     const previewPrice = defaultDetails?.price_on_request
       ? 0
       : hasCurrentPrice
-      ? Number(currentPrice)
-      : Number(defaultDetails?.price || 0);
+        ? Number(currentPrice)
+        : Number(defaultDetails?.price || 0);
 
     return {
       id: -1,
@@ -2216,13 +2420,17 @@ const AdsListing = () => {
       is_exchange: Boolean(exchangePossible),
       allow_exchange: Boolean(exchangePossible),
       area_m2: realEstateAreaM2,
-      show_price_per_m2: Boolean(is_real_estate && realEstatePriceState.enabled),
+      show_price_per_m2: Boolean(
+        is_real_estate && realEstatePriceState.enabled,
+      ),
       price_per_m2_mode: realEstatePriceState?.mode || "auto",
       price_per_unit:
         realEstatePriceState?.mode === REAL_ESTATE_PRICE_MODE_MANUAL
           ? Number(realEstatePriceState?.manualValue || 0)
           : Number(realEstatePriceState?.resolvedValue || 0),
-      real_estate_price_per_m2: Number(realEstatePriceState?.resolvedValue || 0),
+      real_estate_price_per_m2: Number(
+        realEstatePriceState?.resolvedValue || 0,
+      ),
     };
   }, [
     availableNow,
@@ -2269,15 +2477,20 @@ const AdsListing = () => {
                   {"Lista oglasa"}
                 </h1>
                 <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-                  Kreirajte oglas uz prikaz uživo, pametan medijski tok i jasne korake do objave.
+                  Kreirajte oglas uz prikaz uživo, pametan medijski tok i jasne
+                  korake do objave.
                 </p>
               </div>
 
               <div className="flex w-fit flex-wrap items-center justify-end gap-2">
                 <div className="inline-flex items-center gap-2 rounded-full border border-[#0ab6af]/35 bg-[#0ab6af]/12 px-4 py-2 dark:border-[#0ab6af]/45 dark:bg-[#0ab6af]/15">
                   <Award className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">{completenessScore}%</span>
-                  <span className="text-xs text-slate-600 dark:text-slate-300">{"dovršen"}</span>
+                  <span className="text-sm font-semibold text-primary">
+                    {completenessScore}%
+                  </span>
+                  <span className="text-xs text-slate-600 dark:text-slate-300">
+                    {"dovršen"}
+                  </span>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
                   <span
@@ -2285,17 +2498,17 @@ const AdsListing = () => {
                       draftStatus === "error"
                         ? "bg-rose-500"
                         : draftStatus === "saving"
-                        ? "bg-amber-500"
-                        : "bg-emerald-500"
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
                     }`}
                   />
                   {draftStatus === "saving"
                     ? "Čuvam nacrt…"
                     : draftStatus === "error"
-                    ? "Greška pri čuvanju nacrta"
-                    : draftSavedAgoLabel
-                    ? `Zadnje sačuvano ${draftSavedAgoLabel}`
-                    : "Lokalni nacrt nije sačuvan"}
+                      ? "Greška pri čuvanju nacrta"
+                      : draftSavedAgoLabel
+                        ? `Zadnje sačuvano ${draftSavedAgoLabel}`
+                        : "Lokalni nacrt nije sačuvan"}
                 </div>
               </div>
             </div>
@@ -2311,14 +2524,15 @@ const AdsListing = () => {
                   {!isPhoneVerified && !isEmailVerified
                     ? "telefon i e-mail"
                     : !isPhoneVerified
-                    ? "telefon"
-                    : "e-mail"}
+                      ? "telefon"
+                      : "e-mail"}
                   .
                 </p>
                 <p>
                   Aktivni kontakt za oglas:{" "}
                   <span className="font-semibold">
-                    {sellerPhoneDisplay || "nije postavljen u Seller postavkama"}
+                    {sellerPhoneDisplay ||
+                      "nije postavljen u Seller postavkama"}
                   </span>
                 </p>
                 <CustomLink
@@ -2347,7 +2561,8 @@ const AdsListing = () => {
                     Korak {activeStepIndex + 1} od {steps.length}
                   </div>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-300">
-                    Preostalo: {Math.max(steps.length - (activeStepIndex + 1), 0)}
+                    Preostalo:{" "}
+                    {Math.max(steps.length - (activeStepIndex + 1), 0)}
                   </p>
                 </div>
 
@@ -2360,13 +2575,23 @@ const AdsListing = () => {
                     <motion.div
                       className="pointer-events-none absolute top-[16px] h-1 rounded-full bg-[#0ab6af] shadow-[0_0_20px_-4px_rgba(10,182,175,0.75)] sm:top-[22px]"
                       initial={false}
-                      animate={{ left: stepRailFill.left, width: stepRailFill.width }}
-                      transition={{ type: "spring", stiffness: 230, damping: 30, mass: 0.45 }}
+                      animate={{
+                        left: stepRailFill.left,
+                        width: stepRailFill.width,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 230,
+                        damping: 30,
+                        mass: 0.45,
+                      }}
                     />
 
                     <div
                       className="relative z-[5] grid gap-2 sm:gap-4"
-                      style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+                      style={{
+                        gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))`,
+                      }}
                     >
                       {steps.map((s, idx) => {
                         const progress = getStepProgress(s.id);
@@ -2382,7 +2607,9 @@ const AdsListing = () => {
                             whileTap={!s.disabled ? { scale: 0.97 } : undefined}
                             disabled={s.disabled}
                             className={`group flex min-w-0 flex-col items-center gap-1.5 text-center transition-colors sm:gap-2 ${
-                              s.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                              s.disabled
+                                ? "cursor-not-allowed opacity-60"
+                                : "cursor-pointer"
                             }`}
                           >
                             <div
@@ -2396,7 +2623,10 @@ const AdsListing = () => {
                                   className="pointer-events-none absolute inset-0 rounded-full bg-primary/20 blur-md"
                                   initial={{ opacity: 0.2, scale: 0.8 }}
                                   animate={{ opacity: 0.45, scale: 1.18 }}
-                                  transition={{ duration: 0.35, ease: "easeOut" }}
+                                  transition={{
+                                    duration: 0.35,
+                                    ease: "easeOut",
+                                  }}
                                 />
                               )}
 
@@ -2406,16 +2636,22 @@ const AdsListing = () => {
                                   isActive
                                     ? { scale: 1.08, y: -1 }
                                     : isCompleted
-                                    ? { scale: 1 }
-                                    : { scale: 0.98 }
+                                      ? { scale: 1 }
+                                      : { scale: 0.98 }
                                 }
-                                transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 280,
+                                  damping: 22,
+                                }}
                                 className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold sm:h-11 sm:w-11 sm:text-sm ${
                                   isActive
                                     ? "border-primary bg-white text-primary shadow-[0_10px_24px_-14px_rgba(8,145,178,0.9)] dark:bg-slate-950"
                                     : ""
                                 } ${
-                                  isCompleted ? "border-primary bg-primary text-white" : ""
+                                  isCompleted
+                                    ? "border-primary bg-primary text-white"
+                                    : ""
                                 } ${
                                   !isActive && !isCompleted
                                     ? "border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
@@ -2429,8 +2665,8 @@ const AdsListing = () => {
                                       initial={{ opacity: 0, scale: 0.7, y: 4 }}
                                       animate={{ opacity: 1, scale: 1, y: 0 }}
                                       exit={{ opacity: 0, scale: 0.8, y: -4 }}
-                                    transition={{ duration: 0.2 }}
-                                  >
+                                      transition={{ duration: 0.2 }}
+                                    >
                                       <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                                     </motion.span>
                                   ) : (
@@ -2453,19 +2689,31 @@ const AdsListing = () => {
                               animate={{ y: isActive ? 0 : 1 }}
                               transition={{ duration: 0.2, ease: "easeOut" }}
                               className={`line-clamp-2 max-w-[58px] text-[10px] font-medium leading-[1.1] sm:max-w-[120px] sm:text-xs sm:leading-tight ${
-                                isActive ? "font-semibold text-primary" : "text-slate-500 dark:text-slate-300"
+                                isActive
+                                  ? "font-semibold text-primary"
+                                  : "text-slate-500 dark:text-slate-300"
                               }`}
                             >
-                              <span className="sm:hidden">{s.mobileLabel || s.label}</span>
-                              <span className="hidden sm:inline">{s.label}</span>
+                              <span className="sm:hidden">
+                                {s.mobileLabel || s.label}
+                              </span>
+                              <span className="hidden sm:inline">
+                                {s.label}
+                              </span>
                             </motion.span>
 
                             <div className="hidden h-[3px] w-12 overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70 sm:block sm:w-14">
                               <motion.div
                                 className="h-full rounded-full bg-[#0ab6af]"
                                 initial={false}
-                                animate={{ width: `${isCompleted ? 100 : isActive ? progress : 0}%` }}
-                                transition={{ type: "spring", stiffness: 190, damping: 24 }}
+                                animate={{
+                                  width: `${isCompleted ? 100 : isActive ? progress : 0}%`,
+                                }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 190,
+                                  damping: 24,
+                                }}
                               />
                             </div>
                           </motion.button>
@@ -2476,51 +2724,58 @@ const AdsListing = () => {
                 </div>
               </div>
 
-              {(renderedStep === 1 || renderedStep === 2) && categoryPath?.length > 0 && (
-                <div className="lmx-flow-category-trail flex flex-col gap-3 rounded-2xl border border-slate-200/60 bg-white/92 p-3 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/78 sm:p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-300">{"Odabrana kategorija"}</p>
-                    <button 
-                      onClick={handleCategoryReset}
-                      className="flex items-center gap-1 text-xs font-medium text-red-500 transition-colors hover:text-red-600"
-                    >
-                      <X size={14} />
-                      Očisti sve
-                    </button>
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={handleCategoryBack}
-                      className="mr-1 rounded-full border border-slate-200 bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                      title="Vrati se korak nazad"
-                    >
-                      <ArrowLeft size={16} />
-                    </button>
+              {(renderedStep === 1 || renderedStep === 2) &&
+                categoryPath?.length > 0 && (
+                  <div className="lmx-flow-category-trail flex flex-col gap-3 rounded-2xl border border-slate-200/60 bg-white/92 p-3 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/78 sm:p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-300">
+                        {"Odabrana kategorija"}
+                      </p>
+                      <button
+                        onClick={handleCategoryReset}
+                        className="flex items-center gap-1 text-xs font-medium text-red-500 transition-colors hover:text-red-600"
+                      >
+                        <X size={14} />
+                        Očisti sve
+                      </button>
+                    </div>
 
-                    {categoryPath?.map((item, index) => (
-                      <div key={item.id} className="flex items-center">
-                        <button
-                          className={`
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={handleCategoryBack}
+                        className="mr-1 rounded-full border border-slate-200 bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        title="Vrati se korak nazad"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
+
+                      {categoryPath?.map((item, index) => (
+                        <div key={item.id} className="flex items-center">
+                          <button
+                            className={`
                             text-sm px-3 py-1.5 rounded-lg transition-all duration-200
-                            ${index === categoryPath.length - 1 
-                              ? "border border-primary/25 bg-primary/10 font-semibold text-primary dark:border-primary/35 dark:bg-primary/20"
-                              : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                            ${
+                              index === categoryPath.length - 1
+                                ? "border border-primary/25 bg-primary/10 font-semibold text-primary dark:border-primary/35 dark:bg-primary/20"
+                                : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                             }
                           `}
-                          onClick={() => handleSelectedTabClick(item?.id)}
-                        >
-                          {item.translated_name || item.name}
-                        </button>
-                        
-                        {index !== categoryPath.length - 1 && (
-                          <ChevronRight size={16} className="mx-1 text-slate-400 dark:text-slate-500" />
-                        )}
-                      </div>
-                    ))}
+                            onClick={() => handleSelectedTabClick(item?.id)}
+                          >
+                            {item.translated_name || item.name}
+                          </button>
+
+                          {index !== categoryPath.length - 1 && (
+                            <ChevronRight
+                              size={16}
+                              className="mx-1 text-slate-400 dark:text-slate-500"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               <div className="lmx-flow-panel relative z-10 overflow-visible rounded-2xl border border-slate-200/60 bg-white/95 p-2.5 shadow-[0_16px_50px_-30px_rgba(15,23,42,0.4)] dark:border-slate-800 dark:bg-slate-900/82 sm:p-4">
                 {renderedStep === 1 && (
@@ -2584,10 +2839,14 @@ const AdsListing = () => {
                     publishToInstagram={publishToInstagram}
                     setPublishToInstagram={setPublishToInstagram}
                     instagramConnected={instagramConnection.connected}
-                    instagramStatusLoading={instagramConnection.loading || instagramConnection.syncing}
+                    instagramStatusLoading={
+                      instagramConnection.loading || instagramConnection.syncing
+                    }
                     onConnectInstagram={handleConnectInstagram}
                     socialPostingUnavailable={SOCIAL_POSTING_TEMP_UNAVAILABLE}
-                    socialPostingUnavailableMessage={SOCIAL_POSTING_UNAVAILABLE_MESSAGE}
+                    socialPostingUnavailableMessage={
+                      SOCIAL_POSTING_UNAVAILABLE_MESSAGE
+                    }
                     instagramSourceUrl={instagramSourceUrl}
                     onInstagramSourceUrlChange={setInstagramSourceUrl}
                     onUseInstagramAsVideoLink={handleUseInstagramAsVideoLink}
@@ -2632,9 +2891,13 @@ const AdsListing = () => {
                 <div className="mb-4 rounded-2xl border border-[#0ab6af]/30 bg-[#0ab6af]/8 p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">Što je ostalo</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#0ab6af]">
+                        Što je ostalo
+                      </p>
                       <h4 className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {listingFlowIssues.length ? "Završi preostale stavke" : "Sve je spremno za objavu"}
+                        {listingFlowIssues.length
+                          ? "Završi preostale stavke"
+                          : "Sve je spremno za objavu"}
                       </h4>
                     </div>
                     <span className="rounded-full border border-[#0ab6af]/35 bg-white/85 px-2 py-0.5 text-xs font-semibold text-[#0ab6af] dark:bg-slate-900/75">
@@ -2647,7 +2910,11 @@ const AdsListing = () => {
                       className="h-full rounded-full bg-[#0ab6af]"
                       initial={false}
                       animate={{ width: `${listingFlowPercent}%` }}
-                      transition={{ type: "spring", stiffness: 220, damping: 28 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 220,
+                        damping: 28,
+                      }}
                     />
                   </div>
 
@@ -2687,8 +2954,12 @@ const AdsListing = () => {
                 <div className="mt-6 space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium text-slate-700 dark:text-slate-200">{"Ocjena kvaliteta oglasa"}</span>
-                      <span className="text-primary font-semibold">{completenessScore}%</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-200">
+                        {"Ocjena kvaliteta oglasa"}
+                      </span>
+                      <span className="text-primary font-semibold">
+                        {completenessScore}%
+                      </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                       <div
@@ -2711,16 +2982,24 @@ const AdsListing = () => {
                       <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-500/10">
                         <Star className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-300" />
                         <p className="text-xs text-blue-800 dark:text-blue-100">
-                          {"Dodaj još {count} fotografija".replace("{count}", 3 - otherImages.length)} (+{(3 - otherImages.length) * 5}% {"veća vidljivost!"})
+                          {"Dodaj još {count} fotografija".replace(
+                            "{count}",
+                            3 - otherImages.length,
+                          )}{" "}
+                          (+{(3 - otherImages.length) * 5}% {"veća vidljivost!"}
+                          )
                         </p>
                       </div>
                     )}
-                    {defaultDetails.description && defaultDetails.description.length < 100 && (
-                      <div className="flex items-start gap-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50 p-3 dark:border-fuchsia-500/40 dark:bg-fuchsia-500/10">
-                        <Award className="mt-0.5 h-4 w-4 shrink-0 text-fuchsia-600 dark:text-fuchsia-300" />
-                        <p className="text-xs text-fuchsia-800 dark:text-fuchsia-100">{"Detaljan opis"} (+10% {"pouzdanost"})</p>
-                      </div>
-                    )}
+                    {defaultDetails.description &&
+                      defaultDetails.description.length < 100 && (
+                        <div className="flex items-start gap-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50 p-3 dark:border-fuchsia-500/40 dark:bg-fuchsia-500/10">
+                          <Award className="mt-0.5 h-4 w-4 shrink-0 text-fuchsia-600 dark:text-fuchsia-300" />
+                          <p className="text-xs text-fuchsia-800 dark:text-fuchsia-100">
+                            {"Detaljan opis"} (+10% {"pouzdanost"})
+                          </p>
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
@@ -2751,7 +3030,11 @@ const AdsListing = () => {
                 <div className="relative flex flex-col items-center text-center">
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 2.1, repeat: Infinity, ease: "linear" }}
+                    transition={{
+                      duration: 2.1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
                     className="relative mb-5 h-24 w-24 rounded-full bg-[conic-gradient(from_180deg,#1d4ed8,#06b6d4,#ec4899,#1d4ed8)] p-[3px]"
                   >
                     <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-950/80">
@@ -2764,8 +3047,12 @@ const AdsListing = () => {
                     Objava u toku
                   </div>
 
-                  <h3 className="text-xl font-semibold sm:text-2xl">{currentPublishStage.title}</h3>
-                  <p className="mt-2 text-sm text-white/80">{currentPublishStage.subtitle}</p>
+                  <h3 className="text-xl font-semibold sm:text-2xl">
+                    {currentPublishStage.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-white/80">
+                    {currentPublishStage.subtitle}
+                  </p>
 
                   <div className="mt-6 w-full">
                     <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
@@ -2787,8 +3074,8 @@ const AdsListing = () => {
                               isCurrent
                                 ? "bg-white/20 text-white"
                                 : isDone
-                                ? "bg-emerald-400/20 text-emerald-100"
-                                : "bg-white/5 text-white/70"
+                                  ? "bg-emerald-400/20 text-emerald-100"
+                                  : "bg-white/5 text-white/70"
                             }`}
                           >
                             {isDone ? (

@@ -174,6 +174,72 @@ const normalizeTempUploadEntity = (value) => {
   };
 };
 
+const getMediaEntityKey = (value) => {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    return `url:${value}`;
+  }
+
+  if (typeof value === "object") {
+    const tempId = extractTempUploadId(value);
+    if (
+      tempId !== null &&
+      tempId !== undefined &&
+      String(tempId).trim() !== ""
+    ) {
+      return `temp:${String(tempId)}`;
+    }
+
+    const persistentId = value?.id;
+    if (
+      persistentId !== null &&
+      persistentId !== undefined &&
+      String(persistentId).trim() !== ""
+    ) {
+      return `id:${String(persistentId)}`;
+    }
+
+    const resolvedUrl =
+      value?.url ||
+      value?.image ||
+      value?.original_url ||
+      value?.path ||
+      value?.file_url ||
+      "";
+    if (resolvedUrl) {
+      return `url:${resolvedUrl}`;
+    }
+  }
+
+  if (isFileLike(value)) {
+    const fileName = String(value?.name || "file");
+    const fileSize = Number(value?.size || 0);
+    const fileModified = Number(value?.lastModified || 0);
+    return `file:${fileName}:${fileSize}:${fileModified}`;
+  }
+
+  return null;
+};
+
+const isSameMediaEntity = (left, right) => {
+  const leftKey = getMediaEntityKey(left);
+  const rightKey = getMediaEntityKey(right);
+  if (leftKey && rightKey) return leftKey === rightKey;
+  return left === right;
+};
+
+const removeFirstMatchingMedia = (items, target) => {
+  let removed = false;
+  return (items || []).filter((item) => {
+    if (!removed && isSameMediaEntity(item, target)) {
+      removed = true;
+      return false;
+    }
+    return true;
+  });
+};
+
 const isInstagramUrl = (input) => {
   if (!input) return false;
   try {
@@ -700,11 +766,7 @@ const EditComponentThree = ({
         pushDeleteId(targetImg.id);
       }
 
-      const newAll = allImages.filter((img) => {
-        const imgId = extractTempUploadId(img);
-        if (targetId && imgId) return String(imgId) !== String(targetId);
-        return img !== targetImg;
-      });
+      const newAll = removeFirstMatchingMedia(allImages, targetImg);
 
       if (newAll.length > 0) {
         setUploadedImages([newAll[0]]);
@@ -719,15 +781,9 @@ const EditComponentThree = ({
   };
 
   const handleSetMain = (targetImg) => {
-    const targetId = extractTempUploadId(targetImg);
-    const newAll = [
-      targetImg,
-      ...allImages.filter((img) => {
-        const imgId = extractTempUploadId(img);
-        if (targetId && imgId) return String(imgId) !== String(targetId);
-        return img !== targetImg;
-      }),
-    ];
+    const remainder = removeFirstMatchingMedia(allImages, targetImg);
+    const newAll = [targetImg, ...remainder];
+    if (!newAll.length) return;
     setUploadedImages([newAll[0]]);
     setOtherImages(newAll.slice(1));
     setFocusedImageId(null);
@@ -926,13 +982,13 @@ const EditComponentThree = ({
               const isMain = index === 0;
               // ✅ Koristimo ispravljenu safeObjectUrl funkciju
               const imgSrc = safeObjectUrl(img);
-              const imgId =
-                extractTempUploadId(img) ?? img?.id ?? img?.url ?? index;
-              const isFocused = focusedImageId === imgId;
+              const entityKey = getMediaEntityKey(img) || `index:${index}`;
+              const renderKey = `${entityKey}:${index}`;
+              const isFocused = focusedImageId === entityKey;
 
               return (
                 <div
-                  key={imgId}
+                  key={renderKey}
                   draggable={!isMobileImageUi}
                   onDragStart={(e) => {
                     if (isMobileImageUi) return;
@@ -952,7 +1008,7 @@ const EditComponentThree = ({
                   }}
                   onClick={(e) => {
                     if (isMobileImageUi) return;
-                    toggleImageFocus(e, imgId);
+                    toggleImageFocus(e, entityKey);
                   }}
                   className={cn(
                     "image-card-interactive group relative aspect-square rounded-2xl bg-white border shadow-sm transition-all duration-200 overflow-hidden touch-manipulation",

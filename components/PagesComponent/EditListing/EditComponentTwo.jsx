@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   Select,
   SelectContent,
@@ -29,10 +35,10 @@ import {
 import { toast } from "@/utils/toastBs";
 import { HiOutlineUpload } from "@/components/Common/UnifiedIconPack";
 import { MdOutlineAttachFile } from "@/components/Common/UnifiedIconPack";
-import { 
-  IoInformationCircleOutline, 
-  IoShieldCheckmarkOutline, 
-  IoAlertCircleOutline 
+import {
+  IoInformationCircleOutline,
+  IoShieldCheckmarkOutline,
+  IoAlertCircleOutline,
 } from "@/components/Common/UnifiedIconPack";
 import CustomLink from "@/components/Common/CustomLink";
 import { Input } from "@/components/ui/input";
@@ -45,15 +51,96 @@ import StickyActionButtons from "@/components/Common/StickyActionButtons";
 
 // Emoji lista
 const EMOJI_LIST = [
-  "😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊", "😇", "🙂",
-  "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋",
-  "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩",
-  "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣",
-  "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬",
-  "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗",
-  "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯",
-  "👍", "👎", "👌", "🤝", "🙏", "💪", "🎉", "🎊", "🎈", "🎁",
-  "⭐", "✨", "💫", "🔥", "💯", "✅", "❌", "❗", "❓", "💡",
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "😅",
+  "😂",
+  "🤣",
+  "😊",
+  "😇",
+  "🙂",
+  "🙃",
+  "😉",
+  "😌",
+  "😍",
+  "🥰",
+  "😘",
+  "😗",
+  "😙",
+  "😚",
+  "😋",
+  "😛",
+  "😝",
+  "😜",
+  "🤪",
+  "🤨",
+  "🧐",
+  "🤓",
+  "😎",
+  "🥸",
+  "🤩",
+  "🥳",
+  "😏",
+  "😒",
+  "😞",
+  "😔",
+  "😟",
+  "😕",
+  "🙁",
+  "☹️",
+  "😣",
+  "😖",
+  "😫",
+  "😩",
+  "🥺",
+  "😢",
+  "😭",
+  "😤",
+  "😠",
+  "😡",
+  "🤬",
+  "🤯",
+  "😳",
+  "🥵",
+  "🥶",
+  "😱",
+  "😨",
+  "😰",
+  "😥",
+  "😓",
+  "🤗",
+  "🤔",
+  "🤭",
+  "🤫",
+  "🤥",
+  "😶",
+  "😐",
+  "😑",
+  "😬",
+  "🙄",
+  "😯",
+  "👍",
+  "👎",
+  "👌",
+  "🤝",
+  "🙏",
+  "💪",
+  "🎉",
+  "🎊",
+  "🎈",
+  "🎁",
+  "⭐",
+  "✨",
+  "💫",
+  "🔥",
+  "💯",
+  "✅",
+  "❌",
+  "❗",
+  "❓",
+  "💡",
 ];
 
 // ========================================
@@ -80,7 +167,7 @@ const RichTextarea = ({
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.max(
         textareaRef.current.scrollHeight,
-        minHeight
+        minHeight,
       )}px`;
     }
   }, [value, minHeight]);
@@ -130,8 +217,7 @@ const RichTextarea = ({
     if (!textarea) return;
 
     const start = textarea.selectionStart;
-    const newText =
-      value.substring(0, start) + emoji + value.substring(start);
+    const newText = value.substring(0, start) + emoji + value.substring(start);
 
     onChange({ target: { value: newText, name } });
     setShowEmojiPicker(false);
@@ -153,17 +239,26 @@ const RichTextarea = ({
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
       .replace(/_(.+?)_/g, "<em>$1</em>")
       // Links
-      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>')
+      .replace(
+        /\[(.+?)\]\((.+?)\)/g,
+        '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>',
+      )
       // Line breaks
       .replace(/\n/g, "<br />");
 
     // Unordered lists
     html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
-    html = html.replace(/(<li>.*<\/li>)/s, "<ul class='list-disc ml-6 my-2'>$1</ul>");
+    html = html.replace(
+      /(<li>.*<\/li>)/s,
+      "<ul class='list-disc ml-6 my-2'>$1</ul>",
+    );
 
     // Ordered lists
     html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
-    html = html.replace(/(<li>.*<\/li>)/s, "<ol class='list-decimal ml-6 my-2'>$1</ol>");
+    html = html.replace(
+      /(<li>.*<\/li>)/s,
+      "<ol class='list-decimal ml-6 my-2'>$1</ol>",
+    );
 
     return html;
   };
@@ -172,10 +267,7 @@ const RichTextarea = ({
     <div className="flex flex-col gap-2 w-full">
       {/* Label */}
       {label && (
-        <Label
-          htmlFor={id}
-          className={required ? "requiredInputLabel" : ""}
-        >
+        <Label htmlFor={id} className={required ? "requiredInputLabel" : ""}>
           {label}
         </Label>
       )}
@@ -301,7 +393,7 @@ const RichTextarea = ({
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            className="w-full resize-none rounded-xl border border-slate-300 p-4 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full resize-none rounded-xl border border-slate-300 bg-white p-4 text-slate-900 transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
             style={{ minHeight: `${minHeight}px` }}
           />
         </TabsContent>
@@ -309,10 +401,12 @@ const RichTextarea = ({
         {/* Preview Tab */}
         <TabsContent value="preview" className="mt-0">
           <div
-            className="prose max-w-none w-full rounded-xl border border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100"
+            className="prose prose-slate max-w-none w-full rounded-xl border border-slate-300 bg-slate-50 p-4 text-slate-900 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100 dark:prose-invert prose-p:text-inherit prose-strong:text-inherit prose-li:text-inherit prose-headings:text-inherit [&_*]:!text-inherit [&_a]:!text-primary"
             style={{ minHeight: `${minHeight}px` }}
             dangerouslySetInnerHTML={{
-              __html: value ? renderMarkdown(value) : "<p class='text-gray-400'>Nema sadržaja za pregled</p>",
+              __html: value
+                ? renderMarkdown(value)
+                : "<p class='text-slate-400 dark:text-slate-500'>Nema sadržaja za pregled</p>",
             }}
           />
         </TabsContent>
@@ -343,10 +437,10 @@ const RichTextarea = ({
             isOverLimit
               ? "bg-red-500"
               : percentUsed > 90
-              ? "bg-orange-500"
-              : percentUsed > 75
-              ? "bg-yellow-500"
-              : "bg-blue-500"
+                ? "bg-orange-500"
+                : percentUsed > 75
+                  ? "bg-yellow-500"
+                  : "bg-blue-500"
           }`}
           style={{
             width: `${Math.min(percentUsed, 100)}%`,
@@ -404,7 +498,7 @@ const EnhancedDropdown = ({
 
   // Filter based on search
   const filteredOptions = values.filter((option) =>
-    option.toLowerCase().includes(searchQuery.toLowerCase())
+    option.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Select option handler
@@ -435,7 +529,9 @@ const EnhancedDropdown = ({
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside, { passive: true });
+    document.addEventListener("touchstart", handleClickOutside, {
+      passive: true,
+    });
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
@@ -615,7 +711,9 @@ const EnhancedRadioGroup = ({
               </div>
               <span
                 className={`text-sm font-medium ${
-                  isSelected ? "text-primary" : "text-slate-700 dark:text-slate-200"
+                  isSelected
+                    ? "text-primary"
+                    : "text-slate-700 dark:text-slate-200"
                 }`}
               >
                 {translated_value?.[index] || option}
@@ -687,7 +785,9 @@ const EnhancedCheckboxGroup = ({
               </div>
               <span
                 className={`text-sm font-medium break-words ${
-                  isChecked ? "text-primary" : "text-slate-700 dark:text-slate-200"
+                  isChecked
+                    ? "text-primary"
+                    : "text-slate-700 dark:text-slate-200"
                 }`}
               >
                 {translated_value?.[index] || value}
@@ -703,15 +803,30 @@ const EnhancedCheckboxGroup = ({
 // ============================================
 // AVAILABILITY SECTION COMPONENT
 // ============================================
-const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExchange }) => {
-  const ToggleRow = ({ enabled, onToggle, activeLabel, inactiveLabel, helper }) => (
+const AvailabilitySection = ({
+  isAvailable,
+  setIsAvailable,
+  isExchange,
+  setIsExchange,
+}) => {
+  const ToggleRow = ({
+    enabled,
+    onToggle,
+    activeLabel,
+    inactiveLabel,
+    helper,
+  }) => (
     <div className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 dark:border-slate-700 dark:bg-slate-800/70">
       <div className="min-w-0">
-        <p className={`text-sm font-semibold ${enabled ? "text-emerald-700 dark:text-emerald-300" : "text-slate-700 dark:text-slate-200"}`}>
+        <p
+          className={`text-sm font-semibold ${enabled ? "text-emerald-700 dark:text-emerald-300" : "text-slate-700 dark:text-slate-200"}`}
+        >
           {enabled ? activeLabel : inactiveLabel}
         </p>
         {helper ? (
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{helper}</p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            {helper}
+          </p>
         ) : null}
       </div>
 
@@ -741,7 +856,8 @@ const AvailabilitySection = ({ isAvailable, setIsAvailable, isExchange, setIsExc
             Dostupnost i uvjeti oglasa
           </h4>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Ažuriraj stanje oglasa tačno kako bi kupac odmah znao šta može očekivati.
+            Ažuriraj stanje oglasa tačno kako bi kupac odmah znao šta može
+            očekivati.
           </p>
         </div>
       </div>
@@ -807,14 +923,17 @@ const DisclaimerSection = ({ agreedToTerms, setAgreedToTerms }) => {
             Sigurnost i odgovornost <span className="text-red-500">*</span>
           </h4>
           <p className="mt-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-            LMX povezuje kupca i prodavača, ali nije ugovorna strana u kupoprodaji. Dogovor o plaćanju, isporuci i
-            eventualnim reklamacijama je između korisnika.
+            LMX povezuje kupca i prodavača, ali nije ugovorna strana u
+            kupoprodaji. Dogovor o plaćanju, isporuci i eventualnim
+            reklamacijama je između korisnika.
           </p>
         </div>
       </div>
 
       <div className="mb-4 rounded-xl border border-amber-200 bg-white/90 px-3 py-3 text-xs text-slate-600 dark:border-amber-500/25 dark:bg-slate-900/70 dark:text-slate-300">
-        <p className="mb-2 font-semibold text-amber-800 dark:text-amber-300">Praktični sigurnosni savjeti:</p>
+        <p className="mb-2 font-semibold text-amber-800 dark:text-amber-300">
+          Praktični sigurnosni savjeti:
+        </p>
         <ul className="space-y-1">
           <li>• Primopredaju dogovaraj na javnoj lokaciji.</li>
           <li>• Provjeri artikal prije finalne isplate.</li>
@@ -849,8 +968,8 @@ const DisclaimerSection = ({ agreedToTerms, setAgreedToTerms }) => {
           ) : null}
         </span>
         <span className="text-sm leading-relaxed">
-          Potvrđujem da razumijem da je LMX posredni oglasni servis te da odgovornost za kupoprodaju ostaje između
-          prodavača i kupca.
+          Potvrđujem da razumijem da je LMX posredni oglasni servis te da
+          odgovornost za kupoprodaju ostaje između prodavača i kupca.
         </span>
       </button>
     </div>
@@ -860,12 +979,12 @@ const DisclaimerSection = ({ agreedToTerms, setAgreedToTerms }) => {
 // ============================================
 // ACCORDION SECTION COMPONENT
 // ============================================
-const AccordionSection = ({ 
-  title, 
-  subtitle, 
-  icon, 
-  isOpen, 
-  onToggle, 
+const AccordionSection = ({
+  title,
+  subtitle,
+  icon,
+  isOpen,
+  onToggle,
   children,
   badge,
   isCompleted,
@@ -883,51 +1002,76 @@ const AccordionSection = ({
         type="button"
         onClick={onToggle}
         className={`flex w-full touch-manipulation cursor-pointer items-center justify-between p-4 text-left transition-colors duration-200 sm:p-5 ${
-          isOpen ? "border-b border-slate-200 bg-slate-50/90 dark:border-slate-700 dark:bg-slate-800/70" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
+          isOpen
+            ? "border-b border-slate-200 bg-slate-50/90 dark:border-slate-700 dark:bg-slate-800/70"
+            : "hover:bg-slate-50/70 dark:hover:bg-slate-800/60"
         }`}
       >
         <div className="flex flex-1 items-center gap-3 sm:gap-4">
-          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-colors sm:h-11 sm:w-11 ${
-            isOpen ? "bg-primary text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-          }`}>
+          <div
+            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-colors sm:h-11 sm:w-11 ${
+              isOpen
+                ? "bg-primary text-white"
+                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            }`}
+          >
             {icon}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className={`text-base font-semibold sm:text-lg ${isOpen ? "text-primary" : "text-slate-900 dark:text-slate-100"}`}>
+              <h3
+                className={`text-base font-semibold sm:text-lg ${isOpen ? "text-primary" : "text-slate-900 dark:text-slate-100"}`}
+              >
                 {title}
               </h3>
               {badge && (
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  badge === 'required' 
-                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                }`}>
-                  {badge === 'required' ? 'Obavezno' : 'Opcionalno'}
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    badge === "required"
+                      ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  {badge === "required" ? "Obavezno" : "Opcionalno"}
                 </span>
               )}
               {isCompleted && (
-                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5 text-green-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </div>
             {subtitle && (
-              <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 sm:text-sm">{subtitle}</p>
+              <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
+                {subtitle}
+              </p>
             )}
           </div>
         </div>
-        
+
         {/* Arrow */}
-        <svg 
+        <svg
           className={`ml-2 h-6 w-6 flex-shrink-0 text-slate-400 transition-transform duration-300 dark:text-slate-500 ${
-            isOpen ? 'rotate-180' : 'rotate-0'
+            isOpen ? "rotate-180" : "rotate-0"
           }`}
-          fill="none" 
-          stroke="currentColor" 
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -955,8 +1099,8 @@ const EditComponentTwo = ({
   currentExtraDetails,
   langId,
   defaultLangId,
-  isAvailable: isAvailableProp,        // Renamed prop
-  setIsAvailable: setIsAvailableProp,  // Renamed prop
+  isAvailable: isAvailableProp, // Renamed prop
+  setIsAvailable: setIsAvailableProp, // Renamed prop
   isExchange: isExchangeProp,
   setIsExchange: setIsExchangeProp,
 }) => {
@@ -971,7 +1115,7 @@ const EditComponentTwo = ({
   const optionalSectionRef = useRef(null);
   const termsSectionRef = useRef(null);
   const fieldRefs = useRef({});
-  
+
   // Local state for edit flow
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [isAvailable, setIsAvailable] = useState(isAvailableProp || false);
@@ -1035,7 +1179,6 @@ const EditComponentTwo = ({
   };
 
   const handleChange = (id, value) => write(id, value ?? "");
-  
 
   const renderCustomFields = (field) => {
     let {
@@ -1067,7 +1210,7 @@ const EditComponentTwo = ({
           <div className="flex flex-col">
             <Input
               type={type}
-              step="any"    
+              step="any"
               inputMode="decimal"
               placeholder={`Unesite ${translated_name || name}`}
               {...inputProps}
@@ -1130,7 +1273,7 @@ const EditComponentTwo = ({
             if (field.type !== "dropdown") continue;
 
             const hasAllKeys = mappingKeys.every((key) =>
-              field.values?.includes(key)
+              field.values?.includes(key),
             );
 
             if (hasAllKeys) return field;
@@ -1204,9 +1347,16 @@ const EditComponentTwo = ({
 
         return (
           <>
-            <label htmlFor={id} className="flex gap-2 items-center cursor-pointer">
+            <label
+              htmlFor={id}
+              className="flex gap-2 items-center cursor-pointer"
+            >
               <div className="rounded-xl border border-slate-300 px-3 py-2 transition-all hover:border-primary/50 hover:shadow-sm dark:border-slate-700 dark:hover:border-primary/60">
-                <HiOutlineUpload size={24} fontWeight="400" className="text-gray-600" />
+                <HiOutlineUpload
+                  size={24}
+                  fontWeight="400"
+                  className="text-gray-600"
+                />
               </div>
               {fileUrl && (
                 <div className="flex items-center gap-1 text-sm flex-nowrap break-words">
@@ -1252,15 +1402,17 @@ const EditComponentTwo = ({
   };
 
   // Separate required and optional fields
-  const requiredFields = customFields?.filter(field => {
-    if (langId !== defaultLangId && field.type !== "textbox") return false;
-    return field.required === 1 || field.is_required;
-  }) || [];
+  const requiredFields =
+    customFields?.filter((field) => {
+      if (langId !== defaultLangId && field.type !== "textbox") return false;
+      return field.required === 1 || field.is_required;
+    }) || [];
 
-  const optionalFields = customFields?.filter(field => {
-    if (langId !== defaultLangId && field.type !== "textbox") return false;
-    return field.required !== 1 && !field.is_required;
-  }) || [];
+  const optionalFields =
+    customFields?.filter((field) => {
+      if (langId !== defaultLangId && field.type !== "textbox") return false;
+      return field.required !== 1 && !field.is_required;
+    }) || [];
 
   // Sort fields within each group: checkboxes last
   const sortFields = (fields) => {
@@ -1316,12 +1468,15 @@ const EditComponentTwo = ({
       inline: "nearest",
     });
 
-    window.setTimeout(() => {
-      const focusable = target.querySelector(
-        "input, textarea, select, button, [role='combobox'], [tabindex]:not([tabindex='-1'])",
-      );
-      focusable?.focus?.({ preventScroll: true });
-    }, prefersReducedMotion ? 0 : 180);
+    window.setTimeout(
+      () => {
+        const focusable = target.querySelector(
+          "input, textarea, select, button, [role='combobox'], [tabindex]:not([tabindex='-1'])",
+        );
+        focusable?.focus?.({ preventScroll: true });
+      },
+      prefersReducedMotion ? 0 : 180,
+    );
 
     window.setTimeout(() => {
       setHighlightedFieldId((current) => (current === fieldId ? "" : current));
@@ -1352,7 +1507,11 @@ const EditComponentTwo = ({
     setRequiredOpen(false);
     setTermsOpen(true);
     requestAnimationFrame(() => scrollToSection(termsSectionRef));
-  }, [requiredFieldsCompleted, sortedOptionalFields.length, autoAdvanceSections]);
+  }, [
+    requiredFieldsCompleted,
+    sortedOptionalFields.length,
+    autoAdvanceSections,
+  ]);
 
   useEffect(() => {
     if (attemptedNext && missingRequiredCount === 0) {
@@ -1395,7 +1554,8 @@ const EditComponentTwo = ({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {fields.map((field) => {
-          const isFullWidth = field.type === "checkbox" || field.type === "radio";
+          const isFullWidth =
+            field.type === "checkbox" || field.type === "radio";
 
           return (
             <div
@@ -1423,7 +1583,8 @@ const EditComponentTwo = ({
                 />
                 <Label
                   className={`${
-                    (field?.required === 1 || field?.is_required) && defaultLangId === langId
+                    (field?.required === 1 || field?.is_required) &&
+                    defaultLangId === langId
                       ? "requiredInputLabel"
                       : ""
                   }`}
@@ -1446,21 +1607,23 @@ const EditComponentTwo = ({
         <AccordionSection
           sectionRef={requiredSectionRef}
           title="Obavezna polja"
-          subtitle={`${sortedRequiredFields.length} ${sortedRequiredFields.length === 1 ? 'polje' : 'polja'} za popunjavanje`}
+          subtitle={`${sortedRequiredFields.length} ${sortedRequiredFields.length === 1 ? "polje" : "polja"} za popunjavanje`}
           icon={<span className="text-xl font-bold">1</span>}
           isOpen={requiredOpen}
           onToggle={() => {
             const next = !requiredOpen;
             setAutoAdvanceSections(false);
             setRequiredOpen(next);
-            if (next) requestAnimationFrame(() => scrollToSection(requiredSectionRef));
+            if (next)
+              requestAnimationFrame(() => scrollToSection(requiredSectionRef));
           }}
           badge="required"
         >
           {attemptedNext && missingRequiredCount > 0 ? (
             <div className="mb-4 rounded-xl border border-[#0ab6af]/30 bg-[#0ab6af]/10 p-3">
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-100">
-                Nedostaje još {missingRequiredCount} obaveznih polja. Dodirni polje da te odvede direktno.
+                Nedostaje još {missingRequiredCount} obaveznih polja. Dodirni
+                polje da te odvede direktno.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {missingRequiredFields.slice(0, 8).map((field) => (
@@ -1492,14 +1655,15 @@ const EditComponentTwo = ({
             const next = !optionalOpen;
             setAutoAdvanceSections(false);
             setOptionalOpen(next);
-            if (next) requestAnimationFrame(() => scrollToSection(optionalSectionRef));
+            if (next)
+              requestAnimationFrame(() => scrollToSection(optionalSectionRef));
           }}
           badge="optional"
         >
           {renderFieldGroup(sortedOptionalFields)}
         </AccordionSection>
       )}
-      
+
       {/* Availability & Terms Section */}
       <AccordionSection
         sectionRef={termsSectionRef}
@@ -1511,14 +1675,15 @@ const EditComponentTwo = ({
           const next = !termsOpen;
           setAutoAdvanceSections(false);
           setTermsOpen(next);
-          if (next) requestAnimationFrame(() => scrollToSection(termsSectionRef));
+          if (next)
+            requestAnimationFrame(() => scrollToSection(termsSectionRef));
         }}
         badge="required"
         isCompleted={agreedToTerms}
       >
         <div className="space-y-6">
           {/* Availability Section */}
-          <AvailabilitySection 
+          <AvailabilitySection
             isAvailable={isAvailable}
             setIsAvailable={setIsAvailable}
             isExchange={isExchange}
@@ -1526,7 +1691,7 @@ const EditComponentTwo = ({
           />
 
           {/* Disclaimer Section */}
-          <DisclaimerSection 
+          <DisclaimerSection
             agreedToTerms={agreedToTerms}
             setAgreedToTerms={setAgreedToTerms}
           />

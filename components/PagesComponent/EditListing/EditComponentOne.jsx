@@ -1,6 +1,13 @@
 "use client";
 
-import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
+import React, {
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -174,38 +181,45 @@ const RichTextarea = ({
     }
   };
 
-  const plainText = editorRef.current?.innerText || value.replace(/<[^>]*>/g, '') || "";
+  const plainText =
+    editorRef.current?.innerText || value.replace(/<[^>]*>/g, "") || "";
   const charCount = plainText.length;
-  const wordCount = plainText.trim() === "" ? 0 : plainText.trim().split(/\s+/).length;
+  const wordCount =
+    plainText.trim() === "" ? 0 : plainText.trim().split(/\s+/).length;
   const isOverLimit = charCount > maxLength;
   const percentUsed = (charCount / maxLength) * 100;
 
   return (
     <div className="flex flex-col gap-2 w-full">
       {label && (
-        <Label htmlFor={id} className={`flex items-center gap-2 ${required ? "requiredInputLabel" : ""}`}>
+        <Label
+          htmlFor={id}
+          className={`flex items-center gap-2 ${required ? "requiredInputLabel" : ""}`}
+        >
           <BsTextParagraph className="text-gray-500" size={16} />
           {label}
         </Label>
       )}
 
-      <div 
-        className={`w-full border rounded-xl overflow-hidden bg-white transition-all ${
-          isFocused ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200"
+      <div
+        className={`w-full overflow-hidden rounded-xl border bg-white transition-all dark:bg-slate-900 ${
+          isFocused
+            ? "border-primary ring-2 ring-primary/20 dark:border-primary dark:ring-primary/30"
+            : "border-gray-200 dark:border-slate-700"
         }`}
       >
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-gray-50/50 select-none">
-          <div className="flex items-center gap-1 text-gray-400 px-2 text-xs font-semibold uppercase tracking-wider border-r mr-1">
-             <Type className="w-4 h-4 mr-1" />
-             Uređivač
+        <div className="flex flex-wrap items-center gap-1 border-b bg-gray-50/50 p-2 select-none dark:border-slate-700 dark:bg-slate-800/70">
+          <div className="mr-1 flex items-center gap-1 border-r px-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:border-slate-700 dark:text-slate-500">
+            <Type className="w-4 h-4 mr-1" />
+            Uređivač
           </div>
 
           <button
             type="button"
             onMouseDown={preventFocusLoss}
             onClick={() => execCmd("bold")}
-            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            className="rounded-lg p-2 text-gray-600 transition-all hover:bg-white hover:text-blue-600 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-primary"
             title="Podebljano (Bold)"
           >
             <Bold className="w-4 h-4" />
@@ -215,7 +229,7 @@ const RichTextarea = ({
             type="button"
             onMouseDown={preventFocusLoss}
             onClick={() => execCmd("italic")}
-            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            className="rounded-lg p-2 text-gray-600 transition-all hover:bg-white hover:text-blue-600 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-primary"
             title="Ukošeno (Italic)"
           >
             <Italic className="w-4 h-4" />
@@ -227,7 +241,7 @@ const RichTextarea = ({
             type="button"
             onMouseDown={preventFocusLoss}
             onClick={() => execCmd("insertUnorderedList")}
-            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            className="rounded-lg p-2 text-gray-600 transition-all hover:bg-white hover:text-blue-600 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-primary"
             title="Lista"
           >
             <List className="w-4 h-4" />
@@ -237,7 +251,7 @@ const RichTextarea = ({
             type="button"
             onMouseDown={preventFocusLoss}
             onClick={() => execCmd("insertOrderedList")}
-            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            className="rounded-lg p-2 text-gray-600 transition-all hover:bg-white hover:text-blue-600 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-primary"
             title="Numerisana lista"
           >
             <ListOrdered className="w-4 h-4" />
@@ -249,7 +263,7 @@ const RichTextarea = ({
             type="button"
             onMouseDown={preventFocusLoss}
             onClick={handleLink}
-            className="p-2 text-gray-600 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition-all"
+            className="rounded-lg p-2 text-gray-600 transition-all hover:bg-white hover:text-blue-600 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-primary"
             title="Dodaj Link"
           >
             <LinkIcon className="w-4 h-4" />
@@ -263,17 +277,10 @@ const RichTextarea = ({
           onInput={handleInput}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="w-full px-4 py-3 outline-none min-h-[140px] prose prose-sm max-w-none bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+          className="prose prose-sm prose-slate dark:prose-invert prose-p:text-inherit prose-strong:text-inherit prose-li:text-inherit prose-headings:text-inherit [&_*]:!text-inherit [&_a]:!text-primary w-full max-w-none min-h-[140px] bg-white px-4 py-3 text-slate-900 outline-none caret-slate-900 empty:before:pointer-events-none empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:caret-slate-100 dark:empty:before:text-slate-500"
           style={{ minHeight: `${minHeight}px` }}
           data-placeholder={placeholder}
         />
-        
-        {!value && (
-          <div 
-            className="absolute px-4 py-3 text-gray-400 pointer-events-none top-[108px]" 
-            aria-hidden="true"
-          />
-        )}
       </div>
 
       {/* Counters */}
@@ -281,7 +288,9 @@ const RichTextarea = ({
         <div className="text-gray-500">
           <span className="font-medium text-gray-700">{wordCount}</span> riječi
         </div>
-        <div className={`${isOverLimit ? "text-red-600 font-bold" : "text-gray-500"}`}>
+        <div
+          className={`${isOverLimit ? "text-red-600 font-bold" : "text-gray-500"}`}
+        >
           {charCount} / {maxLength}
         </div>
       </div>
@@ -289,7 +298,11 @@ const RichTextarea = ({
       <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden mt-1">
         <div
           className={`h-full transition-all duration-500 ${
-            isOverLimit ? "bg-red-500" : percentUsed > 90 ? "bg-orange-500" : "bg-blue-500"
+            isOverLimit
+              ? "bg-red-500"
+              : percentUsed > 90
+                ? "bg-orange-500"
+                : "bg-blue-500"
           }`}
           style={{ width: `${Math.min(percentUsed, 100)}%` }}
         />
@@ -317,8 +330,10 @@ const EditComponentOne = ({
     if (value === false || value === 0 || value === "0") return false;
     if (typeof value === "string") {
       const normalized = value.trim().toLowerCase();
-      if (["true", "da", "yes", "on", "enabled"].includes(normalized)) return true;
-      if (["false", "ne", "no", "off", "disabled"].includes(normalized)) return false;
+      if (["true", "da", "yes", "on", "enabled"].includes(normalized))
+        return true;
+      if (["false", "ne", "no", "off", "disabled"].includes(normalized))
+        return false;
     }
     return Boolean(value);
   };
@@ -328,7 +343,9 @@ const EditComponentOne = ({
   const currencyPosition = useSelector(getCurrencyPosition);
   const currencySymbol = useSelector(getCurrencySymbol);
   const currentUser = useSelector(userSignUpData);
-  const cachedMembership = useSelector((state) => state?.Membership?.userMembership?.data);
+  const cachedMembership = useSelector(
+    (state) => state?.Membership?.userMembership?.data,
+  );
   const [liveMembership, setLiveMembership] = useState(null);
   const membership = useMemo(
     () =>
@@ -338,15 +355,17 @@ const EditComponentOne = ({
         cachedMembership,
         cachedMembership?.membership,
         liveMembership,
-        liveMembership?.membership
+        liveMembership?.membership,
       ),
-    [cachedMembership, currentUser, liveMembership]
+    [cachedMembership, currentUser, liveMembership],
   );
   const isShopMember = Boolean(membership?.isShop);
   const hasShopAccess = isShopMember || isPromoFreeAccessEnabled();
 
   const placeholderLabel =
-    currencyPosition === "right" ? `00 ${currencySymbol}` : `${currencySymbol} 00`;
+    currencyPosition === "right"
+      ? `00 ${currencySymbol}`
+      : `${currencySymbol} 00`;
 
   const isDefaultLang = langId === defaultLangId;
   const sharedInventoryFields = useMemo(
@@ -358,12 +377,13 @@ const EditComponentOne = ({
         "seller_product_code",
         "scarcity_enabled",
       ]),
-    []
+    [],
   );
   const applySharedInventoryPatch = useCallback(
     (prev = {}, patch = {}) => {
       const targetKeys = [];
-      if (langId !== undefined && langId !== null) targetKeys.push(String(langId));
+      if (langId !== undefined && langId !== null)
+        targetKeys.push(String(langId));
       if (defaultLangId !== undefined && defaultLangId !== null) {
         targetKeys.push(String(defaultLangId));
       }
@@ -379,7 +399,9 @@ const EditComponentOne = ({
       const next = { ...prev };
       uniqueKeys.forEach((key) => {
         const prevLang = prev?.[key] || {};
-        const hasDiff = Object.keys(patch).some((field) => prevLang?.[field] !== patch[field]);
+        const hasDiff = Object.keys(patch).some(
+          (field) => prevLang?.[field] !== patch[field],
+        );
         if (!hasDiff && prev?.[key]) return;
         next[key] = {
           ...prevLang,
@@ -390,19 +412,29 @@ const EditComponentOne = ({
 
       return changed ? next : prev;
     },
-    [defaultLangId, langId]
+    [defaultLangId, langId],
   );
   const parsedInventoryCount = Number(current?.inventory_count || 0);
-  const parsedLowThreshold = Math.max(1, Number(current?.stock_alert_threshold || 3));
+  const parsedLowThreshold = Math.max(
+    1,
+    Number(current?.stock_alert_threshold || 3),
+  );
   const parsedLastUnitsThreshold = Math.max(1, Math.min(2, parsedLowThreshold));
   const scarcityEnabled = parseBooleanFlag(current?.scarcity_enabled);
-  const scarcityHasInventory = Number.isFinite(parsedInventoryCount) && parsedInventoryCount > 0;
-  const scarcityIsLow = scarcityHasInventory && parsedInventoryCount <= parsedLowThreshold;
-  const scarcityIsLastUnits = scarcityHasInventory && parsedInventoryCount <= parsedLastUnitsThreshold;
+  const scarcityHasInventory =
+    Number.isFinite(parsedInventoryCount) && parsedInventoryCount > 0;
+  const scarcityIsLow =
+    scarcityHasInventory && parsedInventoryCount <= parsedLowThreshold;
+  const scarcityIsLastUnits =
+    scarcityHasInventory && parsedInventoryCount <= parsedLastUnitsThreshold;
   const scarcityLockedUntilRaw = current?.scarcity_toggle_locked_until;
-  const scarcityLockedUntil = scarcityLockedUntilRaw ? new Date(scarcityLockedUntilRaw) : null;
+  const scarcityLockedUntil = scarcityLockedUntilRaw
+    ? new Date(scarcityLockedUntilRaw)
+    : null;
   const scarcityLastToggledRaw = current?.scarcity_last_toggled_at;
-  const scarcityLastToggled = scarcityLastToggledRaw ? new Date(scarcityLastToggledRaw) : null;
+  const scarcityLastToggled = scarcityLastToggledRaw
+    ? new Date(scarcityLastToggledRaw)
+    : null;
   const SERVER_SCARCITY_COOLDOWN_MS = 15 * 60 * 1000;
   const CLIENT_SCARCITY_COOLDOWN_MS = 10 * 1000;
   const [scarcityClientLockUntilTs, setScarcityClientLockUntilTs] = useState(0);
@@ -415,7 +447,10 @@ const EditComponentOne = ({
     }
     return 0;
   }, [scarcityLastToggled, scarcityLockedUntil]);
-  const scarcityEffectiveLockUntilTs = Math.max(scarcityServerLockUntilTs, scarcityClientLockUntilTs);
+  const scarcityEffectiveLockUntilTs = Math.max(
+    scarcityServerLockUntilTs,
+    scarcityClientLockUntilTs,
+  );
   const scarcityToggleLocked = scarcityEffectiveLockUntilTs > Date.now();
   const scarcityLockRemainingSeconds = scarcityToggleLocked
     ? Math.max(1, Math.ceil((scarcityEffectiveLockUntilTs - Date.now()) / 1000))
@@ -427,7 +462,7 @@ const EditComponentOne = ({
         areaM2: real_estate_area_m2,
         totalPrice: current?.price,
       }),
-    [current, real_estate_area_m2]
+    [current, real_estate_area_m2],
   );
   const isManualPerSquareMode =
     is_real_estate &&
@@ -437,7 +472,8 @@ const EditComponentOne = ({
     if (!isManualPerSquareMode) return null;
     return realEstatePricing?.derivedTotalPrice || null;
   }, [isManualPerSquareMode, realEstatePricing]);
-  const shouldDisableMainPriceInput = Boolean(current?.price_on_request) || isManualPerSquareMode;
+  const shouldDisableMainPriceInput =
+    Boolean(current?.price_on_request) || isManualPerSquareMode;
 
   const formatCurrencyInline = (value) => {
     const numeric = Number(value);
@@ -463,7 +499,9 @@ const EditComponentOne = ({
   useEffect(() => {
     if (!isDefaultLang || !isManualPerSquareMode) return;
 
-    const nextPrice = manualDerivedTotalPrice ? String(manualDerivedTotalPrice) : "";
+    const nextPrice = manualDerivedTotalPrice
+      ? String(manualDerivedTotalPrice)
+      : "";
     setTranslations((prev) => {
       const prevLang = prev?.[langId] || {};
       const prevPrice = String(prevLang?.price ?? "");
@@ -480,7 +518,13 @@ const EditComponentOne = ({
         },
       };
     });
-  }, [isDefaultLang, isManualPerSquareMode, langId, manualDerivedTotalPrice, setTranslations]);
+  }, [
+    isDefaultLang,
+    isManualPerSquareMode,
+    langId,
+    manualDerivedTotalPrice,
+    setTranslations,
+  ]);
 
   // Accordion state
   const [basicOpen, setBasicOpen] = useState(true);
@@ -574,7 +618,13 @@ const EditComponentOne = ({
         };
       });
     },
-    [applySharedInventoryPatch, defaultLangId, langId, setTranslations, sharedInventoryFields]
+    [
+      applySharedInventoryPatch,
+      defaultLangId,
+      langId,
+      setTranslations,
+      sharedInventoryFields,
+    ],
   );
 
   const handlePriceOnRequest = (checked) => {
@@ -591,7 +641,10 @@ const EditComponentOne = ({
   };
 
   const sellerPhoneDisplay = useMemo(() => {
-    const normalizedCountryCode = String(current?.country_code || "").replace(/\D/g, "");
+    const normalizedCountryCode = String(current?.country_code || "").replace(
+      /\D/g,
+      "",
+    );
     const normalizedContact = String(current?.contact || "").replace(/\D/g, "");
     if (!normalizedCountryCode || !normalizedContact) return "";
     return `+${normalizedCountryCode}${normalizedContact}`;
@@ -601,7 +654,7 @@ const EditComponentOne = ({
   const priceNum = Number(
     isManualPerSquareMode && manualDerivedTotalPrice
       ? manualDerivedTotalPrice
-      : current?.price || 0
+      : current?.price || 0,
   );
   const oldPriceNum = Number(current?.old_price || 0);
   const showDiscount =
@@ -628,32 +681,32 @@ const EditComponentOne = ({
         <div className="flex flex-col gap-4">
           {/* NASLOV */}
           <div className="flex flex-col gap-2">
-  <Label
-    htmlFor="title"
-    className={`flex items-center gap-2 ${
-      isDefaultLang ? "requiredInputLabel" : ""
-    }`}
-  >
-    <MdOutlineTitle className="text-gray-500" size={16} />
-    Naslov
-  </Label>
-  <Input
-    type="text"
-    name="title"
-    id="title"
-    placeholder="Unesite naslov oglasa"
-    value={current?.name || ""}
-    onChange={handleField("name")}
-    maxLength={86} // 👈 OGRANIČENJE
-    className={baseInput}
-  />
-  {/* 👇 Opcionalno: Brojač karaktera */}
-  <div className="flex justify-end">
-    <span className="text-xs text-gray-400">
-      {(current?.name || "").length} / 86
-    </span>
-  </div>
-</div>
+            <Label
+              htmlFor="title"
+              className={`flex items-center gap-2 ${
+                isDefaultLang ? "requiredInputLabel" : ""
+              }`}
+            >
+              <MdOutlineTitle className="text-gray-500" size={16} />
+              Naslov
+            </Label>
+            <Input
+              type="text"
+              name="title"
+              id="title"
+              placeholder="Unesite naslov oglasa"
+              value={current?.name || ""}
+              onChange={handleField("name")}
+              maxLength={86} // 👈 OGRANIČENJE
+              className={baseInput}
+            />
+            {/* 👇 Opcionalno: Brojač karaktera */}
+            <div className="flex justify-end">
+              <span className="text-xs text-gray-400">
+                {(current?.name || "").length} / 86
+              </span>
+            </div>
+          </div>
 
           {/* OPIS - ZAMIJENJENO SA RICHTEXTAREA */}
           <RichTextarea
@@ -678,11 +731,15 @@ const EditComponentOne = ({
             is_job_category
               ? "Minimalna i maksimalna plata"
               : current?.price_on_request
-              ? "Cijena na upit"
-              : "Unesite cijenu"
+                ? "Cijena na upit"
+                : "Unesite cijenu"
           }
           // 👇 PROMJENA: Ovdje je uslov za obavezno polje. Ako je "na upit" (true), značka je "optional". Ako nije na upit (false), značka je "required".
-          badge={!is_job_category && current?.price_on_request ? "optional" : "required"}
+          badge={
+            !is_job_category && current?.price_on_request
+              ? "optional"
+              : "required"
+          }
           isOpen={priceOpen}
           onToggle={() => focusSection("price")}
           sectionRef={priceSectionRef}
@@ -691,7 +748,10 @@ const EditComponentOne = ({
             {is_job_category ? (
               <>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="min_salary" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="min_salary"
+                    className="flex items-center gap-2"
+                  >
                     <MdAttachMoney className="text-gray-500" size={16} />
                     Minimalna plata
                   </Label>
@@ -708,7 +768,10 @@ const EditComponentOne = ({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="max_salary" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="max_salary"
+                    className="flex items-center gap-2"
+                  >
                     <MdAttachMoney className="text-gray-500" size={16} />
                     Maksimalna plata
                   </Label>
@@ -747,8 +810,8 @@ const EditComponentOne = ({
                       current?.price_on_request
                         ? "Cijena na upit"
                         : isManualPerSquareMode
-                        ? "Automatski izračun iz m²"
-                        : placeholderLabel
+                          ? "Automatski izračun iz m²"
+                          : placeholderLabel
                     }
                     value={
                       isManualPerSquareMode
@@ -759,12 +822,15 @@ const EditComponentOne = ({
                     min={0}
                     disabled={shouldDisableMainPriceInput}
                     className={`${baseInput} transition-colors ${
-                      shouldDisableMainPriceInput ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                      shouldDisableMainPriceInput
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : ""
                     }`}
                   />
                   {isManualPerSquareMode ? (
                     <p className="text-xs text-cyan-700 dark:text-cyan-300">
-                      Ukupna cijena se računa automatski iz ručne cijene po m² i površine.
+                      Ukupna cijena se računa automatski iz ručne cijene po m² i
+                      površine.
                     </p>
                   ) : null}
                 </div>
@@ -778,8 +844,8 @@ const EditComponentOne = ({
                     disabled={isManualPerSquareMode}
                   />
                   <div className="flex flex-col">
-                    <Label 
-                      htmlFor="price-on-request" 
+                    <Label
+                      htmlFor="price-on-request"
                       className="font-medium text-gray-700 cursor-pointer"
                     >
                       Cijena na upit
@@ -812,7 +878,8 @@ const EditComponentOne = ({
                             [langId]: {
                               ...prev[langId],
                               show_price_per_m2: checked,
-                              price_per_m2_mode: prev?.[langId]?.price_per_m2_mode || "auto",
+                              price_per_m2_mode:
+                                prev?.[langId]?.price_per_m2_mode || "auto",
                             },
                           }));
                         }}
@@ -840,8 +907,12 @@ const EditComponentOne = ({
                                 ...prev,
                                 [langId]: {
                                   ...prev[langId],
-                                  price_per_m2_mode: checked ? REAL_ESTATE_PRICE_MODE_MANUAL : "auto",
-                                  ...(checked ? { price_on_request: false } : {}),
+                                  price_per_m2_mode: checked
+                                    ? REAL_ESTATE_PRICE_MODE_MANUAL
+                                    : "auto",
+                                  ...(checked
+                                    ? { price_on_request: false }
+                                    : {}),
                                 },
                               }))
                             }
@@ -859,7 +930,10 @@ const EditComponentOne = ({
 
                         {isManualPerSquareMode ? (
                           <div className="space-y-1">
-                            <Label htmlFor="price_per_unit" className="text-sm font-semibold text-gray-800">
+                            <Label
+                              htmlFor="price_per_unit"
+                              className="text-sm font-semibold text-gray-800"
+                            >
                               Ručna cijena po m² (KM)
                             </Label>
                             <Input
@@ -876,14 +950,23 @@ const EditComponentOne = ({
                           </div>
                         ) : (
                           <div className="space-y-1">
-                            <Label htmlFor="price_per_m2_auto" className="text-sm font-semibold text-gray-800">
+                            <Label
+                              htmlFor="price_per_m2_auto"
+                              className="text-sm font-semibold text-gray-800"
+                            >
                               Automatska cijena po m²
                             </Label>
                             <Input
                               type="text"
                               id="price_per_m2_auto"
                               readOnly
-                              value={realEstatePricing?.autoValue ? formatCurrencyInline(realEstatePricing.autoValue) : ""}
+                              value={
+                                realEstatePricing?.autoValue
+                                  ? formatCurrencyInline(
+                                      realEstatePricing.autoValue,
+                                    )
+                                  : ""
+                              }
                               placeholder="Unesite cijenu i površinu"
                               className={`${baseInput} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200`}
                             />
@@ -892,18 +975,24 @@ const EditComponentOne = ({
 
                         {!real_estate_area_m2 ? (
                           <p className="text-xs text-amber-700 dark:text-amber-300">
-                            Cijena po m² će biti dostupna nakon unosa površine (m²) u detaljima oglasa.
+                            Cijena po m² će biti dostupna nakon unosa površine
+                            (m²) u detaljima oglasa.
                           </p>
                         ) : null}
 
                         {realEstatePricing?.canDisplay ? (
                           <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                            Prikaz na oglasu: {formatCurrencyInline(realEstatePricing.resolvedValue)} / m²
+                            Prikaz na oglasu:{" "}
+                            {formatCurrencyInline(
+                              realEstatePricing.resolvedValue,
+                            )}{" "}
+                            / m²
                           </p>
                         ) : null}
                         {isManualPerSquareMode && manualDerivedTotalPrice ? (
                           <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-                            Izračunata ukupna cijena: {formatCurrencyInline(manualDerivedTotalPrice)}
+                            Izračunata ukupna cijena:{" "}
+                            {formatCurrencyInline(manualDerivedTotalPrice)}
                           </p>
                         ) : null}
                       </div>
@@ -933,7 +1022,10 @@ const EditComponentOne = ({
                   <FiPercent className="text-gray-700" size={18} />
                 </div>
                 <div>
-                  <Label htmlFor="is_on_sale" className="text-base font-semibold text-gray-900">
+                  <Label
+                    htmlFor="is_on_sale"
+                    className="text-base font-semibold text-gray-900"
+                  >
                     Akcija / Popust
                   </Label>
                   <p className="text-sm text-gray-600">
@@ -1010,7 +1102,13 @@ const EditComponentOne = ({
           isOpen={stockOpen}
           onToggle={() => focusSection("stock")}
           sectionRef={stockSectionRef}
-          planGate={<PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />}
+          planGate={
+            <PlanGateLabel
+              scope="shop"
+              unlocked={hasShopAccess}
+              showStatus={false}
+            />
+          }
         >
           <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-800/70">
             <div className="flex items-start gap-3">
@@ -1019,10 +1117,17 @@ const EditComponentOne = ({
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="inventory_count" className="text-base font-semibold text-gray-900">
+                  <Label
+                    htmlFor="inventory_count"
+                    className="text-base font-semibold text-gray-900"
+                  >
                     Količina na zalihi
                   </Label>
-                  <PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />
+                  <PlanGateLabel
+                    scope="shop"
+                    unlocked={hasShopAccess}
+                    showStatus={false}
+                  />
                 </div>
                 <p className="text-sm text-gray-600">
                   Ostavite prazno ako prodajete samo jedan artikal.
@@ -1031,7 +1136,9 @@ const EditComponentOne = ({
             </div>
 
             <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
-              <span className="font-semibold">LMX savjet:</span> Unesite realnu zalihu i minimalnu količinu kako bi kupac odmah imao tačne informacije.
+              <span className="font-semibold">LMX savjet:</span> Unesite realnu
+              zalihu i minimalnu količinu kako bi kupac odmah imao tačne
+              informacije.
             </div>
 
             <div className="mt-3">
@@ -1051,16 +1158,22 @@ const EditComponentOne = ({
                   Ova opcija je dostupna samo za LMX Shop korisnike.
                 </p>
               )}
-              {hasShopAccess && current?.inventory_count && parseInt(current.inventory_count, 10) > 1 && (
-                <p className="text-xs text-gray-600 mt-2">
-                  ✅ Unijeli ste više komada — zalihe možete pratiti kroz oglas.
-                </p>
-              )}
+              {hasShopAccess &&
+                current?.inventory_count &&
+                parseInt(current.inventory_count, 10) > 1 && (
+                  <p className="text-xs text-gray-600 mt-2">
+                    ✅ Unijeli ste više komada — zalihe možete pratiti kroz
+                    oglas.
+                  </p>
+                )}
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <div className="space-y-1">
-                <Label htmlFor="price_per_unit" className="text-sm font-semibold text-gray-800">
+                <Label
+                  htmlFor="price_per_unit"
+                  className="text-sm font-semibold text-gray-800"
+                >
                   Cijena po komadu (KM)
                 </Label>
                 <Input
@@ -1078,7 +1191,10 @@ const EditComponentOne = ({
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="minimum_order_quantity" className="text-sm font-semibold text-gray-800">
+                <Label
+                  htmlFor="minimum_order_quantity"
+                  className="text-sm font-semibold text-gray-800"
+                >
                   Minimalna količina
                 </Label>
                 <Input
@@ -1095,7 +1211,10 @@ const EditComponentOne = ({
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="stock_alert_threshold" className="text-sm font-semibold text-gray-800">
+                <Label
+                  htmlFor="stock_alert_threshold"
+                  className="text-sm font-semibold text-gray-800"
+                >
                   Prag niske zalihe
                 </Label>
                 <Input
@@ -1114,10 +1233,17 @@ const EditComponentOne = ({
 
             <div className="mt-4">
               <div className="flex items-center gap-2">
-                <Label htmlFor="seller_product_code" className="text-base font-semibold text-gray-900">
+                <Label
+                  htmlFor="seller_product_code"
+                  className="text-base font-semibold text-gray-900"
+                >
                   Interna šifra proizvoda
                 </Label>
-                <PlanGateLabel scope="shop" unlocked={hasShopAccess} showStatus={false} />
+                <PlanGateLabel
+                  scope="shop"
+                  unlocked={hasShopAccess}
+                  showStatus={false}
+                />
               </div>
               <Input
                 type="text"
@@ -1135,7 +1261,8 @@ const EditComponentOne = ({
               </p>
 
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                LMX povezuje prodavača i kupca. Dogovor o plaćanju, dostavi i reklamacijama je između korisnika.
+                LMX povezuje prodavača i kupca. Dogovor o plaćanju, dostavi i
+                reklamacijama je između korisnika.
               </p>
             </div>
 
@@ -1146,7 +1273,8 @@ const EditComponentOne = ({
                     Oznaka \"Do isteka zaliha\"
                   </p>
                   <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
-                    Oglas će dobiti scarcity prikaz samo kad je zaliha stvarno niska.
+                    Oglas će dobiti scarcity prikaz samo kad je zaliha stvarno
+                    niska.
                   </p>
                 </div>
                 <Switch
@@ -1157,9 +1285,11 @@ const EditComponentOne = ({
                     setTranslations((prev) =>
                       applySharedInventoryPatch(prev, {
                         scarcity_enabled: checked,
-                      })
+                      }),
                     );
-                    setScarcityClientLockUntilTs(Date.now() + CLIENT_SCARCITY_COOLDOWN_MS);
+                    setScarcityClientLockUntilTs(
+                      Date.now() + CLIENT_SCARCITY_COOLDOWN_MS,
+                    );
                   }}
                   disabled={!hasShopAccess || scarcityToggleLocked}
                   className="data-[state=checked]:bg-amber-500"
@@ -1174,7 +1304,8 @@ const EditComponentOne = ({
 
               {hasShopAccess && scarcityToggleLocked ? (
                 <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                  Privremeno zaključano zbog čestih promjena. Pokušajte ponovo za{" "}
+                  Privremeno zaključano zbog čestih promjena. Pokušajte ponovo
+                  za{" "}
                   {scarcityLockRemainingSeconds >= 60
                     ? `oko ${Math.ceil(scarcityLockRemainingSeconds / 60)} min`
                     : `${scarcityLockRemainingSeconds} s`}
@@ -1184,19 +1315,27 @@ const EditComponentOne = ({
 
               {hasShopAccess && scarcityEnabled && !scarcityHasInventory ? (
                 <p className="mt-2 text-xs text-rose-700 dark:text-rose-300">
-                  Unesite količinu na zalihi veću od 0 da bi oznaka postala aktivna.
+                  Unesite količinu na zalihi veću od 0 da bi oznaka postala
+                  aktivna.
                 </p>
               ) : null}
 
-              {hasShopAccess && scarcityEnabled && scarcityHasInventory && !scarcityIsLow ? (
+              {hasShopAccess &&
+              scarcityEnabled &&
+              scarcityHasInventory &&
+              !scarcityIsLow ? (
                 <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                  Oznaka će se automatski aktivirati kad zaliha padne na {parsedLowThreshold} ili manje.
+                  Oznaka će se automatski aktivirati kad zaliha padne na{" "}
+                  {parsedLowThreshold} ili manje.
                 </p>
               ) : null}
 
               {hasShopAccess && scarcityEnabled && scarcityIsLow ? (
                 <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
-                  Aktivno: {scarcityIsLastUnits ? "Posljednji komadi." : `Još ${parsedInventoryCount} komada dostupno.`}
+                  Aktivno:{" "}
+                  {scarcityIsLastUnits
+                    ? "Posljednji komadi."
+                    : `Još ${parsedInventoryCount} komada dostupno.`}
                 </p>
               ) : null}
             </div>
@@ -1219,7 +1358,8 @@ const EditComponentOne = ({
             className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-800/60"
           >
             <p className="text-xs text-slate-600 dark:text-slate-300">
-              Kontakt broj za oglas automatski dolazi iz <span className="font-semibold">Seller postavki</span>.
+              Kontakt broj za oglas automatski dolazi iz{" "}
+              <span className="font-semibold">Seller postavki</span>.
             </p>
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
               {sellerPhoneDisplay || "Broj nije postavljen"}
