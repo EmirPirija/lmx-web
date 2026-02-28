@@ -48,6 +48,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { handleKeyDown, inpNum, t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
 import StickyActionButtons from "@/components/Common/StickyActionButtons";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 // Emoji lista
 const EMOJI_LIST = [
@@ -241,7 +242,7 @@ const RichTextarea = ({
       // Links
       .replace(
         /\[(.+?)\]\((.+?)\)/g,
-        '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>',
+        '<a href="$2" class="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>',
       )
       // Line breaks
       .replace(/\n/g, "<br />");
@@ -404,9 +405,11 @@ const RichTextarea = ({
             className="prose prose-slate max-w-none w-full rounded-xl border border-slate-300 bg-slate-50 p-4 text-slate-900 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100 dark:prose-invert prose-p:text-inherit prose-strong:text-inherit prose-li:text-inherit prose-headings:text-inherit [&_*]:!text-inherit [&_a]:!text-primary"
             style={{ minHeight: `${minHeight}px` }}
             dangerouslySetInnerHTML={{
-              __html: value
-                ? renderMarkdown(value)
-                : "<p class='text-slate-400 dark:text-slate-500'>Nema sadržaja za pregled</p>",
+              __html: sanitizeHtml(
+                value
+                  ? renderMarkdown(value)
+                  : "<p class='text-slate-400 dark:text-slate-500'>Nema sadržaja za pregled</p>",
+              ),
             }}
           />
         </TabsContent>

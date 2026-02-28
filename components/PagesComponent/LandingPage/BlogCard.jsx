@@ -3,6 +3,7 @@ import { FaArrowRight } from "@/components/Common/UnifiedIconPack";
 import CustomLink from "@/components/Common/CustomLink";
 import { t } from "@/utils";
 import CustomImage from "@/components/Common/CustomImage";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 const BlogCard = ({ blog }) => {
   return (
@@ -20,7 +21,9 @@ const BlogCard = ({ blog }) => {
       <p
         className="opacity-65 line-clamp-2"
         dangerouslySetInnerHTML={{
-          __html: blog?.translated_description || blog?.description,
+          __html: sanitizeHtml(
+            blog?.translated_description || blog?.description || "",
+          ),
         }}
       ></p>
       <CustomLink

@@ -12,14 +12,10 @@ export function middleware(req) {
     req.nextUrl.pathname === '/'
       ? '/'
       : req.nextUrl.pathname.replace(/\/+$/, '');
-  
-  // 1. Check for the secret "backdoor" in URL OR in Cookies
-  const hasSecretKey = req.nextUrl.searchParams.get('view') === 'dev';
-  const hasCookie = req.cookies.has('dev_access');
+
   const isPublicMaintenancePath = MAINTENANCE_PUBLIC_PATHS.has(normalizedPath);
 
-  // 2. Logic: If maintenance is ON and user isn't a dev, show the page
-  if (isMaintenanceMode && !hasSecretKey && !hasCookie && !isPublicMaintenancePath) {
+  if (isMaintenanceMode && !isPublicMaintenancePath) {
     return new NextResponse(
       `<!DOCTYPE html>
       <html>
@@ -65,16 +61,7 @@ export function middleware(req) {
     );
   }
 
-  // 3. If they used the secret key, set the cookie so they can navigate the whole site
-  const response = NextResponse.next();
-  if (hasSecretKey && !hasCookie) {
-    response.cookies.set('dev_access', 'true', { 
-      path: '/', 
-      maxAge: 60 * 60 * 24 // Valid for 24 hours
-    });
-  }
-
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

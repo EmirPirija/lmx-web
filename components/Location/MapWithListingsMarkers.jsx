@@ -595,11 +595,6 @@ const MarkerUpdater = ({
       // Popup content - mini product card dizajn
       const popupContent = `
         <div class="map-popup-card">
-          <button class="popup-close-btn" onclick="this.closest('.leaflet-popup')?.querySelector('.leaflet-popup-close-button')?.click()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
           <div class="popup-content">
             <div class="popup-media">
               ${
@@ -608,7 +603,6 @@ const MarkerUpdater = ({
                 <img
                   src="${safeImage}"
                   alt="${safeTitle}"
-                  onerror="this.parentElement.innerHTML='<div class=\\'popup-no-image\\'><svg width=\\'24\\' height=\\'24\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'m21 15-5-5L5 21\\'/></svg></div>'"
                 />
               `
                   : `
