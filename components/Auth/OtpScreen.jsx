@@ -20,7 +20,10 @@ import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
-import { isPhoneNotRegisteredError } from "./authPhoneErrors";
+import {
+  isPhoneAlreadyRegisteredError,
+  isPhoneNotRegisteredError,
+} from "./authPhoneErrors";
 
 const isGatewayOrTimeoutError = (error) => {
   const status = Number(error?.response?.status || 0);
@@ -102,6 +105,8 @@ const OtpScreen = ({
       } else {
         if (isPhoneNotRegisteredError(response?.data)) {
           toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+        } else if (isPhoneAlreadyRegisteredError(response?.data)) {
+          toast.info("Broj je već registrovan. Nastavi prijavu.");
         } else {
           toast.error(response?.data?.message);
         }
@@ -114,11 +119,14 @@ const OtpScreen = ({
   };
 
   const verifyOTPWithFirebase = async () => {
+    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    let confirmedUser = null;
+
     try {
       const result = await confirmationResult.confirm(otp);
       // Access user information from the result
       const user = result.user;
-      const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+      confirmedUser = user;
       const response = await userSignUpApi.userSignup({
         mobile: formattedNumber,
         firebase_id: user.uid, // Accessing UID directly from the user object
@@ -156,7 +164,66 @@ const OtpScreen = ({
         OnHide();
       }
     } catch (error) {
-      console.log(error);
+      if (
+        authIntent === "register" &&
+        confirmedUser?.uid &&
+        isPhoneAlreadyRegisteredError(error)
+      ) {
+        try {
+          const fallbackLoginResponse = await userSignUpApi.userSignup({
+            mobile: formattedNumber,
+            firebase_id: confirmedUser.uid,
+            fcm_id: fetchFCM ? fetchFCM : "",
+            country_code: countryCode.replace(/\D/g, ""),
+            type: "phone",
+            auth_intent: "login",
+            region_code: regionCode?.toUpperCase() || "",
+          });
+          const fallbackData = fallbackLoginResponse?.data;
+          if (fallbackData?.error === false) {
+            loadUpdateData(fallbackData);
+            toast.success(
+              fallbackData?.message ||
+                "Broj je već registrovan. Prijavili smo vas na postojeći račun.",
+            );
+            await onAuthSuccess?.(fallbackData, {
+              method: "phone",
+              identifier: phoneE164,
+            });
+            if (
+              autoCloseOnSuccess &&
+              (fallbackData?.data?.email === "" ||
+                fallbackData?.data?.name === "")
+            ) {
+              navigate("/profile");
+            }
+            if (autoCloseOnSuccess) {
+              OnHide();
+            }
+            return;
+          }
+        } catch (fallbackError) {
+          const fallbackMessage =
+            fallbackError?.response?.data?.message ||
+            fallbackError?.message ||
+            "Prijava postojećeg računa nije uspjela.";
+          toast.error(fallbackMessage);
+          try {
+            await firebaseSignOut(auth);
+          } catch (_) {}
+          return;
+        }
+      }
+
+      const backendMessage = error?.response?.data?.message;
+      if (backendMessage) {
+        toast.error(backendMessage);
+        try {
+          await firebaseSignOut(auth);
+        } catch (_) {}
+        return;
+      }
+
       if (isGatewayOrTimeoutError(error)) {
         toast.error(
           "Prijava trenutno nije dostupna. Backend autentifikacija kasni (504/timeout).",
