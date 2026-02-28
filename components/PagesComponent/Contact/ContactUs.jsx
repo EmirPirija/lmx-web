@@ -137,6 +137,15 @@ const ContactUs = () => {
     return isValid;
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      subject: "",
+      message: "",
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
@@ -150,18 +159,38 @@ const ContactUs = () => {
         };
         const res = await contactUsApi.contactUs(payload);
         if (res?.data?.error === false) {
-          toast.success("Hvala na poruci! Javit ćemo se uskoro.");
-          setFormData({
-            name: "",
-            email: "",
-            subject: "",
-            message: "",
-          });
+          if (res?.data?.warning) {
+            toast.warning(
+              getApiErrorMessage(
+                res?.data,
+                "Poruka je sačuvana, ali e-mail obavijest trenutno nije poslana."
+              )
+            );
+          } else {
+            toast.success("Hvala na poruci! Javit ćemo se uskoro.");
+          }
+
+          resetForm();
         } else {
           toast.error(getApiErrorMessage(res?.data, "Došlo je do greške."));
         }
       } catch (error) {
-        toast.error(getApiErrorMessage(error?.response?.data, "Došlo je do greške."));
+        const errorMessage = getApiErrorMessage(
+          error?.response?.data,
+          "Došlo je do greške."
+        );
+        const normalizedErrorMessage = errorMessage.toLowerCase();
+        const isSavedButEmailFailed =
+          error?.response?.status === 500 &&
+          normalizedErrorMessage.includes("sačuvana") &&
+          normalizedErrorMessage.includes("e-mail");
+
+        if (isSavedButEmailFailed) {
+          toast.warning(errorMessage);
+          resetForm();
+        } else {
+          toast.error(errorMessage);
+        }
         console.log(error);
       } finally {
         setIsLoading(false);
