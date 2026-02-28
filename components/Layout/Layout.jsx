@@ -9,6 +9,7 @@ import { useClientLayoutLogic } from "./useClientLayoutLogic";
 import CustomImage from "../Common/CustomImage";
 import ScrollToTopButton from "./ScrollToTopButton";
 import { AdaptiveMobileDockProvider } from "./AdaptiveMobileDock";
+import LiveTrafficTracker from "./LiveTrafficTracker";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
@@ -77,6 +78,7 @@ export default function Layout({ children }) {
   return (
     <PushNotificationLayout>
       <AdaptiveMobileDockProvider>
+        <LiveTrafficTracker />
         <div
           className={`flex flex-col min-h-screen ${
             isHomepageRoute ? "lmx-home-container-scope" : "lmx-fullwidth-container-scope"
