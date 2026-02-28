@@ -295,6 +295,7 @@ const LoginWithEmailForm = ({
           firebase_id: user?.uid,
           fcm_id: fetchFCM ? fetchFCM : "",
           type: "email",
+          auth_intent: "login",
         });
         const data = response.data;
         if (data.error === false) {

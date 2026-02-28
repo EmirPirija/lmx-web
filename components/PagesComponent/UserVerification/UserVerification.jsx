@@ -447,7 +447,13 @@ const UserVerification = () => {
   }, [auth]);
 
   const sendPhoneOtpWithTwilio = useCallback(async (phoneE164) => {
-    const response = await getOtpApi.getOtp({ number: phoneE164 });
+    const response = await getOtpApi.getOtp({
+      number: phoneE164,
+      intent: "profile_verification",
+      mobile: stripCountryCodePrefix(phoneLocalNumber, digitsOnly(phoneCountryCode)),
+      country_code: digitsOnly(phoneCountryCode),
+      region_code: String(phoneRegionCode || "").toUpperCase(),
+    });
     if (response?.data?.error === false) {
       setPhoneOtpTimer(60);
       setPhoneVerificationId("twilio");

@@ -1,5 +1,13 @@
 "use client";
 import Api from "@/api/AxiosInterceptors";
+import {
+  AUTH_ENDPOINTS,
+  authApi,
+  userSignUpApi,
+  getOtpApi,
+  verifyOtpApi,
+} from "@/utils/api/modules/auth";
+export { authApi, userSignUpApi, getOtpApi, verifyOtpApi };
 export const GET_SETTINGS = "get-system-settings";
 export const GET_SEO_SETTINGS = "seo-settings";
 export const GET_SLIDER = "get-slider";
@@ -26,10 +34,10 @@ export const UPDATE_ITEM_STATUS = "update-item-status";
 export const CREATE_FEATURED_ITEM = "make-item-featured";
 export const CONTACT_US = "contact-us";
 export const UPDATE_LISTING = "update-item";
-export const USER_SIGNUP = "user-signup";
-export const RESOLVE_LOGIN_IDENTIFIER = "resolve-login-identifier";
-export const UPDATE_PROFILE = "update-profile";
-export const DELETE_USER = "delete-user";
+export const USER_SIGNUP = AUTH_ENDPOINTS.USER_SIGNUP;
+export const RESOLVE_LOGIN_IDENTIFIER = AUTH_ENDPOINTS.RESOLVE_LOGIN_IDENTIFIER;
+export const UPDATE_PROFILE = "auth/profile";
+export const DELETE_USER = "auth/account";
 export const GET_REPORT_REASONS = "get-report-reasons";
 export const ADD_REPORT = "add-reports";
 export const GET_NOTIFICATION_LIST = "get-notification-list";
@@ -60,13 +68,13 @@ export const JOB_APPLY = "job-apply";
 export const MY_JOB_APPLICATIONS = "my-job-applications";
 export const GET_JOB_APPLICATIONS = "get-job-applications";
 export const UPDATE_JOB_STATUS = "update-job-applications-status";
-export const GET_OTP = "get-otp";
-export const VERIFY_OTP = "verify-otp";
+export const GET_OTP = AUTH_ENDPOINTS.GET_OTP;
+export const VERIFY_OTP = AUTH_ENDPOINTS.VERIFY_OTP;
 export const GET_LOCATION = "get-location";
-export const GET_USER_INFO = "get-user-info";
-export const LOGOUT = "logout";
-export const GET_ACTIVE_SESSIONS = "active-sessions";
-export const LOGOUT_ALL_DEVICES = "logout-all-devices";
+export const GET_USER_INFO = "auth/me";
+export const LOGOUT = "auth/logout";
+export const GET_ACTIVE_SESSIONS = "auth/active-sessions";
+export const LOGOUT_ALL_DEVICES = "auth/logout-all-devices";
 export const SET_ITEM_TOTAL_CLICK = "set-item-total-click";
 export const GET_ALL_USERS = "users";
 
@@ -554,67 +562,7 @@ export const getLanguageApi = {
   },
 };
 
-const USER_SIGNUP_TIMEOUT_MS = 15000;
-
-export const userSignUpApi = {
-  userSignup: ({
-    name,
-    email,
-    mobile,
-    fcm_id,
-    firebase_id,
-    type,
-    auth_intent,
-    profile,
-    country_code,
-    registration,
-    region_code,
-  } = {}) => {
-    const formData = new FormData();
-
-    // Append only if the value is defined and not an empty string
-    if (name) formData.append("name", name);
-    if (email) formData.append("email", email);
-    if (mobile) formData.append("mobile", mobile);
-    if (fcm_id) formData.append("fcm_id", fcm_id);
-    if (firebase_id) formData.append("firebase_id", firebase_id);
-    if (type) formData.append("type", type);
-    if (auth_intent) formData.append("auth_intent", auth_intent);
-    if (region_code) formData.append("region_code", region_code);
-
-    // Assuming `profile` is a file object. If it's a URL or other type, handle accordingly.
-    if (profile) {
-      formData.append("profile", profile);
-    }
-    if (country_code) formData.append("country_code", country_code);
-    if (registration) formData.append("registration", registration);
-
-    return Api.post(USER_SIGNUP, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      timeout: USER_SIGNUP_TIMEOUT_MS,
-    });
-  },
-};
-
-export const authApi = {
-  resolveLoginIdentifier: ({
-    identifier,
-    identifier_type,
-    country_code,
-  } = {}) => {
-    const formData = new FormData();
-    if (identifier) formData.append("identifier", identifier);
-    if (identifier_type) formData.append("identifier_type", identifier_type);
-    if (country_code) formData.append("country_code", country_code);
-    return Api.post(RESOLVE_LOGIN_IDENTIFIER, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-  },
-};
+// authApi, userSignUpApi, getOtpApi, verifyOtpApi su izdvojeni u modules/auth.js
 
 export const logoutApi = {
   logoutApi: ({ fcm_token } = {}) => {
@@ -2002,30 +1950,6 @@ export const updateJobStatusApi = {
     return Api.post(UPDATE_JOB_STATUS, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
-      },
-    });
-  },
-};
-
-export const verifyOtpApi = {
-  verifyOtp: ({ number, otp, intent, mobile, country_code, region_code } = {}) => {
-    return Api.get(VERIFY_OTP, {
-      params: {
-        number: number,
-        otp: otp,
-        intent: intent,
-        mobile: mobile,
-        country_code: country_code,
-        region_code: region_code,
-      },
-    });
-  },
-};
-export const getOtpApi = {
-  getOtp: ({ number } = {}) => {
-    return Api.get(GET_OTP, {
-      params: {
-        number: number,
       },
     });
   },

@@ -74,7 +74,13 @@ const LoginWithMobileForm = ({
 
   const sendOtpWithTwillio = async (phoneE164) => {
     try {
-      const response = await getOtpApi.getOtp({ number: phoneE164 });
+      const response = await getOtpApi.getOtp({
+        number: phoneE164,
+        intent: "login",
+        mobile: formattedNumber,
+        country_code: String(countryCode || "").replace(/\D/g, ""),
+        region_code: String(loginStates?.regionCode || "").toUpperCase(),
+      });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
         setIsOTPScreen(true);

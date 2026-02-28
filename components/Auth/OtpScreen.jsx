@@ -218,7 +218,13 @@ const OtpScreen = ({
 
   const resendOtpWithTwillio = async (phoneE164) => {
     try {
-      const response = await getOtpApi.getOtp({ number: phoneE164 });
+      const response = await getOtpApi.getOtp({
+        number: phoneE164,
+        intent: authIntent,
+        mobile: formattedNumber,
+        country_code: String(countryCode || "").replace(/\D/g, ""),
+        region_code: String(regionCode || "").toUpperCase(),
+      });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
         setResendTimer(60); // Start the 60-second timer

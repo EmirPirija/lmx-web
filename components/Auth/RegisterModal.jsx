@@ -404,7 +404,13 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
   const sendOtpWithTwillio = async (phoneE164) => {
     try {
-      const response = await getOtpApi.getOtp({ number: phoneE164 });
+      const response = await getOtpApi.getOtp({
+        number: phoneE164,
+        intent: "register",
+        mobile: formattedNumber,
+        country_code: String(countryCode || "").replace(/\D/g, ""),
+        region_code: String(regionCode || "").toUpperCase(),
+      });
       if (response?.data?.error === false) {
         toast.success("OTP poslan");
         setStep("otp");
@@ -511,6 +517,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         firebase_id: googleUser?.uid,
         fcm_id: fetchFCM ? fetchFCM : "",
         type: "google",
+        auth_intent: "register",
       });
 
       const data = response?.data;
