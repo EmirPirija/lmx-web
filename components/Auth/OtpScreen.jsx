@@ -104,7 +104,14 @@ const OtpScreen = ({
         }
       } else {
         if (isPhoneNotRegisteredError(response?.data)) {
-          toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+          if (authIntent === "login") {
+            toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+          } else {
+            toast.error(
+              response?.data?.message ||
+                "Registracija nije dovršena. Pokušaj ponovo.",
+            );
+          }
         } else if (isPhoneAlreadyRegisteredError(response?.data)) {
           toast.info("Broj je već registrovan. Nastavi prijavu.");
         } else {
@@ -139,7 +146,13 @@ const OtpScreen = ({
       const data = response.data;
       if (data?.error === true) {
         if (isPhoneNotRegisteredError(data)) {
-          toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+          if (authIntent === "login") {
+            toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+          } else {
+            toast.error(
+              data?.message || "Registracija nije dovršena. Pokušaj ponovo.",
+            );
+          }
         } else {
           toast.error(data?.message || "Prijava/registracija nije uspjela.");
         }

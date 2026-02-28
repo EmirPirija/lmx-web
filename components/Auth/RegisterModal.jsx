@@ -63,6 +63,10 @@ import TermsAndPrivacyLinks from "./TermsAndPrivacyLinks";
 import RegisterAuthInputField from "./RegisterAuthInputField";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
+import {
+  LMX_PHONE_DEFAULT_COUNTRY,
+  resolveLmxPhoneDialCode,
+} from "@/components/Common/phoneInputTheme";
 import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 import { isLocationComplete, resolveLocationSelection } from "@/lib/bih-locations";
 import {
@@ -90,6 +94,9 @@ const EMPTY_REGISTER_LOCATION = {
   address: "",
   formattedAddress: "",
 };
+
+const DEFAULT_REGISTER_REGION = String(LMX_PHONE_DEFAULT_COUNTRY || "ba").toLowerCase();
+const DEFAULT_REGISTER_COUNTRY_CODE = `+${resolveLmxPhoneDialCode(DEFAULT_REGISTER_REGION)}`;
 
 const clamp = (value, min, max) => {
   if (Number.isNaN(value)) return min;
@@ -176,8 +183,8 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const [number, setNumber] = useState(isDemoMode ? "38761111222" : "");
-  const [countryCode, setCountryCode] = useState("");
-  const [regionCode, setRegionCode] = useState("");
+  const [countryCode, setCountryCode] = useState(DEFAULT_REGISTER_COUNTRY_CODE);
+  const [regionCode, setRegionCode] = useState(DEFAULT_REGISTER_REGION);
 
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [resendTimer, setResendTimer] = useState(0);
@@ -282,8 +289,8 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     setIsPasswordVisible(false);
 
     setNumber(isDemoMode ? "38761111222" : "");
-    setCountryCode("");
-    setRegionCode("");
+    setCountryCode(DEFAULT_REGISTER_COUNTRY_CODE);
+    setRegionCode(DEFAULT_REGISTER_REGION);
 
     setConfirmationResult(null);
     setResendTimer(0);
@@ -483,11 +490,19 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
-    const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    const effectiveCountryCode =
+      String(countryCode || "").trim() || DEFAULT_REGISTER_COUNTRY_CODE;
+    const effectiveLocalNumber =
+      String(formattedNumber || "").trim() || String(number || "").trim();
+    const phoneE164 = buildPhoneE164(effectiveCountryCode, effectiveLocalNumber);
 
     if (!isValidPhoneNumber(phoneE164)) {
       toast.error("Neispravan broj telefona");
       return;
+    }
+
+    if (!countryCode) {
+      setCountryCode(effectiveCountryCode);
     }
 
     setIsBusy(true);
