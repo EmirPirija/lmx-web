@@ -3,13 +3,13 @@ import { SITEMAP_REVALIDATE_SECONDS } from "@/lib/constants";
 export default async function sitemap() {
   // Check if SEO is enabled via environment variable
   // If SEO is disabled, return empty array to prevent sitemap generation
-  const seoEnabled = process.env.NEXT_PUBLIC_SEO === "true";
+  const seoEnabled = process.env.NEXT_PUBLIC_SEO !== "false";
   if (!seoEnabled) {
     // Return empty sitemap when SEO is disabled
     return [];
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL;
+  const baseUrl = (process.env.NEXT_PUBLIC_WEB_URL || "https://lmx.ba").replace(/\/+$/, "");
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   let defaultLanguageCode = "en";

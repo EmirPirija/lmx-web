@@ -16,16 +16,69 @@ const manrope = Manrope({
   display: "swap",
 });
 
+const normalizeUrl = (value) => {
+  if (!value || typeof value !== "string") return "https://lmx.ba";
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+};
+
 // Metadata (SEO)
 export const generateMetadata = () => {
+  const siteUrl = normalizeUrl(process.env.NEXT_PUBLIC_WEB_URL);
+  const title =
+    process.env.NEXT_PUBLIC_META_TITLE ||
+    "LMX - Marketplace za kupovinu i prodaju u BiH";
+  const description =
+    process.env.NEXT_PUBLIC_META_DESCRIPTION ||
+    "Objavi oglas i kupuj/prodaj proizvode i usluge širom BiH na LMX marketplace platformi.";
+  const keywords =
+    process.env.NEXT_PUBLIC_META_KEYWORDS ||
+    process.env.NEXT_PUBLIC_META_kEYWORDS ||
+    "LMX, marketplace BiH, oglasi, kupovina, prodaja";
+  const ogImage = `${siteUrl}/apple-touch-icon.png`;
+  const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+
   return {
-    title: process.env.NEXT_PUBLIC_META_TITLE,
-    description: process.env.NEXT_PUBLIC_META_DESCRIPTION,
-    keywords: process.env.NEXT_PUBLIC_META_kEYWORDS,
+    metadataBase: new URL(siteUrl),
+    title,
+    description,
+    keywords,
+    alternates: {
+      canonical: "/",
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+      },
+    },
+    verification: googleVerification
+      ? {
+          google: googleVerification,
+        }
+      : undefined,
     openGraph: {
-      title: process.env.NEXT_PUBLIC_META_TITLE,
-      description: process.env.NEXT_PUBLIC_META_DESCRIPTION,
-      keywords: process.env.NEXT_PUBLIC_META_kEYWORDS,
+      title,
+      description,
+      url: siteUrl,
+      siteName: "LMX",
+      type: "website",
+      locale: "bs_BA",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: "LMX marketplace",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
     },
   };
 };
