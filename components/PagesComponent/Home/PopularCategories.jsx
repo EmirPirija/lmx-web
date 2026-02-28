@@ -300,7 +300,7 @@ const PopularCategories = () => {
       <section className="container mt-6">
         <div className="space-between">
           <h5 className="text-xl sm:text-2xl font-medium">
-            Istraži sve kategorije
+            Sve kategorije
           </h5>
           <div className="flex items-center justify-center gap-2 sm:gap-4">
             <button

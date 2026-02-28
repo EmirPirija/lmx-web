@@ -96,7 +96,7 @@ const DialogContent = React.forwardRef(
           </div>
 
           {/* ── Content wrapper with padding ── */}
-          <div className="px-5 pb-6 pt-3 sm:px-7 sm:pb-7 sm:pt-6">
+          <div className="px-5 pb-6 pt-3 sm:px-7 sm:pb-7 sm:pt-6 overflow-auto">
             {children}
           </div>
 
