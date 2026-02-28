@@ -599,9 +599,15 @@ export const userSignUpApi = {
 };
 
 export const authApi = {
-  resolveLoginIdentifier: ({ identifier } = {}) => {
+  resolveLoginIdentifier: ({
+    identifier,
+    identifier_type,
+    country_code,
+  } = {}) => {
     const formData = new FormData();
     if (identifier) formData.append("identifier", identifier);
+    if (identifier_type) formData.append("identifier_type", identifier_type);
+    if (country_code) formData.append("country_code", country_code);
     return Api.post(RESOLVE_LOGIN_IDENTIFIER, formData, {
       headers: {
         "Content-Type": "multipart/form-data",

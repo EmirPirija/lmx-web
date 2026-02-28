@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError } from "@/utils";
-import { getOtpApi, userSignUpApi, verifyOtpApi } from "@/utils/api";
+import { authApi, getOtpApi, userSignUpApi, verifyOtpApi } from "@/utils/api";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
 import { useSelector } from "react-redux";
 import {
@@ -20,6 +20,7 @@ import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
+import { isPhoneNotRegisteredError } from "./authPhoneErrors";
 
 const isGatewayOrTimeoutError = (error) => {
   const status = Number(error?.response?.status || 0);
@@ -99,7 +100,11 @@ const OtpScreen = ({
           OnHide();
         }
       } else {
-        toast.error(response?.data?.message);
+        if (isPhoneNotRegisteredError(response?.data)) {
+          toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+        } else {
+          toast.error(response?.data?.message);
+        }
       }
     } catch (error) {
       console.log(error);
@@ -125,7 +130,14 @@ const OtpScreen = ({
       });
       const data = response.data;
       if (data?.error === true) {
-        toast.error(data?.message || "Prijava/registracija nije uspjela.");
+        if (isPhoneNotRegisteredError(data)) {
+          toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+        } else {
+          toast.error(data?.message || "Prijava/registracija nije uspjela.");
+        }
+        try {
+          await firebaseSignOut(auth);
+        } catch (_) {}
         return;
       }
       loadUpdateData(data);
@@ -171,6 +183,36 @@ const OtpScreen = ({
       await verifyOTPWithTwillio();
     } else {
       await verifyOTPWithFirebase();
+    }
+  };
+
+  const ensurePhoneCanLogin = async (phoneE164) => {
+    try {
+      const response = await authApi.resolveLoginIdentifier({
+        identifier: phoneE164,
+        identifier_type: "phone",
+        country_code: countryCode.replace(/\D/g, ""),
+      });
+      if (response?.data?.error === true) {
+        const apiError = new Error(
+          response?.data?.message || "Invalid Login Credentials",
+        );
+        apiError.apiCode = response?.data?.code;
+        apiError.apiReason = response?.data?.data?.reason;
+        throw apiError;
+      }
+      return true;
+    } catch (error) {
+      if (isPhoneNotRegisteredError(error)) {
+        toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+      } else {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Provjera broja nije uspjela.",
+        );
+      }
+      return false;
     }
   };
 
@@ -249,6 +291,13 @@ const OtpScreen = ({
     e.preventDefault();
     setResendOtpLoader(true);
     const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
+    if (authIntent === "login") {
+      const canLogin = await ensurePhoneCanLogin(phoneE164);
+      if (!canLogin) {
+        setResendOtpLoader(false);
+        return;
+      }
+    }
     if (otp_service_provider === "twilio") {
       await resendOtpWithTwillio(phoneE164);
     } else {

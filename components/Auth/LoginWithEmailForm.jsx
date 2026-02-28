@@ -25,6 +25,7 @@ import { Fcmtoken } from "@/redux/reducer/settingSlice";
 import { loadUpdateData } from "@/redux/reducer/authSlice";
 import { Loader2 } from "@/components/Common/UnifiedIconPack";
 import { useEffect, useRef, useState } from "react";
+import { isPhoneNotRegisteredError } from "./authPhoneErrors";
 
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
 const RETRYABLE_GATEWAY_STATUSES = new Set([502, 503]);
@@ -107,6 +108,10 @@ const LoginWithEmailForm = ({
     } catch (error) {
       if (error?.response?.status === 429) {
         toast.error("Previše pokušaja. Pokušaj ponovo za minutu.");
+        return null;
+      }
+      if (isPhoneNotRegisteredError(error)) {
+        toast.error("Broj nije registrovan. Prvo kreirajte račun.");
         return null;
       }
       console.error("Greška pri provjeri korisničkog imena:", error);

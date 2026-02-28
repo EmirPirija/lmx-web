@@ -51,15 +51,15 @@ export const getProfileNavigationSections = ({
           label: "Osnovni profil",
           description: "Lični podaci, kontakt i postavke računa",
         },
-        !isVerified
-          ? {
-              href: "/user-verification",
-              icon: ShieldCheck,
-              label: "Verifikacija računa",
-              description: "Potvrdi identitet i povećaj povjerenje",
-              isNew: true,
-            }
-          : null,
+        {
+          href: "/user-verification",
+          icon: ShieldCheck,
+          label: "Sigurnost i verifikacija",
+          description: isVerified
+            ? "Pregled statusa verifikacije i sigurnosnih opcija"
+            : "Potvrdi identitet i povećaj povjerenje",
+          isNew: !isVerified,
+        },
         {
           href: "/profile/sessions",
           icon: Smartphone,

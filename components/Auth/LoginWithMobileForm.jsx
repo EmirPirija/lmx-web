@@ -14,7 +14,7 @@ import {
   setPersistence,
   signInWithPhoneNumber,
 } from "firebase/auth";
-import { getOtpApi } from "@/utils/api";
+import { authApi, getOtpApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { getOtpServiceProvider } from "@/redux/reducer/settingSlice";
 import {
@@ -26,6 +26,7 @@ import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
 import {
   isRecaptchaRecoverableError,
 } from "./recaptchaManager";
+import { isPhoneNotRegisteredError } from "./authPhoneErrors";
 
 const LoginWithMobileForm = ({
   generateRecaptcha,
@@ -167,10 +168,50 @@ const LoginWithMobileForm = ({
     }
   };
 
+  const ensurePhoneCanLogin = async (phoneE164) => {
+    try {
+      const response = await authApi.resolveLoginIdentifier({
+        identifier: phoneE164,
+        identifier_type: "phone",
+        country_code: countryCode.replace(/\D/g, ""),
+      });
+      if (response?.data?.error === true) {
+        const apiError = new Error(
+          response?.data?.message || "Invalid Login Credentials",
+        );
+        apiError.apiCode = response?.data?.code;
+        apiError.apiReason = response?.data?.data?.reason;
+        throw apiError;
+      }
+      return true;
+    } catch (error) {
+      const rawMessage =
+        error?.response?.data?.message || error?.message || "";
+      if (isPhoneNotRegisteredError(error)) {
+        toast.error("Broj nije registrovan. Prvo kreirajte račun.");
+      } else {
+        toast.error(rawMessage || "Provjera broja nije uspjela.");
+      }
+      return false;
+    }
+  };
+
   const handleMobileSubmit = async (e) => {
     e.preventDefault();
     const phoneE164 = buildPhoneE164(countryCode, formattedNumber);
     if (isValidPhoneNumber(phoneE164)) {
+      setLoginStates((prev) => ({
+        ...prev,
+        showLoader: true,
+      }));
+      const canLogin = await ensurePhoneCanLogin(phoneE164);
+      if (!canLogin) {
+        setLoginStates((prev) => ({
+          ...prev,
+          showLoader: false,
+        }));
+        return;
+      }
       await sendOTP(phoneE164);
     } else {
       toast.error("Neispravan broj telefona");
