@@ -4,11 +4,18 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { AlertCircle, Package, ShoppingBag, Star } from "@/components/Common/UnifiedIconPack";
+import {
+  AlertCircle,
+  Package,
+  ShoppingBag,
+  Star,
+  X,
+} from "@/components/Common/UnifiedIconPack";
 
 import Layout from "@/components/Layout/Layout";
 import BreadCrumb from "@/components/BreadCrumb/BreadCrumb";
 import OpenInAppDrawer from "@/components/Common/OpenInAppDrawer";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 import SellerLsitings from "./SellerLsitings";
 import SellerDetailCard from "./SellerDetailCard";
@@ -26,7 +33,9 @@ import { cn } from "@/lib/utils";
 const getMembershipFlags = (data) => resolveMembership(data, data?.membership);
 
 const normalizeRatingsPagination = (ratings) => {
-  const current = Number(ratings?.current_page || ratings?.meta?.current_page || 1);
+  const current = Number(
+    ratings?.current_page || ratings?.meta?.current_page || 1,
+  );
   const last = Number(ratings?.last_page || ratings?.meta?.last_page || 1);
   return { currentPage: current, hasMore: current < last };
 };
@@ -41,18 +50,38 @@ const TabButton = ({ active, icon: Icon, label, count, onClick }) => (
     whileTap={{ scale: 0.99 }}
     onClick={onClick}
     className={cn(
-      "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all",
+      "group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200 sm:w-auto sm:flex-1",
       active
-        ? "bg-primary/10 border-primary/20 text-primary shadow-sm"
-        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/60"
+        ? "bg-primary/[0.08] text-primary"
+        : "bg-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/70",
     )}
   >
-    <Icon className={cn("w-4 h-4", active ? "text-primary" : "text-slate-400")} />
-    <span className="hidden sm:inline whitespace-nowrap">{label}</span>
     <span
       className={cn(
-        "ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold",
-        active ? "bg-primary/15 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all",
+        active
+          ? "bg-primary/10 text-primary"
+          : "bg-slate-100 text-slate-500 group-hover:text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span
+        className={cn(
+          "block truncate text-sm font-semibold",
+          active ? "text-primary" : "text-slate-800 dark:text-slate-100",
+        )}
+      >
+        {label}
+      </span>
+    </span>
+    <span
+      className={cn(
+        "ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[11px] font-bold",
+        active
+          ? "bg-primary/15 text-primary"
+          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
       )}
     >
       {count}
@@ -83,11 +112,13 @@ const Seller = ({ id, searchParams }) => {
   const [isShop, setIsShop] = useState(false);
 
   const [isOpenInApp, setIsOpenInApp] = useState(false);
+  const [isMobileTabMenuOpen, setIsMobileTabMenuOpen] = useState(false);
   const isShare = searchParams?.share === "true";
 
   // Open app drawer on mobile when accessed through share link.
   useEffect(() => {
-    if (typeof window !== "undefined" && window.innerWidth <= 768 && isShare) setIsOpenInApp(true);
+    if (typeof window !== "undefined" && window.innerWidth <= 768 && isShare)
+      setIsOpenInApp(true);
   }, [isShare]);
 
   const fetchSellerBadges = useCallback(async (userId) => {
@@ -132,7 +163,8 @@ const Seller = ({ id, searchParams }) => {
         setSeller(sellerData || null);
 
         // Settings can come either nested under seller or on the root of the response.
-        const settings = payload?.data?.seller_settings || sellerData?.seller_settings || null;
+        const settings =
+          payload?.data?.seller_settings || sellerData?.seller_settings || null;
         setSellerSettings(settings);
 
         // Membership flags
@@ -147,7 +179,8 @@ const Seller = ({ id, searchParams }) => {
         setIsShop(flags.isShop);
 
         // Pagination
-        const { currentPage, hasMore } = normalizeRatingsPagination(ratingsData);
+        const { currentPage, hasMore } =
+          normalizeRatingsPagination(ratingsData);
         setReviewCurrentPage(currentPage);
         setReviewHasMore(hasMore);
 
@@ -160,7 +193,7 @@ const Seller = ({ id, searchParams }) => {
         setIsLoadMoreReview(false);
       }
     },
-    [id, fetchSellerBadges]
+    [id, fetchSellerBadges],
   );
 
   // Reload seller data when language or seller id changes.
@@ -180,11 +213,21 @@ const Seller = ({ id, searchParams }) => {
   }, [ratings]);
 
   const liveCount = useMemo(() => {
-    return seller?.live_ads_count ?? seller?.live_count ?? seller?.active_ads_count ?? 0;
+    return (
+      seller?.live_ads_count ??
+      seller?.live_count ??
+      seller?.active_ads_count ??
+      0
+    );
   }, [seller]);
 
   const soldCount = useMemo(() => {
-    return seller?.sold_ads_count ?? seller?.sold_count ?? seller?.completed_ads_count ?? 0;
+    return (
+      seller?.sold_ads_count ??
+      seller?.sold_count ??
+      seller?.completed_ads_count ??
+      0
+    );
   }, [seller]);
 
   const tabs = useMemo(
@@ -193,20 +236,41 @@ const Seller = ({ id, searchParams }) => {
       { key: "sold", label: "Prodano", icon: ShoppingBag, count: soldCount },
       { key: "reviews", label: "Recenzije", icon: Star, count: reviewCount },
     ],
-    [liveCount, soldCount, reviewCount]
+    [liveCount, soldCount, reviewCount],
   );
+
+  const activeTabMeta = useMemo(
+    () => tabs.find((tab) => tab.key === activeTab) || tabs[0],
+    [tabs, activeTab],
+  );
+
+  const preventSheetAutoFocusScroll = useCallback((event) => {
+    event.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    setIsMobileTabMenuOpen(false);
+  }, [activeTab]);
 
   if (isNoUserFound) {
     return (
       <Layout>
         <div className="min-h-[60vh] flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-md w-full px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-md w-full px-4"
+          >
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center shadow-sm">
               <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-red-500/10 flex items-center justify-center">
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Prodavač nije pronađen</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ovaj korisnik ne postoji ili je obrisan.</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Prodavač nije pronađen
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Ovaj korisnik ne postoji ili je obrisan.
+              </p>
             </div>
           </motion.div>
         </div>
@@ -223,15 +287,15 @@ const Seller = ({ id, searchParams }) => {
           <BreadCrumb title2={seller?.name} />
 
           <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-            <div className="container mx-auto px-4 py-8 space-y-6">
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <div className="mx-auto w-full max-w-[1680px] space-y-6 px-3 py-5 sm:px-4 sm:py-7">
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
                 {/* LEFT: Seller card */}
                 <motion.div
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="col-span-12 lg:col-span-4 lg:sticky lg:top-6 h-fit"
+                  className="col-span-12 h-fit xl:col-span-3 xl:sticky xl:top-6"
                 >
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-slate-900">
                     <SellerDetailCard
                       seller={seller}
                       ratings={ratings}
@@ -247,24 +311,85 @@ const Seller = ({ id, searchParams }) => {
                 <motion.div
                   initial={{ opacity: 0, x: 12 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="col-span-12 lg:col-span-8 space-y-4"
+                  className="col-span-12 space-y-4 xl:col-span-9"
                 >
                   {/* Tabs */}
-                  <div className="flex flex-wrap gap-2">
-                    {tabs.map((t) => (
-                      <TabButton
-                        key={t.key}
-                        active={activeTab === t.key}
-                        icon={t.icon}
-                        label={t.label}
-                        count={t.count}
-                        onClick={() => setActiveTab(t.key)}
-                      />
-                    ))}
+                  <div className="rounded-2xl bg-white p-2 shadow-sm dark:bg-slate-900">
+                    <div className="sm:hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileTabMenuOpen((prev) => !prev)}
+                        className="flex h-11 w-full items-center justify-between rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                      >
+                        <span>{activeTabMeta?.label}</span>
+                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[11px] font-bold text-primary">
+                          {activeTabMeta?.count ?? 0}
+                        </span>
+                      </button>
+                    </div>
+
+                    <div className="hidden gap-2 sm:flex">
+                      {tabs.map((t) => (
+                        <TabButton
+                          key={t.key}
+                          active={activeTab === t.key}
+                          icon={t.icon}
+                          label={t.label}
+                          count={t.count}
+                          onClick={() => setActiveTab(t.key)}
+                        />
+                      ))}
+                    </div>
                   </div>
 
+                  <Sheet
+                    open={isMobileTabMenuOpen}
+                    onOpenChange={setIsMobileTabMenuOpen}
+                  >
+                    <SheetContent
+                      side="bottom"
+                      onOpenAutoFocus={preventSheetAutoFocusScroll}
+                      onCloseAutoFocus={preventSheetAutoFocusScroll}
+                      overlayClassName="bg-transparent backdrop-blur-none"
+                      className="max-h-[78vh] overflow-hidden rounded-t-2xl border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900 [&>button]:hidden"
+                    >
+                      <div className="flex flex-col bg-white dark:bg-slate-900">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            Sekcije
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setIsMobileTabMenuOpen(false)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                            aria-label="Zatvori sekcije"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto px-3 py-3">
+                          <div className="flex flex-col gap-1">
+                            {tabs.map((t) => (
+                              <TabButton
+                                key={t.key}
+                                active={activeTab === t.key}
+                                icon={t.icon}
+                                label={t.label}
+                                count={t.count}
+                                onClick={() => {
+                                  setActiveTab(t.key);
+                                  setIsMobileTabMenuOpen(false);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+
                   {/* Content Card */}
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-slate-900">
                     <div className="p-4 sm:p-6">
                       <AnimatePresence mode="wait" initial={false}>
                         {activeTab === "live" && (
@@ -333,7 +458,10 @@ const Seller = ({ id, searchParams }) => {
         </>
       )}
 
-      <OpenInAppDrawer isOpenInApp={isOpenInApp} setIsOpenInApp={setIsOpenInApp} />
+      <OpenInAppDrawer
+        isOpenInApp={isOpenInApp}
+        setIsOpenInApp={setIsOpenInApp}
+      />
     </Layout>
   );
 };

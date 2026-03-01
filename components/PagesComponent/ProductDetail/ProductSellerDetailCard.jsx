@@ -923,8 +923,8 @@ const ProductSellerDetailCard = ({
                       className={cn(
                         "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
                         showStoryRing
-                          ? "border border-white/70 dark:border-slate-700/80"
-                          : "border border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors"
+                          ? "border-white/70 dark:border-slate-700/80"
+                          : "border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors"
                       )}
                     >
                       <UserAvatarMedia

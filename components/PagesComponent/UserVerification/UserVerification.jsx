@@ -1030,7 +1030,7 @@ const UserVerification = () => {
                     </div>
                     <span
                       className={cn(
-                        "rounded-full px-3 py-1 text-xs font-semibold",
+                        "rounded-full px-3 py-1 text-xs font-semibold text-center",
                         isPhoneVerified
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
                           : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
@@ -1200,7 +1200,7 @@ const UserVerification = () => {
                     </div>
                     <span
                       className={cn(
-                        "rounded-full px-3 py-1 text-xs font-semibold",
+                        "rounded-full px-3 py-1 text-xs font-semibold text-center",
                         isEmailVerified
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
                           : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
@@ -1266,7 +1266,7 @@ const UserVerification = () => {
               <div id={USER_VERIFICATION_RECAPTCHA_CONTAINER_ID} className="hidden" />
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/80 sm:p-6">
+            <div className="hidden rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/80 sm:p-6">
               <div className="flex items-center gap-3 justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">

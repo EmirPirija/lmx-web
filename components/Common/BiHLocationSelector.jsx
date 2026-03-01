@@ -321,7 +321,7 @@ const BiHLocationSelector = ({
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-border/70 bg-background/80 p-3 sm:p-4">
+      <div className="bg-background/80">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Država</Label>

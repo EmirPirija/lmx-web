@@ -274,23 +274,29 @@ export default function Profile() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [verificationRes, userRes, sellerRes] = await Promise.all([
+        const [verificationRes, userRes, sellerRes] = await Promise.allSettled([
           getVerificationStatusApi.getVerificationStatus(),
           getUserInfoApi.getUserInfo(),
           sellerSettingsApi.getSettings(),
         ]);
 
-        // Verification
-        if (verificationRes?.data?.error === true) {
-          setVerificationStatus("not applied");
+        // Verification (non-blocking)
+        if (verificationRes.status === "fulfilled") {
+          if (verificationRes.value?.data?.error === true) {
+            setVerificationStatus("not applied");
+          } else {
+            setVerificationStatus(verificationRes.value?.data?.data?.status || "");
+            setRejectionReason(verificationRes.value?.data?.data?.rejection_reason || "");
+          }
         } else {
-          setVerificationStatus(verificationRes?.data?.data?.status || "");
-          setRejectionReason(verificationRes?.data?.data?.rejection_reason || "");
+          setVerificationStatus("not applied");
+          setRejectionReason("");
+          console.warn("Verification status unavailable:", verificationRes.reason);
         }
 
-        // User data
-        if (userRes?.data?.error === false) {
-          const d = userRes.data.data;
+        // User data (required)
+        if (userRes.status === "fulfilled" && userRes.value?.data?.error === false) {
+          const d = userRes.value.data.data;
           const region = (d?.region_code || "ba").toLowerCase();
           const countryCode = d?.country_code?.replace("+", "") || "387";
 
@@ -319,11 +325,17 @@ export default function Profile() {
           } else {
             loadUpdateUserData(d);
           }
+        } else {
+          throw new Error("Neuspjelo učitavanje korisničkih podataka.");
         }
 
         // Seller settings
-        if (sellerRes?.data?.error === false && sellerRes.data.data) {
-          setSellerAvatarId(sellerRes.data.data.avatar_id || "");
+        if (
+          sellerRes.status === "fulfilled" &&
+          sellerRes.value?.data?.error === false &&
+          sellerRes.value?.data?.data
+        ) {
+          setSellerAvatarId(sellerRes.value.data.data.avatar_id || "");
         }
       } catch (error) {
         console.error("Greška pri učitavanju podataka:", error);
