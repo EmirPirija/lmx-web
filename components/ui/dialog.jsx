@@ -19,11 +19,11 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[120] bg-black/40 backdrop-blur-[6px]",
+      "fixed inset-0 z-[127] bg-black/35 backdrop-blur-0",
       "data-[state=open]:animate-in data-[state=open]:fade-in-0",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
       "duration-300 ease-out",
-      className
+      className,
     )}
     {...props}
   />
@@ -37,8 +37,10 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
  *  teal akcenti, čist bijeli background.
  */
 const DialogContent = React.forwardRef(
-  ({ className, children, showCloseButton = true, size = "default", ...props }, ref) => {
-
+  (
+    { className, children, showCloseButton = true, size = "default", ...props },
+    ref,
+  ) => {
     const sizeClasses = {
       sm: "sm:max-w-[440px]",
       default: "sm:max-w-[580px]",
@@ -54,7 +56,7 @@ const DialogContent = React.forwardRef(
           ref={ref}
           className={cn(
             /* ── Base ── */
-            "fixed z-[121] grid w-full bg-white outline-none",
+            "fixed z-[128] grid w-full bg-white outline-none",
 
             /* ── Mobile: bottom-sheet ── */
             "inset-x-0 bottom-0 top-auto",
@@ -86,7 +88,7 @@ const DialogContent = React.forwardRef(
             "sm:data-[state=open]:slide-in-from-bottom-[2%] sm:data-[state=closed]:slide-out-to-bottom-[2%]",
             "sm:data-[state=open]:zoom-in-[0.97] sm:data-[state=closed]:zoom-out-[0.97]",
 
-            className
+            className,
           )}
           {...props}
         >
@@ -111,7 +113,7 @@ const DialogContent = React.forwardRef(
                 "hover:bg-gray-200/90 hover:text-gray-700",
                 "active:scale-95",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00A19B]/40 focus-visible:ring-offset-2",
-                "rtl:right-auto rtl:left-3 sm:rtl:left-4"
+                "rtl:right-auto rtl:left-3 sm:rtl:left-4",
               )}
             >
               <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
@@ -121,7 +123,7 @@ const DialogContent = React.forwardRef(
         </DialogPrimitive.Content>
       </DialogPortal>
     );
-  }
+  },
 );
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
@@ -131,7 +133,7 @@ const DialogHeader = ({ className, ...props }) => (
     className={cn(
       "flex flex-col gap-1.5",
       "pr-10 rtl:pr-0 rtl:pl-10",
-      className
+      className,
     )}
     {...props}
   />
@@ -147,7 +149,7 @@ const DialogFooter = ({ className, ...props }) => (
     className={cn(
       "mt-6 flex flex-col-reverse gap-2.5",
       "sm:mt-7 sm:flex-row sm:justify-end sm:gap-3",
-      className
+      className,
     )}
     {...props}
   />
@@ -161,7 +163,7 @@ const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
     className={cn(
       "text-[1.125rem] font-semibold leading-snug tracking-[-0.01em] text-gray-900",
       "sm:text-xl",
-      className
+      className,
     )}
     {...props}
   />
@@ -175,7 +177,7 @@ const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
     className={cn(
       "text-[0.8125rem] leading-relaxed text-gray-500",
       "sm:text-sm",
-      className
+      className,
     )}
     {...props}
   />
@@ -188,7 +190,7 @@ const DialogSeparator = ({ className }) => (
     className={cn(
       "my-4 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent",
       "sm:my-5",
-      className
+      className,
     )}
     aria-hidden
   />

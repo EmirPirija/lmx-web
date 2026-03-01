@@ -26,6 +26,11 @@ import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
 import { isSellerVerified } from "@/lib/seller-verification";
+import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
+import {
+  normalizeSellerCardPreferences,
+  resolveSellerContactEngine,
+} from "@/lib/seller-settings-engine";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
@@ -33,25 +38,90 @@ import CustomImage from "@/components/Common/CustomImage";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CustomLink from "@/components/Common/CustomLink";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
 import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
 import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
 import { Skeleton } from "@/components/ui/skeleton";
+import ContactTrustBadges from "@/components/Common/ContactTrustBadges";
 
 /* =====================================================
    HELPER FUNKCIJE
 ===================================================== */
 
-const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
+const MONTHS_BS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "maj",
+  "jun",
+  "jul",
+  "avg",
+  "sep",
+  "okt",
+  "nov",
+  "dec",
+];
 
 const formatMemberSince = (dateStr) => {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "";
   return `${MONTHS_BS[d.getMonth()]} ${d.getFullYear()}`;
+};
+
+const parseLastSeenDate = (seller = {}) => {
+  const raw =
+    seller?.last_seen ||
+    seller?.lastSeen ||
+    seller?.last_activity_at ||
+    seller?.lastActiveAt ||
+    seller?.updated_at;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getBsCountForm = (value, one, few, many) => {
+  const n = Math.abs(Number(value) || 0);
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
+
+const formatSeenAgoLabel = (lastSeenDate) => {
+  if (!lastSeenDate) return "";
+  const diffSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - lastSeenDate.getTime()) / 1000),
+  );
+  if (diffSeconds < 60) return "upravo sada";
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) {
+    return `prije ${diffMinutes} ${getBsCountForm(diffMinutes, "minutu", "minute", "minuta")}`;
+  }
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `prije ${diffHours} ${getBsCountForm(diffHours, "sat", "sata", "sati")}`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30)
+    return `prije ${diffDays} ${getBsCountForm(diffDays, "dan", "dana", "dana")}`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) {
+    return `prije ${diffMonths} ${getBsCountForm(diffMonths, "mjesec", "mjeseca", "mjeseci")}`;
+  }
+  const diffYears = Math.floor(diffMonths / 12);
+  return `prije ${diffYears} ${getBsCountForm(diffYears, "godinu", "godine", "godina")}`;
 };
 
 const toBool = (v) => {
@@ -63,47 +133,7 @@ const toBool = (v) => {
   return false;
 };
 
-const normalizePrefBool = (value, fallback) => {
-  if (value == null) return fallback;
-  return toBool(value);
-};
-
-const defaultCardPreferences = {
-  show_ratings: true,
-  show_badges: true,
-  show_member_since: false,
-  show_response_time: true,
-  show_online_status: true,
-  show_reel_hint: true,
-  highlight_contact_button: false,
-  max_badges: 2,
-};
-
-const normalizeCardPreferences = (raw) => {
-  let obj = raw;
-  if (typeof raw === "string") {
-    try {
-      obj = JSON.parse(raw);
-    } catch {
-      obj = {};
-    }
-  }
-
-  const merged = { ...defaultCardPreferences, ...(obj || {}) };
-  return {
-    ...merged,
-    show_ratings: normalizePrefBool(obj?.show_ratings, defaultCardPreferences.show_ratings),
-    show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
-    show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
-    show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
-    show_online_status: normalizePrefBool(obj?.show_online_status, defaultCardPreferences.show_online_status),
-    show_reel_hint: normalizePrefBool(obj?.show_reel_hint, defaultCardPreferences.show_reel_hint),
-    highlight_contact_button: normalizePrefBool(
-      obj?.highlight_contact_button,
-      defaultCardPreferences.highlight_contact_button
-    ),
-  };
-};
+const normalizeCardPreferences = (raw) => normalizeSellerCardPreferences(raw);
 
 const responseTimeLabels = {
   instant: "par minuta",
@@ -113,7 +143,8 @@ const responseTimeLabels = {
 };
 
 const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
-  const direct = settings?.response_time_label || settings?.response_time_text || null;
+  const direct =
+    settings?.response_time_label || settings?.response_time_text || null;
   if (direct) return direct;
   if (!responseTime) return null;
   if (responseTime === "auto") return formatResponseTimeBs(responseTimeAvg);
@@ -152,14 +183,24 @@ const SharePopover = ({ url, title }) => {
         <div className="space-y-0.5">
           <button
             type="button"
-            onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank")}
+            onClick={() =>
+              window.open(
+                `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+                "_blank",
+              )
+            }
             className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md hover:bg-slate-50 text-slate-600"
           >
             Facebook
           </button>
           <button
             type="button"
-            onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(title + " " + url)}`, "_blank")}
+            onClick={() =>
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(title + " " + url)}`,
+                "_blank",
+              )
+            }
             className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md hover:bg-slate-50 text-slate-600"
           >
             WhatsApp
@@ -169,7 +210,11 @@ const SharePopover = ({ url, title }) => {
             onClick={copyLink}
             className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md hover:bg-slate-50 text-slate-600"
           >
-            {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+            {copied ? (
+              <Check className="w-3 h-3 text-green-500" />
+            ) : (
+              <Copy className="w-3 h-3" />
+            )}
             {copied ? "Kopirano!" : "Kopiraj link"}
           </button>
         </div>
@@ -182,7 +227,14 @@ const SharePopover = ({ url, title }) => {
    CONTACT MODAL (kompaktniji)
 ===================================================== */
 
-const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) => {
+const ContactModal = ({
+  open,
+  onOpenChange,
+  seller,
+  settings,
+  isLoggedIn,
+  onMessageClick,
+}) => {
   const [copiedKey, setCopiedKey] = useState("");
 
   const copy = async (key, value) => {
@@ -196,19 +248,28 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
     }
   };
 
-  const showPhone = Boolean(settings?.show_phone && seller?.mobile);
-  const showWhatsapp = Boolean(settings?.show_whatsapp && (settings?.whatsapp_number || seller?.mobile));
-  const showViber = Boolean(settings?.show_viber && (settings?.viber_number || seller?.mobile));
-  const showEmail = Boolean(settings?.show_email && seller?.email);
+  const contactEngine = resolveSellerContactEngine({
+    seller,
+    settings,
+    isLoggedIn,
+  });
+  const { contactPolicy, phoneContact, channels } = contactEngine;
+  const showPhone = channels.call;
+  const showWhatsapp = channels.whatsapp;
+  const showViber = channels.viber;
+  const showEmail = channels.email;
 
-  const phone = seller?.mobile;
+  const phone = phoneContact.phone;
   const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
   const viberNumber = settings?.viber_number || seller?.mobile;
   const email = seller?.email;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl"
+      >
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-900">Kontakt</h3>
           <button
@@ -248,8 +309,42 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
                 onClick={() => copy("phone", phone)}
                 className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50"
               >
-                {copiedKey === "phone" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                {copiedKey === "phone" ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4 text-slate-400" />
+                )}
               </button>
+            </div>
+          )}
+
+          {phoneContact.state !== PHONE_CONTACT_STATES.AVAILABLE &&
+            phoneContact.statusMessage && (
+              <div
+                className={cn(
+                  "rounded-lg border px-2.5 py-2 text-xs",
+                  phoneContact.state === PHONE_CONTACT_STATES.UNVERIFIED
+                    ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300"
+                    : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                )}
+              >
+                {phoneContact.statusMessage}
+              </div>
+            )}
+          {contactPolicy.quietHoursEnabled && (
+            <div
+              className={cn(
+                "rounded-lg border px-2.5 py-2 text-xs",
+                contactPolicy.quietHoursActive
+                  ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300"
+                  : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+              )}
+            >
+              Quiet hours: {contactPolicy.quietHoursStart} -{" "}
+              {contactPolicy.quietHoursEnd}
+              {contactPolicy.quietHoursMessage
+                ? ` · ${contactPolicy.quietHoursMessage}`
+                : ""}
             </div>
           )}
 
@@ -292,7 +387,11 @@ const ContactModal = ({ open, onOpenChange, seller, settings, onMessageClick }) 
                 onClick={() => copy("email", email)}
                 className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50"
               >
-                {copiedKey === "email" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                {copiedKey === "email" ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4 text-slate-400" />
+                )}
               </button>
             </div>
           )}
@@ -352,24 +451,39 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
     try {
       let conversationId = null;
 
-      const extractId = (data) => data?.conversation_id || data?.item_offer_id || data?.id || null;
+      const extractId = (data) =>
+        data?.conversation_id || data?.item_offer_id || data?.id || null;
 
       if (itemId) {
-        const checkRes = await itemConversationApi.checkConversation({ item_id: itemId });
-        if (checkRes?.data?.error === false && extractId(checkRes?.data?.data)) {
+        const checkRes = await itemConversationApi.checkConversation({
+          item_id: itemId,
+        });
+        if (
+          checkRes?.data?.error === false &&
+          extractId(checkRes?.data?.data)
+        ) {
           conversationId = extractId(checkRes.data.data);
         } else {
-          const startRes = await itemConversationApi.startItemConversation({ item_id: itemId });
+          const startRes = await itemConversationApi.startItemConversation({
+            item_id: itemId,
+          });
           if (startRes?.data?.error === false) {
             conversationId = extractId(startRes.data.data);
           }
         }
       } else {
-        const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
-        if (checkRes?.data?.error === false && extractId(checkRes?.data?.data)) {
+        const checkRes = await itemConversationApi.checkDirectConversation({
+          user_id: sellerUserId,
+        });
+        if (
+          checkRes?.data?.error === false &&
+          extractId(checkRes?.data?.data)
+        ) {
           conversationId = extractId(checkRes.data.data);
         } else {
-          const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+          const startRes = await itemConversationApi.startDirectConversation({
+            user_id: sellerUserId,
+          });
           if (startRes?.data?.error === false) {
             conversationId = extractId(startRes.data.data);
           }
@@ -391,7 +505,8 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
         throw new Error(sendRes?.data?.message || "Greška pri slanju.");
       }
     } catch (err) {
-      const errorMessage = err?.response?.data?.message || err?.message || "Greška.";
+      const errorMessage =
+        err?.response?.data?.message || err?.message || "Greška.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -401,19 +516,28 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl"
+      >
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100">
               <UserAvatarMedia
-                sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
+                sources={[
+                  seller?.profile,
+                  seller?.profile_image,
+                  seller?.avatar,
+                ]}
                 alt={seller?.name || "Prodavač"}
                 className="w-8 h-8 rounded-lg"
                 roundedClassName="rounded-lg"
                 imageClassName="w-full h-full object-cover"
               />
             </div>
-            <span className="text-sm font-semibold text-slate-900">{seller?.name}</span>
+            <span className="text-sm font-semibold text-slate-900">
+              {seller?.name}
+            </span>
           </div>
           <button
             type="button"
@@ -437,7 +561,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
               "w-full rounded-xl border bg-slate-50 px-3 py-2.5 text-sm resize-none",
               "placeholder:text-slate-400",
               "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-              error ? "border-red-300" : "border-slate-200"
+              error ? "border-red-300" : "border-slate-200",
             )}
           />
 
@@ -509,7 +633,10 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
     setError("");
 
     try {
-      const res = await itemOfferApi.offer({ item_id: itemId, amount: numAmount });
+      const res = await itemOfferApi.offer({
+        item_id: itemId,
+        amount: numAmount,
+      });
 
       if (res?.data?.error === false) {
         toast.success("Ponuda poslana!");
@@ -519,7 +646,8 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
         throw new Error(res?.data?.message || "Greška.");
       }
     } catch (err) {
-      const errorMessage = err?.response?.data?.message || err?.message || "Greška.";
+      const errorMessage =
+        err?.response?.data?.message || err?.message || "Greška.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -529,9 +657,14 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl"
+      >
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">Pošalji ponudu</h3>
+          <h3 className="text-sm font-semibold text-slate-900">
+            Pošalji ponudu
+          </h3>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
@@ -546,7 +679,9 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500">Cijena</span>
               <span className="font-semibold text-slate-900">
-                {typeof itemPrice === 'number' ? `${itemPrice.toFixed(2)} KM` : itemPrice}
+                {typeof itemPrice === "number"
+                  ? `${itemPrice.toFixed(2)} KM`
+                  : itemPrice}
               </span>
             </div>
           )}
@@ -566,10 +701,12 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
                 "w-full rounded-xl border bg-slate-50 px-3 py-2.5 pr-12 text-lg font-semibold",
                 "placeholder:text-slate-400",
                 "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
-                error ? "border-red-300" : "border-slate-200"
+                error ? "border-red-300" : "border-slate-200",
               )}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">KM</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+              KM
+            </span>
           </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}
@@ -633,32 +770,38 @@ export const MinimalSellerCard = ({
 }) => {
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const settings = sellerSettings || {};
   const resolvedMembership = resolveMembership(
     { is_pro: isPro, is_shop: isShop },
     seller,
-    settings?.membership
+    settings?.membership,
   );
 
   const isVerified = useMemo(
-    () => isSellerVerified(seller, settings, seller?.user, seller?.seller, seller?.account),
-    [seller, settings]
+    () =>
+      isSellerVerified(
+        seller,
+        settings,
+        seller?.user,
+        seller?.seller,
+        seller?.account,
+      ),
+    [seller, settings],
   );
   const hasReel = useMemo(
     () =>
       Boolean(
         hasSellerActiveReel(seller) ||
-          hasSellerActiveReel(settings) ||
-          hasItemVideo(seller) ||
-          hasItemVideo(settings) ||
-          hasItemVideo(productDetails)
+        hasSellerActiveReel(settings) ||
+        hasItemVideo(seller) ||
+        hasItemVideo(settings) ||
+        hasItemVideo(productDetails),
       ),
-    [productDetails, seller, settings]
+    [productDetails, seller, settings],
   );
 
-  
-  
   // Card preferences from seller settings - parse if JSON string
   const cardPrefs = normalizeCardPreferences(settings?.card_preferences);
   const showRatings = cardPrefs.show_ratings;
@@ -678,9 +821,11 @@ export const MinimalSellerCard = ({
     return <MinimalSellerCardSkeleton />;
   }
 
-  const computedShareUrl = shareUrl || (seller?.id
-    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
-    : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
+  const computedShareUrl =
+    shareUrl ||
+    (seller?.id
+      ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
+      : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
   const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
 
@@ -691,24 +836,46 @@ export const MinimalSellerCard = ({
         settings,
       })
     : null;
+  const lastSeenDate = parseLastSeenDate(seller);
+  const seenAgoLabel = formatSeenAgoLabel(lastSeenDate);
+  const seenInfoLabel =
+    lastSeenDate && seenAgoLabel ? `Viđen ${seenAgoLabel}` : "";
 
-  const memberSince = showMemberSince ? formatMemberSince(seller?.created_at) : "";
+  const memberSince = showMemberSince
+    ? formatMemberSince(seller?.created_at)
+    : "";
 
   // Rating
   const ratingValue = useMemo(
-    () => (seller?.average_rating != null ? Number(seller.average_rating).toFixed(1) : null),
-    [seller?.average_rating]
+    () =>
+      seller?.average_rating != null
+        ? Number(seller.average_rating).toFixed(1)
+        : null,
+    [seller?.average_rating],
   );
-  const ratingCount = useMemo(() => ratings?.total || ratings?.count || seller?.ratings_count || 0, [ratings, seller]);
+  const ratingCount = useMemo(
+    () => ratings?.total || ratings?.count || seller?.ratings_count || 0,
+    [ratings, seller],
+  );
 
   // Badges - limit display
-  const badgeList = useMemo(() => (badges || []).slice(0, maxBadges), [badges, maxBadges]);
+  const badgeList = useMemo(
+    () => (badges || []).slice(0, maxBadges),
+    [badges, maxBadges],
+  );
 
   // Can make offer
   const canMakeOffer = acceptsOffers || settings?.accepts_offers;
 
   // Has contact options
-  const hasContactOptions = settings?.show_phone || settings?.show_whatsapp || settings?.show_viber || settings?.show_email;
+  const contactEngine = resolveSellerContactEngine({
+    seller,
+    settings,
+    isLoggedIn,
+  });
+  const { contactPolicy, phoneContact, emailVerified } = contactEngine;
+  const quietHoursActive = contactPolicy.quietHoursActive;
+  const hasContactOptions = contactEngine.hasDirectContactOptions;
 
   const handleChatClick = () => {
     if (onChatClick) {
@@ -735,6 +902,7 @@ export const MinimalSellerCard = ({
         onOpenChange={setIsContactOpen}
         seller={seller}
         settings={settings}
+        isLoggedIn={isLoggedIn}
         onMessageClick={handleChatClick}
       />
 
@@ -753,19 +921,19 @@ export const MinimalSellerCard = ({
         itemPrice={itemPrice}
       />
 
-      <div className={cn(
-        "space-y-3",
-        variant === "compact" && "space-y-2"
-      )}>
+      <div className={cn("space-y-3", variant === "compact" && "space-y-2")}>
         {/* Header: Avatar + Info */}
         <div className="flex items-start gap-3">
           {/* Avatar */}
-          <CustomLink href={`/seller/${seller?.id}`} className="relative isolate flex-shrink-0 group">
+          <CustomLink
+            href={`/seller/${seller?.id}`}
+            className="relative isolate flex-shrink-0 group"
+          >
             <div
               className={cn(
                 variant === "compact" ? "rounded-[12px]" : "rounded-[14px]",
                 "p-[2px]",
-                hasReel ? "reel-ring" : "bg-transparent"
+                hasReel ? "reel-ring" : "bg-transparent",
               )}
             >
               <div
@@ -773,14 +941,22 @@ export const MinimalSellerCard = ({
                   "overflow-hidden bg-slate-100 reel-ring-inner",
                   "border border-slate-200/60 group-hover:border-slate-300 transition-colors",
                   hasReel && "border-white/70 dark:border-slate-700/80",
-                  variant === "compact" ? "w-10 h-10 rounded-[10px]" : "w-12 h-12 rounded-xl"
+                  variant === "compact"
+                    ? "w-10 h-10 rounded-[10px]"
+                    : "w-12 h-12 rounded-xl",
                 )}
               >
                 <UserAvatarMedia
-                  sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
+                  sources={[
+                    seller?.profile,
+                    seller?.profile_image,
+                    seller?.avatar,
+                  ]}
                   alt={seller?.name || "Prodavač"}
                   className="w-full h-full"
-                  roundedClassName={variant === "compact" ? "rounded-[10px]" : "rounded-xl"}
+                  roundedClassName={
+                    variant === "compact" ? "rounded-[10px]" : "rounded-xl"
+                  }
                   imageClassName="w-full h-full object-cover"
                 />
               </div>
@@ -790,10 +966,15 @@ export const MinimalSellerCard = ({
               <div
                 className={cn(
                   "absolute -bottom-1 -right-1 z-20 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center",
-                  variant === "compact" ? "w-[18px] h-[18px]" : "w-5 h-5"
+                  variant === "compact" ? "w-[18px] h-[18px]" : "w-5 h-5",
                 )}
               >
-                <Play className={cn("text-[#1e3a8a]", variant === "compact" ? "w-2.5 h-2.5" : "w-3 h-3")} />
+                <Play
+                  className={cn(
+                    "text-[#1e3a8a]",
+                    variant === "compact" ? "w-2.5 h-2.5" : "w-3 h-3",
+                  )}
+                />
               </div>
             )}
 
@@ -809,14 +990,14 @@ export const MinimalSellerCard = ({
           <div className="flex-1 min-w-0">
             {/* Name row with share */}
             <div className="flex items-center justify-between gap-2">
-              <CustomLink 
+              <CustomLink
                 href={`/seller/${seller?.id}`}
                 className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors flex items-center gap-1.5"
               >
                 <span className="truncate">{seller?.name}</span>
                 <MembershipBadge tier={resolvedMembership.tier} size="xs" />
               </CustomLink>
-              
+
               <SharePopover url={computedShareUrl} title={title} />
             </div>
 
@@ -854,6 +1035,26 @@ export const MinimalSellerCard = ({
                 </span>
               )}
             </div>
+            <ContactTrustBadges
+              className="mt-1"
+              hasPhone={phoneContact.hasPhone}
+              phoneState={phoneContact.state}
+              phoneVerified={phoneContact.isPhoneVerified}
+              hasEmail={Boolean(seller?.email)}
+              emailVerified={emailVerified}
+              responseLabel={responseLabel || ""}
+              seenInfoLabel={seenInfoLabel}
+              phoneVisibleOnlyToLoggedIn={
+                contactPolicy.phoneVisibleOnlyToLoggedIn
+              }
+              messagesOnly={contactPolicy.messagesOnly}
+              quietHoursEnabled={contactPolicy.quietHoursEnabled}
+              quietHoursStart={contactPolicy.quietHoursStart}
+              quietHoursEnd={contactPolicy.quietHoursEnd}
+              quietHoursActive={quietHoursActive}
+              quietHoursMessage={contactPolicy.quietHoursMessage}
+              reasonCodes={contactEngine.reasonCodes}
+            />
 
             {/* Gamification badges */}
             {/* {showBadges && badgeList.length > 0 && (
@@ -888,7 +1089,7 @@ export const MinimalSellerCard = ({
               "flex-1 flex items-center justify-center gap-2",
               "bg-slate-900 hover:bg-slate-800 text-white",
               "text-sm font-medium rounded-xl transition-colors",
-              variant === "compact" ? "px-3 py-2" : "px-4 py-2.5"
+              variant === "compact" ? "px-3 py-2" : "px-4 py-2.5",
             )}
           >
             <MessageCircle className="w-4 h-4" />
@@ -904,7 +1105,7 @@ export const MinimalSellerCard = ({
                 "flex items-center justify-center gap-1.5",
                 "bg-emerald-600 hover:bg-emerald-700 text-white",
                 "text-sm font-medium rounded-xl transition-colors",
-                variant === "compact" ? "px-3 py-2" : "px-4 py-2.5"
+                variant === "compact" ? "px-3 py-2" : "px-4 py-2.5",
               )}
             >
               Ponuda
@@ -922,7 +1123,7 @@ export const MinimalSellerCard = ({
                   ? "bg-primary/10 border-primary/30 text-primary hover:bg-primary/15"
                   : "hover:bg-slate-50 text-slate-600",
                 "transition-colors",
-                variant === "compact" ? "w-9 h-9" : "w-10 h-10"
+                variant === "compact" ? "w-9 h-9" : "w-10 h-10",
               )}
             >
               <Phone className="w-4 h-4" />

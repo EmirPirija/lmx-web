@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
+import { normalizeSellerCardPreferences } from "@/lib/seller-settings-engine";
 import { isSellerVerified } from "@/lib/seller-verification";
 import { resolveAvatarUrl } from "@/utils/avatar";
 import { usersApi, getSellerApi } from "@/utils/api";
@@ -111,20 +112,9 @@ const UserCard = ({ user, view }) => {
     isTruthyFlagValue(user?.verified);
   const baseSellerSettings =
     user?.seller_settings || user?.sellerSettings || {};
-  const rawCardPreferences = baseSellerSettings?.card_preferences;
-  let parsedCardPreferences = rawCardPreferences;
-
-  if (typeof rawCardPreferences === "string") {
-    try {
-      parsedCardPreferences = JSON.parse(rawCardPreferences);
-    } catch {
-      parsedCardPreferences = {};
-    }
-  }
-
-  if (!parsedCardPreferences || typeof parsedCardPreferences !== "object") {
-    parsedCardPreferences = {};
-  }
+  const parsedCardPreferences = normalizeSellerCardPreferences(
+    baseSellerSettings?.card_preferences,
+  );
 
   const sellerSettings = {
     ...baseSellerSettings,

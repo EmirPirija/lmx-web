@@ -568,7 +568,7 @@ const ProductGallery = ({
         </div>
 
         {totalItems > 1 && (
-          <div className="mt-2 rounded-none border-y border-slate-200/80 bg-white/80 p-2 dark:border-slate-700/80 dark:bg-slate-900/65 sm:mt-3 sm:rounded-2xl sm:border">
+          <div className="hidden mt-2 rounded-none border-y border-slate-200/80 bg-white/80 p-2 dark:border-slate-700/80 dark:bg-slate-900/65 sm:mt-3 sm:rounded-2xl sm:border">
             <div className="no-scrollbar flex snap-x snap-mandatory items-center gap-2 overflow-x-auto pb-1">
               {safeGalleryImages.map((imageUrl, index) => (
                 <button

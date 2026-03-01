@@ -8,6 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import SavedSellerRow from "@/components/Profile/SavedSellerRow";
 import { savedCollectionsApi } from "@/utils/api";
+import {
+  getSavedCollectionDisplayName,
+  sanitizeSavedCollections,
+} from "@/lib/savedCollections";
 
 /**
  * NOTE (anti-hydration):
@@ -42,13 +46,6 @@ function Chip({ active, children, onClick }) {
   );
 }
 
-const getDisplayListName = (list) => {
-  if (!list || typeof list !== "object") return "Prodavači";
-  if (Boolean(list?.is_default)) return "Prodavači";
-  const raw = String(list?.name || "").trim();
-  return raw || "Prodavači";
-};
-
 export default function SavedPage() {
   const [lists, setLists] = useState([]);
   const [loadingLists, setLoadingLists] = useState(true);
@@ -67,11 +64,15 @@ export default function SavedPage() {
     setLoadingLists(true);
     try {
       const res = await savedCollectionsApi.lists();
-      const data = res?.data?.data || [];
+      const data = sanitizeSavedCollections(res?.data?.data || []);
       setLists(data);
-      if (!activeListId && data?.length) setActiveListId(data[0].id);
+      setActiveListId((prev) => {
+        if (prev && data.some((list) => list.id === prev)) return prev;
+        return data?.[0]?.id || null;
+      });
     } catch {
       setLists([]);
+      setActiveListId(null);
     } finally {
       setLoadingLists(false);
     }
@@ -157,7 +158,7 @@ export default function SavedPage() {
                   active={l.id === activeListId}
                   onClick={() => setActiveListId(l.id)}
                 >
-                  {getDisplayListName(l)}{" "}
+                  {l.display_name || getSavedCollectionDisplayName(l)}{" "}
                   <span className="ml-2 text-xs opacity-70">
                     ({l.items_count ?? 0})
                   </span>
@@ -193,7 +194,8 @@ export default function SavedPage() {
               <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                 Aktivna lista:{" "}
                 <span className="font-semibold text-slate-700 dark:text-slate-200">
-                  {getDisplayListName(activeList)}
+                  {activeList.display_name ||
+                    getSavedCollectionDisplayName(activeList)}
                 </span>
               </div>
             ) : null}

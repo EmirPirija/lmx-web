@@ -649,7 +649,7 @@ const ProfileDropdown = ({
   }, []);
 
   const MenuPanel = (
-    <div className="flex h-full flex-col overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
+    <div className="flex max-h-[min(82dvh,760px)] flex-col overflow-hidden rounded-t-[1.75rem] bg-white dark:bg-slate-900">
       {/* HEADER */}
       <div className="sticky top-0 z-10 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/90">
         <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
@@ -700,7 +700,7 @@ const ProfileDropdown = ({
       <div
         className={[
           "overflow-y-auto overscroll-contain scrollbar-lmx pb-[max(env(safe-area-inset-bottom),0.75rem)]",
-          isMobile ? "max-h-[calc(100dvh-92px)]" : "max-h-[min(520px,70vh)]",
+          isMobile ? "max-h-[min(66dvh,560px)]" : "max-h-[min(520px,70vh)]",
         ].join(" ")}
       >
         {/* QUICK STATS */}
@@ -977,7 +977,8 @@ const ProfileDropdown = ({
             side="bottom"
             onOpenAutoFocus={preventSheetAutoFocusScroll}
             onCloseAutoFocus={preventSheetAutoFocusScroll}
-            className="z-[96] h-[calc(100dvh-0.75rem)] max-h-[calc(100dvh-0.75rem)] p-0 overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent shadow-2xl dark:border-slate-700 [&>button]:hidden"
+            overlayClassName="z-[127] bg-transparent"
+            className="z-[128] h-auto max-h-[min(82dvh,760px)] p-0 overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent shadow-2xl dark:border-slate-700 [&>button]:hidden"
           >
             {MenuPanel}
           </SheetContent>

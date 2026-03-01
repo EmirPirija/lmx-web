@@ -46,9 +46,9 @@ const TIER_THEME = {
 };
 
 const formatMembershipDate = (dateValue) => {
-  if (!dateValue) return "Nije dostupno";
+  if (!dateValue) return "Datum nije postavljen";
   const parsedDate = new Date(dateValue);
-  if (Number.isNaN(parsedDate.getTime())) return "Nije dostupno";
+  if (Number.isNaN(parsedDate.getTime())) return "Datum nije postavljen";
   return parsedDate.toLocaleDateString("bs-BA");
 };
 

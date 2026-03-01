@@ -55,7 +55,7 @@ const ProductDescription = ({ productDetails }) => {
         >
           {parse(
             fullDescription ||
-              "<p class='italic text-slate-400 dark:text-slate-500'>Opis nije dostupan za ovaj oglas.</p>",
+              "<p class='italic text-slate-400 dark:text-slate-500'>Prodavač nije unio opis oglasa.</p>",
           )}
         </div>
 

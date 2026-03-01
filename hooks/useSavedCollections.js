@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "@/utils/toastBs";
 import { savedCollectionsApi } from "@/utils/api";
+import { sanitizeSavedCollections } from "@/lib/savedCollections";
 
 export function useSavedCollections() {
   const [lists, setLists] = useState([]);
@@ -12,7 +13,7 @@ export function useSavedCollections() {
     setLoadingLists(true);
     try {
       const res = await savedCollectionsApi.lists();
-      setLists(res?.data?.data || []);
+      setLists(sanitizeSavedCollections(res?.data?.data || []));
     } catch (e) {
       setLists([]);
     } finally {
@@ -32,8 +33,12 @@ export function useSavedCollections() {
       const created = res?.data?.data;
       toast.success("Lista je kreirana.");
       setLists((prev) => {
-        const next = [...prev, created].filter(Boolean);
-        return next.sort((a, b) => (b?.is_default ? 1 : 0) - (a?.is_default ? 1 : 0));
+        const next = sanitizeSavedCollections(
+          [...prev, created].filter(Boolean),
+        );
+        return next.sort(
+          (a, b) => (b?.is_default ? 1 : 0) - (a?.is_default ? 1 : 0),
+        );
       });
       return created;
     } catch (e) {

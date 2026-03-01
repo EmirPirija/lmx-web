@@ -153,9 +153,15 @@ const stableSerialize = (value) => {
   }
   if (typeof value === "object") {
     const entries = Object.entries(value)
-      .filter(([, entryValue]) => entryValue !== undefined && entryValue !== null && entryValue !== "")
+      .filter(
+        ([, entryValue]) =>
+          entryValue !== undefined && entryValue !== null && entryValue !== "",
+      )
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([entryKey, entryValue]) => `${entryKey}:${stableSerialize(entryValue)}`);
+      .map(
+        ([entryKey, entryValue]) =>
+          `${entryKey}:${stableSerialize(entryValue)}`,
+      );
     return `{${entries.join("|")}}`;
   }
   return String(value);
@@ -196,11 +202,22 @@ const setCachedCategoryResponse = (key, response) => {
 
 // 3. CATEGORY API
 export const categoryApi = {
-  getCategory: ({ category_id, page = 1, per_page = 50, language_id, signal } = {}) => {
+  getCategory: ({
+    category_id,
+    page = 1,
+    per_page = 50,
+    language_id,
+    signal,
+  } = {}) => {
     const params = { page, per_page };
     if (category_id) params.category_id = category_id;
     if (language_id) params.language_id = language_id;
-    const requestKey = buildCategoryRequestKey({ category_id, page, per_page, language_id });
+    const requestKey = buildCategoryRequestKey({
+      category_id,
+      page,
+      per_page,
+      language_id,
+    });
     const cachedResponse = getCachedCategoryResponse(requestKey);
 
     if (cachedResponse) {
@@ -261,8 +278,30 @@ export const usersApi = {
   },
 };
 export const getVerificationStatusApi = {
-  getVerificationStatus: () => {
-    return Api.get(GET_VERIFICATION_STATUS, {});
+  getVerificationStatus: async () => {
+    try {
+      return await Api.get(GET_VERIFICATION_STATUS, {});
+    } catch (error) {
+      const status = Number(error?.response?.status || 0);
+
+      // Fallback za nestabilan verification endpoint da ne ruši profile ekrane.
+      if (!status || status >= 500) {
+        return {
+          status: status || 500,
+          data: {
+            error: true,
+            fallback: true,
+            message: "Verification status unavailable",
+            data: {
+              status: "not applied",
+              rejection_reason: "",
+            },
+          },
+        };
+      }
+
+      throw error;
+    }
   },
 };
 export const getItemBuyerListApi = {
@@ -375,7 +414,8 @@ export const allItemApi = {
 
     if (shouldUseCache) {
       const cached = itemsResponseCache.get(requestKey);
-      const isFresh = cached && Date.now() - cached.timestamp <= ITEMS_REQUEST_TTL;
+      const isFresh =
+        cached && Date.now() - cached.timestamp <= ITEMS_REQUEST_TTL;
       if (isFresh) {
         return Promise.resolve(cached.response);
       }
@@ -601,7 +641,7 @@ export const sendVerificationReqApi = {
     if (verification_field_translations)
       formData.append(
         "verification_field_translations",
-        verification_field_translations
+        verification_field_translations,
       );
 
     verification_field_files.forEach(({ key, files }) => {
@@ -638,12 +678,13 @@ export const updateProfileApi = {
     // Append only if the value is defined
     if (name) formData.append("name", name);
     if (email) formData.append("email", email);
-    
+
     // Dodana provjera za mobile
     if (mobile) formData.append("mobile", mobile);
-    
+
     if (fcm_id) formData.append("fcm_id", fcm_id);
-    if (address !== undefined && address !== null) formData.append("address", address);
+    if (address !== undefined && address !== null)
+      formData.append("address", address);
     if (country_code) formData.append("country_code", country_code);
 
     if (profile) {
@@ -652,17 +693,17 @@ export const updateProfileApi = {
 
     // --- FIX: Provjera da li su vrijednosti definirane prije slanja ---
     // Koristimo !== undefined jer vrijednost može biti 0 (što je falsy)
-    
+
     if (notification !== undefined && notification !== null) {
-        formData.append("notification", notification);
+      formData.append("notification", notification);
     }
-    
+
     if (show_personal_details !== undefined && show_personal_details !== null) {
-        formData.append("show_personal_details", show_personal_details);
+      formData.append("show_personal_details", show_personal_details);
     }
-    
+
     if (region_code) {
-        formData.append("region_code", region_code);
+      formData.append("region_code", region_code);
     }
 
     if (mark_phone_verified !== undefined && mark_phone_verified !== null) {
@@ -715,19 +756,19 @@ export const assigFreePackageApi = {
 export const addItemReviewApi = {
   addItemReview: ({ review, ratings, item_id, images } = {}) => {
     const formData = new FormData();
- 
+
     // Append only if the value is defined and not an empty string
     if (review) formData.append("review", review);
     if (ratings) formData.append("ratings", ratings);
     if (item_id) formData.append("item_id", item_id);
-    
+
     // Dodaj slike ako postoje
     if (images && Array.isArray(images) && images.length > 0) {
       images.forEach((image, index) => {
         formData.append(`images[${index}]`, image);
       });
     }
- 
+
     return Api.post(AD_ITEM_REVIEW, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -803,7 +844,12 @@ export const chanegItemStatusApi = {
   },
 };
 export const createFeaturedItemApi = {
-  createFeaturedItem: ({ item_id, positions, placement, duration_days } = {}) => {
+  createFeaturedItem: ({
+    item_id,
+    positions,
+    placement,
+    duration_days,
+  } = {}) => {
     const formData = new FormData();
     const normalizedPlacement = placement || positions;
     const normalizedPositions = positions || placement;
@@ -811,13 +857,25 @@ export const createFeaturedItemApi = {
     if (item_id !== undefined && item_id !== null) {
       formData.append("item_id", String(item_id));
     }
-    if (normalizedPositions !== undefined && normalizedPositions !== null && normalizedPositions !== "") {
+    if (
+      normalizedPositions !== undefined &&
+      normalizedPositions !== null &&
+      normalizedPositions !== ""
+    ) {
       formData.append("positions", String(normalizedPositions));
     }
-    if (normalizedPlacement !== undefined && normalizedPlacement !== null && normalizedPlacement !== "") {
+    if (
+      normalizedPlacement !== undefined &&
+      normalizedPlacement !== null &&
+      normalizedPlacement !== ""
+    ) {
       formData.append("placement", String(normalizedPlacement));
     }
-    if (duration_days !== undefined && duration_days !== null && duration_days !== "") {
+    if (
+      duration_days !== undefined &&
+      duration_days !== null &&
+      duration_days !== ""
+    ) {
       formData.append("duration_days", String(duration_days));
     }
 
@@ -945,17 +1003,17 @@ export const chatListApi = {
       params: { type, page },
     });
   },
-  
+
   markSeen: (data) => {
-    const id = typeof data === 'object' ? data.chat_id : data;
+    const id = typeof data === "object" ? data.chat_id : data;
     return Api.post(`chat/seen/${id}`);
   },
-  
+
   sendTyping: ({ chat_id, is_typing } = {}) => {
     const formData = new FormData();
     if (chat_id) formData.append("chat_id", chat_id);
     formData.append("is_typing", is_typing ? 1 : 0);
-    
+
     return Api.post("chat/typing", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -966,7 +1024,6 @@ export const chatListApi = {
   deleteChat: (chatId) => Api.delete(`chat/${chatId}`),
   markAsUnread: (chatId) => Api.post(`chat/mark-unread/${chatId}`),
   pinChat: (chatId, pin = true) => Api.post(`chat/pin/${chatId}`, { pin }),
-  
 
   muteChat: (chatId) => Api.post(`chat/mute/${chatId}`),
   unmuteChat: (chatId) => Api.post(`chat/unmute/${chatId}`),
@@ -994,17 +1051,33 @@ const normalizeBoolean = (val) => {
     .trim();
 
   if (
-    ["true", "yes", "da", "on", "active", "aktivan", "ukljuceno", "moguce", "moguca"].includes(
-      normalized
-    )
+    [
+      "true",
+      "yes",
+      "da",
+      "on",
+      "active",
+      "aktivan",
+      "ukljuceno",
+      "moguce",
+      "moguca",
+    ].includes(normalized)
   ) {
     return 1;
   }
 
   if (
-    ["false", "no", "ne", "off", "inactive", "neaktivan", "iskljuceno", "nemoguce", "nemoguca"].includes(
-      normalized
-    )
+    [
+      "false",
+      "no",
+      "ne",
+      "off",
+      "inactive",
+      "neaktivan",
+      "iskljuceno",
+      "nemoguce",
+      "nemoguca",
+    ].includes(normalized)
   ) {
     return 0;
   }
@@ -1013,8 +1086,10 @@ const normalizeBoolean = (val) => {
 };
 
 const extractAvailableNow = (data = {}) => {
-  if (data.available_now !== undefined) return normalizeBoolean(data.available_now);
-  if (data.is_available !== undefined) return normalizeBoolean(data.is_available);
+  if (data.available_now !== undefined)
+    return normalizeBoolean(data.available_now);
+  if (data.is_available !== undefined)
+    return normalizeBoolean(data.is_available);
   if (data.is_avaible !== undefined) return normalizeBoolean(data.is_avaible);
   if (data.isAvailable !== undefined) return normalizeBoolean(data.isAvailable);
   return undefined;
@@ -1032,7 +1107,8 @@ const cleanCustomFields = (custom_fields = {}) => {
   return cleaned;
 };
 
-const to01 = (v) => (v === true || v === 1 || v === "1" || v === "true" ? 1 : 0);
+const to01 = (v) =>
+  v === true || v === 1 || v === "1" || v === "true" ? 1 : 0;
 
 const tryParseJson = (v) => {
   if (typeof v !== "string") return v;
@@ -1139,19 +1215,14 @@ const pickExchangePossible = (explicit, custom_fields) => {
   return value === undefined ? undefined : to01(value);
 };
 
-
-
 // helpers (stavi iznad addItemApi / editItemApi u istom fajlu)
 const isFileLike = (v) =>
-  typeof File !== "undefined" &&
-  (v instanceof File || v instanceof Blob);
+  typeof File !== "undefined" && (v instanceof File || v instanceof Blob);
 
 const normalizeTempIdArray = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) {
-    return value
-      .map((entry) => String(entry || "").trim())
-      .filter(Boolean);
+    return value.map((entry) => String(entry || "").trim()).filter(Boolean);
   }
   return String(value)
     .split(",")
@@ -1261,7 +1332,7 @@ export const addItemApi = {
     // ✅ izvuci available_now iz bilo čega (top-level ili iz custom_fields)
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
-      custom_fields
+      custom_fields,
     );
     const exchangePossible01 = pickExchangePossible(
       exchange_possible ??
@@ -1271,7 +1342,7 @@ export const addItemApi = {
         exchange ??
         zamjena ??
         zamena,
-      custom_fields
+      custom_fields,
     );
     const priceOnRequestRaw =
       price_on_request ?? is_price_on_request ?? isPriceOnRequest;
@@ -1309,7 +1380,9 @@ export const addItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-    const normalizedGalleryTempIds = normalizeTempIdArray(temp_gallery_image_ids);
+    const normalizedGalleryTempIds = normalizeTempIdArray(
+      temp_gallery_image_ids,
+    );
     if (normalizedGalleryTempIds.length > 0) {
       normalizedGalleryTempIds.forEach((tempId, index) => {
         formData.append(`temp_gallery_image_ids[${index}]`, tempId);
@@ -1348,7 +1421,7 @@ export const addItemApi = {
     custom_field_files.forEach(({ key, files }) => {
       if (Array.isArray(files)) {
         files.forEach((file) =>
-          formData.append(`custom_field_files[${key}]`, file)
+          formData.append(`custom_field_files[${key}]`, file),
         );
       } else if (files) {
         formData.append(`custom_field_files[${key}]`, files);
@@ -1377,7 +1450,11 @@ export const addItemApi = {
     ) {
       formData.append("inventory_count", inventory_count);
     }
-    if (price_per_unit !== undefined && price_per_unit !== null && String(price_per_unit).trim() !== "") {
+    if (
+      price_per_unit !== undefined &&
+      price_per_unit !== null &&
+      String(price_per_unit).trim() !== ""
+    ) {
       formData.append("price_per_unit", price_per_unit);
     }
     if (
@@ -1395,7 +1472,10 @@ export const addItemApi = {
       formData.append("stock_alert_threshold", stock_alert_threshold);
     }
     if (seller_product_code !== undefined && seller_product_code !== null) {
-      formData.append("seller_product_code", String(seller_product_code).trim());
+      formData.append(
+        "seller_product_code",
+        String(seller_product_code).trim(),
+      );
     }
     if (scarcity_enabled !== undefined && scarcity_enabled !== null) {
       const scarcityEnabled01 = scarcity_enabled ? 1 : 0;
@@ -1403,9 +1483,14 @@ export const addItemApi = {
       formData.append("is_scarcity_enabled", scarcityEnabled01);
     }
 
-    const normalizedCustomFieldTranslations = normalizeJsonFormValue(custom_field_translations);
+    const normalizedCustomFieldTranslations = normalizeJsonFormValue(
+      custom_field_translations,
+    );
     if (normalizedCustomFieldTranslations) {
-      formData.append("custom_field_translations", normalizedCustomFieldTranslations);
+      formData.append(
+        "custom_field_translations",
+        normalizedCustomFieldTranslations,
+      );
     }
 
     const normalizedTranslations = normalizeJsonFormValue(translations);
@@ -1550,7 +1635,7 @@ export const editItemApi = {
 
     const { availableNow01, cleanedCustomFields } = pickAvailableNow(
       available_now ?? isAvailable ?? is_available ?? is_avaible,
-      custom_fields
+      custom_fields,
     );
     const exchangePossible01 = pickExchangePossible(
       exchange_possible ??
@@ -1560,7 +1645,7 @@ export const editItemApi = {
         exchange ??
         zamjena ??
         zamena,
-      custom_fields
+      custom_fields,
     );
     const priceOnRequestRaw =
       price_on_request ?? is_price_on_request ?? isPriceOnRequest;
@@ -1637,7 +1722,11 @@ export const editItemApi = {
     ) {
       formData.append("inventory_count", inventory_count);
     }
-    if (price_per_unit !== undefined && price_per_unit !== null && String(price_per_unit).trim() !== "") {
+    if (
+      price_per_unit !== undefined &&
+      price_per_unit !== null &&
+      String(price_per_unit).trim() !== ""
+    ) {
       formData.append("price_per_unit", price_per_unit);
     }
     if (
@@ -1655,7 +1744,10 @@ export const editItemApi = {
       formData.append("stock_alert_threshold", stock_alert_threshold);
     }
     if (seller_product_code !== undefined && seller_product_code !== null) {
-      formData.append("seller_product_code", String(seller_product_code).trim());
+      formData.append(
+        "seller_product_code",
+        String(seller_product_code).trim(),
+      );
     }
     if (scarcity_enabled !== undefined && scarcity_enabled !== null) {
       const scarcityEnabled01 = scarcity_enabled ? 1 : 0;
@@ -1672,7 +1764,9 @@ export const editItemApi = {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
 
-    const normalizedGalleryTempIds = normalizeTempIdArray(temp_gallery_image_ids);
+    const normalizedGalleryTempIds = normalizeTempIdArray(
+      temp_gallery_image_ids,
+    );
     if (normalizedGalleryTempIds.length > 0) {
       normalizedGalleryTempIds.forEach((tempId, index) => {
         formData.append(`temp_gallery_image_ids[${index}]`, tempId);
@@ -1709,16 +1803,21 @@ export const editItemApi = {
     custom_field_files.forEach(({ key, files }) => {
       if (Array.isArray(files)) {
         files.forEach((file) =>
-          formData.append(`custom_field_files[${key}]`, file)
+          formData.append(`custom_field_files[${key}]`, file),
         );
       } else if (files) {
         formData.append(`custom_field_files[${key}]`, files);
       }
     });
 
-    const normalizedCustomFieldTranslations = normalizeJsonFormValue(custom_field_translations);
+    const normalizedCustomFieldTranslations = normalizeJsonFormValue(
+      custom_field_translations,
+    );
     if (normalizedCustomFieldTranslations) {
-      formData.append("custom_field_translations", normalizedCustomFieldTranslations);
+      formData.append(
+        "custom_field_translations",
+        normalizedCustomFieldTranslations,
+      );
     }
 
     const normalizedTranslations = normalizeJsonFormValue(translations);
@@ -1731,9 +1830,6 @@ export const editItemApi = {
     });
   },
 };
-
-
-
 
 export const sendMessageApi = {
   sendMessage: ({ item_offer_id, message, file, audio } = {}) => {
@@ -1956,13 +2052,22 @@ export const updateJobStatusApi = {
 };
 
 export const getLocationApi = {
-  getLocation: ({ lat, lng, long, longitude, lang, search, place_id, session_id } = {}) => {
+  getLocation: ({
+    lat,
+    lng,
+    long,
+    longitude,
+    lang,
+    search,
+    place_id,
+    session_id,
+  } = {}) => {
     const resolvedLng =
       lng !== undefined && lng !== null
         ? lng
         : long !== undefined && long !== null
-        ? long
-        : longitude;
+          ? long
+          : longitude;
 
     return Api.get(GET_LOCATION, {
       params: {
@@ -2081,7 +2186,13 @@ export const instagramApi = {
     return Api.get(INSTAGRAM_PRODUCTS, { params: { page, per_page, search } });
   },
 
-  importProducts: ({ source_url, source_urls = [], category_id, feed_file, format } = {}) => {
+  importProducts: ({
+    source_url,
+    source_urls = [],
+    category_id,
+    feed_file,
+    format,
+  } = {}) => {
     const formData = new FormData();
     if (source_url) formData.append("source_url", source_url);
     if (Array.isArray(source_urls) && source_urls.length > 0) {
@@ -2121,8 +2232,20 @@ export const instagramApi = {
 // Alias za shop feed import workflow (API/CSV/XML).
 // Backend trenutno koristi instagram/* rute za import/sync.
 export const shopFeedApi = {
-  importFeed: ({ source_url, source_urls = [], category_id, feed_file, format } = {}) =>
-    instagramApi.importProducts({ source_url, source_urls, category_id, feed_file, format }),
+  importFeed: ({
+    source_url,
+    source_urls = [],
+    category_id,
+    feed_file,
+    format,
+  } = {}) =>
+    instagramApi.importProducts({
+      source_url,
+      source_urls,
+      category_id,
+      feed_file,
+      format,
+    }),
 
   getImportHistory: ({ page } = {}) => instagramApi.getImportHistory({ page }),
 
@@ -2170,7 +2293,19 @@ export const itemStatisticsApi = {
   },
 
   // Track view
-  trackView: ({ item_id, source, source_detail, referrer_url, utm_source, utm_medium, utm_campaign, country_code, city, is_app, app_platform } = {}) => {
+  trackView: ({
+    item_id,
+    source,
+    source_detail,
+    referrer_url,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    country_code,
+    city,
+    is_app,
+    app_platform,
+  } = {}) => {
     const formData = new FormData();
     if (item_id) formData.append("item_id", item_id);
     if (source) formData.append("source", source);
@@ -2215,47 +2350,49 @@ export const itemStatisticsApi = {
   },
 
   // Track engagement
- trackEngagement: ({ item_id, engagement_type, extra_data } = {}) => {
-  const formData = new FormData();
+  trackEngagement: ({ item_id, engagement_type, extra_data } = {}) => {
+    const formData = new FormData();
 
-  if (item_id) formData.append("item_id", String(item_id));
-  if (engagement_type) formData.append("engagement_type", engagement_type);
+    if (item_id) formData.append("item_id", String(item_id));
+    if (engagement_type) formData.append("engagement_type", engagement_type);
 
-  // 1. Priprema podataka: Osiguraj da radimo sa pravim JS objektom/nizom
-  let dataToProcess = extra_data;
+    // 1. Priprema podataka: Osiguraj da radimo sa pravim JS objektom/nizom
+    let dataToProcess = extra_data;
 
-  // Ako je greškom proslijeđen JSON string, parsiraj ga
-  if (typeof extra_data === 'string') {
+    // Ako je greškom proslijeđen JSON string, parsiraj ga
+    if (typeof extra_data === "string") {
       try {
-          dataToProcess = JSON.parse(extra_data);
+        dataToProcess = JSON.parse(extra_data);
       } catch (e) {
-          console.error("Greška pri parsiranju extra_data", e);
-          dataToProcess = []; // Fallback
+        console.error("Greška pri parsiranju extra_data", e);
+        dataToProcess = []; // Fallback
       }
-  }
-
-  // 2. Osiguraj da je niz
-  const arr = Array.isArray(dataToProcess) ? dataToProcess : (dataToProcess ? [dataToProcess] : []);
-
-  // 3. Loop kroz niz i kreiraj ispravne ključeve za Laravel (npr. extra_data[0][index])
-  arr.forEach((obj, i) => {
-    if (obj && typeof obj === "object") {
-      Object.entries(obj).forEach(([k, v]) => {
-        // Ovdje pravimo ključ koji PHP prepoznaje kao array
-        formData.append(`extra_data[${i}][${k}]`, v == null ? "" : String(v));
-      });
-    } else {
-      // Fallback za primitivne vrijednosti
-      formData.append(`extra_data[${i}]`, obj == null ? "" : String(obj));
     }
-  });
 
-  return Api.post(`${GET_ITEM_STATISTICS}/track-engagement`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-},
-  
-  
+    // 2. Osiguraj da je niz
+    const arr = Array.isArray(dataToProcess)
+      ? dataToProcess
+      : dataToProcess
+        ? [dataToProcess]
+        : [];
+
+    // 3. Loop kroz niz i kreiraj ispravne ključeve za Laravel (npr. extra_data[0][index])
+    arr.forEach((obj, i) => {
+      if (obj && typeof obj === "object") {
+        Object.entries(obj).forEach(([k, v]) => {
+          // Ovdje pravimo ključ koji PHP prepoznaje kao array
+          formData.append(`extra_data[${i}][${k}]`, v == null ? "" : String(v));
+        });
+      } else {
+        // Fallback za primitivne vrijednosti
+        formData.append(`extra_data[${i}]`, obj == null ? "" : String(obj));
+      }
+    });
+
+    return Api.post(`${GET_ITEM_STATISTICS}/track-engagement`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 
   // Track time on page
   trackTime: ({ item_id, duration } = {}) => {
@@ -2282,7 +2419,16 @@ export const itemStatisticsApi = {
 
 // Public tracking (bez auth)
 export const publicTrackingApi = {
-  trackView: ({ item_id, visitor_id, device_type, referrer_url, utm_source, utm_medium, utm_campaign, source } = {}) => {
+  trackView: ({
+    item_id,
+    visitor_id,
+    device_type,
+    referrer_url,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    source,
+  } = {}) => {
     const formData = new FormData();
     if (item_id) formData.append("item_id", item_id);
     if (visitor_id) formData.append("visitor_id", visitor_id);
@@ -2298,7 +2444,14 @@ export const publicTrackingApi = {
     });
   },
 
-  trackSearchImpressions: ({ item_ids, search_query, search_type, page, results_total, filters } = {}) => {
+  trackSearchImpressions: ({
+    item_ids,
+    search_query,
+    search_type,
+    page,
+    results_total,
+    filters,
+  } = {}) => {
     const formData = new FormData();
     if (item_ids) formData.append("item_ids", JSON.stringify(item_ids));
     if (search_query) formData.append("search_query", search_query);
@@ -2491,17 +2644,20 @@ export const itemConversationApi = {
   },
 
   // novo (item → chat bez ponude)
-  startItemConversation: ({ item_id } = {}) => Api.post("start-item-conversation", { item_id }),
+  startItemConversation: ({ item_id } = {}) =>
+    Api.post("start-item-conversation", { item_id }),
 
   // novo (direct user ↔ user)
-  checkDirectConversation: ({ user_id } = {}) => Api.get("check-direct-conversation", { params: { user_id } }),
-  startDirectConversation: ({ user_id } = {}) => Api.post("start-direct-conversation", { user_id }),
+  checkDirectConversation: ({ user_id } = {}) =>
+    Api.get("check-direct-conversation", { params: { user_id } }),
+  startDirectConversation: ({ user_id } = {}) =>
+    Api.post("start-direct-conversation", { user_id }),
 };
 
 // ============================================
 // SELLER SETTINGS API
 // ============================================
- 
+
 // ============================================
 // SELLER SETTINGS API (ažurirano sa card_preferences)
 // ============================================
@@ -2553,33 +2709,57 @@ export const sellerSettingsApi = {
   } = {}) => {
     const formData = new FormData();
 
-    if (show_phone !== undefined) formData.append("show_phone", show_phone ? 1 : 0);
+    if (show_phone !== undefined)
+      formData.append("show_phone", show_phone ? 1 : 0);
     if (avatar_id !== undefined) formData.append("avatar_id", avatar_id || "");
-    if (show_email !== undefined) formData.append("show_email", show_email ? 1 : 0);
-    if (show_whatsapp !== undefined) formData.append("show_whatsapp", show_whatsapp ? 1 : 0);
-    if (show_viber !== undefined) formData.append("show_viber", show_viber ? 1 : 0);
-    if (whatsapp_number !== undefined) formData.append("whatsapp_number", whatsapp_number);
-    if (viber_number !== undefined) formData.append("viber_number", viber_number);
-    if (business_hours) formData.append("business_hours", JSON.stringify(business_hours));
+    if (show_email !== undefined)
+      formData.append("show_email", show_email ? 1 : 0);
+    if (show_whatsapp !== undefined)
+      formData.append("show_whatsapp", show_whatsapp ? 1 : 0);
+    if (show_viber !== undefined)
+      formData.append("show_viber", show_viber ? 1 : 0);
+    if (whatsapp_number !== undefined)
+      formData.append("whatsapp_number", whatsapp_number);
+    if (viber_number !== undefined)
+      formData.append("viber_number", viber_number);
+    if (business_hours)
+      formData.append("business_hours", JSON.stringify(business_hours));
     if (response_time) formData.append("response_time", response_time);
-    if (accepts_offers !== undefined) formData.append("accepts_offers", accepts_offers ? 1 : 0);
-    if (auto_reply_enabled !== undefined) formData.append("auto_reply_enabled", auto_reply_enabled ? 1 : 0);
-    if (auto_reply_message !== undefined) formData.append("auto_reply_message", auto_reply_message);
-    if (vacation_mode !== undefined) formData.append("vacation_mode", vacation_mode ? 1 : 0);
-    if (vacation_message !== undefined) formData.append("vacation_message", vacation_message);
-    if (vacation_start_date !== undefined) formData.append("vacation_start_date", vacation_start_date || "");
-    if (vacation_end_date !== undefined) formData.append("vacation_end_date", vacation_end_date || "");
-    if (vacation_auto_activate !== undefined) formData.append("vacation_auto_activate", vacation_auto_activate ? 1 : 0);
-    if (preferred_contact_method) formData.append("preferred_contact_method", preferred_contact_method);
-    if (business_description !== undefined) formData.append("business_description", business_description);
-    if (return_policy !== undefined) formData.append("return_policy", return_policy);
-    if (shipping_info !== undefined) formData.append("shipping_info", shipping_info);
-    if (social_facebook !== undefined) formData.append("social_facebook", social_facebook);
-    if (social_instagram !== undefined) formData.append("social_instagram", social_instagram);
-    if (social_tiktok !== undefined) formData.append("social_tiktok", social_tiktok);
-    if (social_youtube !== undefined) formData.append("social_youtube", social_youtube);
-    if (social_website !== undefined) formData.append("social_website", social_website);
-    
+    if (accepts_offers !== undefined)
+      formData.append("accepts_offers", accepts_offers ? 1 : 0);
+    if (auto_reply_enabled !== undefined)
+      formData.append("auto_reply_enabled", auto_reply_enabled ? 1 : 0);
+    if (auto_reply_message !== undefined)
+      formData.append("auto_reply_message", auto_reply_message);
+    if (vacation_mode !== undefined)
+      formData.append("vacation_mode", vacation_mode ? 1 : 0);
+    if (vacation_message !== undefined)
+      formData.append("vacation_message", vacation_message);
+    if (vacation_start_date !== undefined)
+      formData.append("vacation_start_date", vacation_start_date || "");
+    if (vacation_end_date !== undefined)
+      formData.append("vacation_end_date", vacation_end_date || "");
+    if (vacation_auto_activate !== undefined)
+      formData.append("vacation_auto_activate", vacation_auto_activate ? 1 : 0);
+    if (preferred_contact_method)
+      formData.append("preferred_contact_method", preferred_contact_method);
+    if (business_description !== undefined)
+      formData.append("business_description", business_description);
+    if (return_policy !== undefined)
+      formData.append("return_policy", return_policy);
+    if (shipping_info !== undefined)
+      formData.append("shipping_info", shipping_info);
+    if (social_facebook !== undefined)
+      formData.append("social_facebook", social_facebook);
+    if (social_instagram !== undefined)
+      formData.append("social_instagram", social_instagram);
+    if (social_tiktok !== undefined)
+      formData.append("social_tiktok", social_tiktok);
+    if (social_youtube !== undefined)
+      formData.append("social_youtube", social_youtube);
+    if (social_website !== undefined)
+      formData.append("social_website", social_website);
+
     // NEW: Card preferences - šalje se kao JSON string
     if (card_preferences !== undefined) {
       formData.append("card_preferences", JSON.stringify(card_preferences));
@@ -2590,7 +2770,6 @@ export const sellerSettingsApi = {
     });
   },
 };
-
 
 // ============================================
 // HELPER: Default Card Preferences
@@ -2618,19 +2797,23 @@ export const normalizeCardPreferences = (raw) => {
     }
   }
   if (!obj || typeof obj !== "object") obj = {};
-  
+
   return {
     show_ratings: obj.show_ratings ?? defaultCardPreferences.show_ratings,
     show_badges: obj.show_badges ?? defaultCardPreferences.show_badges,
-    show_member_since: obj.show_member_since ?? defaultCardPreferences.show_member_since,
-    show_response_time: obj.show_response_time ?? defaultCardPreferences.show_response_time,
-    show_business_hours: obj.show_business_hours ?? defaultCardPreferences.show_business_hours,
-    show_shipping_info: obj.show_shipping_info ?? defaultCardPreferences.show_shipping_info,
-    show_return_policy: obj.show_return_policy ?? defaultCardPreferences.show_return_policy,
+    show_member_since:
+      obj.show_member_since ?? defaultCardPreferences.show_member_since,
+    show_response_time:
+      obj.show_response_time ?? defaultCardPreferences.show_response_time,
+    show_business_hours:
+      obj.show_business_hours ?? defaultCardPreferences.show_business_hours,
+    show_shipping_info:
+      obj.show_shipping_info ?? defaultCardPreferences.show_shipping_info,
+    show_return_policy:
+      obj.show_return_policy ?? defaultCardPreferences.show_return_policy,
     max_badges: obj.max_badges ?? defaultCardPreferences.max_badges,
   };
 };
-
 
 // ============================================
 // INVENTORY & SALES API
@@ -2638,16 +2821,16 @@ export const normalizeCardPreferences = (raw) => {
 export const ITEM_SALE = "item-sale";
 export const MY_PURCHASES = "my-purchases";
 export const ITEM_RESERVE = "item-reserve";
- 
+
 export const inventoryApi = {
   // Označi kao prodano s detaljima
-  recordSale: ({ 
-    item_id, 
-    buyer_id, 
-    quantity_sold, 
-    sale_receipt, 
+  recordSale: ({
+    item_id,
+    buyer_id,
+    quantity_sold,
+    sale_receipt,
     sale_note,
-    sale_price 
+    sale_price,
   } = {}) => {
     const formData = new FormData();
     if (item_id) formData.append("item_id", item_id);
@@ -2656,30 +2839,31 @@ export const inventoryApi = {
     if (sale_receipt) formData.append("sale_receipt", sale_receipt);
     if (sale_note) formData.append("sale_note", sale_note);
     if (sale_price) formData.append("sale_price", sale_price);
- 
+
     return Api.post(ITEM_SALE, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
- 
+
   // Rezerviši artikal
   reserveItem: ({ item_id, reserved_for_user_id, reservation_note } = {}) => {
     const formData = new FormData();
     if (item_id) formData.append("item_id", item_id);
-    if (reserved_for_user_id) formData.append("reserved_for_user_id", reserved_for_user_id);
+    if (reserved_for_user_id)
+      formData.append("reserved_for_user_id", reserved_for_user_id);
     if (reservation_note) formData.append("reservation_note", reservation_note);
- 
+
     return Api.post(ITEM_RESERVE, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
- 
+
   // Ukloni rezervaciju
   removeReservation: ({ item_id } = {}) => {
     const formData = new FormData();
     if (item_id) formData.append("item_id", item_id);
     formData.append("remove_reservation", 1);
- 
+
     return Api.post(ITEM_RESERVE, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -2720,9 +2904,11 @@ export const shopOpsApi = {
   updateInventory: ({ item_id, quantity, mode = "set", threshold } = {}) => {
     const formData = new FormData();
     if (item_id) formData.append("item_id", item_id);
-    if (quantity !== undefined && quantity !== null) formData.append("quantity", quantity);
+    if (quantity !== undefined && quantity !== null)
+      formData.append("quantity", quantity);
     if (mode) formData.append("mode", mode);
-    if (threshold !== undefined && threshold !== null) formData.append("threshold", threshold);
+    if (threshold !== undefined && threshold !== null)
+      formData.append("threshold", threshold);
 
     return Api.post(SHOP_UPDATE_INVENTORY, formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -2741,7 +2927,7 @@ export const shopOpsApi = {
 
   verifyDomain: () => Api.post(`${SHOP_DOMAIN}/verify`),
 };
- 
+
 export const myPurchasesApi = {
   // Dohvati kupovine korisnika
   getPurchases: ({ page = 1, status } = {}) => {
@@ -2749,7 +2935,7 @@ export const myPurchasesApi = {
       params: { page, status },
     });
   },
- 
+
   // Dohvati detalj kupovine
   getPurchaseDetail: ({ sale_id } = {}) => {
     return Api.get(`${MY_PURCHASES}/${sale_id}`);
@@ -2759,10 +2945,10 @@ export const myPurchasesApi = {
 export const compareApi = {
   getBulkItems: (ids) => {
     // ids je string "12,45,67"
-    return Api.get(`${GET_ITEM}/bulk`, { 
-      params: { ids }
+    return Api.get(`${GET_ITEM}/bulk`, {
+      params: { ids },
     });
-  }
+  },
 };
 
 export const savedUsersApi = {
@@ -2784,7 +2970,6 @@ export const savedUsersApi = {
   },
 };
 
-
 export const savedCollectionsApi = {
   // Lists
   lists: () => Api.get("saved-lists"),
@@ -2793,15 +2978,19 @@ export const savedCollectionsApi = {
   deleteList: ({ id }) => Api.delete(`saved-lists/${id}`),
 
   // Membership for a seller
-  membership: ({ saved_user_id }) => Api.get("saved-users/membership", { params: { saved_user_id } }),
+  membership: ({ saved_user_id }) =>
+    Api.get("saved-users/membership", { params: { saved_user_id } }),
 
   // List items
   listItems: ({ listId, q = "", page = 1, per_page = 24 }) =>
     Api.get(`saved-lists/${listId}/items`, { params: { q, page, per_page } }),
 
-  addToList: ({ listId, saved_user_id, note }) => Api.post(`saved-lists/${listId}/items`, { saved_user_id, note }),
-  removeFromList: ({ listId, saved_user_id }) => Api.delete(`saved-lists/${listId}/items/${saved_user_id}`),
-  updateNote: ({ listId, saved_user_id, note }) => Api.patch(`saved-lists/${listId}/items/${saved_user_id}/note`, { note }),
+  addToList: ({ listId, saved_user_id, note }) =>
+    Api.post(`saved-lists/${listId}/items`, { saved_user_id, note }),
+  removeFromList: ({ listId, saved_user_id }) =>
+    Api.delete(`saved-lists/${listId}/items/${saved_user_id}`),
+  updateNote: ({ listId, saved_user_id, note }) =>
+    Api.patch(`saved-lists/${listId}/items/${saved_user_id}/note`, { note }),
 
   // Follow prefs
   setFollowPref: ({ followedUserId, enabled, frequency }) =>
@@ -2823,13 +3012,13 @@ export const mapSearchApi = {
     city,
     state,
     country,
-    
+
     // Bounds params (alternative to radius)
     north,
     south,
     east,
     west,
-    
+
     // Filter params
     category_id,
     category_slug,
@@ -2842,7 +3031,7 @@ export const mapSearchApi = {
     user_id,
     popular_items,
     has_video,
-    
+
     // Pagination
     page = 1,
     limit = 500, // Više oglasa za mapu
@@ -2857,13 +3046,13 @@ export const mapSearchApi = {
         city,
         state,
         country,
-        
+
         // Bounds (if provided instead of radius)
         north,
         south,
         east,
         west,
-        
+
         // Filters
         category_id,
         category_slug,
@@ -2876,7 +3065,7 @@ export const mapSearchApi = {
         user_id,
         popular_items,
         has_video,
-        
+
         // Pagination
         page,
         limit,
@@ -2969,25 +3158,25 @@ export const mapSearchApi = {
 
 const CITY_COORDINATE_FALLBACK = [
   { key: "sarajevo", lat: 43.8563, lng: 18.4131 },
-  { key: "ilidza", lat: 43.8295, lng: 18.3010 },
+  { key: "ilidza", lat: 43.8295, lng: 18.301 },
   { key: "mostar", lat: 43.3438, lng: 17.8078 },
   { key: "berkovici", lat: 43.0935, lng: 18.1713 },
   { key: "berkovići", lat: 43.0935, lng: 18.1713 },
-  { key: "banja luka", lat: 44.7722, lng: 17.1910 },
-  { key: "banjaluka", lat: 44.7722, lng: 17.1910 },
+  { key: "banja luka", lat: 44.7722, lng: 17.191 },
+  { key: "banjaluka", lat: 44.7722, lng: 17.191 },
   { key: "tuzla", lat: 44.5384, lng: 18.6671 },
   { key: "zenica", lat: 44.2034, lng: 17.9077 },
   { key: "bijeljina", lat: 44.7587, lng: 19.2144 },
   { key: "brcko", lat: 44.8728, lng: 18.8102 },
   { key: "br\u010dko", lat: 44.8728, lng: 18.8102 },
   { key: "trebinje", lat: 42.7119, lng: 18.3436 },
-  { key: "prijedor", lat: 44.9799, lng: 16.7140 },
-  { key: "doboj", lat: 44.7310, lng: 18.0878 },
+  { key: "prijedor", lat: 44.9799, lng: 16.714 },
+  { key: "doboj", lat: 44.731, lng: 18.0878 },
   { key: "gorazde", lat: 43.6674, lng: 18.9775 },
   { key: "gora\u017ede", lat: 43.6674, lng: 18.9775 },
   { key: "cazin", lat: 44.9676, lng: 15.9431 },
-  { key: "biha\u0107", lat: 44.8167, lng: 15.8700 },
-  { key: "bihac", lat: 44.8167, lng: 15.8700 },
+  { key: "biha\u0107", lat: 44.8167, lng: 15.87 },
+  { key: "bihac", lat: 44.8167, lng: 15.87 },
   { key: "travnik", lat: 44.2269, lng: 17.6658 },
   { key: "konjic", lat: 43.6519, lng: 17.9614 },
   { key: "capljina", lat: 43.1217, lng: 17.6849 },
@@ -3008,9 +3197,10 @@ const toFiniteNumber = (value) => {
   if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) return null;
-    const normalized = trimmed.includes(",") && !trimmed.includes(".")
-      ? trimmed.replace(",", ".")
-      : trimmed;
+    const normalized =
+      trimmed.includes(",") && !trimmed.includes(".")
+        ? trimmed.replace(",", ".")
+        : trimmed;
     const numericCandidate = normalized.replace(/[^0-9+-.]/g, "");
     if (!numericCandidate) return null;
     const parsed = Number(numericCandidate);
@@ -3145,7 +3335,10 @@ const resolveCoordinatesFromObject = (source, precision) => {
   ];
 
   for (const coordinateArray of coordinateArrays) {
-    const resolved = resolveCoordinatesFromCoordinateArray(coordinateArray, precision);
+    const resolved = resolveCoordinatesFromCoordinateArray(
+      coordinateArray,
+      precision,
+    );
     if (resolved) return resolved;
   }
 
@@ -3195,10 +3388,14 @@ const parseExtraDetailsSafe = (value) => {
 };
 
 const resolveCoordinatesFromLocationText = (...chunks) => {
-  const merged = normalizeText(collectLocationTextCandidates(...chunks).join(" | "));
+  const merged = normalizeText(
+    collectLocationTextCandidates(...chunks).join(" | "),
+  );
   if (!merged) return null;
 
-  const match = CITY_COORDINATE_FALLBACK.find((entry) => merged.includes(entry.key));
+  const match = CITY_COORDINATE_FALLBACK.find((entry) =>
+    merged.includes(entry.key),
+  );
   if (!match) return null;
 
   return {
@@ -3213,16 +3410,32 @@ const resolveCoordinatesFromItem = (item, extraDetails) => {
     [item?.latitude, item?.longitude, "exact"],
     [item?.lat, item?.lng, "exact"],
     [item?.lat, item?.long, "exact"],
-    [item?.translated_item?.latitude, item?.translated_item?.longitude, "exact_translated"],
-    [item?.translated_item?.lat, item?.translated_item?.lng, "exact_translated"],
+    [
+      item?.translated_item?.latitude,
+      item?.translated_item?.longitude,
+      "exact_translated",
+    ],
+    [
+      item?.translated_item?.lat,
+      item?.translated_item?.lng,
+      "exact_translated",
+    ],
     [item?.latitude_value, item?.longitude_value, "exact"],
     [item?.location?.latitude, item?.location?.longitude, "exact_location"],
     [item?.location?.lat, item?.location?.lng, "exact_location"],
     [item?.location?.lat, item?.location?.long, "exact_location"],
-    [item?.location?.center?.lat, item?.location?.center?.lng, "exact_location"],
+    [
+      item?.location?.center?.lat,
+      item?.location?.center?.lng,
+      "exact_location",
+    ],
     [item?.location_latitude, item?.location_longitude, "exact"],
     [item?.location_lat, item?.location_lng, "exact"],
-    [item?.coordinates?.latitude, item?.coordinates?.longitude, "exact_coordinates"],
+    [
+      item?.coordinates?.latitude,
+      item?.coordinates?.longitude,
+      "exact_coordinates",
+    ],
     [item?.coordinates?.lat, item?.coordinates?.lng, "exact_coordinates"],
     [item?.geo?.latitude, item?.geo?.longitude, "exact_geo"],
     [item?.geo?.lat, item?.geo?.lng, "exact_geo"],
@@ -3238,8 +3451,16 @@ const resolveCoordinatesFromItem = (item, extraDetails) => {
     [extraDetails?.latitude, extraDetails?.longitude, "exact_extra"],
     [extraDetails?.lat, extraDetails?.lng, "exact_extra"],
     [extraDetails?.lat, extraDetails?.long, "exact_extra"],
-    [extraDetails?.location?.latitude, extraDetails?.location?.longitude, "exact_extra_location"],
-    [extraDetails?.location?.lat, extraDetails?.location?.lng, "exact_extra_location"],
+    [
+      extraDetails?.location?.latitude,
+      extraDetails?.location?.longitude,
+      "exact_extra_location",
+    ],
+    [
+      extraDetails?.location?.lat,
+      extraDetails?.location?.lng,
+      "exact_extra_location",
+    ],
   ];
 
   for (const [latValue, lngValue, precision] of candidates) {
@@ -3260,7 +3481,10 @@ const resolveCoordinatesFromItem = (item, extraDetails) => {
     extraDetails?.geometry?.coordinates,
   ];
   for (const coordinateArray of coordinateArrayCandidates) {
-    const resolved = resolveCoordinatesFromCoordinateArray(coordinateArray, "exact_coordinates_array");
+    const resolved = resolveCoordinatesFromCoordinateArray(
+      coordinateArray,
+      "exact_coordinates_array",
+    );
     if (resolved) return resolved;
   }
 
@@ -3294,7 +3518,7 @@ const resolveCoordinatesFromItem = (item, extraDetails) => {
     extraDetails?.area,
     extraDetails?.area_name,
     extraDetails?.address,
-    extraDetails?.location
+    extraDetails?.location,
   );
 };
 
@@ -3400,7 +3624,9 @@ export const transformItemsForMap = (items) => {
         // Location info
         location:
           explicitAddressLabel ||
-          [areaNameLabel, cityLabel, stateLabel, countryLabel].filter(Boolean).join(", ") ||
+          [areaNameLabel, cityLabel, stateLabel, countryLabel]
+            .filter(Boolean)
+            .join(", ") ||
           [cityLabel, stateLabel, countryLabel].filter(Boolean).join(", ") ||
           toReadableText(item?.location) ||
           addressLabel ||
@@ -3413,12 +3639,19 @@ export const transformItemsForMap = (items) => {
         area_name: areaNameLabel,
 
         // Images
-        image: item?.image || item?.gallery_images?.[0]?.image || item?.gallery?.[0],
-        images: item?.gallery_images?.map((g) => g.image) || item?.gallery || (item?.image ? [item.image] : []),
+        image:
+          item?.image || item?.gallery_images?.[0]?.image || item?.gallery?.[0],
+        images:
+          item?.gallery_images?.map((g) => g.image) ||
+          item?.gallery ||
+          (item?.image ? [item.image] : []),
 
         // Additional info
         currency_symbol: item?.currency_symbol || item?.currency || "KM",
-        category: item?.category?.translated_name || item?.category?.name || item?.category_name,
+        category:
+          item?.category?.translated_name ||
+          item?.category?.name ||
+          item?.category_name,
         category_id: item?.category_id,
         status: item?.status,
         featured: item?.is_featured || item?.is_feature || false,
@@ -3441,7 +3674,8 @@ export const transformItemsForMap = (items) => {
 
         // Extra details for custom fields
         extra_details: item?.extra_details,
-        translated_custom_fields: item?.translated_custom_fields || item?.custom_fields || [],
+        translated_custom_fields:
+          item?.translated_custom_fields || item?.custom_fields || [],
       };
     })
     .filter(Boolean);

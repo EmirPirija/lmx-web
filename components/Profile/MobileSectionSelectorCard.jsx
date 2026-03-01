@@ -15,7 +15,13 @@ import {
   IoChevronForward,
   IoMenuOutline,
 } from "@/components/Common/UnifiedIconPack";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const findActiveNavItem = (sections, pathname) => {
   for (const section of sections) {
@@ -38,20 +44,20 @@ const MobileSectionSelectorCard = ({ className = "" }) => {
       getProfileNavigationSections({
         isVerified: Boolean(
           userData?.is_verified === true ||
-            userData?.verified === true ||
-            Number(userData?.is_verified) === 1 ||
-            Number(userData?.verified) === 1
+          userData?.verified === true ||
+          Number(userData?.is_verified) === 1 ||
+          Number(userData?.verified) === 1,
         ),
         activeAds: Number(userData?.active_ads || userData?.total_ads || 0),
         unreadNotifications: Number(userData?.unread_notifications || 0),
         unreadMessages: Number(userData?.unread_messages || 0),
       }),
-    [userData]
+    [userData],
   );
 
   const activeItem = useMemo(
     () => findActiveNavItem(navigationSections, pathname),
-    [navigationSections, pathname]
+    [navigationSections, pathname],
   );
   const ActiveIcon = activeItem?.icon || IoMenuOutline;
 
@@ -59,7 +65,7 @@ const MobileSectionSelectorCard = ({ className = "" }) => {
     <div
       className={cn(
         "mb-4 rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/85 lg:hidden",
-        className
+        className,
       )}
     >
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -103,7 +109,7 @@ const MobileSectionSelectorCard = ({ className = "" }) => {
 
         <SheetContent
           side="bottom"
-          className="h-[min(86dvh,740px)] rounded-t-3xl border border-slate-200 bg-white p-0 dark:border-slate-800 dark:bg-slate-900 [&>button]:hidden"
+          className="h-auto max-h-[min(82dvh,740px)] rounded-t-3xl border border-slate-200 bg-white p-0 dark:border-slate-800 dark:bg-slate-900 [&>button]:hidden"
         >
           <SheetHeader className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
             <SheetTitle className="flex items-center justify-between text-left text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -132,15 +138,23 @@ const MobileSectionSelectorCard = ({ className = "" }) => {
                           <button
                             key={item.href}
                             type="button"
-                            onClick={() => toast.info(`${item.label} je privremeno nedostupno.`)}
+                            onClick={() =>
+                              toast.info(
+                                `${item.label} je privremeno nedostupno.`,
+                              )
+                            }
                             className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400"
                           >
                             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-700">
                               <ItemIcon size={16} />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold">{item.label}</p>
-                              <p className="truncate text-[11px] opacity-80">{item.description}</p>
+                              <p className="truncate text-sm font-semibold">
+                                {item.label}
+                              </p>
+                              <p className="truncate text-[11px] opacity-80">
+                                {item.description}
+                              </p>
                             </div>
                           </button>
                         );
@@ -155,7 +169,7 @@ const MobileSectionSelectorCard = ({ className = "" }) => {
                             "flex items-center gap-3 rounded-xl border px-3 py-2 transition-colors",
                             isActive
                               ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900"
-                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
                           )}
                         >
                           <div
@@ -163,17 +177,21 @@ const MobileSectionSelectorCard = ({ className = "" }) => {
                               "flex h-8 w-8 items-center justify-center rounded-lg",
                               isActive
                                 ? "bg-white/15 dark:bg-slate-900/15"
-                                : "bg-slate-100 dark:bg-slate-800"
+                                : "bg-slate-100 dark:bg-slate-800",
                             )}
                           >
                             <ItemIcon size={16} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold">{item.label}</p>
+                            <p className="truncate text-sm font-semibold">
+                              {item.label}
+                            </p>
                             <p
                               className={cn(
                                 "truncate text-[11px]",
-                                isActive ? "text-white/75 dark:text-slate-900/70" : "text-slate-500 dark:text-slate-400"
+                                isActive
+                                  ? "text-white/75 dark:text-slate-900/70"
+                                  : "text-slate-500 dark:text-slate-400",
                               )}
                             >
                               {item.description}

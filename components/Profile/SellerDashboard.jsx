@@ -8,6 +8,10 @@ import { toast } from "@/utils/toastBs";
 import CustomLink from "@/components/Common/CustomLink";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import { cn } from "@/lib/utils";
+import {
+  getSavedCollectionDisplayName,
+  sanitizeSavedCollections,
+} from "@/lib/savedCollections";
 import { Button } from "@/components/ui/button";
 
 import { userSignUpData } from "@/redux/reducer/authSlice";
@@ -566,7 +570,7 @@ export default function SellerDashboard() {
         let collectionsData = [];
         if (collectionsRes.status === "fulfilled") {
           const data = unwrapPayload(collectionsRes.value);
-          collectionsData = extractList(data);
+          collectionsData = sanitizeSavedCollections(extractList(data));
           setCollections(collectionsData);
         }
 
@@ -1061,7 +1065,8 @@ export default function SellerDashboard() {
                     >
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-slate-900 truncate">
-                          {collection.name}
+                          {collection.display_name ||
+                            getSavedCollectionDisplayName(collection)}
                         </div>
                         <div className="text-xs text-slate-500">
                           {collection.items_count || 0} kontakta

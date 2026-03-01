@@ -21,9 +21,9 @@ import {
 } from "@/components/Common/UnifiedIconPack";
 
 const formatDateTime = (value) => {
-  if (!value) return "Nije dostupno";
+  if (!value) return "Nema zapisa";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Nije dostupno";
+  if (Number.isNaN(date.getTime())) return "Nema zapisa";
   return date.toLocaleString("bs-BA", {
     day: "2-digit",
     month: "2-digit",
@@ -82,7 +82,7 @@ function SessionCard({ session, currentSessionId }) {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-              IP: {session?.ip_address || "Nije dostupno"}
+              IP: {session?.ip_address || "Nije evidentiran"}
             </span>
           </div>
         </div>

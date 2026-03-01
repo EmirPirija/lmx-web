@@ -1212,9 +1212,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         side="bottom"
         onOpenAutoFocus={preventSheetAutoFocusScroll}
         onCloseAutoFocus={preventSheetAutoFocusScroll}
-        className="z-[96] h-[calc(100dvh-0.75rem)] max-h-[calc(100dvh-0.75rem)] overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent p-0 shadow-2xl dark:border-slate-700 [&>button]:hidden"
+        overlayClassName="z-[127] bg-transparent"
+        className="z-[128] h-auto max-h-[min(82dvh,760px)] overflow-hidden rounded-t-[1.75rem] border border-slate-200 bg-transparent p-0 shadow-2xl dark:border-slate-700 [&>button]:hidden"
       >
-        <div className="flex h-full flex-col overflow-hidden bg-white/95 backdrop-blur-xl dark:bg-slate-900/95">
+        <div className="flex max-h-[min(82dvh,760px)] flex-col overflow-hidden bg-white dark:bg-slate-900">
           <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-3 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/90">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">

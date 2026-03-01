@@ -881,7 +881,7 @@ const HomeHeader = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={closeMobileUtilityMenu}
-            className="fixed inset-0 z-[48] bg-slate-950/25 backdrop-blur-[1.5px] lg:hidden"
+            className="fixed inset-0 z-[48] bg-slate-950/20 backdrop-blur-0 lg:hidden"
           />
         )}
       </AnimatePresence>

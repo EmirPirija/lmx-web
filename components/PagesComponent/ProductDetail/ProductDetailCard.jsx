@@ -272,11 +272,11 @@ const pluralizeBosnian = (count, one, few, many) => {
 };
 
 const formatTimeAgoBs = (value) => {
-  if (!value) return "nije dostupno";
+  if (!value) return null;
 
   const date =
     typeof value === "number" ? new Date(value) : new Date(String(value));
-  if (isNaN(date.getTime())) return "nije dostupno";
+  if (isNaN(date.getTime())) return null;
 
   const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
   if (seconds < 60) return "upravo sada";
@@ -430,6 +430,10 @@ const buildPriceHistoryInsights = (
       isCurrent: index === 0,
     }));
 
+    const lastChangeLabel = latestEvent?.timestamp
+      ? formatTimeAgoBs(latestEvent.timestamp)
+      : null;
+
     return {
       hasAnyPrice: true,
       points: [],
@@ -444,9 +448,9 @@ const buildPriceHistoryInsights = (
       isCurrentLowest: false,
       summaryText: "Cijena je na upit",
       totalText: "Trenutna cijena: Na upit",
-      lastChangeText: latestEvent?.timestamp
-        ? `Zadnja promjena: ${formatTimeAgoBs(latestEvent.timestamp)}`
-        : "Zadnja promjena: nije bilo promjena",
+      lastChangeText: lastChangeLabel
+        ? `Zadnja promjena: ${lastChangeLabel}`
+        : "Zadnja promjena: bez izmjena",
       lastChangeAt: latestEvent?.timestamp || latestEvent?.dateValue || null,
       badges: [{ key: "on-request", tone: "neutral", label: "Cijena na upit" }],
       currentOnRequest: true,
@@ -551,6 +555,8 @@ const buildPriceHistoryInsights = (
     };
   });
 
+  const lastChangeLabel = lastChangeAt ? formatTimeAgoBs(lastChangeAt) : null;
+
   return {
     hasAnyPrice: true,
     points: numericTimeline,
@@ -565,9 +571,9 @@ const buildPriceHistoryInsights = (
     isCurrentLowest,
     summaryText: effectiveSummaryText,
     totalText: effectiveTotalText,
-    lastChangeText: lastChangeAt
-      ? `Zadnja promjena: ${formatTimeAgoBs(lastChangeAt)}`
-      : "Zadnja promjena: nije bilo promjena",
+    lastChangeText: lastChangeLabel
+      ? `Zadnja promjena: ${lastChangeLabel}`
+      : "Zadnja promjena: bez izmjena",
     lastChangeAt,
     badges,
     currentOnRequest: isCurrentOnRequest,
@@ -1245,7 +1251,7 @@ const PriceHistoryModal = ({ isOpen, onClose, insights }) => {
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         {point.dateValue
                           ? formatShortDate(point.dateValue)
-                          : "Datum nije dostupan"}
+                          : "Bez datuma"}
                       </p>
                     </div>
                   </div>

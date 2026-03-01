@@ -8,7 +8,6 @@ import { toast } from "@/utils/toastBs";
 import { getVerificationStatusApi } from "@/utils/api";
 import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
-
 // Lucide ikone
 import {
   User as UserCircle,
@@ -48,8 +47,13 @@ import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
 import { isSellerVerified } from "@/lib/seller-verification";
+import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
+import {
+  normalizeSellerCardPreferences,
+  resolveSellerContactEngine,
+} from "@/lib/seller-settings-engine";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
-import { userSignUpData } from "@/redux/reducer/authSlice";
+import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import CustomLink from "@/components/Common/CustomLink";
@@ -59,12 +63,11 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
 import SavedToListButton from "@/components/Profile/SavedToListButton";
-import { itemConversationApi, sendMessageApi } from "@/utils/api";
+import { allItemApi, itemConversationApi, sendMessageApi } from "@/utils/api";
 import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
-
-
+import ContactTrustBadges from "@/components/Common/ContactTrustBadges";
 
 /* =====================================================
    ANIMACIJE I STILOVI
@@ -102,14 +105,18 @@ const toBool = (v) => {
 const getVerifiedStatus = (...sources) => {
   return isSellerVerified(...sources);
 };
-const VerifiedAvatarBadge = ({ avatarSize = 48, verifiedSize = 10, className = "" }) => {
+const VerifiedAvatarBadge = ({
+  avatarSize = 48,
+  verifiedSize = 10,
+  className = "",
+}) => {
   const badgeSize = Math.max(14, Math.round(avatarSize * 0.33));
 
   return (
     <span
       className={cn(
         "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md",
-        className
+        className,
       )}
       style={{ width: badgeSize, height: badgeSize }}
     >
@@ -143,19 +150,83 @@ const shimmerCss = `
 .float-anim { animation: float 4s infinite ease-in-out; }
 `;
 
-const ShimmerStyles = () => <style jsx global>{shimmerCss}</style>;
+const ShimmerStyles = () => (
+  <style jsx global>
+    {shimmerCss}
+  </style>
+);
 
 /* =====================================================
    HELPER FUNKCIJE
 ===================================================== */
 
-const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
+const MONTHS_BS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "maj",
+  "jun",
+  "jul",
+  "avg",
+  "sep",
+  "okt",
+  "nov",
+  "dec",
+];
 
 const formatMemberSince = (dateStr) => {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return "";
   return `${MONTHS_BS[d.getMonth()]} ${d.getFullYear()}`;
+};
+
+const parseLastSeenDate = (seller = {}) => {
+  const raw =
+    seller?.last_seen ||
+    seller?.lastSeen ||
+    seller?.last_activity_at ||
+    seller?.lastActiveAt ||
+    seller?.updated_at;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getBsCountForm = (value, one, few, many) => {
+  const n = Math.abs(Number(value) || 0);
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
+
+const formatSeenAgoLabel = (lastSeenDate) => {
+  if (!lastSeenDate) return "";
+  const diffSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - lastSeenDate.getTime()) / 1000),
+  );
+  if (diffSeconds < 60) return "upravo sada";
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) {
+    return `prije ${diffMinutes} ${getBsCountForm(diffMinutes, "minutu", "minute", "minuta")}`;
+  }
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `prije ${diffHours} ${getBsCountForm(diffHours, "sat", "sata", "sati")}`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30)
+    return `prije ${diffDays} ${getBsCountForm(diffDays, "dan", "dana", "dana")}`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) {
+    return `prije ${diffMonths} ${getBsCountForm(diffMonths, "mjesec", "mjeseca", "mjeseci")}`;
+  }
+  const diffYears = Math.floor(diffMonths / 12);
+  return `prije ${diffYears} ${getBsCountForm(diffYears, "godinu", "godine", "godina")}`;
 };
 
 const responseTimeLabels = {
@@ -165,8 +236,13 @@ const responseTimeLabels = {
   few_days: "par dana",
 };
 
-export const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
-  const direct = settings?.response_time_label || settings?.response_time_text || null;
+export const getResponseTimeLabel = ({
+  responseTime,
+  responseTimeAvg,
+  settings,
+}) => {
+  const direct =
+    settings?.response_time_label || settings?.response_time_text || null;
   if (direct) return direct;
 
   if (!responseTime) return null;
@@ -174,53 +250,7 @@ export const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }
   return responseTimeLabels[responseTime] || null;
 };
 
-const defaultCardPreferences = {
-  show_ratings: true,
-  show_badges: true,
-  show_member_since: false,
-  show_response_time: true,
-  show_online_status: true,
-  show_reel_hint: true,
-  highlight_contact_button: false,
-  show_business_hours: true,
-  show_shipping_info: true,
-  show_return_policy: true,
-  max_badges: 2,
-};
-
-const normalizePrefBool = (value, fallback) => {
-  if (value == null) return fallback;
-  return toBool(value);
-};
-
-const normalizeCardPreferences = (raw) => {
-  let obj = raw;
-  if (typeof raw === "string") {
-    try {
-      obj = JSON.parse(raw);
-    } catch {
-      obj = {};
-    }
-  }
-
-  const merged = { ...defaultCardPreferences, ...(obj || {}) };
-  return {
-    ...merged,
-    show_ratings: normalizePrefBool(obj?.show_ratings, defaultCardPreferences.show_ratings),
-    show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
-    show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
-    show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
-    show_online_status: normalizePrefBool(obj?.show_online_status, defaultCardPreferences.show_online_status),
-    show_reel_hint: normalizePrefBool(obj?.show_reel_hint, defaultCardPreferences.show_reel_hint),
-    highlight_contact_button: normalizePrefBool(
-      obj?.highlight_contact_button,
-      defaultCardPreferences.highlight_contact_button
-    ),
-    show_business_hours: normalizePrefBool(obj?.show_business_hours, defaultCardPreferences.show_business_hours),
-    show_shipping_info: normalizePrefBool(obj?.show_shipping_info, defaultCardPreferences.show_shipping_info),
-    show_return_policy: normalizePrefBool(obj?.show_return_policy, defaultCardPreferences.show_return_policy),
-  };
-};
+const normalizeCardPreferences = (raw) => normalizeSellerCardPreferences(raw);
 
 const parseBusinessHours = (hours) => {
   if (!hours) return null;
@@ -231,7 +261,15 @@ const parseBusinessHours = (hours) => {
   }
 };
 
-const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const dayOrder = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
 const dayLabels = {
   sunday: "Nedjelja",
   monday: "Ponedjeljak",
@@ -261,8 +299,6 @@ const getTomorrowHours = (businessHours) => {
   return getHoursText(businessHours[tomorrowKey]);
 };
 
-
-
 const isCurrentlyOpen = (businessHours) => {
   if (!businessHours) return null;
 
@@ -273,8 +309,12 @@ const isCurrentlyOpen = (businessHours) => {
   if (!todayHours || todayHours.closed || !todayHours.enabled) return false;
 
   const currentTime = now.getHours() * 60 + now.getMinutes();
-  const [openHour, openMin] = (todayHours.open || "09:00").split(":").map(Number);
-  const [closeHour, closeMin] = (todayHours.close || "17:00").split(":").map(Number);
+  const [openHour, openMin] = (todayHours.open || "09:00")
+    .split(":")
+    .map(Number);
+  const [closeHour, closeMin] = (todayHours.close || "17:00")
+    .split(":")
+    .map(Number);
 
   const openTime = openHour * 60 + openMin;
   const closeTime = closeHour * 60 + closeMin;
@@ -283,9 +323,27 @@ const isCurrentlyOpen = (businessHours) => {
 };
 
 const compactnessMap = {
-  dense: { pad: "p-4 sm:p-5", avatar: "w-16 h-16", name: "text-base", meta: "text-xs", btn: "h-10" },
-  normal: { pad: "p-5 sm:p-6", avatar: "w-18 h-18", name: "text-lg", meta: "text-xs", btn: "h-11" },
-  cozy: { pad: "p-6 sm:p-8", avatar: "w-20 h-20", name: "text-xl", meta: "text-sm", btn: "h-12" },
+  dense: {
+    pad: "p-4 sm:p-5",
+    avatar: "w-16 h-16",
+    name: "text-base",
+    meta: "text-xs",
+    btn: "h-10",
+  },
+  normal: {
+    pad: "p-5 sm:p-6",
+    avatar: "w-18 h-18",
+    name: "text-lg",
+    meta: "text-xs",
+    btn: "h-11",
+  },
+  cozy: {
+    pad: "p-6 sm:p-8",
+    avatar: "w-20 h-20",
+    name: "text-xl",
+    meta: "text-sm",
+    btn: "h-12",
+  },
 };
 
 /* =====================================================
@@ -303,7 +361,7 @@ const GlassCard = ({ children, className, ...props }) => (
       "shadow-2xl shadow-slate-300/30 dark:shadow-slate-950/50",
       "hover:shadow-3xl hover:shadow-slate-300/40 dark:hover:shadow-slate-950/60",
       "transition-all duration-700 ease-out",
-      className
+      className,
     )}
     {...props}
   >
@@ -324,9 +382,12 @@ const SoftDivider = () => (
 
 const IconPill = ({ icon: Icon, children, className, tone = "default" }) => {
   const toneStyles = {
-    default: "border-slate-200/60 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300",
-    success: "border-emerald-200/60 dark:border-emerald-800/50 bg-emerald-50/90 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
-    warning: "border-amber-200/60 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+    default:
+      "border-slate-200/60 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300",
+    success:
+      "border-emerald-200/60 dark:border-emerald-800/50 bg-emerald-50/90 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300",
+    warning:
+      "border-amber-200/60 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
     info: "border-sky-200/60 dark:border-sky-800/50 bg-sky-50/90 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300",
   };
 
@@ -338,7 +399,7 @@ const IconPill = ({ icon: Icon, children, className, tone = "default" }) => {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-md",
         toneStyles[tone],
-        className
+        className,
       )}
     >
       {Icon && <Icon size={14} />}
@@ -349,10 +410,12 @@ const IconPill = ({ icon: Icon, children, className, tone = "default" }) => {
 
 const StatusBadge = ({ children, variant = "default", icon: Icon }) => {
   const variants = {
-    default: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
+    default:
+      "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700",
     pro: "bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-900/30 dark:via-orange-900/25 dark:to-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-200/60 dark:border-amber-700/40",
     shop: "bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-50 dark:from-indigo-900/30 dark:via-blue-900/25 dark:to-indigo-900/30 text-indigo-800 dark:text-indigo-200 border-indigo-200/60 dark:border-indigo-700/40",
-    verified: "bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-900/30 dark:via-teal-900/25 dark:to-emerald-900/30 text-emerald-800 dark:text-emerald-200 border-emerald-200/60 dark:border-emerald-700/40",
+    verified:
+      "bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-900/30 dark:via-teal-900/25 dark:to-emerald-900/30 text-emerald-800 dark:text-emerald-200 border-emerald-200/60 dark:border-emerald-700/40",
   };
 
   return (
@@ -361,7 +424,7 @@ const StatusBadge = ({ children, variant = "default", icon: Icon }) => {
       animate={{ opacity: 1, scale: 1 }}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm",
-        variants[variant]
+        variants[variant],
       )}
     >
       {Icon && <Icon size={12} />}
@@ -370,7 +433,13 @@ const StatusBadge = ({ children, variant = "default", icon: Icon }) => {
   );
 };
 
-const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) => (
+const PrimaryButton = ({
+  children,
+  className,
+  isLoading,
+  disabled,
+  ...props
+}) => (
   <motion.button
     whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -2 }}
     whileTap={{ scale: disabled ? 1 : 0.97 }}
@@ -384,7 +453,7 @@ const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) =
       "transition-all duration-300 ease-out",
       "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-xl",
       "overflow-hidden",
-      className
+      className,
     )}
     {...props}
   >
@@ -393,11 +462,7 @@ const PrimaryButton = ({ children, className, isLoading, disabled, ...props }) =
       <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
     </span>
 
-    {isLoading ? (
-      <Refresh size={20} className="animate-spin" />
-    ) : (
-      children
-    )}
+    {isLoading ? <Refresh size={20} className="animate-spin" /> : children}
   </motion.button>
 );
 
@@ -413,7 +478,7 @@ const SecondaryButton = ({ children, className, ...props }) => (
       "hover:bg-slate-200/90 dark:hover:bg-slate-700/90",
       "shadow-md hover:shadow-lg",
       "transition-all duration-250",
-      className
+      className,
     )}
     {...props}
   >
@@ -422,7 +487,10 @@ const SecondaryButton = ({ children, className, ...props }) => (
 );
 
 const IconButton = React.forwardRef(
-  ({ children, className, active, as, href, disabled, onClick, ...props }, ref) => {
+  (
+    { children, className, active, as, href, disabled, onClick, ...props },
+    ref,
+  ) => {
     const isLink = as === "a" || typeof href === "string";
     const Comp = isLink ? motion.a : motion.button;
 
@@ -453,9 +521,10 @@ const IconButton = React.forwardRef(
           "hover:text-slate-900 dark:hover:text-white",
           "shadow-lg hover:shadow-xl",
           "transition-all duration-250",
-          active && "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xl",
+          active &&
+            "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xl",
           disabled && "opacity-50 cursor-not-allowed pointer-events-none",
-          className
+          className,
         )}
         {...(!isLink ? { disabled } : {})}
         {...props}
@@ -463,7 +532,7 @@ const IconButton = React.forwardRef(
         {children}
       </Comp>
     );
-  }
+  },
 );
 IconButton.displayName = "IconButton";
 
@@ -482,7 +551,12 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <div className="rounded-full p-1 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 shrink-0">
-              <div className={cn(c.avatar, "rounded-full bg-slate-200 dark:bg-slate-700 shimmer")} />
+              <div
+                className={cn(
+                  c.avatar,
+                  "rounded-full bg-slate-200 dark:bg-slate-700 shimmer",
+                )}
+              />
             </div>
 
             <div className="min-w-0 flex-1 space-y-3">
@@ -519,15 +593,12 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
 ===================================================== */
 
 const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
-
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
-
-
 
   // Reset stanja kada se modal otvori
   useEffect(() => {
@@ -536,7 +607,6 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
       setError("");
     }
   }, [open]);
-
 
   const handleSend = async () => {
     // Izvuci seller ID
@@ -572,20 +642,31 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
 
     try {
       // Provjeri postojeću konverzaciju
-      const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
+      const checkRes = await itemConversationApi.checkDirectConversation({
+        user_id: sellerUserId,
+      });
 
       let conversationId = null;
 
-      if (checkRes?.data?.error === false && checkRes?.data?.data?.conversation_id) {
+      if (
+        checkRes?.data?.error === false &&
+        checkRes?.data?.data?.conversation_id
+      ) {
         conversationId = checkRes.data.data.conversation_id;
       } else {
         // Kreiraj novu konverzaciju
-        const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
+        const startRes = await itemConversationApi.startDirectConversation({
+          user_id: sellerUserId,
+        });
 
         if (startRes?.data?.error === false) {
-          conversationId = startRes.data.data?.conversation_id || startRes.data.data?.item_offer_id;
+          conversationId =
+            startRes.data.data?.conversation_id ||
+            startRes.data.data?.item_offer_id;
         } else {
-          throw new Error(startRes?.data?.message || "Nije moguće pokrenuti razgovor.");
+          throw new Error(
+            startRes?.data?.message || "Nije moguće pokrenuti razgovor.",
+          );
         }
       }
 
@@ -612,7 +693,10 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
       }
     } catch (err) {
       console.error("Greška pri slanju poruke:", err);
-      const errorMessage = err?.response?.data?.message || err?.message || "Došlo je do greške pri slanju poruke.";
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Došlo je do greške pri slanju poruke.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -622,15 +706,26 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent showCloseButton={false} className="max-w-lg bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
-        <motion.div {...fadeInUp} transition={{ duration: 0.3 }} className="p-5">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-lg bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg"
+      >
+        <motion.div
+          {...fadeInUp}
+          transition={{ duration: 0.3 }}
+          className="p-5"
+        >
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-5">
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200/60 shadow-sm">
                   <UserAvatarMedia
-                    sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
+                    sources={[
+                      seller?.profile,
+                      seller?.profile_image,
+                      seller?.avatar,
+                    ]}
                     alt={seller?.name || "Prodavač"}
                     className="w-full h-full rounded-xl"
                     roundedClassName="rounded-xl"
@@ -643,7 +738,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
-                Poruka
+                  Poruka
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {seller?.name || "Prodavač"}
@@ -682,7 +777,7 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
                   "placeholder:text-slate-400",
                   "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50",
                   "transition-all duration-200 resize-none",
-                  error ? "border-red-300" : "border-slate-200"
+                  error ? "border-red-300" : "border-slate-200",
                 )}
               />
               <AnimatePresence>
@@ -731,18 +826,25 @@ const ContactSheet = ({
   setOpen,
   seller,
   settings,
+  isLoggedIn,
   actionsDisabled,
   onPhoneReveal,
   onChatClick,
 }) => {
-  const showWhatsapp = Boolean(settings?.show_whatsapp);
-  const showViber = Boolean(settings?.show_viber);
-  const showEmail = Boolean(settings?.show_email);
-  const showPhone = Boolean(settings?.show_phone);
+  const contactEngine = resolveSellerContactEngine({
+    seller,
+    settings,
+    isLoggedIn,
+  });
+  const { contactPolicy, phoneContact, channels } = contactEngine;
+  const showPhone = channels.call;
+  const showWhatsapp = channels.whatsapp;
+  const showViber = channels.viber;
+  const showEmail = channels.email;
 
   const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
   const viberNumber = settings?.viber_number || seller?.mobile;
-  const phone = seller?.mobile;
+  const phone = phoneContact.phone;
   const email = seller?.email;
 
   const [copiedKey, setCopiedKey] = useState("");
@@ -752,7 +854,7 @@ const ContactSheet = ({
       await navigator.clipboard.writeText(value);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(""), 2000);
-      toast.success("Kopirano u međuspremnik");
+      toast.success("Kopirano u medjuspremnik");
     } catch {
       toast.error("Kopiranje nije uspjelo");
     }
@@ -811,8 +913,15 @@ const ContactSheet = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent showCloseButton={false} className="max-w-md bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg">
-        <motion.div {...fadeInUp} transition={{ duration: 0.3 }} className="p-5">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-md bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg"
+      >
+        <motion.div
+          {...fadeInUp}
+          transition={{ duration: 0.3 }}
+          className="p-5"
+        >
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
@@ -835,7 +944,12 @@ const ContactSheet = ({
           </div>
 
           {/* Contact methods */}
-          <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-3">
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="space-y-3"
+          >
             {contactMethods.map((method, idx) => {
               if (!method.show) return null;
 
@@ -859,7 +973,7 @@ const ContactSheet = ({
                       "bg-slate-50/70",
                       "hover:bg-white hover:border-slate-200",
                       "transition-all duration-200",
-                      actionsDisabled && "opacity-50 pointer-events-none"
+                      actionsDisabled && "opacity-50 pointer-events-none",
                     )}
                   >
                     <div className="p-2.5 rounded-lg border border-slate-100 bg-white">
@@ -873,7 +987,10 @@ const ContactSheet = ({
                         {method.value}
                       </div>
                     </div>
-                    <ArrowRight size={18} className="text-slate-400 flex-shrink-0" />
+                    <ArrowRight
+                      size={18}
+                      className="text-slate-400 flex-shrink-0"
+                    />
                   </a>
 
                   {method.copyable && (
@@ -886,7 +1003,7 @@ const ContactSheet = ({
                         "p-3 rounded-xl border border-slate-100",
                         "bg-white",
                         "hover:bg-slate-50",
-                        "transition-all duration-200"
+                        "transition-all duration-200",
                       )}
                     >
                       {copiedKey === method.key ? (
@@ -900,6 +1017,38 @@ const ContactSheet = ({
               );
             })}
 
+            {phoneContact.state !== PHONE_CONTACT_STATES.AVAILABLE &&
+              phoneContact.statusMessage && (
+                <motion.div
+                  variants={fadeInUp}
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-xs",
+                    phoneContact.state === PHONE_CONTACT_STATES.UNVERIFIED
+                      ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300"
+                      : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                  )}
+                >
+                  {phoneContact.statusMessage}
+                </motion.div>
+              )}
+            {contactPolicy.quietHoursEnabled && (
+              <motion.div
+                variants={fadeInUp}
+                className={cn(
+                  "rounded-xl border px-3 py-2.5 text-xs",
+                  contactPolicy.quietHoursActive
+                    ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300"
+                    : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                )}
+              >
+                Quiet hours: {contactPolicy.quietHoursStart} -{" "}
+                {contactPolicy.quietHoursEnd}
+                {contactPolicy.quietHoursMessage
+                  ? ` · ${contactPolicy.quietHoursMessage}`
+                  : ""}
+              </motion.div>
+            )}
+
             {/* Send message button */}
             <motion.button
               variants={fadeInUp}
@@ -911,7 +1060,7 @@ const ContactSheet = ({
               className={cn(
                 "w-full flex items-center justify-center gap-2 p-3 rounded-xl mt-3",
                 "bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold",
-                "transition-colors"
+                "transition-colors",
               )}
             >
               <ChatRound size={20} />
@@ -951,30 +1100,42 @@ export const SellerPreviewCard = ({
   const pathname = usePathname();
   const router = useRouter();
   const CompanyName = useSelector(getCompanyName);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   const settings = useMemo(() => sellerSettings || {}, [sellerSettings]);
   const resolvedMembership = useMemo(
-    () => resolveMembership({ is_pro: isPro, is_shop: isShop }, seller, settings?.membership),
-    [isPro, isShop, seller, settings]
+    () =>
+      resolveMembership(
+        { is_pro: isPro, is_shop: isShop },
+        seller,
+        settings?.membership,
+      ),
+    [isPro, isShop, seller, settings],
   );
   const computedVerified = useMemo(
     () => getVerifiedStatus(seller, settings),
-    [seller, settings]
+    [seller, settings],
   );
-  
+
   const isVerified = isVerifiedOverride ?? computedVerified;
-  
+
   const prefs = uiPrefs || {};
 
   const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
 
   const compactness = prefs.compactness || mergedPrefs?.compactness || "normal";
-  const contactStyle = prefs.contactStyle || mergedPrefs?.contactStyle || settings?.contact_style || "inline";
+  const contactStyle =
+    prefs.contactStyle ||
+    mergedPrefs?.contactStyle ||
+    settings?.contact_style ||
+    "inline";
 
   const showRatings = prefs.showRatings ?? mergedPrefs.show_ratings;
   const showBadges = prefs.showBadges ?? mergedPrefs.show_badges;
-  const showMemberSince = prefs.showMemberSince ?? mergedPrefs.show_member_since;
-  const showResponseTime = prefs.showResponseTime ?? mergedPrefs.show_response_time;
+  const showMemberSince =
+    prefs.showMemberSince ?? mergedPrefs.show_member_since;
+  const showResponseTime =
+    prefs.showResponseTime ?? mergedPrefs.show_response_time;
   const showReelHint = prefs.showReelHint ?? mergedPrefs.show_reel_hint;
   const highlightContactButton =
     prefs.highlightContactButton ?? mergedPrefs.highlight_contact_button;
@@ -992,9 +1153,11 @@ export const SellerPreviewCard = ({
   const canOpenReel = Boolean(onRingClick);
   const showReelPrompt = false;
 
-  const computedShareUrl = shareUrl || (sellerId
-    ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
-    : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
+  const computedShareUrl =
+    shareUrl ||
+    (sellerId
+      ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
+      : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
   const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
 
@@ -1005,21 +1168,45 @@ export const SellerPreviewCard = ({
         settings,
       })
     : null;
+  const lastSeenDate = parseLastSeenDate(seller);
+  const seenAgoLabel = formatSeenAgoLabel(lastSeenDate);
+  const seenInfoLabel =
+    lastSeenDate && seenAgoLabel ? `Viđen ${seenAgoLabel}` : "";
 
-  const memberSince = showMemberSince ? formatMemberSince(seller?.created_at) : "";
+  const memberSince = showMemberSince
+    ? formatMemberSince(seller?.created_at)
+    : "";
 
   const ratingValue = useMemo(
-    () => (seller?.average_rating != null ? Number(seller.average_rating).toFixed(1) : null),
-    [seller?.average_rating]
+    () =>
+      seller?.average_rating != null
+        ? Number(seller.average_rating).toFixed(1)
+        : null,
+    [seller?.average_rating],
   );
-  const ratingCount = useMemo(() => ratings?.total || ratings?.count || 0, [ratings]);
+  const ratingCount = useMemo(
+    () => ratings?.total || ratings?.count || 0,
+    [ratings],
+  );
 
   const badgeList = (badges || []).slice(0, mergedPrefs.max_badges || 2);
 
   const businessHours = parseBusinessHours(settings.business_hours);
-  const showHours = Boolean(showBusinessHours && businessHours && Object.values(businessHours).some(d => d?.enabled));
+  const showHours = Boolean(
+    showBusinessHours &&
+    businessHours &&
+    Object.values(businessHours).some((d) => d?.enabled),
+  );
   const todayHoursText = showHours ? getTodayHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
+  const contactEngine = resolveSellerContactEngine({
+    seller,
+    settings,
+    isLoggedIn,
+  });
+  const { contactPolicy, phoneContact, emailVerified } = contactEngine;
+  const quietHoursActive = contactPolicy.quietHoursActive;
+  const hasDirectContactOptions = contactEngine.hasDirectContactOptions;
 
   const handleChatClick = () => {
     if (onChatClick) {
@@ -1052,6 +1239,7 @@ export const SellerPreviewCard = ({
         setOpen={setIsContactSheetOpen}
         seller={seller}
         settings={settings}
+        isLoggedIn={isLoggedIn}
         actionsDisabled={actionsDisabled}
         onPhoneReveal={onPhoneClick}
         onChatClick={handleChatClick}
@@ -1067,29 +1255,34 @@ export const SellerPreviewCard = ({
                 <div
                   className={cn(
                     "relative isolate flex-shrink-0 group",
-                    showReelRing && "cursor-pointer"
+                    showReelRing && "cursor-pointer",
                   )}
                 >
                   {/* Reel ring wrapper — let CSS handle padding + radius */}
                   <div
                     className={cn(
-                      showReelRing ? "reel-ring" : "rounded-[14px] p-[2px] bg-transparent"
+                      showReelRing
+                        ? "reel-ring"
+                        : "rounded-[14px] p-[2px] bg-transparent",
                     )}
                   >
                     {/* Flash + Bubbles only when reel active */}
                     {showReelRing && <div className="reel-ring-flash" />}
-
 
                     <div
                       className={cn(
                         "w-12 h-12 overflow-hidden bg-slate-100 dark:bg-slate-800",
                         showReelRing
                           ? "reel-ring-inner border border-white/70 dark:border-slate-700/80"
-                          : "rounded-xl border border-slate-200/60 dark:border-slate-700/60"
+                          : "rounded-xl border border-slate-200/60 dark:border-slate-700/60",
                       )}
                     >
                       <UserAvatarMedia
-                        sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
+                        sources={[
+                          seller?.profile,
+                          seller?.profile_image,
+                          seller?.avatar,
+                        ]}
                         alt={seller?.name || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"
@@ -1130,7 +1323,9 @@ export const SellerPreviewCard = ({
                       className="absolute -top-1 -right-1 z-30 w-6 h-6 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center border border-slate-200 dark:border-slate-700"
                       aria-label="Dodaj video"
                     >
-                      <span className="text-lg leading-none text-[#1e3a8a]">+</span>
+                      <span className="text-lg leading-none text-[#1e3a8a]">
+                        +
+                      </span>
                     </motion.button>
                   )}
                 </div>
@@ -1158,7 +1353,10 @@ export const SellerPreviewCard = ({
 
               if (sellerId) {
                 return (
-                  <CustomLink href={`/seller/${sellerId}`} className="flex-shrink-0">
+                  <CustomLink
+                    href={`/seller/${sellerId}`}
+                    className="flex-shrink-0"
+                  >
                     {avatar}
                   </CustomLink>
                 );
@@ -1178,21 +1376,35 @@ export const SellerPreviewCard = ({
                   >
                     <span className="truncate">{seller?.name}</span>
                     {resolvedMembership.isPremium && (
-                      <MembershipBadge tier={resolvedMembership.tier} size="xs" />
+                      <MembershipBadge
+                        tier={resolvedMembership.tier}
+                        size="xs"
+                      />
                     )}
                   </CustomLink>
                 ) : (
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                     <span className="truncate">{seller?.name}</span>
                     {resolvedMembership.isPremium && (
-                      <MembershipBadge tier={resolvedMembership.tier} size="xs" />
+                      <MembershipBadge
+                        tier={resolvedMembership.tier}
+                        size="xs"
+                      />
                     )}
                   </span>
                 )}
 
                 {showShare && (
-                  <ShareDropdown url={computedShareUrl} title={title} headline={title} companyName={CompanyName}>
-                    <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                  <ShareDropdown
+                    url={computedShareUrl}
+                    title={title}
+                    headline={title}
+                    companyName={CompanyName}
+                  >
+                    <button
+                      type="button"
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                    >
                       <Share className="w-4 h-4" />
                     </button>
                   </ShareDropdown>
@@ -1211,7 +1423,9 @@ export const SellerPreviewCard = ({
                     )}
 
                     {showRatings && ratingValue && memberSince && (
-                      <span className="text-[10px] text-slate-300 dark:text-slate-600">•</span>
+                      <span className="text-[10px] text-slate-300 dark:text-slate-600">
+                        •
+                      </span>
                     )}
 
                     {memberSince && (
@@ -1228,6 +1442,30 @@ export const SellerPreviewCard = ({
                     <span>Prosječno vrijeme odgovora: {responseLabel}</span>
                   </div>
                 )}
+                {seenInfoLabel && (
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    {seenInfoLabel}
+                  </p>
+                )}
+                <ContactTrustBadges
+                  className="mt-1"
+                  hasPhone={phoneContact.hasPhone}
+                  phoneState={phoneContact.state}
+                  phoneVerified={phoneContact.isPhoneVerified}
+                  hasEmail={Boolean(seller?.email)}
+                  emailVerified={emailVerified}
+                  responseLabel={responseLabel || ""}
+                  phoneVisibleOnlyToLoggedIn={
+                    contactPolicy.phoneVisibleOnlyToLoggedIn
+                  }
+                  messagesOnly={contactPolicy.messagesOnly}
+                  quietHoursEnabled={contactPolicy.quietHoursEnabled}
+                  quietHoursStart={contactPolicy.quietHoursStart}
+                  quietHoursEnd={contactPolicy.quietHoursEnd}
+                  quietHoursActive={quietHoursActive}
+                  quietHoursMessage={contactPolicy.quietHoursMessage}
+                  reasonCodes={contactEngine.reasonCodes}
+                />
               </div>
 
               {/* Gamification badges */}
@@ -1253,16 +1491,30 @@ export const SellerPreviewCard = ({
             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>Danas: <strong className="text-slate-900 dark:text-slate-100">{todayHoursText}</strong></span>
+                <span>
+                  Danas:{" "}
+                  <strong className="text-slate-900 dark:text-slate-100">
+                    {todayHoursText}
+                  </strong>
+                </span>
               </div>
               {openNow !== null && (
-                <span className={cn(
-                  "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                  openNow
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                    : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500")} />
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
+                    openNow
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      openNow
+                        ? "bg-emerald-500"
+                        : "bg-slate-400 dark:bg-slate-500",
+                    )}
+                  />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
@@ -1281,42 +1533,41 @@ export const SellerPreviewCard = ({
               Poruka
             </button>
 
-            <SavedToListButton
-              sellerId={sellerId}
-              sellerName={seller?.name}
-            />
+            <SavedToListButton sellerId={sellerId} sellerName={seller?.name} />
 
             {contactStyle === "sheet" ? (
-              <button
-                type="button"
-                onClick={handlePhoneClick}
-                disabled={actionsDisabled}
-                className={cn(
-                  "flex items-center justify-center w-10 h-10 rounded-xl border transition-colors disabled:opacity-50",
-                  highlightContactButton
-                    ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
-                )}
-              >
-                <Phone className="w-4 h-4" />
-              </button>
+              hasDirectContactOptions ? (
+                <button
+                  type="button"
+                  onClick={handlePhoneClick}
+                  disabled={actionsDisabled}
+                  className={cn(
+                    "flex items-center justify-center w-10 h-10 rounded-xl border transition-colors disabled:opacity-50",
+                    highlightContactButton
+                      ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300",
+                  )}
+                >
+                  <Phone className="w-4 h-4" />
+                </button>
+              ) : null
             ) : (
               <>
-                {settings?.show_phone && seller?.mobile && (
+                {phoneContact.canCall && (
                   <a
-                    href={`tel:${seller.mobile}`}
+                    href={`tel:${phoneContact.phone}`}
                     onClick={handlePhoneClick}
                     className={cn(
                       "flex items-center justify-center w-10 h-10 rounded-xl border transition-colors",
                       highlightContactButton
                         ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-600"
+                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-600",
                     )}
                   >
                     <Phone className="w-4 h-4" />
                   </a>
                 )}
-                {settings?.show_whatsapp && (settings?.whatsapp_number || seller?.mobile) && (
+                {contactEngine.channels.whatsapp && (
                   <a
                     href={`https://wa.me/${String(settings?.whatsapp_number || seller?.mobile).replace(/\D/g, "")}`}
                     target="_blank"
@@ -1360,7 +1611,14 @@ const useLocalStorageState = (key, initialValue) => {
   return [value, set];
 };
 
-const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }) => {
+const AccordionSection = ({
+  id,
+  title,
+  icon: Icon,
+  openId,
+  setOpenId,
+  children,
+}) => {
   const isOpen = openId === id;
 
   return (
@@ -1375,20 +1633,25 @@ const AccordionSection = ({ id, title, icon: Icon, openId, setOpenId, children }
         className={cn(
           "w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
           "hover:bg-slate-50/80 dark:hover:bg-slate-800/70",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
         )}
       >
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary border border-primary/10 dark:border-primary/30">
             <Icon size={18} />
           </span>
-          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</span>
+          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {title}
+          </span>
         </span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.25 }}
         >
-          <ArrowRight size={18} className="rotate-90 text-slate-400 dark:text-slate-500" />
+          <ArrowRight
+            size={18}
+            className="rotate-90 text-slate-400 dark:text-slate-500"
+          />
         </motion.div>
       </button>
 
@@ -1435,7 +1698,7 @@ const SocialPill = ({ icon: Icon, label, href }) => {
         "group relative inline-flex items-center gap-2.5 rounded-xl",
         "border border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/70",
         "px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200",
-        "hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all duration-250"
+        "hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all duration-250",
       )}
     >
       <Icon size={18} className="text-slate-500 dark:text-slate-400" />
@@ -1449,7 +1712,7 @@ const SocialPill = ({ icon: Icon, label, href }) => {
         className={cn(
           "ml-1 p-1.5 rounded-lg",
           "hover:bg-white dark:hover:bg-slate-700",
-          "opacity-0 group-hover:opacity-100 transition-opacity"
+          "opacity-0 group-hover:opacity-100 transition-opacity",
         )}
       >
         {copied ? (
@@ -1503,14 +1766,22 @@ const SellerDetailCard = ({
 
   // ── Verifikacija ──
   const localVerified = useMemo(
-    () => getVerifiedStatus(seller, settings, seller?.user, seller?.seller, seller?.account),
-    [seller, settings]
+    () =>
+      getVerifiedStatus(
+        seller,
+        settings,
+        seller?.user,
+        seller?.seller,
+        seller?.account,
+      ),
+    [seller, settings],
   );
 
   const [verifiedRemote, setVerifiedRemote] = useState(false);
   const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
   const isOwnProfile = Boolean(
-    currentUser?.id && String(currentUser.id) === String(mainSellerId)
+    currentUser?.id && String(currentUser.id) === String(mainSellerId),
   );
 
   useEffect(() => {
@@ -1519,13 +1790,13 @@ const SellerDetailCard = ({
 
   useEffect(() => {
     if (localVerified || !mainSellerId || !isOwnProfile) return;
-  
+
     let alive = true;
-  
+
     const fetchRemote = async () => {
       try {
         const res = await getVerificationStatusApi.getVerificationStatus();
-        const statusData = res?.data?.data || res?.data; 
+        const statusData = res?.data?.data || res?.data;
         if (alive && statusData) {
           const isRemoteValid = getVerifiedStatus(statusData, statusData);
           if (isRemoteValid) {
@@ -1536,9 +1807,11 @@ const SellerDetailCard = ({
         console.error("Greška pri provjeri verifikacije:", e);
       }
     };
-  
+
     fetchRemote();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [mainSellerId, localVerified, isOwnProfile]);
 
   const isVerified = localVerified || verifiedRemote;
@@ -1546,11 +1819,45 @@ const SellerDetailCard = ({
   // ── Video/Reel detection (definisano PRIJE korištenja) ──
   const localHasReel = Boolean(
     hasSellerActiveReel(seller) ||
-      hasSellerActiveReel(settings) ||
-      hasItemVideo(seller) ||
-      hasItemVideo(settings)
+    hasSellerActiveReel(settings) ||
+    hasItemVideo(seller) ||
+    hasItemVideo(settings),
   );
   const [hasReel, setHasReel] = useSellerHasReel(mainSellerId, localHasReel);
+
+  useEffect(() => {
+    if (!mainSellerId || hasReel) return;
+
+    let active = true;
+
+    const checkSellerVideos = async () => {
+      try {
+        const res = await allItemApi.getItems({
+          user_id: mainSellerId,
+          has_video: 1,
+          status: "approved",
+          limit: 3,
+          sort_by: "new-to-old",
+        });
+
+        const rawItems =
+          res?.data?.data?.data || res?.data?.data || res?.data?.items || [];
+        const list = Array.isArray(rawItems) ? rawItems : [];
+        const hasAnyVideo = list.some((entry) => hasItemVideo(entry));
+
+        if (active && hasAnyVideo) {
+          setHasReel(true);
+        }
+      } catch {
+        // Silent fallback: ring state stays as-is if check fails.
+      }
+    };
+
+    checkSellerVideos();
+    return () => {
+      active = false;
+    };
+  }, [mainSellerId, hasReel, setHasReel]);
 
   // ── Modali ──
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
@@ -1560,8 +1867,12 @@ const SellerDetailCard = ({
 
   // ── Parsiranje postavki ──
   const businessDescription = settings.business_description || "";
-  const returnPolicy = mergedPrefs.show_return_policy ? (settings.return_policy || "") : "";
-  const shippingInfo = mergedPrefs.show_shipping_info ? (settings.shipping_info || "") : "";
+  const returnPolicy = mergedPrefs.show_return_policy
+    ? settings.return_policy || ""
+    : "";
+  const shippingInfo = mergedPrefs.show_shipping_info
+    ? settings.shipping_info || ""
+    : "";
 
   const socialFacebook = settings.social_facebook || "";
   const socialInstagram = settings.social_instagram || "";
@@ -1573,14 +1884,18 @@ const SellerDetailCard = ({
   const showHours = Boolean(
     mergedPrefs.show_business_hours &&
     businessHours &&
-    Object.values(businessHours).some(d => d?.enabled)
+    Object.values(businessHours).some((d) => d?.enabled),
   );
   const todayHoursText = showHours ? getTodayHours(businessHours) : null;
   const tomorrowHoursText = showHours ? getTomorrowHours(businessHours) : null;
   const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
 
   const hasSocialLinks = Boolean(
-    socialFacebook || socialInstagram || socialTiktok || socialYoutube || socialWebsite
+    socialFacebook ||
+    socialInstagram ||
+    socialTiktok ||
+    socialYoutube ||
+    socialWebsite,
   );
 
   const storageKey = mainSellerId
@@ -1593,6 +1908,39 @@ const SellerDetailCard = ({
     if (onChatClick) onChatClick();
     else setIsMessageModalOpen(true);
   };
+
+  const handleRingClick = useCallback(async () => {
+    if (!mainSellerId) {
+      toast.info("Nema aktivnih videa.");
+      return;
+    }
+
+    try {
+      const res = await allItemApi.getItems({
+        user_id: mainSellerId,
+        has_video: 1,
+        status: "approved",
+        limit: 1,
+        sort_by: "new-to-old",
+      });
+      const rawItems =
+        res?.data?.data?.data || res?.data?.data || res?.data?.items || [];
+      const list = Array.isArray(rawItems) ? rawItems : [];
+      const hasAnyVideo = list.some((entry) => hasItemVideo(entry));
+
+      if (hasAnyVideo) {
+        setHasReel(true);
+        setIsReelViewerOpen(true);
+        return;
+      }
+
+      setHasReel(false);
+    } catch {
+      // no-op, show same user-facing message below
+    }
+
+    toast.info("Nema aktivnih videa.");
+  }, [mainSellerId, setHasReel]);
 
   if (!seller) return <SellerPreviewSkeleton />;
 
@@ -1639,10 +1987,10 @@ const SellerDetailCard = ({
         onPhoneClick={() => setIsContactSheetOpen(true)}
         uiPrefs={{ contactStyle: "sheet" }}
         showReelRing={hasReel}
-        onRingClick={() => setIsReelViewerOpen(true)}
+        onRingClick={handleRingClick}
         showAddReel={isOwnProfile}
         onAddReelClick={() => setIsReelModalOpen(true)}
-        isVerifiedOverride={isVerified || undefined} 
+        isVerifiedOverride={isVerified || undefined}
       />
 
       {/* KONTAKT SEKCIJA */}
@@ -1659,11 +2007,37 @@ const SellerDetailCard = ({
               Društvene mreže
             </div>
             <div className="flex flex-wrap gap-2.5">
-              {socialFacebook && <SocialPill icon={Users} label="Facebook" href={socialFacebook} />}
-              {socialInstagram && <SocialPill icon={Camera} label="Instagram" href={socialInstagram} />}
-              {socialTiktok && <SocialPill icon={MusicNote2} label="TikTok" href={socialTiktok} />}
-              {socialYoutube && <SocialPill icon={Play} label="YouTube" href={socialYoutube} />}
-              {socialWebsite && <SocialPill icon={Global} label="Web stranica" href={socialWebsite} />}
+              {socialFacebook && (
+                <SocialPill
+                  icon={Users}
+                  label="Facebook"
+                  href={socialFacebook}
+                />
+              )}
+              {socialInstagram && (
+                <SocialPill
+                  icon={Camera}
+                  label="Instagram"
+                  href={socialInstagram}
+                />
+              )}
+              {socialTiktok && (
+                <SocialPill
+                  icon={MusicNote2}
+                  label="TikTok"
+                  href={socialTiktok}
+                />
+              )}
+              {socialYoutube && (
+                <SocialPill icon={Play} label="YouTube" href={socialYoutube} />
+              )}
+              {socialWebsite && (
+                <SocialPill
+                  icon={Global}
+                  label="Web stranica"
+                  href={socialWebsite}
+                />
+              )}
             </div>
           </div>
         </AccordionSection>
@@ -1682,16 +2056,30 @@ const SellerDetailCard = ({
             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>Danas: <strong className="text-slate-900 dark:text-slate-100">{todayHoursText}</strong></span>
+                <span>
+                  Danas:{" "}
+                  <strong className="text-slate-900 dark:text-slate-100">
+                    {todayHoursText}
+                  </strong>
+                </span>
               </div>
               {openNow !== null && (
-                <span className={cn(
-                  "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                  openNow
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                    : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500")} />
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
+                    openNow
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      openNow
+                        ? "bg-emerald-500"
+                        : "bg-slate-400 dark:bg-slate-500",
+                    )}
+                  />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
@@ -1703,7 +2091,9 @@ const SellerDetailCard = ({
                   <Calendar className="w-4 h-4 text-slate-300 dark:text-slate-500" />
                   <span>Sutra</span>
                 </div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{tomorrowHoursText}</span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {tomorrowHoursText}
+                </span>
               </div>
             )}
           </div>
@@ -1724,8 +2114,12 @@ const SellerDetailCard = ({
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-50/80 dark:bg-sky-950/20 border border-sky-100/60 dark:border-sky-800/50">
                 <Lightning className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-medium text-sky-800 dark:text-sky-300 mb-0.5">Dostava</div>
-                  <p className="text-xs text-sky-600 dark:text-sky-400 whitespace-pre-line">{shippingInfo}</p>
+                  <div className="text-xs font-medium text-sky-800 dark:text-sky-300 mb-0.5">
+                    Dostava
+                  </div>
+                  <p className="text-xs text-sky-600 dark:text-sky-400 whitespace-pre-line">
+                    {shippingInfo}
+                  </p>
                 </div>
               </div>
             )}
@@ -1734,8 +2128,12 @@ const SellerDetailCard = ({
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/60 dark:border-amber-800/50">
                 <Shield className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-0.5">Povrat</div>
-                  <p className="text-xs text-amber-600 dark:text-amber-400 whitespace-pre-line">{returnPolicy}</p>
+                  <div className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-0.5">
+                    Povrat
+                  </div>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 whitespace-pre-line">
+                    {returnPolicy}
+                  </p>
                 </div>
               </div>
             )}
@@ -1744,8 +2142,12 @@ const SellerDetailCard = ({
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
                 <InfoCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">O prodavaču</div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 whitespace-pre-line">{businessDescription}</p>
+                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">
+                    O prodavaču
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 whitespace-pre-line">
+                    {businessDescription}
+                  </p>
                 </div>
               </div>
             )}
@@ -1768,6 +2170,7 @@ const SellerDetailCard = ({
         setOpen={setIsContactSheetOpen}
         seller={seller}
         settings={settings}
+        isLoggedIn={isLoggedIn}
         actionsDisabled={false}
         onPhoneReveal={onPhoneReveal}
         onChatClick={handleChatClick}

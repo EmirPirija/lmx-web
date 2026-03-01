@@ -22,6 +22,7 @@ import { itemQuestionsApi } from "@/utils/api";
 import { useItemTracking } from "@/hooks/useItemTracking";
 import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { cn } from "@/lib/utils";
+import { resolveSellerPublicQuestionsEngine } from "@/lib/seller-settings-engine";
 import { formatDistanceToNow } from "date-fns";
 import { bs } from "date-fns/locale";
 
@@ -157,7 +158,11 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
   );
 };
 
-const ProductQuestions = ({ productDetails, isSeller = false }) => {
+const ProductQuestions = ({
+  productDetails,
+  isSeller = false,
+  sellerSettings = null,
+}) => {
   const dispatch = useDispatch();
   const isLoggedIn = useSelector(getIsLoggedIn);
   const currentUser = useSelector(userSignUpData);
@@ -173,6 +178,19 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
   const itemId = productDetails?.id;
   const { trackEngagement } = useItemTracking(itemId, { autoTrackView: false });
+  const publicQuestionsEnabled = resolveSellerPublicQuestionsEngine({
+    settings:
+      sellerSettings ||
+      productDetails?.seller_settings ||
+      productDetails?.user?.seller_settings ||
+      {},
+    fallback: true,
+  });
+  const publicQuestionsDisabledMessage = "Prodavač je isključio javna pitanja za ovaj oglas.";
+
+  useEffect(() => {
+    if (!publicQuestionsEnabled) setShowAskForm(false);
+  }, [publicQuestionsEnabled]);
 
   const fetchQuestions = useCallback(async (pageNum = 1, append = false) => {
     if (!itemId) return;
@@ -201,6 +219,10 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
   useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
 
   const handleAskQuestion = async () => {
+    if (!publicQuestionsEnabled) {
+      toast.info(publicQuestionsDisabledMessage);
+      return;
+    }
     if (!isLoggedIn) return dispatch(setIsLoginOpen(true));
     if (!newQuestion.trim()) return toast.error("Unesite pitanje");
     setIsSubmitting(true);
@@ -315,7 +337,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
               <span>Samo neodgovorena</span>
             </button>
 
-            {!showAskForm && (
+            {!showAskForm && publicQuestionsEnabled && (
               <button
                 onClick={() => isLoggedIn ? setShowAskForm(true) : dispatch(setIsLoginOpen(true))}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-sm"
@@ -325,6 +347,12 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
             )}
           </div>
         </div>
+
+        {!publicQuestionsEnabled && !isSeller && (
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 dark:border-amber-800/70 dark:bg-amber-900/20 dark:text-amber-300">
+            {publicQuestionsDisabledMessage}
+          </div>
+        )}
 
         <div className="mt-3 grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white/90 dark:bg-slate-800/70 px-3 py-2">
@@ -342,7 +370,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
         </div>
       </div>
 
-      {showAskForm && (
+      {showAskForm && publicQuestionsEnabled && (
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-blue-900/10">
           <div className="flex gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -419,7 +447,7 @@ const ProductQuestions = ({ productDetails, isSeller = false }) => {
                 ? "Sva pitanja su trenutno odgovorena."
                 : "Budite prvi koji će postaviti pitanje."}
             </p>
-            {!showAskForm && (
+            {!showAskForm && publicQuestionsEnabled && (
               <button
                 type="button"
                 onClick={() => isLoggedIn ? setShowAskForm(true) : dispatch(setIsLoginOpen(true))}

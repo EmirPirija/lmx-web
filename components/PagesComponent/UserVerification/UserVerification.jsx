@@ -296,7 +296,7 @@ const UserVerification = () => {
   );
 
   const resolvedPhoneDisplay =
-    firebaseIdentity?.phoneNumber || phoneDraftE164 || fallbackPhoneE164 || "nije dostupan";
+    firebaseIdentity?.phoneNumber || phoneDraftE164 || fallbackPhoneE164 || "Broj nije unesen";
 
   useEffect(() => {
     fetchVerificationData();

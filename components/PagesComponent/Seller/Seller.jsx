@@ -367,7 +367,7 @@ const Seller = ({ id, searchParams }) => {
                       onOpenAutoFocus={preventSheetAutoFocusScroll}
                       onCloseAutoFocus={preventSheetAutoFocusScroll}
                       overlayClassName="bg-transparent backdrop-blur-none"
-                      className="z-[96] h-auto max-h-[min(72dvh,420px)] overflow-hidden rounded-t-[1.25rem] border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900 [&>button]:hidden"
+                      className="z-[128] h-auto max-h-[min(72dvh,420px)] overflow-hidden rounded-t-[1.25rem] border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900 [&>button]:hidden"
                     >
                       <div className="flex flex-col bg-white dark:bg-slate-900">
                         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">

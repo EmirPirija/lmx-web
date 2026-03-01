@@ -766,13 +766,18 @@ const Ads = () => {
   useEffect(() => {
     if (!mobileDock) return undefined;
     const suspendKey = "ads-mobile-floating-utility";
-    const shouldSuspendDock = Boolean(isMobile && isMobileHeaderHidden);
+    const shouldSuspendDock = Boolean(
+      isMobile && (isMobileHeaderHidden || isToolbarActionSheetOpen),
+    );
     mobileDock.setSuspended?.(suspendKey, shouldSuspendDock);
+    if (shouldSuspendDock) {
+      mobileDock.closeNav?.();
+    }
 
     return () => {
       mobileDock.clearSuspended?.(suspendKey);
     };
-  }, [mobileDock, isMobile, isMobileHeaderHidden]);
+  }, [mobileDock, isMobile, isMobileHeaderHidden, isToolbarActionSheetOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -820,9 +825,11 @@ const Ads = () => {
   }, []);
 
   useEffect(() => {
-    const shouldHideBottomNav = Boolean(isMobile && isMobileHeaderHidden);
+    const shouldHideBottomNav = Boolean(
+      isMobile && (isMobileHeaderHidden || isToolbarActionSheetOpen),
+    );
     dispatch(setHideMobileBottomNav(shouldHideBottomNav));
-  }, [dispatch, isMobile, isMobileHeaderHidden]);
+  }, [dispatch, isMobile, isMobileHeaderHidden, isToolbarActionSheetOpen]);
 
   useEffect(() => {
     return () => {
@@ -932,7 +939,9 @@ const Ads = () => {
       let nextHideHeader = hideHeaderRef.current;
 
       if (isToolbarActionSheetOpen) {
-        nextHideHeader = false;
+        // Dok je sheet otvoren ne diramo postojeće stanje header-a.
+        // Time sprječavamo "flash" povratak bottom bara pri zatvaranju.
+        nextHideHeader = hideHeaderRef.current;
       } else if (currentScrollY >= triggerY) {
         nextHideHeader = true;
       } else if (currentScrollY <= resetY) {
@@ -1552,10 +1561,11 @@ const Ads = () => {
   }) => (
     <motion.button
       type="button"
-      whileTap={{ scale: 0.94 }}
-      transition={{ type: "spring", stiffness: 420, damping: 30 }}
+      whileHover={{ y: -1, scale: 1.03 }}
+      whileTap={{ scale: 0.92 }}
+      transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.72 }}
       onClick={onClick}
-      className={`relative grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/80 p-1 transition-all duration-200 hover:scale-105 dark:border-slate-700 dark:bg-slate-900/75 ${
+      className={`group relative grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-slate-200/80 bg-white/85 p-1 transition-all duration-200 dark:border-slate-700 dark:bg-slate-900/80 ${
         active
           ? "border-primary/45 bg-primary/10 text-primary shadow-[0_8px_20px_-12px_rgba(15,118,110,0.45)] dark:border-primary/50 dark:bg-primary/20"
           : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -1563,11 +1573,55 @@ const Ads = () => {
       aria-label={label}
       title={label}
     >
-      <Icon size={18} className={iconClassName} />
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/45 to-transparent dark:via-white/15"
+        initial={false}
+        animate={active ? { x: ["-140%", "150%"] } : { x: "-170%" }}
+        transition={
+          active
+            ? {
+                duration: 1.65,
+                repeat: Infinity,
+                repeatDelay: 1.15,
+                ease: "easeInOut",
+              }
+            : { duration: 0.2 }
+        }
+      />
+      <AnimatePresence initial={false}>
+        {active ? (
+          <motion.span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-full border border-primary/35 dark:border-primary/40"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: [0.25, 0.6, 0.25], scale: [0.92, 1.08, 0.92] }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 1.85, repeat: Infinity, ease: "easeInOut" }}
+          />
+        ) : null}
+      </AnimatePresence>
+      <motion.span
+        className="relative z-[1]"
+        initial={false}
+        animate={
+          active
+            ? { scale: [1, 1.08, 1], rotate: [0, -4, 0] }
+            : { scale: 1, rotate: 0 }
+        }
+        transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Icon size={18} className={iconClassName} />
+      </motion.span>
       {badge ? (
-        <span className="absolute -right-1 -top-1 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-white text-[9px] font-semibold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+        <motion.span
+          initial={{ opacity: 0, scale: 0.75 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 360, damping: 22 }}
+          className="absolute -right-1 -top-1 z-[2] min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-white text-[9px] font-semibold flex items-center justify-center ring-2 ring-white dark:ring-slate-900"
+        >
           {badge}
-        </span>
+        </motion.span>
       ) : null}
     </motion.button>
   );
@@ -1598,39 +1652,59 @@ const Ads = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
               onClick={handleBackdropClick}
-              className="fixed inset-0 z-[107] bg-slate-950/45 backdrop-blur-[3px] md:hidden"
+              className="fixed inset-0 z-[127] bg-slate-950/30 md:hidden"
             />
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              initial={{ y: "100%", opacity: 0.92, scale: 0.985 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: "100%", opacity: 0.94, scale: 0.99 }}
               transition={{
                 type: "spring",
-                stiffness: 320,
-                damping: 32,
-                mass: 0.9,
+                stiffness: 300,
+                damping: 30,
+                mass: 0.82,
               }}
-              className="fixed inset-x-0 bottom-0 z-[108] md:hidden"
+              className="fixed inset-x-0 bottom-0 z-[128] md:hidden"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="rounded-t-[1.75rem] border border-slate-200 bg-white/95 px-4 pb-5 pt-3 shadow-[0_-20px_50px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-[0_-20px_50px_-28px_rgba(2,6,23,0.85)]">
-                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <div className="mb-3 flex items-center justify-between border-b border-slate-100 px-1 pb-2 dark:border-slate-800">
-                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    {title}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                    aria-label="Zatvori"
-                  >
-                    <IoMdClose size={16} />
-                  </button>
-                </div>
-                {children}
+                <motion.div
+                  className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600"
+                  initial={{ opacity: 0.5, width: 32 }}
+                  animate={{ opacity: [0.55, 0.9, 0.55], width: [32, 44, 32] }}
+                  transition={{
+                    duration: 2.6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.24,
+                    delay: 0.04,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                >
+                  <div className="mb-3 flex items-center justify-between border-b border-slate-100 px-1 pb-2 dark:border-slate-800">
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {title}
+                    </h3>
+                    <motion.button
+                      type="button"
+                      onClick={onClose}
+                      whileTap={{ scale: 0.92 }}
+                      className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                      aria-label="Zatvori"
+                    >
+                      <IoMdClose size={16} />
+                    </motion.button>
+                  </div>
+                  {children}
+                </motion.div>
               </div>
             </motion.div>
           </>
@@ -1647,34 +1721,54 @@ const Ads = () => {
         scale: compact ? 0.985 : 1,
         y: compact ? 0 : 0,
       }}
-      className={`inline-flex w-fit max-w-full items-center gap-2 rounded-[1.35rem] border px-3 py-2 ${
+      className={`relative isolate inline-flex w-fit max-w-full items-center gap-2 overflow-hidden rounded-[1.35rem] border px-3 py-2 ${
         compact
           ? "border-slate-200/85 bg-white/92 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700/85 dark:bg-slate-900/92 dark:shadow-[0_14px_28px_-24px_rgba(2,6,23,0.85)]"
           : "border-slate-200/90 bg-white/90 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95"
       }`}
       transition={{ type: "spring", stiffness: 300, damping: 28, mass: 0.85 }}
+      style={{ willChange: "transform, opacity" }}
     >
-      <SavedSearchControls iconOnly />
-      <MobileActionButton
-        icon={ArrowUpDown}
-        label="Poredaj oglase"
-        active={sortBy !== "new-to-old"}
-        onClick={() => setIsSortSheetOpen(true)}
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-[1.35rem] bg-[radial-gradient(120%_120%_at_0%_0%,rgba(20,184,166,0.18),transparent_58%)]"
+        animate={{ opacity: compact ? [0.4, 0.62, 0.4] : [0.48, 0.76, 0.48] }}
+        transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
       />
-      <MobileActionButton
-        icon={view === "grid" ? LayoutGrid : List}
-        label={view === "grid" ? "Mrežni prikaz" : "Prikaz liste"}
-        active={view === "grid"}
-        onClick={() => setIsViewSheetOpen(true)}
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-y-6 -left-24 w-24 rotate-[14deg] bg-white/40 blur-xl dark:bg-white/15"
+        animate={{ x: ["0%", "560%"] }}
+        transition={{
+          duration: 5.6,
+          repeat: Infinity,
+          repeatDelay: 1.25,
+          ease: "easeInOut",
+        }}
       />
-      {isRealEstateSearch ? (
+      <div className="relative z-[1] inline-flex items-center gap-2">
+        <SavedSearchControls iconOnly />
         <MobileActionButton
-          icon={MapPin}
-          label={isListMapOpen ? "Sakrij mapu" : "Prikaži mapu"}
-          active={isListMapOpen}
-          onClick={() => setIsListMapOpen((prev) => !prev)}
+          icon={ArrowUpDown}
+          label="Poredaj oglase"
+          active={sortBy !== "new-to-old"}
+          onClick={() => setIsSortSheetOpen(true)}
         />
-      ) : null}
+        <MobileActionButton
+          icon={view === "grid" ? LayoutGrid : List}
+          label={view === "grid" ? "Mrežni prikaz" : "Prikaz liste"}
+          active={view === "grid"}
+          onClick={() => setIsViewSheetOpen(true)}
+        />
+        {isRealEstateSearch ? (
+          <MobileActionButton
+            icon={MapPin}
+            label={isListMapOpen ? "Sakrij mapu" : "Prikaži mapu"}
+            active={isListMapOpen}
+            onClick={() => setIsListMapOpen((prev) => !prev)}
+          />
+        ) : null}
+      </div>
     </motion.div>
   );
 
@@ -1777,7 +1871,7 @@ const Ads = () => {
   const adsGridClasses =
     view === "list"
       ? "grid grid-cols-1 gap-4 mt-4"
-      : `grid grid-cols-2 gap-3 sm:gap-1 mt-6 ${
+      : `grid grid-cols-2 gap-1 sm:gap-1 mt-6 ${
           isRealEstateSearch && isListMapOpen
             ? "lg:grid-cols-2 xl:grid-cols-3"
             : "lg:grid-cols-4 xl:grid-cols-5"

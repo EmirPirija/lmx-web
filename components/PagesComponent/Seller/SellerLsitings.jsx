@@ -40,72 +40,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { useSelector } from "react-redux";
 import { cn } from "@/lib/utils";
-
-const defaultBuyerFilterPreferences = {
-  enable_buyer_filters: true,
-  buyer_filters_show_search: true,
-  buyer_filters_show_category: true,
-  buyer_filters_show_price: true,
-  buyer_filters_show_video: true,
-  buyer_filters_show_on_sale: true,
-  buyer_filters_show_featured: true,
-};
-
-const toBool = (value, fallback = false) => {
-  if (value == null) return fallback;
-  if (value === true || value === 1) return true;
-  if (value === false || value === 0) return false;
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (["1", "true", "yes"].includes(normalized)) return true;
-    if (["0", "false", "no"].includes(normalized)) return false;
-  }
-  return Boolean(value);
-};
-
-const normalizeBuyerFilterPreferences = (raw) => {
-  let source = raw;
-  if (typeof source === "string") {
-    try {
-      source = JSON.parse(source);
-    } catch {
-      source = {};
-    }
-  }
-
-  if (!source || typeof source !== "object") source = {};
-
-  return {
-    enable_buyer_filters: toBool(
-      source.enable_buyer_filters,
-      defaultBuyerFilterPreferences.enable_buyer_filters,
-    ),
-    buyer_filters_show_search: toBool(
-      source.buyer_filters_show_search,
-      defaultBuyerFilterPreferences.buyer_filters_show_search,
-    ),
-    buyer_filters_show_category: toBool(
-      source.buyer_filters_show_category,
-      defaultBuyerFilterPreferences.buyer_filters_show_category,
-    ),
-    buyer_filters_show_price: toBool(
-      source.buyer_filters_show_price,
-      defaultBuyerFilterPreferences.buyer_filters_show_price,
-    ),
-    buyer_filters_show_video: toBool(
-      source.buyer_filters_show_video,
-      defaultBuyerFilterPreferences.buyer_filters_show_video,
-    ),
-    buyer_filters_show_on_sale: toBool(
-      source.buyer_filters_show_on_sale,
-      defaultBuyerFilterPreferences.buyer_filters_show_on_sale,
-    ),
-    buyer_filters_show_featured: toBool(
-      source.buyer_filters_show_featured,
-      defaultBuyerFilterPreferences.buyer_filters_show_featured,
-    ),
-  };
-};
+import { normalizeSellerCardPreferences } from "@/lib/seller-settings-engine";
 
 const SellerLsitings = ({
   id,
@@ -140,7 +75,7 @@ const SellerLsitings = ({
   const [isMobileFilterMenuOpen, setIsMobileFilterMenuOpen] = useState(false);
 
   const buyerFilterPreferences = useMemo(
-    () => normalizeBuyerFilterPreferences(sellerSettings?.card_preferences),
+    () => normalizeSellerCardPreferences(sellerSettings?.card_preferences),
     [sellerSettings?.card_preferences],
   );
 

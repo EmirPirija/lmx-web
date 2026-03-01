@@ -49,6 +49,12 @@ import { Slider } from "@/components/ui/slider";
 
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
+import {
+  buildSellerSettingsPayloadWithEngine,
+  normalizeSellerCardPreferences,
+  normalizeSellerSettingsWithEngine,
+  SELLER_CARD_PREFERENCES_DEFAULTS,
+} from "@/lib/seller-settings-engine";
 import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
 import {
   getOtpApi,
@@ -121,25 +127,7 @@ const defaultBusinessHours = {
   sunday: { open: "09:00", close: "13:00", enabled: false },
 };
 
-const defaultCardPreferences = {
-  show_ratings: true,
-  show_badges: true,
-  show_member_since: false,
-  show_response_time: true,
-  show_online_status: true,
-  show_reel_hint: true,
-  highlight_contact_button: false,
-  show_business_hours: true,
-  show_shipping_info: true,
-  show_return_policy: true,
-  enable_buyer_filters: true,
-  buyer_filters_show_search: true,
-  buyer_filters_show_price: true,
-  buyer_filters_show_video: true,
-  buyer_filters_show_on_sale: true,
-  buyer_filters_show_featured: true,
-  max_badges: 2,
-};
+const defaultCardPreferences = SELLER_CARD_PREFERENCES_DEFAULTS;
 
 const SELLER_RECAPTCHA_CONTAINER_ID = "seller-verification-recaptcha-container";
 
@@ -187,51 +175,7 @@ const normalizeBusinessHours = (raw) => {
   return out;
 };
 
-const normalizeCardPreferences = (raw) => {
-  let obj = typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : raw;
-  if (!obj || typeof obj !== "object") obj = {};
-  return {
-    ...defaultCardPreferences,
-    ...obj,
-    show_ratings: toBool(obj.show_ratings, defaultCardPreferences.show_ratings),
-    show_badges: toBool(obj.show_badges, defaultCardPreferences.show_badges),
-    show_member_since: toBool(obj.show_member_since, defaultCardPreferences.show_member_since),
-    show_response_time: toBool(obj.show_response_time, defaultCardPreferences.show_response_time),
-    show_online_status: toBool(obj.show_online_status, defaultCardPreferences.show_online_status),
-    show_reel_hint: toBool(obj.show_reel_hint, defaultCardPreferences.show_reel_hint),
-    highlight_contact_button: toBool(
-      obj.highlight_contact_button,
-      defaultCardPreferences.highlight_contact_button
-    ),
-    show_business_hours: toBool(obj.show_business_hours, defaultCardPreferences.show_business_hours),
-    show_shipping_info: toBool(obj.show_shipping_info, defaultCardPreferences.show_shipping_info),
-    show_return_policy: toBool(obj.show_return_policy, defaultCardPreferences.show_return_policy),
-    enable_buyer_filters: toBool(
-      obj.enable_buyer_filters,
-      defaultCardPreferences.enable_buyer_filters
-    ),
-    buyer_filters_show_search: toBool(
-      obj.buyer_filters_show_search,
-      defaultCardPreferences.buyer_filters_show_search
-    ),
-    buyer_filters_show_price: toBool(
-      obj.buyer_filters_show_price,
-      defaultCardPreferences.buyer_filters_show_price
-    ),
-    buyer_filters_show_video: toBool(
-      obj.buyer_filters_show_video,
-      defaultCardPreferences.buyer_filters_show_video
-    ),
-    buyer_filters_show_on_sale: toBool(
-      obj.buyer_filters_show_on_sale,
-      defaultCardPreferences.buyer_filters_show_on_sale
-    ),
-    buyer_filters_show_featured: toBool(
-      obj.buyer_filters_show_featured,
-      defaultCardPreferences.buyer_filters_show_featured
-    ),
-  };
-};
+const normalizeCardPreferences = (raw) => normalizeSellerCardPreferences(raw);
 
 const safeUrl = (u) => { if (!u) return true; try { new URL(u.startsWith("http") ? u : `https://${u}`); return true; } catch { return false; } };
 const normalizePhone = (p) => (p || "").replace(/\s+/g, "").trim();
@@ -1174,23 +1118,67 @@ const SellerSettings = () => {
     }
   }, [refreshFirebaseIdentity, syncProfileVerificationData]);
 
-  const buildPayload = useCallback(() => ({
-    avatar_id: selectedAvatarId,
-    show_phone: showPhone, show_email: showEmail, show_whatsapp: showWhatsapp, show_viber: showViber,
-    whatsapp_number: whatsappNumber, viber_number: viberNumber, preferred_contact_method: preferredContact,
-    business_hours: businessHours, response_time: responseTime, accepts_offers: acceptsOffers,
-    auto_reply_enabled: autoReplyEnabled, auto_reply_message: autoReplyMessage,
-    vacation_mode: vacationMode, vacation_message: vacationMessage,
-    vacation_start_date: vacationStartDate, vacation_end_date: vacationEndDate, vacation_auto_activate: vacationAutoActivate,
-    business_description: businessDescription, return_policy: returnPolicy, shipping_info: shippingInfo,
-    social_facebook: socialFacebook, social_instagram: socialInstagram, social_tiktok: socialTiktok,
-    social_youtube: socialYoutube, social_website: socialWebsite,
-    card_preferences: normalizedCardPreferences,
-  }), [selectedAvatarId, showPhone, showEmail, showWhatsapp, showViber, whatsappNumber, viberNumber, preferredContact,
-      businessHours, responseTime, acceptsOffers, autoReplyEnabled, autoReplyMessage, vacationMode,
-      vacationMessage, vacationStartDate, vacationEndDate, vacationAutoActivate, businessDescription,
-      returnPolicy, shippingInfo, socialFacebook, socialInstagram, socialTiktok, socialYoutube,
-      socialWebsite, normalizedCardPreferences]);
+  const buildPayload = useCallback(
+    () =>
+      buildSellerSettingsPayloadWithEngine({
+        avatar_id: selectedAvatarId,
+        show_phone: showPhone,
+        show_email: showEmail,
+        show_whatsapp: showWhatsapp,
+        show_viber: showViber,
+        whatsapp_number: whatsappNumber,
+        viber_number: viberNumber,
+        preferred_contact_method: preferredContact,
+        business_hours: businessHours,
+        response_time: responseTime,
+        accepts_offers: acceptsOffers,
+        auto_reply_enabled: autoReplyEnabled,
+        auto_reply_message: autoReplyMessage,
+        vacation_mode: vacationMode,
+        vacation_message: vacationMessage,
+        vacation_start_date: vacationStartDate,
+        vacation_end_date: vacationEndDate,
+        vacation_auto_activate: vacationAutoActivate,
+        business_description: businessDescription,
+        return_policy: returnPolicy,
+        shipping_info: shippingInfo,
+        social_facebook: socialFacebook,
+        social_instagram: socialInstagram,
+        social_tiktok: socialTiktok,
+        social_youtube: socialYoutube,
+        social_website: socialWebsite,
+        card_preferences: normalizedCardPreferences,
+      }),
+    [
+      selectedAvatarId,
+      showPhone,
+      showEmail,
+      showWhatsapp,
+      showViber,
+      whatsappNumber,
+      viberNumber,
+      preferredContact,
+      businessHours,
+      responseTime,
+      acceptsOffers,
+      autoReplyEnabled,
+      autoReplyMessage,
+      vacationMode,
+      vacationMessage,
+      vacationStartDate,
+      vacationEndDate,
+      vacationAutoActivate,
+      businessDescription,
+      returnPolicy,
+      shippingInfo,
+      socialFacebook,
+      socialInstagram,
+      socialTiktok,
+      socialYoutube,
+      socialWebsite,
+      normalizedCardPreferences,
+    ]
+  );
 
   const hasChanges = useMemo(() => {
     if (!initialPayloadStr) return false;
@@ -1273,7 +1261,7 @@ const SellerSettings = () => {
       
       if (response?.data?.error !== false || !response?.data?.data) { setLoadError(response?.data?.message || "Greška."); return; }
 
-      const s = response.data.data;
+      const s = normalizeSellerSettingsWithEngine(response.data.data);
       setSelectedAvatarId(s.avatar_id || "");
       setShowPhone(toBool(s.show_phone, true));
       setShowEmail(toBool(s.show_email, true));
@@ -1303,25 +1291,40 @@ const SellerSettings = () => {
       const normalizedPrefs = normalizeCardPreferences(s.card_preferences);
       setCardPreferences(normalizedPrefs);
 
-      setInitialPayloadStr(stableStringify({
-        avatar_id: s.avatar_id || "",
-        show_phone: toBool(s.show_phone, true), show_email: toBool(s.show_email, true),
-        show_whatsapp: toBool(s.show_whatsapp, false), show_viber: toBool(s.show_viber, false),
-        whatsapp_number: s.whatsapp_number || "", viber_number: s.viber_number || "",
-        preferred_contact_method: s.preferred_contact_method || "message",
-        business_hours: normalizeBusinessHours(s.business_hours),
-        response_time: s.response_time || "auto", accepts_offers: toBool(s.accepts_offers, true),
-        auto_reply_enabled: toBool(s.auto_reply_enabled, false),
-        auto_reply_message: s.auto_reply_message || "Hvala na poruci!",
-        vacation_mode: toBool(s.vacation_mode, false), vacation_message: s.vacation_message || "Na odmoru sam.",
-        vacation_start_date: s.vacation_start_date || "", vacation_end_date: s.vacation_end_date || "",
-        vacation_auto_activate: toBool(s.vacation_auto_activate, false),
-        business_description: s.business_description || "", return_policy: s.return_policy || "",
-        shipping_info: s.shipping_info || "", social_facebook: s.social_facebook || "",
-        social_instagram: s.social_instagram || "", social_tiktok: s.social_tiktok || "",
-        social_youtube: s.social_youtube || "", social_website: s.social_website || "",
-        card_preferences: normalizedPrefs,
-      }));
+      setInitialPayloadStr(
+        stableStringify(
+          buildSellerSettingsPayloadWithEngine({
+            avatar_id: s.avatar_id || "",
+            show_phone: toBool(s.show_phone, true),
+            show_email: toBool(s.show_email, true),
+            show_whatsapp: toBool(s.show_whatsapp, false),
+            show_viber: toBool(s.show_viber, false),
+            whatsapp_number: s.whatsapp_number || "",
+            viber_number: s.viber_number || "",
+            preferred_contact_method: s.preferred_contact_method || "message",
+            business_hours: normalizeBusinessHours(s.business_hours),
+            response_time: s.response_time || "auto",
+            accepts_offers: toBool(s.accepts_offers, true),
+            auto_reply_enabled: toBool(s.auto_reply_enabled, false),
+            auto_reply_message: s.auto_reply_message || "Hvala na poruci!",
+            vacation_mode: toBool(s.vacation_mode, false),
+            vacation_message: s.vacation_message || "Na odmoru sam.",
+            vacation_start_date: s.vacation_start_date || "",
+            vacation_end_date: s.vacation_end_date || "",
+            vacation_auto_activate: toBool(s.vacation_auto_activate, false),
+            business_description: s.business_description || "",
+            return_policy: s.return_policy || "",
+            shipping_info: s.shipping_info || "",
+            social_facebook: s.social_facebook || "",
+            social_instagram: s.social_instagram || "",
+            social_tiktok: s.social_tiktok || "",
+            social_youtube: s.social_youtube || "",
+            social_website: s.social_website || "",
+            card_preferences: normalizedPrefs,
+            settings_version: s.settings_version,
+          })
+        )
+      );
     } catch (err) {
       console.error(err);
       setLoadError(err?.message === "TIMEOUT" ? "Timeout." : "Greška.");
@@ -1446,7 +1449,11 @@ const SellerSettings = () => {
     currentUser?.country_code || "387",
     stripCountryCodePrefix(currentUser?.mobile, currentUser?.country_code || "387"),
   );
-  const resolvedPhoneDisplay = firebaseIdentity?.phoneNumber || phoneDraftE164 || fallbackPhoneE164 || "nije dostupan";
+  const resolvedPhoneDisplay =
+    firebaseIdentity?.phoneNumber ||
+    phoneDraftE164 ||
+    fallbackPhoneE164 ||
+    "Broj nije unesen";
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
@@ -1917,11 +1924,120 @@ const SellerSettings = () => {
                 <CompactToggle title="WhatsApp" checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
                 <CompactToggle title="Viber" checked={showViber} onCheckedChange={setShowViber} />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <CompactToggle
+                  title="Broj samo uz prijavu"
+                  checked={normalizedCardPreferences.phone_visible_only_to_logged_in}
+                  onCheckedChange={(value) =>
+                    setCardPreferences((prev) => ({
+                      ...prev,
+                      phone_visible_only_to_logged_in: value,
+                    }))
+                  }
+                />
+                <CompactToggle
+                  title="Samo poruke"
+                  checked={normalizedCardPreferences.messages_only_contact}
+                  onCheckedChange={(value) =>
+                    setCardPreferences((prev) => ({
+                      ...prev,
+                      messages_only_contact: value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <CompactToggle
+                  title="Dozvoli javna pitanja"
+                  checked={normalizedCardPreferences.allow_public_questions_contact}
+                  onCheckedChange={(value) =>
+                    setCardPreferences((prev) => ({
+                      ...prev,
+                      allow_public_questions_contact: value,
+                    }))
+                  }
+                />
+              </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {showPhone
                   ? "Broj telefona je vidljiv kupcima na tvom javnom profilu."
                   : "Broj telefona je skriven. Kupci te mogu kontaktirati preko poruka i drugih uključenih kanala."}
               </p>
+              {normalizedCardPreferences.phone_visible_only_to_logged_in && (
+                <p className="text-xs text-sky-600 dark:text-sky-400">
+                  Broj telefona će vidjeti samo prijavljeni korisnici.
+                </p>
+              )}
+              {normalizedCardPreferences.messages_only_contact && (
+                <p className="text-xs text-sky-600 dark:text-sky-400">
+                  Aktivan je režim "Samo poruke". Pozivi, WhatsApp i Viber su skriveni.
+                </p>
+              )}
+              {!normalizedCardPreferences.allow_public_questions_contact && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Javna pitanja su isključena. Kupci će vidjeti poruku da trenutno ne primaš pitanja.
+                </p>
+              )}
+              <div className="grid grid-cols-1 gap-2 pt-1">
+                <CompactToggle
+                  title="Quiet hours"
+                  checked={normalizedCardPreferences.quiet_hours_enabled}
+                  onCheckedChange={(value) =>
+                    setCardPreferences((prev) => ({
+                      ...prev,
+                      quiet_hours_enabled: value,
+                    }))
+                  }
+                />
+              </div>
+              {normalizedCardPreferences.quiet_hours_enabled && (
+                <div className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Od</Label>
+                      <Input
+                        type="time"
+                        className="h-9 text-sm"
+                        value={normalizedCardPreferences.quiet_hours_start || "22:00"}
+                        onChange={(e) =>
+                          setCardPreferences((prev) => ({
+                            ...prev,
+                            quiet_hours_start: e.target.value || "22:00",
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Do</Label>
+                      <Input
+                        type="time"
+                        className="h-9 text-sm"
+                        value={normalizedCardPreferences.quiet_hours_end || "08:00"}
+                        onChange={(e) =>
+                          setCardPreferences((prev) => ({
+                            ...prev,
+                            quiet_hours_end: e.target.value || "08:00",
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Auto poruka za quiet hours</Label>
+                    <Textarea
+                      className="min-h-[56px] text-sm"
+                      value={normalizedCardPreferences.quiet_hours_message || ""}
+                      onChange={(e) =>
+                        setCardPreferences((prev) => ({
+                          ...prev,
+                          quiet_hours_message: e.target.value,
+                        }))
+                      }
+                      placeholder="Pošaljite poruku, odgovaram čim budem dostupan."
+                    />
+                  </div>
+                </div>
+              )}
               {(showWhatsapp || showViber) && (
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   {showWhatsapp && (

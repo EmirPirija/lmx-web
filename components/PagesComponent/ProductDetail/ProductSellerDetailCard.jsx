@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -29,6 +29,11 @@ import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
 import { isSellerVerified } from "@/lib/seller-verification";
+import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
+import {
+  normalizeSellerCardPreferences,
+  resolveSellerContactEngine,
+} from "@/lib/seller-settings-engine";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
@@ -40,18 +45,37 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import GamificationBadge from "@/components/PagesComponent/Gamification/Badge";
 import { formatResponseTimeBs } from "@/utils/index";
-import { itemConversationApi, sendMessageApi, itemOfferApi } from "@/utils/api";
+import {
+  allItemApi,
+  itemConversationApi,
+  sendMessageApi,
+  itemOfferApi,
+} from "@/utils/api";
 import ReelUploadModal from "@/components/PagesComponent/Seller/ReelUploadModal";
 import ReelViewerModal from "@/components/PagesComponent/Seller/ReelViewerModal";
 import ReelRingStyles from "@/components/PagesComponent/Seller/ReelRingStyles";
 import ExistingConversationBanner from "@/components/PagesComponent/ProductDetail/ExistingConversationBanner";
 import { resolveAvatarUrl } from "@/utils/avatar";
+import ContactTrustBadges from "@/components/Common/ContactTrustBadges";
 
 /* =====================================================
    HELPER FUNKCIJE
 ===================================================== */
 
-const MONTHS_BS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"];
+const MONTHS_BS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "maj",
+  "jun",
+  "jul",
+  "avg",
+  "sep",
+  "okt",
+  "nov",
+  "dec",
+];
 
 const toBool = (v) => {
   if (v === true) return true;
@@ -61,7 +85,8 @@ const toBool = (v) => {
 
   if (typeof v === "string") {
     const s = v.trim().toLowerCase();
-    if (["true", "yes", "y", "approved", "verified", "active"].includes(s)) return true;
+    if (["true", "yes", "y", "approved", "verified", "active"].includes(s))
+      return true;
 
     // hvata "1", "2", "3"...
     const n = Number(s);
@@ -77,14 +102,18 @@ const getVerifiedStatus = (...sources) => {
   return isSellerVerified(...sources);
 };
 
-const VerifiedAvatarBadge = ({ avatarSize = 48, verifiedSize = 10, className = "" }) => {
+const VerifiedAvatarBadge = ({
+  avatarSize = 48,
+  verifiedSize = 10,
+  className = "",
+}) => {
   const badgeSize = Math.max(14, Math.round(avatarSize * 0.33));
 
   return (
     <span
       className={cn(
         "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md dark:border-slate-900",
-        className
+        className,
       )}
       style={{ width: badgeSize, height: badgeSize }}
     >
@@ -92,8 +121,6 @@ const VerifiedAvatarBadge = ({ avatarSize = 48, verifiedSize = 10, className = "
     </span>
   );
 };
-
-
 
 const formatMemberSince = (dateStr) => {
   if (!dateStr) return "";
@@ -138,7 +165,10 @@ const getBsCountForm = (value, one, few, many) => {
 
 const formatSeenAgoLabel = (lastSeenDate) => {
   if (!lastSeenDate) return "";
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - lastSeenDate.getTime()) / 1000));
+  const diffSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - lastSeenDate.getTime()) / 1000),
+  );
   if (diffSeconds < 60) return "upravo sada";
   const diffMinutes = Math.floor(diffSeconds / 60);
   if (diffMinutes < 60) {
@@ -149,7 +179,8 @@ const formatSeenAgoLabel = (lastSeenDate) => {
     return `prije ${diffHours} ${getBsCountForm(diffHours, "sat", "sata", "sati")}`;
   }
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `prije ${diffDays} ${getBsCountForm(diffDays, "dan", "dana", "dana")}`;
+  if (diffDays < 30)
+    return `prije ${diffDays} ${getBsCountForm(diffDays, "dan", "dana", "dana")}`;
   const diffMonths = Math.floor(diffDays / 30);
   if (diffMonths < 12) {
     return `prije ${diffMonths} ${getBsCountForm(diffMonths, "mjesec", "mjeseca", "mjeseci")}`;
@@ -165,56 +196,11 @@ const responseTimeLabels = {
   few_days: "par dana",
 };
 
-const defaultCardPreferences = {
-  show_ratings: true,
-  show_badges: true,
-  show_member_since: false,
-  show_response_time: true,
-  show_online_status: true,
-  show_reel_hint: true,
-  highlight_contact_button: false,
-  show_business_hours: true,
-  show_shipping_info: true,
-  show_return_policy: true,
-  max_badges: 2,
-};
-
-const normalizePrefBool = (value, fallback) => {
-  if (value == null) return fallback;
-  return toBool(value);
-};
-
-const normalizeCardPreferences = (raw) => {
-  let obj = raw;
-  if (typeof raw === "string") {
-    try {
-      obj = JSON.parse(raw);
-    } catch {
-      obj = {};
-    }
-  }
-
-  const merged = { ...defaultCardPreferences, ...(obj || {}) };
-  return {
-    ...merged,
-    show_ratings: normalizePrefBool(obj?.show_ratings, defaultCardPreferences.show_ratings),
-    show_badges: normalizePrefBool(obj?.show_badges, defaultCardPreferences.show_badges),
-    show_member_since: normalizePrefBool(obj?.show_member_since, defaultCardPreferences.show_member_since),
-    show_response_time: normalizePrefBool(obj?.show_response_time, defaultCardPreferences.show_response_time),
-    show_online_status: normalizePrefBool(obj?.show_online_status, defaultCardPreferences.show_online_status),
-    show_reel_hint: normalizePrefBool(obj?.show_reel_hint, defaultCardPreferences.show_reel_hint),
-    highlight_contact_button: normalizePrefBool(
-      obj?.highlight_contact_button,
-      defaultCardPreferences.highlight_contact_button
-    ),
-    show_business_hours: normalizePrefBool(obj?.show_business_hours, defaultCardPreferences.show_business_hours),
-    show_shipping_info: normalizePrefBool(obj?.show_shipping_info, defaultCardPreferences.show_shipping_info),
-    show_return_policy: normalizePrefBool(obj?.show_return_policy, defaultCardPreferences.show_return_policy),
-  };
-};
+const normalizeCardPreferences = (raw) => normalizeSellerCardPreferences(raw);
 
 const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
-  const direct = settings?.response_time_label || settings?.response_time_text || null;
+  const direct =
+    settings?.response_time_label || settings?.response_time_text || null;
   if (direct) return direct;
   if (!responseTime) return null;
   if (responseTime === "auto") return formatResponseTimeBs(responseTimeAvg);
@@ -230,7 +216,15 @@ const parseBusinessHours = (hours) => {
   }
 };
 
-const dayOrder = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const dayOrder = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
 
 const getDayKeyByIndex = (idx) => dayOrder[idx % 7];
 
@@ -252,9 +246,16 @@ const isCurrentlyOpen = (businessHours) => {
   const todayHours = businessHours[todayKey];
   if (!todayHours || todayHours.closed || !todayHours.enabled) return false;
   const currentTime = now.getHours() * 60 + now.getMinutes();
-  const [openHour, openMin] = (todayHours.open || "09:00").split(":").map(Number);
-  const [closeHour, closeMin] = (todayHours.close || "17:00").split(":").map(Number);
-  return currentTime >= (openHour * 60 + openMin) && currentTime <= (closeHour * 60 + closeMin);
+  const [openHour, openMin] = (todayHours.open || "09:00")
+    .split(":")
+    .map(Number);
+  const [closeHour, closeMin] = (todayHours.close || "17:00")
+    .split(":")
+    .map(Number);
+  return (
+    currentTime >= openHour * 60 + openMin &&
+    currentTime <= closeHour * 60 + closeMin
+  );
 };
 
 /* =====================================================
@@ -266,6 +267,7 @@ const ContactModal = ({
   onOpenChange,
   seller,
   settings,
+  isLoggedIn,
   onMessageClick,
   onPhoneCall,
 }) => {
@@ -282,22 +284,36 @@ const ContactModal = ({
     }
   };
 
-  const showPhone = Boolean(settings?.show_phone && seller?.mobile);
-  const showWhatsapp = Boolean(settings?.show_whatsapp && (settings?.whatsapp_number || seller?.mobile));
-  const showViber = Boolean(settings?.show_viber && (settings?.viber_number || seller?.mobile));
-  const showEmail = Boolean(settings?.show_email && seller?.email);
-
-  const phone = seller?.mobile;
+  const contactEngine = resolveSellerContactEngine({
+    seller,
+    settings,
+    isLoggedIn,
+  });
+  const { contactPolicy, phoneContact, channels } = contactEngine;
+  const showPhone = channels.call;
+  const showWhatsapp = channels.whatsapp;
+  const showViber = channels.viber;
+  const showEmail = channels.email;
+  const phone = phoneContact.phone;
   const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
   const viberNumber = settings?.viber_number || seller?.mobile;
   const email = seller?.email;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+      >
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Kontakt</h3>
-          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Kontakt
+          </h3>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -305,7 +321,10 @@ const ContactModal = ({
         <div className="p-3 space-y-1.5">
           <button
             type="button"
-            onClick={() => { onMessageClick?.(); onOpenChange(false); }}
+            onClick={() => {
+              onMessageClick?.();
+              onOpenChange(false);
+            }}
             className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium"
           >
             <MessageCircle className="w-4 h-4" />
@@ -320,25 +339,76 @@ const ContactModal = ({
                 className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
               >
                 <Phone className="w-4 h-4 text-emerald-500" />
-                <span className="text-slate-700 dark:text-slate-200">{phone}</span>
+                <span className="text-slate-700 dark:text-slate-200">
+                  {phone}
+                </span>
               </a>
-              <button type="button" onClick={() => copy("phone", phone)} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-                {copiedKey === "phone" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+              <button
+                type="button"
+                onClick={() => copy("phone", phone)}
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                {copiedKey === "phone" ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4 text-slate-400" />
+                )}
               </button>
             </div>
           )}
 
+          {phoneContact.state !== PHONE_CONTACT_STATES.AVAILABLE &&
+            phoneContact.statusMessage && (
+              <div
+                className={cn(
+                  "rounded-lg border px-2.5 py-2 text-xs",
+                  phoneContact.state === PHONE_CONTACT_STATES.UNVERIFIED
+                    ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300"
+                    : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                )}
+              >
+                {phoneContact.statusMessage}
+              </div>
+            )}
+
+          {contactPolicy.quietHoursEnabled && (
+            <div
+              className={cn(
+                "rounded-lg border px-2.5 py-2 text-xs",
+                contactPolicy.quietHoursActive
+                  ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-300"
+                  : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+              )}
+            >
+              Quiet hours: {contactPolicy.quietHoursStart} -{" "}
+              {contactPolicy.quietHoursEnd}
+              {contactPolicy.quietHoursMessage
+                ? ` · ${contactPolicy.quietHoursMessage}`
+                : ""}
+            </div>
+          )}
+
           {showWhatsapp && (
-            <a href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm">
+            <a
+              href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+            >
               <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                 <MessageCircle className="w-2.5 h-2.5 text-white" />
               </div>
-              <span className="text-slate-700 dark:text-slate-200">WhatsApp</span>
+              <span className="text-slate-700 dark:text-slate-200">
+                WhatsApp
+              </span>
             </a>
           )}
 
           {showViber && (
-            <a href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm">
+            <a
+              href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+            >
               <div className="w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
                 <Phone className="w-2.5 h-2.5 text-white" />
               </div>
@@ -348,11 +418,24 @@ const ContactModal = ({
 
           {showEmail && (
             <div className="flex items-center gap-1.5">
-              <a href={`mailto:${email}`} className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm truncate">
-                <span className="text-slate-700 dark:text-slate-200 truncate">{email}</span>
+              <a
+                href={`mailto:${email}`}
+                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm truncate"
+              >
+                <span className="text-slate-700 dark:text-slate-200 truncate">
+                  {email}
+                </span>
               </a>
-              <button type="button" onClick={() => copy("email", email)} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-                {copiedKey === "email" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+              <button
+                type="button"
+                onClick={() => copy("email", email)}
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                {copiedKey === "email" ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4 text-slate-400" />
+                )}
               </button>
             </div>
           )}
@@ -376,45 +459,81 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
   const [error, setError] = useState("");
 
   React.useEffect(() => {
-    if (open) { setMessage(""); setError(""); }
+    if (open) {
+      setMessage("");
+      setError("");
+    }
   }, [open]);
 
   const handleSend = async () => {
     const sellerUserId = seller?.user_id ?? seller?.id;
 
-    if (!message.trim()) { setError("Unesite poruku."); return; }
-    if (!isLoggedIn || !currentUser?.id) { toast.error("Morate biti prijavljeni."); router.push("/login"); return; }
-    if (!sellerUserId) { setError("Prodavač nije pronađen."); return; }
-    if (String(currentUser.id) === String(sellerUserId)) { setError("Ne možete slati poruku sebi."); return; }
+    if (!message.trim()) {
+      setError("Unesite poruku.");
+      return;
+    }
+    if (!isLoggedIn || !currentUser?.id) {
+      toast.error("Morate biti prijavljeni.");
+      router.push("/login");
+      return;
+    }
+    if (!sellerUserId) {
+      setError("Prodavač nije pronađen.");
+      return;
+    }
+    if (String(currentUser.id) === String(sellerUserId)) {
+      setError("Ne možete slati poruku sebi.");
+      return;
+    }
 
     setIsSending(true);
     setError("");
 
     try {
       let conversationId = null;
-      const extractId = (data) => data?.conversation_id || data?.item_offer_id || data?.id || null;
+      const extractId = (data) =>
+        data?.conversation_id || data?.item_offer_id || data?.id || null;
 
       if (itemId) {
-        const checkRes = await itemConversationApi.checkConversation({ item_id: itemId });
-        if (checkRes?.data?.error === false && extractId(checkRes?.data?.data)) {
+        const checkRes = await itemConversationApi.checkConversation({
+          item_id: itemId,
+        });
+        if (
+          checkRes?.data?.error === false &&
+          extractId(checkRes?.data?.data)
+        ) {
           conversationId = extractId(checkRes.data.data);
         } else {
-          const startRes = await itemConversationApi.startItemConversation({ item_id: itemId });
-          if (startRes?.data?.error === false) conversationId = extractId(startRes.data.data);
+          const startRes = await itemConversationApi.startItemConversation({
+            item_id: itemId,
+          });
+          if (startRes?.data?.error === false)
+            conversationId = extractId(startRes.data.data);
         }
       } else {
-        const checkRes = await itemConversationApi.checkDirectConversation({ user_id: sellerUserId });
-        if (checkRes?.data?.error === false && extractId(checkRes?.data?.data)) {
+        const checkRes = await itemConversationApi.checkDirectConversation({
+          user_id: sellerUserId,
+        });
+        if (
+          checkRes?.data?.error === false &&
+          extractId(checkRes?.data?.data)
+        ) {
           conversationId = extractId(checkRes.data.data);
         } else {
-          const startRes = await itemConversationApi.startDirectConversation({ user_id: sellerUserId });
-          if (startRes?.data?.error === false) conversationId = extractId(startRes.data.data);
+          const startRes = await itemConversationApi.startDirectConversation({
+            user_id: sellerUserId,
+          });
+          if (startRes?.data?.error === false)
+            conversationId = extractId(startRes.data.data);
         }
       }
 
       if (!conversationId) throw new Error("Nije moguće kreirati razgovor.");
 
-      const sendRes = await sendMessageApi.sendMessage({ item_offer_id: conversationId, message: message.trim() });
+      const sendRes = await sendMessageApi.sendMessage({
+        item_offer_id: conversationId,
+        message: message.trim(),
+      });
       if (sendRes?.data?.error === false) {
         toast.success("Poruka poslana!");
         setMessage("");
@@ -423,7 +542,8 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
         throw new Error(sendRes?.data?.message || "Greška pri slanju.");
       }
     } catch (err) {
-      const errorMessage = err?.response?.data?.message || err?.message || "Greška.";
+      const errorMessage =
+        err?.response?.data?.message || err?.message || "Greška.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -433,7 +553,10 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+      >
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
@@ -445,9 +568,15 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
                 imageClassName="w-full h-full object-cover"
               />
             </div>
-            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{seller?.name}</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {seller?.name}
+            </span>
           </div>
-          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -463,21 +592,35 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
           ) : null}
           <textarea
             value={message}
-            onChange={(e) => { setMessage(e.target.value); setError(""); }}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              setError("");
+            }}
             placeholder="Napišite poruku..."
             rows={3}
-              className={cn(
+            className={cn(
               "w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 text-sm resize-none text-slate-900 dark:text-slate-100",
               "placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-              error ? "border-red-300 dark:border-red-700/60" : "border-slate-200 dark:border-slate-700"
+              error
+                ? "border-red-300 dark:border-red-700/60"
+                : "border-slate-200 dark:border-slate-700",
             )}
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
-            <button type="button" onClick={() => onOpenChange(false)} className="flex-1 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="flex-1 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl"
+            >
               Odustani
             </button>
-            <button type="button" onClick={handleSend} disabled={!message.trim() || isSending} className="flex-1 px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl disabled:opacity-50">
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!message.trim() || isSending}
+              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white rounded-xl disabled:opacity-50"
+            >
               {isSending ? "..." : "Pošalji"}
             </button>
           </div>
@@ -501,20 +644,36 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
   const [error, setError] = useState("");
 
   React.useEffect(() => {
-    if (open) { setAmount(""); setError(""); }
+    if (open) {
+      setAmount("");
+      setError("");
+    }
   }, [open]);
 
   const handleSend = async () => {
     const numAmount = parseFloat(amount);
-    if (!amount || isNaN(numAmount) || numAmount <= 0) { setError("Unesite validan iznos."); return; }
-    if (!isLoggedIn || !currentUser?.id) { toast.error("Morate biti prijavljeni."); router.push("/login"); return; }
-    if (!itemId) { setError("Proizvod nije pronađen."); return; }
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      setError("Unesite validan iznos.");
+      return;
+    }
+    if (!isLoggedIn || !currentUser?.id) {
+      toast.error("Morate biti prijavljeni.");
+      router.push("/login");
+      return;
+    }
+    if (!itemId) {
+      setError("Proizvod nije pronađen.");
+      return;
+    }
 
     setIsSending(true);
     setError("");
 
     try {
-      const res = await itemOfferApi.offer({ item_id: itemId, amount: numAmount });
+      const res = await itemOfferApi.offer({
+        item_id: itemId,
+        amount: numAmount,
+      });
       if (res?.data?.error === false) {
         toast.success("Ponuda poslana!");
         setAmount("");
@@ -523,7 +682,8 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
         throw new Error(res?.data?.message || "Greška.");
       }
     } catch (err) {
-      const errorMessage = err?.response?.data?.message || err?.message || "Greška.";
+      const errorMessage =
+        err?.response?.data?.message || err?.message || "Greška.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -533,10 +693,19 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+      >
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Pošalji ponudu</h3>
-          <button type="button" onClick={() => onOpenChange(false)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Pošalji ponudu
+          </h3>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -545,27 +714,43 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
           {itemPrice && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500 dark:text-slate-400">Cijena</span>
-              <span className="font-semibold text-slate-900 dark:text-slate-100">{typeof itemPrice === 'number' ? `${itemPrice.toFixed(2)} KM` : itemPrice}</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {typeof itemPrice === "number"
+                  ? `${itemPrice.toFixed(2)} KM`
+                  : itemPrice}
+              </span>
             </div>
           )}
           <div className="relative">
             <input
               type="number"
               value={amount}
-              onChange={(e) => { setAmount(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setError("");
+              }}
               placeholder="0.00"
               step="0.01"
               min="0"
               className={cn(
                 "w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pr-12 text-lg font-semibold text-slate-900 dark:text-slate-100",
                 "placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
-                error ? "border-red-300 dark:border-red-700/60" : "border-slate-200 dark:border-slate-700"
+                error
+                  ? "border-red-300 dark:border-red-700/60"
+                  : "border-slate-200 dark:border-slate-700",
               )}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">KM</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+              KM
+            </span>
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
-          <button type="button" onClick={handleSend} disabled={!amount || isSending} className="w-full px-3 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl disabled:opacity-50">
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!amount || isSending}
+            className="w-full px-3 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl disabled:opacity-50"
+          >
             {isSending ? "..." : "Pošalji ponudu"}
           </button>
         </div>
@@ -617,21 +802,68 @@ const ProductSellerDetailCard = ({
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
 
-  // Extract from productDetails or use props
-  const seller = sellerProp || productDetails?.user;
+  // Merge seller payloads so contact data is consistent with seller page.
+  const seller = useMemo(() => {
+    const fromProductUser =
+      productDetails?.user && typeof productDetails.user === "object"
+        ? productDetails.user
+        : {};
+    const fromProductSeller =
+      productDetails?.seller && typeof productDetails.seller === "object"
+        ? productDetails.seller
+        : {};
+    const fromProp =
+      sellerProp && typeof sellerProp === "object" ? sellerProp : {};
+    const nestedFromProp =
+      fromProp?.seller && typeof fromProp.seller === "object"
+        ? fromProp.seller
+        : {};
+
+    const merged = {
+      ...fromProductSeller,
+      ...fromProductUser,
+      ...nestedFromProp,
+      ...fromProp,
+    };
+
+    return Object.keys(merged).length > 0 ? merged : null;
+  }, [productDetails?.seller, productDetails?.user, sellerProp]);
   const ratings = ratingsProp || productDetails?.ratings;
   const itemId = itemIdProp || productDetails?.id;
   const itemPrice = itemPriceProp || productDetails?.price;
 
   const settings = useMemo(() => {
-    const a = productDetails?.user_settings && typeof productDetails.user_settings === "object"
-      ? productDetails.user_settings
-      : {};
-    const b = sellerSettings && typeof sellerSettings === "object"
-      ? sellerSettings
-      : {};
-    return { ...a, ...b }; // sellerSettings override, ali ne briše a
-  }, [productDetails?.user_settings, sellerSettings]);
+    const fromProductUserSettings =
+      productDetails?.user_settings &&
+      typeof productDetails.user_settings === "object"
+        ? productDetails.user_settings
+        : {};
+    const fromProductSellerSettings =
+      productDetails?.seller_settings &&
+      typeof productDetails.seller_settings === "object"
+        ? productDetails.seller_settings
+        : {};
+    const fromSellerPayload =
+      seller?.seller_settings && typeof seller.seller_settings === "object"
+        ? seller.seller_settings
+        : {};
+    const fromProp =
+      sellerSettings && typeof sellerSettings === "object"
+        ? sellerSettings
+        : {};
+
+    return {
+      ...fromProductUserSettings,
+      ...fromProductSellerSettings,
+      ...fromSellerPayload,
+      ...fromProp,
+    };
+  }, [
+    productDetails?.seller_settings,
+    productDetails?.user_settings,
+    seller?.seller_settings,
+    sellerSettings,
+  ]);
 
   const membership = useMemo(
     () =>
@@ -644,7 +876,7 @@ const ProductSellerDetailCard = ({
         productDetails?.user?.membership,
         productDetails?.user_settings,
         sellerSettings,
-        settings
+        settings,
       ),
     [
       isProProp,
@@ -657,7 +889,7 @@ const ProductSellerDetailCard = ({
       productDetails?.user_settings,
       sellerSettings,
       settings,
-    ]
+    ],
   );
 
   const forceShopTier = useMemo(
@@ -673,7 +905,7 @@ const ProductSellerDetailCard = ({
         settings?.is_shop,
         settings?.isShop,
       ].some((value) => toBool(value)),
-    [isShopProp, seller, productDetails?.user, sellerSettings, settings]
+    [isShopProp, seller, productDetails?.user, sellerSettings, settings],
   );
 
   const forceProTier = useMemo(
@@ -697,50 +929,61 @@ const ProductSellerDetailCard = ({
         settings?.is_premium,
         settings?.premium,
       ].some((value) => toBool(value)),
-    [isProProp, seller, productDetails?.user, sellerSettings, settings]
+    [isProProp, seller, productDetails?.user, sellerSettings, settings],
   );
 
-  const membershipTier = forceShopTier ? "shop" : forceProTier ? "pro" : membership?.tier;
-  const hasMembershipBadge = membershipTier === "shop" || membershipTier === "pro";
-  
+  const membershipTier = forceShopTier
+    ? "shop"
+    : forceProTier
+      ? "pro"
+      : membership?.tier;
+  const hasMembershipBadge =
+    membershipTier === "shop" || membershipTier === "pro";
 
-    const acceptsOffers = acceptsOffersProp || productDetails?.accepts_offers || sellerSettings?.accepts_offers;
-
+  const acceptsOffers =
+    acceptsOffersProp ||
+    productDetails?.accepts_offers ||
+    sellerSettings?.accepts_offers;
 
   const isVerified = useMemo(() => {
-      return getVerifiedStatus(
-        seller,
-        settings,
-        sellerSettings,
-        productDetails?.user,
-        productDetails?.seller,
-        seller?.user,
-        sellerProp
-      );
-    }, [seller, settings, sellerSettings, productDetails?.user, productDetails?.seller, sellerProp]);
+    return getVerifiedStatus(
+      seller,
+      settings,
+      sellerSettings,
+      productDetails?.user,
+      productDetails?.seller,
+      seller?.user,
+      sellerProp,
+    );
+  }, [
+    seller,
+    settings,
+    sellerSettings,
+    productDetails?.user,
+    productDetails?.seller,
+    sellerProp,
+  ]);
 
   const [hasReel, setHasReel] = useState(
     Boolean(
       hasSellerActiveReel(seller) ||
-        hasSellerActiveReel(settings) ||
-        hasSellerActiveReel(sellerSettings)
-    )
+      hasSellerActiveReel(settings) ||
+      hasSellerActiveReel(sellerSettings),
+    ),
   );
 
   useEffect(() => {
     setHasReel(
       Boolean(
         hasSellerActiveReel(seller) ||
-          hasSellerActiveReel(settings) ||
-          hasSellerActiveReel(sellerSettings)
-      )
+        hasSellerActiveReel(settings) ||
+        hasSellerActiveReel(sellerSettings),
+      ),
     );
   }, [seller, settings, sellerSettings]);
   const ringMotion = undefined;
   const ringTransition = undefined;
-    
-    
-  
+
   // Card preferences from seller settings - parse if string
   const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
   const showRatings = mergedPrefs.show_ratings;
@@ -761,13 +1004,14 @@ const ProductSellerDetailCard = ({
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
   const [isReelViewerOpen, setIsReelViewerOpen] = useState(false);
   const currentUser = useSelector(userSignUpData);
+  const isLoggedIn = useSelector(getIsLoggedIn);
 
   if (!seller) return <ProductSellerCardSkeleton />;
 
   // Use user_id if available, fallback to id, then to productDetails.user_id
   const sellerId = seller?.user_id ?? seller?.id ?? productDetails?.user_id;
   const isOwner = Boolean(
-    currentUser?.id && String(currentUser.id) === String(sellerId)
+    currentUser?.id && String(currentUser.id) === String(sellerId),
   );
   const hasVideo = Boolean(hasItemVideo(productDetails));
   const showStoryRing = Boolean(hasReel || hasVideo);
@@ -787,25 +1031,48 @@ const ProductSellerDetailCard = ({
       })
     : null;
 
-  const memberSince = showMemberSince ? formatMemberSince(seller?.created_at) : "";
+  const memberSince = showMemberSince
+    ? formatMemberSince(seller?.created_at)
+    : "";
   const sellerAvatar = resolveSellerAvatar(seller);
   const lastSeenDate = parseLastSeenDate(seller);
   const seenAgoLabel = formatSeenAgoLabel(lastSeenDate);
-  const seenInfoLabel = lastSeenDate && seenAgoLabel ? `Viđen ${seenAgoLabel}` : null;
+  const seenInfoLabel =
+    lastSeenDate && seenAgoLabel ? `Viđen ${seenAgoLabel}` : null;
+  const contactEngine = resolveSellerContactEngine({
+    seller,
+    settings,
+    isLoggedIn,
+  });
+  const { contactPolicy, phoneContact, emailVerified } = contactEngine;
+  const quietHoursActive = contactPolicy.quietHoursActive;
 
   // Rating
   const ratingValue = useMemo(
-    () => (seller?.average_rating != null ? Number(seller.average_rating).toFixed(1) : null),
-    [seller?.average_rating]
+    () =>
+      seller?.average_rating != null
+        ? Number(seller.average_rating).toFixed(1)
+        : null,
+    [seller?.average_rating],
   );
-  const ratingCount = useMemo(() => ratings?.total || ratings?.count || seller?.ratings_count || 0, [ratings, seller]);
+  const ratingCount = useMemo(
+    () => ratings?.total || ratings?.count || seller?.ratings_count || 0,
+    [ratings, seller],
+  );
 
   // Badges
-  const badgeList = useMemo(() => (badges || []).slice(0, maxBadges), [badges, maxBadges]);
+  const badgeList = useMemo(
+    () => (badges || []).slice(0, maxBadges),
+    [badges, maxBadges],
+  );
 
   // Business hours
   const businessHours = parseBusinessHours(settings.business_hours);
-  const hasBusinessHours = Boolean(businessHours && Object.values(businessHours).some(d => d?.enabled) && showBusinessHours);
+  const hasBusinessHours = Boolean(
+    businessHours &&
+    Object.values(businessHours).some((d) => d?.enabled) &&
+    showBusinessHours,
+  );
   const todayHoursText = hasBusinessHours ? getTodayHours(businessHours) : null;
   const openNow = hasBusinessHours ? isCurrentlyOpen(businessHours) : null;
 
@@ -817,9 +1084,10 @@ const ProductSellerDetailCard = ({
   const canMakeOffer = acceptsOffers || settings?.accepts_offers;
 
   // Has contact options
-  const hasContactOptions = settings?.show_phone || settings?.show_whatsapp || settings?.show_viber || settings?.show_email;
+  const hasContactOptions = contactEngine.hasDirectContactOptions;
   const blockedContactCopy =
-    contactBlockedMessage || "Oglas je rasprodan. Kontakt opcije su trenutno onemogućene.";
+    contactBlockedMessage ||
+    "Oglas je rasprodan. Kontakt opcije su trenutno onemogućene.";
 
   const handleChatClick = () => {
     if (disableContactActions) {
@@ -850,6 +1118,38 @@ const ProductSellerDetailCard = ({
     setIsOfferOpen(true);
   };
 
+  const handleReelOpen = useCallback(async () => {
+    if (!sellerId) {
+      toast.info("Nema aktivnih videa.");
+      return;
+    }
+
+    try {
+      const res = await allItemApi.getItems({
+        user_id: sellerId,
+        has_video: 1,
+        status: "approved",
+        limit: 1,
+        sort_by: "new-to-old",
+      });
+      const rawItems =
+        res?.data?.data?.data || res?.data?.data || res?.data?.items || [];
+      const list = Array.isArray(rawItems) ? rawItems : [];
+      const hasAnyVideo = list.some((entry) => hasItemVideo(entry));
+
+      if (hasAnyVideo) {
+        setHasReel(true);
+        setIsReelViewerOpen(true);
+        return;
+      }
+      setHasReel(false);
+    } catch {
+      // silent fallback to user message
+    }
+
+    toast.info("Nema aktivnih videa.");
+  }, [sellerId]);
+
   return (
     <>
       <ReelRingStyles />
@@ -859,6 +1159,7 @@ const ProductSellerDetailCard = ({
         onOpenChange={setIsContactOpen}
         seller={seller}
         settings={settings}
+        isLoggedIn={isLoggedIn}
         onMessageClick={handleChatClick}
         onPhoneCall={onPhoneClick}
       />
@@ -901,11 +1202,11 @@ const ProductSellerDetailCard = ({
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => setIsReelViewerOpen(true)}
+                  onClick={handleReelOpen}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      setIsReelViewerOpen(true);
+                      handleReelOpen();
                     }
                   }}
                   className="focus:outline-none"
@@ -914,7 +1215,7 @@ const ProductSellerDetailCard = ({
                   <motion.div
                     className={cn(
                       "rounded-[14px] p-[2px]",
-                      showStoryRing ? "reel-ring" : "bg-transparent"
+                      showStoryRing ? "reel-ring" : "bg-transparent",
                     )}
                     animate={ringMotion}
                     transition={ringTransition}
@@ -924,7 +1225,7 @@ const ProductSellerDetailCard = ({
                         "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
                         showStoryRing
                           ? "border-white/70 dark:border-slate-700/80"
-                          : "border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors"
+                          : "border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors",
                       )}
                     >
                       <UserAvatarMedia
@@ -950,7 +1251,9 @@ const ProductSellerDetailCard = ({
                     className="absolute -top-1 -right-1 z-30 w-6 h-6 rounded-full bg-white dark:bg-slate-900 shadow-md flex items-center justify-center border border-slate-200 dark:border-slate-700"
                     aria-label="Dodaj video"
                   >
-                    <span className="text-lg leading-none text-[#1e3a8a]">+</span>
+                    <span className="text-lg leading-none text-[#1e3a8a]">
+                      +
+                    </span>
                   </button>
                 )}
               </div>
@@ -959,7 +1262,7 @@ const ProductSellerDetailCard = ({
                 <motion.div
                   className={cn(
                     "rounded-[14px] p-[2px]",
-                    showStoryRing ? "reel-ring" : "bg-transparent"
+                    showStoryRing ? "reel-ring" : "bg-transparent",
                   )}
                   animate={ringMotion}
                   transition={ringTransition}
@@ -969,7 +1272,7 @@ const ProductSellerDetailCard = ({
                       "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
                       showStoryRing
                         ? "border border-white/70 dark:border-slate-700/80"
-                        : "border border-slate-200/60 dark:border-slate-700/60"
+                        : "border border-slate-200/60 dark:border-slate-700/60",
                     )}
                   >
                     <UserAvatarMedia
@@ -992,22 +1295,34 @@ const ProductSellerDetailCard = ({
               {/* Name row with share */}
               <div className="flex items-center justify-between gap-2">
                 {sellerId ? (
-                  <CustomLink 
+                  <CustomLink
                     href={`/seller/${sellerId}`}
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <span className="truncate">{seller?.name}</span>
-                    {hasMembershipBadge && <MembershipBadge tier={membershipTier} size="xs" />}
+                    {hasMembershipBadge && (
+                      <MembershipBadge tier={membershipTier} size="xs" />
+                    )}
                   </CustomLink>
                 ) : (
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                     <span className="truncate">{seller?.name}</span>
-                    {hasMembershipBadge && <MembershipBadge tier={membershipTier} size="xs" />}
+                    {hasMembershipBadge && (
+                      <MembershipBadge tier={membershipTier} size="xs" />
+                    )}
                   </span>
                 )}
-                
-                <ShareDropdown url={shareUrl} title={title} headline={title} companyName={CompanyName}>
-                  <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+
+                <ShareDropdown
+                  url={shareUrl}
+                  title={title}
+                  headline={title}
+                  companyName={CompanyName}
+                >
+                  <button
+                    type="button"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  >
                     <Share2 className="w-4 h-4" />
                   </button>
                 </ShareDropdown>
@@ -1025,7 +1340,9 @@ const ProductSellerDetailCard = ({
                     )}
 
                     {showRatings && ratingValue && memberSince && (
-                      <span className="text-[10px] text-slate-300 dark:text-slate-600">•</span>
+                      <span className="text-[10px] text-slate-300 dark:text-slate-600">
+                        •
+                      </span>
                     )}
 
                     {memberSince && (
@@ -1049,6 +1366,25 @@ const ProductSellerDetailCard = ({
                   {seenInfoLabel}
                 </p>
               )}
+              <ContactTrustBadges
+                className="mt-1"
+                hasPhone={phoneContact.hasPhone}
+                phoneState={phoneContact.state}
+                phoneVerified={phoneContact.isPhoneVerified}
+                hasEmail={Boolean(seller?.email)}
+                emailVerified={emailVerified}
+                responseLabel={responseLabel || ""}
+                phoneVisibleOnlyToLoggedIn={
+                  contactPolicy.phoneVisibleOnlyToLoggedIn
+                }
+                messagesOnly={contactPolicy.messagesOnly}
+                quietHoursEnabled={contactPolicy.quietHoursEnabled}
+                quietHoursStart={contactPolicy.quietHoursStart}
+                quietHoursEnd={contactPolicy.quietHoursEnd}
+                quietHoursActive={quietHoursActive}
+                quietHoursMessage={contactPolicy.quietHoursMessage}
+                reasonCodes={contactEngine.reasonCodes}
+              />
 
               {/* {canManageReels && !hasVideo && (
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#11b7b0]/40 bg-[#11b7b0]/10 px-3 py-1 text-xs font-semibold text-[#0f766e]">
@@ -1082,16 +1418,30 @@ const ProductSellerDetailCard = ({
             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>Danas: <strong className="text-slate-900 dark:text-slate-100">{todayHoursText}</strong></span>
+                <span>
+                  Danas:{" "}
+                  <strong className="text-slate-900 dark:text-slate-100">
+                    {todayHoursText}
+                  </strong>
+                </span>
               </div>
               {openNow !== null && (
-                <span className={cn(
-                  "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                  openNow
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                    : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                )}>
-                  <span className={cn("w-1.5 h-1.5 rounded-full", openNow ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-500")} />
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
+                    openNow
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      openNow
+                        ? "bg-emerald-500"
+                        : "bg-slate-400 dark:bg-slate-500",
+                    )}
+                  />
                   {openNow ? "Otvoreno" : "Zatvoreno"}
                 </span>
               )}
@@ -1124,7 +1474,7 @@ const ProductSellerDetailCard = ({
                   "flex items-center justify-center gap-1.5 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition-colors",
                   disableContactActions
                     ? "bg-emerald-300 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-emerald-600 hover:bg-emerald-700",
                 )}
               >
                 Ponuda
@@ -1142,7 +1492,7 @@ const ProductSellerDetailCard = ({
                     ? "opacity-50 cursor-not-allowed border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500"
                     : highlightContactButton
                       ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
+                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300",
                 )}
               >
                 <Phone className="w-4 h-4" />
@@ -1170,8 +1520,12 @@ const ProductSellerDetailCard = ({
                 <div className="flex items-start gap-2.5">
                   <Truck className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">Dostava</div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{shippingInfo}</p>
+                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">
+                      Dostava
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                      {shippingInfo}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1182,8 +1536,12 @@ const ProductSellerDetailCard = ({
                 <div className="flex items-start gap-2.5">
                   <RotateCcw className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">Povrat</div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{returnPolicy}</p>
+                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">
+                      Povrat
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                      {returnPolicy}
+                    </p>
                   </div>
                 </div>
               </div>

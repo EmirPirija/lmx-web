@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 
 import ProductSellerDetailCard from "@/components/PagesComponent/ProductDetail/ProductSellerDetailCard";
 
-
 // Icons
 import {
   MdClose,
@@ -26,7 +25,7 @@ import {
   MdEdit,
   MdDelete,
   MdRocketLaunch,
-  User
+  User,
 } from "@/components/Common/UnifiedIconPack";
 import { IoStatsChart } from "@/components/Common/UnifiedIconPack";
 
@@ -60,7 +59,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { setBreadcrumbPath } from "@/redux/reducer/breadCrumbSlice";
 import { logoutSuccess, userSignUpData } from "@/redux/reducer/authSlice";
-import { setHideMobileBottomNav, setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
+import {
+  setHideMobileBottomNav,
+  setIsLoginOpen,
+} from "@/redux/reducer/globalStateSlice";
 
 // Utils & Hooks
 import { getFilteredCustomFields, getYouTubeVideoId, truncate } from "@/utils";
@@ -86,7 +88,8 @@ const toBooleanFlag = (value) => {
   const normalized = String(value).trim().toLowerCase();
   if (!normalized) return null;
   if (["true", "yes", "da", "on", "enabled"].includes(normalized)) return true;
-  if (["false", "no", "ne", "off", "disabled"].includes(normalized)) return false;
+  if (["false", "no", "ne", "off", "disabled"].includes(normalized))
+    return false;
   return null;
 };
 
@@ -127,10 +130,15 @@ const MobileProfileDockSlot = ({
           showLabel
             ? "flex min-w-[62px] flex-col items-center justify-center gap-1"
             : "flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70",
-          className
+          className,
         )}
       >
-        <div className={cn("relative flex items-center justify-center", showLabel ? "" : "scale-[0.92]")}>
+        <div
+          className={cn(
+            "relative flex items-center justify-center",
+            showLabel ? "" : "scale-[0.92]",
+          )}
+        >
           <ProfileDropdown
             setIsLogout={setIsLogoutOpen}
             IsLogout={isLogoutOpen}
@@ -155,7 +163,7 @@ const MobileProfileDockSlot = ({
         showLabel
           ? "flex min-w-[62px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-0.5"
           : "flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70",
-        className
+        className,
       )}
       aria-label="Prijava"
       title="Prijava"
@@ -163,7 +171,7 @@ const MobileProfileDockSlot = ({
       <span
         className={cn(
           "flex items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors group-hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:group-hover:bg-slate-800",
-          showLabel ? "h-10 w-10" : "h-8 w-8"
+          showLabel ? "h-10 w-10" : "h-8 w-8",
         )}
       >
         <User size={18} />
@@ -180,10 +188,10 @@ const MobileProfileDockSlot = ({
 const MobileStickyBar = ({
   isMyListing,
   productDetails,
-  hide, 
-  onPhoneClick, 
-  onChatClick, 
-  onDeleteClick, 
+  hide,
+  onPhoneClick,
+  onChatClick,
+  onDeleteClick,
   onStatusClick,
   disableContactActions = false,
   contactBlockedMessage = "",
@@ -198,9 +206,10 @@ const MobileStickyBar = ({
   const priceOnRequest = resolvePriceOnRequestState(productDetails);
   const showRealEstatePerM2 = !isMyListing && realEstatePricing?.showPerM2;
   const formattedPerM2 = showRealEstatePerM2
-    ? `${new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(
-        Number(realEstatePricing?.perM2Value)
-      )} KM / m²`
+    ? `${new Intl.NumberFormat("bs-BA", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(Number(realEstatePricing?.perM2Value))} KM / m²`
     : null;
   const formattedAreaM2 =
     showRealEstatePerM2 && Number(realEstatePricing?.areaM2) > 0
@@ -214,7 +223,9 @@ const MobileStickyBar = ({
     <div
       className={cn(
         "lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-3 safe-area-bottom z-[108] transition-all duration-300 ease-out",
-        hide ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+        hide
+          ? "translate-y-full opacity-0 pointer-events-none"
+          : "translate-y-0 opacity-100",
       )}
     >
       <div className="container flex items-center gap-3">
@@ -222,17 +233,26 @@ const MobileStickyBar = ({
         <div className="flex-1 min-w-0">
           {isMyListing ? (
             <>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Status oglasa</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
+                Status oglasa
+              </p>
               <div className="flex items-center gap-2">
-                <span className={cn(
-                  "w-2 h-2 rounded-full",
-                  productDetails.status === 'approved' ? "bg-green-500" : 
-                  productDetails.status === 'pending' ? "bg-yellow-500" : "bg-slate-400"
-                )} />
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    productDetails.status === "approved"
+                      ? "bg-green-500"
+                      : productDetails.status === "pending"
+                        ? "bg-yellow-500"
+                        : "bg-slate-400",
+                  )}
+                />
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                  {productDetails.status === 'approved' ? "Aktivan" : 
-                   productDetails.status === 'pending' ? "Na čekanju" : 
-                   productDetails.status}
+                  {productDetails.status === "approved"
+                    ? "Aktivan"
+                    : productDetails.status === "pending"
+                      ? "Na čekanju"
+                      : productDetails.status}
                 </p>
               </div>
             </>
@@ -240,18 +260,24 @@ const MobileStickyBar = ({
             <>
               {disableContactActions ? (
                 <>
-                  <p className="text-[10px] text-rose-500 dark:text-rose-300 font-bold uppercase tracking-wide">Status</p>
-                  <p className="text-base font-black text-rose-600 dark:text-rose-300 truncate">Rasprodano</p>
+                  <p className="text-[10px] text-rose-500 dark:text-rose-300 font-bold uppercase tracking-wide">
+                    Status
+                  </p>
+                  <p className="text-base font-black text-rose-600 dark:text-rose-300 truncate">
+                    Rasprodano
+                  </p>
                 </>
               ) : (
                 <>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Cijena</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
+                    Cijena
+                  </p>
                   <p className="text-lg font-black text-primary truncate">
                     {priceOnRequest
                       ? "Na upit"
-                      : `${new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0 }).format(
-                          Number(productDetails?.price || 0)
-                        )} KM`}
+                      : `${new Intl.NumberFormat("bs-BA", {
+                          minimumFractionDigits: 0,
+                        }).format(Number(productDetails?.price || 0))} KM`}
                   </p>
                   {formattedPerM2 ? (
                     <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
@@ -260,9 +286,10 @@ const MobileStickyBar = ({
                     </p>
                   ) : Number(productDetails?.price_per_unit) > 0 ? (
                     <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
-                      {new Intl.NumberFormat("bs-BA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(
-                        Number(productDetails.price_per_unit)
-                      )}{" "}
+                      {new Intl.NumberFormat("bs-BA", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                      }).format(Number(productDetails.price_per_unit))}{" "}
                       KM / kom
                     </p>
                   ) : null}
@@ -277,17 +304,26 @@ const MobileStickyBar = ({
           {isMyListing ? (
             <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1 dark:border-slate-700 dark:bg-slate-800/60">
               {/* UREDI */}
-              <Link href={`/edit-listing/${productDetails.id}`} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl active:scale-95 transition-all border border-slate-200/80 dark:border-slate-700">
+              <Link
+                href={`/edit-listing/${productDetails.id}`}
+                className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl active:scale-95 transition-all border border-slate-200/80 dark:border-slate-700"
+              >
                 <MdEdit size={20} />
               </Link>
-              
+
               {/* DELETE */}
-              <button onClick={onDeleteClick} className="w-10 h-10 flex items-center justify-center bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl active:scale-95 transition-all border border-rose-100 dark:border-rose-900/30">
+              <button
+                onClick={onDeleteClick}
+                className="w-10 h-10 flex items-center justify-center bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl active:scale-95 transition-all border border-rose-100 dark:border-rose-900/30"
+              >
                 <MdDelete size={20} />
               </button>
 
               {/* MORE ACTIONS */}
-              <button onClick={onStatusClick} className="px-4 h-10 flex items-center justify-center bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 rounded-xl font-bold text-sm active:scale-95 shadow-lg shadow-slate-900/20 dark:shadow-none border border-transparent dark:border-slate-700">
+              <button
+                onClick={onStatusClick}
+                className="px-4 h-10 flex items-center justify-center bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 rounded-xl font-bold text-sm active:scale-95 shadow-lg shadow-slate-900/20 dark:shadow-none border border-transparent dark:border-slate-700"
+              >
                 Opcije
               </button>
 
@@ -302,14 +338,14 @@ const MobileStickyBar = ({
             </div>
           ) : (
             <>
-              <button 
+              <button
                 onClick={onPhoneClick}
                 disabled={disableContactActions}
                 className="w-10 h-10 flex items-center justify-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/30 rounded-xl active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <MdPhone size={22} />
               </button>
-              <button 
+              <button
                 onClick={onChatClick}
                 disabled={disableContactActions}
                 className="px-4 h-10 flex items-center justify-center gap-2 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -330,7 +366,8 @@ const MobileStickyBar = ({
       </div>
       {!isMyListing && disableContactActions ? (
         <p className="container mt-1 text-center text-[11px] text-rose-600 dark:text-rose-300">
-          {contactBlockedMessage || "Oglas je rasprodan i kontakt je privremeno onemogućen."}
+          {contactBlockedMessage ||
+            "Oglas je rasprodan i kontakt je privremeno onemogućen."}
         </p>
       ) : null}
     </div>
@@ -369,7 +406,7 @@ const FeaturedAdTriggerCard = ({
   <div
     className={cn(
       "rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900",
-      compact ? "p-4" : "p-5"
+      compact ? "p-4" : "p-5",
     )}
   >
     <div
@@ -377,7 +414,7 @@ const FeaturedAdTriggerCard = ({
         "flex gap-3 flex-col",
         compact
           ? "items-center justify-between"
-          : "flex-col sm:flex-row sm:items-center sm:justify-between"
+          : "flex-col sm:flex-row sm:items-center sm:justify-between",
       )}
     >
       <div className="flex min-w-0 items-start gap-3">
@@ -434,13 +471,14 @@ const ProductDetails = ({ slug }) => {
   // State
   const [productDetails, setProductDetails] = useState(null);
   const [badges, setBadges] = useState([]);
+  const [sellerProfile, setSellerProfile] = useState(null);
   const [sellerSettings, setSellerSettings] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]);
   const [videoData, setVideoData] = useState({ url: "", thumbnail: "" });
   const [directVideo, setDirectVideo] = useState(null);
   const [status, setStatus] = useState("");
   const latestProductFetchRef = useRef(0);
-  
+
   // UI State
   const [isLoading, setIsLoading] = useState(true);
   const [showStatsModal, setShowStatsModal] = useState(false);
@@ -450,16 +488,34 @@ const ProductDetails = ({ slug }) => {
   const [showProductReviewDialog, setShowProductReviewDialog] = useState(false);
   const [IsLogout, setIsLogout] = useState(false);
   const [IsLoggingOut, setIsLoggingOut] = useState(false);
-  
+
   // Mobile Drawers
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
   const [showFeaturedDrawer, setShowFeaturedDrawer] = useState(false);
 
   // Tracking Hooks
   const [itemId, setItemId] = useState(null);
-  const { trackView, trackShare, trackFavorite, trackTimeOnPage } = useItemTracking(itemId, { autoTrackView: false });
-  const { trackPhoneReveal, trackPhoneClick, trackWhatsApp, trackViber, trackMessage, trackEmail } = useContactTracking(itemId);
-  const { trackGalleryOpen, trackImageView, trackImageZoom, trackVideoPlay, trackDescriptionExpand, trackMapOpen, trackSellerProfileClick, trackPriceHistoryView, trackSimilarItemsClick } = useEngagementTracking(itemId);
+  const { trackView, trackShare, trackFavorite, trackTimeOnPage } =
+    useItemTracking(itemId, { autoTrackView: false });
+  const {
+    trackPhoneReveal,
+    trackPhoneClick,
+    trackWhatsApp,
+    trackViber,
+    trackMessage,
+    trackEmail,
+  } = useContactTracking(itemId);
+  const {
+    trackGalleryOpen,
+    trackImageView,
+    trackImageZoom,
+    trackVideoPlay,
+    trackDescriptionExpand,
+    trackMapOpen,
+    trackSellerProfileClick,
+    trackPriceHistoryView,
+    trackSimilarItemsClick,
+  } = useEngagementTracking(itemId);
 
   // 1. Fetch Logic
   const fetchProductDetails = async () => {
@@ -472,7 +528,9 @@ const ProductDetails = ({ slug }) => {
       setGalleryImages([]);
 
       // Use path-based check for API call since we don't have product data yet
-      const apiCall = isMyListingPath ? getMyItemsApi.getMyItems : allItemApi.getItems;
+      const apiCall = isMyListingPath
+        ? getMyItemsApi.getMyItems
+        : allItemApi.getItems;
       const res = await apiCall({ slug });
       let product = res?.data?.data?.data?.[0];
 
@@ -494,18 +552,23 @@ const ProductDetails = ({ slug }) => {
         const vidId = getYouTubeVideoId(product.video_link);
         setVideoData({
           url: product.video_link,
-          thumbnail: vidId ? `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg` : ""
+          thumbnail: vidId
+            ? `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg`
+            : "",
         });
       }
       if (product.video) setDirectVideo(product.video);
 
       // Gallery Setup
-      const extraImages = product.gallery_images?.map(img => img?.image) || [];
+      const extraImages =
+        product.gallery_images?.map((img) => img?.image) || [];
       setGalleryImages([product.image, ...extraImages]);
 
       // Check if current user is the owner (for view tracking)
-      const productOwnerId = product?.user?.id || product?.user?.user_id || product?.user_id;
-      const isProductOwner = currentUser?.id && String(currentUser.id) === String(productOwnerId);
+      const productOwnerId =
+        product?.user?.id || product?.user?.user_id || product?.user_id;
+      const isProductOwner =
+        currentUser?.id && String(currentUser.id) === String(productOwnerId);
 
       // Views - don't track if owner or accessed via my-listing
       if (!isMyListingPath && !isProductOwner) {
@@ -514,9 +577,13 @@ const ProductDetails = ({ slug }) => {
 
       // Breadcrumb
       if (isMyListingPath) {
-        dispatch(setBreadcrumbPath([{ name: "Moji oglasi", slug: "/my-ads" }, { name: truncate(product.name, 40) }]));
+        dispatch(
+          setBreadcrumbPath([
+            { name: "Moji oglasi", slug: "/my-ads" },
+            { name: truncate(product.name, 40) },
+          ]),
+        );
       }
-
     } catch (error) {
       console.error(error);
     } finally {
@@ -528,40 +595,47 @@ const ProductDetails = ({ slug }) => {
 
   // Check if current user is the owner of this product
   const isOwner = Boolean(
-    currentUser?.id && 
-    productDetails?.user && 
-    (String(currentUser.id) === String(productDetails.user.id) || 
-     String(currentUser.id) === String(productDetails.user.user_id) ||
-     String(currentUser.id) === String(productDetails.user_id))
+    currentUser?.id &&
+    productDetails?.user &&
+    (String(currentUser.id) === String(productDetails.user.id) ||
+      String(currentUser.id) === String(productDetails.user.user_id) ||
+      String(currentUser.id) === String(productDetails.user_id)),
   );
-  
+
   // isMyListing = true if accessed via /my-listing OR if the logged-in user is the owner
   const isMyListing = isMyListingPath || isOwner;
   const itemReviews = Array.isArray(productDetails?.review)
     ? productDetails.review
     : productDetails?.review
-    ? [productDetails.review]
-    : [];
+      ? [productDetails.review]
+      : [];
   const isSoldToCurrentUser = Boolean(
     currentUser?.id &&
-      Number(productDetails?.sold_to) === Number(currentUser.id)
+    Number(productDetails?.sold_to) === Number(currentUser.id),
   );
   const hasCurrentUserReview = Boolean(
     currentUser?.id &&
-      itemReviews.some((review) => Number(review?.buyer_id) === Number(currentUser.id))
+    itemReviews.some(
+      (review) => Number(review?.buyer_id) === Number(currentUser.id),
+    ),
   );
   const canLeaveProductReview = Boolean(
     !isMyListing &&
-      productDetails?.status === "sold out" &&
-      isSoldToCurrentUser &&
-      !hasCurrentUserReview
+    productDetails?.status === "sold out" &&
+    isSoldToCurrentUser &&
+    !hasCurrentUserReview,
   );
 
   // 2. Fetch Seller Info
   useEffect(() => {
-    const sellerId = productDetails?.user?.id;
+    const sellerId =
+      productDetails?.user?.id ??
+      productDetails?.user?.user_id ??
+      productDetails?.user_id;
     if (!sellerId) {
       setBadges([]);
+      setSellerSettings(null);
+      setSellerProfile(null);
       return;
     }
 
@@ -591,20 +665,35 @@ const ProductDetails = ({ slug }) => {
       .then((res) => {
         if (!isMounted) return;
         if (!res?.data?.error) {
-          setSellerSettings(res.data.data?.seller_settings);
+          const payload = res?.data?.data || {};
+          setSellerProfile(payload?.seller || null);
+          setSellerSettings(
+            payload?.seller_settings ||
+              payload?.seller?.seller_settings ||
+              null,
+          );
         }
       })
       .catch(() => {
-        if (isMounted) setSellerSettings(null);
+        if (isMounted) {
+          setSellerProfile(null);
+          setSellerSettings(null);
+        }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [productDetails?.user?.id]);
+  }, [
+    productDetails?.user?.id,
+    productDetails?.user?.user_id,
+    productDetails?.user_id,
+  ]);
 
   // 3. Effects
-  useEffect(() => { fetchProductDetails(); }, [slug, CurrentLanguage?.id]);
+  useEffect(() => {
+    fetchProductDetails();
+  }, [slug, CurrentLanguage?.id]);
 
   useEffect(() => {
     dispatch(setHideMobileBottomNav(true));
@@ -634,31 +723,58 @@ const ProductDetails = ({ slug }) => {
 
     trackView({ searchId, source, source_detail: sourceDetail });
   }, [itemId, isMyListing, isOwner, trackView, searchParams]);
-  useEffect(() => { if (window.innerWidth <= 768 && !isMyListing && !isOwner && isShare) setIsOpenInApp(true); }, [isMyListing, isOwner]);
+  useEffect(() => {
+    if (window.innerWidth <= 768 && !isMyListing && !isOwner && isShare)
+      setIsOpenInApp(true);
+  }, [isMyListing, isOwner]);
 
   // Handlers
   const handleDeleteAd = async () => {
     setIsDeleting(true);
     try {
-      const res = await deleteItemApi.deleteItem({ item_id: productDetails?.id });
+      const res = await deleteItemApi.deleteItem({
+        item_id: productDetails?.id,
+      });
       if (!res?.data?.error) {
         toast.success("Oglas obrisan");
         router.push("/my-ads");
       } else toast.error(res?.data?.message);
-    } catch { toast.error("Greška"); }
-    finally { setIsDeleting(false); setIsDeleteOpen(false); }
+    } catch {
+      toast.error("Greška");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteOpen(false);
+    }
   };
 
   // Helper consts
-  const filteredFields = getFilteredCustomFields(productDetails?.all_translated_custom_fields, CurrentLanguage?.id);
-  const featuredMeta = useMemo(() => getFeaturedMeta(productDetails), [productDetails]);
-  const normalizedProductStatus = String(productDetails?.status || "").toLowerCase();
-  const scarcityState = useMemo(() => getScarcityState(productDetails), [productDetails]);
-  const isInventoryOutOfStock = Boolean(scarcityState?.isOutOfStock || normalizedProductStatus === "sold out");
-  const canManageFeaturedAd = Boolean(
-    isMyListing && ["approved", "featured"].includes(normalizedProductStatus)
+  const filteredFields = getFilteredCustomFields(
+    productDetails?.all_translated_custom_fields,
+    CurrentLanguage?.id,
   );
-  const hideBottomBar = showStatsModal || showStatusDrawer || showFeaturedDrawer || isDeleteOpen || isOpenInApp;
+  const featuredMeta = useMemo(
+    () => getFeaturedMeta(productDetails),
+    [productDetails],
+  );
+  const normalizedProductStatus = String(
+    productDetails?.status || "",
+  ).toLowerCase();
+  const scarcityState = useMemo(
+    () => getScarcityState(productDetails),
+    [productDetails],
+  );
+  const isInventoryOutOfStock = Boolean(
+    scarcityState?.isOutOfStock || normalizedProductStatus === "sold out",
+  );
+  const canManageFeaturedAd = Boolean(
+    isMyListing && ["approved", "featured"].includes(normalizedProductStatus),
+  );
+  const hideBottomBar =
+    showStatsModal ||
+    showStatusDrawer ||
+    showFeaturedDrawer ||
+    isDeleteOpen ||
+    isOpenInApp;
 
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
@@ -666,7 +782,10 @@ const ProductDetails = ({ slug }) => {
       try {
         await signOut();
       } catch (error) {
-        console.warn("Firebase odjava nije završena, nastavljam lokalnu odjavu.", error);
+        console.warn(
+          "Firebase odjava nije završena, nastavljam lokalnu odjavu.",
+          error,
+        );
       }
 
       try {
@@ -676,7 +795,10 @@ const ProductDetails = ({ slug }) => {
       } catch (error) {
         const status = error?.response?.status;
         if (status !== 401 && status !== 419) {
-          console.warn("Server odjava nije dostupna, nastavljam lokalnu odjavu.", error);
+          console.warn(
+            "Server odjava nije dostupna, nastavljam lokalnu odjavu.",
+            error,
+          );
         }
       }
 
@@ -700,34 +822,49 @@ const ProductDetails = ({ slug }) => {
   }, [canManageFeaturedAd, productDetails?.id]);
 
   // Loading State
-  if (isLoading) return <Layout><SkeletonLoader /></Layout>;
+  if (isLoading)
+    return (
+      <Layout>
+        <SkeletonLoader />
+      </Layout>
+    );
 
   // Not Found State
-  if (!productDetails) return (
-    <Layout>
-      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Oglas nije pronađen</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-6">Moguće je da je oglas obrisan ili je istekao.</p>
-        <Link href="/" className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all">
-          Nazad na početnu
-        </Link>
-      </div>
-    </Layout>
-  );
+  if (!productDetails)
+    return (
+      <Layout>
+        <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+            Oglas nije pronađen
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
+            Moguće je da je oglas obrisan ili je istekao.
+          </p>
+          <Link
+            href="/"
+            className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all"
+          >
+            Nazad na početnu
+          </Link>
+        </div>
+      </Layout>
+    );
 
   return (
     <Layout>
       {/* HEADER / BREADCRUMB */}
       <div className="container mt-4 lg:mt-8">
-        {isMyListing ? <BreadCrumb /> : <BreadCrumb title2={truncate(productDetails?.name, 60)} />}
+        {isMyListing ? (
+          <BreadCrumb />
+        ) : (
+          <BreadCrumb title2={truncate(productDetails?.name, 60)} />
+        )}
       </div>
 
       <div className="container mt-4 lg:mt-8 pb-24 lg:pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          
           {/* --- LIJEVA KOLONA (Sadržaj) --- */}
           <div className="lg:col-span-8 flex flex-col gap-6 lg:gap-8">
-            
             {/* 1. GALERIJA */}
             <div className="-mx-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 sm:mx-0">
               <ProductGallery
@@ -751,33 +888,35 @@ const ProductDetails = ({ slug }) => {
               onPriceHistoryView={trackPriceHistoryView}
             />
 
-            {!isMyListing && productDetails?.status === "sold out" && isSoldToCurrentUser && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      Kupovina je završena.
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                      Podijelite iskustvo i pomozite drugim kupcima.
-                    </p>
+            {!isMyListing &&
+              productDetails?.status === "sold out" &&
+              isSoldToCurrentUser && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        Kupovina je završena.
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Podijelite iskustvo i pomozite drugim kupcima.
+                      </p>
+                    </div>
+                    {canLeaveProductReview ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowProductReviewDialog(true)}
+                        className="inline-flex items-center justify-center rounded-xl bg-[#0ab6af] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0a9f99]"
+                      >
+                        Ostavi dojam
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-900/25 dark:text-emerald-300">
+                        Već ste ostavili dojam
+                      </span>
+                    )}
                   </div>
-                  {canLeaveProductReview ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowProductReviewDialog(true)}
-                      className="inline-flex items-center justify-center rounded-xl bg-[#0ab6af] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0a9f99]"
-                    >
-                      Ostavi dojam
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-900/25 dark:text-emerald-300">
-                      Već ste ostavili dojam
-                    </span>
-                  )}
                 </div>
-              </div>
-            )}
+              )}
 
             {/* 3. OPCIJE PRODAVAČA (Samo za moje oglase) */}
             {canManageFeaturedAd && (
@@ -793,31 +932,42 @@ const ProductDetails = ({ slug }) => {
             {/* 4. KARAKTERISTIKE */}
             {filteredFields.length > 0 && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-                <ProductFeature filteredFields={filteredFields} productDetails={productDetails} />
+                <ProductFeature
+                  filteredFields={filteredFields}
+                  productDetails={productDetails}
+                />
               </div>
             )}
 
             {/* 5. OPIS */}
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-              <ProductDescription productDetails={productDetails} onDescriptionExpand={trackDescriptionExpand} />
+              <ProductDescription
+                productDetails={productDetails}
+                onDescriptionExpand={trackDescriptionExpand}
+              />
             </div>
 
             {/* 6. PITANJA */}
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
-              <ProductQuestions productDetails={productDetails} isSeller={isMyListing} />
+              <ProductQuestions
+                productDetails={productDetails}
+                isSeller={isMyListing}
+                sellerSettings={sellerSettings}
+              />
             </div>
 
-            
-              {/* LOKACIJA */}
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
-                <ProductLocation productDetails={productDetails} onMapOpen={trackMapOpen} />
-              </div>
+            {/* LOKACIJA */}
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-300">
+              <ProductLocation
+                productDetails={productDetails}
+                onMapOpen={trackMapOpen}
+              />
+            </div>
           </div>
 
           {/* --- DESNA KOLONA (Sidebar) --- */}
           <div className="lg:col-span-4 flex flex-col gap-6 lg:gap-8">
             <div className="lg:sticky lg:top-5 lg:self-start flex flex-col gap-6">
-              
               {/* MY ADS SIDEBAR */}
               {isMyListing && (
                 <div className="hidden lg:block animate-in fade-in slide-in-from-right-4 duration-500">
@@ -830,9 +980,17 @@ const ProductDetails = ({ slug }) => {
 
               {/* SELLER INFO (Za kupce) */}
               {!isMyListing && (
-                <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-100" data-seller-card>
+                <div
+                  className="animate-in fade-in slide-in-from-right-4 duration-500 delay-100"
+                  data-seller-card
+                >
                   <SellerDetailCard
                     productDetails={productDetails}
+                    seller={
+                      sellerProfile ||
+                      productDetails?.user ||
+                      productDetails?.seller
+                    }
                     setProductDetails={setProductDetails}
                     badges={badges}
                     sellerSettings={sellerSettings}
@@ -877,7 +1035,10 @@ const ProductDetails = ({ slug }) => {
               {/* PRIJAVA OGLASA */}
               {!isMyListing && !productDetails?.is_already_reported && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-400">
-                  <AdsReportCard productDetails={productDetails} setProductDetails={setProductDetails} />
+                  <AdsReportCard
+                    productDetails={productDetails}
+                    setProductDetails={setProductDetails}
+                  />
                 </div>
               )}
             </div>
@@ -897,7 +1058,10 @@ const ProductDetails = ({ slug }) => {
         {/* SLIČNI OGLASI */}
         {!isMyListing && (
           <div className="mt-10 lg:mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <SimilarProducts productDetails={productDetails} onItemClick={trackSimilarItemsClick} />
+            <SimilarProducts
+              productDetails={productDetails}
+              onItemClick={trackSimilarItemsClick}
+            />
           </div>
         )}
       </div>
@@ -907,13 +1071,19 @@ const ProductDetails = ({ slug }) => {
       {/* Statistika Modal */}
       {showStatsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowStatsModal(false)} />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in"
+            onClick={() => setShowStatsModal(false)}
+          />
           <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <IoStatsChart className="text-blue-500" /> Statistika
               </h3>
-              <button onClick={() => setShowStatsModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400">
+              <button
+                onClick={() => setShowStatsModal(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400"
+              >
                 <MdClose size={24} />
               </button>
             </div>
@@ -927,14 +1097,39 @@ const ProductDetails = ({ slug }) => {
       {/* Mobile Status Drawer */}
       {isMyListing && (
         <>
-          <div className={cn("fixed inset-0 bg-black/60 z-[100] transition-opacity", showStatusDrawer ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")} onClick={() => setShowStatusDrawer(false)} />
-          <div className={cn("fixed bottom-0 left-0 right-0 z-[101] bg-white dark:bg-slate-900 rounded-t-3xl transition-transform duration-300 flex flex-col max-h-[85vh]", showStatusDrawer ? "translate-y-0" : "translate-y-full")}>
+          <div
+            className={cn(
+              "fixed inset-0 bg-black/60 z-[100] transition-opacity",
+              showStatusDrawer
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none",
+            )}
+            onClick={() => setShowStatusDrawer(false)}
+          />
+          <div
+            className={cn(
+              "fixed bottom-0 left-0 right-0 z-[101] bg-white dark:bg-slate-900 rounded-t-3xl transition-transform duration-300 flex flex-col max-h-[85vh]",
+              showStatusDrawer ? "translate-y-0" : "translate-y-full",
+            )}
+          >
             <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">Upravljanje oglasom</h3>
-              <button onClick={() => setShowStatusDrawer(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300"><MdClose /></button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                Upravljanje oglasom
+              </h3>
+              <button
+                onClick={() => setShowStatusDrawer(false)}
+                className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300"
+              >
+                <MdClose />
+              </button>
             </div>
             <div className="p-5 overflow-y-auto pb-8">
-              <AdsStatusChangeCards productDetails={productDetails} setProductDetails={setProductDetails} status={status} setStatus={setStatus} />
+              <AdsStatusChangeCards
+                productDetails={productDetails}
+                setProductDetails={setProductDetails}
+                status={status}
+                setStatus={setStatus}
+              />
               {canManageFeaturedAd && (
                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                   <FeaturedAdTriggerCard
@@ -976,7 +1171,10 @@ const ProductDetails = ({ slug }) => {
       />
 
       {/* In-App Browser Drawer */}
-      <OpenInAppDrawer isOpenInApp={isOpenInApp} setIsOpenInApp={setIsOpenInApp} />
+      <OpenInAppDrawer
+        isOpenInApp={isOpenInApp}
+        setIsOpenInApp={setIsOpenInApp}
+      />
 
       <ReusableAlertDialog
         open={IsLogout}
@@ -1003,10 +1201,10 @@ const ProductDetails = ({ slug }) => {
                 const currentReviews = Array.isArray(prev?.review)
                   ? prev.review
                   : prev?.review
-                  ? [prev.review]
-                  : [];
+                    ? [prev.review]
+                    : [];
                 const cleaned = currentReviews.filter(
-                  (review) => Number(review?.id) !== Number(newReview?.id)
+                  (review) => Number(review?.id) !== Number(newReview?.id),
                 );
                 return { ...prev, review: [newReview, ...cleaned] };
               });
@@ -1017,12 +1215,24 @@ const ProductDetails = ({ slug }) => {
       </Dialog>
 
       {/* MOBILE STICKY BAR */}
-      <MobileStickyBar 
+      <MobileStickyBar
         isMyListing={isMyListing}
         productDetails={productDetails}
         hide={hideBottomBar}
-        onPhoneClick={() => { trackPhoneReveal(); document.querySelector("[data-seller-card]")?.scrollIntoView({ behavior: "smooth" }); }}
-        onChatClick={() => { trackMessage(); document.querySelector("[data-chat-button]") ? document.querySelector("[data-chat-button]").click() : document.querySelector("[data-seller-card]")?.scrollIntoView({ behavior: "smooth" }); }}
+        onPhoneClick={() => {
+          trackPhoneReveal();
+          document
+            .querySelector("[data-seller-card]")
+            ?.scrollIntoView({ behavior: "smooth" });
+        }}
+        onChatClick={() => {
+          trackMessage();
+          document.querySelector("[data-chat-button]")
+            ? document.querySelector("[data-chat-button]").click()
+            : document
+                .querySelector("[data-seller-card]")
+                ?.scrollIntoView({ behavior: "smooth" });
+        }}
         onDeleteClick={() => setIsDeleteOpen(true)}
         onStatusClick={() => setShowStatusDrawer(true)}
         disableContactActions={isInventoryOutOfStock}
@@ -1030,10 +1240,11 @@ const ProductDetails = ({ slug }) => {
         isLoggedIn={Boolean(currentUser?.id)}
         isLogoutOpen={IsLogout}
         setIsLogoutOpen={setIsLogout}
-        profileLabel={currentUser?.name ? truncate(currentUser.name, 10) : "Profil"}
+        profileLabel={
+          currentUser?.name ? truncate(currentUser.name, 10) : "Profil"
+        }
         onOpenLogin={() => dispatch(setIsLoginOpen(true))}
       />
-
     </Layout>
   );
 };

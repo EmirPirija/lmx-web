@@ -1,93 +1,96 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Drawer as DrawerPrimitive } from "vaul"
-import { motion } from "framer-motion"
+import * as React from "react";
+import { Drawer as DrawerPrimitive } from "vaul";
+import { motion } from "framer-motion";
 
-import { cn } from "@/lib/utils"
-import { overlayMotion, sideSheetMotion } from "@/components/ui/ui-motion"
+import { cn } from "@/lib/utils";
+import { overlayMotion, sideSheetMotion } from "@/components/ui/ui-motion";
 
-const Drawer = ({
-  shouldScaleBackground = true,
-  ...props
-}) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
-)
-Drawer.displayName = "Drawer"
+const Drawer = ({ shouldScaleBackground = true, ...props }) => (
+  <DrawerPrimitive.Root
+    shouldScaleBackground={shouldScaleBackground}
+    {...props}
+  />
+);
+Drawer.displayName = "Drawer";
 
-const DrawerTrigger = DrawerPrimitive.Trigger
+const DrawerTrigger = DrawerPrimitive.Trigger;
 
-const DrawerPortal = DrawerPrimitive.Portal
+const DrawerPortal = DrawerPrimitive.Portal;
 
-const DrawerClose = DrawerPrimitive.Close
+const DrawerClose = DrawerPrimitive.Close;
 
 const DrawerOverlay = React.forwardRef(({ className, ...props }, ref) => (
-  <DrawerPrimitive.Overlay
-    ref={ref}
-    asChild
-    {...props}>
+  <DrawerPrimitive.Overlay ref={ref} asChild {...props}>
     <motion.div
       {...overlayMotion}
-      className={cn("fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px]", className)}
+      className={cn(
+        "fixed inset-0 z-[127] bg-black/35 backdrop-blur-0",
+        className,
+      )}
     />
   </DrawerPrimitive.Overlay>
-))
-DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
+));
+DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 
-const DrawerContent = React.forwardRef(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      asChild
-      {...props}>
-      <motion.div
-        {...sideSheetMotion.bottom}
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-3xl border border-border/70 bg-background shadow-xl",
-          className
-        )}>
-        <div className="mx-auto mt-4 h-1.5 w-20 rounded-full bg-muted-foreground/30" />
-        {children}
-      </motion.div>
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-))
-DrawerContent.displayName = "DrawerContent"
+const DrawerContent = React.forwardRef(
+  ({ className, children, ...props }, ref) => (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content ref={ref} asChild {...props}>
+        <motion.div
+          {...sideSheetMotion.bottom}
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-[128] mt-24 flex h-auto flex-col rounded-t-3xl border border-border/70 bg-background shadow-xl",
+            className,
+          )}
+        >
+          <div className="mx-auto mt-4 h-1.5 w-20 rounded-full bg-muted-foreground/30" />
+          {children}
+        </motion.div>
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  ),
+);
+DrawerContent.displayName = "DrawerContent";
 
-const DrawerHeader = ({
-  className,
-  ...props
-}) => (
+const DrawerHeader = ({ className, ...props }) => (
   <div
     className={cn("grid gap-1.5 p-5 text-center sm:text-left", className)}
-    {...props} />
-)
-DrawerHeader.displayName = "DrawerHeader"
+    {...props}
+  />
+);
+DrawerHeader.displayName = "DrawerHeader";
 
-const DrawerFooter = ({
-  className,
-  ...props
-}) => (
-  <div className={cn("mt-auto flex flex-col gap-2 p-5", className)} {...props} />
-)
-DrawerFooter.displayName = "DrawerFooter"
+const DrawerFooter = ({ className, ...props }) => (
+  <div
+    className={cn("mt-auto flex flex-col gap-2 p-5", className)}
+    {...props}
+  />
+);
+DrawerFooter.displayName = "DrawerFooter";
 
 const DrawerTitle = React.forwardRef(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
-    {...props} />
-))
-DrawerTitle.displayName = DrawerPrimitive.Title.displayName
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
+    {...props}
+  />
+));
+DrawerTitle.displayName = DrawerPrimitive.Title.displayName;
 
 const DrawerDescription = React.forwardRef(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
-    {...props} />
-))
-DrawerDescription.displayName = DrawerPrimitive.Description.displayName
+    {...props}
+  />
+));
+DrawerDescription.displayName = DrawerPrimitive.Description.displayName;
 
 export {
   Drawer,
@@ -100,4 +103,4 @@ export {
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
-}
+};

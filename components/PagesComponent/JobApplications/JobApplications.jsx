@@ -122,7 +122,7 @@ const JobApplications = () => {
                         </CustomLink>
                       ) : (
                         <span className="text-muted-foreground italic text-sm">
-                          {"Nije dostupno"}
+                          {"CV nije priložen"}
                         </span>
                       )}
                     </TableCell>
