@@ -42,6 +42,13 @@ function Chip({ active, children, onClick }) {
   );
 }
 
+const getDisplayListName = (list) => {
+  if (!list || typeof list !== "object") return "Prodavači";
+  if (Boolean(list?.is_default)) return "Prodavači";
+  const raw = String(list?.name || "").trim();
+  return raw || "Prodavači";
+};
+
 export default function SavedPage() {
   const [lists, setLists] = useState([]);
   const [loadingLists, setLoadingLists] = useState(true);
@@ -51,7 +58,10 @@ export default function SavedPage() {
   const [items, setItems] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
 
-  const activeList = useMemo(() => lists.find((l) => l.id === activeListId) || null, [lists, activeListId]);
+  const activeList = useMemo(
+    () => lists.find((l) => l.id === activeListId) || null,
+    [lists, activeListId],
+  );
 
   const fetchLists = async () => {
     setLoadingLists(true);
@@ -71,7 +81,12 @@ export default function SavedPage() {
     if (!listId) return;
     setLoadingItems(true);
     try {
-      const res = await savedCollectionsApi.listItems({ listId, q, page: 1, per_page: 24 });
+      const res = await savedCollectionsApi.listItems({
+        listId,
+        q,
+        page: 1,
+        per_page: 24,
+      });
       const data = res?.data?.data;
       setItems(data?.data || []);
     } catch {
@@ -97,10 +112,10 @@ export default function SavedPage() {
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <div>
           <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
-            Sačuvani prodavači
+            Prodavači
           </div>
           <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Kolekcije, privatne bilješke i obavijesti — sve na jednom mjestu.
+            Sve sačuvane liste na jednom mjestu.
           </div>
         </div>
 
@@ -122,28 +137,44 @@ export default function SavedPage() {
         {/* Lists */}
         <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 shadow-sm xl:sticky xl:top-6">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-extrabold text-slate-900 dark:text-white">Kolekcije</div>
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">{lists?.length || 0}</div>
+            <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+              Kolekcije
+            </div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {lists?.length || 0}
+            </div>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
             {loadingLists ? (
-              <div className="text-sm text-slate-500 dark:text-slate-400">Učitavam…</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                Učitavam…
+              </div>
             ) : lists?.length ? (
               lists.map((l) => (
-                <Chip key={l.id} active={l.id === activeListId} onClick={() => setActiveListId(l.id)}>
-                  {l.name} <span className="ml-2 text-xs opacity-70">({l.items_count ?? 0})</span>
+                <Chip
+                  key={l.id}
+                  active={l.id === activeListId}
+                  onClick={() => setActiveListId(l.id)}
+                >
+                  {getDisplayListName(l)}{" "}
+                  <span className="ml-2 text-xs opacity-70">
+                    ({l.items_count ?? 0})
+                  </span>
                 </Chip>
               ))
             ) : (
               <div className="text-sm text-slate-500 dark:text-slate-400">
-                Nema listi. Kreiraj listu klikom na ikonu sačuvaj na profilu prodavača.
+                Nema listi. Kreiraj listu klikom na ikonu sačuvaj na profilu
+                prodavača.
               </div>
             )}
           </div>
 
           <div className="mt-4 rounded-xl border border-slate-200/70 dark:border-slate-800 p-3 bg-white dark:bg-slate-900/30">
-            <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">Pretraga unutar liste</div>
+            <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Pretraga unutar liste
+            </div>
             <div className="mt-2 flex items-center gap-2">
               <Input
                 value={q}
@@ -151,13 +182,19 @@ export default function SavedPage() {
                 placeholder="Traži po imenu…"
                 className="h-10 rounded-xl"
               />
-              <Button className="rounded-xl" onClick={() => activeListId && fetchItems(activeListId)}>
+              <Button
+                className="rounded-xl"
+                onClick={() => activeListId && fetchItems(activeListId)}
+              >
                 Traži
               </Button>
             </div>
             {activeList ? (
               <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                Aktivna lista: <span className="font-semibold text-slate-700 dark:text-slate-200">{activeList.name}</span>
+                Aktivna lista:{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                  {getDisplayListName(activeList)}
+                </span>
               </div>
             ) : null}
           </div>
@@ -182,7 +219,9 @@ export default function SavedPage() {
             ))
           ) : (
             <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-10 text-center shadow-sm">
-              <div className="text-lg font-extrabold text-slate-900 dark:text-white">Lista je prazna</div>
+              <div className="text-lg font-extrabold text-slate-900 dark:text-white">
+                Lista je prazna
+              </div>
               <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 Idi na prodavača i klikni ikonu sačuvaj → odaberi kolekciju.
               </div>

@@ -1777,10 +1777,10 @@ const Ads = () => {
   const adsGridClasses =
     view === "list"
       ? "grid grid-cols-1 gap-4 mt-4"
-      : `grid grid-cols-2 gap-3 sm:gap-6 mt-6 ${
+      : `grid grid-cols-2 gap-3 sm:gap-1 mt-6 ${
           isRealEstateSearch && isListMapOpen
             ? "lg:grid-cols-2 xl:grid-cols-3"
-            : "lg:grid-cols-4 xl:grid-cols-6"
+            : "lg:grid-cols-4 xl:grid-cols-5"
         }`;
 
   return (

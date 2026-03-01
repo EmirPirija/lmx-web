@@ -5,7 +5,11 @@ import { toast } from "@/utils/toastBs";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { savedCollectionsApi } from "@/utils/api";
 import { useSavedCollections } from "@/hooks/useSavedCollections";
 
@@ -38,12 +42,16 @@ function CheckIcon() {
   );
 }
 
-export default function SavedToListButton({
-  sellerId,
-  sellerName,
-  className,
-}) {
-  const { lists, loadingLists, refreshLists, createList } = useSavedCollections();
+const getDisplayListName = (list) => {
+  if (!list || typeof list !== "object") return "Prodavači";
+  if (Boolean(list?.is_default)) return "Prodavači";
+  const raw = String(list?.name || "").trim();
+  return raw || "Prodavači";
+};
+
+export default function SavedToListButton({ sellerId, sellerName, className }) {
+  const { lists, loadingLists, refreshLists, createList } =
+    useSavedCollections();
 
   const [open, setOpen] = useState(false);
   const [membership, setMembership] = useState([]); // list ids
@@ -63,7 +71,9 @@ export default function SavedToListButton({
     if (!sellerId) return;
     setLoadingMembership(true);
     try {
-      const res = await savedCollectionsApi.membership({ saved_user_id: sellerId });
+      const res = await savedCollectionsApi.membership({
+        saved_user_id: sellerId,
+      });
       setMembership(res?.data?.data?.list_ids || []);
     } catch {
       setMembership([]);
@@ -86,19 +96,30 @@ export default function SavedToListButton({
     setSaving(true);
 
     // optimistic
-    setMembership((prev) => (inList ? prev.filter((x) => x !== listId) : [...prev, listId]));
+    setMembership((prev) =>
+      inList ? prev.filter((x) => x !== listId) : [...prev, listId],
+    );
 
     try {
       if (inList) {
-        await savedCollectionsApi.removeFromList({ listId, saved_user_id: sellerId });
+        await savedCollectionsApi.removeFromList({
+          listId,
+          saved_user_id: sellerId,
+        });
         toast.success("Uklonjeno iz liste.");
       } else {
-        await savedCollectionsApi.addToList({ listId, saved_user_id: sellerId, note: quickNote || undefined });
+        await savedCollectionsApi.addToList({
+          listId,
+          saved_user_id: sellerId,
+          note: quickNote || undefined,
+        });
         toast.success("Sačuvano u listu.");
       }
     } catch (e) {
       // revert
-      setMembership((prev) => (inList ? [...prev, listId] : prev.filter((x) => x !== listId)));
+      setMembership((prev) =>
+        inList ? [...prev, listId] : prev.filter((x) => x !== listId),
+      );
       toast.error(e?.response?.data?.message || "Ne mogu sačuvati trenutno.");
     } finally {
       setSaving(false);
@@ -119,7 +140,10 @@ export default function SavedToListButton({
   };
 
   const title = useMemo(() => {
-    if (hasAny) return sellerName ? `Sačuvan prodavač: ${sellerName}` : "Prodavač je sačuvan";
+    if (hasAny)
+      return sellerName
+        ? `Sačuvan prodavač: ${sellerName}`
+        : "Prodavač je sačuvan";
     if (sellerName) return `Sačuvaj prodavača: ${sellerName}`;
     return "Sačuvaj prodavača";
   }, [hasAny, sellerName]);
@@ -136,7 +160,7 @@ export default function SavedToListButton({
               ? "bg-slate-900 text-white border-slate-900"
               : "bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700",
             "p-2.5 w-10 h-10 justify-center",
-            className
+            className,
           )}
           aria-label={title}
           title={title}
@@ -145,10 +169,15 @@ export default function SavedToListButton({
         </button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[340px] rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 shadow-xl" align="end">
+      <PopoverContent
+        className="w-[340px] rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 shadow-xl"
+        align="end"
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-sm font-extrabold text-slate-900 dark:text-white">Spasi u listu</div>
+            <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+              Spasi u listu
+            </div>
             <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               Odaberi jednu ili više kolekcija. Ovo je privatno — vidiš samo ti.
             </div>
@@ -159,7 +188,9 @@ export default function SavedToListButton({
         </div>
 
         <div className="mt-3">
-          <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">Brza bilješka (opcionalno)</div>
+          <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+            Brza bilješka (opcionalno)
+          </div>
           <Input
             value={quickNote}
             onChange={(e) => setQuickNote(e.target.value)}
@@ -170,7 +201,9 @@ export default function SavedToListButton({
 
         <div className="mt-3 max-h-[220px] overflow-auto pr-1 space-y-1">
           {loadingLists ? (
-            <div className="p-3 text-sm text-slate-500 dark:text-slate-400">Učitavam liste…</div>
+            <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+              Učitavam liste…
+            </div>
           ) : lists?.length ? (
             lists.map((l) => {
               const active = membership.includes(l.id);
@@ -183,26 +216,41 @@ export default function SavedToListButton({
                   className={cn(
                     "w-full flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all",
                     "border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-900/60",
-                    active && "ring-2 ring-slate-200 dark:ring-slate-700"
+                    active && "ring-2 ring-slate-200 dark:ring-slate-700",
                   )}
                 >
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{l.name}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{l.items_count ?? 0} sačuvanih</div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                      {getDisplayListName(l)}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {l.items_count ?? 0} sačuvanih
+                    </div>
                   </div>
-                  <div className={cn("shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center", active ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 dark:border-slate-800 text-slate-400")}>
+                  <div
+                    className={cn(
+                      "shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center",
+                      active
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : "border-slate-200 dark:border-slate-800 text-slate-400",
+                    )}
+                  >
                     {active ? <CheckIcon /> : null}
                   </div>
                 </button>
               );
             })
           ) : (
-            <div className="p-3 text-sm text-slate-500 dark:text-slate-400">Još nemaš listi. Kreiraj prvu ispod.</div>
+            <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+              Još nemaš listi. Kreiraj prvu ispod.
+            </div>
           )}
         </div>
 
         <div className="mt-3 rounded-2xl border border-slate-200/70 dark:border-slate-800 p-3 bg-slate-50/60 dark:bg-slate-900/30">
-          <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">Kreiraj novu listu</div>
+          <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+            Kreiraj novu listu
+          </div>
           <div className="mt-2 flex items-center gap-2">
             <Input
               value={newListName}
@@ -216,7 +264,11 @@ export default function SavedToListButton({
                 }
               }}
             />
-            <Button onClick={handleCreateList} disabled={creating || newListName.trim().length < 2} className="rounded-2xl">
+            <Button
+              onClick={handleCreateList}
+              disabled={creating || newListName.trim().length < 2}
+              className="rounded-2xl"
+            >
               {creating ? "…" : "Kreiraj"}
             </Button>
           </div>

@@ -19,13 +19,22 @@ import {
 import { useNavigate } from "@/components/Common/useNavigate";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
-import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import {
+  PROMO_BENEFITS,
+  PROMO_HEADLINE,
+  PROMO_SUBHEAD,
+  isPromoFreeAccessEnabled,
+} from "@/lib/promoMode";
 
 import { resolveMembership } from "@/lib/membership";
 import { resolveVerificationState } from "@/lib/verification";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 // Icons
@@ -83,8 +92,10 @@ const extractTotal = (payload) => {
   if (!payload) return 0;
   if (typeof payload?.total === "number") return payload.total;
   if (typeof payload?.meta?.total === "number") return payload.meta.total;
-  if (typeof payload?.pagination?.total === "number") return payload.pagination.total;
-  if (typeof payload?.meta?.pagination?.total === "number") return payload.meta.pagination.total;
+  if (typeof payload?.pagination?.total === "number")
+    return payload.pagination.total;
+  if (typeof payload?.meta?.pagination?.total === "number")
+    return payload.meta.pagination.total;
   return 0;
 };
 
@@ -133,7 +144,10 @@ function UserAvatar({
       {showVerified === true && (
         <div
           className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white"
-          style={{ width: Math.max(14, Math.round(size * 0.33)), height: Math.max(14, Math.round(size * 0.33)) }}
+          style={{
+            width: Math.max(14, Math.round(size * 0.33)),
+            height: Math.max(14, Math.round(size * 0.33)),
+          }}
         >
           <MdVerified className="text-white" size={verifiedSize} />
         </div>
@@ -187,13 +201,21 @@ const MenuItem = ({
       >
         <Icon
           size={18}
-          className={danger ? "text-red-500 dark:text-red-300" : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"}
+          className={
+            danger
+              ? "text-red-500 dark:text-red-300"
+              : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
+          }
         />
       </div>
 
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium block">{label}</span>
-        {description && <span className="text-[11px] text-slate-400 dark:text-slate-500 block truncate">{description}</span>}
+        {description && (
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 block truncate">
+            {description}
+          </span>
+        )}
       </div>
 
       {typeof badge === "number" && badge > 0 && (
@@ -234,7 +256,9 @@ const MenuSection = ({ title, children }) => (
   </div>
 );
 
-const MenuDivider = () => <div className="h-px bg-slate-100 dark:bg-slate-800 mx-3 my-1" />;
+const MenuDivider = () => (
+  <div className="h-px bg-slate-100 dark:bg-slate-800 mx-3 my-1" />
+);
 
 // ============================================
 // QUICK STAT ITEM
@@ -242,18 +266,31 @@ const MenuDivider = () => <div className="h-px bg-slate-100 dark:bg-slate-800 mx
 const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
   const colors = {
     blue: "text-blue-500 bg-blue-50 dark:text-blue-300 dark:bg-blue-500/15",
-    green: "text-green-500 bg-green-50 dark:text-green-300 dark:bg-green-500/15",
-    amber: "text-amber-500 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15",
-    purple: "text-purple-500 bg-purple-50 dark:text-purple-300 dark:bg-purple-500/15",
+    green:
+      "text-green-500 bg-green-50 dark:text-green-300 dark:bg-green-500/15",
+    amber:
+      "text-amber-500 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15",
+    purple:
+      "text-purple-500 bg-purple-50 dark:text-purple-300 dark:bg-purple-500/15",
   };
 
   return (
-    <div className="flex flex-col items-center gap-1 p-2" title={label} aria-label={label}>
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}>
+    <div
+      className="flex flex-col items-center gap-1 p-2"
+      title={label}
+      aria-label={label}
+    >
+      <div
+        className={`w-8 h-8 rounded-lg flex items-center justify-center ${colors[color]}`}
+      >
         <Icon size={16} />
       </div>
-      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{value}</span>
-      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{label}</span>
+      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+        {value}
+      </span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+        {label}
+      </span>
     </div>
   );
 };
@@ -261,7 +298,11 @@ const QuickStat = ({ icon: Icon, value, label, color = "blue" }) => {
 // ============================================
 // GLAVNA KOMPONENTA
 // ============================================
-const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => {
+const ProfileDropdown = ({
+  IsLogout,
+  setIsLogout,
+  dockOpenMode = "staged",
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dockPhase, setDockPhase] = useState("idle");
   const { navigate } = useNavigate();
@@ -283,8 +324,6 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
 
   const [sellerAvatarId, setSellerAvatarId] = useState("");
 
-  
-
   const [userStats, setUserStats] = useState({
     activeAds: 0,
     totalViews: 0,
@@ -300,9 +339,14 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
     () =>
       resolveAvatarUrl(
         [userData?.profile, userData?.profile_image, userData?.avatar],
-        { placeholderImage }
+        { placeholderImage },
       ),
-    [placeholderImage, userData?.avatar, userData?.profile, userData?.profile_image]
+    [
+      placeholderImage,
+      userData?.avatar,
+      userData?.profile,
+      userData?.profile_image,
+    ],
   );
 
   // ✅ fetch seller avatar id for LMX fallback
@@ -340,7 +384,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
       closeAndRestoreDockImmediately();
       navigate(path);
     },
-    [closeAndRestoreDockImmediately, navigate]
+    [closeAndRestoreDockImmediately, navigate],
   );
 
   const handleLogout = useCallback(() => {
@@ -350,90 +394,102 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
 
   const resolvedMembership = useMemo(
     () => resolveMembership({ tier: userStats.membershipTier }),
-    [userStats.membershipTier]
+    [userStats.membershipTier],
   );
   const isShop = resolvedMembership.isShop;
   const isPremium = resolvedMembership.isPremium;
   const promoEnabled = isPromoFreeAccessEnabled();
 
-  const fetchAllData = useCallback(async ({ force = false } = {}) => {
-    if (!userData) return;
-    const now = Date.now();
-    if (!force && now - lastStatsFetchRef.current < PROFILE_DROPDOWN_FETCH_COOLDOWN_MS) {
-      return;
-    }
-    lastStatsFetchRef.current = now;
-
-    try {
-      const results = await Promise.allSettled([
-        membershipApi.getUserMembership({}),
-        getNotificationList.getNotification({ page: 1 }),
-        getMyItemsApi.getMyItems({
-          status: "approved",
-          user_id: userData?.id,
-          offset: 0,
-          limit: 1,
-        }),
-        getMyReviewsApi.getMyReviews({ page: 1 }),
-        getVerificationStatusApi.getVerificationStatus(),
-      ]);
-
-      const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] = results;
-
-      let membershipTier = resolveMembership(userData).tier;
-      if (membershipRes.status === "fulfilled") {
-        const membershipData = getApiData(membershipRes.value);
-        membershipTier = resolveMembership(userData, membershipData).tier;
+  const fetchAllData = useCallback(
+    async ({ force = false } = {}) => {
+      if (!userData) return;
+      const now = Date.now();
+      if (
+        !force &&
+        now - lastStatsFetchRef.current < PROFILE_DROPDOWN_FETCH_COOLDOWN_MS
+      ) {
+        return;
       }
+      lastStatsFetchRef.current = now;
 
-      let unreadNotifications = 0;
-      if (notifRes.status === "fulfilled") {
-        const payload = getApiData(notifRes.value);
-        const list = extractList(payload);
-        unreadNotifications = list.filter((n) => !n?.read_at && !n?.is_read).length;
-      }
+      try {
+        const results = await Promise.allSettled([
+          membershipApi.getUserMembership({}),
+          getNotificationList.getNotification({ page: 1 }),
+          getMyItemsApi.getMyItems({
+            status: "approved",
+            user_id: userData?.id,
+            offset: 0,
+            limit: 1,
+          }),
+          getMyReviewsApi.getMyReviews({ page: 1 }),
+          getVerificationStatusApi.getVerificationStatus(),
+        ]);
 
-      let activeAds = 0;
-      if (adsRes.status === "fulfilled") {
-        const payload = getApiData(adsRes.value);
-        activeAds = extractTotal(payload) || payload?.total || 0;
-      }
+        const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] =
+          results;
 
-      let ratingFromReviews = null;
-      if (reviewsRes?.status === "fulfilled") {
-        const payload = getApiData(reviewsRes.value);
-        ratingFromReviews = toNum(payload?.average_rating);
-      }
+        let membershipTier = resolveMembership(userData).tier;
+        if (membershipRes.status === "fulfilled") {
+          const membershipData = getApiData(membershipRes.value);
+          membershipTier = resolveMembership(userData, membershipData).tier;
+        }
 
-      const ratingFallback =
-        toNum(userData?.average_rating) ??
-        toNum(userData?.avg_rating) ??
-        toNum(userData?.rating);
+        let unreadNotifications = 0;
+        if (notifRes.status === "fulfilled") {
+          const payload = getApiData(notifRes.value);
+          const list = extractList(payload);
+          unreadNotifications = list.filter(
+            (n) => !n?.read_at && !n?.is_read,
+          ).length;
+        }
 
-      const rating = toRating(ratingFromReviews ?? ratingFallback);
-      const verificationPayload = verificationRes?.status === "fulfilled" ? verificationRes.value : null;
+        let activeAds = 0;
+        if (adsRes.status === "fulfilled") {
+          const payload = getApiData(adsRes.value);
+          activeAds = extractTotal(payload) || payload?.total || 0;
+        }
 
-      setUserStats((prev) => {
-        const { verificationStatus, isVerified } = resolveVerificationState({
-          verificationResponse: verificationPayload,
-          userData,
-          previousStatus: prev.verificationStatus,
+        let ratingFromReviews = null;
+        if (reviewsRes?.status === "fulfilled") {
+          const payload = getApiData(reviewsRes.value);
+          ratingFromReviews = toNum(payload?.average_rating);
+        }
+
+        const ratingFallback =
+          toNum(userData?.average_rating) ??
+          toNum(userData?.avg_rating) ??
+          toNum(userData?.rating);
+
+        const rating = toRating(ratingFromReviews ?? ratingFallback);
+        const verificationPayload =
+          verificationRes?.status === "fulfilled"
+            ? verificationRes.value
+            : null;
+
+        setUserStats((prev) => {
+          const { verificationStatus, isVerified } = resolveVerificationState({
+            verificationResponse: verificationPayload,
+            userData,
+            previousStatus: prev.verificationStatus,
+          });
+
+          return {
+            activeAds,
+            totalViews: userData?.total_views || userData?.profile_views || 0,
+            unreadNotifications,
+            rating,
+            membershipTier: String(membershipTier).toLowerCase(),
+            isVerified,
+            verificationStatus,
+          };
         });
-
-        return {
-          activeAds,
-          totalViews: userData?.total_views || userData?.profile_views || 0,
-          unreadNotifications,
-          rating,
-          membershipTier: String(membershipTier).toLowerCase(),
-          isVerified,
-          verificationStatus,
-        };
-      });
-    } catch (e) {
-      console.error("Error fetching user stats:", e);
-    }
-  }, [userData, PROFILE_DROPDOWN_FETCH_COOLDOWN_MS]);
+      } catch (e) {
+        console.error("Error fetching user stats:", e);
+      }
+    },
+    [userData, PROFILE_DROPDOWN_FETCH_COOLDOWN_MS],
+  );
 
   useEffect(() => {
     if (!userData) return;
@@ -494,7 +550,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
       DOCK_HIDE_BEFORE_OPEN_MS,
       DOCK_SHOW_AFTER_CLOSE_MS,
       mobileDock,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -508,7 +564,9 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
     if (typeof document === "undefined") return;
     if (isOpen) return;
 
-    const openDialogs = document.querySelectorAll('[role="dialog"][data-state="open"]');
+    const openDialogs = document.querySelectorAll(
+      '[role="dialog"][data-state="open"]',
+    );
     if (openDialogs.length === 0 && document.body.style.overflow === "hidden") {
       document.body.style.overflow = "";
     }
@@ -527,13 +585,18 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
     const handleRealtimeRefresh = (event) => {
       const detail = event?.detail;
       if (!detail) return;
-      if (detail?.category === "notification" || detail?.category === "system" || detail?.category === "chat") {
+      if (
+        detail?.category === "notification" ||
+        detail?.category === "system" ||
+        detail?.category === "chat"
+      ) {
         fetchAllData();
       }
     };
 
     window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
-    return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
+    return () =>
+      window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
   }, [userData, fetchAllData]);
 
   const renderTriggerButton = useCallback(
@@ -569,7 +632,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
       sellerAvatarId,
       userStats.isVerified,
       userStats.unreadNotifications,
-    ]
+    ],
   );
 
   const handleTriggerClick = useCallback(
@@ -578,7 +641,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
       event.stopPropagation();
       handleOpenChange(true);
     },
-    [handleOpenChange, dockPhase]
+    [handleOpenChange, dockPhase],
   );
 
   const preventSheetAutoFocusScroll = useCallback((event) => {
@@ -620,9 +683,15 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[180px]">
                 {userData?.name || "Korisnik"}
               </p>
-              <MembershipBadge tier={userStats.membershipTier} size="xs" uppercase={false} />
+              <MembershipBadge
+                tier={userStats.membershipTier}
+                size="xs"
+                uppercase={false}
+              />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px]">{userData?.email}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px]">
+              {userData?.email}
+            </p>
           </div>
         </div>
       </div>
@@ -637,9 +706,24 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
         {/* QUICK STATS */}
         <div className="px-4 py-3 bg-gradient-to-br from-slate-50/70 to-white dark:from-slate-900/70 dark:to-slate-900 border-b border-slate-100 dark:border-slate-800">
           <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-100 dark:border-slate-700">
-            <QuickStat icon={Layers} value={userStats.activeAds} label="Oglasi" color="blue" />
-            <QuickStat icon={BellRinging} value={userStats.unreadNotifications} label="Obavijesti" color="amber" />
-            <QuickStat icon={IoStarOutline} value={userStats.rating} label="Ocjena" color="purple" />
+            <QuickStat
+              icon={Layers}
+              value={userStats.activeAds}
+              label="Oglasi"
+              color="blue"
+            />
+            <QuickStat
+              icon={BellRinging}
+              value={userStats.unreadNotifications}
+              label="Obavijesti"
+              color="amber"
+            />
+            <QuickStat
+              icon={IoStarOutline}
+              value={userStats.rating}
+              label="Ocjena"
+              color="purple"
+            />
           </div>
         </div>
 
@@ -650,7 +734,10 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
             onClick={() => closeAndRestoreDockImmediately()}
             className="flex items-center justify-center gap-2 py-3 bg-[#11b7b0] text-white rounded-xl font-semibold hover:scale-[1.01] hover:bg-[#0fa8a2] transition-all duration-200 w-full group shadow-sm shadow-primary/20"
           >
-            <IoAddCircleOutline size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+            <IoAddCircleOutline
+              size={20}
+              className="group-hover:rotate-90 transition-transform duration-300"
+            />
             {"Dodaj oglas"}
           </Link>
         </div>
@@ -698,7 +785,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
             />
             <MenuItem
               icon={UserList}
-              label={"Sačuvani prodavači"}
+              label={"Prodavači"}
               description="Kolekcije, bilješke i obavijesti"
               onClick={() => handleNavigate("/profile/saved")}
             />
@@ -758,7 +845,7 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
           </MenuSection> */}
 
           <MenuDivider />
-{/* 
+          {/* 
           <MenuSection title="Zajednica">
             <MenuItem icon={IoStarOutline} label={"Ocjene"} description="Recenzije i ocjene" onClick={() => handleNavigate("/reviews")} />
             <MenuItem icon={Medal} label="Bedževi" description="Tvoja postignuća" onClick={() => handleNavigate("/profile/badges")} />
@@ -768,13 +855,24 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
           <MenuDivider />
 
           <MenuSection title="Podrška">
-            <MenuItem icon={Headset} label={"Kontakt"} description="Kontaktiraj podršku" onClick={() => handleNavigate("/contact-us")} />
+            <MenuItem
+              icon={Headset}
+              label={"Kontakt"}
+              description="Kontaktiraj podršku"
+              onClick={() => handleNavigate("/contact-us")}
+            />
           </MenuSection>
 
           <MenuDivider />
 
           <MenuSection>
-            <MenuItem icon={IoLogOutOutline} label={"Odjava"} description="Odjavi se sa računa" onClick={handleLogout} danger />
+            <MenuItem
+              icon={IoLogOutOutline}
+              label={"Odjava"}
+              description="Odjavi se sa računa"
+              onClick={handleLogout}
+              danger
+            />
           </MenuSection>
         </div>
 
@@ -789,9 +887,15 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
                 <Sparkles className="text-white" size={24} />
               </div>
               <div className="flex-1">
-                <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">Promotivni Free Access</h5>
-                <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">{PROMO_HEADLINE}</p>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{PROMO_SUBHEAD}</p>
+                <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  Promotivni Free Access
+                </h5>
+                <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+                  {PROMO_HEADLINE}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  {PROMO_SUBHEAD}
+                </p>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {PROMO_BENEFITS.map((benefit) => (
                     <span
@@ -823,9 +927,14 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
                   Nadogradi na Pro
                   <TrendingUp size={14} className="text-amber-500" />
                 </h5>
-                <p className="text-xs text-slate-600 dark:text-slate-300">Otključaj sve mogućnosti i prednosti</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Otključaj sve mogućnosti i prednosti
+                </p>
               </div>
-              <IoChevronForward className="text-amber-400 group-hover:translate-x-1 transition-transform" size={20} />
+              <IoChevronForward
+                className="text-amber-400 group-hover:translate-x-1 transition-transform"
+                size={20}
+              />
             </Link>
           </div>
         )}
@@ -845,7 +954,9 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
                     uppercase
                   />
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Uživaj u svim premium pogodnostima</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Uživaj u svim premium pogodnostima
+                </p>
               </div>
             </div>
           </div>
@@ -899,7 +1010,11 @@ const ProfileDropdown = ({ IsLogout, setIsLogout, dockOpenMode = "staged" }) => 
             notifCount={userStats.unreadNotifications}
           />
         </PopoverTrigger>
-        <PopoverContent align="end" sideOffset={10} className="w-[420px] sm:w-[440px] p-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent shadow-2xl shadow-slate-900/15 dark:shadow-black/40">
+        <PopoverContent
+          align="end"
+          sideOffset={10}
+          className="w-[420px] sm:w-[440px] p-0 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-transparent shadow-2xl shadow-slate-900/15 dark:shadow-black/40"
+        >
           {MenuPanel}
         </PopoverContent>
       </Popover>

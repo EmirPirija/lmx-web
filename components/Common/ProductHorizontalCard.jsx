@@ -1,27 +1,20 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import {
   ChevronLeft,
   ChevronRight,
   Clock,
   Clock2Fill,
-  GitCompare,
-  Heart,
   Rocket,
   Store,
   TransferFill,
   Youtube,
 } from "@/components/Common/UnifiedIconPack";
-import { toast } from "@/utils/toastBs";
-import { formatPriceAbbreviated, formatSalaryRange, t } from "@/utils";
+import { formatPriceAbbreviated, formatSalaryRange } from "@/utils";
 import CustomLink from "@/components/Common/CustomLink";
 import CustomImage from "@/components/Common/CustomImage";
 import { userSignUpData } from "@/redux/reducer/authSlice";
-import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
-import { addToCompare, removeFromCompare, selectCompareList } from "@/redux/reducer/compareSlice";
-import { itemStatisticsApi, manageFavouriteApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { resolveMembership } from "@/lib/membership";
 import { resolveRealEstateDisplayPricing } from "@/utils/realEstatePricing";
 import { formatRelativeTimeBs } from "@/utils/timeBosnian";
@@ -46,14 +39,18 @@ const getKeyAttributes = (item) => {
   };
 
   const formatAreaNoSpace = (rawValue) => {
-    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
-    const cleaned = String(rawValue).trim().replace(/\s*(m2|m²)$/i, "");
+    if (rawValue === null || rawValue === undefined || rawValue === "")
+      return null;
+    const cleaned = String(rawValue)
+      .trim()
+      .replace(/\s*(m2|m²)$/i, "");
     if (!cleaned) return null;
     return `${cleaned.replace(/\s/g, "")}m2`;
   };
 
   const formatMileageNoSpace = (rawValue) => {
-    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    if (rawValue === null || rawValue === undefined || rawValue === "")
+      return null;
     const cleaned = String(rawValue)
       .trim()
       .replace(/^kilometraza\s*\(km\)\s*[:\-]?\s*/i, "")
@@ -68,7 +65,12 @@ const getKeyAttributes = (item) => {
     if (!value) return;
     const normalized = String(value).trim();
     if (!normalized) return;
-    if (attributes.some((entry) => normalizeText(entry) === normalizeText(normalized))) return;
+    if (
+      attributes.some(
+        (entry) => normalizeText(entry) === normalizeText(normalized),
+      )
+    )
+      return;
     attributes.push(normalized);
   };
 
@@ -148,10 +150,13 @@ const getConditionLabel = (item) => {
   const customFields = item?.translated_custom_fields || [];
   const field = customFields.find((f) => {
     const name = normalizeText(f?.translated_name || f?.name || "");
-    return ["stanje oglasa", "stanje", "condition", "item condition"].includes(name);
+    return ["stanje oglasa", "stanje", "condition", "item condition"].includes(
+      name,
+    );
   });
 
-  const rawValue = field?.translated_selected_values?.[0] || field?.value?.[0] || field?.value;
+  const rawValue =
+    field?.translated_selected_values?.[0] || field?.value?.[0] || field?.value;
   if (!rawValue) return "";
 
   const normalized = normalizeText(rawValue);
@@ -297,7 +302,8 @@ const extractTranslatedFieldValues = (field) => {
   const flattened = [];
   for (const candidate of candidates) {
     if (Array.isArray(candidate)) flattened.push(...candidate);
-    else if (candidate !== undefined && candidate !== null) flattened.push(candidate);
+    else if (candidate !== undefined && candidate !== null)
+      flattened.push(candidate);
   }
 
   return flattened;
@@ -306,17 +312,25 @@ const extractTranslatedFieldValues = (field) => {
 const readBooleanFromTranslatedFields = (item = {}, fieldNameHints = []) => {
   const hints = fieldNameHints.map((hint) => normalizeText(hint));
   const fields = [
-    ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
-    ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
+    ...(Array.isArray(item?.translated_custom_fields)
+      ? item.translated_custom_fields
+      : []),
+    ...(Array.isArray(item?.all_translated_custom_fields)
+      ? item.all_translated_custom_fields
+      : []),
   ];
   if (!fields.length) return null;
 
   for (const field of fields) {
-    const fieldName = normalizeText(field?.translated_name || field?.name || "");
+    const fieldName = normalizeText(
+      field?.translated_name || field?.name || "",
+    );
     if (!fieldName) continue;
     if (!hints.some((hint) => fieldName.includes(hint))) continue;
 
-    const parsed = readBooleanFromCandidates(extractTranslatedFieldValues(field));
+    const parsed = readBooleanFromCandidates(
+      extractTranslatedFieldValues(field),
+    );
     if (parsed !== null) return parsed;
   }
 
@@ -416,7 +430,7 @@ const OverlayPill = ({ icon: Icon, className, children }) => (
       "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold",
       "bg-white/90 text-slate-700 backdrop-blur-sm",
       "dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-200",
-      className
+      className,
     )}
   >
     {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
@@ -431,11 +445,8 @@ const formatPriceOrInquiry = (price) => {
   return formatPriceAbbreviated(Number(price));
 };
 
-const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) => {
-  const dispatch = useDispatch();
+const ProductHorizontalCard = ({ item, onClick, trackingParams }) => {
   const userData = useSelector(userSignUpData);
-  const compareList = useSelector(selectCompareList);
-  const isInCompare = compareList?.some((i) => i.id === item?.id);
 
   const translatedItem = item?.translated_item;
   const isJobCategory = Number(item?.category?.is_job_category) === 1;
@@ -448,11 +459,30 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
     item?.user,
     item?.user?.membership,
     item?.seller,
-    item?.seller_settings
+    item?.seller_settings,
   ).isShop;
-  const hasVideo = Boolean(item?.video_link && String(item?.video_link).trim() !== "");
+  const hasVideo = useMemo(() => {
+    const candidates = [
+      item?.video_link,
+      item?.video,
+      item?.video_url,
+      item?.direct_video,
+      item?.reel_video,
+      item?.translated_item?.video_link,
+      item?.translated_item?.video,
+    ];
+    return candidates.some((value) => {
+      if (typeof value === "string") return value.trim() !== "";
+      if (value && typeof value === "object") {
+        const src = value?.url || value?.src || value?.path || value?.image;
+        return typeof src === "string" ? src.trim() !== "" : Boolean(src);
+      }
+      return Boolean(value);
+    });
+  }, [item]);
   const exchangePossible = readExchangePossible(item);
-  const isReserved = item?.status === "reserved" || item?.reservation_status === "reserved";
+  const isReserved =
+    item?.status === "reserved" || item?.reservation_status === "reserved";
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -470,11 +500,19 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
 
     const oldN = Number(oldPrice);
     const currentN = Number(currentPrice);
-    if (!Number.isFinite(oldN) || !Number.isFinite(currentN) || oldN <= currentN) return 0;
+    if (
+      !Number.isFinite(oldN) ||
+      !Number.isFinite(currentN) ||
+      oldN <= currentN
+    )
+      return 0;
 
     return Math.round(((oldN - currentN) / oldN) * 100);
   }, [item?.discount_percentage, isOnSale, oldPrice, currentPrice]);
-  const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(item), [item]);
+  const realEstatePricing = useMemo(
+    () => resolveRealEstateDisplayPricing(item),
+    [item],
+  );
   const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
 
   const slides = useMemo(() => {
@@ -502,12 +540,15 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
 
   const threeDots = useMemo(
     () => getThreeDots(totalSlides, currentSlide),
-    [totalSlides, currentSlide]
+    [totalSlides, currentSlide],
   );
 
   const isHidePrice = isJobCategory
     ? [item?.min_salary, item?.max_salary].every(
-        (val) => val === null || val === undefined || (typeof val === "string" && val.trim() === "")
+        (val) =>
+          val === null ||
+          val === undefined ||
+          (typeof val === "string" && val.trim() === ""),
       )
     : false;
 
@@ -518,53 +559,6 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
   const productLink = trackingParams
     ? `${productLinkBase}?${new URLSearchParams(trackingParams).toString()}`
     : productLinkBase;
-
-  const handleLikeItem = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    try {
-      if (!userData) {
-        dispatch(setIsLoginOpen(true));
-        return;
-      }
-
-      const response = await manageFavouriteApi.manageFavouriteApi({
-        item_id: item?.id,
-      });
-
-      if (response?.data?.error === false) {
-        toast.success(response?.data?.message);
-        handleLike?.(item?.id);
-
-        try {
-          await itemStatisticsApi.trackFavorite({
-            item_id: item?.id,
-            added: !item?.is_liked,
-          });
-        } catch (trackingError) {
-          console.warn("Praćenje favorita nije uspjelo.", trackingError);
-        }
-      } else {
-        toast.error("Nije uspjelo lajkanje");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Nije uspjelo lajkanje");
-    }
-  };
-
-  const handleCompare = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (isInCompare) {
-      dispatch(removeFromCompare(item.id));
-      return;
-    }
-
-    dispatch(addToCompare(item));
-  };
 
   const handlePrevSlide = (e) => {
     e.preventDefault();
@@ -629,7 +623,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
       className={cn(
         "group flex w-full overflow-hidden rounded-2xl border border-slate-100 bg-white",
         "transition-colors duration-200 hover:border-slate-200",
-        "dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+        "dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -647,7 +641,9 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
               key={`${slide.type}-${index}`}
               className={cn(
                 "absolute inset-0 transition-all duration-300 ease-out",
-                index === currentSlide ? "z-10 scale-100 opacity-100" : "z-0 scale-105 opacity-0"
+                index === currentSlide
+                  ? "z-10 scale-100 opacity-100"
+                  : "z-0 scale-105 opacity-0",
               )}
             >
               {slide.type === "image" ? (
@@ -674,7 +670,16 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
 
           {!isViewMoreSlide ? (
             <>
-              <div className="absolute left-2 top-2 z-30 flex items-center gap-1">
+              <div className="absolute right-2 top-2 z-30 flex items-center gap-1">
+                {hasVideo ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Youtube-Fill--Streamline-Mingcute-Fill" height="16" width="16">
+
+  <g fill="none" fill-rule="evenodd">
+    <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" stroke-width="0.6667"></path>
+    <path fill="#0ab6af" d="M8 2.6666666666666665c0.57 0 1.1546666666666665 0.014666666666666665 1.7213333333333332 0.03866666666666667l0.6693333333333333 0.032 0.6406666666666666 0.038 0.6 0.04066666666666666 0.5479999999999999 0.042666666666666665a2.5346666666666664 2.5346666666666664 0 0 1 2.3293333333333335 2.282l0.026666666666666665 0.2833333333333333 0.049999999999999996 0.6066666666666667c0.04666666666666667 0.6286666666666666 0.08133333333333333 1.314 0.08133333333333333 1.9693333333333334 0 0.6553333333333333 -0.034666666666666665 1.3406666666666667 -0.08133333333333333 1.9693333333333334l-0.049999999999999996 0.6066666666666667c-0.008666666666666666 0.09733333333333333 -0.017333333333333333 0.1913333333333333 -0.026666666666666665 0.2833333333333333a2.5346666666666664 2.5346666666666664 0 0 1 -2.33 2.282l-0.5466666666666666 0.041999999999999996 -0.6 0.04133333333333333 -0.6413333333333333 0.038 -0.6693333333333333 0.032c-0.5666666666666667 0.023999999999999997 -1.1513333333333333 0.03866666666666667 -1.7213333333333332 0.03866666666666667 -0.57 0 -1.1546666666666665 -0.014666666666666665 -1.7213333333333332 -0.03866666666666667l-0.6693333333333333 -0.032 -0.6406666666666666 -0.038 -0.6 -0.04133333333333333 -0.5479999999999999 -0.041999999999999996a2.5346666666666664 2.5346666666666664 0 0 1 -2.3293333333333335 -2.282l-0.026666666666666665 -0.2833333333333333 -0.049999999999999996 -0.6066666666666667A27.107999999999997 27.107999999999997 0 0 1 1.3333333333333333 8c0 -0.6553333333333333 0.034666666666666665 -1.3406666666666667 0.08133333333333333 -1.9693333333333334l0.049999999999999996 -0.6066666666666667c0.008666666666666666 -0.09733333333333333 0.017333333333333333 -0.1913333333333333 0.026666666666666665 -0.2833333333333333A2.5346666666666664 2.5346666666666664 0 0 1 3.8200000000000003 2.8586666666666667l0.5473333333333332 -0.042666666666666665 0.6 -0.04066666666666666 0.6413333333333333 -0.038 0.6693333333333333 -0.032C6.8453333333333335 2.6813333333333333 7.43 2.6666666666666665 8 2.6666666666666665Zm-1.3333333333333333 3.716666666666667v3.233333333333333c0 0.308 0.3333333333333333 0.5 0.6 0.3466666666666667l2.8 -1.6166666666666665a0.39999999999999997 0.39999999999999997 0 0 0 0 -0.6933333333333334l-2.8 -1.6159999999999999a0.39999999999999997 0.39999999999999997 0 0 0 -0.6 0.3466666666666667Z" stroke-width="0.6667"></path>
+  </g>
+</svg>
+                ) : null}
                 {isShopSeller ? (
                   <OverlayPill
                     icon={Store}
@@ -691,61 +696,16 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                   </OverlayPill>
                 ) : null}
               </div>
-
-              <div className="absolute right-2 top-2 z-30 flex items-center gap-1">
-                {isHovered ? (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleCompare}
-                    className={cn(
-                      "h-8 w-8 rounded-full border-slate-200 bg-white/90 shadow-none backdrop-blur-sm transition-all",
-                      "hover:border-blue-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:hover:border-blue-400",
-                      isInCompare && "border-blue-200 bg-blue-50/90 text-blue-600 dark:border-blue-400/40 dark:bg-blue-500/15"
-                    )}
-                    title={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
-                    aria-label={isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"}
-                  >
-                    <GitCompare className="h-4 w-4" />
-                  </Button>
-                ) : null}
-
-                {isHovered ? (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleLikeItem}
-                    className={cn(
-                      "h-8 w-8 rounded-full border-slate-200 bg-white/90 shadow-none backdrop-blur-sm transition-all",
-                      "hover:border-rose-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:hover:border-rose-400",
-                      item?.is_liked &&
-                        "border-rose-200 bg-rose-50/90 text-rose-600 dark:border-rose-400/40 dark:bg-rose-500/15"
-                    )}
-                    title={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
-                    aria-label={item?.is_liked ? "Ukloni iz sačuvanih" : "Sačuvaj oglas"}
-                  >
-                    <Heart className={cn("h-4 w-4", item?.is_liked && "fill-rose-500")} />
-                  </Button>
-                ) : null}
-              </div>
             </>
-          ) : null}
-
-          {!isViewMoreSlide ? (
-            <div className="absolute bottom-2 left-2 z-30 flex items-center gap-1.5">
-              {hasVideo ? (
-                <OverlayPill icon={Youtube} className="border-red-200 bg-red-100/90 text-red-700">
-                  Video
-                </OverlayPill>
-              ) : null}
-            </div>
           ) : null}
 
           {totalSlides > 1 ? (
             <div
               className={cn(
                 "absolute bottom-2 right-2 z-30 hidden items-center gap-1.5 transition-all duration-200 sm:flex",
-                isHovered ? "opacity-100" : "pointer-events-none translate-y-1 opacity-0"
+                isHovered
+                  ? "opacity-100"
+                  : "pointer-events-none translate-y-1 opacity-0",
               )}
             >
               {threeDots.map((index) => {
@@ -760,7 +720,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                       "h-1.5 rounded-full transition-all duration-200",
                       isActive
                         ? "w-6 bg-white dark:bg-slate-100"
-                        : "w-1.5 bg-white/70 hover:bg-white dark:bg-slate-400/60 dark:hover:bg-slate-200"
+                        : "w-1.5 bg-white/70 hover:bg-white dark:bg-slate-400/60 dark:hover:bg-slate-200",
                     )}
                   />
                 );
@@ -778,8 +738,10 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                     "absolute left-2 top-1/2 z-30 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full",
                     "border border-slate-200 bg-white/90 text-slate-700 backdrop-blur-sm transition-all duration-200",
                     "dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200",
-                    isHovered ? "opacity-100" : "pointer-events-none opacity-0 -translate-x-2",
-                    "sm:flex"
+                    isHovered
+                      ? "opacity-100"
+                      : "pointer-events-none opacity-0 -translate-x-2",
+                    "sm:flex",
                   )}
                   aria-label="Prethodna slika"
                 >
@@ -795,8 +757,10 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                     "absolute right-2 top-1/2 z-30 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full",
                     "border border-slate-200 bg-white/90 text-slate-700 backdrop-blur-sm transition-all duration-200",
                     "dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200",
-                    isHovered ? "opacity-100" : "pointer-events-none opacity-0 translate-x-2",
-                    "sm:flex"
+                    isHovered
+                      ? "opacity-100"
+                      : "pointer-events-none opacity-0 translate-x-2",
+                    "sm:flex",
                   )}
                   aria-label="Sljedeća slika"
                 >
@@ -816,16 +780,14 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
               title={item?.is_feature ? "Istaknuti oglas" : undefined}
             >
               {translatedItem?.name || item?.name}
-              {item?.is_feature ? (
+              {/* {item?.is_feature ? (
                 <Rocket
                   className="ml-1 inline-block h-4 w-4 align-[-1px] text-amber-500 dark:text-amber-300"
                   aria-label="Istaknuti oglas"
                 />
-              ) : null}
+              ) : null} */}
             </h3>
           </div>
-
-          
         </div>
 
         {Array.isArray(keyAttributes) && keyAttributes.length > 0 ? (
@@ -836,7 +798,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                 className={cn(
                   "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold",
                   "border-slate-100 bg-slate-50 text-slate-700",
-                  "dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  "dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
                 )}
               >
                 {attr}
@@ -853,10 +815,10 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                   className={cn(
                     "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1",
                     "text-[10px] font-semibold leading-none",
-                  "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
-                  "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200"
-                )}
-              >
+                    "border-slate-300 bg-white/95 text-slate-700 shadow-sm",
+                    "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200",
+                  )}
+                >
                   {conditionLabel}
                 </span>
               ) : null}
@@ -867,7 +829,7 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                     "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1",
                     "text-[10px] font-semibold leading-none",
                     "border-emerald-300 bg-emerald-100/95 text-emerald-800 shadow-sm",
-                    "dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200"
+                    "dark:border-emerald-700/70 dark:bg-emerald-900/40 dark:text-emerald-200",
                   )}
                 >
                   Dostupno odmah
@@ -878,27 +840,18 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
         ) : null}
 
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 sm:flex-row dark:border-slate-800">
-          
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
             <Clock2Fill className="h-3.5 w-3.5 text-primary" />
-            <span>{formatRelativeTimeBs(item?.created_at, { capitalize: true, nowLabel: "Upravo sada" })}</span>
+            <span>
+              {formatRelativeTimeBs(item?.created_at, {
+                capitalize: true,
+                nowLabel: "Upravo sada",
+              })}
+            </span>
           </div>
-
-          
 
           {!isHidePrice ? (
             <div className="flex items-center gap-2">
-              {exchangePossible ? (
-                <span
-                  className={cn(
-                    "inline-flex h-7 w-7 items-center justify-center rounded-full",
-                  )}
-                  title="Zamjena moguća"
-                  aria-label="Zamjena moguća"
-                >
-                  <TransferFill className="h-4 w-4 text-primary" />
-                </span>
-              ) : null}
 
               <div className="flex flex-col items-center leading-none sm:items-end">
                 {isOnSale && Number(oldPrice) > 0 && discountPercentage > 0 ? (
@@ -910,9 +863,11 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                 <span
                   className={cn(
                     "text-sm font-bold tabular-nums",
-                    isOnSale && discountPercentage > 0 && Number(currentPrice) > 0
+                    isOnSale &&
+                      discountPercentage > 0 &&
+                      Number(currentPrice) > 0
                       ? "text-rose-600"
-                      : "text-slate-900 dark:text-slate-100"
+                      : "text-slate-900 dark:text-slate-100",
                   )}
                   title={
                     isJobCategory
@@ -926,7 +881,10 @@ const ProductHorizontalCard = ({ item, handleLike, onClick, trackingParams }) =>
                 </span>
                 {showRealEstatePerM2 ? (
                   <span className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300">
-                    {formatPriceAbbreviated(Number(realEstatePricing.perM2Value))} / m²
+                    {formatPriceAbbreviated(
+                      Number(realEstatePricing.perM2Value),
+                    )}{" "}
+                    / m²
                   </span>
                 ) : null}
               </div>

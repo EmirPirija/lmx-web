@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 import {
@@ -27,6 +27,112 @@ const getValidUrl = (item) => {
     return item.image || item.url || item.original_url || item.path || "";
   }
   return "";
+};
+
+const normalizeText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const getOfferModeFromValue = (value) => {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+
+  if (
+    normalized.includes("iznajmlj") ||
+    normalized.includes("rent") ||
+    normalized.includes("lease")
+  ) {
+    return "Iznajmljivanje";
+  }
+
+  if (
+    normalized.includes("prodaj") ||
+    normalized.includes("sale") ||
+    normalized === "sell" ||
+    normalized.includes("kupovina")
+  ) {
+    return "Prodaja";
+  }
+
+  return null;
+};
+
+const extractFieldValues = (field) => {
+  const candidates = [
+    field?.translated_selected_values,
+    field?.selected_values,
+    field?.value,
+    field?.translated_value,
+    field?.selected_value,
+  ];
+
+  const values = [];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) values.push(...candidate);
+    else if (candidate !== undefined && candidate !== null)
+      values.push(candidate);
+  }
+
+  return values;
+};
+
+const resolveOfferModeLabel = (productDetails = {}) => {
+  const directCandidates = [
+    productDetails?.offer_type,
+    productDetails?.listing_type,
+    productDetails?.listing_mode,
+    productDetails?.ad_type,
+    productDetails?.purpose,
+    productDetails?.translated_item?.offer_type,
+    productDetails?.translated_item?.listing_type,
+    productDetails?.translated_item?.listing_mode,
+    productDetails?.translated_item?.ad_type,
+    productDetails?.translated_item?.purpose,
+  ];
+
+  for (const candidate of directCandidates) {
+    const match = getOfferModeFromValue(candidate);
+    if (match) return match;
+  }
+
+  const fields = [
+    ...(Array.isArray(productDetails?.translated_custom_fields)
+      ? productDetails.translated_custom_fields
+      : []),
+    ...(Array.isArray(productDetails?.all_translated_custom_fields)
+      ? productDetails.all_translated_custom_fields
+      : []),
+  ];
+
+  const fieldNameHints = [
+    "tip ponude",
+    "vrsta ponude",
+    "offer type",
+    "listing type",
+    "purpose",
+    "namjena",
+    "namena",
+    "tip oglasa",
+  ];
+
+  for (const field of fields) {
+    const fieldName = normalizeText(
+      field?.translated_name || field?.name || "",
+    );
+    if (!fieldName) continue;
+    if (!fieldNameHints.some((hint) => fieldName.includes(hint))) continue;
+
+    const values = extractFieldValues(field);
+    for (const value of values) {
+      const match = getOfferModeFromValue(value);
+      if (match) return match;
+    }
+  }
+
+  return null;
 };
 
 const ProductGallery = ({
@@ -75,6 +181,10 @@ const ProductGallery = ({
   const currentMediaNumber = totalItems > 0 ? selectedIndex + 1 : 1;
   const mediaProgress = (currentMediaNumber / normalizedTotalItems) * 100;
   const showMediaNavigation = totalItems > 1;
+  const offerModeLabel = useMemo(
+    () => resolveOfferModeLabel(productDetails),
+    [productDetails],
+  );
 
   // Ako se promijeni broj itema (npr. nema glavne slike), resetuj index da ne ostane na praznom itemu
   useEffect(() => {
@@ -394,9 +504,6 @@ const ProductGallery = ({
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-black/45 via-black/20 to-transparent" />
 
           <div className="absolute top-2.5 left-2.5 z-30 flex items-center gap-1.5 sm:top-3 sm:left-3 sm:gap-2">
-            <div className="rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white backdrop-blur-sm sm:px-3 sm:py-1.5 sm:text-[11px]">
-              {isVideoSelected ? "Video" : "Galerija"}
-            </div>
             {isReserved && (
               <div className="rounded-full bg-amber-500/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white backdrop-blur-sm sm:px-3 sm:py-1.5 sm:text-[11px]">
                 Rezervisano

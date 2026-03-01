@@ -28,7 +28,11 @@ import { cn } from "@/lib/utils";
 import { resolveAvatarUrl } from "@/utils/avatar";
 import { toast } from "@/utils/toastBs";
 import { SOCIAL_POSTING_TEMP_UNAVAILABLE } from "@/utils/socialAvailability";
-import { PROMO_BENEFITS, PROMO_HEADLINE, isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import {
+  PROMO_BENEFITS,
+  PROMO_HEADLINE,
+  isPromoFreeAccessEnabled,
+} from "@/lib/promoMode";
 import {
   getProfileNavigationSections,
   isProfileNavItemActive,
@@ -77,8 +81,10 @@ const extractTotal = (payload) => {
   if (!payload) return 0;
   if (typeof payload?.total === "number") return payload.total;
   if (typeof payload?.meta?.total === "number") return payload.meta.total;
-  if (typeof payload?.pagination?.total === "number") return payload.pagination.total;
-  if (typeof payload?.meta?.pagination?.total === "number") return payload.meta.pagination.total;
+  if (typeof payload?.pagination?.total === "number")
+    return payload.pagination.total;
+  if (typeof payload?.meta?.pagination?.total === "number")
+    return payload.meta.pagination.total;
   return 0;
 };
 
@@ -126,7 +132,7 @@ const PROFILE_CONTEXT_COPY = {
     description: "Prati oglase koji su ti važni i brzo im se vrati.",
   },
   "/profile/saved": {
-    title: "Sačuvani prodavači",
+    title: "Prodavači",
     description: "Pregled profila prodavača koje pratiš i njihove aktivnosti.",
   },
   "/profile/saved-searches": {
@@ -139,7 +145,8 @@ const PROFILE_CONTEXT_COPY = {
   },
   "/notifications": {
     title: "Obavijesti",
-    description: "Sve nove aktivnosti na jednom mjestu, bez propuštenih događaja.",
+    description:
+      "Sve nove aktivnosti na jednom mjestu, bez propuštenih događaja.",
   },
   "/chat": {
     title: "Poruke",
@@ -188,7 +195,7 @@ function UserAvatar({
         className={cn(
           "w-full h-full rounded-full overflow-hidden relative bg-gray-100 shadow-sm",
           ringClassName,
-          className
+          className,
         )}
       >
         {showImg ? (
@@ -208,7 +215,10 @@ function UserAvatar({
       {showVerified && (
         <div
           className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white"
-          style={{ width: Math.max(14, Math.round(size * 0.33)), height: Math.max(14, Math.round(size * 0.33)) }}
+          style={{
+            width: Math.max(14, Math.round(size * 0.33)),
+            height: Math.max(14, Math.round(size * 0.33)),
+          }}
         >
           <MdVerified className="text-white" size={verifiedSize} />
         </div>
@@ -241,10 +251,10 @@ const MenuItem = ({
         danger
           ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
           : isActive
-          ? "bg-primary/10 text-primary dark:bg-primary/20"
-          : disabled
-          ? "text-slate-500 bg-slate-100/70 dark:text-slate-400 dark:bg-slate-800/70"
-          : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white"
+            ? "bg-primary/10 text-primary dark:bg-primary/20"
+            : disabled
+              ? "text-slate-500 bg-slate-100/70 dark:text-slate-400 dark:bg-slate-800/70"
+              : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white",
       )}
       title={description || label}
       aria-label={description || label}
@@ -262,10 +272,10 @@ const MenuItem = ({
           danger
             ? "bg-red-50 group-hover:bg-red-100 dark:bg-red-500/10 dark:group-hover:bg-red-500/20"
             : isActive
-            ? "bg-primary/10 dark:bg-primary/20"
-            : disabled
-            ? "bg-slate-200 dark:bg-slate-700"
-            : "bg-slate-100 group-hover:bg-slate-200/70 dark:bg-slate-800 dark:group-hover:bg-slate-700"
+              ? "bg-primary/10 dark:bg-primary/20"
+              : disabled
+                ? "bg-slate-200 dark:bg-slate-700"
+                : "bg-slate-100 group-hover:bg-slate-200/70 dark:bg-slate-800 dark:group-hover:bg-slate-700",
         )}
       >
         <Icon
@@ -274,18 +284,27 @@ const MenuItem = ({
             danger
               ? "text-red-500 dark:text-red-400"
               : isActive
-              ? "text-primary"
-              : disabled
-              ? "text-slate-400 dark:text-slate-500"
-              : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
+                ? "text-primary"
+                : disabled
+                  ? "text-slate-400 dark:text-slate-500"
+                  : "text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200",
           )}
         />
       </div>
 
       <div className="flex-1 min-w-0">
-        <span className={cn("text-sm font-medium block", isActive && "font-semibold")}>{label}</span>
+        <span
+          className={cn(
+            "text-sm font-medium block",
+            isActive && "font-semibold",
+          )}
+        >
+          {label}
+        </span>
         {description && (
-          <span className="block truncate text-[11px] text-slate-400 dark:text-slate-500">{description}</span>
+          <span className="block truncate text-[11px] text-slate-400 dark:text-slate-500">
+            {description}
+          </span>
         )}
       </div>
 
@@ -324,7 +343,7 @@ const MenuItem = ({
           toast.info(
             promoItem
               ? "Promo pristup je aktivan: svi planovi su trenutno dostupni bez troškova."
-              : `${label} je privremeno nedostupno.`
+              : `${label} je privremeno nedostupno.`,
           )
         }
         className="block w-full text-left"
@@ -356,12 +375,20 @@ const MenuSection = ({ title, children }) => (
   </div>
 );
 
-const MenuDivider = () => <div className="mx-3 my-1 h-px bg-slate-100 dark:bg-slate-800" />;
+const MenuDivider = () => (
+  <div className="mx-3 my-1 h-px bg-slate-100 dark:bg-slate-800" />
+);
 
 // ============================================
 // QUICK STAT (isti stil kao ProfileDropdown)
 // ============================================
-const QuickStat = ({ icon: Icon, value, label, color = "primary", loading = false }) => {
+const QuickStat = ({
+  icon: Icon,
+  value,
+  label,
+  color = "primary",
+  loading = false,
+}) => {
   const colors = {
     primary: "text-primary bg-primary/10",
     secondary: "text-secondary bg-secondary/10",
@@ -379,12 +406,25 @@ const QuickStat = ({ icon: Icon, value, label, color = "primary", loading = fals
   }
 
   return (
-    <div className="flex flex-col items-center gap-1 p-2" title={label} aria-label={label}>
-      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", colors[color])}>
+    <div
+      className="flex flex-col items-center gap-1 p-2"
+      title={label}
+      aria-label={label}
+    >
+      <div
+        className={cn(
+          "w-8 h-8 rounded-lg flex items-center justify-center",
+          colors[color],
+        )}
+      >
         <Icon size={16} />
       </div>
-      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{value}</span>
-      <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">{label}</span>
+      <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+        {value}
+      </span>
+      <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+        {label}
+      </span>
     </div>
   );
 };
@@ -407,7 +447,7 @@ const ProfileSidebar = ({
 }) => {
   const resolvedMembership = useMemo(
     () => resolveMembership({ tier: userStats.membershipTier }),
-    [userStats.membershipTier]
+    [userStats.membershipTier],
   );
   const isShop = resolvedMembership.isShop;
   const isPremium = resolvedMembership.isPremium;
@@ -424,7 +464,8 @@ const ProfileSidebar = ({
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => {
-          const haystack = `${item.label || ""} ${item.description || ""}`.toLowerCase();
+          const haystack =
+            `${item.label || ""} ${item.description || ""}`.toLowerCase();
           return haystack.includes(normalizedQuery);
         }),
       }))
@@ -454,10 +495,16 @@ const ProfileSidebar = ({
                 {isStatsLoading ? (
                   <Skeleton className="inline-flex h-5 w-14 rounded-full" />
                 ) : (
-                  <MembershipBadge tier={userStats.membershipTier} size="xs" uppercase={false} />
+                  <MembershipBadge
+                    tier={userStats.membershipTier}
+                    size="xs"
+                    uppercase={false}
+                  />
                 )}
               </div>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{userData?.email}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                {userData?.email}
+              </p>
             </div>
           </div>
 
@@ -466,7 +513,10 @@ const ProfileSidebar = ({
               onClick={onClose}
               className="rounded-lg p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              <IoCloseOutline size={20} className="text-slate-600 dark:text-slate-300" />
+              <IoCloseOutline
+                size={20}
+                className="text-slate-600 dark:text-slate-300"
+              />
             </button>
           )}
         </div>
@@ -537,7 +587,14 @@ const ProfileSidebar = ({
                     label={item.label}
                     description={item.description}
                     href={item.href}
-                    onClick={item.onClick ? () => { item.onClick(); onClose?.(); } : onClose}
+                    onClick={
+                      item.onClick
+                        ? () => {
+                            item.onClick();
+                            onClose?.();
+                          }
+                        : onClose
+                    }
                     isActive={isProfileNavItemActive(pathname, item)}
                     badge={item.badge}
                     isNew={item.isNew}
@@ -563,7 +620,9 @@ const ProfileSidebar = ({
             <MenuItem
               icon={IoLogOutOutline}
               label={isLoggingOut ? "Odjavljivanje..." : "Odjava"}
-              description={isLoggingOut ? "Odjava je u toku" : "Odjavi se sa računa"}
+              description={
+                isLoggingOut ? "Odjava je u toku" : "Odjavi se sa računa"
+              }
               onClick={() => {
                 if (isLoggingOut) return;
                 handleLogout();
@@ -581,7 +640,9 @@ const ProfileSidebar = ({
               <h5 className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
                 Promotivni Free Access
               </h5>
-              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{PROMO_HEADLINE}</p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                {PROMO_HEADLINE}
+              </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {PROMO_BENEFITS.map((benefit) => (
                   <span
@@ -603,26 +664,33 @@ const ProfileSidebar = ({
           </div>
         )}
 
-        {!isStatsLoading && !promoEnabled && userStats.membershipTier === "free" && (
-          <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
-            <CustomLink
-              href="/membership/upgrade"
-              onClick={onClose}
-              className="group flex items-center gap-4 rounded-xl border border-primary/20 bg-white p-3 transition-all duration-200 hover:border-primary/40 dark:border-primary/30 dark:bg-slate-900"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary transition-transform duration-200 group-hover:scale-110">
-                <Crown className="text-white" size={24} />
-              </div>
-              <div className="flex-1">
-                <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Nadogradi na Pro
-                </h5>
-                <p className="text-xs text-slate-600 dark:text-slate-400">Otključaj sve mogućnosti</p>
-              </div>
-              <IoChevronForward className="text-primary group-hover:translate-x-1 transition-transform" size={20} />
-            </CustomLink>
-          </div>
-        )}
+        {!isStatsLoading &&
+          !promoEnabled &&
+          userStats.membershipTier === "free" && (
+            <div className="border-t border-primary/10 bg-primary/5 p-4 dark:border-primary/25 dark:bg-primary/10">
+              <CustomLink
+                href="/membership/upgrade"
+                onClick={onClose}
+                className="group flex items-center gap-4 rounded-xl border border-primary/20 bg-white p-3 transition-all duration-200 hover:border-primary/40 dark:border-primary/30 dark:bg-slate-900"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary transition-transform duration-200 group-hover:scale-110">
+                  <Crown className="text-white" size={24} />
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    Nadogradi na Pro
+                  </h5>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Otključaj sve mogućnosti
+                  </p>
+                </div>
+                <IoChevronForward
+                  className="text-primary group-hover:translate-x-1 transition-transform"
+                  size={20}
+                />
+              </CustomLink>
+            </div>
+          )}
 
         {/* PRO USER BANNER */}
         {!isStatsLoading && !promoEnabled && isPremium && (
@@ -633,9 +701,15 @@ const ProfileSidebar = ({
               </div>
               <div className="flex-1">
                 <div className="mb-1">
-                  <MembershipBadge tier={isShop ? "shop" : "pro"} size="xs" uppercase />
+                  <MembershipBadge
+                    tier={isShop ? "shop" : "pro"}
+                    size="xs"
+                    uppercase
+                  />
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Uživaj u svim premium pogodnostima</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Uživaj u svim premium pogodnostima
+                </p>
               </div>
             </div>
           </div>
@@ -667,29 +741,38 @@ const contextHeaderItemVariants = {
   },
 };
 
-const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) => {
-  const verificationStatus = String(userStats.verificationStatus || "not-applied");
+const ProfileContextHeader = ({
+  userStats,
+  pathname,
+  isStatsLoading = false,
+}) => {
+  const verificationStatus = String(
+    userStats.verificationStatus || "not-applied",
+  );
   const shouldShowVerificationBlock = !userStats.isVerified;
-  const verificationText = verificationStatus === "pending"
-    ? "Verifikacija je u toku"
-    : verificationStatus === "rejected"
-    ? "Verifikacija je odbijena"
-    : "Račun nije verificiran";
-  const verificationTone = verificationStatus === "pending"
-    ? "border-amber-200 bg-amber-50/90 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
-    : verificationStatus === "rejected"
-    ? "border-rose-200 bg-rose-50/90 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300"
-    : "border-slate-200 bg-slate-50/90 text-slate-600 dark:border-slate-700 dark:bg-slate-900/75 dark:text-slate-300";
+  const verificationText =
+    verificationStatus === "pending"
+      ? "Verifikacija je u toku"
+      : verificationStatus === "rejected"
+        ? "Verifikacija je odbijena"
+        : "Račun nije verificiran";
+  const verificationTone =
+    verificationStatus === "pending"
+      ? "border-amber-200 bg-amber-50/90 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
+      : verificationStatus === "rejected"
+        ? "border-rose-200 bg-rose-50/90 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300"
+        : "border-slate-200 bg-slate-50/90 text-slate-600 dark:border-slate-700 dark:bg-slate-900/75 dark:text-slate-300";
   const verificationCtaLabel =
     verificationStatus === "pending"
       ? "Provjeri verifikaciju"
       : verificationStatus === "rejected"
-      ? "Pošalji verifikaciju ponovo"
-      : "Verificiraj račun";
+        ? "Pošalji verifikaciju ponovo"
+        : "Verificiraj račun";
   const hasContextActions = shouldShowVerificationBlock;
   const contextCopy = PROFILE_CONTEXT_COPY[pathname] || {
     title: "Kontekst stranice",
-    description: "Brzi pregled konteksta i radnji za trenutno otvorenu sekciju profila.",
+    description:
+      "Brzi pregled konteksta i radnji za trenutno otvorenu sekciju profila.",
   };
 
   return (
@@ -700,7 +783,10 @@ const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) =
       animate="visible"
     >
       <div className="sticky top-24 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_14px_34px_-30px_rgba(15,23,42,0.5)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85">
-        <motion.div variants={contextHeaderItemVariants} className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+        <motion.div
+          variants={contextHeaderItemVariants}
+          className="border-b border-slate-100 px-5 py-4 dark:border-slate-800"
+        >
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
               Kontekst sekcije
@@ -723,7 +809,10 @@ const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) =
           </div>
         </motion.div>
 
-        <motion.div variants={contextHeaderItemVariants} className="flex flex-wrap items-center gap-2 px-5 py-3">
+        <motion.div
+          variants={contextHeaderItemVariants}
+          className="flex flex-wrap items-center gap-2 px-5 py-3"
+        >
           {isStatsLoading ? (
             <>
               <Skeleton className="h-9 w-32 rounded-xl" />
@@ -733,7 +822,12 @@ const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) =
             <>
               {shouldShowVerificationBlock && (
                 <>
-                  <span className={cn("inline-flex h-9 items-center rounded-xl border px-3 text-xs font-semibold", verificationTone)}>
+                  <span
+                    className={cn(
+                      "inline-flex h-9 items-center rounded-xl border px-3 text-xs font-semibold",
+                      verificationTone,
+                    )}
+                  >
                     {verificationText}
                   </span>
                   <CustomLink
@@ -744,7 +838,6 @@ const ProfileContextHeader = ({ userStats, pathname, isStatsLoading = false }) =
                   </CustomLink>
                 </>
               )}
-
             </>
           ) : (
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -800,9 +893,14 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     () =>
       resolveAvatarUrl(
         [userData?.profile, userData?.profile_image, userData?.avatar],
-        { placeholderImage }
+        { placeholderImage },
       ),
-    [placeholderImage, userData?.avatar, userData?.profile, userData?.profile_image]
+    [
+      placeholderImage,
+      userData?.avatar,
+      userData?.profile,
+      userData?.profile_image,
+    ],
   );
 
   // Fetch seller avatar id
@@ -876,7 +974,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
       DOCK_HIDE_BEFORE_OPEN_MS,
       DOCK_SHOW_AFTER_CLOSE_MS,
       MOBILE_MENU_DOCK_KEY,
-    ]
+    ],
   );
 
   const handleHardLogout = useCallback(async () => {
@@ -886,7 +984,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
       try {
         await signOut();
       } catch (error) {
-        console.warn("Firebase odjava nije završena, nastavljam lokalnu odjavu.", error);
+        console.warn(
+          "Firebase odjava nije završena, nastavljam lokalnu odjavu.",
+          error,
+        );
       }
 
       try {
@@ -896,7 +997,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
       } catch (error) {
         const status = error?.response?.status;
         if (status !== 401 && status !== 419) {
-          console.warn("Server odjava nije dostupna, nastavljam lokalnu odjavu.", error);
+          console.warn(
+            "Server odjava nije dostupna, nastavljam lokalnu odjavu.",
+            error,
+          );
         }
       }
 
@@ -934,98 +1038,112 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     if (typeof document === "undefined") return;
     if (mobileMenuOpen) return;
 
-    const openDialogs = document.querySelectorAll('[role="dialog"][data-state="open"]');
+    const openDialogs = document.querySelectorAll(
+      '[role="dialog"][data-state="open"]',
+    );
     if (openDialogs.length === 0 && document.body.style.overflow === "hidden") {
       document.body.style.overflow = "";
     }
   }, [mobileMenuOpen, mobileMenuPhase]);
 
-  const fetchAllData = useCallback(async ({ showLoader = false, force = false } = {}) => {
-    if (!userData) return;
-    const now = Date.now();
-    if (!force && now - lastStatsFetchRef.current < PROFILE_LAYOUT_FETCH_COOLDOWN_MS) {
-      return;
-    }
-    lastStatsFetchRef.current = now;
-    if (showLoader) {
-      setIsStatsLoading(true);
-    }
-
-    try {
-      const results = await Promise.allSettled([
-        membershipApi.getUserMembership({}),
-        getNotificationList.getNotification({ page: 1 }),
-        getMyItemsApi.getMyItems({
-          status: "approved",
-          user_id: userData?.id,
-          offset: 0,
-          limit: 1,
-        }),
-        getMyReviewsApi.getMyReviews({ page: 1 }),
-        getVerificationStatusApi.getVerificationStatus(),
-      ]);
-
-      const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] = results;
-
-      let membershipTier = resolveMembership(userData).tier;
-      if (membershipRes.status === "fulfilled") {
-        const membershipData = getApiData(membershipRes.value);
-        membershipTier = resolveMembership(userData, membershipData).tier;
+  const fetchAllData = useCallback(
+    async ({ showLoader = false, force = false } = {}) => {
+      if (!userData) return;
+      const now = Date.now();
+      if (
+        !force &&
+        now - lastStatsFetchRef.current < PROFILE_LAYOUT_FETCH_COOLDOWN_MS
+      ) {
+        return;
       }
-
-      let unreadNotifications = 0;
-      if (notifRes.status === "fulfilled") {
-        const payload = getApiData(notifRes.value);
-        const list = extractList(payload);
-        unreadNotifications = list.filter((n) => !n?.read_at && !n?.is_read).length;
-      }
-
-      let activeAds = 0;
-      if (adsRes.status === "fulfilled") {
-        const payload = getApiData(adsRes.value);
-        activeAds = extractTotal(payload) || payload?.total || 0;
-      }
-
-      let ratingFromReviews = null;
-      if (reviewsRes?.status === "fulfilled") {
-        const payload = getApiData(reviewsRes.value);
-        ratingFromReviews = toNum(payload?.average_rating);
-      }
-
-      const ratingFallback =
-        toNum(userData?.average_rating) ??
-        toNum(userData?.avg_rating) ??
-        toNum(userData?.rating);
-
-      const rating = toRating(ratingFromReviews ?? ratingFallback);
-      const verificationPayload = verificationRes?.status === "fulfilled" ? verificationRes.value : null;
-
-      setUserStats((prev) => {
-        const { verificationStatus, isVerified } = resolveVerificationState({
-          verificationResponse: verificationPayload,
-          userData,
-          previousStatus: prev.verificationStatus,
-        });
-
-        return {
-          activeAds,
-          totalViews: userData?.total_views || userData?.profile_views || 0,
-          unreadNotifications,
-          unreadMessages: userData?.unread_messages || 0,
-          rating,
-          membershipTier: String(membershipTier).toLowerCase(),
-          isVerified,
-          verificationStatus,
-        };
-      });
-    } catch (e) {
-      console.error("Error fetching user stats:", e);
-    } finally {
+      lastStatsFetchRef.current = now;
       if (showLoader) {
-        setIsStatsLoading(false);
+        setIsStatsLoading(true);
       }
-    }
-  }, [userData, PROFILE_LAYOUT_FETCH_COOLDOWN_MS]);
+
+      try {
+        const results = await Promise.allSettled([
+          membershipApi.getUserMembership({}),
+          getNotificationList.getNotification({ page: 1 }),
+          getMyItemsApi.getMyItems({
+            status: "approved",
+            user_id: userData?.id,
+            offset: 0,
+            limit: 1,
+          }),
+          getMyReviewsApi.getMyReviews({ page: 1 }),
+          getVerificationStatusApi.getVerificationStatus(),
+        ]);
+
+        const [membershipRes, notifRes, adsRes, reviewsRes, verificationRes] =
+          results;
+
+        let membershipTier = resolveMembership(userData).tier;
+        if (membershipRes.status === "fulfilled") {
+          const membershipData = getApiData(membershipRes.value);
+          membershipTier = resolveMembership(userData, membershipData).tier;
+        }
+
+        let unreadNotifications = 0;
+        if (notifRes.status === "fulfilled") {
+          const payload = getApiData(notifRes.value);
+          const list = extractList(payload);
+          unreadNotifications = list.filter(
+            (n) => !n?.read_at && !n?.is_read,
+          ).length;
+        }
+
+        let activeAds = 0;
+        if (adsRes.status === "fulfilled") {
+          const payload = getApiData(adsRes.value);
+          activeAds = extractTotal(payload) || payload?.total || 0;
+        }
+
+        let ratingFromReviews = null;
+        if (reviewsRes?.status === "fulfilled") {
+          const payload = getApiData(reviewsRes.value);
+          ratingFromReviews = toNum(payload?.average_rating);
+        }
+
+        const ratingFallback =
+          toNum(userData?.average_rating) ??
+          toNum(userData?.avg_rating) ??
+          toNum(userData?.rating);
+
+        const rating = toRating(ratingFromReviews ?? ratingFallback);
+        const verificationPayload =
+          verificationRes?.status === "fulfilled"
+            ? verificationRes.value
+            : null;
+
+        setUserStats((prev) => {
+          const { verificationStatus, isVerified } = resolveVerificationState({
+            verificationResponse: verificationPayload,
+            userData,
+            previousStatus: prev.verificationStatus,
+          });
+
+          return {
+            activeAds,
+            totalViews: userData?.total_views || userData?.profile_views || 0,
+            unreadNotifications,
+            unreadMessages: userData?.unread_messages || 0,
+            rating,
+            membershipTier: String(membershipTier).toLowerCase(),
+            isVerified,
+            verificationStatus,
+          };
+        });
+      } catch (e) {
+        console.error("Error fetching user stats:", e);
+      } finally {
+        if (showLoader) {
+          setIsStatsLoading(false);
+        }
+      }
+    },
+    [userData, PROFILE_LAYOUT_FETCH_COOLDOWN_MS],
+  );
 
   useEffect(() => {
     if (!userData) {
@@ -1042,13 +1160,18 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     const handleRealtimeRefresh = (event) => {
       const detail = event?.detail;
       if (!detail) return;
-      if (detail?.category === "notification" || detail?.category === "chat" || detail?.category === "system") {
+      if (
+        detail?.category === "notification" ||
+        detail?.category === "chat" ||
+        detail?.category === "system"
+      ) {
         fetchAllData();
       }
     };
 
     window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
-    return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
+    return () =>
+      window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
   }, [userData, fetchAllData]);
 
   // Navigation config
@@ -1060,7 +1183,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         unreadNotifications: userStats.unreadNotifications,
         unreadMessages: userStats.unreadMessages,
       }),
-    [userStats]
+    [userStats],
   );
 
   const mobileFlatNavItems = useMemo(
@@ -1069,13 +1192,15 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
         section.items.map((item) => ({
           ...item,
           sectionTitle: section.title,
-        }))
+        })),
       ),
-    [navigationSections]
+    [navigationSections],
   );
 
   const mobileActiveNavItem = useMemo(() => {
-    const matched = mobileFlatNavItems.find((item) => isProfileNavItemActive(pathname, item));
+    const matched = mobileFlatNavItems.find((item) =>
+      isProfileNavItemActive(pathname, item),
+    );
     return matched || mobileFlatNavItems[0] || null;
   }, [mobileFlatNavItems, pathname]);
   const MobileActiveNavIcon = mobileActiveNavItem?.icon || IoMenuOutline;
@@ -1112,13 +1237,17 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
               {mobileActiveNavItem ? (
                 <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/80">
                   <div className="flex items-center gap-2">
-                    <MobileActiveNavIcon size={15} className="shrink-0 text-slate-600 dark:text-slate-300" />
+                    <MobileActiveNavIcon
+                      size={15}
+                      className="shrink-0 text-slate-600 dark:text-slate-300"
+                    />
                     <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {mobileActiveNavItem.label}
                     </span>
                   </div>
                   <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                    {mobileActiveNavItem.description || mobileActiveNavItem.sectionTitle}
+                    {mobileActiveNavItem.description ||
+                      mobileActiveNavItem.sectionTitle}
                   </p>
                 </div>
               ) : (
@@ -1174,7 +1303,10 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
-                <IoLogOutOutline size={18} className="text-slate-500 dark:text-slate-300" />
+                <IoLogOutOutline
+                  size={18}
+                  className="text-slate-500 dark:text-slate-300"
+                />
               </div>
               <span>{isLoggingOut ? "Odjava..." : "Odjavi se"}</span>
             </button>
@@ -1218,7 +1350,11 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-y-0 -left-10 w-20 bg-gradient-to-r from-transparent via-white/35 to-transparent dark:via-white/10"
                   animate={{ x: [0, 220, 0] }}
-                  transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 2.8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 />
 
                 <div className="flex items-start justify-between gap-2">
@@ -1244,8 +1380,15 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
                   <div className="flex items-center gap-1 rounded-full border border-primary/30 bg-white/80 px-2 py-1 text-[11px] font-semibold text-primary dark:bg-slate-900/80">
                     <motion.span
                       className="h-1.5 w-1.5 rounded-full bg-emerald-500"
-                      animate={{ scale: [1, 1.25, 1], opacity: [0.75, 1, 0.75] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      animate={{
+                        scale: [1, 1.25, 1],
+                        opacity: [0.75, 1, 0.75],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
                     />
                     Aktivno
                   </div>
@@ -1255,7 +1398,11 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
                   <span>Dodirni za odabir sekcije</span>
                   <motion.span
                     animate={{ x: [0, 3, 0] }}
-                    transition={{ duration: 1.15, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{
+                      duration: 1.15,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
                   >
                     <IoChevronForward size={14} />
                   </motion.span>
@@ -1296,7 +1443,11 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
 
           {/* Main Content */}
           <motion.main layout className="min-w-0 space-y-4">
-            <ProfileContextHeader userStats={userStats} pathname={pathname} isStatsLoading={isStatsLoading} />
+            <ProfileContextHeader
+              userStats={userStats}
+              pathname={pathname}
+              isStatsLoading={isStatsLoading}
+            />
             <motion.div
               layout
               initial={{ opacity: 0, y: 12 }}

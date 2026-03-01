@@ -20,7 +20,6 @@ import {
   Rocket,
   RotateCcw,
   Sparkles,
-  TransferFill,
   Trash2,
   X,
   Youtube,
@@ -67,9 +66,14 @@ const parseDateSafe = (value) => {
 const getRenewBaselineDate = (item) => {
   if (!item || typeof item !== "object") return null;
 
-  const hasLastRenewedAtField = Object.prototype.hasOwnProperty.call(item, "last_renewed_at");
+  const hasLastRenewedAtField = Object.prototype.hasOwnProperty.call(
+    item,
+    "last_renewed_at",
+  );
   if (hasLastRenewedAtField) {
-    return parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at);
+    return (
+      parseDateSafe(item?.last_renewed_at) || parseDateSafe(item?.created_at)
+    );
   }
 
   // Backend fallback when DB does not have last_renewed_at column.
@@ -127,7 +131,9 @@ const featuredDurationOptions = [7, 15, 30, 45, 60, 90];
 const featuredDurationOptionsSet = new Set(featuredDurationOptions);
 
 const normalizeFeaturedPlacementValue = (value) =>
-  ["category", "home", "category_home"].includes(String(value || "").toLowerCase())
+  ["category", "home", "category_home"].includes(
+    String(value || "").toLowerCase(),
+  )
     ? String(value).toLowerCase()
     : "category_home";
 
@@ -157,14 +163,18 @@ const getKeyAttributes = (item) => {
   };
 
   const formatAreaNoSpace = (rawValue) => {
-    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
-    const cleaned = String(rawValue).trim().replace(/\s*(m2|m²)$/i, "");
+    if (rawValue === null || rawValue === undefined || rawValue === "")
+      return null;
+    const cleaned = String(rawValue)
+      .trim()
+      .replace(/\s*(m2|m²)$/i, "");
     if (!cleaned) return null;
     return `${cleaned.replace(/\s/g, "")}m2`;
   };
 
   const formatMileageNoSpace = (rawValue) => {
-    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
+    if (rawValue === null || rawValue === undefined || rawValue === "")
+      return null;
     const cleaned = String(rawValue)
       .trim()
       .replace(/^kilometraza\s*\(km\)\s*[:\-]?\s*/i, "")
@@ -179,7 +189,12 @@ const getKeyAttributes = (item) => {
     if (!value) return;
     const normalized = String(value).trim();
     if (!normalized) return;
-    if (attributes.some((entry) => normalizeText(entry) === normalizeText(normalized))) return;
+    if (
+      attributes.some(
+        (entry) => normalizeText(entry) === normalizeText(normalized),
+      )
+    )
+      return;
     attributes.push(normalized);
   };
 
@@ -259,7 +274,9 @@ const getConditionLabel = (item) => {
   const customFields = item?.translated_custom_fields || [];
   const field = customFields.find((f) => {
     const name = normalizeText(f?.translated_name || f?.name || "");
-    return ["stanje oglasa", "stanje", "condition", "item condition"].includes(name);
+    return ["stanje oglasa", "stanje", "condition", "item condition"].includes(
+      name,
+    );
   });
 
   const rawValue =
@@ -270,8 +287,10 @@ const getConditionLabel = (item) => {
   if (!rawValue) return "";
 
   const normalized = normalizeText(rawValue);
-  if (["novo", "new", "nekoristeno", "unused"].includes(normalized)) return "Novo";
-  if (["koristeno", "used", "polovno", "rabljeno"].includes(normalized)) return "Korišteno";
+  if (["novo", "new", "nekoristeno", "unused"].includes(normalized))
+    return "Novo";
+  if (["koristeno", "used", "polovno", "rabljeno"].includes(normalized))
+    return "Korišteno";
   return String(rawValue).trim();
 };
 
@@ -279,7 +298,11 @@ const getOfferModeFromValue = (value) => {
   const normalized = normalizeText(value);
   if (!normalized) return null;
 
-  if (normalized.includes("iznajmlj") || normalized.includes("rent") || normalized.includes("lease")) {
+  if (
+    normalized.includes("iznajmlj") ||
+    normalized.includes("rent") ||
+    normalized.includes("lease")
+  ) {
     return "Iznajmljivanje";
   }
 
@@ -408,14 +431,24 @@ const readBooleanFromCustomFields = (customFieldsValue, keys = []) => {
 
 const readAvailableFromTranslatedFields = (item = {}) => {
   const fields = [
-    ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
-    ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
+    ...(Array.isArray(item?.translated_custom_fields)
+      ? item.translated_custom_fields
+      : []),
+    ...(Array.isArray(item?.all_translated_custom_fields)
+      ? item.all_translated_custom_fields
+      : []),
   ];
 
   for (const field of fields) {
-    const fieldName = normalizeText(field?.translated_name || field?.name || "");
+    const fieldName = normalizeText(
+      field?.translated_name || field?.name || "",
+    );
     if (!fieldName) continue;
-    if (!["dostup", "available", "odmah", "isporuk", "ready"].some((hint) => fieldName.includes(hint))) {
+    if (
+      !["dostup", "available", "odmah", "isporuk", "ready"].some((hint) =>
+        fieldName.includes(hint),
+      )
+    ) {
       continue;
     }
 
@@ -484,91 +517,22 @@ const readAvailableNow = (item = {}) => {
   return null;
 };
 
-const readExchangeFromTranslatedFields = (item = {}) => {
-  const fields = [
-    ...(Array.isArray(item?.translated_custom_fields) ? item.translated_custom_fields : []),
-    ...(Array.isArray(item?.all_translated_custom_fields) ? item.all_translated_custom_fields : []),
-  ];
-
-  for (const field of fields) {
-    const fieldName = normalizeText(field?.translated_name || field?.name || "");
-    if (!fieldName) continue;
-    if (!["zamjen", "zamena", "exchange", "trade", "swap"].some((hint) => fieldName.includes(hint))) {
-      continue;
-    }
-
-    const values = [
-      field?.translated_selected_values,
-      field?.selected_values,
-      field?.value,
-      field?.translated_value,
-      field?.selected_value,
-      field?.translated_selected_value,
-    ];
-
-    for (const candidate of values) {
-      if (Array.isArray(candidate)) {
-        for (const nested of candidate) {
-          const parsedNested = toBoolean(nested);
-          if (parsedNested !== null) return parsedNested;
-        }
-      } else {
-        const parsed = toBoolean(candidate);
-        if (parsed !== null) return parsed;
-      }
-    }
-  }
-
-  return null;
-};
-
-const readExchangePossible = (item = {}) => {
-  const directCandidates = [
-    item?.exchange_possible,
-    item?.is_exchange,
-    item?.is_exchange_possible,
-    item?.allow_exchange,
-    item?.exchange,
-    item?.zamjena,
-    item?.zamena,
-    item?.translated_item?.exchange_possible,
-    item?.translated_item?.is_exchange,
-    item?.translated_item?.allow_exchange,
-    item?.translated_item?.zamjena,
-  ];
-
-  for (const candidate of directCandidates) {
-    const parsed = toBoolean(candidate);
-    if (parsed !== null) return parsed;
-  }
-
-  const fromCustomFields = readBooleanFromCustomFields(item?.custom_fields, [
-    "exchange_possible",
-    "is_exchange",
-    "is_exchange_possible",
-    "allow_exchange",
-    "exchange",
-    "zamjena",
-    "zamena",
-    "trade",
-    "swap",
-  ]);
-  if (fromCustomFields !== null) return fromCustomFields;
-
-  const fromTranslatedFields = readExchangeFromTranslatedFields(item);
-  if (fromTranslatedFields !== null) return fromTranslatedFields;
-
-  return false;
-};
-
 const getListingStatusMeta = (item = {}, availableNow = null) => {
-  const status = normalizeText(item?.status || item?.translated_item?.status || "");
+  const status = normalizeText(
+    item?.status || item?.translated_item?.status || "",
+  );
   const reservationStatus = normalizeText(
-    item?.reservation_status || item?.translated_item?.reservation_status || ""
+    item?.reservation_status || item?.translated_item?.reservation_status || "",
   );
   const hasReservedUser = Boolean(item?.reserved_for_user_id);
 
-  const isSold = ["soldout", "sold out", "sold", "prodano", "rasprodano"].includes(status);
+  const isSold = [
+    "soldout",
+    "sold out",
+    "sold",
+    "prodano",
+    "rasprodano",
+  ].includes(status);
   const isReserved =
     ["reserved", "rezervisano"].includes(status) ||
     ["reserved", "rezervisano"].includes(reservationStatus) ||
@@ -590,7 +554,11 @@ const getListingStatusMeta = (item = {}, availableNow = null) => {
     };
   }
 
-  if (availableNow === false && status && !["approved", "active", "featured"].includes(status)) {
+  if (
+    availableNow === false &&
+    status &&
+    !["approved", "active", "featured"].includes(status)
+  ) {
     return {
       label: "Rezervisano",
       className:
@@ -630,7 +598,7 @@ const OverlayPill = ({ icon: Icon, children, className }) => (
       "bg-white/90 backdrop-blur-sm",
       "dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-200",
       "shadow-sm",
-      className
+      className,
     )}
   >
     {Icon ? <Icon className="w-3.5 h-3.5" /> : null}
@@ -673,7 +641,7 @@ const FeaturedPlanModal = ({
 
   const selectedPlacementMeta = useMemo(
     () => featuredPlacementOptions.find((option) => option.value === placement),
-    [placement]
+    [placement],
   );
 
   useEffect(() => {
@@ -714,7 +682,9 @@ const FeaturedPlanModal = ({
         >
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Postavke izdvajanja</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                Postavke izdvajanja
+              </h3>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Odaberi gdje će oglas biti istaknut i koliko dugo.
               </p>
@@ -737,7 +707,7 @@ const FeaturedPlanModal = ({
                   ? featuredMeta?.isExpired
                     ? "border-rose-200 bg-rose-50/70 dark:border-rose-800/70 dark:bg-rose-950/30"
                     : "border-emerald-200 bg-emerald-50/70 dark:border-emerald-800/70 dark:bg-emerald-950/30"
-                  : "border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/70"
+                  : "border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/70",
               )}
             >
               {isFeatureAd ? (
@@ -748,26 +718,32 @@ const FeaturedPlanModal = ({
                   </div>
                   <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
                     <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
-                      <p className="text-slate-500 dark:text-slate-400">Pozicija</p>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Pozicija
+                      </p>
                       <p className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
                         {featuredMeta?.placementLabel || "Nije određeno"}
                       </p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
-                      <p className="text-slate-500 dark:text-slate-400">Status</p>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Status
+                      </p>
                       <p
                         className={cn(
                           "mt-0.5 font-semibold",
                           featuredMeta?.isExpired
                             ? "text-rose-700 dark:text-rose-300"
-                            : "text-emerald-700 dark:text-emerald-300"
+                            : "text-emerald-700 dark:text-emerald-300",
                         )}
                       >
                         {featuredMeta?.isExpired ? "Isteklo" : "Aktivno"}
                       </p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
-                      <p className="text-slate-500 dark:text-slate-400">Preostalo</p>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Preostalo
+                      </p>
                       <p className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
                         {featuredMeta?.isUnlimited
                           ? "Bez isteka"
@@ -775,16 +751,20 @@ const FeaturedPlanModal = ({
                       </p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
-                      <p className="text-slate-500 dark:text-slate-400">Ističe</p>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Ističe
+                      </p>
                       <p className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
-                        {featuredMeta?.endAtLabel || "Nema vremenskog ograničenja"}
+                        {featuredMeta?.endAtLabel ||
+                          "Nema vremenskog ograničenja"}
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="text-xs text-slate-600 dark:text-slate-300">
-                  Ovaj oglas trenutno nije izdvojen. Odaberi poziciju i trajanje da ga istakneš.
+                  Ovaj oglas trenutno nije izdvojen. Odaberi poziciju i trajanje
+                  da ga istakneš.
                 </div>
               )}
             </div>
@@ -806,21 +786,25 @@ const FeaturedPlanModal = ({
                         "rounded-2xl border p-3 text-left transition-all",
                         isActive
                           ? "border-primary bg-primary/10 shadow-sm dark:border-primary dark:bg-primary/20"
-                          : "border-slate-200 bg-slate-50/60 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-slate-600"
+                          : "border-slate-200 bg-slate-50/60 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-slate-600",
                       )}
                     >
                       <div className="mb-2 flex items-center gap-2">
                         <Icon
                           className={cn(
                             "h-4 w-4",
-                            isActive ? "text-primary" : "text-slate-500 dark:text-slate-400"
+                            isActive
+                              ? "text-primary"
+                              : "text-slate-500 dark:text-slate-400",
                           )}
                         />
                         <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                           {option.label}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{option.description}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {option.description}
+                      </p>
                     </button>
                   );
                 })}
@@ -843,7 +827,7 @@ const FeaturedPlanModal = ({
                         "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-all",
                         isActive
                           ? "border-primary bg-primary/10 text-primary dark:border-primary dark:bg-primary/20"
-                          : "border-slate-200 text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-600"
+                          : "border-slate-200 text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-600",
                       )}
                     >
                       <CalendarDays className="h-4 w-4" />
@@ -859,7 +843,8 @@ const FeaturedPlanModal = ({
                 Odabrano: {selectedPlacementMeta?.label} • {duration} dana
               </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Nakon potvrde, oglas će biti aktiviran prema odabranom planu izdvajanja.
+                Nakon potvrde, oglas će biti aktiviran prema odabranom planu
+                izdvajanja.
               </p>
             </div>
 
@@ -886,7 +871,7 @@ const FeaturedPlanModal = ({
         </motion.div>
       </motion.div>
     </AnimatePresence>,
-    document.body
+    document.body,
   );
 };
 
@@ -1033,7 +1018,7 @@ const SmartQuickActionsPanel = ({
       onRenew,
       onReserve,
       onSold,
-    ]
+    ],
   );
 
   const recommendedActionKey = isExpired
@@ -1051,15 +1036,31 @@ const SmartQuickActionsPanel = ({
               : "delete";
 
   const recommendedAction =
-    actions.find((action) => action.key === recommendedActionKey) || actions[0] || null;
+    actions.find((action) => action.key === recommendedActionKey) ||
+    actions[0] ||
+    null;
 
-  const secondaryOrder = ["hide", "reserve", "unreserve", "edit", "sold", "activate", "renew"];
+  const secondaryOrder = [
+    "hide",
+    "reserve",
+    "unreserve",
+    "edit",
+    "sold",
+    "activate",
+    "renew",
+  ];
   const secondaryActions = secondaryOrder
     .map((key) => actions.find((action) => action.key === key))
-    .filter((action) => action && action.key !== recommendedAction?.key && action.kind !== "danger");
+    .filter(
+      (action) =>
+        action &&
+        action.key !== recommendedAction?.key &&
+        action.kind !== "danger",
+    );
   const dangerActions = actions.filter((action) => action.kind === "danger");
 
-  const panelHint = "Biraj akcije prema cilju: uređivanje, prodaja ili optimizacija pozicije.";
+  const panelHint =
+    "Biraj akcije prema cilju: uređivanje, prodaja ili optimizacija pozicije.";
   const renewInfoText =
     renewAvailabilityHint ||
     (canPositionRenew || isExpired
@@ -1100,164 +1101,162 @@ const SmartQuickActionsPanel = ({
     };
   }, [isVisible]);
 
-  return (
-    typeof document === "undefined"
-      ? null
-      : createPortal(
-          <AnimatePresence>
-            {isVisible ? (
-              <>
-                <motion.button
-                  type="button"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-[2px]"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onClose();
-                  }}
-                  aria-label="Zatvori panel akcija"
-                />
+  return typeof document === "undefined"
+    ? null
+    : createPortal(
+        <AnimatePresence>
+          {isVisible ? (
+            <>
+              <motion.button
+                type="button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[85] bg-slate-950/45 backdrop-blur-[2px]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClose();
+                }}
+                aria-label="Zatvori panel akcija"
+              />
 
-                <div
+              <div
+                className={cn(
+                  "fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2",
+                  isMobile
+                    ? "w-[min(640px,calc(100vw-0.75rem))]"
+                    : "w-[min(920px,calc(100vw-2rem))]",
+                )}
+              >
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 18, scale: 0.98 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                   className={cn(
-                    "fixed left-1/2 top-1/2 z-[90] -translate-x-1/2 -translate-y-1/2",
+                    "overflow-hidden border border-slate-200 bg-white/95 p-4 shadow-[0_28px_68px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-5",
                     isMobile
-                      ? "w-[min(640px,calc(100vw-0.75rem))]"
-                      : "w-[min(920px,calc(100vw-2rem))]"
+                      ? "max-h-[84vh] overflow-y-auto rounded-3xl"
+                      : "max-h-[84vh] overflow-y-auto rounded-[30px]",
                   )}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <motion.div
-                    layout
-                    initial={{ opacity: 0, y: 18, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 18, scale: 0.98 }}
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                    className={cn(
-                      "overflow-hidden border border-slate-200 bg-white/95 p-4 shadow-[0_28px_68px_-42px_rgba(15,23,42,0.7)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-5",
-                      isMobile
-                        ? "max-h-[84vh] overflow-y-auto rounded-3xl"
-                        : "max-h-[84vh] overflow-y-auto rounded-[30px]"
-                    )}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[clamp(24px,1.9vw,33px)] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-                          Pametne akcije oglasa
-                        </p>
-                        <p className="mt-1 text-[clamp(14px,1vw,18px)] text-slate-600 dark:text-slate-300">
-                          {panelHint}
-                        </p>
-                        <p className="mt-1.5 text-base font-semibold text-violet-600 dark:text-violet-300">
-                          {renewInfoText}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onClose();
-                        }}
-                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-600 transition-all hover:scale-[1.03] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                        aria-label="Zatvori brze akcije"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[clamp(24px,1.9vw,33px)] font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                        Pametne akcije oglasa
+                      </p>
+                      <p className="mt-1 text-[clamp(14px,1vw,18px)] text-slate-600 dark:text-slate-300">
+                        {panelHint}
+                      </p>
+                      <p className="mt-1.5 text-base font-semibold text-violet-600 dark:text-violet-300">
+                        {renewInfoText}
+                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onClose();
+                      }}
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-600 transition-all hover:scale-[1.03] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                      aria-label="Zatvori brze akcije"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
 
-                    {recommendedAction ? (
-                      <button
-                        type="button"
-                        onClick={(e) => runAction(e, recommendedAction)}
-                        className={cn(
-                          "group mb-3 flex w-full items-start gap-3 rounded-3xl border px-4 py-4 text-left transition-all duration-200",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                          toneClass[recommendedAction.tone]
-                        )}
-                      >
-                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
-                          <recommendedAction.icon className="h-5 w-5" />
+                  {recommendedAction ? (
+                    <button
+                      type="button"
+                      onClick={(e) => runAction(e, recommendedAction)}
+                      className={cn(
+                        "group mb-3 flex w-full items-start gap-3 rounded-3xl border px-4 py-4 text-left transition-all duration-200",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                        toneClass[recommendedAction.tone],
+                      )}
+                    >
+                      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                        <recommendedAction.icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[clamp(18px,1.35vw,24px)] font-semibold leading-tight">
+                          Preporučeno: {recommendedAction.label}
                         </span>
-                        <span className="min-w-0">
-                          <span className="block text-[clamp(18px,1.35vw,24px)] font-semibold leading-tight">
-                            Preporučeno: {recommendedAction.label}
-                          </span>
-                          <span className="mt-0.5 block text-[clamp(12px,0.8vw,15px)] opacity-90">
-                            {recommendedAction.description}
-                          </span>
+                        <span className="mt-0.5 block text-[clamp(12px,0.8vw,15px)] opacity-90">
+                          {recommendedAction.description}
                         </span>
-                      </button>
-                    ) : null}
+                      </span>
+                    </button>
+                  ) : null}
 
-                    {secondaryActions.length ? (
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                        {secondaryActions.map((action) => (
-                          <button
-                            key={action.key}
-                            type="button"
-                            onClick={(e) => runAction(e, action)}
-                            className={cn(
-                              "group flex min-h-[100px] items-start gap-3 rounded-3xl border px-4 py-3.5 text-left transition-all duration-200",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                              toneClass[action.tone]
-                            )}
-                          >
-                            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
-                              <action.icon className="h-5 w-5" />
+                  {secondaryActions.length ? (
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      {secondaryActions.map((action) => (
+                        <button
+                          key={action.key}
+                          type="button"
+                          onClick={(e) => runAction(e, action)}
+                          className={cn(
+                            "group flex min-h-[100px] items-start gap-3 rounded-3xl border px-4 py-3.5 text-left transition-all duration-200",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                            toneClass[action.tone],
+                          )}
+                        >
+                          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                            <action.icon className="h-5 w-5" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[clamp(16px,1.2vw,21px)] font-semibold leading-tight">
+                              {action.label}
                             </span>
-                            <span className="min-w-0">
-                              <span className="block text-[clamp(16px,1.2vw,21px)] font-semibold leading-tight">
-                                {action.label}
-                              </span>
-                              <span className="mt-0.5 block text-[clamp(12px,0.78vw,14px)] opacity-90">
-                                {action.description}
-                              </span>
+                            <span className="mt-0.5 block text-[clamp(12px,0.78vw,14px)] opacity-90">
+                              {action.description}
                             </span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
 
-                    {dangerActions.length ? (
-                      <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
-                        {dangerActions.map((action) => (
-                          <button
-                            key={action.key}
-                            type="button"
-                            onClick={(e) => runAction(e, action)}
-                            className={cn(
-                              "group flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition-all duration-200",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50",
-                              toneClass[action.tone]
-                            )}
-                          >
-                            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
-                              <action.icon className="h-5 w-5" />
+                  {dangerActions.length ? (
+                    <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
+                      {dangerActions.map((action) => (
+                        <button
+                          key={action.key}
+                          type="button"
+                          onClick={(e) => runAction(e, action)}
+                          className={cn(
+                            "group flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition-all duration-200",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/50",
+                            toneClass[action.tone],
+                          )}
+                        >
+                          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm dark:bg-slate-900/70">
+                            <action.icon className="h-5 w-5" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[clamp(16px,1.25vw,21px)] font-semibold leading-tight">
+                              {action.label}
                             </span>
-                            <span className="min-w-0">
-                              <span className="block text-[clamp(16px,1.25vw,21px)] font-semibold leading-tight">
-                                {action.label}
-                              </span>
-                              <span className="mt-0.5 block text-[clamp(12px,0.78vw,14px)] opacity-90">
-                                {action.description}
-                              </span>
+                            <span className="mt-0.5 block text-[clamp(12px,0.78vw,14px)] opacity-90">
+                              {action.description}
                             </span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </motion.div>
-                </div>
-              </>
-            ) : null}
-          </AnimatePresence>,
-          document.body
-        )
-  );
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </motion.div>
+              </div>
+            </>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      );
 };
 
 // ============================================
@@ -1275,18 +1274,24 @@ const MyAdsCard = ({
 }) => {
   const isJobCategory = Number(data?.category?.is_job_category) === 1;
   const translatedItem = data?.translated_item;
-  const publishedAgo = formatRelativeTimeBs(data?.created_at || translatedItem?.created_at, {
-    capitalize: true,
-    nowLabel: "Upravo sada",
-  });
+  const publishedAgo = formatRelativeTimeBs(
+    data?.created_at || translatedItem?.created_at,
+    {
+      capitalize: true,
+      nowLabel: "Upravo sada",
+    },
+  );
 
   const keyAttributes = getKeyAttributes(data);
   const conditionLabel = getConditionLabel(data);
   const availableNow = readAvailableNow(data);
-  const statusMeta = useMemo(() => getListingStatusMeta(data, availableNow), [data, availableNow]);
+  const statusMeta = useMemo(
+    () => getListingStatusMeta(data, availableNow),
+    [data, availableNow],
+  );
   const topStatusMeta = useMemo(
     () => getPrimaryStatusBadgeMeta(conditionLabel, statusMeta),
-    [conditionLabel, statusMeta]
+    [conditionLabel, statusMeta],
   );
 
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -1296,23 +1301,32 @@ const MyAdsCard = ({
   const defaultFeaturePlacement = useMemo(
     () =>
       normalizeFeaturedPlacementValue(
-        data?.featured_placement || data?.positions || data?.placement || "category_home"
+        data?.featured_placement ||
+          data?.positions ||
+          data?.placement ||
+          "category_home",
       ),
-    [data?.featured_placement, data?.placement, data?.positions]
+    [data?.featured_placement, data?.placement, data?.positions],
   );
   const defaultFeatureDuration = useMemo(
     () =>
       normalizeFeaturedDurationValue(
-        data?.featured_duration_days || data?.duration_days || data?.featured_days
+        data?.featured_duration_days ||
+          data?.duration_days ||
+          data?.featured_days,
       ),
-    [data?.duration_days, data?.featured_days, data?.featured_duration_days]
+    [data?.duration_days, data?.featured_days, data?.featured_duration_days],
   );
-  
+
   // NOVI STATE ZA QUICK ACTIONS
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [isFeaturedPlanOpen, setIsFeaturedPlanOpen] = useState(false);
-  const [selectedFeaturePlacement, setSelectedFeaturePlacement] = useState(defaultFeaturePlacement);
-  const [selectedFeatureDuration, setSelectedFeatureDuration] = useState(defaultFeatureDuration);
+  const [selectedFeaturePlacement, setSelectedFeaturePlacement] = useState(
+    defaultFeaturePlacement,
+  );
+  const [selectedFeatureDuration, setSelectedFeatureDuration] = useState(
+    defaultFeatureDuration,
+  );
   const [isFeatureSubmitting, setIsFeatureSubmitting] = useState(false);
   const featureSubmitLockRef = useRef(false);
 
@@ -1323,7 +1337,7 @@ const MyAdsCard = ({
   // Refovi za dodir/klizanje
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  
+
   // Long press za mobilne
   const longPressTimer = useRef(null);
   const [, setIsLongPressing] = useState(false);
@@ -1373,10 +1387,12 @@ const MyAdsCard = ({
     : baselineRenewDate
       ? new Date(
           baselineRenewDate.getTime() +
-            POSITION_RENEW_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+            POSITION_RENEW_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
         )
       : null;
-  const isPositionRenewWindowOpen = nextPositionRenewAt ? Date.now() >= nextPositionRenewAt.getTime() : false;
+  const isPositionRenewWindowOpen = nextPositionRenewAt
+    ? Date.now() >= nextPositionRenewAt.getTime()
+    : false;
   const canPositionRenew =
     isApproved &&
     !isSoldOut &&
@@ -1393,7 +1409,12 @@ const MyAdsCard = ({
     Boolean(nextPositionRenewAt) &&
     !isPositionRenewWindowOpen;
   const positionRenewDaysLeft = nextPositionRenewAt
-    ? Math.max(1, Math.ceil((nextPositionRenewAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    ? Math.max(
+        1,
+        Math.ceil(
+          (nextPositionRenewAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000),
+        ),
+      )
     : null;
   const shouldShowRenewHint =
     isApproved &&
@@ -1408,14 +1429,31 @@ const MyAdsCard = ({
       : `Besplatna obnova pozicije za ${formatBosnianDays(positionRenewDaysLeft)}.`
     : null;
 
-  const hasVideo = !!(data?.video_link && String(data?.video_link).trim() !== "");
-  const exchangePossible = readExchangePossible(data);
+  const hasVideo = useMemo(() => {
+    const candidates = [
+      data?.video_link,
+      data?.video,
+      data?.video_url,
+      data?.direct_video,
+      data?.reel_video,
+      data?.translated_item?.video_link,
+      data?.translated_item?.video,
+    ];
+    return candidates.some((value) => {
+      if (typeof value === "string") return value.trim() !== "";
+      if (value && typeof value === "object") {
+        const src = value?.url || value?.src || value?.path || value?.image;
+        return typeof src === "string" ? src.trim() !== "" : Boolean(src);
+      }
+      return Boolean(value);
+    });
+  }, [data]);
   const isHidePrice = isJobCategory
     ? [data?.min_salary, data?.max_salary].every(
         (val) =>
           val === null ||
           val === undefined ||
-          (typeof val === "string" && val.trim() === "")
+          (typeof val === "string" && val.trim() === ""),
       )
     : data?.price === null ||
       data?.price === undefined ||
@@ -1427,11 +1465,13 @@ const MyAdsCard = ({
   const currentPrice = data?.price;
   const metaValues = useMemo(() => {
     const values = Array.isArray(keyAttributes) ? [...keyAttributes] : [];
-    const withoutOfferMode = values.filter((entry) => !getOfferModeFromValue(entry));
+    const withoutOfferMode = values.filter(
+      (entry) => !getOfferModeFromValue(entry),
+    );
     if (conditionLabel) {
       const normalizedCondition = normalizeText(conditionLabel);
       const withoutCondition = withoutOfferMode.filter(
-        (entry) => normalizeText(entry) !== normalizedCondition
+        (entry) => normalizeText(entry) !== normalizedCondition,
       );
       if (normalizedCondition === "novo") {
         return withoutCondition;
@@ -1440,7 +1480,10 @@ const MyAdsCard = ({
     }
     return withoutOfferMode;
   }, [keyAttributes, conditionLabel]);
-  const realEstatePricing = useMemo(() => resolveRealEstateDisplayPricing(data), [data]);
+  const realEstatePricing = useMemo(
+    () => resolveRealEstateDisplayPricing(data),
+    [data],
+  );
   const showRealEstatePerM2 = !isJobCategory && realEstatePricing?.showPerM2;
 
   const discountPercentage = useMemo(() => {
@@ -1452,7 +1495,8 @@ const MyAdsCard = ({
 
     const oldN = Number(oldPrice);
     const curN = Number(currentPrice);
-    if (!Number.isFinite(oldN) || !Number.isFinite(curN) || oldN <= curN) return 0;
+    if (!Number.isFinite(oldN) || !Number.isFinite(curN) || oldN <= curN)
+      return 0;
 
     return Math.round(((oldN - curN) / oldN) * 100);
   }, [data?.discount_percentage, isOnSale, oldPrice, currentPrice]);
@@ -1488,7 +1532,7 @@ const MyAdsCard = ({
 
   const threeDots = useMemo(
     () => getThreeDots(totalSlides, currentSlide),
-    [totalSlides, currentSlide]
+    [totalSlides, currentSlide],
   );
 
   // Kontrole za slajder
@@ -1519,7 +1563,7 @@ const MyAdsCard = ({
     const startX = e.touches?.[0]?.clientX || 0;
     touchStartX.current = startX;
     touchEndX.current = startX;
-    
+
     // Long press logic
     if (!isSelectable) {
       setIsLongPressing(true);
@@ -1529,24 +1573,24 @@ const MyAdsCard = ({
       }, 500); // 500ms za long press
     }
   };
-  
+
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches?.[0]?.clientX || 0;
-    
+
     // Otkaži long press ako korisnik pomjera prst
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       setIsLongPressing(false);
     }
   };
-  
+
   const handleTouchEnd = (e) => {
     // Otkaži long press
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       setIsLongPressing(false);
     }
-    
+
     if (isSelectable) return;
 
     const endX = e.changedTouches?.[0]?.clientX;
@@ -1585,9 +1629,10 @@ const MyAdsCard = ({
   };
 
   const handleSoldOutAction = (salePayload = null) => {
-    const payload = salePayload && typeof salePayload === "object"
-      ? salePayload
-      : { buyerId: selectedBuyerId ?? null };
+    const payload =
+      salePayload && typeof salePayload === "object"
+        ? salePayload
+        : { buyerId: selectedBuyerId ?? null };
     onContextMenuAction?.("markAsSoldOut", data?.id, payload);
     setIsSoldOutDialogOpen(false);
   };
@@ -1598,8 +1643,12 @@ const MyAdsCard = ({
     featureSubmitLockRef.current = true;
     setIsFeatureSubmitting(true);
     try {
-      const normalizedPlacement = normalizeFeaturedPlacementValue(selectedFeaturePlacement);
-      const normalizedDuration = normalizeFeaturedDurationValue(selectedFeatureDuration);
+      const normalizedPlacement = normalizeFeaturedPlacementValue(
+        selectedFeaturePlacement,
+      );
+      const normalizedDuration = normalizeFeaturedDurationValue(
+        selectedFeatureDuration,
+      );
       const payload = {
         placement: normalizedPlacement,
         duration_days: normalizedDuration,
@@ -1619,7 +1668,6 @@ const MyAdsCard = ({
   };
 
   const title = translatedItem?.name || data?.name;
-  const internalCode = String(data?.seller_product_code || "").trim();
 
   const cardContent = (
     <div
@@ -1627,8 +1675,10 @@ const MyAdsCard = ({
         "group relative flex h-full flex-col overflow-hidden",
         "bg-white rounded-xl border border-slate-100 dark:bg-slate-900 dark:border-slate-800",
         "transition-all duration-200",
-        isSelected ? "ring-2 ring-primary/70 bg-primary/5 shadow-sm" : "hover:shadow-sm",
-        "cursor-pointer"
+        isSelected
+          ? "ring-2 ring-primary/70 bg-primary/5 shadow-sm"
+          : "hover:shadow-sm",
+        "cursor-pointer",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -1665,7 +1715,11 @@ const MyAdsCard = ({
     >
       {/* MEDIJ */}
       <div
-        className={cn("relative overflow-visible", "rounded-t-xl", "touch-pan-y")}
+        className={cn(
+          "relative overflow-visible",
+          "rounded-t-xl",
+          "touch-pan-y",
+        )}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -1699,8 +1753,12 @@ const MyAdsCard = ({
                   >
                     <ChevronRight className="w-6 h-6" />
                   </motion.div>
-                  <p className="text-sm font-semibold text-slate-900 text-center dark:text-slate-100">Detalji</p>
-                  <p className="text-xs text-slate-500 text-center mt-1 dark:text-slate-400">Otvori oglas</p>
+                  <p className="text-sm font-semibold text-slate-900 text-center dark:text-slate-100">
+                    Detalji
+                  </p>
+                  <p className="text-xs text-slate-500 text-center mt-1 dark:text-slate-400">
+                    Otvori oglas
+                  </p>
                 </div>
               )}
             </motion.div>
@@ -1723,18 +1781,27 @@ const MyAdsCard = ({
                 className={cn(
                   "h-5 w-5",
                   "bg-white shadow-sm border border-slate-200",
-                  "data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  "data-[state=checked]:bg-primary data-[state=checked]:border-primary",
                 )}
               />
             </motion.div>
           )}
 
+          {!isViewMoreSlide && hasVideo && !isSelectable ? (
+            <div className="absolute right-2 top-2 z-20 flex items-center gap-2">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="Youtube-Fill--Streamline-Mingcute-Fill" height="16" width="16">
+
+  <g fill="none" fill-rule="evenodd">
+    <path d="M16 0v16H0V0h16ZM8.395333333333333 15.505333333333333l-0.007333333333333332 0.0013333333333333333 -0.047333333333333324 0.023333333333333334 -0.013333333333333332 0.0026666666666666666 -0.009333333333333332 -0.0026666666666666666 -0.047333333333333324 -0.023333333333333334c-0.006666666666666666 -0.0026666666666666666 -0.012666666666666666 -0.0006666666666666666 -0.016 0.003333333333333333l-0.0026666666666666666 0.006666666666666666 -0.011333333333333334 0.2853333333333333 0.003333333333333333 0.013333333333333332 0.006666666666666666 0.008666666666666666 0.06933333333333333 0.049333333333333326 0.009999999999999998 0.0026666666666666666 0.008 -0.0026666666666666666 0.06933333333333333 -0.049333333333333326 0.008 -0.010666666666666666 0.0026666666666666666 -0.011333333333333334 -0.011333333333333334 -0.2846666666666666c-0.0013333333333333333 -0.006666666666666666 -0.005999999999999999 -0.011333333333333334 -0.011333333333333334 -0.011999999999999999Zm0.17666666666666667 -0.07533333333333334 -0.008666666666666666 0.0013333333333333333 -0.12333333333333332 0.062 -0.006666666666666666 0.006666666666666666 -0.002 0.007333333333333332 0.011999999999999999 0.2866666666666666 0.003333333333333333 0.008 0.005333333333333333 0.004666666666666666 0.134 0.062c0.008 0.0026666666666666666 0.015333333333333332 0 0.019333333333333334 -0.005333333333333333l0.0026666666666666666 -0.009333333333333332 -0.02266666666666667 -0.4093333333333333c-0.002 -0.008 -0.006666666666666666 -0.013333333333333332 -0.013333333333333332 -0.014666666666666665Zm-0.4766666666666666 0.0013333333333333333a0.015333333333333332 0.015333333333333332 0 0 0 -0.018 0.004l-0.004 0.009333333333333332 -0.02266666666666667 0.4093333333333333c0 0.008 0.004666666666666666 0.013333333333333332 0.011333333333333334 0.016l0.009999999999999998 -0.0013333333333333333 0.134 -0.062 0.006666666666666666 -0.005333333333333333 0.0026666666666666666 -0.007333333333333332 0.011333333333333334 -0.2866666666666666 -0.002 -0.008 -0.006666666666666666 -0.006666666666666666 -0.12266666666666666 -0.06133333333333333Z" stroke-width="0.6667"></path>
+    <path fill="#0ab6af" d="M8 2.6666666666666665c0.57 0 1.1546666666666665 0.014666666666666665 1.7213333333333332 0.03866666666666667l0.6693333333333333 0.032 0.6406666666666666 0.038 0.6 0.04066666666666666 0.5479999999999999 0.042666666666666665a2.5346666666666664 2.5346666666666664 0 0 1 2.3293333333333335 2.282l0.026666666666666665 0.2833333333333333 0.049999999999999996 0.6066666666666667c0.04666666666666667 0.6286666666666666 0.08133333333333333 1.314 0.08133333333333333 1.9693333333333334 0 0.6553333333333333 -0.034666666666666665 1.3406666666666667 -0.08133333333333333 1.9693333333333334l-0.049999999999999996 0.6066666666666667c-0.008666666666666666 0.09733333333333333 -0.017333333333333333 0.1913333333333333 -0.026666666666666665 0.2833333333333333a2.5346666666666664 2.5346666666666664 0 0 1 -2.33 2.282l-0.5466666666666666 0.041999999999999996 -0.6 0.04133333333333333 -0.6413333333333333 0.038 -0.6693333333333333 0.032c-0.5666666666666667 0.023999999999999997 -1.1513333333333333 0.03866666666666667 -1.7213333333333332 0.03866666666666667 -0.57 0 -1.1546666666666665 -0.014666666666666665 -1.7213333333333332 -0.03866666666666667l-0.6693333333333333 -0.032 -0.6406666666666666 -0.038 -0.6 -0.04133333333333333 -0.5479999999999999 -0.041999999999999996a2.5346666666666664 2.5346666666666664 0 0 1 -2.3293333333333335 -2.282l-0.026666666666666665 -0.2833333333333333 -0.049999999999999996 -0.6066666666666667A27.107999999999997 27.107999999999997 0 0 1 1.3333333333333333 8c0 -0.6553333333333333 0.034666666666666665 -1.3406666666666667 0.08133333333333333 -1.9693333333333334l0.049999999999999996 -0.6066666666666667c0.008666666666666666 -0.09733333333333333 0.017333333333333333 -0.1913333333333333 0.026666666666666665 -0.2833333333333333A2.5346666666666664 2.5346666666666664 0 0 1 3.8200000000000003 2.8586666666666667l0.5473333333333332 -0.042666666666666665 0.6 -0.04066666666666666 0.6413333333333333 -0.038 0.6693333333333333 -0.032C6.8453333333333335 2.6813333333333333 7.43 2.6666666666666665 8 2.6666666666666665Zm-1.3333333333333333 3.716666666666667v3.233333333333333c0 0.308 0.3333333333333333 0.5 0.6 0.3466666666666667l2.8 -1.6166666666666665a0.39999999999999997 0.39999999999999997 0 0 0 0 -0.6933333333333334l-2.8 -1.6159999999999999a0.39999999999999997 0.39999999999999997 0 0 0 -0.6 0.3466666666666667Z" stroke-width="0.6667"></path>
+  </g>
+</svg>
+            </div>
+          ) : null}
+
           {/* Dugme za quick actions gore-desno */}
           <div className="absolute top-2 right-2 z-30">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="outline"
                 size="icon"
@@ -1753,10 +1820,18 @@ const MyAdsCard = ({
                     : "pointer-events-none opacity-0",
                   "hover:bg-white dark:hover:bg-slate-900 hover:border-primary/30",
                   showQuickActions &&
-                    "border-primary/40 bg-white text-primary dark:bg-slate-900 dark:border-primary/40 dark:text-primary"
+                    "border-primary/40 bg-white text-primary dark:bg-slate-900 dark:border-primary/40 dark:text-primary",
                 )}
-                title={showQuickActions ? "Zatvori brze akcije" : "Prikaži brze akcije"}
-                aria-label={showQuickActions ? "Zatvori brze akcije" : "Prikaži brze akcije"}
+                title={
+                  showQuickActions
+                    ? "Zatvori brze akcije"
+                    : "Prikaži brze akcije"
+                }
+                aria-label={
+                  showQuickActions
+                    ? "Zatvori brze akcije"
+                    : "Prikaži brze akcije"
+                }
                 aria-expanded={showQuickActions}
               >
                 <motion.span
@@ -1769,29 +1844,13 @@ const MyAdsCard = ({
                       "w-4 h-4 transition-colors",
                       showQuickActions
                         ? "text-primary"
-                        : "text-slate-700 dark:text-slate-300"
+                        : "text-slate-700 dark:text-slate-300",
                     )}
                   />
                 </motion.span>
               </Button>
             </motion.div>
           </div>
-
-          {/* Meta informacije dolje-lijevo */}
-          {!isViewMoreSlide && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="absolute bottom-2 right-2 z-20 flex items-center gap-2"
-            >
-              {hasVideo ? (
-                <OverlayPill icon={Youtube} className="text-red-700 bg-red-100/90 border-red-200">
-                  {/* Video */}
-                </OverlayPill>
-              ) : null}
-            </motion.div>
-          )}
 
           {/* Primarni status (Dostupno/Rezervisano/Prodano) + Izdvojeno na prelomu slike i sadržaja */}
           {!isViewMoreSlide ? (
@@ -1801,7 +1860,9 @@ const MyAdsCard = ({
               transition={{ delay: 0.15 }}
               className="pointer-events-none absolute left-2 right-2 -bottom-3 z-30 flex flex-wrap items-center gap-1.5"
             >
-              <span className={cn(STATUS_CHIP_BASE_CLASS, topStatusMeta.className)}>
+              <span
+                className={cn(STATUS_CHIP_BASE_CLASS, topStatusMeta.className)}
+              >
                 {topStatusMeta.label}
               </span>
               {data?.is_feature ? (
@@ -1809,7 +1870,7 @@ const MyAdsCard = ({
                   className={cn(
                     STATUS_CHIP_BASE_CLASS,
                     "border-amber-300 bg-amber-100 text-amber-800",
-                    "dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200"
+                    "dark:border-amber-600/70 dark:bg-amber-900/40 dark:text-amber-200",
                   )}
                   title="Istaknuti oglas"
                   aria-label="Istaknuti oglas"
@@ -1882,13 +1943,13 @@ const MyAdsCard = ({
                     isHovered
                       ? "opacity-100 translate-x-0"
                       : "opacity-0 ltr:-translate-x-3 rtl:translate-x-3",
-                    isSelectable ? "pointer-events-none opacity-0" : ""
+                    isSelectable ? "pointer-events-none opacity-0" : "",
                   )}
                   aria-label="Prethodna slika"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{
                     opacity: isHovered ? 1 : 0,
-                    x: isHovered ? 0 : -20
+                    x: isHovered ? 0 : -20,
                   }}
                   transition={{ duration: 0.2 }}
                   whileHover={{ scale: 1.1 }}
@@ -1912,13 +1973,13 @@ const MyAdsCard = ({
                     isHovered
                       ? "opacity-100 translate-x-0"
                       : "opacity-0 ltr:translate-x-3 rtl:-translate-x-3",
-                    isSelectable ? "pointer-events-none opacity-0" : ""
+                    isSelectable ? "pointer-events-none opacity-0" : "",
                   )}
                   aria-label="Sljedeća slika"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{
                     opacity: isHovered ? 1 : 0,
-                    x: isHovered ? 0 : 20
+                    x: isHovered ? 0 : 20,
                   }}
                   transition={{ duration: 0.2 }}
                   whileHover={{ scale: 1.1 }}
@@ -1936,7 +1997,7 @@ const MyAdsCard = ({
       <div
         className={cn(
           "flex flex-col gap-2 p-3 flex-1",
-          !isViewMoreSlide ? "pt-5" : null
+          !isViewMoreSlide ? "pt-5" : null,
         )}
       >
         <div className="flex items-start justify-between gap-2">
@@ -1946,40 +2007,19 @@ const MyAdsCard = ({
           >
             {title}
           </motion.h3>
-          {data?.is_feature ? (
-            <span
-              className="mt-0.5 inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center text-slate-500 dark:text-slate-300"
-              title="Istaknuti oglas"
-              aria-label="Istaknuti oglas"
-            >
-              <Rocket className="h-4 w-4 text-amber-500 dark:text-amber-300" />
-            </span>
-          ) : null}
         </div>
-
-        {internalCode ? (
-          <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] dark:border-slate-700 dark:bg-slate-800/80">
-            <span className="font-medium text-slate-500 dark:text-slate-400">Interna šifra:</span>
-            <span className="truncate font-semibold text-slate-800 dark:text-slate-100">{internalCode}</span>
-          </div>
-        ) : null}
 
         {Array.isArray(metaValues) && metaValues.length > 0 ? (
           <div className="flex flex-wrap gap-1">
             {metaValues.map((attr, index) => (
-              <span
-                key={`${attr}-${index}`}
-                className={META_CHIP_CLASS}
-              >
+              <span key={`${attr}-${index}`} className={META_CHIP_CLASS}>
                 {attr}
               </span>
             ))}
           </div>
         ) : null}
 
-        <div
-          className="mt-auto flex flex-col-reverse justify-between gap-2 pt-2 sm:flex-row"
-        >
+        <div className="mt-auto flex flex-col-reverse justify-between gap-2 pt-2 sm:flex-row">
           {publishedAgo ? (
             <div className="flex min-w-0 gap-1 text-xs text-slate-500 dark:text-slate-400">
               {/* <Clock2Fill className="h-3.5 w-3.5 shrink-0 text-primary" /> */}
@@ -1992,16 +2032,7 @@ const MyAdsCard = ({
           {!isHidePrice ? (
             isJobCategory ? (
               <div className="flex items-center gap-2">
-                {exchangePossible ? (
-                  <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
-                    title="Zamjena moguća"
-                    aria-label="Zamjena moguća"
-                  >
-                    <TransferFill className="h-4 w-4 text-primary" />
-                  </span>
-                ) : null}
-                <motion.span 
+                <motion.span
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="text-sm font-bold text-slate-900 dark:text-slate-100"
@@ -2011,21 +2042,15 @@ const MyAdsCard = ({
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                {exchangePossible ? (
-                  <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full"
-                    title="Zamjena moguća"
-                    aria-label="Zamjena moguća"
-                  >
-                    <TransferFill className="h-4 w-4 text-primary" />
-                  </span>
-                ) : null}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="flex flex-col items-center leading-none sm:items-end"
                 >
-                  {isOnSale && Number(oldPrice) > 0 && Number(currentPrice) > 0 && Number(oldPrice) > Number(currentPrice) ? (
+                  {isOnSale &&
+                  Number(oldPrice) > 0 &&
+                  Number(currentPrice) > 0 &&
+                  Number(oldPrice) > Number(currentPrice) ? (
                     <span className="text-[11px] font-semibold text-slate-400 line-through tabular-nums">
                       {formatPriceAbbreviated(Number(oldPrice))}
                     </span>
@@ -2038,7 +2063,7 @@ const MyAdsCard = ({
                         Number(currentPrice) > 0 &&
                         Number(oldPrice) > Number(currentPrice)
                         ? "text-rose-600"
-                        : "text-slate-900 dark:text-slate-100"
+                        : "text-slate-900 dark:text-slate-100",
                     )}
                     title={formatPriceOrInquiry(data?.price)}
                   >
@@ -2046,7 +2071,10 @@ const MyAdsCard = ({
                   </span>
                   {showRealEstatePerM2 ? (
                     <span className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-300">
-                      {formatPriceAbbreviated(Number(realEstatePricing.perM2Value))} / m²
+                      {formatPriceAbbreviated(
+                        Number(realEstatePricing.perM2Value),
+                      )}{" "}
+                      / m²
                     </span>
                   ) : null}
                 </motion.div>
@@ -2069,7 +2097,11 @@ const MyAdsCard = ({
   );
 
   return (
-    <motion.div ref={cardShellRef} layout className="relative h-full w-[95%] mx-auto">
+    <motion.div
+      ref={cardShellRef}
+      layout
+      className="relative h-full w-[95%] mx-auto"
+    >
       {cardContent}
 
       <SmartQuickActionsPanel

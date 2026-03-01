@@ -22,6 +22,11 @@ import { cn } from "@/lib/utils";
 import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
+import {
+  addToCompare,
+  removeFromCompare,
+  selectCompareList,
+} from "@/redux/reducer/compareSlice";
 import { getLocationApi, manageFavouriteApi } from "@/utils/api";
 import ShareDropdown from "@/components/Common/ShareDropdown";
 import { createPortal } from "react-dom";
@@ -194,9 +199,7 @@ const resolveMunicipalityOrCityLabel = (rawValue) => {
       rawValue?.label,
       rawValue?.address,
     ]
-      .filter(
-        (value) => typeof value === "string" || typeof value === "number",
-      )
+      .filter((value) => typeof value === "string" || typeof value === "number")
       .map((value) => String(value).trim())
       .filter(Boolean);
 
@@ -1303,6 +1306,7 @@ const ProductDetailCard = ({
   const currentUrl = `${process.env.NEXT_PUBLIC_WEB_URL}${path}`;
   const isLoggedIn = useSelector(getIsLoggedIn);
   const CompanyName = useSelector(getCompanyName);
+  const compareList = useSelector(selectCompareList);
 
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [resolvedLocationByPin, setResolvedLocationByPin] = useState("");
@@ -1381,7 +1385,10 @@ const ProductDetailCard = ({
   );
   const preciseLat = parseCoordinateValue(productDetails?.latitude);
   const preciseLng = parseCoordinateValue(productDetails?.longitude);
-  const hasPreciseCoordinates = isMeaningfulCoordinatePair(preciseLat, preciseLng);
+  const hasPreciseCoordinates = isMeaningfulCoordinatePair(
+    preciseLat,
+    preciseLng,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1631,6 +1638,14 @@ const ProductDetailCard = ({
   const showOutOfStockUi = Boolean(!isSoldOut && scarcityState?.isOutOfStock);
   const showPopularityHint =
     showScarcityUi && scarcityState?.popularity?.hasSignal;
+  const isInCompare = useMemo(
+    () =>
+      Array.isArray(compareList) &&
+      compareList.some(
+        (entry) => String(entry?.id) === String(productDetails?.id),
+      ),
+    [compareList, productDetails?.id],
+  );
 
   const handleOpenHistoryModal = () => {
     setShowHistoryModal(true);
@@ -1662,6 +1677,15 @@ const ProductDetailCard = ({
       console.log(error);
       toast.error("Greška pri ažuriranju omiljenih");
     }
+  };
+
+  const handleCompareItem = () => {
+    if (!productDetails?.id) return;
+    if (isInCompare) {
+      dispatch(removeFromCompare(productDetails.id));
+      return;
+    }
+    dispatch(addToCompare(productDetails));
   };
 
   return (
@@ -1727,6 +1751,24 @@ const ProductDetailCard = ({
                   triggerAriaLabel="Podijeli oglas"
                   onShare={(platform) => onShareClick?.(platform)}
                 />
+                <button
+                  type="button"
+                  onClick={handleCompareItem}
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition-all active:scale-95",
+                    isInCompare
+                      ? "border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
+                      : "border-slate-200/80 bg-white text-slate-500 hover:border-blue-200 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-blue-900/40 dark:hover:text-blue-400",
+                  )}
+                  title={
+                    isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"
+                  }
+                  aria-label={
+                    isInCompare ? "Ukloni iz usporedbe" : "Dodaj u usporedbu"
+                  }
+                >
+                  <GitCompare size={19} />
+                </button>
                 <button
                   type="button"
                   onClick={handleLikeItem}

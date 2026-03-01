@@ -144,7 +144,15 @@ function AnimatedCard({ children, className = "", delay = 0 }) {
 }
 
 // Stat kartica
-function StatCard({ icon: Icon, label, value, sublabel, color = "slate", trend, trendValue }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  sublabel,
+  color = "slate",
+  trend,
+  trendValue,
+}) {
   const colorStyles = {
     slate: "bg-slate-50 text-slate-600 border-slate-200",
     blue: "bg-blue-50 text-blue-600 border-blue-200",
@@ -156,24 +164,37 @@ function StatCard({ icon: Icon, label, value, sublabel, color = "slate", trend, 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex items-start justify-between mb-4">
-        <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center border", colorStyles[color])}>
+        <div
+          className={cn(
+            "w-11 h-11 rounded-xl flex items-center justify-center border",
+            colorStyles[color],
+          )}
+        >
           <Icon size={20} strokeWidth={2} />
         </div>
         {trend && trendValue && (
           <div
             className={cn(
               "flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full",
-              trend === "up" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+              trend === "up"
+                ? "bg-emerald-50 text-emerald-600"
+                : "bg-red-50 text-red-600",
             )}
           >
-            {trend === "up" ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+            {trend === "up" ? (
+              <TrendingUp size={12} />
+            ) : (
+              <TrendingDown size={12} />
+            )}
             {trendValue}
           </div>
         )}
       </div>
 
       <div className="space-y-1">
-        <div className="text-3xl font-bold text-slate-900 tracking-tight">{value}</div>
+        <div className="text-3xl font-bold text-slate-900 tracking-tight">
+          {value}
+        </div>
         <div className="text-sm font-medium text-slate-700">{label}</div>
         {sublabel && <div className="text-xs text-slate-500">{sublabel}</div>}
       </div>
@@ -182,10 +203,18 @@ function StatCard({ icon: Icon, label, value, sublabel, color = "slate", trend, 
 }
 
 // Akcijska kartica
-function ActionCard({ icon: Icon, title, description, href, badge, variant = "default" }) {
+function ActionCard({
+  icon: Icon,
+  title,
+  description,
+  href,
+  badge,
+  variant = "default",
+}) {
   const variants = {
     default: "border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50",
-    primary: "border-slate-900/10 bg-slate-900/[0.02] hover:bg-slate-900/[0.04]",
+    primary:
+      "border-slate-900/10 bg-slate-900/[0.02] hover:bg-slate-900/[0.04]",
     success: "border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50/50",
   };
 
@@ -194,7 +223,7 @@ function ActionCard({ icon: Icon, title, description, href, badge, variant = "de
       href={href}
       className={cn(
         "group flex items-center gap-4 p-4 rounded-xl border bg-white transition-all duration-200 hover:shadow-sm",
-        variants[variant]
+        variants[variant],
       )}
     >
       <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
@@ -213,7 +242,10 @@ function ActionCard({ icon: Icon, title, description, href, badge, variant = "de
         <p className="text-xs text-slate-500 truncate">{description}</p>
       </div>
 
-      <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
+      <ChevronRight
+        size={16}
+        className="text-slate-300 group-hover:text-slate-500 transition-colors"
+      />
     </CustomLink>
   );
 }
@@ -229,7 +261,12 @@ function StatusBadge({ children, variant = "default" }) {
   };
 
   return (
-    <span className={cn("inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold", variants[variant])}>
+    <span
+      className={cn(
+        "inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold",
+        variants[variant],
+      )}
+    >
       {children}
     </span>
   );
@@ -296,7 +333,11 @@ function Alert({ type = "info", title, children, action }) {
       <div className="flex items-start gap-3">
         <Icon className={cn("mt-0.5 shrink-0", style.icon)} size={18} />
         <div className="flex-1 min-w-0">
-          {title && <h4 className={cn("text-sm font-semibold mb-1", style.title)}>{title}</h4>}
+          {title && (
+            <h4 className={cn("text-sm font-semibold mb-1", style.title)}>
+              {title}
+            </h4>
+          )}
           <div className={cn("text-sm", style.text)}>{children}</div>
           {action && <div className="mt-3">{action}</div>}
         </div>
@@ -328,212 +369,238 @@ export default function SellerDashboard() {
   const [collections, setCollections] = useState([]);
 
   // Fetch svih podataka
-  const fetchAll = useCallback(async ({ force = false, showLoader = true } = {}) => {
-    if (!userData) return;
-    const now = Date.now();
-    if (!force && now - lastFetchRef.current < DASHBOARD_FETCH_COOLDOWN_MS) {
-      return;
-    }
-    lastFetchRef.current = now;
+  const fetchAll = useCallback(
+    async ({ force = false, showLoader = true } = {}) => {
+      if (!userData) return;
+      const now = Date.now();
+      if (!force && now - lastFetchRef.current < DASHBOARD_FETCH_COOLDOWN_MS) {
+        return;
+      }
+      lastFetchRef.current = now;
 
-    if (showLoader) {
-      setLoading(true);
-    }
-
-    try {
-      const results = await Promise.allSettled([
-        membershipApi.getUserMembership({}),
-        getNotificationList.getNotification({ page: 1 }),
-        getMyItemsApi.getMyItems({
-          status: "approved",
-          user_id: userData?.id,
-          offset: 0,
-          limit: 1,
-        }),
-        getMyReviewsApi.getMyReviews({ page: 1 }),
-        sellerSettingsApi.getSettings(),
-        Promise.all([
-          chatListApi.chatList({ type: "buyer", page: 1 }),
-          chatListApi.chatList({ type: "seller", page: 1 }),
-        ]),
-        savedCollectionsApi.lists(),
-        itemStatisticsApi.getSellerOverview({ period: 30, top: 8 }),
-      ]);
-
-      const [membershipRes, notifRes, adsRes, reviewsRes, sellerRes, chatRes, collectionsRes, overviewRes] = results;
-
-      const getCountSafe = (...values) => {
-        for (const value of values) {
-          const parsed = toNum(value);
-          if (parsed !== null) return parsed;
-        }
-        return 0;
-      };
-
-      // Membership
-      let membershipTier = String(userData?.membership_tier || "free").toLowerCase();
-      if (membershipRes.status === "fulfilled") {
-        const membershipData = unwrapPayload(membershipRes.value);
-        membershipTier = String(
-          membershipData?.tier || membershipData?.membership_tier || membershipTier
-        ).toLowerCase();
+      if (showLoader) {
+        setLoading(true);
       }
 
-      // Seller overview (optional endpoint)
-      let overviewSummary = null;
-      if (overviewRes.status === "fulfilled") {
-        const overviewPayload = unwrapPayload(overviewRes.value);
-        overviewSummary = overviewPayload?.summary || overviewPayload || null;
-      }
+      try {
+        const results = await Promise.allSettled([
+          membershipApi.getUserMembership({}),
+          getNotificationList.getNotification({ page: 1 }),
+          getMyItemsApi.getMyItems({
+            status: "approved",
+            user_id: userData?.id,
+            offset: 0,
+            limit: 1,
+          }),
+          getMyReviewsApi.getMyReviews({ page: 1 }),
+          sellerSettingsApi.getSettings(),
+          Promise.all([
+            chatListApi.chatList({ type: "buyer", page: 1 }),
+            chatListApi.chatList({ type: "seller", page: 1 }),
+          ]),
+          savedCollectionsApi.lists(),
+          itemStatisticsApi.getSellerOverview({ period: 30, top: 8 }),
+        ]);
 
-      // Notifications
-      let unreadNotifications = 0;
-      if (notifRes.status === "fulfilled") {
-        const payload = unwrapPayload(notifRes.value);
-        const list = extractList(payload);
-        unreadNotifications = getCountSafe(
-          payload?.unread_count,
-          payload?.meta?.unread_count,
-          payload?.data?.unread_count,
-          list.filter((n) => !n?.read_at && !n?.is_read).length
-        );
-      }
+        const [
+          membershipRes,
+          notifRes,
+          adsRes,
+          reviewsRes,
+          sellerRes,
+          chatRes,
+          collectionsRes,
+          overviewRes,
+        ] = results;
 
-      // Ads
-      let activeAds = 0;
-      let totalViews = 0;
-      if (adsRes.status === "fulfilled") {
-        const payload = unwrapPayload(adsRes.value);
-        activeAds = getCountSafe(extractTotal(payload), payload?.total);
-
-        const adsList = extractList(payload);
-        totalViews = getCountSafe(
-          overviewSummary?.views,
-          overviewSummary?.total_views,
-          payload?.totals?.views,
-          payload?.summary?.views,
-          adsList.reduce(
-            (sum, ad) =>
-              sum +
-              getCountSafe(
-                ad?.total_clicks,
-                ad?.views,
-                ad?.total_views
-              ),
-            0
-          )
-        );
-      }
-
-      // ako overview vrati preciznije brojke, koristi njih
-      if (overviewSummary) {
-        activeAds = getCountSafe(
-          overviewSummary?.active_ads,
-          overviewSummary?.active_items,
-          overviewSummary?.ads_active,
-          activeAds
-        );
-        totalViews = getCountSafe(
-          overviewSummary?.views,
-          overviewSummary?.total_views,
-          totalViews
-        );
-      }
-
-      // Rating
-      let ratingFromReviews = null;
-      let reviewCount = 0;
-      if (reviewsRes.status === "fulfilled") {
-        const payload = unwrapPayload(reviewsRes.value);
-        const reviews = extractList(payload);
-        reviewCount = getCountSafe(extractTotal(payload), reviews.length);
-
-        const averageFromPayload = toNum(
-          payload?.average_rating ?? payload?.avg_rating ?? payload?.summary?.average_rating
-        );
-        if (averageFromPayload !== null) {
-          ratingFromReviews = averageFromPayload;
-        }
-
-        if (ratingFromReviews === null && reviews.length > 0) {
-          const validRatings = reviews.map((r) => toNum(r?.ratings)).filter((n) => n !== null);
-          if (validRatings.length > 0) {
-            const avg = validRatings.reduce((a, b) => a + b, 0) / validRatings.length;
-            ratingFromReviews = avg;
+        const getCountSafe = (...values) => {
+          for (const value of values) {
+            const parsed = toNum(value);
+            if (parsed !== null) return parsed;
           }
+          return 0;
+        };
+
+        // Membership
+        let membershipTier = String(
+          userData?.membership_tier || "free",
+        ).toLowerCase();
+        if (membershipRes.status === "fulfilled") {
+          const membershipData = unwrapPayload(membershipRes.value);
+          membershipTier = String(
+            membershipData?.tier ||
+              membershipData?.membership_tier ||
+              membershipTier,
+          ).toLowerCase();
         }
-      }
 
-      // Messages
-      let unreadMessages = 0;
-      if (chatRes.status === "fulfilled") {
-        const [buyerChats, sellerChats] = chatRes.value;
-        const buyerData = unwrapPayload(buyerChats);
-        const sellerData = unwrapPayload(sellerChats);
-        const buyerList = extractList(buyerData);
-        const sellerList = extractList(sellerData);
+        // Seller overview (optional endpoint)
+        let overviewSummary = null;
+        if (overviewRes.status === "fulfilled") {
+          const overviewPayload = unwrapPayload(overviewRes.value);
+          overviewSummary = overviewPayload?.summary || overviewPayload || null;
+        }
 
-        unreadMessages = getCountSafe(
-          buyerData?.unread_count,
-          buyerData?.meta?.unread_count,
-          0
-        ) + getCountSafe(
-          sellerData?.unread_count,
-          sellerData?.meta?.unread_count,
-          0
-        );
-
-        if (unreadMessages === 0) {
-          unreadMessages = [...buyerList, ...sellerList].reduce(
-            (sum, chat) =>
-              sum +
-              getCountSafe(chat?.unseen_messages_count, chat?.unread_count, 0),
-            0
+        // Notifications
+        let unreadNotifications = 0;
+        if (notifRes.status === "fulfilled") {
+          const payload = unwrapPayload(notifRes.value);
+          const list = extractList(payload);
+          unreadNotifications = getCountSafe(
+            payload?.unread_count,
+            payload?.meta?.unread_count,
+            payload?.data?.unread_count,
+            list.filter((n) => !n?.read_at && !n?.is_read).length,
           );
         }
-      }
 
-      // Seller settings
-      let sellerData = null;
-      if (sellerRes.status === "fulfilled") {
-        sellerData = unwrapPayload(sellerRes.value) || null;
-        setSeller(sellerData);
-      }
+        // Ads
+        let activeAds = 0;
+        let totalViews = 0;
+        if (adsRes.status === "fulfilled") {
+          const payload = unwrapPayload(adsRes.value);
+          activeAds = getCountSafe(extractTotal(payload), payload?.total);
 
-      // Collections
-      let collectionsData = [];
-      if (collectionsRes.status === "fulfilled") {
-        const data = unwrapPayload(collectionsRes.value);
-        collectionsData = extractList(data);
-        setCollections(collectionsData);
-      }
+          const adsList = extractList(payload);
+          totalViews = getCountSafe(
+            overviewSummary?.views,
+            overviewSummary?.total_views,
+            payload?.totals?.views,
+            payload?.summary?.views,
+            adsList.reduce(
+              (sum, ad) =>
+                sum +
+                getCountSafe(ad?.total_clicks, ad?.views, ad?.total_views),
+              0,
+            ),
+          );
+        }
 
-      const finalRating =
-        ratingFromReviews !== null
-          ? toRating(ratingFromReviews)
-          : userData?.average_rating
-          ? toRating(userData.average_rating)
-          : "0.0";
+        // ako overview vrati preciznije brojke, koristi njih
+        if (overviewSummary) {
+          activeAds = getCountSafe(
+            overviewSummary?.active_ads,
+            overviewSummary?.active_items,
+            overviewSummary?.ads_active,
+            activeAds,
+          );
+          totalViews = getCountSafe(
+            overviewSummary?.views,
+            overviewSummary?.total_views,
+            totalViews,
+          );
+        }
 
-      setStats({
-        membershipTier,
-        activeAds: getCountSafe(activeAds, 0),
-        totalViews: getCountSafe(totalViews, 0),
-        unreadNotifications: getCountSafe(unreadNotifications, 0),
-        unreadMessages: getCountSafe(unreadMessages, 0),
-        rating: finalRating,
-        savedCount: collectionsData.reduce((sum, c) => sum + getCountSafe(c?.items_count, 0), 0),
-        reviewCount: getCountSafe(reviewCount, 0),
-      });
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      toast.error("Greška pri učitavanju podataka");
-    } finally {
-      if (showLoader) {
-        setLoading(false);
+        // Rating
+        let ratingFromReviews = null;
+        let reviewCount = 0;
+        if (reviewsRes.status === "fulfilled") {
+          const payload = unwrapPayload(reviewsRes.value);
+          const reviews = extractList(payload);
+          reviewCount = getCountSafe(extractTotal(payload), reviews.length);
+
+          const averageFromPayload = toNum(
+            payload?.average_rating ??
+              payload?.avg_rating ??
+              payload?.summary?.average_rating,
+          );
+          if (averageFromPayload !== null) {
+            ratingFromReviews = averageFromPayload;
+          }
+
+          if (ratingFromReviews === null && reviews.length > 0) {
+            const validRatings = reviews
+              .map((r) => toNum(r?.ratings))
+              .filter((n) => n !== null);
+            if (validRatings.length > 0) {
+              const avg =
+                validRatings.reduce((a, b) => a + b, 0) / validRatings.length;
+              ratingFromReviews = avg;
+            }
+          }
+        }
+
+        // Messages
+        let unreadMessages = 0;
+        if (chatRes.status === "fulfilled") {
+          const [buyerChats, sellerChats] = chatRes.value;
+          const buyerData = unwrapPayload(buyerChats);
+          const sellerData = unwrapPayload(sellerChats);
+          const buyerList = extractList(buyerData);
+          const sellerList = extractList(sellerData);
+
+          unreadMessages =
+            getCountSafe(
+              buyerData?.unread_count,
+              buyerData?.meta?.unread_count,
+              0,
+            ) +
+            getCountSafe(
+              sellerData?.unread_count,
+              sellerData?.meta?.unread_count,
+              0,
+            );
+
+          if (unreadMessages === 0) {
+            unreadMessages = [...buyerList, ...sellerList].reduce(
+              (sum, chat) =>
+                sum +
+                getCountSafe(
+                  chat?.unseen_messages_count,
+                  chat?.unread_count,
+                  0,
+                ),
+              0,
+            );
+          }
+        }
+
+        // Seller settings
+        let sellerData = null;
+        if (sellerRes.status === "fulfilled") {
+          sellerData = unwrapPayload(sellerRes.value) || null;
+          setSeller(sellerData);
+        }
+
+        // Collections
+        let collectionsData = [];
+        if (collectionsRes.status === "fulfilled") {
+          const data = unwrapPayload(collectionsRes.value);
+          collectionsData = extractList(data);
+          setCollections(collectionsData);
+        }
+
+        const finalRating =
+          ratingFromReviews !== null
+            ? toRating(ratingFromReviews)
+            : userData?.average_rating
+              ? toRating(userData.average_rating)
+              : "0.0";
+
+        setStats({
+          membershipTier,
+          activeAds: getCountSafe(activeAds, 0),
+          totalViews: getCountSafe(totalViews, 0),
+          unreadNotifications: getCountSafe(unreadNotifications, 0),
+          unreadMessages: getCountSafe(unreadMessages, 0),
+          rating: finalRating,
+          savedCount: collectionsData.reduce(
+            (sum, c) => sum + getCountSafe(c?.items_count, 0),
+            0,
+          ),
+          reviewCount: getCountSafe(reviewCount, 0),
+        });
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        toast.error("Greška pri učitavanju podataka");
+      } finally {
+        if (showLoader) {
+          setLoading(false);
+        }
       }
-    }
-  }, [userData, DASHBOARD_FETCH_COOLDOWN_MS]);
+    },
+    [userData, DASHBOARD_FETCH_COOLDOWN_MS],
+  );
 
   useEffect(() => {
     if (!userData) {
@@ -549,13 +616,18 @@ export default function SellerDashboard() {
     const handleRealtimeRefresh = (event) => {
       const detail = event?.detail;
       if (!detail) return;
-      if (detail?.category === "notification" || detail?.category === "chat" || detail?.category === "system") {
+      if (
+        detail?.category === "notification" ||
+        detail?.category === "chat" ||
+        detail?.category === "system"
+      ) {
         fetchAll({ showLoader: false });
       }
     };
 
     window.addEventListener("lmx:realtime-event", handleRealtimeRefresh);
-    return () => window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
+    return () =>
+      window.removeEventListener("lmx:realtime-event", handleRealtimeRefresh);
   }, [userData, fetchAll]);
 
   // Izračun seller profila completeness
@@ -620,9 +692,14 @@ export default function SellerDashboard() {
       <AnimatedCard delay={0}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard prodavača</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
+              Dashboard prodavača
+            </h1>
             <p className="text-slate-500 text-sm mt-1">
-              Dobrodošao nazad, <span className="font-medium text-slate-700">{userData?.name}</span>
+              Dobrodošao nazad,{" "}
+              <span className="font-medium text-slate-700">
+                {userData?.name}
+              </span>
             </p>
           </div>
 
@@ -652,7 +729,10 @@ export default function SellerDashboard() {
             ) : null}
 
             <CustomLink href="/ad-listing">
-              <Button size="sm" className="gap-2 bg-slate-900 hover:bg-slate-800">
+              <Button
+                size="sm"
+                className="gap-2 bg-slate-900 hover:bg-slate-800"
+              >
                 <PlusCircle size={16} />
                 Novi oglas
               </Button>
@@ -718,7 +798,10 @@ export default function SellerDashboard() {
                 title="Nadogradi na Pro paket"
                 action={
                   <CustomLink href="/user-subscription">
-                    <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
+                    <Button
+                      size="sm"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                    >
                       Pogledaj pakete
                       <Zap size={14} />
                     </Button>
@@ -750,7 +833,9 @@ export default function SellerDashboard() {
                 <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center mx-auto mb-2">
                   <MessageSquare size={18} className="text-slate-600" />
                 </div>
-                <div className="text-2xl font-bold text-slate-900">{stats.unreadMessages}</div>
+                <div className="text-2xl font-bold text-slate-900">
+                  {stats.unreadMessages}
+                </div>
                 <div className="text-xs text-slate-500">Nepročitane poruke</div>
                 <CustomLink
                   href="/chat"
@@ -764,7 +849,9 @@ export default function SellerDashboard() {
                 <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center mx-auto mb-2">
                   <AlertCircle size={18} className="text-slate-600" />
                 </div>
-                <div className="text-2xl font-bold text-slate-900">{stats.unreadNotifications}</div>
+                <div className="text-2xl font-bold text-slate-900">
+                  {stats.unreadNotifications}
+                </div>
                 <div className="text-xs text-slate-500">Obavijesti</div>
                 <CustomLink
                   href="/notifications"
@@ -778,8 +865,10 @@ export default function SellerDashboard() {
                 <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center mx-auto mb-2">
                   <Users size={18} className="text-slate-600" />
                 </div>
-                <div className="text-2xl font-bold text-slate-900">{stats.savedCount}</div>
-                <div className="text-xs text-slate-500">Sačuvani prodavači</div>
+                <div className="text-2xl font-bold text-slate-900">
+                  {stats.savedCount}
+                </div>
+                <div className="text-xs text-slate-500">Prodavači</div>
                 <CustomLink
                   href="/profile/saved"
                   className="text-xs font-medium text-slate-900 hover:underline mt-2 inline-block"
@@ -793,7 +882,9 @@ export default function SellerDashboard() {
           {/* Quick Actions */}
           <AnimatedCard delay={0.35}>
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5">
-              <h3 className="text-base font-semibold text-slate-900 mb-4">Brze akcije</h3>
+              <h3 className="text-base font-semibold text-slate-900 mb-4">
+                Brze akcije
+              </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <ActionCard
@@ -898,7 +989,9 @@ export default function SellerDashboard() {
           {/* Status Summary */}
           <AnimatedCard delay={0.45}>
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5">
-              <h3 className="text-base font-semibold text-slate-900 mb-4">Tvoj status</h3>
+              <h3 className="text-base font-semibold text-slate-900 mb-4">
+                Tvoj status
+              </h3>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
@@ -923,14 +1016,20 @@ export default function SellerDashboard() {
 
                 <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
                   <span className="text-sm text-slate-600">Odmor</span>
-                  <StatusBadge variant={sellerSummary.vacation ? "warning" : "success"}>
+                  <StatusBadge
+                    variant={sellerSummary.vacation ? "warning" : "success"}
+                  >
                     {sellerSummary.vacation ? "Uključeno" : "Isključeno"}
                   </StatusBadge>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
                   <span className="text-sm text-slate-600">Profil</span>
-                  <StatusBadge variant={sellerSummary.percent >= 85 ? "success" : "warning"}>
+                  <StatusBadge
+                    variant={
+                      sellerSummary.percent >= 85 ? "success" : "warning"
+                    }
+                  >
                     {sellerSummary.percent}%
                   </StatusBadge>
                 </div>
@@ -943,7 +1042,9 @@ export default function SellerDashboard() {
             <AnimatedCard delay={0.5}>
               <div className="bg-white rounded-2xl border border-slate-200/80 p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold text-slate-900">Kolekcije</h3>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Kolekcije
+                  </h3>
                   <CustomLink
                     href="/profile/saved"
                     className="text-xs font-medium text-slate-500 hover:text-slate-900"
@@ -959,8 +1060,12 @@ export default function SellerDashboard() {
                       className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
                     >
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-slate-900 truncate">{collection.name}</div>
-                        <div className="text-xs text-slate-500">{collection.items_count || 0} kontakta</div>
+                        <div className="text-sm font-medium text-slate-900 truncate">
+                          {collection.name}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {collection.items_count || 0} kontakta
+                        </div>
                       </div>
                       <Bookmark size={16} className="text-slate-300" />
                     </div>
@@ -986,30 +1091,44 @@ export default function SellerDashboard() {
             <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Target size={18} className="text-emerald-600" />
-                <h3 className="text-base font-semibold text-emerald-900">Pro savjeti</h3>
+                <h3 className="text-base font-semibold text-emerald-900">
+                  Pro savjeti
+                </h3>
               </div>
 
               <ul className="space-y-2 text-sm text-emerald-800">
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 shrink-0 text-emerald-600" size={14} />
+                  <CheckCircle
+                    className="mt-0.5 shrink-0 text-emerald-600"
+                    size={14}
+                  />
                   <span>
                     Odgovori na poruke u roku od <strong>1-2 sata</strong>
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 shrink-0 text-emerald-600" size={14} />
+                  <CheckCircle
+                    className="mt-0.5 shrink-0 text-emerald-600"
+                    size={14}
+                  />
                   <span>
                     Drži profil prodavača <strong>ažurnim</strong>
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 shrink-0 text-emerald-600" size={14} />
+                  <CheckCircle
+                    className="mt-0.5 shrink-0 text-emerald-600"
+                    size={14}
+                  />
                   <span>
                     Koristi <strong>kvalitetne slike</strong> u oglasima
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 shrink-0 text-emerald-600" size={14} />
+                  <CheckCircle
+                    className="mt-0.5 shrink-0 text-emerald-600"
+                    size={14}
+                  />
                   <span>
                     Sačuvaj kontakte kupaca u <strong>kolekcije</strong>
                   </span>

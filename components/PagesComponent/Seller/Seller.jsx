@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import {
   AlertCircle,
+  ChevronDown,
   Package,
   ShoppingBag,
   Star,
@@ -43,38 +44,37 @@ const normalizeRatingsPagination = (ratings) => {
 // ============================================
 // UI
 // ============================================
-const TabButton = ({ active, icon: Icon, label, count, onClick }) => (
-  <motion.button
+const TabButton = ({
+  active,
+  icon: Icon,
+  label,
+  count,
+  onClick,
+  compact = false,
+}) => (
+  <button
     type="button"
-    whileHover={{ scale: 1.01 }}
-    whileTap={{ scale: 0.99 }}
     onClick={onClick}
     className={cn(
-      "group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200 sm:w-auto sm:flex-1",
+      "group flex w-full items-center gap-3 rounded-xl border px-3 text-left transition-colors",
+      compact ? "py-2.5" : "py-3 sm:flex-1",
       active
-        ? "bg-primary/[0.08] text-primary"
-        : "bg-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/70",
+        ? "border-primary/30 bg-primary/[0.08] text-primary"
+        : "border-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/70",
     )}
   >
     <span
       className={cn(
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
         active
           ? "bg-primary/10 text-primary"
-          : "bg-slate-100 text-slate-500 group-hover:text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300",
       )}
     >
       <Icon className="h-4 w-4" />
     </span>
-    <span className="min-w-0 flex-1">
-      <span
-        className={cn(
-          "block truncate text-sm font-semibold",
-          active ? "text-primary" : "text-slate-800 dark:text-slate-100",
-        )}
-      >
-        {label}
-      </span>
+    <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+      {label}
     </span>
     <span
       className={cn(
@@ -86,7 +86,7 @@ const TabButton = ({ active, icon: Icon, label, count, onClick }) => (
     >
       {count}
     </span>
-  </motion.button>
+  </button>
 );
 
 // ============================================
@@ -243,6 +243,7 @@ const Seller = ({ id, searchParams }) => {
     () => tabs.find((tab) => tab.key === activeTab) || tabs[0],
     [tabs, activeTab],
   );
+  const ActiveTabIcon = activeTabMeta?.icon || Package;
 
   const preventSheetAutoFocusScroll = useCallback((event) => {
     event.preventDefault();
@@ -314,16 +315,31 @@ const Seller = ({ id, searchParams }) => {
                   className="col-span-12 space-y-4 xl:col-span-9"
                 >
                   {/* Tabs */}
-                  <div className="rounded-2xl bg-white p-2 shadow-sm dark:bg-slate-900">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div className="sm:hidden">
                       <button
                         type="button"
                         onClick={() => setIsMobileTabMenuOpen((prev) => !prev)}
-                        className="flex h-11 w-full items-center justify-between rounded-xl bg-slate-100 px-3 text-sm font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                        className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                        aria-label="Otvori meni sekcija prodavača"
+                        aria-expanded={isMobileTabMenuOpen}
                       >
-                        <span>{activeTabMeta?.label}</span>
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[11px] font-bold text-primary">
-                          {activeTabMeta?.count ?? 0}
+                        <span className="flex min-w-0 items-center gap-2">
+                          <ActiveTabIcon className="h-4 w-4 shrink-0 text-slate-600 dark:text-slate-300" />
+                          <span className="truncate">
+                            {activeTabMeta?.label}
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[11px] font-bold text-primary">
+                            {activeTabMeta?.count ?? 0}
+                          </span>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 text-slate-500 transition-transform dark:text-slate-400",
+                              isMobileTabMenuOpen ? "rotate-180" : "",
+                            )}
+                          />
                         </span>
                       </button>
                     </div>
@@ -351,12 +367,12 @@ const Seller = ({ id, searchParams }) => {
                       onOpenAutoFocus={preventSheetAutoFocusScroll}
                       onCloseAutoFocus={preventSheetAutoFocusScroll}
                       overlayClassName="bg-transparent backdrop-blur-none"
-                      className="max-h-[78vh] overflow-hidden rounded-t-2xl border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900 [&>button]:hidden"
+                      className="z-[96] h-auto max-h-[min(72dvh,420px)] overflow-hidden rounded-t-[1.25rem] border border-slate-200 bg-white p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900 [&>button]:hidden"
                     >
                       <div className="flex flex-col bg-white dark:bg-slate-900">
                         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            Sekcije
+                            Prodavači
                           </p>
                           <button
                             type="button"
@@ -368,7 +384,7 @@ const Seller = ({ id, searchParams }) => {
                           </button>
                         </div>
                         <div className="flex-1 overflow-y-auto px-3 py-3">
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-2">
                             {tabs.map((t) => (
                               <TabButton
                                 key={t.key}
@@ -376,6 +392,7 @@ const Seller = ({ id, searchParams }) => {
                                 icon={t.icon}
                                 label={t.label}
                                 count={t.count}
+                                compact
                                 onClick={() => {
                                   setActiveTab(t.key);
                                   setIsMobileTabMenuOpen(false);

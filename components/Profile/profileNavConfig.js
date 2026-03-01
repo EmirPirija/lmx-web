@@ -85,7 +85,10 @@ export const getProfileNavigationSections = ({
           href: "/my-ads",
           icon: Layers,
           label: "Moji oglasi",
-          description: activeAds > 0 ? `${activeAds} aktivnih oglasa` : "Upravljaj oglasima i statusima",
+          description:
+            activeAds > 0
+              ? `${activeAds} aktivnih oglasa`
+              : "Upravljaj oglasima i statusima",
           match: "prefix",
         },
         {
@@ -130,8 +133,8 @@ export const getProfileNavigationSections = ({
         {
           href: "/profile/saved",
           icon: UserList,
-          label: "Sačuvani prodavači",
-          description: "Liste prodavača, bilješke i obavijesti",
+          label: "Prodavači",
+          description: "Liste, bilješke i obavijesti",
           match: "prefix",
         },
         {
