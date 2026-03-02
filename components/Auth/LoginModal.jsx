@@ -446,6 +446,7 @@ xl:max-w-7xl
                                   >
                                     <UserAvatarMedia
                                       sources={[profile?.profile]}
+              verificationSource={profile}
                                       alt={profile?.name || "Profil"}
                                       className="h-9 w-9 rounded-lg border border-border bg-muted"
                                       roundedClassName="rounded-lg"

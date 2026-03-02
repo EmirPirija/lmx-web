@@ -37,6 +37,11 @@ const GOOGLE_LINK_FALLBACK_CODES = new Set([
   "auth/invalid-credential",
   "auth/wrong-password",
   "auth/user-not-found",
+  "auth/account-exists-with-different-credential",
+]);
+const GOOGLE_LINK_CANCEL_CODES = new Set([
+  "auth/popup-closed-by-user",
+  "auth/cancelled-popup-request",
 ]);
 const sleep = (ms) =>
   new Promise((resolve) => {
@@ -138,17 +143,32 @@ const LoginWithEmailForm = ({
       }
       return userCredential;
     } catch (error) {
-      console.error("Error signing in:", error);
       throw error;
     }
   };
 
-  const linkGoogleAccountWithPassword = async ({ email, password }) => {
-    const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+  const getSignInMethodsForEmailSafe = async (email) => {
+    try {
+      return await fetchSignInMethodsForEmail(auth, email);
+    } catch (error) {
+      console.warn("Nije moguće dohvatiti sign-in metode za email:", error);
+      return [];
+    }
+  };
+
+  const linkGoogleAccountWithPassword = async ({
+    email,
+    password,
+    knownSignInMethods,
+    force = false,
+  }) => {
+    const signInMethods = Array.isArray(knownSignInMethods)
+      ? knownSignInMethods
+      : await getSignInMethodsForEmailSafe(email);
     const hasGoogleMethod = signInMethods.includes(GOOGLE_PROVIDER_ID);
     const hasPasswordMethod = signInMethods.includes(PASSWORD_PROVIDER_ID);
 
-    if (!hasGoogleMethod || hasPasswordMethod) {
+    if (!force && (!hasGoogleMethod || hasPasswordMethod)) {
       return null;
     }
 
@@ -248,29 +268,96 @@ const LoginWithEmailForm = ({
       }
 
       let userCredential = null;
-      try {
-        userCredential = await signin(resolvedEmail, password);
-      } catch (signInError) {
-        const code = String(signInError?.code || "");
-        const shouldTryGoogleFallback = GOOGLE_LINK_FALLBACK_CODES.has(code);
+      const signInMethods = await getSignInMethodsForEmailSafe(resolvedEmail);
+      const isGoogleOnlyAccount =
+        signInMethods.includes(GOOGLE_PROVIDER_ID) &&
+        !signInMethods.includes(PASSWORD_PROVIDER_ID);
 
-        if (!shouldTryGoogleFallback) {
-          throw signInError;
-        }
-
+      if (isGoogleOnlyAccount) {
         try {
           const linkedCredential = await linkGoogleAccountWithPassword({
             email: resolvedEmail,
             password,
+            knownSignInMethods: signInMethods,
+            force: true,
+          });
+          if (linkedCredential?.user) {
+            userCredential = linkedCredential;
+          }
+        } catch (preflightError) {
+          const preflightCode = String(preflightError?.code || "");
+          if (GOOGLE_LINK_CANCEL_CODES.has(preflightCode)) {
+            toast.info(
+              "Za prvu prijavu lozinkom potrebno je jednom potvrditi Google nalog.",
+            );
+            return;
+          }
+          if (preflightCode === "auth/popup-blocked") {
+            toast.error(
+              "Preglednik je blokirao Google prozor. Omogući popup i pokušaj ponovo.",
+            );
+            return;
+          }
+          if (preflightCode === "auth/google-account-mismatch") {
+            toast.error(
+              "Odabran je drugi Google nalog. Odaberi isti nalog kao uneseni e-mail.",
+            );
+            return;
+          }
+          throw preflightError;
+        }
+      }
+
+      try {
+        if (!userCredential) {
+          userCredential = await signin(resolvedEmail, password);
+        }
+      } catch (signInError) {
+        const code = String(signInError?.code || "");
+        const shouldTryGoogleFallback =
+          GOOGLE_LINK_FALLBACK_CODES.has(code) &&
+          !signInMethods.includes(PASSWORD_PROVIDER_ID);
+
+        if (!shouldTryGoogleFallback || userCredential?.user) {
+          throw signInError;
+        }
+
+        try {
+          const shouldForceGoogleLink =
+            !signInMethods.includes(PASSWORD_PROVIDER_ID) &&
+            (signInMethods.includes(GOOGLE_PROVIDER_ID) ||
+              signInMethods.length === 0);
+
+          const linkedCredential = await linkGoogleAccountWithPassword({
+            email: resolvedEmail,
+            password,
+            knownSignInMethods: signInMethods,
+            force: shouldForceGoogleLink,
           });
           if (!linkedCredential?.user) {
             throw signInError;
           }
           userCredential = linkedCredential;
         } catch (fallbackError) {
+          const fallbackCode = String(fallbackError?.code || "");
           if (
-            String(fallbackError?.code || "") === "auth/google-account-mismatch"
+            fallbackCode === "auth/account-exists-with-different-credential"
           ) {
+            throw signInError;
+          }
+          if (GOOGLE_LINK_CANCEL_CODES.has(fallbackCode)) {
+            toast.info(
+              "Za prvu prijavu lozinkom potrebno je jednom potvrditi Google nalog.",
+            );
+            return;
+          }
+          if (fallbackCode === "auth/popup-blocked") {
+            toast.error(
+              "Preglednik je blokirao Google prozor. Omogući popup i pokušaj ponovo.",
+            );
+            return;
+          }
+          if (fallbackCode === "auth/google-account-mismatch") {
             toast.error(
               "Odabran je drugi Google nalog. Odaberi isti nalog kao uneseni e-mail.",
             );

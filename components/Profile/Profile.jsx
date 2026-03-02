@@ -6,6 +6,7 @@ import { toast } from "@/utils/toastBs";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { resolveAvatarUrl } from "@/utils/avatar";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -30,7 +31,10 @@ import {
 
 import BiHLocationSelector from "@/components/Common/BiHLocationSelector";
 import CustomLink from "@/components/Common/CustomLink";
-import { isLocationComplete, resolveLocationSelection } from "@/lib/bih-locations";
+import {
+  isLocationComplete,
+  resolveLocationSelection,
+} from "@/lib/bih-locations";
 import {
   LMX_PHONE_DEFAULT_COUNTRY,
   LMX_PHONE_INPUT_PROPS,
@@ -56,10 +60,13 @@ import { useUserLocation } from "@/hooks/useUserLocation";
 // ============================================
 // PROFILE AVATAR
 // ============================================
-function ProfileAvatar({ customAvatarUrl, avatarId, size = "lg", onImageClick }) {
-  const [imgErr, setImgErr] = useState(false);
-  const showImg = Boolean(customAvatarUrl) && !imgErr;
-
+function ProfileAvatar({
+  customAvatarUrl,
+  size = "lg",
+  onImageClick,
+  verificationSource = null,
+  verificationSources = [],
+}) {
   const sizeClasses = {
     sm: "w-16 h-16",
     md: "w-20 h-20",
@@ -68,20 +75,16 @@ function ProfileAvatar({ customAvatarUrl, avatarId, size = "lg", onImageClick })
 
   return (
     <div className="relative group">
-      {showImg ? (
-        <img
-          src={customAvatarUrl}
-          alt="Profilna slika"
-          className={`${sizeClasses[size]} rounded-2xl object-cover border-2 border-slate-100 shadow-sm dark:border-slate-700`}
-          onError={() => setImgErr(true)}
-          loading="lazy"
-        />
-      ) : (
-        <div className={`${sizeClasses[size]} rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-slate-100 shadow-sm dark:border-slate-700 dark:bg-primary/20`}>
-          <User className="h-8 w-8 text-primary/70" />
-        </div>
-      )}
-      
+      <UserAvatarMedia
+        sources={[customAvatarUrl]}
+        verificationSource={verificationSource}
+        verificationSources={verificationSources}
+        alt="Profilna slika"
+        className={`${sizeClasses[size]} rounded-2xl border-2 border-slate-100 shadow-sm dark:border-slate-700`}
+        roundedClassName="rounded-2xl"
+        imageClassName={`${sizeClasses[size]} object-cover`}
+      />
+
       {onImageClick && (
         <button
           onClick={onImageClick}
@@ -136,7 +139,7 @@ function VerificationBadge({ status, reason }) {
         href="/user-verification"
         className={cn(
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all hover:opacity-90",
-          config.className
+          config.className,
         )}
       >
         <Icon className="w-3.5 h-3.5" />
@@ -147,10 +150,12 @@ function VerificationBadge({ status, reason }) {
 
   return (
     <div className="space-y-2">
-      <span className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
-        config.className
-      )}>
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
+          config.className,
+        )}
+      >
         <Icon className="w-3.5 h-3.5" />
         {config.text}
       </span>
@@ -172,13 +177,17 @@ function SettingCard({ icon: Icon, title, description, children }) {
           <Icon className="w-4 h-4 text-primary" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
-          {description && <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>}
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {title}
+          </h3>
+          {description && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {description}
+            </p>
+          )}
         </div>
       </div>
-      <div className="p-4">
-        {children}
-      </div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
@@ -186,12 +195,25 @@ function SettingCard({ icon: Icon, title, description, children }) {
 // ============================================
 // TOGGLE SETTING
 // ============================================
-function ToggleSetting({ label, description, checked, onChange, disabled, saving }) {
+function ToggleSetting({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled,
+  saving,
+}) {
   return (
     <div className="flex items-center justify-between gap-4 py-2">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{label}</p>
-        {description && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>}
+        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+          {label}
+        </p>
+        {description && (
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            {description}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-2">
         {saving && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
@@ -204,6 +226,26 @@ function ToggleSetting({ label, description, checked, onChange, disabled, saving
     </div>
   );
 }
+
+const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+
+const normalizeCountryCode = (value) => digitsOnly(value || "387");
+
+const normalizeMobileLocal = (mobileValue, countryCodeValue) => {
+  const phoneDigits = digitsOnly(mobileValue);
+  const countryDigits = normalizeCountryCode(countryCodeValue);
+  if (!phoneDigits) return "";
+  if (countryDigits && phoneDigits.startsWith(countryDigits)) {
+    return phoneDigits.slice(countryDigits.length);
+  }
+  return phoneDigits;
+};
+
+const isValidEmailLoose = (value) => {
+  const email = String(value || "").trim();
+  if (!email) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
 
 // ============================================
 // MAIN COMPONENT
@@ -218,12 +260,12 @@ export default function Profile() {
   // States
   const [isLoading, setIsLoading] = useState(true);
   const [savingField, setSavingField] = useState(null);
-  
+
   // Profile state
   const [profileImage, setProfileImage] = useState("");
   const [profileFile, setProfileFile] = useState(null);
-  const [sellerAvatarId, setSellerAvatarId] = useState("");
-  
+  const [sellerSettingsData, setSellerSettingsData] = useState(null);
+
   // Form data
   const [formData, setFormData] = useState({
     name: "",
@@ -235,7 +277,7 @@ export default function Profile() {
     region_code: "",
     country_code: "",
   });
-  
+
   // BiH location
   const { userLocation, saveLocation } = useUserLocation();
   const [bihLocation, setBihLocation] = useState({
@@ -246,13 +288,13 @@ export default function Profile() {
     address: "",
     formattedAddress: "",
   });
-  
+
   // Verification
   const [verificationStatus, setVerificationStatus] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [publicProfileUrl, setPublicProfileUrl] = useState("");
   const [isLinkCopied, setIsLinkCopied] = useState(false);
-  
+
   // Refs
   const initialDataRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -285,25 +327,36 @@ export default function Profile() {
           if (verificationRes.value?.data?.error === true) {
             setVerificationStatus("not applied");
           } else {
-            setVerificationStatus(verificationRes.value?.data?.data?.status || "");
-            setRejectionReason(verificationRes.value?.data?.data?.rejection_reason || "");
+            setVerificationStatus(
+              verificationRes.value?.data?.data?.status || "",
+            );
+            setRejectionReason(
+              verificationRes.value?.data?.data?.rejection_reason || "",
+            );
           }
         } else {
           setVerificationStatus("not applied");
           setRejectionReason("");
-          console.warn("Verification status unavailable:", verificationRes.reason);
+          console.warn(
+            "Verification status unavailable:",
+            verificationRes.reason,
+          );
         }
 
         // User data (required)
-        if (userRes.status === "fulfilled" && userRes.value?.data?.error === false) {
+        if (
+          userRes.status === "fulfilled" &&
+          userRes.value?.data?.error === false
+        ) {
           const d = userRes.value.data.data;
           const region = (d?.region_code || "ba").toLowerCase();
-          const countryCode = d?.country_code?.replace("+", "") || "387";
+          const countryCode = normalizeCountryCode(d?.country_code);
+          const phone = normalizeMobileLocal(d?.mobile, countryCode);
 
           const nextForm = {
             name: d?.name || "",
             email: d?.email || "",
-            phone: d?.mobile || "",
+            phone,
             address: d?.address || "",
             notification: d?.notification ?? 1,
             show_personal_details: Number(d?.show_personal_details) || 0,
@@ -315,10 +368,10 @@ export default function Profile() {
           setProfileImage(
             resolveAvatarUrl([d?.profile, d?.profile_image, d?.avatar], {
               placeholderImage: placeholder_image,
-            })
+            }),
           );
           initialDataRef.current = { ...nextForm, bihLocation: userLocation };
-          
+
           const currentFcmId = UserData?.fcm_id;
           if (!d?.fcm_id && currentFcmId) {
             loadUpdateUserData({ ...d, fcm_id: currentFcmId });
@@ -335,7 +388,7 @@ export default function Profile() {
           sellerRes.value?.data?.error === false &&
           sellerRes.value?.data?.data
         ) {
-          setSellerAvatarId(sellerRes.value.data.data.avatar_id || "");
+          setSellerSettingsData(sellerRes.value.data.data);
         }
       } catch (error) {
         console.error("Greška pri učitavanju podataka:", error);
@@ -349,92 +402,147 @@ export default function Profile() {
   }, [IsLoggedIn]);
 
   // Auto-save function
-  const autoSave = useCallback(async (fieldName, skipValidation = false, options = {}) => {
-    // Validation
-    if (!skipValidation) {
-      if (fieldName === "name" && !formData.name.trim()) {
-        toast.error("Ime je obavezno polje");
-        return;
-      }
-
-      if (fieldName === "phone" && formData.phone && !isValidPhoneNumber(`+${formData.country_code}${formData.phone}`)) {
-        toast.error("Uneseni broj telefona nije ispravan");
-        return;
-      }
-    }
-
-    const locationToSave = options?.location || bihLocation;
-    setSavingField(fieldName);
-    try {
-      if (
-        fieldName === "location" &&
-        locationToSave?.cityId &&
-        !isLocationComplete(locationToSave)
-      ) {
-        return;
-      }
-
-      if (fieldName === "location") {
-        saveLocation(locationToSave);
-      }
-
-      const resolvedLocation = resolveLocationSelection(locationToSave);
-      const formattedBase = locationToSave?.formattedAddress || resolvedLocation?.formatted || "";
-      const formattedAddress = formattedBase
-        ? `${locationToSave?.address || ""}, ${formattedBase}`
-            .replace(/^,\s*/, "")
-            .trim()
-        : formData.address;
-
-      const response = await updateProfileApi.updateProfile({
-        name: formData.name,
-        email: formData.email,
-        mobile: formData.phone || "",
-        address: formattedAddress,
-        profile: profileFile,
-        fcm_id: fetchFCM || "",
-        notification: formData.notification,
-        country_code: formData.country_code,
-        show_personal_details: formData.show_personal_details,
-        region_code: formData.region_code.toUpperCase(),
-      });
-
-      if (response.data.error !== true) {
-        const newData = response.data.data;
-        const currentFcmId = UserData?.fcm_id;
-        
-        if (!newData?.fcm_id && currentFcmId) {
-          loadUpdateUserData({ ...newData, fcm_id: currentFcmId });
-        } else {
-          loadUpdateUserData(newData);
+  const autoSave = useCallback(
+    async (fieldName, skipValidation = false, options = {}) => {
+      // Validation
+      if (!skipValidation) {
+        if (fieldName === "name" && !formData.name.trim()) {
+          toast.error("Ime je obavezno polje");
+          return;
         }
 
-        setProfileFile(null);
-        toast.success("Sačuvano");
-      } else {
-        toast.error(response.data.message || "Greška pri čuvanju");
+        if (fieldName === "email" && !isValidEmailLoose(formData.email)) {
+          toast.error("Unesite ispravnu email adresu");
+          return;
+        }
+
+        const normalizedCountryCode = normalizeCountryCode(
+          formData.country_code,
+        );
+        const normalizedMobile = normalizeMobileLocal(
+          formData.phone,
+          normalizedCountryCode,
+        );
+        const phoneE164 = `+${normalizedCountryCode}${normalizedMobile}`;
+
+        if (
+          fieldName === "phone" &&
+          normalizedMobile &&
+          !isValidPhoneNumber(phoneE164)
+        ) {
+          toast.error("Uneseni broj telefona nije ispravan");
+          return;
+        }
       }
-    } catch (error) {
-      console.error("Greška:", error);
-      toast.error("Greška na serveru");
-    } finally {
-      setSavingField(null);
-    }
-  }, [formData, bihLocation, profileFile, fetchFCM, UserData?.fcm_id, saveLocation]);
+
+      const locationToSave = options?.location || bihLocation;
+      setSavingField(fieldName);
+      try {
+        if (
+          fieldName === "location" &&
+          locationToSave?.cityId &&
+          !isLocationComplete(locationToSave)
+        ) {
+          return;
+        }
+
+        if (fieldName === "location") {
+          saveLocation(locationToSave);
+        }
+
+        const resolvedLocation = resolveLocationSelection(locationToSave);
+        const formattedBase =
+          locationToSave?.formattedAddress || resolvedLocation?.formatted || "";
+        const formattedAddress = formattedBase
+          ? `${locationToSave?.address || ""}, ${formattedBase}`
+              .replace(/^,\s*/, "")
+              .trim()
+          : formData.address;
+
+        const normalizedCountryCode = normalizeCountryCode(
+          formData.country_code,
+        );
+        const normalizedMobile = normalizeMobileLocal(
+          formData.phone,
+          normalizedCountryCode,
+        );
+        const phoneE164 = `+${normalizedCountryCode}${normalizedMobile}`;
+        const canSendMobile = normalizedMobile
+          ? isValidPhoneNumber(phoneE164)
+          : false;
+
+        const response = await updateProfileApi.updateProfile({
+          name: String(formData.name || "").trim(),
+          email: String(formData.email || "").trim(),
+          mobile: canSendMobile ? normalizedMobile : undefined,
+          address: formattedAddress,
+          profile: profileFile,
+          fcm_id: fetchFCM || "",
+          notification: formData.notification,
+          country_code: normalizedCountryCode || undefined,
+          show_personal_details: formData.show_personal_details,
+          region_code:
+            String(formData.region_code || "").toUpperCase() || undefined,
+        });
+
+        if (response.data.error !== true) {
+          const newData = response.data.data;
+          const currentFcmId = UserData?.fcm_id;
+
+          if (!newData?.fcm_id && currentFcmId) {
+            loadUpdateUserData({ ...newData, fcm_id: currentFcmId });
+          } else {
+            loadUpdateUserData(newData);
+          }
+
+          setProfileFile(null);
+          toast.success("Sačuvano");
+        } else {
+          toast.error(response.data.message || "Greška pri čuvanju");
+        }
+      } catch (error) {
+        console.error("Greška:", error);
+        const status = error?.response?.status;
+        const apiMessage =
+          error?.response?.data?.message ||
+          error?.response?.data?.errors?.mobile?.[0] ||
+          error?.response?.data?.errors?.email?.[0] ||
+          error?.message;
+        if (status === 422) {
+          toast.error(apiMessage || "Provjerite unesene podatke.");
+        } else {
+          toast.error(apiMessage || "Greška na serveru");
+        }
+      } finally {
+        setSavingField(null);
+      }
+    },
+    [
+      formData,
+      bihLocation,
+      profileFile,
+      fetchFCM,
+      UserData?.fcm_id,
+      saveLocation,
+    ],
+  );
 
   // Debounced auto-save
-  const debouncedSave = useCallback((fieldName, options = {}) => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    saveTimeoutRef.current = setTimeout(() => {
-      autoSave(fieldName, false, options);
-    }, 1000);
-  }, [autoSave]);
+  const debouncedSave = useCallback(
+    (fieldName, options = {}) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        autoSave(fieldName, false, options);
+      }, 1000);
+    },
+    [autoSave],
+  );
 
   // Handlers
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleBlur = (field) => {
@@ -442,11 +550,15 @@ export default function Profile() {
   };
 
   const handlePhoneChange = (value, data) => {
-    const dial = data?.dialCode || "";
+    const dial = digitsOnly(data?.dialCode || "");
     const iso2 = data?.countryCode || "";
-    const pureMobile = value.startsWith(dial) ? value.slice(dial.length) : value;
-    
-    setFormData(prev => ({
+    const numericValue = digitsOnly(value);
+    const pureMobile =
+      dial && numericValue.startsWith(dial)
+        ? numericValue.slice(dial.length)
+        : numericValue;
+
+    setFormData((prev) => ({
       ...prev,
       phone: pureMobile,
       country_code: dial,
@@ -456,8 +568,8 @@ export default function Profile() {
 
   const handleToggle = async (field) => {
     const newValue = formData[field] === 1 ? 0 : 1;
-    setFormData(prev => ({ ...prev, [field]: newValue }));
-    
+    setFormData((prev) => ({ ...prev, [field]: newValue }));
+
     // Immediately save toggle changes
     setTimeout(() => autoSave(field, true), 100);
   };
@@ -497,7 +609,11 @@ export default function Profile() {
   }, [sellerProfilePath]);
 
   const handleCopyPublicProfileLink = useCallback(async () => {
-    if (!publicProfileUrl || typeof navigator === "undefined" || !navigator.clipboard) {
+    if (
+      !publicProfileUrl ||
+      typeof navigator === "undefined" ||
+      !navigator.clipboard
+    ) {
       toast.error("Link profila nije dostupan za kopiranje.");
       return;
     }
@@ -521,10 +637,14 @@ export default function Profile() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
             <User className="w-8 h-8 text-slate-400" />
           </div>
-          <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">Niste prijavljeni</h2>
-          <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">Prijavite se da biste pristupili postavkama profila</p>
-          <CustomLink 
-            href="/login" 
+          <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">
+            Niste prijavljeni
+          </h2>
+          <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+            Prijavite se da biste pristupili postavkama profila
+          </p>
+          <CustomLink
+            href="/login"
             className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors text-sm"
           >
             Prijavi se
@@ -540,7 +660,9 @@ export default function Profile() {
       <div className="min-h-[40vh] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-sm text-slate-600 dark:text-slate-300">Učitavanje profila...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Učitavanje profila...
+          </p>
         </div>
       </div>
     );
@@ -552,16 +674,23 @@ export default function Profile() {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto max-w-5xl space-y-6"
     >
-      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
-        <div className="bg-gradient-to-r from-slate-50 via-white to-slate-50 p-5 sm:p-6 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4 min-w-0">
-              <ProfileAvatar
-                customAvatarUrl={profileImage}
-                avatarId={sellerAvatarId}
-                size="lg"
-                onImageClick={() => fileInputRef.current?.click()}
-              />
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-[0_24px_60px_-45px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/90">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-primary/10 via-cyan-500/10 to-transparent dark:from-cyan-500/15 dark:via-slate-800/30 dark:to-transparent" />
+
+        <div className="relative p-5 sm:p-6 lg:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 flex items-center gap-4">
+              <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
+                <ProfileAvatar
+                  customAvatarUrl={profileImage}
+                  size="lg"
+                  onImageClick={() => fileInputRef.current?.click()}
+                  verificationSource={UserData}
+                  verificationSources={
+                    sellerSettingsData ? [sellerSettingsData] : []
+                  }
+                />
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -570,17 +699,22 @@ export default function Profile() {
                 onChange={handleImageChange}
               />
 
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h1 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">
+              <div className="min-w-0 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-xl font-bold text-slate-900 dark:text-slate-100">
                     {formData.name || "Vaš profil"}
                   </h1>
-                  <VerificationBadge status={verificationStatus} reason={rejectionReason} />
+                  <VerificationBadge
+                    status={verificationStatus}
+                    reason={rejectionReason}
+                  />
                 </div>
-                <p className="truncate text-sm text-slate-500 dark:text-slate-400">{formData.email}</p>
+                <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                  {formData.email}
+                </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:border-slate-600"
                 >
                   <Camera className="h-3.5 w-3.5" />
                   Promijeni sliku
@@ -588,10 +722,10 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto">
               <CustomLink
                 href="/profile/seller-settings"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600"
               >
                 <Shield className="h-3.5 w-3.5" />
                 Postavke prodavača
@@ -599,7 +733,7 @@ export default function Profile() {
               {sellerProfilePath ? (
                 <CustomLink
                   href={sellerProfilePath}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                 >
                   <ArrowRight className="h-3.5 w-3.5" />
                   Pogledaj javni profil
@@ -610,13 +744,15 @@ export default function Profile() {
         </div>
 
         {sellerProfilePath ? (
-          <div className="border-t border-slate-100 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/40">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="border-t border-slate-200/70 bg-slate-50/70 px-5 py-4 dark:border-slate-700 dark:bg-slate-800/40 sm:px-6 lg:px-7">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Javni profil prodavača
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
+                  Javni profil
                 </p>
-                <p className="truncate text-sm text-slate-700 dark:text-slate-200">{publicProfileUrl || sellerProfilePath}</p>
+                <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {publicProfileUrl || sellerProfilePath}
+                </p>
               </div>
               <button
                 type="button"
@@ -625,10 +761,14 @@ export default function Profile() {
                   "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
                   isLinkCopied
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-300"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600",
                 )}
               >
-                {isLinkCopied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+                {isLinkCopied ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  <Link2 className="h-3.5 w-3.5" />
+                )}
                 {isLinkCopied ? "Link kopiran" : "Kopiraj link profila"}
               </button>
             </div>
@@ -645,7 +785,12 @@ export default function Profile() {
           >
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs text-slate-600 dark:text-slate-300">Ime i prezime</Label>
+                <Label
+                  htmlFor="name"
+                  className="text-xs text-slate-600 dark:text-slate-300"
+                >
+                  Ime i prezime
+                </Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -656,7 +801,12 @@ export default function Profile() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs text-slate-600 dark:text-slate-300">Email adresa</Label>
+                <Label
+                  htmlFor="email"
+                  className="text-xs text-slate-600 dark:text-slate-300"
+                >
+                  Email adresa
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -676,9 +826,16 @@ export default function Profile() {
             description="Načini kontakta"
           >
             <div className="space-y-1.5">
-              <Label htmlFor="phone" className="text-xs text-slate-600 dark:text-slate-300">Broj telefona</Label>
+              <Label
+                htmlFor="phone"
+                className="text-xs text-slate-600 dark:text-slate-300"
+              >
+                Broj telefona
+              </Label>
               <PhoneInput
-                country={resolveLmxPhoneCountry(formData.region_code || LMX_PHONE_DEFAULT_COUNTRY)}
+                country={resolveLmxPhoneCountry(
+                  formData.region_code || LMX_PHONE_DEFAULT_COUNTRY,
+                )}
                 value={`${formData.country_code || ""}${formData.phone || ""}`}
                 onChange={handlePhoneChange}
                 onBlur={() => handleBlur("phone")}
@@ -710,8 +867,12 @@ export default function Profile() {
                 <div className="flex items-start gap-2 rounded-lg border border-green-100 bg-green-50 p-3 dark:border-green-500/40 dark:bg-green-500/10">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 text-green-600 dark:text-green-300" />
                   <div>
-                    <p className="text-xs font-medium text-green-800 dark:text-green-100">Trenutna lokacija</p>
-                    <p className="text-xs text-green-700 dark:text-green-200">{bihLocation.formattedAddress}</p>
+                    <p className="text-xs font-medium text-green-800 dark:text-green-100">
+                      Trenutna lokacija
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-200">
+                      {bihLocation.formattedAddress}
+                    </p>
                   </div>
                 </div>
               )}
@@ -740,8 +901,12 @@ export default function Profile() {
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
                 <div>
                   <p className="text-xs text-slate-600 dark:text-slate-300">
-                    Detaljne postavke kontakta (telefon, WhatsApp, Viber, radno vrijeme) možete podesiti u{" "}
-                    <CustomLink href="/profile/seller-settings" className="text-primary font-medium hover:underline">
+                    Detaljne postavke kontakta (telefon, WhatsApp, Viber, radno
+                    vrijeme) možete podesiti u{" "}
+                    <CustomLink
+                      href="/profile/seller-settings"
+                      className="text-primary font-medium hover:underline"
+                    >
                       Postavkama prodavača
                     </CustomLink>
                   </p>
@@ -757,9 +922,12 @@ export default function Profile() {
                   <Shield className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Verifikuj svoj profil</h4>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Verifikuj svoj profil
+                  </h4>
                   <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                    Verificirani profili imaju veću stopu uspješnih transakcija i više povjerenja kupaca.
+                    Verificirani profili imaju veću stopu uspješnih transakcija
+                    i više povjerenja kupaca.
                   </p>
                   <CustomLink
                     href="/user-verification"
@@ -776,9 +944,12 @@ export default function Profile() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-300" />
                 <div>
-                  <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Profil je verifikovan</h4>
+                  <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                    Profil je verifikovan
+                  </h4>
                   <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">
-                    Kupci vide oznaku verifikacije i imaju više povjerenja u vaše oglase.
+                    Kupci vide oznaku verifikacije i imaju više povjerenja u
+                    vaše oglase.
                   </p>
                 </div>
               </div>

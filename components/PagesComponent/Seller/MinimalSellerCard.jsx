@@ -16,7 +16,6 @@ import {
   Check,
   X,
   Star,
-  BadgeCheck,
   Play,
   ChevronRight,
   MoreHorizontal,
@@ -25,7 +24,6 @@ import {
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
-import { isSellerVerified } from "@/lib/seller-verification";
 import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
 import {
   normalizeSellerCardPreferences,
@@ -529,6 +527,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
                   seller?.profile_image,
                   seller?.avatar,
                 ]}
+                verificationSource={seller}
                 alt={seller?.name || "Prodavač"}
                 className="w-8 h-8 rounded-lg"
                 roundedClassName="rounded-lg"
@@ -779,17 +778,6 @@ export const MinimalSellerCard = ({
     settings?.membership,
   );
 
-  const isVerified = useMemo(
-    () =>
-      isSellerVerified(
-        seller,
-        settings,
-        seller?.user,
-        seller?.seller,
-        seller?.account,
-      ),
-    [seller, settings],
-  );
   const hasReel = useMemo(
     () =>
       Boolean(
@@ -931,14 +919,20 @@ export const MinimalSellerCard = ({
           >
             <div
               className={cn(
-                variant === "compact" ? "rounded-[12px]" : "rounded-[14px]",
-                "p-[2px]",
-                hasReel ? "reel-ring" : "bg-transparent",
+                hasReel
+                  ? "reel-ring"
+                  : cn(
+                      variant === "compact"
+                        ? "rounded-[12px]"
+                        : "rounded-[14px]",
+                      "p-[2px] bg-transparent",
+                    ),
               )}
             >
               <div
                 className={cn(
-                  "overflow-hidden bg-slate-100 reel-ring-inner",
+                  "overflow-hidden bg-slate-100",
+                  hasReel ? "reel-ring-inner" : "",
                   "border border-slate-200/60 group-hover:border-slate-300 transition-colors",
                   hasReel && "border-white/70 dark:border-slate-700/80",
                   variant === "compact"
@@ -952,6 +946,10 @@ export const MinimalSellerCard = ({
                     seller?.profile_image,
                     seller?.avatar,
                   ]}
+                  verificationSource={seller}
+                  phoneVerifiedBadgeClassName={
+                    hasReel ? "-left-0.5 !right-auto" : ""
+                  }
                   alt={seller?.name || "Prodavač"}
                   className="w-full h-full"
                   roundedClassName={
@@ -975,13 +973,6 @@ export const MinimalSellerCard = ({
                     variant === "compact" ? "w-2.5 h-2.5" : "w-3 h-3",
                   )}
                 />
-              </div>
-            )}
-
-            {/* Verified badge */}
-            {isVerified && (
-              <div className="absolute -bottom-0.5 -right-0.5 z-20 w-4 h-4 bg-sky-500 rounded-md flex items-center justify-center border-2 border-white">
-                <BadgeCheck className="w-2.5 h-2.5 text-white" />
               </div>
             )}
           </CustomLink>

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 
-import { User } from "@/components/Common/UnifiedIconPack";
+import { MdVerified, User } from "@/components/Common/UnifiedIconPack";
 import { settingsData } from "@/redux/reducer/settingSlice";
 import { cn } from "@/lib/utils";
+import { resolvePhoneVerificationFromSources } from "@/lib/seller-contact";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
 const normalizeSources = (src, sources) => {
@@ -25,19 +26,35 @@ const UserAvatar = ({
   fallbackClassName = "bg-white text-primary dark:bg-slate-900",
   iconClassName = "h-[52%] w-[52%] text-primary/70",
   icon: Icon = User,
+  verificationSource = null,
+  verificationSources = [],
+  phoneVerified = null,
+  showPhoneVerifiedBadge = true,
+  phoneVerifiedBadgeClassName = "",
   onError,
   loading = "lazy",
   ...props
 }) => {
   const settings = useSelector(settingsData);
   const placeholderImage = settings?.placeholder_image || "";
-  const sourceList = useMemo(() => normalizeSources(src, sources), [src, sources]);
+  const sourceList = useMemo(
+    () => normalizeSources(src, sources),
+    [src, sources],
+  );
   const resolvedSrc = useMemo(
     () => resolveAvatarUrl(sourceList, { placeholderImage }),
-    [sourceList, placeholderImage]
+    [sourceList, placeholderImage],
   );
 
   const [imgError, setImgError] = useState(false);
+
+  const resolvedPhoneVerified = useMemo(() => {
+    if (typeof phoneVerified === "boolean") return phoneVerified;
+    return resolvePhoneVerificationFromSources(
+      verificationSource,
+      verificationSources,
+    );
+  }, [phoneVerified, verificationSource, verificationSources]);
 
   useEffect(() => {
     setImgError(false);
@@ -45,36 +62,63 @@ const UserAvatar = ({
 
   const shouldShowImage = Boolean(resolvedSrc) && !imgError;
   const style = size ? { width: size, height: size } : undefined;
+  const numericSize = Number(size);
+  const badgeSize =
+    Number.isFinite(numericSize) && numericSize > 0
+      ? Math.max(14, Math.round(numericSize * 0.33))
+      : 14;
 
   return (
     <div
-      className={cn(
-        "relative overflow-hidden bg-slate-100 dark:bg-slate-800",
-        roundedClassName,
-        className
-      )}
+      className={cn("relative", roundedClassName, className)}
       style={style}
       {...props}
     >
-      {shouldShowImage ? (
-        <img
-          src={resolvedSrc}
-          alt={alt}
-          className={cn("h-full w-full object-cover", imageClassName)}
-          loading={loading}
-          onError={(event) => {
-            setImgError(true);
-            onError?.(event);
+      <div
+        className={cn(
+          "h-full w-full overflow-hidden bg-slate-100 dark:bg-slate-800",
+          roundedClassName,
+        )}
+      >
+        {shouldShowImage ? (
+          <img
+            src={resolvedSrc}
+            alt={alt}
+            className={cn("h-full w-full object-cover", imageClassName)}
+            loading={loading}
+            onError={(event) => {
+              setImgError(true);
+              onError?.(event);
+            }}
+          />
+        ) : (
+          <div
+            className={cn(
+              "h-full w-full flex items-center justify-center",
+              fallbackClassName,
+            )}
+          >
+            <Icon className={iconClassName} />
+          </div>
+        )}
+      </div>
+
+      {showPhoneVerifiedBadge && resolvedPhoneVerified === true ? (
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 z-20 flex items-center justify-center rounded-full border-2 border-white bg-blue-500 shadow-sm dark:border-slate-900",
+            phoneVerifiedBadgeClassName,
+          )}
+          style={{
+            width: badgeSize,
+            height: badgeSize,
           }}
-        />
-      ) : (
-        <div className={cn("h-full w-full flex items-center justify-center", fallbackClassName)}>
-          <Icon className={iconClassName} />
-        </div>
-      )}
+        >
+          <MdVerified className="text-white" size={10} />
+        </span>
+      ) : null}
     </div>
   );
 };
 
 export default UserAvatar;
-

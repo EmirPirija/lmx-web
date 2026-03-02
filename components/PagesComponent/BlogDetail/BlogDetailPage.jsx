@@ -97,6 +97,7 @@ const BlogDetailPage = ({ slug }) => {
                   <div className="flex gap-2 items-center">
                     <UserAvatarMedia
                       sources={[admin?.profile, admin?.profile_image, admin?.avatar]}
+              verificationSource={admin}
                       alt={admin?.name || "Admin"}
                       size={28}
                       roundedClassName="rounded-md"

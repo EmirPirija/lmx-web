@@ -100,6 +100,7 @@ export default function SavedSellerRow({ item, listId, onRemoved, onUpdated }) {
           <div className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 shrink-0">
             <UserAvatarMedia
               sources={[seller?.profile, seller?.profile_image, seller?.avatar]}
+              verificationSource={seller}
               alt={seller?.name || "Korisnik"}
               className="w-full h-full rounded-2xl"
               roundedClassName="rounded-2xl"

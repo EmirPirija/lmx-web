@@ -316,6 +316,7 @@ const SoldOutModal = ({
                   <div className="flex gap-3 items-center">
                     <UserAvatarMedia
                       sources={[buyer?.profile, buyer?.profile_image, buyer?.avatar]}
+              verificationSource={buyer}
                       alt={buyer?.name || "Kupac"}
                       size={48}
                       className="border-2 border-white shadow-sm"
@@ -414,6 +415,7 @@ const SoldOutModal = ({
               <MdCheck className="text-green-600" size={20} />
               <UserAvatarMedia
                 sources={[selectedBuyer?.profile, selectedBuyer?.profile_image, selectedBuyer?.avatar]}
+              verificationSource={selectedBuyer}
                 alt={selectedBuyer?.name || "Kupac"}
                 size={36}
                 imageClassName="h-9 w-9 rounded-full object-cover"

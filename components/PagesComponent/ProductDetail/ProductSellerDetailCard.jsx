@@ -16,9 +16,7 @@ import {
   Check,
   X,
   Star,
-  MdVerified,
   ChevronRight,
-  Clock,
   Shield,
   Truck,
   RotateCcw,
@@ -28,7 +26,6 @@ import {
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
 import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
-import { isSellerVerified } from "@/lib/seller-verification";
 import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
 import {
   normalizeSellerCardPreferences,
@@ -96,30 +93,6 @@ const toBool = (v) => {
   }
 
   return Boolean(v);
-};
-
-const getVerifiedStatus = (...sources) => {
-  return isSellerVerified(...sources);
-};
-
-const VerifiedAvatarBadge = ({
-  avatarSize = 48,
-  verifiedSize = 10,
-  className = "",
-}) => {
-  const badgeSize = Math.max(14, Math.round(avatarSize * 0.33));
-
-  return (
-    <span
-      className={cn(
-        "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md dark:border-slate-900",
-        className,
-      )}
-      style={{ width: badgeSize, height: badgeSize }}
-    >
-      <MdVerified className="text-white" size={verifiedSize} />
-    </span>
-  );
 };
 
 const formatMemberSince = (dateStr) => {
@@ -205,57 +178,6 @@ const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
   if (!responseTime) return null;
   if (responseTime === "auto") return formatResponseTimeBs(responseTimeAvg);
   return responseTimeLabels[responseTime] || null;
-};
-
-const parseBusinessHours = (hours) => {
-  if (!hours) return null;
-  try {
-    return typeof hours === "string" ? JSON.parse(hours) : hours;
-  } catch {
-    return null;
-  }
-};
-
-const dayOrder = [
-  "sunday",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-];
-
-const getDayKeyByIndex = (idx) => dayOrder[idx % 7];
-
-const getHoursText = (d) => {
-  if (!d || d.closed || !d.enabled) return "Zatvoreno";
-  return `${d.open} – ${d.close}`;
-};
-
-const getTodayHours = (businessHours) => {
-  if (!businessHours) return null;
-  const todayKey = getDayKeyByIndex(new Date().getDay());
-  return getHoursText(businessHours[todayKey]);
-};
-
-const isCurrentlyOpen = (businessHours) => {
-  if (!businessHours) return null;
-  const now = new Date();
-  const todayKey = getDayKeyByIndex(now.getDay());
-  const todayHours = businessHours[todayKey];
-  if (!todayHours || todayHours.closed || !todayHours.enabled) return false;
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-  const [openHour, openMin] = (todayHours.open || "09:00")
-    .split(":")
-    .map(Number);
-  const [closeHour, closeMin] = (todayHours.close || "17:00")
-    .split(":")
-    .map(Number);
-  return (
-    currentTime >= openHour * 60 + openMin &&
-    currentTime <= closeHour * 60 + closeMin
-  );
 };
 
 /* =====================================================
@@ -562,6 +484,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
               <UserAvatarMedia
                 src={resolveSellerAvatar(seller)}
+                verificationSource={seller}
                 alt={seller?.name || "Prodavač"}
                 className="w-8 h-8 rounded-lg"
                 roundedClassName="rounded-lg"
@@ -945,25 +868,6 @@ const ProductSellerDetailCard = ({
     productDetails?.accepts_offers ||
     sellerSettings?.accepts_offers;
 
-  const isVerified = useMemo(() => {
-    return getVerifiedStatus(
-      seller,
-      settings,
-      sellerSettings,
-      productDetails?.user,
-      productDetails?.seller,
-      seller?.user,
-      sellerProp,
-    );
-  }, [
-    seller,
-    settings,
-    sellerSettings,
-    productDetails?.user,
-    productDetails?.seller,
-    sellerProp,
-  ]);
-
   const [hasReel, setHasReel] = useState(
     Boolean(
       hasSellerActiveReel(seller) ||
@@ -992,7 +896,6 @@ const ProductSellerDetailCard = ({
   const showMemberSince = mergedPrefs.show_member_since;
   const showReelHint = mergedPrefs.show_reel_hint;
   const highlightContactButton = mergedPrefs.highlight_contact_button;
-  const showBusinessHours = mergedPrefs.show_business_hours;
   const showShippingInfo = mergedPrefs.show_shipping_info;
   const showReturnPolicy = mergedPrefs.show_return_policy;
   const maxBadges = mergedPrefs.max_badges ?? 2;
@@ -1065,16 +968,6 @@ const ProductSellerDetailCard = ({
     () => (badges || []).slice(0, maxBadges),
     [badges, maxBadges],
   );
-
-  // Business hours
-  const businessHours = parseBusinessHours(settings.business_hours);
-  const hasBusinessHours = Boolean(
-    businessHours &&
-    Object.values(businessHours).some((d) => d?.enabled) &&
-    showBusinessHours,
-  );
-  const todayHoursText = hasBusinessHours ? getTodayHours(businessHours) : null;
-  const openNow = hasBusinessHours ? isCurrentlyOpen(businessHours) : null;
 
   // Info sections
   const shippingInfo = showShippingInfo ? settings.shipping_info : null;
@@ -1214,15 +1107,17 @@ const ProductSellerDetailCard = ({
                 >
                   <motion.div
                     className={cn(
-                      "rounded-[14px] p-[2px]",
-                      showStoryRing ? "reel-ring" : "bg-transparent",
+                      showStoryRing
+                        ? "reel-ring"
+                        : "rounded-[14px] p-[2px] bg-transparent",
                     )}
                     animate={ringMotion}
                     transition={ringTransition}
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
+                        "w-12 h-12 overflow-hidden bg-slate-100 dark:bg-slate-800",
+                        showStoryRing ? "reel-ring-inner" : "rounded-xl",
                         showStoryRing
                           ? "border-white/70 dark:border-slate-700/80"
                           : "border-slate-200/60 dark:border-slate-700/60 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors",
@@ -1230,6 +1125,7 @@ const ProductSellerDetailCard = ({
                     >
                       <UserAvatarMedia
                         src={sellerAvatar}
+                        verificationSource={seller}
                         alt={seller?.name || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"
@@ -1237,9 +1133,6 @@ const ProductSellerDetailCard = ({
                       />
                     </div>
                   </motion.div>
-                  {isVerified && (
-                    <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
-                  )}
                 </div>
                 {canManageReels && (
                   <button
@@ -1261,15 +1154,17 @@ const ProductSellerDetailCard = ({
               <div className="relative isolate flex-shrink-0">
                 <motion.div
                   className={cn(
-                    "rounded-[14px] p-[2px]",
-                    showStoryRing ? "reel-ring" : "bg-transparent",
+                    showStoryRing
+                      ? "reel-ring"
+                      : "rounded-[14px] p-[2px] bg-transparent",
                   )}
                   animate={ringMotion}
                   transition={ringTransition}
                 >
                   <div
                     className={cn(
-                      "w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 reel-ring-inner",
+                      "w-12 h-12 overflow-hidden bg-slate-100 dark:bg-slate-800",
+                      showStoryRing ? "reel-ring-inner" : "rounded-xl",
                       showStoryRing
                         ? "border border-white/70 dark:border-slate-700/80"
                         : "border border-slate-200/60 dark:border-slate-700/60",
@@ -1277,6 +1172,7 @@ const ProductSellerDetailCard = ({
                   >
                     <UserAvatarMedia
                       src={sellerAvatar}
+                      verificationSource={seller}
                       alt={seller?.name || "Prodavač"}
                       className="w-full h-full rounded-xl"
                       roundedClassName="rounded-xl"
@@ -1284,9 +1180,6 @@ const ProductSellerDetailCard = ({
                     />
                   </div>
                 </motion.div>
-                {isVerified && (
-                  <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
-                )}
               </div>
             )}
 
@@ -1412,41 +1305,6 @@ const ProductSellerDetailCard = ({
               )} */}
             </div>
           </div>
-
-          {/* Business hours */}
-          {showExtendedSections && hasBusinessHours && todayHoursText && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>
-                  Danas:{" "}
-                  <strong className="text-slate-900 dark:text-slate-100">
-                    {todayHoursText}
-                  </strong>
-                </span>
-              </div>
-              {openNow !== null && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                    openNow
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      openNow
-                        ? "bg-emerald-500"
-                        : "bg-slate-400 dark:bg-slate-500",
-                    )}
-                  />
-                  {openNow ? "Otvoreno" : "Zatvoreno"}
-                </span>
-              )}
-            </div>
-          )}
 
           {/* Actions — inline like MinimalSellerCard */}
           {disableContactActions ? (

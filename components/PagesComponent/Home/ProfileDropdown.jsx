@@ -18,6 +18,7 @@ import {
 
 import { useNavigate } from "@/components/Common/useNavigate";
 import MembershipBadge from "@/components/Common/MembershipBadge";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
 import {
   PROMO_BENEFITS,
@@ -61,10 +62,8 @@ import {
   Search,
   MessageSquare,
   MessageSquareMore,
-  User,
 } from "@/components/Common/UnifiedIconPack";
 import { Sparkles, TrendingUp } from "@/components/Common/UnifiedIconPack";
-import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
 // ============================================
 // HELPERS
@@ -106,52 +105,30 @@ const extractTotal = (payload) => {
 // ============================================
 function UserAvatar({
   customAvatarUrl,
-  avatarId,
   size = 36,
   className = "",
   ringClassName = "border-2 border-slate-200",
-  showVerified,
-  verifiedSize = 10,
   showNotifBadge,
   notifCount = 0,
+  verificationSource = null,
+  verificationSources = [],
 }) {
-  const [imgErr, setImgErr] = useState(false);
-  const showImg = Boolean(customAvatarUrl) && !imgErr;
-
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <div
+      <UserAvatarMedia
+        sources={[customAvatarUrl]}
+        verificationSource={verificationSource}
+        verificationSources={verificationSources}
+        alt="Avatar"
+        size={size}
         className={[
-          "w-full h-full rounded-full overflow-hidden relative bg-gray-100 shadow-sm",
+          "w-full h-full rounded-full relative bg-gray-100 shadow-sm",
           ringClassName,
           className,
         ].join(" ")}
-      >
-        {showImg ? (
-          <img
-            src={customAvatarUrl}
-            alt="Avatar"
-            className="w-full h-full object-cover"
-            onError={() => setImgErr(true)}
-          />
-        ) : (
-          <div className="w-full h-full bg-white flex items-center justify-center text-primary dark:bg-slate-900">
-            <User className="h-[52%] w-[52%] text-primary/70" />
-          </div>
-        )}
-      </div>
-
-      {showVerified === true && (
-        <div
-          className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white"
-          style={{
-            width: Math.max(14, Math.round(size * 0.33)),
-            height: Math.max(14, Math.round(size * 0.33)),
-          }}
-        >
-          <MdVerified className="text-white" size={verifiedSize} />
-        </div>
-      )}
+        roundedClassName="rounded-full"
+        imageClassName="w-full h-full object-cover"
+      />
 
       {showNotifBadge && notifCount > 0 && (
         <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
@@ -322,7 +299,7 @@ const ProfileDropdown = ({
   const settings = useSelector(settingsData);
   const placeholderImage = settings?.placeholder_image;
 
-  const [sellerAvatarId, setSellerAvatarId] = useState("");
+  const [sellerSettingsData, setSellerSettingsData] = useState(null);
 
   const [userStats, setUserStats] = useState({
     activeAds: 0,
@@ -354,7 +331,8 @@ const ProfileDropdown = ({
     try {
       const res = await sellerSettingsApi.getSettings();
       if (res?.data?.error === false && res?.data?.data) {
-        setSellerAvatarId(res.data.data.avatar_id || "");
+        const payload = res.data.data;
+        setSellerSettingsData(payload);
       }
     } catch (e) {
       // silent fallback
@@ -614,11 +592,10 @@ const ProfileDropdown = ({
       >
         <UserAvatar
           customAvatarUrl={customAvatarUrl}
-          avatarId={sellerAvatarId}
           size={36}
           ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
-          showVerified={userStats.isVerified}
-          verifiedSize={10}
+          verificationSource={userData}
+          verificationSources={sellerSettingsData ? [sellerSettingsData] : []}
           showNotifBadge={true}
           notifCount={userStats.unreadNotifications}
         />
@@ -629,9 +606,10 @@ const ProfileDropdown = ({
       isMobile,
       isOpen,
       customAvatarUrl,
-      sellerAvatarId,
       userStats.isVerified,
       userStats.unreadNotifications,
+      sellerSettingsData,
+      userData,
     ],
   );
 
@@ -670,11 +648,10 @@ const ProfileDropdown = ({
         <div className="flex items-center gap-3 px-4 pb-3">
           <UserAvatar
             customAvatarUrl={customAvatarUrl}
-            avatarId={sellerAvatarId}
             size={48}
             ringClassName="border-2 border-white dark:border-slate-700"
-            showVerified={userStats.isVerified}
-            verifiedSize={12}
+            verificationSource={userData}
+            verificationSources={sellerSettingsData ? [sellerSettingsData] : []}
             showNotifBadge={false}
           />
 
@@ -1002,11 +979,10 @@ const ProfileDropdown = ({
         >
           <UserAvatar
             customAvatarUrl={customAvatarUrl}
-            avatarId={sellerAvatarId}
             size={36}
             ringClassName="border-2 border-slate-200 hover:border-primary/50 transition-colors"
-            showVerified={userStats.isVerified}
-            verifiedSize={10}
+            verificationSource={userData}
+            verificationSources={sellerSettingsData ? [sellerSettingsData] : []}
             showNotifBadge={true}
             notifCount={userStats.unreadNotifications}
           />

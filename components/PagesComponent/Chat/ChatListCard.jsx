@@ -11,27 +11,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  MoreVertical, 
-  Archive, 
+import {
+  MoreVertical,
+  Archive,
   ArchiveRestore,
-  Trash2, 
-  Mail, 
-  MailOpen, 
+  Trash2,
+  Mail,
+  MailOpen,
   Pin,
   PinOff,
   CheckSquare,
   Square,
   Volume2, // ✅ Dodana ikona za zvuk
-  VolumeX,  // ✅ Dodana ikona za mute
+  VolumeX, // ✅ Dodana ikona za mute
   ShoppingBag,
   Store,
 } from "@/components/Common/UnifiedIconPack";
 
-const ChatListCard = ({ 
-  chat, 
-  isActive, 
-  currentUserId, 
+const ChatListCard = ({
+  chat,
+  isActive,
+  currentUserId,
   isArchived,
   // Bulk select
   bulkSelectMode,
@@ -52,9 +52,10 @@ const ChatListCard = ({
   const cardRef = useRef(null);
 
   // Determine other user
-  const otherUser = chat?.buyer?.id === currentUserId ? chat?.seller : chat?.buyer;
+  const otherUser =
+    chat?.buyer?.id === currentUserId ? chat?.seller : chat?.buyer;
   const isSelling = chat?.seller?.id === currentUserId;
-  
+
   const isUnread = chat?.unread_chat_count > 0;
   const isOnline = otherUser?.is_online || false;
   const isTyping = otherUser?.is_typing || false;
@@ -78,7 +79,7 @@ const ChatListCard = ({
     if (!isSwiping || bulkSelectMode) return;
     const currentX = e.touches[0].clientX;
     const diff = currentX - touchStartX.current;
-    
+
     // Limit swipe distance
     const maxSwipe = 100;
     const clampedDiff = Math.max(-maxSwipe, Math.min(maxSwipe, diff));
@@ -87,9 +88,9 @@ const ChatListCard = ({
 
   const handleTouchEnd = () => {
     if (!isSwiping) return;
-    
+
     const threshold = 60;
-    
+
     if (swipeOffset > threshold) {
       // Swipe right -> Archive/Unarchive
       if (isArchived) {
@@ -101,7 +102,7 @@ const ChatListCard = ({
       // Swipe left -> Delete
       onDelete?.();
     }
-    
+
     setSwipeOffset(0);
     setIsSwiping(false);
   };
@@ -113,9 +114,18 @@ const ChatListCard = ({
         <span className="flex items-center gap-1.5 italic text-primary font-medium">
           piše
           <span className="flex gap-0.5 pb-1">
-            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0s" }}></span>
-            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.15s" }}></span>
-            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.3s" }}></span>
+            <span
+              className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+              style={{ animationDelay: "0s" }}
+            ></span>
+            <span
+              className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+              style={{ animationDelay: "0.15s" }}
+            ></span>
+            <span
+              className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+              style={{ animationDelay: "0.3s" }}
+            ></span>
           </span>
         </span>
       );
@@ -127,9 +137,13 @@ const ChatListCard = ({
       case "audio":
         return (
           <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 3a1 1 0 00-1 1v4a1 1 0 002 0V4a1 1 0 00-1-1z"/>
-              <path d="M6 8a1 1 0 011 1v.5a3 3 0 006 0V9a1 1 0 112 0v.5a5 5 0 01-10 0V9a1 1 0 011-1z"/>
+            <svg
+              className="w-4 h-4 text-purple-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M10 3a1 1 0 00-1 1v4a1 1 0 002 0V4a1 1 0 00-1-1z" />
+              <path d="M6 8a1 1 0 011 1v.5a3 3 0 006 0V9a1 1 0 112 0v.5a5 5 0 01-10 0V9a1 1 0 011-1z" />
             </svg>
             <span>Glasovna poruka</span>
           </span>
@@ -138,10 +152,20 @@ const ChatListCard = ({
       case "file_and_text":
         return (
           <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd"/>
+            <svg
+              className="w-4 h-4 text-blue-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                clipRule="evenodd"
+              />
             </svg>
-            <span className="truncate">{lastMessageType === "file" ? "Fotografija" : lastMessage}</span>
+            <span className="truncate">
+              {lastMessageType === "file" ? "Fotografija" : lastMessage}
+            </span>
           </span>
         );
       default:
@@ -152,17 +176,25 @@ const ChatListCard = ({
   const cardContent = (
     <>
       {/* Swipe action backgrounds */}
-      <div className={cn(
-        "absolute inset-y-0 left-0 w-24 flex items-center justify-center transition-opacity",
-        swipeOffset > 30 ? "opacity-100" : "opacity-0",
-        isArchived ? "bg-primary" : "bg-amber-500"
-      )}>
-        {isArchived ? <ArchiveRestore className="text-white" size={24} /> : <Archive className="text-white" size={24} />}
+      <div
+        className={cn(
+          "absolute inset-y-0 left-0 w-24 flex items-center justify-center transition-opacity",
+          swipeOffset > 30 ? "opacity-100" : "opacity-0",
+          isArchived ? "bg-primary" : "bg-amber-500",
+        )}
+      >
+        {isArchived ? (
+          <ArchiveRestore className="text-white" size={24} />
+        ) : (
+          <Archive className="text-white" size={24} />
+        )}
       </div>
-      <div className={cn(
-        "absolute inset-y-0 right-0 w-24 flex items-center justify-center bg-red-500 transition-opacity",
-        swipeOffset < -30 ? "opacity-100" : "opacity-0"
-      )}>
+      <div
+        className={cn(
+          "absolute inset-y-0 right-0 w-24 flex items-center justify-center bg-red-500 transition-opacity",
+          swipeOffset < -30 ? "opacity-100" : "opacity-0",
+        )}
+      >
         <Trash2 className="text-white" size={24} />
       </div>
 
@@ -172,15 +204,17 @@ const ChatListCard = ({
         className={cn(
           "relative flex items-center gap-3 p-3.5 rounded-2xl transition-all duration-200",
           "bg-white/95 dark:bg-slate-900/95 border border-slate-200/70 dark:border-slate-700/70",
-          isActive 
-            ? "bg-gradient-to-r from-primary to-primary/90 text-white border-primary/40 shadow-lg shadow-primary/25" 
+          isActive
+            ? "bg-gradient-to-r from-primary to-primary/90 text-white border-primary/40 shadow-lg shadow-primary/25"
             : "hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600",
-          isPinned && !isActive && "bg-amber-50/60 dark:bg-amber-500/10 border-amber-200/70 dark:border-amber-500/30",
-          isSelected && "bg-primary/10 border-primary/30 dark:bg-primary/20"
+          isPinned &&
+            !isActive &&
+            "bg-amber-50/60 dark:bg-amber-500/10 border-amber-200/70 dark:border-amber-500/30",
+          isSelected && "bg-primary/10 border-primary/30 dark:bg-primary/20",
         )}
         style={{
           transform: `translateX(${swipeOffset}px)`,
-          transition: isSwiping ? "none" : "transform 0.2s ease-out"
+          transition: isSwiping ? "none" : "transform 0.2s ease-out",
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -188,104 +222,131 @@ const ChatListCard = ({
       >
         {/* Bulk select checkbox */}
         {bulkSelectMode && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleSelect();
-                }}
-                className="flex-shrink-0"
-              >
-                {isSelected ? (
-                  <CheckSquare size={22} className="text-primary" />
-                ) : (
-                  <Square size={22} className="text-slate-400 dark:text-slate-500" />
-                )}
-              </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleSelect();
+            }}
+            className="flex-shrink-0"
+          >
+            {isSelected ? (
+              <CheckSquare size={22} className="text-primary" />
+            ) : (
+              <Square
+                size={22}
+                className="text-slate-400 dark:text-slate-500"
+              />
             )}
+          </button>
+        )}
 
         {/* Avatar with online status */}
         <div className="relative flex-shrink-0">
-            {/* Online indicator */}
-            {isOnline && (
-	              <div className="absolute bottom-0 right-0 z-10">
-	                <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
-	                <span className={cn(
-	                  "relative block w-3 h-3 rounded-full bg-green-500 ring-2",
-	                  isActive ? "ring-primary" : "ring-white dark:ring-slate-900"
-	                )} />
-	              </div>
-	            )}
-
-	          <div className={cn(
-	            "relative rounded-full overflow-hidden ring-2 transition-all",
-	            isActive ? "ring-white/30" : "ring-slate-200 dark:ring-slate-700"
-	          )}>
-              <UserAvatarMedia
-                sources={[otherUser?.profile, otherUser?.profile_image, otherUser?.avatar]}
-                alt={otherUser?.name || "Korisnik"}
-                className="w-[52px] h-[52px]"
-                imageClassName="w-[52px] h-[52px] object-cover"
+          {/* Online indicator */}
+          {isOnline && (
+            <div className="absolute bottom-0 right-0 z-10">
+              <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+              <span
+                className={cn(
+                  "relative block w-3 h-3 rounded-full bg-green-500 ring-2",
+                  isActive ? "ring-primary" : "ring-white dark:ring-slate-900",
+                )}
               />
-	          </div>
+            </div>
+          )}
 
-	          {/* Pinned indicator */}
-	          {isPinned && !isActive && (
-	            <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shadow-sm">
-	              <Pin size={10} className="text-white" />
-	            </div>
-	          )}
-          
+          <div
+            className={cn(
+              "relative rounded-full overflow-hidden ring-2 transition-all",
+              isActive ? "ring-white/30" : "ring-slate-200 dark:ring-slate-700",
+            )}
+          >
+            <UserAvatarMedia
+              sources={[
+                otherUser?.profile,
+                otherUser?.profile_image,
+                otherUser?.avatar,
+              ]}
+              verificationSource={otherUser}
+              phoneVerifiedBadgeClassName={
+                isOnline ? "-left-0.5 !right-auto" : ""
+              }
+              alt={otherUser?.name || "Korisnik"}
+              className="w-[52px] h-[52px]"
+              imageClassName="w-[52px] h-[52px] object-cover"
+            />
+          </div>
+
+          {/* Pinned indicator */}
+          {isPinned && !isActive && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shadow-sm">
+              <Pin size={10} className="text-white" />
+            </div>
+          )}
+
           {/* Muted indicator (mali ikonica ako je mutirano) */}
-	          {isMuted && !isActive && !isPinned && (
-	             <div className="absolute -top-1 -right-1 w-5 h-5 bg-slate-400 rounded-full flex items-center justify-center shadow-sm">
-	               <VolumeX size={10} className="text-white" />
-	             </div>
-	          )}
+          {isMuted && !isActive && !isPinned && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-slate-400 rounded-full flex items-center justify-center shadow-sm">
+              <VolumeX size={10} className="text-white" />
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-0.5">
             <div className="flex items-center gap-2 min-w-0">
-              <h5 className={cn(
-                "font-semibold truncate text-[15px]",
-                isActive ? "text-white" : "text-slate-900 dark:text-slate-100"
-              )}>
+              <h5
+                className={cn(
+                  "font-semibold truncate text-[15px]",
+                  isActive
+                    ? "text-white"
+                    : "text-slate-900 dark:text-slate-100",
+                )}
+              >
                 {otherUser?.name}
               </h5>
               {!bulkSelectMode && !isActive && (
-                <span className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0 inline-flex items-center gap-1",
-                  isSelling 
-                    ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300" 
-                    : "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300"
-                )}>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0 inline-flex items-center gap-1",
+                    isSelling
+                      ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300"
+                      : "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300",
+                  )}
+                >
                   {isSelling ? <Store size={10} /> : <ShoppingBag size={10} />}
                   {isSelling ? "Prodaja" : "Kupovina"}
                 </span>
               )}
             </div>
-            <span className={cn(
-              "text-xs whitespace-nowrap flex-shrink-0",
-              isActive ? "text-white/70" : "text-slate-500 dark:text-slate-400"
-            )}>
+            <span
+              className={cn(
+                "text-xs whitespace-nowrap flex-shrink-0",
+                isActive
+                  ? "text-white/70"
+                  : "text-slate-500 dark:text-slate-400",
+              )}
+            >
               {formatTime(chat?.last_message_time)}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <div className={cn(
-              "text-sm truncate",
-              isActive 
-                ? "text-white/80" 
-                : isUnread 
-                  ? "text-slate-900 dark:text-slate-100 font-medium" 
-                  : "text-slate-500 dark:text-slate-400"
-            )}>
+            <div
+              className={cn(
+                "text-sm truncate",
+                isActive
+                  ? "text-white/80"
+                  : isUnread
+                    ? "text-slate-900 dark:text-slate-100 font-medium"
+                    : "text-slate-500 dark:text-slate-400",
+              )}
+            >
               {getLastMessagePreview()}
             </div>
-            
+
             <div className="flex items-center gap-2 flex-shrink-0">
               {itemImage && !bulkSelectMode && (
                 <div className="hidden sm:block w-8 h-8 rounded-md overflow-hidden border border-slate-200 dark:border-slate-700">
@@ -301,28 +362,44 @@ const ChatListCard = ({
 
               {/* Unread badge */}
               {isUnread && !isActive && (
-                <span className="min-w-[20px] h-5 flex items-center justify-center px-1.5
-                               bg-primary text-white rounded-full text-[10px] font-bold shadow-sm">
+                <span
+                  className="min-w-[20px] h-5 flex items-center justify-center px-1.5
+                               bg-primary text-white rounded-full text-[10px] font-bold shadow-sm"
+                >
                   {chat.unread_chat_count > 99 ? "99+" : chat.unread_chat_count}
                 </span>
               )}
-              
+
               {/* Actions menu */}
               {!bulkSelectMode && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button 
+                    <button
                       onClick={(e) => e.preventDefault()}
                       className={cn(
                         "p-1 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity",
-                        isActive ? "hover:bg-white/20" : "hover:bg-slate-200 dark:hover:bg-slate-700"
+                        isActive
+                          ? "hover:bg-white/20"
+                          : "hover:bg-slate-200 dark:hover:bg-slate-700",
                       )}
                     >
-                      <MoreVertical size={16} className={isActive ? "text-white" : "text-slate-500 dark:text-slate-300"} />
+                      <MoreVertical
+                        size={16}
+                        className={
+                          isActive
+                            ? "text-white"
+                            : "text-slate-500 dark:text-slate-300"
+                        }
+                      />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); onPin?.(); }}>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onPin?.();
+                      }}
+                    >
                       {isPinned ? (
                         <>
                           <PinOff size={16} className="mr-2" />
@@ -335,8 +412,13 @@ const ChatListCard = ({
                         </>
                       )}
                     </DropdownMenuItem>
-                    
-                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); isUnread ? onMarkRead?.() : onMarkUnread?.(); }}>
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        isUnread ? onMarkRead?.() : onMarkUnread?.();
+                      }}
+                    >
                       {isUnread ? (
                         <>
                           <MailOpen size={16} className="mr-2" />
@@ -351,7 +433,12 @@ const ChatListCard = ({
                     </DropdownMenuItem>
 
                     {/* ✅ Mute / Unmute Opcija */}
-                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); onMute?.(); }}>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onMute?.();
+                      }}
+                    >
                       {isMuted ? (
                         <>
                           <Volume2 size={16} className="mr-2" />
@@ -364,10 +451,15 @@ const ChatListCard = ({
                         </>
                       )}
                     </DropdownMenuItem>
-                    
+
                     <DropdownMenuSeparator />
-                    
-                    <DropdownMenuItem onClick={(e) => { e.preventDefault(); isArchived ? onUnarchive?.() : onArchive?.(); }}>
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        isArchived ? onUnarchive?.() : onArchive?.();
+                      }}
+                    >
                       {isArchived ? (
                         <>
                           <ArchiveRestore size={16} className="mr-2" />
@@ -380,9 +472,12 @@ const ChatListCard = ({
                         </>
                       )}
                     </DropdownMenuItem>
-                    
-                    <DropdownMenuItem 
-                      onClick={(e) => { e.preventDefault(); onDelete?.(); }}
+
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onDelete?.();
+                      }}
                       className="text-red-600 focus:text-red-600 focus:bg-red-50"
                     >
                       <Trash2 size={16} className="mr-2" />

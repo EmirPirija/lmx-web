@@ -1091,6 +1091,7 @@ const Search = ({
                                           seller?.profile_image,
                                           seller?.avatar,
                                         ]}
+              verificationSource={seller}
                                         alt={sellerName}
                                         className="h-full w-full"
                                         imageClassName="h-full w-full object-cover"
@@ -1291,6 +1292,7 @@ const Search = ({
                         <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600">
                           <UserAvatarMedia
                             sources={[user.profile, user.profile_image, user.avatar]}
+                            verificationSource={user}
                             alt={user.name || "Korisnik"}
                             className="h-full w-full"
                             imageClassName="h-full w-full object-cover"

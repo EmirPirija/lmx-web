@@ -51,8 +51,8 @@ function SidebarNavItem({
         disabled
           ? "cursor-not-allowed opacity-65 text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/70"
           : isActive
-          ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
       )}
     >
       <div
@@ -61,8 +61,8 @@ function SidebarNavItem({
           disabled
             ? "bg-slate-200 dark:bg-slate-700"
             : isActive
-            ? "bg-white/15 dark:bg-slate-900/15"
-            : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
+              ? "bg-white/15 dark:bg-slate-900/15"
+              : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700",
         )}
       >
         <Icon
@@ -72,8 +72,8 @@ function SidebarNavItem({
             disabled
               ? "text-slate-400 dark:text-slate-500"
               : isActive
-              ? "text-white dark:text-slate-900"
-              : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200"
+                ? "text-white dark:text-slate-900"
+                : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200",
           )}
         />
       </div>
@@ -84,8 +84,8 @@ function SidebarNavItem({
           disabled
             ? "text-slate-500 dark:text-slate-400"
             : isActive
-            ? "text-white dark:text-slate-900"
-            : "text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white"
+              ? "text-white dark:text-slate-900"
+              : "text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white",
         )}
       >
         {label}
@@ -101,7 +101,9 @@ function SidebarNavItem({
         <span
           className={cn(
             "min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full",
-            isActive ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100" : "bg-red-500 text-white"
+            isActive
+              ? "bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100"
+              : "bg-red-500 text-white",
           )}
         >
           {badgeCount > 99 ? "99+" : badgeCount}
@@ -133,7 +135,7 @@ function SidebarNavItem({
           toast.info(
             promoItem
               ? "Promo pristup je aktivan: svi planovi su trenutno dostupni bez troškova."
-              : `${label} je privremeno nedostupno.`
+              : `${label} je privremeno nedostupno.`,
           )
         }
         className="w-full text-left"
@@ -166,7 +168,7 @@ export default function ProfileSidebar({ badges = {} }) {
         unreadNotifications: badges["/notifications"] || 0,
         unreadMessages: badges["/chat"] || 0,
       }),
-    [badges, userData]
+    [badges, userData],
   );
 
   const filteredSections = useMemo(() => {
@@ -177,7 +179,8 @@ export default function ProfileSidebar({ badges = {} }) {
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => {
-          const haystack = `${section.title} ${item.label} ${item.description}`.toLowerCase();
+          const haystack =
+            `${section.title} ${item.label} ${item.description}`.toLowerCase();
           return haystack.includes(q);
         }),
       }))
@@ -190,7 +193,10 @@ export default function ProfileSidebar({ badges = {} }) {
       try {
         await signOut();
       } catch (error) {
-        console.warn("Firebase odjava nije završena, nastavljam lokalnu odjavu.", error);
+        console.warn(
+          "Firebase odjava nije završena, nastavljam lokalnu odjavu.",
+          error,
+        );
       }
 
       try {
@@ -200,7 +206,10 @@ export default function ProfileSidebar({ badges = {} }) {
       } catch (error) {
         const status = error?.response?.status;
         if (status !== 401 && status !== 419) {
-          console.warn("Server odjava nije dostupna, nastavljam lokalnu odjavu.", error);
+          console.warn(
+            "Server odjava nije dostupna, nastavljam lokalnu odjavu.",
+            error,
+          );
         }
       }
 
@@ -249,20 +258,27 @@ export default function ProfileSidebar({ badges = {} }) {
         <div className="flex items-center gap-3">
           <div className="relative">
             <UserAvatarMedia
-              sources={[userData?.profile, userData?.profile_image, userData?.avatar]}
+              sources={[
+                userData?.profile,
+                userData?.profile_image,
+                userData?.avatar,
+              ]}
+              verificationSource={userData}
               alt={userData?.name || "Korisnik"}
               className="h-12 w-12 ring-2 ring-slate-100 dark:ring-slate-700 rounded-xl"
               roundedClassName="rounded-xl"
               imageClassName="h-full w-full object-cover"
             />
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+            <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
           </div>
 
           <div className="overflow-hidden flex-1 min-w-0">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
               {userData?.name || "Korisnik"}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userData?.email || userData?.phone}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {userData?.email || userData?.phone}
+            </p>
           </div>
 
           <CustomLink
@@ -276,19 +292,30 @@ export default function ProfileSidebar({ badges = {} }) {
         {/* Quick stats */}
         <div className="mt-3 flex items-center gap-2">
           <div className="flex-1 text-center py-2 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-            <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{userData?.active_ads || 0}</div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Oglasi</div>
+            <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              {userData?.active_ads || 0}
+            </div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              Oglasi
+            </div>
           </div>
           <div className="flex-1 text-center py-2 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
             <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              {userData?.average_rating ? Number(userData.average_rating).toFixed(1) : "0.0"}
+              {userData?.average_rating
+                ? Number(userData.average_rating).toFixed(1)
+                : "0.0"}
             </div>
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ocjena</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              Ocjena
+            </div>
           </div>
         </div>
 
         <div className="mt-2.5 relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+          />
           <input
             type="text"
             value={navQuery}
@@ -316,7 +343,11 @@ export default function ProfileSidebar({ badges = {} }) {
                     label={item.label}
                     description={item.description}
                     isActive={isProfileNavItemActive(pathname, item)}
-                    badgeCount={typeof badges[item.href] === "number" ? badges[item.href] : item.badge || 0}
+                    badgeCount={
+                      typeof badges[item.href] === "number"
+                        ? badges[item.href]
+                        : item.badge || 0
+                    }
                     disabled={Boolean(item.disabled)}
                     unavailableBadge={item.unavailableBadge}
                   />
@@ -343,7 +374,10 @@ export default function ProfileSidebar({ badges = {} }) {
             <LogOut size={18} className="text-slate-500 dark:text-slate-300" />
           </div>
           <span className="flex-1 text-left">Odjavi se</span>
-          <ChevronRight size={16} className="text-slate-300 dark:text-slate-600" />
+          <ChevronRight
+            size={16}
+            className="text-slate-300 dark:text-slate-600"
+          />
         </button>
 
         <button

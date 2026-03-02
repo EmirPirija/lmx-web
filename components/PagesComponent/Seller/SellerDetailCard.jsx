@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import { getVerificationStatusApi } from "@/utils/api";
-import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
 // Lucide ikone
 import {
@@ -104,25 +103,6 @@ const toBool = (v) => {
 
 const getVerifiedStatus = (...sources) => {
   return isSellerVerified(...sources);
-};
-const VerifiedAvatarBadge = ({
-  avatarSize = 48,
-  verifiedSize = 10,
-  className = "",
-}) => {
-  const badgeSize = Math.max(14, Math.round(avatarSize * 0.33));
-
-  return (
-    <span
-      className={cn(
-        "absolute -bottom-0.5 -right-0.5 z-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-md",
-        className,
-      )}
-      style={{ width: badgeSize, height: badgeSize }}
-    >
-      <MdVerified className="text-white" size={verifiedSize} />
-    </span>
-  );
 };
 const shimmerCss = `
 @keyframes shimmer {
@@ -592,7 +572,7 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
    MODAL ZA SLANJE PORUKE
 ===================================================== */
 
-const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
+const SendMessageModal = ({ open, setOpen, seller, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
 
@@ -726,15 +706,13 @@ const SendMessageModal = ({ open, setOpen, seller, isVerified, onSuccess }) => {
                       seller?.profile_image,
                       seller?.avatar,
                     ]}
+                    verificationSource={seller}
                     alt={seller?.name || "Prodavač"}
                     className="w-full h-full rounded-xl"
                     roundedClassName="rounded-xl"
                     imageClassName="w-full h-full object-cover"
                   />
                 </div>
-                {isVerified && (
-                  <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
-                )}
               </div>
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
@@ -1094,7 +1072,6 @@ export const SellerPreviewCard = ({
   onAddReelClick,
   showAddReel = false,
   shareUrl,
-  isVerifiedOverride,
   showReelRing = false,
 }) => {
   const pathname = usePathname();
@@ -1112,13 +1089,6 @@ export const SellerPreviewCard = ({
       ),
     [isPro, isShop, seller, settings],
   );
-  const computedVerified = useMemo(
-    () => getVerifiedStatus(seller, settings),
-    [seller, settings],
-  );
-
-  const isVerified = isVerifiedOverride ?? computedVerified;
-
   const prefs = uiPrefs || {};
 
   const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
@@ -1139,7 +1109,6 @@ export const SellerPreviewCard = ({
   const showReelHint = prefs.showReelHint ?? mergedPrefs.show_reel_hint;
   const highlightContactButton =
     prefs.highlightContactButton ?? mergedPrefs.highlight_contact_button;
-  const showBusinessHours = mergedPrefs.show_business_hours;
   const showShare = prefs.showShare ?? true;
 
   const c = compactnessMap[compactness] || compactnessMap.normal;
@@ -1191,14 +1160,6 @@ export const SellerPreviewCard = ({
 
   const badgeList = (badges || []).slice(0, mergedPrefs.max_badges || 2);
 
-  const businessHours = parseBusinessHours(settings.business_hours);
-  const showHours = Boolean(
-    showBusinessHours &&
-    businessHours &&
-    Object.values(businessHours).some((d) => d?.enabled),
-  );
-  const todayHoursText = showHours ? getTodayHours(businessHours) : null;
-  const openNow = showHours ? isCurrentlyOpen(businessHours) : null;
   const contactEngine = resolveSellerContactEngine({
     seller,
     settings,
@@ -1231,7 +1192,6 @@ export const SellerPreviewCard = ({
         setOpen={setIsMessageModalOpen}
         seller={seller}
         settings={settings}
-        isVerified={isVerified}
       />
 
       <ContactSheet
@@ -1271,10 +1231,8 @@ export const SellerPreviewCard = ({
 
                     <div
                       className={cn(
-                        "w-12 h-12 overflow-hidden bg-slate-100 dark:bg-slate-800",
-                        showReelRing
-                          ? "reel-ring-inner border border-white/70 dark:border-slate-700/80"
-                          : "rounded-xl border border-slate-200/60 dark:border-slate-700/60",
+                        "w-12 h-12 overflow-hidden bg-slate-100",
+                        showReelRing ? "reel-ring-inner" : "rounded-xl",
                       )}
                     >
                       <UserAvatarMedia
@@ -1283,6 +1241,7 @@ export const SellerPreviewCard = ({
                           seller?.profile_image,
                           seller?.avatar,
                         ]}
+                        verificationSource={seller}
                         alt={seller?.name || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"
@@ -1290,16 +1249,6 @@ export const SellerPreviewCard = ({
                       />
                     </div>
                   </div>
-
-                  {isVerified && (
-                    <motion.span
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="absolute inset-0 pointer-events-none"
-                    >
-                      <VerifiedAvatarBadge avatarSize={48} verifiedSize={10} />
-                    </motion.span>
-                  )}
 
                   {showReelPrompt && (
                     <motion.span
@@ -1485,41 +1434,6 @@ export const SellerPreviewCard = ({
               )} */}
             </div>
           </div>
-
-          {/* Business hours */}
-          {showHours && todayHoursText && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>
-                  Danas:{" "}
-                  <strong className="text-slate-900 dark:text-slate-100">
-                    {todayHoursText}
-                  </strong>
-                </span>
-              </div>
-              {openNow !== null && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full",
-                    openNow
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                      : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      openNow
-                        ? "bg-emerald-500"
-                        : "bg-slate-400 dark:bg-slate-500",
-                    )}
-                  />
-                  {openNow ? "Otvoreno" : "Zatvoreno"}
-                </span>
-              )}
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex items-center gap-2">
@@ -1814,8 +1728,6 @@ const SellerDetailCard = ({
     };
   }, [mainSellerId, localVerified, isOwnProfile]);
 
-  const isVerified = localVerified || verifiedRemote;
-
   // ── Video/Reel detection (definisano PRIJE korištenja) ──
   const localHasReel = Boolean(
     hasSellerActiveReel(seller) ||
@@ -1958,7 +1870,6 @@ const SellerDetailCard = ({
         setOpen={setIsMessageModalOpen}
         seller={seller}
         settings={settings}
-        isVerified={isVerified}
       />
 
       <ReelUploadModal
@@ -1990,7 +1901,6 @@ const SellerDetailCard = ({
         onRingClick={handleRingClick}
         showAddReel={isOwnProfile}
         onAddReelClick={() => setIsReelModalOpen(true)}
-        isVerifiedOverride={isVerified || undefined}
       />
 
       {/* KONTAKT SEKCIJA */}

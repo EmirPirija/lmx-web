@@ -106,6 +106,7 @@ const BlockedUsersMenu = ({ setSelectedChatDetails }) => {
                     <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-200 relative">
                       <UserAvatarMedia
                         sources={[user?.profile, user?.profile_image, user?.avatar]}
+              verificationSource={user}
                         alt={user?.name || "Korisnik"}
                         className="h-10 w-10"
                         imageClassName="object-cover h-10 w-10"

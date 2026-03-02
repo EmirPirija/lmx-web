@@ -83,12 +83,14 @@ const reelRingCss = `
 /* ── Outer wrapper ── */
 .reel-ring {
   --ring-width: 2.5px;
-  --ring-radius: 14px;
-  --ring-gap: 1.5px;
+  --ring-radius: 12px;
+  --ring-gap: 1px;
 
   position: relative;
+  display: inline-block;
+  line-height: 0;
   padding: calc(var(--ring-width) + var(--ring-gap));
-  border-radius: var(--ring-radius);
+  border-radius: calc(var(--ring-radius) + var(--ring-width) + var(--ring-gap));
   isolation: isolate;
 
   animation: reel-entrance 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -233,10 +235,15 @@ const reelRingCss = `
 .reel-ring-inner {
   position: relative;
   z-index: 1;
-  border-radius: calc(var(--ring-radius) - var(--ring-width) - var(--ring-gap));
+  border-radius: calc(var(--ring-radius) - 1px);
   overflow: hidden;
   background: white;
   transform: translateZ(0);
+}
+
+.reel-ring-inner img,
+.reel-ring-inner video {
+  border-radius: inherit !important;
 }
 
 /* ── Circular variant ── */

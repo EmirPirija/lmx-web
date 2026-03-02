@@ -18,6 +18,7 @@ import {
 } from "@/utils/api";
 
 import MembershipBadge from "@/components/Common/MembershipBadge";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CustomLink from "@/components/Common/CustomLink";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { useAdaptiveMobileDock } from "@/components/Layout/AdaptiveMobileDock";
@@ -47,10 +48,8 @@ import {
   IoSearchOutline,
   IoMenuOutline,
   IoCloseOutline,
-  User,
 } from "@/components/Common/UnifiedIconPack";
 import { Crown } from "@/components/Common/UnifiedIconPack";
-import { MdVerified } from "@/components/Common/UnifiedIconPack";
 
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -179,50 +178,28 @@ const PROFILE_CONTEXT_COPY = {
 // ============================================
 function UserAvatar({
   customAvatarUrl,
-  avatarId,
   size = 36,
   className = "",
   ringClassName = "border-2 border-slate-200",
-  showVerified,
-  verifiedSize = 10,
+  verificationSource = null,
+  verificationSources = [],
 }) {
-  const [imgErr, setImgErr] = useState(false);
-  const showImg = Boolean(customAvatarUrl) && !imgErr;
-
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <div
+      <UserAvatarMedia
+        sources={[customAvatarUrl]}
+        verificationSource={verificationSource}
+        verificationSources={verificationSources}
+        alt="Avatar"
+        size={size}
         className={cn(
-          "w-full h-full rounded-full overflow-hidden relative bg-gray-100 shadow-sm",
+          "w-full h-full rounded-full relative bg-gray-100 shadow-sm",
           ringClassName,
           className,
         )}
-      >
-        {showImg ? (
-          <img
-            src={customAvatarUrl}
-            alt="Avatar"
-            className="w-full h-full object-cover"
-            onError={() => setImgErr(true)}
-          />
-        ) : (
-          <div className="w-full h-full bg-white flex items-center justify-center text-primary dark:bg-slate-900">
-            <User className="h-[52%] w-[52%] text-primary/70" />
-          </div>
-        )}
-      </div>
-
-      {showVerified && (
-        <div
-          className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white"
-          style={{
-            width: Math.max(14, Math.round(size * 0.33)),
-            height: Math.max(14, Math.round(size * 0.33)),
-          }}
-        >
-          <MdVerified className="text-white" size={verifiedSize} />
-        </div>
-      )}
+        roundedClassName="rounded-full"
+        imageClassName="w-full h-full object-cover"
+      />
     </div>
   );
 }
@@ -435,7 +412,7 @@ const QuickStat = ({
 const ProfileSidebar = ({
   userData,
   customAvatarUrl,
-  sellerAvatarId,
+  sellerSettingsData,
   userStats,
   isStatsLoading = false,
   navigationSections,
@@ -480,11 +457,12 @@ const ProfileSidebar = ({
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <UserAvatar
               customAvatarUrl={customAvatarUrl}
-              avatarId={sellerAvatarId}
               size={48}
               ringClassName="border-2 border-white shadow-sm dark:border-slate-700"
-              showVerified={userStats.isVerified}
-              verifiedSize={12}
+              verificationSource={userData}
+              verificationSources={
+                sellerSettingsData ? [sellerSettingsData] : []
+              }
             />
 
             <div className="min-w-0 flex-1">
@@ -865,7 +843,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
   const settings = useSelector(settingsData);
   const placeholderImage = settings?.placeholder_image;
 
-  const [sellerAvatarId, setSellerAvatarId] = useState("");
+  const [sellerSettingsData, setSellerSettingsData] = useState(null);
   const lastStatsFetchRef = useRef(0);
   const mobileMenuTimersRef = useRef({ open: null, close: null });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -908,7 +886,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
     try {
       const res = await sellerSettingsApi.getSettings();
       if (res?.data?.error === false && res?.data?.data) {
-        setSellerAvatarId(res.data.data.avatar_id || "");
+        setSellerSettingsData(res.data.data);
       }
     } catch (e) {
       // silent fallback
@@ -1430,7 +1408,7 @@ const ProfileLayout = ({ children, IsLogout, setIsLogout }) => {
               <ProfileSidebar
                 userData={userData}
                 customAvatarUrl={customAvatarUrl}
-                sellerAvatarId={sellerAvatarId}
+                sellerSettingsData={sellerSettingsData}
                 userStats={userStats}
                 isStatsLoading={isStatsLoading}
                 navigationSections={navigationSections}

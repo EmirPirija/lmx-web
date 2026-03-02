@@ -16,7 +16,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { formatDate, formatPriceAbbreviated, t, truncate, extractYear } from "@/utils";
+import { resolvePhoneVerificationFromSources } from "@/lib/seller-contact";
+import {
+  formatDate,
+  formatPriceAbbreviated,
+  t,
+  truncate,
+  extractYear,
+} from "@/utils";
 import { itemOfferApi } from "@/utils/api";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
@@ -82,7 +89,7 @@ const OfferCardSkeleton = () => (
             </div>
           </div>
         </div>
-        
+
         {/* Content skeleton */}
         <div className="flex-1 space-y-4">
           <div className="flex gap-4">
@@ -111,22 +118,26 @@ const StatusBadge = ({ status }) => {
   const statusConfig = {
     pending: {
       label: "Na čekanju",
-      className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+      className:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800",
       icon: Clock,
     },
     accepted: {
       label: "Prihvaćeno",
-      className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      className:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
       icon: Check,
     },
     rejected: {
       label: "Odbijeno",
-      className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800",
+      className:
+        "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800",
       icon: X,
     },
     countered: {
       label: "Kontra-ponuda",
-      className: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+      className:
+        "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
       icon: ArrowLeftRight,
     },
   };
@@ -135,10 +146,12 @@ const StatusBadge = ({ status }) => {
   const Icon = config.icon;
 
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border",
-      config.className
-    )}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border",
+        config.className,
+      )}
+    >
       <Icon className="w-3.5 h-3.5" />
       {config.label}
     </span>
@@ -156,18 +169,20 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
       "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all",
       active
         ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg"
-        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700",
     )}
   >
     <Icon className="w-4 h-4" />
     <span>{label}</span>
     {count > 0 && (
-      <span className={cn(
-        "px-1.5 py-0.5 rounded-full text-[10px] font-bold",
-        active
-          ? "bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900"
-          : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-      )}>
+      <span
+        className={cn(
+          "px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+          active
+            ? "bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900"
+            : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400",
+        )}
+      >
         {count}
       </span>
     )}
@@ -185,29 +200,27 @@ const UserAvatar = ({ user, size = "md" }) => {
     lg: "w-16 h-16",
   };
 
-  const isVerified = user?.is_verified || user?.verified;
+  const isPhoneVerified = resolvePhoneVerificationFromSources(user);
   const isOnline = user?.is_online || user?.online;
 
   return (
     <div className="relative">
-      <div className={cn(
-        sizes[size],
-        "rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700"
-      )}>
+      <div
+        className={cn(
+          sizes[size],
+          "rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700",
+        )}
+      >
         <UserAvatarMedia
           sources={[user?.profile, user?.profile_image, user?.avatar]}
+          verificationSource={user}
           alt={user?.name || "Korisnik"}
           className="h-full w-full rounded-xl"
           imageClassName="w-full h-full object-cover"
           roundedClassName="rounded-xl"
         />
       </div>
-      {isVerified && (
-        <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">
-          <BadgeCheck className="w-4 h-4 text-sky-500" />
-        </span>
-      )}
-      {isOnline && !isVerified && (
+      {isOnline && !isPhoneVerified && (
         <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
       )}
     </div>
@@ -221,20 +234,22 @@ const UserAvatar = ({ user, size = "md" }) => {
 const OfferUserCard = ({ user, role, onClick }) => {
   const memberSince = user?.created_at ? extractYear(user.created_at) : null;
   const isVerified = user?.is_verified || user?.verified;
-  
+
   return (
-    <div 
+    <div
       onClick={onClick}
       className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
     >
       <UserAvatar user={user} size="md" />
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors">
             {user?.name || "Nepoznat korisnik"}
           </span>
-          {isVerified && <BadgeCheck className="w-4 h-4 text-sky-500 flex-shrink-0" />}
+          {isVerified && (
+            <BadgeCheck className="w-4 h-4 text-sky-500 flex-shrink-0" />
+          )}
         </div>
         <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700/80">
@@ -248,7 +263,7 @@ const OfferUserCard = ({ user, role, onClick }) => {
           )}
         </div>
       </div>
-      
+
       <ChevronRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );
@@ -260,29 +275,36 @@ const OfferUserCard = ({ user, role, onClick }) => {
 
 const OfferItemCard = ({ item, offer, onViewItem }) => {
   const itemImage = item?.image || item?.gallery_images?.[0]?.image;
-  const itemName = item?.translated_item?.name || item?.name || "Nepoznat artikal";
+  const itemName =
+    item?.translated_item?.name || item?.name || "Nepoznat artikal";
   const itemPrice = item?.price;
   const offerAmount = offer?.amount || offer?.offer_amount;
   const itemCity = item?.translated_city || item?.city;
-  
+
   // Check if we can link to the item
-  const hasValidSlug = Boolean(item?.slug || item?.item_slug || offer?.item_slug);
-  
+  const hasValidSlug = Boolean(
+    item?.slug || item?.item_slug || offer?.item_slug,
+  );
+
   // Calculate price difference
-  const priceDiff = itemPrice && offerAmount 
-    ? ((Number(offerAmount) - Number(itemPrice)) / Number(itemPrice) * 100).toFixed(0)
-    : null;
+  const priceDiff =
+    itemPrice && offerAmount
+      ? (
+          ((Number(offerAmount) - Number(itemPrice)) / Number(itemPrice)) *
+          100
+        ).toFixed(0)
+      : null;
 
   const handleClick = hasValidSlug ? onViewItem : undefined;
 
   return (
     <div className="flex gap-4">
       {/* Item image */}
-      <div 
+      <div
         onClick={handleClick}
         className={cn(
           "relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex-shrink-0",
-          hasValidSlug ? "cursor-pointer group" : "cursor-default"
+          hasValidSlug ? "cursor-pointer group" : "cursor-default",
         )}
       >
         {itemImage ? (
@@ -293,7 +315,7 @@ const OfferItemCard = ({ item, offer, onViewItem }) => {
             height={96}
             className={cn(
               "w-full h-full object-cover",
-              hasValidSlug && "group-hover:scale-105 transition-transform"
+              hasValidSlug && "group-hover:scale-105 transition-transform",
             )}
           />
         ) : (
@@ -307,26 +329,28 @@ const OfferItemCard = ({ item, offer, onViewItem }) => {
           </div>
         )}
       </div>
-      
+
       {/* Item details */}
       <div className="flex-1 min-w-0">
-        <h4 
+        <h4
           onClick={handleClick}
           className={cn(
             "font-semibold text-slate-900 dark:text-white line-clamp-2 transition-colors",
-            hasValidSlug ? "hover:text-primary cursor-pointer" : "cursor-default"
+            hasValidSlug
+              ? "hover:text-primary cursor-pointer"
+              : "cursor-default",
           )}
         >
           {itemName}
         </h4>
-        
+
         {itemCity && (
           <div className="flex items-center gap-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
             <MapPin className="w-3 h-3" />
             {itemCity}
           </div>
         )}
-        
+
         {/* Prices */}
         <div className="flex flex-wrap items-center gap-3 mt-2">
           {/* Original price */}
@@ -334,11 +358,14 @@ const OfferItemCard = ({ item, offer, onViewItem }) => {
             <div className="flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-sm text-slate-500 dark:text-slate-400">
-                Cijena: <span className="font-medium text-slate-700 dark:text-slate-300">{formatPriceAbbreviated(itemPrice)}</span>
+                Cijena:{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {formatPriceAbbreviated(itemPrice)}
+                </span>
               </span>
             </div>
           )}
-          
+
           {/* Offer amount */}
           {offerAmount && (
             <div className="flex items-center gap-1.5">
@@ -349,23 +376,26 @@ const OfferItemCard = ({ item, offer, onViewItem }) => {
             </div>
           )}
         </div>
-        
+
         {/* Price difference indicator */}
         {priceDiff && (
-          <div className={cn(
-            "inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-medium",
-            Number(priceDiff) < 0
-              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-              : Number(priceDiff) > 0
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-          )}>
+          <div
+            className={cn(
+              "inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-medium",
+              Number(priceDiff) < 0
+                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                : Number(priceDiff) > 0
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+            )}
+          >
             {Number(priceDiff) < 0 ? (
               <TrendingDown className="w-3 h-3" />
             ) : Number(priceDiff) > 0 ? (
               <TrendingUp className="w-3 h-3" />
             ) : null}
-            {Number(priceDiff) > 0 ? "+" : ""}{priceDiff}% od cijene
+            {Number(priceDiff) > 0 ? "+" : ""}
+            {priceDiff}% od cijene
           </div>
         )}
       </div>
@@ -379,7 +409,7 @@ const OfferItemCard = ({ item, offer, onViewItem }) => {
 
 const CounterOfferModal = ({ open, onClose, offer, onSubmit, isLoading }) => {
   const [amount, setAmount] = useState("");
-  
+
   const itemPrice = offer?.item?.price || 0;
   const currentOffer = offer?.amount || offer?.offer_amount || 0;
 
@@ -408,23 +438,27 @@ const CounterOfferModal = ({ open, onClose, offer, onSubmit, isLoading }) => {
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
             Predloži novu cijenu kupcu
           </p>
-          
+
           {/* Price reference */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Cijena oglasa</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                Cijena oglasa
+              </p>
               <p className="font-bold text-slate-900 dark:text-white">
                 {formatPriceAbbreviated(itemPrice)}
               </p>
             </div>
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Trenutna ponuda</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">
+                Trenutna ponuda
+              </p>
               <p className="font-bold text-amber-700 dark:text-amber-300">
                 {formatPriceAbbreviated(currentOffer)}
               </p>
             </div>
           </div>
-          
+
           {/* Amount input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -441,7 +475,7 @@ const CounterOfferModal = ({ open, onClose, offer, onSubmit, isLoading }) => {
               />
             </div>
           </div>
-          
+
           {/* Actions */}
           <div className="flex gap-3">
             <Button
@@ -477,17 +511,18 @@ const CounterOfferModal = ({ open, onClose, offer, onSubmit, isLoading }) => {
 
 const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
   const router = useRouter();
-  
+
   const item = offer?.item;
   const status = offer?.status || "pending";
   const createdAt = offer?.created_at;
   const offerId = offer?.id;
-  
+
   // Determine user based on type
-  const otherUser = type === "received" 
-    ? (offer?.buyer || offer?.user)  // If received, show buyer
-    : (offer?.seller || offer?.item?.user);  // If sent, show seller
-    
+  const otherUser =
+    type === "received"
+      ? offer?.buyer || offer?.user // If received, show buyer
+      : offer?.seller || offer?.item?.user; // If sent, show seller
+
   const userRole = type === "received" ? "buyer" : "seller";
 
   const goToUserProfile = () => {
@@ -499,7 +534,7 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
   const goToItem = () => {
     // Try different possible slug locations in the item object
     const slug = item?.slug || item?.item_slug || offer?.item_slug;
-    
+
     if (slug) {
       router.push(`/ad-details/${slug}`);
     } else if (item?.id) {
@@ -526,37 +561,36 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* User section */}
           <div className="lg:w-64 flex-shrink-0">
-            <OfferUserCard 
-              user={otherUser} 
+            <OfferUserCard
+              user={otherUser}
               role={userRole}
               onClick={goToUserProfile}
             />
           </div>
-          
+
           {/* Divider for mobile */}
           <div className="lg:hidden h-px bg-slate-200 dark:bg-slate-700" />
-          
+
           {/* Content section */}
           <div className="flex-1 min-w-0">
             {/* Item info */}
-            <OfferItemCard 
-              item={item} 
-              offer={offer}
-              onViewItem={goToItem}
-            />
-            
+            <OfferItemCard item={item} offer={offer} onViewItem={goToItem} />
+
             {/* Counter offer info */}
             {offer?.counter_amount && (
               <div className="mt-3 p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
                 <div className="flex items-center gap-2 text-sm">
                   <ArrowLeftRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <span className="text-indigo-700 dark:text-indigo-300">
-                    Kontra-ponuda: <strong>{formatPriceAbbreviated(offer.counter_amount)}</strong>
+                    Kontra-ponuda:{" "}
+                    <strong>
+                      {formatPriceAbbreviated(offer.counter_amount)}
+                    </strong>
                   </span>
                 </div>
               </div>
             )}
-            
+
             {/* Footer with status and actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
@@ -574,7 +608,7 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
                   </span>
                 )}
               </div>
-              
+
               {/* Actions */}
               <div className="flex items-center gap-2">
                 {/* Chat button */}
@@ -587,7 +621,7 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
                   <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
                   Chat
                 </Button>
-                
+
                 {/* Action buttons for received pending offers */}
                 {isReceived && isPending && (
                   <>
@@ -640,10 +674,7 @@ const OfferCard = ({ offer, type, onAction, isActionLoading }) => {
 ===================================================== */
 
 const EmptyState = ({ type }) => (
-  <motion.div
-    variants={fadeInUp}
-    className="text-center py-16"
-  >
+  <motion.div variants={fadeInUp} className="text-center py-16">
     <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
       {type === "received" ? (
         <Inbox className="w-10 h-10 text-slate-400" />
@@ -657,8 +688,7 @@ const EmptyState = ({ type }) => (
     <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
       {type === "received"
         ? "Kada kupci pošalju ponude za vaše oglase, pojavit će se ovdje"
-        : "Vaše ponude za oglase drugih prodavača će se prikazati ovdje"
-      }
+        : "Vaše ponude za oglase drugih prodavača će se prikazati ovdje"}
     </p>
   </motion.div>
 );
@@ -680,9 +710,11 @@ const OffersPage = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [activeTab, setActiveTab] = useState(searchParams.get("type") || "received");
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("type") || "received",
+  );
   const [actionLoading, setActionLoading] = useState(null);
-  
+
   // Counter modal state
   const [counterModalOpen, setCounterModalOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
@@ -693,47 +725,50 @@ const OffersPage = () => {
   const [sentCount, setSentCount] = useState(0);
 
   // Fetch offers
-  const fetchOffers = useCallback(async (page = 1, type = activeTab, append = false) => {
-    try {
-      if (page === 1) {
-        setIsLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      const response = await itemOfferApi.getMyOffers({
-        type,
-        page,
-      });
-
-      if (response?.data?.error === false) {
-        const data = response.data.data;
-        const offersList = data?.data || [];
-        
-        if (append) {
-          setOffers(prev => [...prev, ...offersList]);
+  const fetchOffers = useCallback(
+    async (page = 1, type = activeTab, append = false) => {
+      try {
+        if (page === 1) {
+          setIsLoading(true);
         } else {
-          setOffers(offersList);
+          setIsLoadingMore(true);
         }
-        
-        setCurrentPage(data?.current_page || 1);
-        setHasMore((data?.current_page || 1) < (data?.last_page || 1));
-        
-        // Update counts
-        if (type === "received") {
-          setReceivedCount(data?.total || 0);
-        } else {
-          setSentCount(data?.total || 0);
+
+        const response = await itemOfferApi.getMyOffers({
+          type,
+          page,
+        });
+
+        if (response?.data?.error === false) {
+          const data = response.data.data;
+          const offersList = data?.data || [];
+
+          if (append) {
+            setOffers((prev) => [...prev, ...offersList]);
+          } else {
+            setOffers(offersList);
+          }
+
+          setCurrentPage(data?.current_page || 1);
+          setHasMore((data?.current_page || 1) < (data?.last_page || 1));
+
+          // Update counts
+          if (type === "received") {
+            setReceivedCount(data?.total || 0);
+          } else {
+            setSentCount(data?.total || 0);
+          }
         }
+      } catch (error) {
+        console.error("Error fetching offers:", error);
+        toast.error("Greška pri učitavanju ponuda");
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-    } catch (error) {
-      console.error("Error fetching offers:", error);
-      toast.error("Greška pri učitavanju ponuda");
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, [activeTab]);
+    },
+    [activeTab],
+  );
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -775,7 +810,7 @@ const OffersPage = () => {
 
       if (response?.data?.error === false) {
         toast.success(
-          action === "accept" ? "Ponuda je prihvaćena" : "Ponuda je odbijena"
+          action === "accept" ? "Ponuda je prihvaćena" : "Ponuda je odbijena",
         );
         fetchOffers(1, activeTab);
       } else {
@@ -807,7 +842,9 @@ const OffersPage = () => {
         setSelectedOffer(null);
         fetchOffers(1, activeTab);
       } else {
-        toast.error(response?.data?.message || "Greška pri slanju kontra-ponude");
+        toast.error(
+          response?.data?.message || "Greška pri slanju kontra-ponude",
+        );
       }
     } catch (error) {
       console.error("Error sending counter offer:", error);
@@ -831,9 +868,7 @@ const OffersPage = () => {
             <p className="text-slate-500 dark:text-slate-400 mb-6">
               Morate biti prijavljeni da biste vidjeli vaše ponude
             </p>
-            <Button onClick={() => router.push("/login")}>
-              Prijavi se
-            </Button>
+            <Button onClick={() => router.push("/login")}>Prijavi se</Button>
           </div>
         </div>
       </Layout>
@@ -875,7 +910,12 @@ const OffersPage = () => {
 
         {/* Content */}
         {isLoading ? (
-          <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="space-y-4"
+          >
             {[...Array(4)].map((_, i) => (
               <OfferCardSkeleton key={i} />
             ))}

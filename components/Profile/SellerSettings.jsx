@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,12 +22,39 @@ import {
   updatePhoneNumber,
 } from "firebase/auth";
 
-
 import {
-  AlertCircle, Calendar, Camera, ChevronDown, Clock, Download, Eye, Globe, Mail,
-  MessageCircle, Phone, RefreshCw, Save, Shield, Sparkles, Store, Users, Zap,
-  CheckCircle2, Link as LinkIcon, Video, Music, QrCode, Copy, Loader2, Plane,
-  Star, LayoutGrid, Settings2, Truck, RotateCcw, User,
+  AlertCircle,
+  Calendar,
+  Camera,
+  ChevronDown,
+  Clock,
+  Download,
+  Eye,
+  Globe,
+  Mail,
+  MessageCircle,
+  Phone,
+  RefreshCw,
+  Save,
+  Shield,
+  Sparkles,
+  Store,
+  Users,
+  Zap,
+  CheckCircle2,
+  Link as LinkIcon,
+  Video,
+  Music,
+  QrCode,
+  Copy,
+  Loader2,
+  Plane,
+  Star,
+  LayoutGrid,
+  Settings2,
+  Truck,
+  RotateCcw,
+  User,
 } from "@/components/Common/UnifiedIconPack";
 
 import { Switch } from "@/components/ui/switch";
@@ -55,7 +88,12 @@ import {
   normalizeSellerSettingsWithEngine,
   SELLER_CARD_PREFERENCES_DEFAULTS,
 } from "@/lib/seller-settings-engine";
-import { PROMO_BENEFITS, PROMO_HEADLINE, PROMO_SUBHEAD, isPromoFreeAccessEnabled } from "@/lib/promoMode";
+import {
+  PROMO_BENEFITS,
+  PROMO_HEADLINE,
+  PROMO_SUBHEAD,
+  isPromoFreeAccessEnabled,
+} from "@/lib/promoMode";
 import {
   getOtpApi,
   verifyOtpApi,
@@ -64,15 +102,12 @@ import {
   getVerificationStatusApi,
   membershipApi,
 } from "@/utils/api";
-import {
-  userSignUpData,
-  userUpdateData,
-} from "@/redux/reducer/authSlice";
+import { userSignUpData, userUpdateData } from "@/redux/reducer/authSlice";
 import MembershipBadge from "@/components/Common/MembershipBadge";
 import PlanGateLabel from "@/components/Common/PlanGateLabel";
 import CustomLink from "@/components/Common/CustomLink";
 import LmxAvatarGenerator from "@/components/Avatar/LmxAvatarGenerator";
-import { MinimalSellerCard } from "@/components/PagesComponent/Seller/MinimalSellerCard";
+import ProductSellerDetailCard from "@/components/PagesComponent/ProductDetail/ProductSellerDetailCard";
 import SellerDetailCard from "@/components/PagesComponent/Seller/SellerDetailCard";
 import { handleFirebaseAuthError } from "@/utils";
 import { resolveAvatarUrl } from "@/utils/avatar";
@@ -93,18 +128,43 @@ import {
 // ============================================
 const VerificationBadge = ({ status }) => {
   const config = {
-    approved: { color: "bg-green-100 text-green-700 border-green-200", label: "Verificiran" },
-    pending: { color: "bg-amber-100 text-amber-700 border-amber-200", label: "Na čekanju" },
-    submitted: { color: "bg-amber-100 text-amber-700 border-amber-200", label: "Na čekanju" },
-    resubmitted: { color: "bg-amber-100 text-amber-700 border-amber-200", label: "Na pregledu" },
-    rejected: { color: "bg-red-100 text-red-700 border-red-200", label: "Odbijeno" },
-    "not applied": { color: "bg-slate-100 text-slate-600 border-slate-200", label: "Nije verificiran" },
+    approved: {
+      color: "bg-green-100 text-green-700 border-green-200",
+      label: "Verificiran",
+    },
+    pending: {
+      color: "bg-amber-100 text-amber-700 border-amber-200",
+      label: "Na čekanju",
+    },
+    submitted: {
+      color: "bg-amber-100 text-amber-700 border-amber-200",
+      label: "Na čekanju",
+    },
+    resubmitted: {
+      color: "bg-amber-100 text-amber-700 border-amber-200",
+      label: "Na pregledu",
+    },
+    rejected: {
+      color: "bg-red-100 text-red-700 border-red-200",
+      label: "Odbijeno",
+    },
+    "not applied": {
+      color: "bg-slate-100 text-slate-600 border-slate-200",
+      label: "Nije verificiran",
+    },
   };
-  const key = String(status || "").trim().toLowerCase();
-const c = config[key] || config["not applied"];
+  const key = String(status || "")
+    .trim()
+    .toLowerCase();
+  const c = config[key] || config["not applied"];
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-medium rounded-full border", c.color)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-medium rounded-full border",
+        c.color,
+      )}
+    >
       <Shield className="w-3 h-3" />
       {c.label}
     </span>
@@ -114,8 +174,24 @@ const c = config[key] || config["not applied"];
 // ============================================
 // CONSTANTS
 // ============================================
-const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-const DAY_LABEL = { monday: "Pon", tuesday: "Uto", wednesday: "Sri", thursday: "Čet", friday: "Pet", saturday: "Sub", sunday: "Ned" };
+const DAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
+const DAY_LABEL = {
+  monday: "Pon",
+  tuesday: "Uto",
+  wednesday: "Sri",
+  thursday: "Čet",
+  friday: "Pet",
+  saturday: "Sub",
+  sunday: "Ned",
+};
 
 const defaultBusinessHours = {
   monday: { open: "09:00", close: "17:00", enabled: true },
@@ -163,21 +239,43 @@ const toBool = (value, fallback = false) => {
 };
 
 const normalizeBusinessHours = (raw) => {
-  let obj = typeof raw === "string" ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : raw;
+  let obj =
+    typeof raw === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return null;
+          }
+        })()
+      : raw;
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) obj = {};
   const out = {};
   for (const day of DAYS) {
     const base = defaultBusinessHours[day];
     const d = obj?.[day] && typeof obj[day] === "object" ? obj[day] : {};
-    const enabled = d.enabled == null ? base.enabled : toBool(d.enabled, base.enabled);
-    out[day] = { open: d.open || base.open, close: d.close || base.close, enabled };
+    const enabled =
+      d.enabled == null ? base.enabled : toBool(d.enabled, base.enabled);
+    out[day] = {
+      open: d.open || base.open,
+      close: d.close || base.close,
+      enabled,
+    };
   }
   return out;
 };
 
 const normalizeCardPreferences = (raw) => normalizeSellerCardPreferences(raw);
 
-const safeUrl = (u) => { if (!u) return true; try { new URL(u.startsWith("http") ? u : `https://${u}`); return true; } catch { return false; } };
+const safeUrl = (u) => {
+  if (!u) return true;
+  try {
+    new URL(u.startsWith("http") ? u : `https://${u}`);
+    return true;
+  } catch {
+    return false;
+  }
+};
 const normalizePhone = (p) => (p || "").replace(/\s+/g, "").trim();
 const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
 
@@ -226,8 +324,15 @@ const toBoolLoose = (value) => {
 };
 
 const normalizeMembershipTier = (value) => {
-  const tier = String(value || "").trim().toLowerCase();
-  if (tier.includes("shop") || tier.includes("trgovina") || tier.includes("business")) return "shop";
+  const tier = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (
+    tier.includes("shop") ||
+    tier.includes("trgovina") ||
+    tier.includes("business")
+  )
+    return "shop";
   if (tier.includes("pro") || tier.includes("premium")) return "pro";
   return "free";
 };
@@ -255,8 +360,8 @@ const normalizeMembershipSource = (raw) => {
     ...raw,
     tier,
     membership_tier: tier,
-    is_shop: raw?.is_shop ?? raw?.isShop ?? raw?.shop ?? (tier === "shop"),
-    is_pro: raw?.is_pro ?? raw?.isPro ?? raw?.premium ?? (tier === "pro"),
+    is_shop: raw?.is_shop ?? raw?.isShop ?? raw?.shop ?? tier === "shop",
+    is_pro: raw?.is_pro ?? raw?.isPro ?? raw?.premium ?? tier === "pro",
     membership_status:
       raw?.membership_status ??
       raw?.status ??
@@ -281,33 +386,71 @@ const stableStringify = (value) => {
   return JSON.stringify(sorter(value));
 };
 
-const withTimeout = (promise, ms = 15000) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), ms))]);
-const pickFn = (obj, names) => names.map((n) => obj?.[n]).find((v) => typeof v === "function");
+const withTimeout = (promise, ms = 15000) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("TIMEOUT")), ms),
+    ),
+  ]);
+const pickFn = (obj, names) =>
+  names.map((n) => obj?.[n]).find((v) => typeof v === "function");
 
 // ============================================
 // UI COMPONENTS
 // ============================================
-const SettingSection = ({ icon: Icon, title, description, children, defaultOpen = true, badge }) => {
+const SettingSection = ({
+  icon: Icon,
+  title,
+  description,
+  children,
+  defaultOpen = true,
+  badge,
+}) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-      <button type="button" onClick={() => setOpen(!open)} className="w-full px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
+      >
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg"><Icon className="w-4 h-4 text-primary" /></div>
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Icon className="w-4 h-4 text-primary" />
+          </div>
           <div className="text-left">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-              {badge && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">{badge}</span>}
+              {badge && (
+                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">
+                  {badge}
+                </span>
+              )}
             </div>
-            {description && <p className="text-xs text-slate-500">{description}</p>}
+            {description && (
+              <p className="text-xs text-slate-500">{description}</p>
+            )}
           </div>
         </div>
-        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown className="w-4 h-4 text-slate-400" /></motion.div>
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown className="w-4 h-4 text-slate-400" />
+        </motion.div>
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
-            <div className="px-4 pb-4 pt-2 border-t border-slate-100">{children}</div>
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="px-4 pb-4 pt-2 border-t border-slate-100">
+              {children}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -315,29 +458,82 @@ const SettingSection = ({ icon: Icon, title, description, children, defaultOpen 
   );
 };
 
-const ToggleRow = ({ title, description, checked, onCheckedChange, icon: Icon, disabled, gate }) => (
-  <div className={cn("flex items-start justify-between gap-3 p-3 rounded-lg border transition-all", checked ? "border-primary/20 bg-primary/5" : "border-slate-100 bg-slate-50/50", disabled && "opacity-50")}>
+const ToggleRow = ({
+  title,
+  description,
+  checked,
+  onCheckedChange,
+  icon: Icon,
+  disabled,
+  gate,
+}) => (
+  <div
+    className={cn(
+      "flex items-start justify-between gap-3 p-3 rounded-lg border transition-all",
+      checked
+        ? "border-primary/20 bg-primary/5"
+        : "border-slate-100 bg-slate-50/50",
+      disabled && "opacity-50",
+    )}
+  >
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
-        {Icon && <Icon className={cn("w-4 h-4", checked ? "text-primary" : "text-slate-400")} />}
+        {Icon && (
+          <Icon
+            className={cn(
+              "w-4 h-4",
+              checked ? "text-primary" : "text-slate-400",
+            )}
+          />
+        )}
         {title}
         {gate ? gate : null}
       </div>
-      {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+      {description && (
+        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+      )}
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+    <Switch
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      disabled={disabled}
+    />
   </div>
 );
 
-const CompactToggle = ({ title, checked, onCheckedChange, disabled, planScope, unlocked }) => (
-  <div className={cn("flex items-center justify-between gap-2 p-2.5 rounded-lg border transition-all", checked ? "border-primary/20 bg-primary/5" : "border-slate-100 bg-slate-50/50", disabled && "opacity-50")}>
+const CompactToggle = ({
+  title,
+  checked,
+  onCheckedChange,
+  disabled,
+  planScope,
+  unlocked,
+}) => (
+  <div
+    className={cn(
+      "flex items-center justify-between gap-2 p-2.5 rounded-lg border transition-all",
+      checked
+        ? "border-primary/20 bg-primary/5"
+        : "border-slate-100 bg-slate-50/50",
+      disabled && "opacity-50",
+    )}
+  >
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="text-xs font-medium text-slate-700">{title}</span>
       {planScope ? (
-        <PlanGateLabel scope={planScope} unlocked={unlocked} showStatus={false} />
+        <PlanGateLabel
+          scope={planScope}
+          unlocked={unlocked}
+          showStatus={false}
+        />
       ) : null}
     </div>
-    <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} className="scale-90" />
+    <Switch
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      disabled={disabled}
+      className="scale-90"
+    />
   </div>
 );
 
@@ -345,7 +541,10 @@ const CompactToggle = ({ title, checked, onCheckedChange, disabled, planScope, u
 // QR CODE
 // ============================================
 const QRCodeSection = ({ userId, userName }) => {
-  const profileUrl = typeof window !== "undefined" ? `${window.location.origin}/seller/${userId}` : `/seller/${userId}`;
+  const profileUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/seller/${userId}`
+      : `/seller/${userId}`;
   const qrRef = useRef(null);
   const [copied, setCopied] = useState(false);
 
@@ -357,8 +556,10 @@ const QRCodeSection = ({ userId, userName }) => {
     const ctx = canvas.getContext("2d");
     const img = new Image();
     img.onload = () => {
-      canvas.width = img.width * 2; canvas.height = img.height * 2;
-      ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      canvas.width = img.width * 2;
+      canvas.height = img.height * 2;
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
@@ -366,23 +567,63 @@ const QRCodeSection = ({ userId, userName }) => {
       downloadLink.href = pngFile;
       downloadLink.click();
     };
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    img.src =
+      "data:image/svg+xml;base64," +
+      btoa(unescape(encodeURIComponent(svgData)));
   };
 
   const copyLink = async () => {
-    try { await navigator.clipboard.writeText(profileUrl); setCopied(true); toast.success("Link kopiran"); setTimeout(() => setCopied(false), 2000); } catch { toast.error("Greška"); }
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      setCopied(true);
+      toast.success("Link kopiran");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Greška");
+    }
   };
 
   return (
     <div className="flex items-start gap-4">
-      <div ref={qrRef} className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <QRCodeSVG value={profileUrl} size={100} level="H" includeMargin={false} fgColor="#0F172A" />
+      <div
+        ref={qrRef}
+        className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm"
+      >
+        <QRCodeSVG
+          value={profileUrl}
+          size={100}
+          level="H"
+          includeMargin={false}
+          fgColor="#0F172A"
+        />
       </div>
       <div className="flex-1 space-y-2">
-        <p className="text-xs text-slate-600">QR kod za brzi pristup profilu.</p>
+        <p className="text-xs text-slate-600">
+          QR kod za brzi pristup profilu.
+        </p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={downloadQR} className="text-xs h-8"><Download className="w-3 h-3 mr-1" />Preuzmi</Button>
-          <Button variant="outline" size="sm" onClick={copyLink} className="text-xs h-8">{copied ? <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" /> : <Copy className="w-3 h-3 mr-1" />}{copied ? "Kopirano!" : "Link"}</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadQR}
+            className="text-xs h-8"
+          >
+            <Download className="w-3 h-3 mr-1" />
+            Preuzmi
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyLink}
+            className="text-xs h-8"
+          >
+            {copied ? (
+              <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" />
+            ) : (
+              <Copy className="w-3 h-3 mr-1" />
+            )}
+            {copied ? "Kopirano!" : "Link"}
+          </Button>
         </div>
       </div>
     </div>
@@ -393,39 +634,95 @@ const QRCodeSection = ({ userId, userName }) => {
 // CARD PREFERENCES
 // ============================================
 const CardPreferencesSection = ({ cardPreferences, setCardPreferences }) => {
-  const updatePref = (key, value) => setCardPreferences(prev => ({ ...prev, [key]: value }));
+  const updatePref = (key, value) =>
+    setCardPreferences((prev) => ({ ...prev, [key]: value }));
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">Kontroliši šta se prikazuje na tvojoj prodavačkoj kartici.</p>
+      <p className="text-xs text-slate-500">
+        Kontroliši šta se prikazuje na tvojoj prodavačkoj kartici.
+      </p>
       <div className="space-y-2">
         <div className="grid grid-cols-2 gap-2">
-          <CompactToggle title="Ocjene" checked={cardPreferences.show_ratings} onCheckedChange={(v) => updatePref("show_ratings", v)} />
-          <CompactToggle title="Bedževi" checked={cardPreferences.show_badges} onCheckedChange={(v) => updatePref("show_badges", v)} />
-          <CompactToggle title="Član od" checked={cardPreferences.show_member_since} onCheckedChange={(v) => updatePref("show_member_since", v)} />
-          <CompactToggle title="Vrijeme odg." checked={cardPreferences.show_response_time} onCheckedChange={(v) => updatePref("show_response_time", v)} />
-          <CompactToggle title="Online status" checked={cardPreferences.show_online_status} onCheckedChange={(v) => updatePref("show_online_status", v)} />
-          <CompactToggle title="Reel indikator" checked={cardPreferences.show_reel_hint} onCheckedChange={(v) => updatePref("show_reel_hint", v)} />
-          <CompactToggle title="Istakni kontakt" checked={cardPreferences.highlight_contact_button} onCheckedChange={(v) => updatePref("highlight_contact_button", v)} />
-          <CompactToggle title="Radno vrijeme" checked={cardPreferences.show_business_hours} onCheckedChange={(v) => updatePref("show_business_hours", v)} />
-          <CompactToggle title="Info dostave" checked={cardPreferences.show_shipping_info} onCheckedChange={(v) => updatePref("show_shipping_info", v)} />
-          <CompactToggle title="Politika povrata" checked={cardPreferences.show_return_policy} onCheckedChange={(v) => updatePref("show_return_policy", v)} />
+          <CompactToggle
+            title="Ocjene"
+            checked={cardPreferences.show_ratings}
+            onCheckedChange={(v) => updatePref("show_ratings", v)}
+          />
+          <CompactToggle
+            title="Bedževi"
+            checked={cardPreferences.show_badges}
+            onCheckedChange={(v) => updatePref("show_badges", v)}
+          />
+          <CompactToggle
+            title="Član od"
+            checked={cardPreferences.show_member_since}
+            onCheckedChange={(v) => updatePref("show_member_since", v)}
+          />
+          <CompactToggle
+            title="Vrijeme odg."
+            checked={cardPreferences.show_response_time}
+            onCheckedChange={(v) => updatePref("show_response_time", v)}
+          />
+          <CompactToggle
+            title="Online status"
+            checked={cardPreferences.show_online_status}
+            onCheckedChange={(v) => updatePref("show_online_status", v)}
+          />
+          <CompactToggle
+            title="Reel indikator"
+            checked={cardPreferences.show_reel_hint}
+            onCheckedChange={(v) => updatePref("show_reel_hint", v)}
+          />
+          <CompactToggle
+            title="Istakni kontakt"
+            checked={cardPreferences.highlight_contact_button}
+            onCheckedChange={(v) => updatePref("highlight_contact_button", v)}
+          />
+          <CompactToggle
+            title="Radno vrijeme"
+            checked={cardPreferences.show_business_hours}
+            onCheckedChange={(v) => updatePref("show_business_hours", v)}
+          />
+          <CompactToggle
+            title="Info dostave"
+            checked={cardPreferences.show_shipping_info}
+            onCheckedChange={(v) => updatePref("show_shipping_info", v)}
+          />
+          <CompactToggle
+            title="Politika povrata"
+            checked={cardPreferences.show_return_policy}
+            onCheckedChange={(v) => updatePref("show_return_policy", v)}
+          />
         </div>
       </div>
       {cardPreferences.show_badges && (
         <div className="p-3 bg-slate-50 rounded-lg space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs text-slate-600">Max bedževa</Label>
-            <span className="text-xs font-semibold text-slate-900">{cardPreferences.max_badges}</span>
+            <span className="text-xs font-semibold text-slate-900">
+              {cardPreferences.max_badges}
+            </span>
           </div>
-          <Slider value={[cardPreferences.max_badges]} onValueChange={([v]) => updatePref("max_badges", v)} min={1} max={5} step={1} className="w-full" />
+          <Slider
+            value={[cardPreferences.max_badges]}
+            onValueChange={([v]) => updatePref("max_badges", v)}
+            min={1}
+            max={5}
+            step={1}
+            className="w-full"
+          />
         </div>
       )}
     </div>
   );
 };
 
-const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop }) => {
+const BuyerFiltersSection = ({
+  cardPreferences,
+  setCardPreferences,
+  isProOrShop,
+}) => {
   const updatePref = (key, value) =>
     setCardPreferences((prev) => ({ ...prev, [key]: value }));
 
@@ -435,12 +732,14 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
     <div className="space-y-4">
       <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-slate-700">Premium pristup filterima</p>
+          <p className="text-xs font-semibold text-slate-700">
+            Premium pristup filterima
+          </p>
           <PlanGateLabel scope="pro_or_shop" unlocked={isProOrShop} />
         </div>
         <p className="text-xs text-slate-600">
-          Ovi filteri se prikazuju kupcima na tvojoj stranici prodavača i aktivni su
-          samo za PRO/SHOP profile.
+          Ovi filteri se prikazuju kupcima na tvojoj stranici prodavača i
+          aktivni su samo za PRO/SHOP profile.
         </p>
       </div>
 
@@ -454,7 +753,13 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
         title="Uključi filtere kupcima"
         description="Kupci mogu filtrirati tvoje oglase direktno na profilu."
         icon={Settings2}
-        gate={<PlanGateLabel scope="pro_or_shop" unlocked={isProOrShop} showStatus={false} />}
+        gate={
+          <PlanGateLabel
+            scope="pro_or_shop"
+            unlocked={isProOrShop}
+            showStatus={false}
+          />
+        }
         checked={filtersEnabled}
         onCheckedChange={(value) => updatePref("enable_buyer_filters", value)}
         disabled={!isProOrShop}
@@ -464,7 +769,9 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
         <CompactToggle
           title="Pretraga"
           checked={cardPreferences.buyer_filters_show_search}
-          onCheckedChange={(value) => updatePref("buyer_filters_show_search", value)}
+          onCheckedChange={(value) =>
+            updatePref("buyer_filters_show_search", value)
+          }
           disabled={!isProOrShop || !filtersEnabled}
           planScope="pro_or_shop"
           unlocked={isProOrShop}
@@ -472,7 +779,9 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
         <CompactToggle
           title="Raspon cijene"
           checked={cardPreferences.buyer_filters_show_price}
-          onCheckedChange={(value) => updatePref("buyer_filters_show_price", value)}
+          onCheckedChange={(value) =>
+            updatePref("buyer_filters_show_price", value)
+          }
           disabled={!isProOrShop || !filtersEnabled}
           planScope="pro_or_shop"
           unlocked={isProOrShop}
@@ -480,7 +789,9 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
         <CompactToggle
           title="Samo sa videom"
           checked={cardPreferences.buyer_filters_show_video}
-          onCheckedChange={(value) => updatePref("buyer_filters_show_video", value)}
+          onCheckedChange={(value) =>
+            updatePref("buyer_filters_show_video", value)
+          }
           disabled={!isProOrShop || !filtersEnabled}
           planScope="pro_or_shop"
           unlocked={isProOrShop}
@@ -488,7 +799,9 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
         <CompactToggle
           title="Samo akcija"
           checked={cardPreferences.buyer_filters_show_on_sale}
-          onCheckedChange={(value) => updatePref("buyer_filters_show_on_sale", value)}
+          onCheckedChange={(value) =>
+            updatePref("buyer_filters_show_on_sale", value)
+          }
           disabled={!isProOrShop || !filtersEnabled}
           planScope="pro_or_shop"
           unlocked={isProOrShop}
@@ -496,7 +809,9 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
         <CompactToggle
           title="Samo izdvojeni"
           checked={cardPreferences.buyer_filters_show_featured}
-          onCheckedChange={(value) => updatePref("buyer_filters_show_featured", value)}
+          onCheckedChange={(value) =>
+            updatePref("buyer_filters_show_featured", value)
+          }
           disabled={!isProOrShop || !filtersEnabled}
           planScope="pro_or_shop"
           unlocked={isProOrShop}
@@ -509,29 +824,50 @@ const BuyerFiltersSection = ({ cardPreferences, setCardPreferences, isProOrShop 
 // ============================================
 // PREVIEW PANEL
 // ============================================
-const PreviewPanel = ({
-  previewSeller, previewSettings, businessHours, businessDescription,
-  shippingInfo, returnPolicy, responseTime, vacationMode, vacationMessage,
-  socialFacebook, socialInstagram, socialWebsite, verificationStatus, cardPreferences, membershipTier,
-}) => {
+const PreviewPanel = ({ previewSeller, previewSettings, membershipTier }) => {
   const [activeTab, setActiveTab] = useState("card");
-  const membership = useMemo(() => resolveMembership({ tier: membershipTier }), [membershipTier]);
+  const membership = useMemo(
+    () => resolveMembership({ tier: membershipTier }),
+    [membershipTier],
+  );
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 bg-primary/10 rounded-lg"><Eye className="w-4 h-4 text-primary" /></div>
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Eye className="w-4 h-4 text-primary" />
+          </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Pregled uživo</h3>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Pregled uživo
+            </h3>
             <p className="text-xs text-slate-500">Promjene se vide odmah</p>
           </div>
         </div>
         <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
-          <button type="button" onClick={() => setActiveTab("card")} className={cn("flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all", activeTab === "card" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("card")}
+            className={cn(
+              "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              activeTab === "card"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700",
+            )}
+          >
             Kartica
           </button>
-          <button type="button" onClick={() => setActiveTab("extended")} className={cn("flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all", activeTab === "extended" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("extended")}
+            className={cn(
+              "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              activeTab === "extended"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700",
+            )}
+          >
             Profil prodavača
           </button>
         </div>
@@ -540,20 +876,32 @@ const PreviewPanel = ({
       <div className="p-4">
         <AnimatePresence mode="wait">
           {activeTab === "card" ? (
-            <motion.div key="card" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.15 }}>
-              <MinimalSellerCard
+            <motion.div
+              key="card"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.15 }}
+            >
+              <ProductSellerDetailCard
                 seller={previewSeller}
                 sellerSettings={previewSettings}
                 badges={[]}
                 isPro={membership.isPro}
                 isShop={membership.isShop}
-                showProfileLink={false}
                 onChatClick={() => toast.message("Ovo je samo prikaz.")}
+                onPhoneReveal={() => toast.message("Ovo je samo prikaz.")}
                 onPhoneClick={() => toast.message("Ovo je samo prikaz.")}
               />
             </motion.div>
           ) : (
-            <motion.div key="extended" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.15 }}>
+            <motion.div
+              key="extended"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+            >
               <SellerDetailCard
                 seller={previewSeller}
                 sellerSettings={previewSettings}
@@ -578,7 +926,9 @@ const PreviewPanel = ({
 const SellerSettings = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(userSignUpData);
-  const authToken = useSelector((state) => state?.UserSignup?.data?.token || "");
+  const authToken = useSelector(
+    (state) => state?.UserSignup?.data?.token || "",
+  );
   const otpServiceProvider = useSelector(getOtpServiceProvider);
   const auth = useMemo(() => getAuth(), []);
   const isMountedRef = useRef(true);
@@ -589,14 +939,19 @@ const SellerSettings = () => {
         currentUser,
         currentUser?.membership,
         membershipContext,
-        membershipContext?.membership
+        membershipContext?.membership,
       ),
-    [currentUser, membershipContext]
+    [currentUser, membershipContext],
   );
   const isPromoMode = isPromoFreeAccessEnabled();
   const isProOrShop = resolvedMembership.isPremium || isPromoMode;
-  
-  useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -622,8 +977,10 @@ const SellerSettings = () => {
   const [phoneOtpTimer, setPhoneOtpTimer] = useState(0);
   const [phoneOtpSending, setPhoneOtpSending] = useState(false);
   const [phoneOtpVerifying, setPhoneOtpVerifying] = useState(false);
-  const [emailVerificationSending, setEmailVerificationSending] = useState(false);
-  const [emailVerificationRefreshing, setEmailVerificationRefreshing] = useState(false);
+  const [emailVerificationSending, setEmailVerificationSending] =
+    useState(false);
+  const [emailVerificationRefreshing, setEmailVerificationRefreshing] =
+    useState(false);
 
   const phoneCountryOptions = useMemo(
     () =>
@@ -661,11 +1018,15 @@ const SellerSettings = () => {
 
   // Auto reply
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
-  const [autoReplyMessage, setAutoReplyMessage] = useState("Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.");
+  const [autoReplyMessage, setAutoReplyMessage] = useState(
+    "Hvala na poruci! Odgovorit ću vam u najkraćem mogućem roku.",
+  );
 
   // Vacation
   const [vacationMode, setVacationMode] = useState(false);
-  const [vacationMessage, setVacationMessage] = useState("Trenutno sam na odmoru.");
+  const [vacationMessage, setVacationMessage] = useState(
+    "Trenutno sam na odmoru.",
+  );
   const [vacationStartDate, setVacationStartDate] = useState("");
   const [vacationEndDate, setVacationEndDate] = useState("");
   const [vacationAutoActivate, setVacationAutoActivate] = useState(false);
@@ -683,10 +1044,12 @@ const SellerSettings = () => {
   const [socialWebsite, setSocialWebsite] = useState("");
 
   // Card Preferences
-  const [cardPreferences, setCardPreferences] = useState(defaultCardPreferences);
+  const [cardPreferences, setCardPreferences] = useState(
+    defaultCardPreferences,
+  );
   const normalizedCardPreferences = useMemo(
     () => normalizeCardPreferences(cardPreferences),
-    [cardPreferences]
+    [cardPreferences],
   );
 
   const [initialPayloadStr, setInitialPayloadStr] = useState(null);
@@ -712,7 +1075,9 @@ const SellerSettings = () => {
 
   useEffect(() => {
     const dialFromProfile = digitsOnly(currentUser?.country_code);
-    const iso2FromRegion = resolveLmxPhoneCountry(currentUser?.region_code || "");
+    const iso2FromRegion = resolveLmxPhoneCountry(
+      currentUser?.region_code || "",
+    );
     const resolvedIso2 = dialFromProfile
       ? resolveIso2FromDialCode(dialFromProfile)
       : iso2FromRegion || "ba";
@@ -721,7 +1086,8 @@ const SellerSettings = () => {
     );
     const localNumber = stripCountryCodePrefix(currentUser?.mobile, dialCode);
     const normalizedRegion = (
-      PHONE_COUNTRY_META[resolvedIso2]?.region || String(resolvedIso2 || "BA").toUpperCase()
+      PHONE_COUNTRY_META[resolvedIso2]?.region ||
+      String(resolvedIso2 || "BA").toUpperCase()
     ).toUpperCase();
 
     setPhoneCountryCode(dialCode);
@@ -785,7 +1151,11 @@ const SellerSettings = () => {
     [firebaseIdentity?.emailVerified, backendEmailVerified, hasEmailIdentity],
   );
   const registeredViaPhone = useMemo(() => {
-    if (providerIds.has("phone") && !providerIds.has("password") && !providerIds.has("google.com")) {
+    if (
+      providerIds.has("phone") &&
+      !providerIds.has("password") &&
+      !providerIds.has("google.com")
+    ) {
       return true;
     }
     if (!currentUser?.email && Boolean(currentUser?.mobile)) {
@@ -812,7 +1182,9 @@ const SellerSettings = () => {
   }, [phoneCountryCode, phoneCountryOptions, phoneRegionCode]);
   const selectedPhoneCountryOption = useMemo(
     () =>
-      phoneCountryOptions.find((option) => option.iso2 === selectedPhoneCountryIso2) ||
+      phoneCountryOptions.find(
+        (option) => option.iso2 === selectedPhoneCountryIso2,
+      ) ||
       phoneCountryOptions.find((option) => option.iso2 === "ba") ||
       null,
     [phoneCountryOptions, selectedPhoneCountryIso2],
@@ -881,7 +1253,10 @@ const SellerSettings = () => {
     const response = await getOtpApi.getOtp({
       number: phoneE164,
       intent: "profile_verification",
-      mobile: stripCountryCodePrefix(phoneLocalNumber, digitsOnly(phoneCountryCode)),
+      mobile: stripCountryCodePrefix(
+        phoneLocalNumber,
+        digitsOnly(phoneCountryCode),
+      ),
       country_code: digitsOnly(phoneCountryCode),
       region_code: String(phoneRegionCode || "").toUpperCase(),
     });
@@ -968,7 +1343,10 @@ const SellerSettings = () => {
     const trimmedOtp = String(phoneOtp || "").trim();
     const phoneE164 = toE164Phone(phoneCountryCode, phoneLocalNumber);
     const normalizedCountryCode = digitsOnly(phoneCountryCode);
-    const normalizedLocalNumber = stripCountryCodePrefix(phoneLocalNumber, normalizedCountryCode);
+    const normalizedLocalNumber = stripCountryCodePrefix(
+      phoneLocalNumber,
+      normalizedCountryCode,
+    );
 
     if (!trimmedOtp || trimmedOtp.length < 4) {
       toast.error("Unesite važeći OTP kod.");
@@ -992,7 +1370,9 @@ const SellerSettings = () => {
         });
 
         if (verifyResponse?.data?.error !== false) {
-          toast.error(verifyResponse?.data?.message || "OTP verifikacija nije uspjela.");
+          toast.error(
+            verifyResponse?.data?.message || "OTP verifikacija nije uspjela.",
+          );
           return;
         }
 
@@ -1004,7 +1384,10 @@ const SellerSettings = () => {
         });
 
         if (syncResponse?.data?.error !== false) {
-          toast.error(syncResponse?.data?.message || "Broj je potvrđen, ali spremanje nije uspjelo.");
+          toast.error(
+            syncResponse?.data?.message ||
+              "Broj je potvrđen, ali spremanje nije uspjelo.",
+          );
           return;
         }
 
@@ -1020,7 +1403,10 @@ const SellerSettings = () => {
           return;
         }
 
-        const credential = PhoneAuthProvider.credential(phoneVerificationId, trimmedOtp);
+        const credential = PhoneAuthProvider.credential(
+          phoneVerificationId,
+          trimmedOtp,
+        );
         const alreadyLinkedPhone = firebaseUser.providerData?.some(
           (provider) => provider?.providerId === "phone",
         );
@@ -1041,7 +1427,10 @@ const SellerSettings = () => {
         });
 
         if (syncResponse?.data?.error !== false) {
-          toast.error(syncResponse?.data?.message || "Broj je potvrđen, ali spremanje nije uspjelo.");
+          toast.error(
+            syncResponse?.data?.message ||
+              "Broj je potvrđen, ali spremanje nije uspjelo.",
+          );
           return;
         }
       }
@@ -1055,7 +1444,9 @@ const SellerSettings = () => {
       toast.success("Broj telefona je uspješno verificiran.");
     } catch (error) {
       if (otpServiceProvider === "twilio") {
-        toast.error(error?.response?.data?.message || "OTP verifikacija nije uspjela.");
+        toast.error(
+          error?.response?.data?.message || "OTP verifikacija nije uspjela.",
+        );
       } else {
         handleFirebaseAuthError(error);
       }
@@ -1109,7 +1500,9 @@ const SellerSettings = () => {
         });
         toast.success("E-mail adresa je potvrđena.");
       } else {
-        toast.info("E-mail još nije potvrđen. Otvorite link iz poruke i pokušajte ponovo.");
+        toast.info(
+          "E-mail još nije potvrđen. Otvorite link iz poruke i pokušajte ponovo.",
+        );
       }
     } catch (error) {
       handleFirebaseAuthError(error);
@@ -1177,7 +1570,7 @@ const SellerSettings = () => {
       socialYoutube,
       socialWebsite,
       normalizedCardPreferences,
-    ]
+    ],
   );
 
   const hasChanges = useMemo(() => {
@@ -1187,11 +1580,20 @@ const SellerSettings = () => {
 
   const errors = useMemo(() => {
     const e = {};
-    if (showWhatsapp && whatsappNumber && normalizePhone(whatsappNumber).length < 6) e.whatsappNumber = "Unesite validan broj.";
-    if (showViber && viberNumber && normalizePhone(viberNumber).length < 6) e.viberNumber = "Unesite validan broj.";
-    if (socialFacebook && !safeUrl(socialFacebook)) e.socialFacebook = "Neispravan link.";
-    if (socialInstagram && !safeUrl(socialInstagram)) e.socialInstagram = "Neispravan link.";
-    if (socialWebsite && !safeUrl(socialWebsite)) e.socialWebsite = "Neispravan link.";
+    if (
+      showWhatsapp &&
+      whatsappNumber &&
+      normalizePhone(whatsappNumber).length < 6
+    )
+      e.whatsappNumber = "Unesite validan broj.";
+    if (showViber && viberNumber && normalizePhone(viberNumber).length < 6)
+      e.viberNumber = "Unesite validan broj.";
+    if (socialFacebook && !safeUrl(socialFacebook))
+      e.socialFacebook = "Neispravan link.";
+    if (socialInstagram && !safeUrl(socialInstagram))
+      e.socialInstagram = "Neispravan link.";
+    if (socialWebsite && !safeUrl(socialWebsite))
+      e.socialWebsite = "Neispravan link.";
     return e;
   }, [
     showWhatsapp,
@@ -1208,45 +1610,56 @@ const SellerSettings = () => {
   const normalizeVerificationStatus = (res) => {
     // axios response ili već "data" objekat
     const payload = res?.data ?? res;
-  
+
     // backend kod tebe koristi error=true kad nije aplicirano
     if (payload?.error === true) return "not applied";
-  
+
     // podrži oba formata:
     // 1) payload.status
     // 2) payload.data.status (kao u tvom logu)
     // 3) payload.data.data.status (neki drugi backendi)
     const raw =
-      payload?.status ??
-      payload?.data?.status ??
-      payload?.data?.data?.status;
-  
-    const s = String(raw || "").trim().toLowerCase();
-  
-    if (["approved", "pending", "submitted", "resubmitted", "rejected"].includes(s)) return s;
-  
+      payload?.status ?? payload?.data?.status ?? payload?.data?.data?.status;
+
+    const s = String(raw || "")
+      .trim()
+      .toLowerCase();
+
+    if (
+      ["approved", "pending", "submitted", "resubmitted", "rejected"].includes(
+        s,
+      )
+    )
+      return s;
+
     return "not applied";
   };
-  
-  
 
   const fetchSettings = useCallback(async () => {
     const getFn = pickFn(sellerSettingsApi, ["getSettings", "get"]);
-    if (!getFn) { setIsLoading(false); setLoadError("API nije dostupan."); return; }
+    if (!getFn) {
+      setIsLoading(false);
+      setLoadError("API nije dostupan.");
+      return;
+    }
 
     try {
-      setIsLoading(true); setLoadError("");
-      
+      setIsLoading(true);
+      setLoadError("");
+
       // Fetch both settings and verification status
       const [response, verificationRes, membershipRes] = await Promise.all([
         withTimeout(getFn(), 15000),
-        getVerificationStatusApi.getVerificationStatus().catch(() => ({ error: true })),
+        getVerificationStatusApi
+          .getVerificationStatus()
+          .catch(() => ({ error: true })),
         membershipApi.getUserMembership({}).catch(() => null),
       ]);
-      
+
       setVerificationStatus(normalizeVerificationStatus(verificationRes));
 
-      const membershipPayload = membershipRes?.data?.data || membershipRes?.data || null;
+      const membershipPayload =
+        membershipRes?.data?.data || membershipRes?.data || null;
       const settingsPayload = response?.data?.data || null;
       const normalizedMembership =
         normalizeMembershipSource(membershipPayload) ||
@@ -1255,11 +1668,11 @@ const SellerSettings = () => {
       if (normalizedMembership && isMountedRef.current) {
         setMembershipContext(normalizedMembership);
       }
-      
 
-      
-      
-      if (response?.data?.error !== false || !response?.data?.data) { setLoadError(response?.data?.message || "Greška."); return; }
+      if (response?.data?.error !== false || !response?.data?.data) {
+        setLoadError(response?.data?.message || "Greška.");
+        return;
+      }
 
       const s = normalizeSellerSettingsWithEngine(response.data.data);
       setSelectedAvatarId(s.avatar_id || "");
@@ -1322,8 +1735,8 @@ const SellerSettings = () => {
             social_website: s.social_website || "",
             card_preferences: normalizedPrefs,
             settings_version: s.settings_version,
-          })
-        )
+          }),
+        ),
       );
     } catch (err) {
       console.error(err);
@@ -1333,15 +1746,23 @@ const SellerSettings = () => {
     }
   }, []);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleSave = async () => {
     setSubmitAttempted(true);
-    if (!isValid) { toast.error("Ispravite greške."); return; }
+    if (!isValid) {
+      toast.error("Ispravite greške.");
+      return;
+    }
     if (!hasChanges) return;
 
     const updateFn = pickFn(sellerSettingsApi, ["updateSettings", "update"]);
-    if (!updateFn) { toast.error("API nije dostupan."); return; }
+    if (!updateFn) {
+      toast.error("API nije dostupan.");
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -1376,12 +1797,19 @@ const SellerSettings = () => {
     setIsAvatarUploading(true);
 
     try {
-      const response = await withTimeout(updateProfileApi.updateProfile({
-        profile: fileOrBlob, name: currentUser?.name, mobile: currentUser?.mobile,
-        email: currentUser?.email, notification: currentUser?.notification ?? 0,
-        show_personal_details: currentUser?.show_personal_details ?? 0, country_code: currentUser?.country_code,
-        auth_token: authToken || undefined,
-      }), 20000);
+      const response = await withTimeout(
+        updateProfileApi.updateProfile({
+          profile: fileOrBlob,
+          name: currentUser?.name,
+          mobile: currentUser?.mobile,
+          email: currentUser?.email,
+          notification: currentUser?.notification ?? 0,
+          show_personal_details: currentUser?.show_personal_details ?? 0,
+          country_code: currentUser?.country_code,
+          auth_token: authToken || undefined,
+        }),
+        20000,
+      );
 
       if (response?.data?.error === false) {
         toast.success("Slika ažurirana!");
@@ -1396,13 +1824,22 @@ const SellerSettings = () => {
       toast.error("Greška pri uploadu.");
     } finally {
       setIsAvatarUploading(false);
-      try { URL.revokeObjectURL(objectUrl); } catch {}
+      try {
+        URL.revokeObjectURL(objectUrl);
+      } catch {}
     }
   };
 
-  const handleFileUpload = (e) => { const file = e.target.files?.[0]; if (file) updateProfileImage(file); };
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) updateProfileImage(file);
+  };
 
-  const setDay = (day, patch) => setBusinessHours((prev) => ({ ...prev, [day]: { ...prev[day], ...patch } }));
+  const setDay = (day, patch) =>
+    setBusinessHours((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], ...patch },
+    }));
 
   // Loading
   if (isLoading) {
@@ -1422,8 +1859,14 @@ const SellerSettings = () => {
           <div className="flex-1">
             <p className="text-sm font-medium text-red-800">Greška</p>
             <p className="text-xs text-red-600 mt-1">{loadError}</p>
-            <Button variant="outline" size="sm" onClick={fetchSettings} className="mt-3 text-xs">
-              <RefreshCw className="w-3 h-3 mr-1" />Ponovo
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchSettings}
+              className="mt-3 text-xs"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Ponovo
             </Button>
           </div>
         </div>
@@ -1441,13 +1884,22 @@ const SellerSettings = () => {
         currentUser?.avatar,
       ]) || "",
   };
-  const previewSettings = { ...buildPayload(), verification_status: verificationStatus };
-  const verificationProgressCount = (isPhoneVerified ? 1 : 0) + (isEmailVerified ? 1 : 0);
-  const verificationProgressPercent = Math.round((verificationProgressCount / 2) * 100);
+  const previewSettings = {
+    ...buildPayload(),
+    verification_status: verificationStatus,
+  };
+  const verificationProgressCount =
+    (isPhoneVerified ? 1 : 0) + (isEmailVerified ? 1 : 0);
+  const verificationProgressPercent = Math.round(
+    (verificationProgressCount / 2) * 100,
+  );
   const phoneDraftE164 = toE164Phone(phoneCountryCode, phoneLocalNumber);
   const fallbackPhoneE164 = toE164Phone(
     currentUser?.country_code || "387",
-    stripCountryCodePrefix(currentUser?.mobile, currentUser?.country_code || "387"),
+    stripCountryCodePrefix(
+      currentUser?.mobile,
+      currentUser?.country_code || "387",
+    ),
   );
   const resolvedPhoneDisplay =
     firebaseIdentity?.phoneNumber ||
@@ -1456,23 +1908,48 @@ const SellerSettings = () => {
     "Broj nije unesen";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-5"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">Postavke prodavača</h2>
-            <MembershipBadge tier={resolvedMembership.tier} size="xs" uppercase={false} />
+            <h2 className="text-lg font-bold text-slate-900">
+              Postavke prodavača
+            </h2>
+            <MembershipBadge
+              tier={resolvedMembership.tier}
+              size="xs"
+              uppercase={false}
+            />
             <VerificationBadge status={verificationStatus} />
           </div>
           <p className="text-sm text-slate-500">Kako te kupci vide</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset} disabled={isSaving}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1" />Poništi
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            disabled={isSaving}
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1" />
+            Poništi
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isSaving || !hasChanges || !isValid} className="bg-primary">
-            {isSaving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving || !hasChanges || !isValid}
+            className="bg-primary"
+          >
+            {isSaving ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5 mr-1" />
+            )}
             Sačuvaj
           </Button>
         </div>
@@ -1492,7 +1969,8 @@ const SellerSettings = () => {
             Potrebna je dodatna verifikacija
           </AlertTitle>
           <AlertDescription className="text-amber-800/95 dark:text-amber-200/90">
-            Za puni nivo povjerenja potvrdi: {missingVerificationChannels.join(" i ")}.
+            Za puni nivo povjerenja potvrdi:{" "}
+            {missingVerificationChannels.join(" i ")}.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -1506,26 +1984,58 @@ const SellerSettings = () => {
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
                   {previewImage ? (
-                    <img src={previewImage} alt="Profil" className="w-full h-full object-cover" />
+                    <img
+                      src={previewImage}
+                      alt="Profil"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <User className="h-8 w-8 text-slate-400" />
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isAvatarUploading}>
-                    <Camera className="w-3.5 h-3.5 mr-1" />Učitaj
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isAvatarUploading}
+                  >
+                    <Camera className="w-3.5 h-3.5 mr-1" />
+                    Učitaj
                   </Button>
-                  <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                  <Dialog
+                    open={isAvatarModalOpen}
+                    onOpenChange={setIsAvatarModalOpen}
+                  >
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" disabled={isAvatarUploading}><Sparkles className="w-3.5 h-3.5 mr-1" />Studio</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isAvatarUploading}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 mr-1" />
+                        Studio
+                      </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none">
                       <DialogHeader className="sr-only">
                         <DialogTitle>Avatar studio</DialogTitle>
-                        <DialogDescription>Kreiranje profilne slike u avatar studiju.</DialogDescription>
+                        <DialogDescription>
+                          Kreiranje profilne slike u avatar studiju.
+                        </DialogDescription>
                       </DialogHeader>
-                      <LmxAvatarGenerator onSave={updateProfileImage} onCancel={() => setIsAvatarModalOpen(false)} isSaving={isAvatarUploading} />
+                      <LmxAvatarGenerator
+                        onSave={updateProfileImage}
+                        onCancel={() => setIsAvatarModalOpen(false)}
+                        isSaving={isAvatarUploading}
+                      />
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -1567,24 +2077,42 @@ const SellerSettings = () => {
 
                 <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
-                    <Phone className={cn("h-3.5 w-3.5", isPhoneVerified ? "text-emerald-500" : "text-slate-400")} />
-                    <span className="font-medium text-slate-700 dark:text-slate-200">Telefon</span>
+                    <Phone
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        isPhoneVerified ? "text-emerald-500" : "text-slate-400",
+                      )}
+                    />
+                    <span className="font-medium text-slate-700 dark:text-slate-200">
+                      Telefon
+                    </span>
                     <span
                       className={cn(
                         "ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                        isPhoneVerified ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+                        isPhoneVerified
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
                       )}
                     >
                       {isPhoneVerified ? "Verificiran" : "Čeka potvrdu"}
                     </span>
                   </div>
                   <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900/70">
-                    <Mail className={cn("h-3.5 w-3.5", isEmailVerified ? "text-emerald-500" : "text-slate-400")} />
-                    <span className="font-medium text-slate-700 dark:text-slate-200">E-mail</span>
+                    <Mail
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        isEmailVerified ? "text-emerald-500" : "text-slate-400",
+                      )}
+                    />
+                    <span className="font-medium text-slate-700 dark:text-slate-200">
+                      E-mail
+                    </span>
                     <span
                       className={cn(
                         "ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                        isEmailVerified ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+                        isEmailVerified
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
                       )}
                     >
                       {isEmailVerified ? "Verificiran" : "Čeka potvrdu"}
@@ -1599,7 +2127,8 @@ const SellerSettings = () => {
                 </p>
 
                 <div className="mt-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
-                  Vidljivost broja telefona podešavaš u sekciji <span className="font-semibold">Kontakt opcije</span>.
+                  Vidljivost broja telefona podešavaš u sekciji{" "}
+                  <span className="font-semibold">Kontakt opcije</span>.
                 </div>
               </div>
 
@@ -1611,8 +2140,12 @@ const SellerSettings = () => {
                         <Phone className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Verifikacija broja telefona</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">OTP potvrda u jednom koraku</p>
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          Verifikacija broja telefona
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          OTP potvrda u jednom koraku
+                        </p>
                       </div>
                     </div>
                     <span
@@ -1641,7 +2174,10 @@ const SellerSettings = () => {
                         Broj je potvrđen
                       </div>
                       <p className="mt-1 text-xs text-emerald-700/90 dark:text-emerald-200/90">
-                        Trenutno povezan broj: <span className="font-semibold">{resolvedPhoneDisplay}</span>
+                        Trenutno povezan broj:{" "}
+                        <span className="font-semibold">
+                          {resolvedPhoneDisplay}
+                        </span>
                       </p>
                     </div>
                   ) : (
@@ -1662,10 +2198,15 @@ const SellerSettings = () => {
                             <SelectTrigger className="h-10 text-sm">
                               {selectedPhoneCountryOption ? (
                                 <span className="inline-flex min-w-0 items-center gap-2">
-                                  <span className="shrink-0 text-base" aria-hidden>
+                                  <span
+                                    className="shrink-0 text-base"
+                                    aria-hidden
+                                  >
                                     {selectedPhoneCountryOption.flag}
                                   </span>
-                                  <span className="truncate">{selectedPhoneCountryOption.label}</span>
+                                  <span className="truncate">
+                                    {selectedPhoneCountryOption.label}
+                                  </span>
                                   <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
                                     +{selectedPhoneCountryOption.dialCode}
                                   </span>
@@ -1676,7 +2217,10 @@ const SellerSettings = () => {
                             </SelectTrigger>
                             <SelectContent>
                               {phoneCountryOptions.map((option) => (
-                                <SelectItem key={option.iso2} value={option.iso2}>
+                                <SelectItem
+                                  key={option.iso2}
+                                  value={option.iso2}
+                                >
                                   <span className="inline-flex items-center gap-2">
                                     <span className="text-base" aria-hidden>
                                       {option.flag}
@@ -1697,7 +2241,9 @@ const SellerSettings = () => {
                           </Label>
                           <Input
                             value={phoneLocalNumber}
-                            onChange={(e) => setPhoneLocalNumber(digitsOnly(e.target.value))}
+                            onChange={(e) =>
+                              setPhoneLocalNumber(digitsOnly(e.target.value))
+                            }
                             className="h-10 text-sm"
                             placeholder=""
                             inputMode="numeric"
@@ -1781,8 +2327,12 @@ const SellerSettings = () => {
                         <Mail className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Verifikacija e-mail adrese</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Link potvrda + osvježenje statusa</p>
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          Verifikacija e-mail adrese
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Link potvrda + osvježenje statusa
+                        </p>
                       </div>
                     </div>
                     <span
@@ -1808,7 +2358,8 @@ const SellerSettings = () => {
 
                       {isEmailVerified ? (
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
-                          E-mail adresa je potvrđena i spremna za sigurnosne akcije.
+                          E-mail adresa je potvrđena i spremna za sigurnosne
+                          akcije.
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-2">
@@ -1844,7 +2395,8 @@ const SellerSettings = () => {
                     </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-3 py-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
-                      Nema povezane e-mail adrese na aktivnoj sesiji. Dodaj e-mail u osnovnim podacima pa pokreni verifikaciju.
+                      Nema povezane e-mail adrese na aktivnoj sesiji. Dodaj
+                      e-mail u osnovnim podacima pa pokreni verifikaciju.
                     </div>
                   )}
                 </div>
@@ -1855,8 +2407,16 @@ const SellerSettings = () => {
           </SettingSection>
 
           {/* Card Preferences - NEW */}
-          <SettingSection icon={LayoutGrid} title="Prikaz kartice" description="Šta se prikazuje kupcima" badge="NOVO">
-            <CardPreferencesSection cardPreferences={cardPreferences} setCardPreferences={setCardPreferences} />
+          <SettingSection
+            icon={LayoutGrid}
+            title="Prikaz kartice"
+            description="Šta se prikazuje kupcima"
+            badge="NOVO"
+          >
+            <CardPreferencesSection
+              cardPreferences={cardPreferences}
+              setCardPreferences={setCardPreferences}
+            />
           </SettingSection>
 
           <SettingSection
@@ -1880,13 +2440,19 @@ const SellerSettings = () => {
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
-                <span className="text-xs font-medium text-slate-600">Trenutni paket</span>
+                <span className="text-xs font-medium text-slate-600">
+                  Trenutni paket
+                </span>
                 {isPromoMode ? (
                   <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
                     Promo: sve otključano
                   </span>
                 ) : (
-                  <MembershipBadge tier={resolvedMembership.tier} size="sm" uppercase={false} />
+                  <MembershipBadge
+                    tier={resolvedMembership.tier}
+                    size="sm"
+                    uppercase={false}
+                  />
                 )}
               </div>
 
@@ -1910,7 +2476,9 @@ const SellerSettings = () => {
               </div>
 
               <p className="text-xs text-slate-500">
-                U promotivnom režimu svi alati su dostupni bez ograničenja. Iskoristite naprednu statistiku, zalihe, filtere i operativne opcije bez dodatnih troškova.
+                U promotivnom režimu svi alati su dostupni bez ograničenja.
+                Iskoristite naprednu statistiku, zalihe, filtere i operativne
+                opcije bez dodatnih troškova.
               </p>
             </div>
           </SettingSection>
@@ -1919,15 +2487,33 @@ const SellerSettings = () => {
           <SettingSection icon={Phone} title="Kontakt opcije">
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <CompactToggle title="Prikaži broj telefona" checked={showPhone} onCheckedChange={setShowPhone} />
-                <CompactToggle title="Email" checked={showEmail} onCheckedChange={setShowEmail} />
-                <CompactToggle title="WhatsApp" checked={showWhatsapp} onCheckedChange={setShowWhatsapp} />
-                <CompactToggle title="Viber" checked={showViber} onCheckedChange={setShowViber} />
+                <CompactToggle
+                  title="Prikaži broj telefona"
+                  checked={showPhone}
+                  onCheckedChange={setShowPhone}
+                />
+                <CompactToggle
+                  title="Email"
+                  checked={showEmail}
+                  onCheckedChange={setShowEmail}
+                />
+                <CompactToggle
+                  title="WhatsApp"
+                  checked={showWhatsapp}
+                  onCheckedChange={setShowWhatsapp}
+                />
+                <CompactToggle
+                  title="Viber"
+                  checked={showViber}
+                  onCheckedChange={setShowViber}
+                />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <CompactToggle
                   title="Broj samo uz prijavu"
-                  checked={normalizedCardPreferences.phone_visible_only_to_logged_in}
+                  checked={
+                    normalizedCardPreferences.phone_visible_only_to_logged_in
+                  }
                   onCheckedChange={(value) =>
                     setCardPreferences((prev) => ({
                       ...prev,
@@ -1949,7 +2535,9 @@ const SellerSettings = () => {
               <div className="grid grid-cols-1 gap-2">
                 <CompactToggle
                   title="Dozvoli javna pitanja"
-                  checked={normalizedCardPreferences.allow_public_questions_contact}
+                  checked={
+                    normalizedCardPreferences.allow_public_questions_contact
+                  }
                   onCheckedChange={(value) =>
                     setCardPreferences((prev) => ({
                       ...prev,
@@ -1970,12 +2558,14 @@ const SellerSettings = () => {
               )}
               {normalizedCardPreferences.messages_only_contact && (
                 <p className="text-xs text-sky-600 dark:text-sky-400">
-                  Aktivan je režim "Samo poruke". Pozivi, WhatsApp i Viber su skriveni.
+                  Aktivan je režim "Samo poruke". Pozivi, WhatsApp i Viber su
+                  skriveni.
                 </p>
               )}
               {!normalizedCardPreferences.allow_public_questions_contact && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Javna pitanja su isključena. Kupci će vidjeti poruku da trenutno ne primaš pitanja.
+                  Javna pitanja su isključena. Kupci će vidjeti poruku da
+                  trenutno ne primaš pitanja.
                 </p>
               )}
               <div className="grid grid-cols-1 gap-2 pt-1">
@@ -1998,7 +2588,9 @@ const SellerSettings = () => {
                       <Input
                         type="time"
                         className="h-9 text-sm"
-                        value={normalizedCardPreferences.quiet_hours_start || "22:00"}
+                        value={
+                          normalizedCardPreferences.quiet_hours_start || "22:00"
+                        }
                         onChange={(e) =>
                           setCardPreferences((prev) => ({
                             ...prev,
@@ -2012,7 +2604,9 @@ const SellerSettings = () => {
                       <Input
                         type="time"
                         className="h-9 text-sm"
-                        value={normalizedCardPreferences.quiet_hours_end || "08:00"}
+                        value={
+                          normalizedCardPreferences.quiet_hours_end || "08:00"
+                        }
                         onChange={(e) =>
                           setCardPreferences((prev) => ({
                             ...prev,
@@ -2023,10 +2617,14 @@ const SellerSettings = () => {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Auto poruka za quiet hours</Label>
+                    <Label className="text-xs">
+                      Auto poruka za quiet hours
+                    </Label>
                     <Textarea
                       className="min-h-[56px] text-sm"
-                      value={normalizedCardPreferences.quiet_hours_message || ""}
+                      value={
+                        normalizedCardPreferences.quiet_hours_message || ""
+                      }
                       onChange={(e) =>
                         setCardPreferences((prev) => ({
                           ...prev,
@@ -2043,13 +2641,33 @@ const SellerSettings = () => {
                   {showWhatsapp && (
                     <div className="space-y-1">
                       <Label className="text-xs">WhatsApp</Label>
-                      <Input className={cn("h-9 text-sm", submitAttempted && errors.whatsappNumber && "border-red-300")} placeholder="+387..." value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
+                      <Input
+                        className={cn(
+                          "h-9 text-sm",
+                          submitAttempted &&
+                            errors.whatsappNumber &&
+                            "border-red-300",
+                        )}
+                        placeholder="+387..."
+                        value={whatsappNumber}
+                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                      />
                     </div>
                   )}
                   {showViber && (
                     <div className="space-y-1">
                       <Label className="text-xs">Viber</Label>
-                      <Input className={cn("h-9 text-sm", submitAttempted && errors.viberNumber && "border-red-300")} placeholder="+387..." value={viberNumber} onChange={(e) => setViberNumber(e.target.value)} />
+                      <Input
+                        className={cn(
+                          "h-9 text-sm",
+                          submitAttempted &&
+                            errors.viberNumber &&
+                            "border-red-300",
+                        )}
+                        placeholder="+387..."
+                        value={viberNumber}
+                        onChange={(e) => setViberNumber(e.target.value)}
+                      />
                     </div>
                   )}
                 </div>
@@ -2061,34 +2679,84 @@ const SellerSettings = () => {
           <SettingSection icon={Zap} title="Dostupnost" defaultOpen={false}>
             <div className="space-y-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-2 block">Vrijeme odgovora</Label>
+                <Label className="text-xs text-slate-600 mb-2 block">
+                  Vrijeme odgovora
+                </Label>
                 <div className="flex gap-1">
                   {responseTimeOptions.map((o) => (
-                    <button key={o.value} type="button" onClick={() => setResponseTime(o.value)} className={cn("px-2.5 py-1 rounded text-xs font-medium transition-all", responseTime === o.value ? "bg-primary text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setResponseTime(o.value)}
+                      className={cn(
+                        "px-2.5 py-1 rounded text-xs font-medium transition-all",
+                        responseTime === o.value
+                          ? "bg-primary text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      )}
+                    >
                       {o.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <ToggleRow title="Primam ponude" description="Kupci mogu slati cjenovne ponude" icon={Shield} checked={acceptsOffers} onCheckedChange={setAcceptsOffers} />
+              <ToggleRow
+                title="Primam ponude"
+                description="Kupci mogu slati cjenovne ponude"
+                icon={Shield}
+                checked={acceptsOffers}
+                onCheckedChange={setAcceptsOffers}
+              />
             </div>
           </SettingSection>
 
           {/* Business Hours */}
-          <SettingSection icon={Clock} title="Radno vrijeme" defaultOpen={false}>
+          <SettingSection
+            icon={Clock}
+            title="Radno vrijeme"
+            defaultOpen={false}
+          >
             <div className="space-y-2">
               {DAYS.map((day) => (
-                <div key={day} className={cn("rounded-lg border p-2.5 transition-all", businessHours?.[day]?.enabled ? "border-primary/20 bg-primary/5" : "border-slate-100 bg-slate-50")}>
+                <div
+                  key={day}
+                  className={cn(
+                    "rounded-lg border p-2.5 transition-all",
+                    businessHours?.[day]?.enabled
+                      ? "border-primary/20 bg-primary/5"
+                      : "border-slate-100 bg-slate-50",
+                  )}
+                >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Switch checked={businessHours?.[day]?.enabled} onCheckedChange={(v) => setDay(day, { enabled: v })} className="scale-90" />
-                      <span className="text-sm font-medium text-slate-900 w-12">{DAY_LABEL[day]}</span>
+                      <Switch
+                        checked={businessHours?.[day]?.enabled}
+                        onCheckedChange={(v) => setDay(day, { enabled: v })}
+                        className="scale-90"
+                      />
+                      <span className="text-sm font-medium text-slate-900 w-12">
+                        {DAY_LABEL[day]}
+                      </span>
                     </div>
                     {businessHours?.[day]?.enabled && (
                       <div className="flex items-center gap-1.5">
-                        <Input type="time" className="h-7 w-20 text-xs" value={businessHours?.[day]?.open || "09:00"} onChange={(e) => setDay(day, { open: e.target.value })} />
+                        <Input
+                          type="time"
+                          className="h-7 w-20 text-xs"
+                          value={businessHours?.[day]?.open || "09:00"}
+                          onChange={(e) =>
+                            setDay(day, { open: e.target.value })
+                          }
+                        />
                         <span className="text-slate-400 text-xs">-</span>
-                        <Input type="time" className="h-7 w-20 text-xs" value={businessHours?.[day]?.close || "17:00"} onChange={(e) => setDay(day, { close: e.target.value })} />
+                        <Input
+                          type="time"
+                          className="h-7 w-20 text-xs"
+                          value={businessHours?.[day]?.close || "17:00"}
+                          onChange={(e) =>
+                            setDay(day, { close: e.target.value })
+                          }
+                        />
                       </div>
                     )}
                   </div>
@@ -2102,15 +2770,30 @@ const SellerSettings = () => {
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label className="text-xs">O meni</Label>
-                <Textarea className="min-h-[60px] text-sm" placeholder="Ko si, šta prodaješ..." value={businessDescription} onChange={(e) => setBusinessDescription(e.target.value)} />
+                <Textarea
+                  className="min-h-[60px] text-sm"
+                  placeholder="Ko si, šta prodaješ..."
+                  value={businessDescription}
+                  onChange={(e) => setBusinessDescription(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Dostava</Label>
-                <Textarea className="min-h-[50px] text-sm" placeholder="Način slanja, rokovi..." value={shippingInfo} onChange={(e) => setShippingInfo(e.target.value)} />
+                <Textarea
+                  className="min-h-[50px] text-sm"
+                  placeholder="Način slanja, rokovi..."
+                  value={shippingInfo}
+                  onChange={(e) => setShippingInfo(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Povrat</Label>
-                <Textarea className="min-h-[50px] text-sm" placeholder="Uslovi povrata..." value={returnPolicy} onChange={(e) => setReturnPolicy(e.target.value)} />
+                <Textarea
+                  className="min-h-[50px] text-sm"
+                  placeholder="Uslovi povrata..."
+                  value={returnPolicy}
+                  onChange={(e) => setReturnPolicy(e.target.value)}
+                />
               </div>
             </div>
           </SettingSection>
@@ -2118,10 +2801,20 @@ const SellerSettings = () => {
           {/* Vacation */}
           <SettingSection icon={Plane} title="Odmor" defaultOpen={false}>
             <div className="space-y-3">
-              <ToggleRow title="Aktiviraj odmor" description="Kupci vide da nisi dostupan" icon={Plane} checked={vacationMode} onCheckedChange={setVacationMode} />
+              <ToggleRow
+                title="Aktiviraj odmor"
+                description="Kupci vide da nisi dostupan"
+                icon={Plane}
+                checked={vacationMode}
+                onCheckedChange={setVacationMode}
+              />
               <div className="space-y-1">
                 <Label className="text-xs">Poruka</Label>
-                <Textarea className="min-h-[50px] text-sm" value={vacationMessage} onChange={(e) => setVacationMessage(e.target.value)} />
+                <Textarea
+                  className="min-h-[50px] text-sm"
+                  value={vacationMessage}
+                  onChange={(e) => setVacationMessage(e.target.value)}
+                />
               </div>
             </div>
           </SettingSection>
@@ -2130,23 +2823,50 @@ const SellerSettings = () => {
           <SettingSection icon={Globe} title="Mreže" defaultOpen={false}>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1"><Users className="w-3 h-3" />Facebook</Label>
-                <Input className="h-9 text-sm" value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="facebook.com/..." />
+                <Label className="text-xs flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  Facebook
+                </Label>
+                <Input
+                  className="h-9 text-sm"
+                  value={socialFacebook}
+                  onChange={(e) => setSocialFacebook(e.target.value)}
+                  placeholder="facebook.com/..."
+                />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1"><Camera className="w-3 h-3" />Instagram</Label>
-                <Input className="h-9 text-sm" value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="instagram.com/..." />
+                <Label className="text-xs flex items-center gap-1">
+                  <Camera className="w-3 h-3" />
+                  Instagram
+                </Label>
+                <Input
+                  className="h-9 text-sm"
+                  value={socialInstagram}
+                  onChange={(e) => setSocialInstagram(e.target.value)}
+                  placeholder="instagram.com/..."
+                />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label className="text-xs flex items-center gap-1"><LinkIcon className="w-3 h-3" />Web</Label>
-                <Input className="h-9 text-sm" value={socialWebsite} onChange={(e) => setSocialWebsite(e.target.value)} placeholder="https://..." />
+                <Label className="text-xs flex items-center gap-1">
+                  <LinkIcon className="w-3 h-3" />
+                  Web
+                </Label>
+                <Input
+                  className="h-9 text-sm"
+                  value={socialWebsite}
+                  onChange={(e) => setSocialWebsite(e.target.value)}
+                  placeholder="https://..."
+                />
               </div>
             </div>
           </SettingSection>
 
           {/* QR */}
           <SettingSection icon={QrCode} title="QR kod" defaultOpen={false}>
-            <QRCodeSection userId={currentUser?.id} userName={currentUser?.name} />
+            <QRCodeSection
+              userId={currentUser?.id}
+              userName={currentUser?.name}
+            />
           </SettingSection>
         </div>
 
@@ -2155,18 +2875,6 @@ const SellerSettings = () => {
           <PreviewPanel
             previewSeller={previewSeller}
             previewSettings={previewSettings}
-            businessHours={businessHours}
-            businessDescription={businessDescription}
-            shippingInfo={shippingInfo}
-            returnPolicy={returnPolicy}
-            responseTime={responseTime}
-            vacationMode={vacationMode}
-            vacationMessage={vacationMessage}
-            socialFacebook={socialFacebook}
-            socialInstagram={socialInstagram}
-            socialWebsite={socialWebsite}
-            verificationStatus={verificationStatus}
-            cardPreferences={normalizedCardPreferences}
             membershipTier={resolvedMembership.tier}
           />
 
@@ -2175,11 +2883,22 @@ const SellerSettings = () => {
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
               <div>
-                <h4 className="text-sm font-semibold text-slate-900">Savjeti</h4>
+                <h4 className="text-sm font-semibold text-slate-900">
+                  Savjeti
+                </h4>
                 <ul className="text-xs text-slate-600 mt-2 space-y-1">
-                  <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />Brzi odgovori = 3x više prodaje</li>
-                  <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />Dobra slika = 50% više upita</li>
-                  <li className="flex items-start gap-1.5"><CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />Više kontakt opcija = bolje</li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />
+                    Brzi odgovori = 3x više prodaje
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />
+                    Dobra slika = 50% više upita
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3 h-3 text-primary mt-0.5" />
+                    Više kontakt opcija = bolje
+                  </li>
                 </ul>
               </div>
             </div>

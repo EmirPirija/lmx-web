@@ -58,6 +58,7 @@ const QuestionItem = ({ question, isSeller, currentUserId, onAnswer, onLike, onD
             <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <UserAvatarMedia
                 sources={[question.user?.profile, question.user?.profile_image, question.user?.avatar]}
+              verificationSource={question.user}
                 alt={question.user?.name || "Korisnik"}
                 className="w-full h-full"
                 imageClassName="w-full h-full object-cover"
@@ -376,6 +377,7 @@ const ProductQuestions = ({
             <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <UserAvatarMedia
                 sources={[currentUser?.profile, currentUser?.profile_image, currentUser?.avatar]}
+              verificationSource={currentUser}
                 alt="Vi"
                 className="w-full h-full"
                 imageClassName="w-full h-full object-cover"

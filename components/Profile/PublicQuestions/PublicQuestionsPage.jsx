@@ -10,7 +10,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { userSignUpData } from "@/redux/reducer/authSlice";
 import { itemQuestionsApi, itemStatisticsApi } from "@/utils/api";
 import { cn } from "@/lib/utils";
-import { resolveAvatarUrl } from "@/utils/avatar";
+import UserAvatarMedia from "@/components/Common/UserAvatar";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,10 +44,13 @@ import {
   IoImageOutline,
   IoStorefrontOutline,
   IoAlertCircleOutline,
-  User,
 } from "@/components/Common/UnifiedIconPack";
-import { MdVerified } from "@/components/Common/UnifiedIconPack";
-import { Loader2, MessageSquare, Package, ExternalLink } from "@/components/Common/UnifiedIconPack";
+import {
+  Loader2,
+  MessageSquare,
+  Package,
+  ExternalLink,
+} from "@/components/Common/UnifiedIconPack";
 
 // ============================================
 // HELPERS
@@ -79,52 +82,26 @@ const formatDate = (dateString) => {
 const UserAvatar = ({
   customAvatarUrl,
   sources,
-  avatarId,
   size = 36,
   className = "",
-  showVerified,
-  verifiedSize = 10,
+  verificationSource = null,
+  verificationSources = [],
 }) => {
-  const [imgErr, setImgErr] = useState(false);
-  const resolvedAvatarUrl = resolveAvatarUrl([
-    customAvatarUrl,
-    ...(Array.isArray(sources) ? sources : []),
-  ]);
-  const showImg = Boolean(resolvedAvatarUrl) && !imgErr;
-
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <div
+      <UserAvatarMedia
+        sources={[customAvatarUrl, ...(Array.isArray(sources) ? sources : [])]}
+        verificationSource={verificationSource}
+        verificationSources={verificationSources}
+        alt="Avatar"
+        size={size}
         className={cn(
-          "w-full h-full rounded-full overflow-hidden relative bg-gray-100 shadow-sm border-2 border-slate-200",
-          className
+          "w-full h-full rounded-full relative bg-gray-100 shadow-sm border-2 border-slate-200",
+          className,
         )}
-      >
-        {showImg ? (
-          <img
-            src={resolvedAvatarUrl}
-            alt="Avatar"
-            className="w-full h-full object-cover"
-            onError={() => setImgErr(true)}
-          />
-        ) : (
-          <div className="w-full h-full bg-white flex items-center justify-center text-primary">
-            <User className="h-[52%] w-[52%] text-primary/70" />
-          </div>
-        )}
-      </div>
-
-      {showVerified && (
-        <div
-          className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white"
-          style={{
-            width: Math.max(14, Math.round(size * 0.33)),
-            height: Math.max(14, Math.round(size * 0.33)),
-          }}
-        >
-          <MdVerified className="text-white" size={verifiedSize} />
-        </div>
-      )}
+        roundedClassName="rounded-full"
+        imageClassName="w-full h-full object-cover"
+      />
     </div>
   );
 };
@@ -132,7 +109,14 @@ const UserAvatar = ({
 // ============================================
 // STATS CARD
 // ============================================
-const StatsCard = ({ icon: Icon, value, label, color = "primary", onClick, isActive }) => {
+const StatsCard = ({
+  icon: Icon,
+  value,
+  label,
+  color = "primary",
+  onClick,
+  isActive,
+}) => {
   const colors = {
     primary: "text-primary bg-primary/10 border-primary/20",
     amber: "text-amber-600 bg-amber-50 border-amber-200",
@@ -144,10 +128,17 @@ const StatsCard = ({ icon: Icon, value, label, color = "primary", onClick, isAct
       onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all duration-200",
-        isActive ? colors[color] : "bg-slate-50 border-slate-200 hover:border-slate-300"
+        isActive
+          ? colors[color]
+          : "bg-slate-50 border-slate-200 hover:border-slate-300",
       )}
     >
-      <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", colors[color])}>
+      <div
+        className={cn(
+          "w-10 h-10 rounded-lg flex items-center justify-center",
+          colors[color],
+        )}
+      >
         <Icon size={20} />
       </div>
       <span className="text-2xl font-bold text-slate-900">{value}</span>
@@ -159,7 +150,12 @@ const StatsCard = ({ icon: Icon, value, label, color = "primary", onClick, isAct
 // ============================================
 // QUESTION CARD COMPONENT
 // ============================================
-const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) => {
+const QuestionCard = ({
+  question,
+  onAnswer,
+  isAnswering,
+  currentAnsweringId,
+}) => {
   const [showAnswerForm, setShowAnswerForm] = useState(false);
   const [answer, setAnswer] = useState("");
   const isUnanswered = !question.answer;
@@ -183,7 +179,7 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
       exit={{ opacity: 0, y: -20 }}
       className={cn(
         "bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-200",
-        isUnanswered ? "border-amber-200 bg-amber-50/30" : "border-slate-200"
+        isUnanswered ? "border-amber-200 bg-amber-50/30" : "border-slate-200",
       )}
     >
       {/* Header - Oglas info */}
@@ -217,10 +213,12 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
                     "ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium",
                     question.item.status === "approved"
                       ? "bg-green-100 text-green-700"
-                      : "bg-slate-100 text-slate-600"
+                      : "bg-slate-100 text-slate-600",
                   )}
                 >
-                  {question.item.status === "approved" ? "Aktivan" : question.item.status}
+                  {question.item.status === "approved"
+                    ? "Aktivan"
+                    : question.item.status}
                 </span>
               )}
             </p>
@@ -248,16 +246,13 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
         <div className="flex items-start gap-3">
           <UserAvatar
             customAvatarUrl={question.user?.profile}
-            sources={[question.user?.profile_image, question.user?.avatar, question.user?.image]}
-            avatarId=""
+            sources={[
+              question.user?.profile_image,
+              question.user?.avatar,
+              question.user?.image,
+            ]}
             size={40}
-            showVerified={
-              question.user?.is_verified === true ||
-              question.user?.verified === true ||
-              Number(question.user?.is_verified) === 1 ||
-              Number(question.user?.verified) === 1
-            }
-            verifiedSize={10}
+            verificationSource={question.user}
           />
 
           <div className="flex-1 min-w-0">
@@ -266,9 +261,13 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
                 {question.user?.name || "Korisnik"}
               </span>
               <span className="text-xs text-slate-400">·</span>
-              <span className="text-xs text-slate-400">{formatDate(question.created_at)}</span>
+              <span className="text-xs text-slate-400">
+                {formatDate(question.created_at)}
+              </span>
             </div>
-            <p className="mt-1.5 text-sm text-slate-700 leading-relaxed">{question.question}</p>
+            <p className="mt-1.5 text-sm text-slate-700 leading-relaxed">
+              {question.question}
+            </p>
           </div>
         </div>
 
@@ -277,8 +276,12 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
           <div className="mt-4 pl-4 border-l-2 border-green-300 bg-green-50/50 rounded-r-lg p-3">
             <div className="flex items-center gap-2 mb-2">
               <IoCheckmarkCircleOutline className="text-green-600" size={16} />
-              <span className="text-xs font-semibold text-green-700">Vaš odgovor</span>
-              <span className="text-xs text-slate-400">· {formatDate(question.answered_at)}</span>
+              <span className="text-xs font-semibold text-green-700">
+                Vaš odgovor
+              </span>
+              <span className="text-xs text-slate-400">
+                · {formatDate(question.answered_at)}
+              </span>
             </div>
             <p className="text-sm text-slate-700">{question.answer}</p>
           </div>
@@ -292,7 +295,9 @@ const QuestionCard = ({ question, onAnswer, isAnswering, currentAnsweringId }) =
               disabled={isCurrentlyAnswering}
             />
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">{answer.length}/1000 karaktera</span>
+              <span className="text-xs text-slate-400">
+                {answer.length}/1000 karaktera
+              </span>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -351,7 +356,8 @@ const EmptyState = ({ filter }) => {
   const messages = {
     all: {
       title: "Nemate pitanja",
-      description: "Kada neko postavi pitanje na vaše oglase, pojavit će se ovdje.",
+      description:
+        "Kada neko postavi pitanje na vaše oglase, pojavit će se ovdje.",
       icon: IoHelpCircleOutline,
     },
     unanswered: {
@@ -452,7 +458,9 @@ const PublicQuestionsPage = () => {
           }
 
           setStats({
-            total: (response.data.unanswered_count || 0) + (response.data.answered_count || 0),
+            total:
+              (response.data.unanswered_count || 0) +
+              (response.data.answered_count || 0),
             unanswered: response.data.unanswered_count || 0,
             answered: response.data.answered_count || 0,
           });
@@ -468,7 +476,7 @@ const PublicQuestionsPage = () => {
         setIsRefreshing(false);
       }
     },
-    [userData?.id, filter]
+    [userData?.id, filter],
   );
 
   // Initial fetch
@@ -495,9 +503,13 @@ const PublicQuestionsPage = () => {
         setQuestions((prev) =>
           prev.map((q) =>
             q.id === questionId
-              ? { ...q, answer: answerText, answered_at: new Date().toISOString() }
-              : q
-          )
+              ? {
+                  ...q,
+                  answer: answerText,
+                  answered_at: new Date().toISOString(),
+                }
+              : q,
+          ),
         );
         // Update stats
         setStats((prev) => ({
@@ -542,7 +554,7 @@ const PublicQuestionsPage = () => {
         onClick={() => setFilter("all")}
         className={cn(
           "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-          filter === "all" ? "bg-primary/10 text-primary" : "hover:bg-slate-50"
+          filter === "all" ? "bg-primary/10 text-primary" : "hover:bg-slate-50",
         )}
       >
         <IoHelpCircleOutline size={20} />
@@ -553,7 +565,9 @@ const PublicQuestionsPage = () => {
         onClick={() => setFilter("unanswered")}
         className={cn(
           "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-          filter === "unanswered" ? "bg-amber-100 text-amber-700" : "hover:bg-slate-50"
+          filter === "unanswered"
+            ? "bg-amber-100 text-amber-700"
+            : "hover:bg-slate-50",
         )}
       >
         <IoTimeOutline size={20} />
@@ -564,7 +578,9 @@ const PublicQuestionsPage = () => {
         onClick={() => setFilter("answered")}
         className={cn(
           "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-          filter === "answered" ? "bg-green-100 text-green-700" : "hover:bg-slate-50"
+          filter === "answered"
+            ? "bg-green-100 text-green-700"
+            : "hover:bg-slate-50",
         )}
       >
         <IoCheckmarkCircleOutline size={20} />
@@ -579,7 +595,9 @@ const PublicQuestionsPage = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Javna pitanja</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+            Javna pitanja
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             Upravljajte pitanjima sa vaših oglasa
           </p>
@@ -693,11 +711,7 @@ const PublicQuestionsPage = () => {
       {/* Load More */}
       {hasMore && questions.length > 0 && !isLoading && (
         <div className="flex justify-center pt-4">
-          <Button
-            variant="outline"
-            onClick={handleLoadMore}
-            className="gap-2"
-          >
+          <Button variant="outline" onClick={handleLoadMore} className="gap-2">
             Učitaj više
             <IoChevronForward size={16} />
           </Button>
