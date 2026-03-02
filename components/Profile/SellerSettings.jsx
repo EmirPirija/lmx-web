@@ -1129,6 +1129,10 @@ const SellerSettings = () => {
     () => new Set(firebaseIdentity?.providerIds || []),
     [firebaseIdentity?.providerIds],
   );
+  const isGoogleOnlyIdentity = useMemo(
+    () => providerIds.has("google.com") && !providerIds.has("password"),
+    [providerIds],
+  );
   const hasPhoneProvider = useMemo(
     () => providerIds.has("phone") || Boolean(firebaseIdentity?.phoneNumber),
     [providerIds, firebaseIdentity?.phoneNumber],
@@ -2355,6 +2359,14 @@ const SellerSettings = () => {
                           {firebaseIdentity?.email || currentUser?.email}
                         </span>
                       </div>
+
+                      {isGoogleOnlyIdentity ? (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+                          Ovaj nalog koristi Google prijavu. E-mail se mijenja
+                          na Google nalogu, pa ovdje nije moguće ručno
+                          uređivanje.
+                        </div>
+                      ) : null}
 
                       {isEmailVerified ? (
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">

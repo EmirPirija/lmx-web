@@ -26,6 +26,7 @@ import SellerSkeleton from "./SellerSkeleton";
 import { getSellerApi, gamificationApi } from "@/utils/api";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 import { resolveMembership } from "@/lib/membership";
+import { resolveSellerDisplayName } from "@/lib/seller-settings-engine";
 import { cn } from "@/lib/utils";
 
 // ============================================
@@ -243,6 +244,14 @@ const Seller = ({ id, searchParams }) => {
     () => tabs.find((tab) => tab.key === activeTab) || tabs[0],
     [tabs, activeTab],
   );
+  const sellerDisplayName = useMemo(
+    () =>
+      resolveSellerDisplayName({
+        seller,
+        settings: sellerSettings || {},
+      }),
+    [seller, sellerSettings],
+  );
   const ActiveTabIcon = activeTabMeta?.icon || Package;
 
   const preventSheetAutoFocusScroll = useCallback((event) => {
@@ -285,7 +294,7 @@ const Seller = ({ id, searchParams }) => {
         <SellerSkeleton steps={activeTab} />
       ) : (
         <>
-          <BreadCrumb title2={seller?.name} />
+          <BreadCrumb title2={sellerDisplayName || seller?.name} />
 
           <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
             <div className="mx-auto w-full max-w-[1680px] space-y-6 px-3 py-5 sm:px-4 sm:py-7">

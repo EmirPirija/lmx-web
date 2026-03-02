@@ -30,6 +30,7 @@ import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
 import {
   normalizeSellerCardPreferences,
   resolveSellerContactEngine,
+  resolveSellerDisplayName,
 } from "@/lib/seller-settings-engine";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
@@ -211,14 +212,14 @@ const ContactModal = ({
     settings,
     isLoggedIn,
   });
-  const { contactPolicy, phoneContact, channels } = contactEngine;
+  const { contactPolicy, phoneContact, channels, whatsappNumber, viberNumber } =
+    contactEngine;
   const showPhone = channels.call;
   const showWhatsapp = channels.whatsapp;
   const showViber = channels.viber;
   const showEmail = channels.email;
-  const phone = phoneContact.phone;
-  const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
-  const viberNumber = settings?.viber_number || seller?.mobile;
+  const phoneRaw = phoneContact.phone;
+  const phoneDisplay = phoneContact.formattedPhone || phoneRaw;
   const email = seller?.email;
 
   return (
@@ -256,18 +257,18 @@ const ContactModal = ({
           {showPhone && (
             <div className="flex items-center gap-1.5">
               <a
-                href={`tel:${phone}`}
+                href={`tel:${phoneRaw}`}
                 onClick={() => onPhoneCall?.()}
                 className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
               >
                 <Phone className="w-4 h-4 text-emerald-500" />
                 <span className="text-slate-700 dark:text-slate-200">
-                  {phone}
+                  {phoneDisplay}
                 </span>
               </a>
               <button
                 type="button"
-                onClick={() => copy("phone", phone)}
+                onClick={() => copy("phone", phoneRaw)}
                 className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 {copiedKey === "phone" ? (
@@ -371,10 +372,11 @@ const ContactModal = ({
    SEND MESSAGE MODAL
 ===================================================== */
 
-const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
+const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
   const isLoggedIn = useSelector(getIsLoggedIn);
+  const sellerDisplayName = resolveSellerDisplayName({ seller, settings });
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -485,14 +487,14 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
               <UserAvatarMedia
                 src={resolveSellerAvatar(seller)}
                 verificationSource={seller}
-                alt={seller?.name || "Prodavač"}
+                alt={sellerDisplayName || "Prodavač"}
                 className="w-8 h-8 rounded-lg"
                 roundedClassName="rounded-lg"
                 imageClassName="w-full h-full object-cover"
               />
             </div>
             <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              {seller?.name}
+              {sellerDisplayName}
             </span>
           </div>
           <button
@@ -890,6 +892,10 @@ const ProductSellerDetailCard = ({
 
   // Card preferences from seller settings - parse if string
   const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
+  const sellerDisplayName = useMemo(
+    () => resolveSellerDisplayName({ seller, settings }),
+    [seller, settings],
+  );
   const showRatings = mergedPrefs.show_ratings;
   const showBadges = mergedPrefs.show_badges;
   const showResponseTime = mergedPrefs.show_response_time;
@@ -924,7 +930,7 @@ const ProductSellerDetailCard = ({
     ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
     : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`;
 
-  const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
+  const title = `${sellerDisplayName || "Prodavač"} | ${CompanyName}`;
 
   const responseLabel = showResponseTime
     ? getResponseTimeLabel({
@@ -1061,6 +1067,7 @@ const ProductSellerDetailCard = ({
         open={isMessageOpen}
         onOpenChange={setIsMessageOpen}
         seller={seller}
+        settings={settings}
         itemId={itemId}
       />
 
@@ -1126,7 +1133,7 @@ const ProductSellerDetailCard = ({
                       <UserAvatarMedia
                         src={sellerAvatar}
                         verificationSource={seller}
-                        alt={seller?.name || "Prodavač"}
+                        alt={sellerDisplayName || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"
                         imageClassName="w-full h-full object-cover"
@@ -1173,7 +1180,7 @@ const ProductSellerDetailCard = ({
                     <UserAvatarMedia
                       src={sellerAvatar}
                       verificationSource={seller}
-                      alt={seller?.name || "Prodavač"}
+                      alt={sellerDisplayName || "Prodavač"}
                       className="w-full h-full rounded-xl"
                       roundedClassName="rounded-xl"
                       imageClassName="w-full h-full object-cover"
@@ -1192,14 +1199,14 @@ const ProductSellerDetailCard = ({
                     href={`/seller/${sellerId}`}
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    <span className="truncate">{seller?.name}</span>
+                    <span className="truncate">{sellerDisplayName}</span>
                     {hasMembershipBadge && (
                       <MembershipBadge tier={membershipTier} size="xs" />
                     )}
                   </CustomLink>
                 ) : (
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
-                    <span className="truncate">{seller?.name}</span>
+                    <span className="truncate">{sellerDisplayName}</span>
                     {hasMembershipBadge && (
                       <MembershipBadge tier={membershipTier} size="xs" />
                     )}

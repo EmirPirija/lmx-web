@@ -6,16 +6,12 @@ import useAutoFocus from "../Common/useAutoFocus";
 import { toast } from "@/utils/toastBs";
 import { handleFirebaseAuthError } from "@/utils";
 import {
-  EmailAuthProvider,
-  GoogleAuthProvider,
   browserLocalPersistence,
   browserSessionPersistence,
   fetchSignInMethodsForEmail,
   getAuth,
-  linkWithCredential,
   sendPasswordResetEmail,
   setPersistence,
-  signInWithPopup,
   signOut,
   signInWithEmailAndPassword,
 } from "firebase/auth";
@@ -32,17 +28,6 @@ const RETRYABLE_GATEWAY_STATUSES = new Set([502, 503]);
 const GATEWAY_TIMEOUT_STATUS = 504;
 const GOOGLE_PROVIDER_ID = "google.com";
 const PASSWORD_PROVIDER_ID = "password";
-const GOOGLE_LINK_FALLBACK_CODES = new Set([
-  "auth/invalid-login-credentials",
-  "auth/invalid-credential",
-  "auth/wrong-password",
-  "auth/user-not-found",
-  "auth/account-exists-with-different-credential",
-]);
-const GOOGLE_LINK_CANCEL_CODES = new Set([
-  "auth/popup-closed-by-user",
-  "auth/cancelled-popup-request",
-]);
 const sleep = (ms) =>
   new Promise((resolve) => {
     window.setTimeout(resolve, ms);
@@ -156,66 +141,6 @@ const LoginWithEmailForm = ({
     }
   };
 
-  const linkGoogleAccountWithPassword = async ({
-    email,
-    password,
-    knownSignInMethods,
-    force = false,
-  }) => {
-    const signInMethods = Array.isArray(knownSignInMethods)
-      ? knownSignInMethods
-      : await getSignInMethodsForEmailSafe(email);
-    const hasGoogleMethod = signInMethods.includes(GOOGLE_PROVIDER_ID);
-    const hasPasswordMethod = signInMethods.includes(PASSWORD_PROVIDER_ID);
-
-    if (!force && (!hasGoogleMethod || hasPasswordMethod)) {
-      return null;
-    }
-
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
-
-    const popupResult = await signInWithPopup(auth, provider);
-    const googleUser = popupResult?.user;
-    const googleEmail = String(googleUser?.email || "")
-      .trim()
-      .toLowerCase();
-    const normalizedEmail = String(email || "")
-      .trim()
-      .toLowerCase();
-
-    if (!googleUser || !googleEmail) {
-      const error = new Error("Google prijava nije vratila korisnika.");
-      error.code = "auth/user-not-found";
-      throw error;
-    }
-
-    if (googleEmail !== normalizedEmail) {
-      await signOut(auth).catch(() => {});
-      const mismatchError = new Error(
-        "Google nalog se ne poklapa s unesenim e-mailom.",
-      );
-      mismatchError.code = "auth/google-account-mismatch";
-      throw mismatchError;
-    }
-
-    const emailCredential = EmailAuthProvider.credential(email, password);
-    try {
-      await linkWithCredential(googleUser, emailCredential);
-      toast.success(
-        "Google nalog je povezan s lozinkom. Sljedeći put se možeš prijaviti e-mailom i lozinkom.",
-      );
-    } catch (linkError) {
-      const linkCode = String(linkError?.code || "");
-      const canContinue =
-        linkCode === "auth/provider-already-linked" ||
-        linkCode === "auth/credential-already-in-use";
-      if (!canContinue) throw linkError;
-    }
-
-    return signInWithEmailAndPassword(auth, email, password);
-  };
-
   const syncSessionWithBackend = async (payload) => {
     let lastError = null;
     const maxRetries = 2;
@@ -242,7 +167,7 @@ const LoginWithEmailForm = ({
     const normalizedIdentifier = String(identifier || "").trim();
 
     if (!normalizedIdentifier) {
-      toast.error("Unesite e-mail ili korisničko ime.");
+      toast.error("Unesite korisničko ime ili e-mail.");
       return;
     } else if (!password) {
       toast.error("Lozinka je obavezna");
@@ -262,111 +187,29 @@ const LoginWithEmailForm = ({
       }
       if (!resolvedEmail) {
         toast.error(
-          "Nalog nije pronađen. Provjerite e-mail ili korisničko ime.",
+          "Nalog nije pronađen. Provjerite korisničko ime ili e-mail.",
         );
         return;
       }
 
-      let userCredential = null;
       const signInMethods = await getSignInMethodsForEmailSafe(resolvedEmail);
-      const isGoogleOnlyAccount =
-        signInMethods.includes(GOOGLE_PROVIDER_ID) &&
-        !signInMethods.includes(PASSWORD_PROVIDER_ID);
+      const hasPasswordMethod = signInMethods.includes(PASSWORD_PROVIDER_ID);
+      const hasGoogleMethod = signInMethods.includes(GOOGLE_PROVIDER_ID);
 
-      if (isGoogleOnlyAccount) {
-        try {
-          const linkedCredential = await linkGoogleAccountWithPassword({
-            email: resolvedEmail,
-            password,
-            knownSignInMethods: signInMethods,
-            force: true,
-          });
-          if (linkedCredential?.user) {
-            userCredential = linkedCredential;
-          }
-        } catch (preflightError) {
-          const preflightCode = String(preflightError?.code || "");
-          if (GOOGLE_LINK_CANCEL_CODES.has(preflightCode)) {
-            toast.info(
-              "Za prvu prijavu lozinkom potrebno je jednom potvrditi Google nalog.",
-            );
-            return;
-          }
-          if (preflightCode === "auth/popup-blocked") {
-            toast.error(
-              "Preglednik je blokirao Google prozor. Omogući popup i pokušaj ponovo.",
-            );
-            return;
-          }
-          if (preflightCode === "auth/google-account-mismatch") {
-            toast.error(
-              "Odabran je drugi Google nalog. Odaberi isti nalog kao uneseni e-mail.",
-            );
-            return;
-          }
-          throw preflightError;
+      if (signInMethods.length > 0 && !hasPasswordMethod) {
+        if (hasGoogleMethod) {
+          toast.info(
+            "Ovaj račun koristi Google prijavu. Kliknite na 'Nastavi preko Google naloga'.",
+          );
+        } else {
+          toast.error(
+            "Ovaj račun trenutno ne podržava prijavu lozinkom. Koristite dostupni način prijave.",
+          );
         }
+        return;
       }
 
-      try {
-        if (!userCredential) {
-          userCredential = await signin(resolvedEmail, password);
-        }
-      } catch (signInError) {
-        const code = String(signInError?.code || "");
-        const shouldTryGoogleFallback =
-          GOOGLE_LINK_FALLBACK_CODES.has(code) &&
-          !signInMethods.includes(PASSWORD_PROVIDER_ID);
-
-        if (!shouldTryGoogleFallback || userCredential?.user) {
-          throw signInError;
-        }
-
-        try {
-          const shouldForceGoogleLink =
-            !signInMethods.includes(PASSWORD_PROVIDER_ID) &&
-            (signInMethods.includes(GOOGLE_PROVIDER_ID) ||
-              signInMethods.length === 0);
-
-          const linkedCredential = await linkGoogleAccountWithPassword({
-            email: resolvedEmail,
-            password,
-            knownSignInMethods: signInMethods,
-            force: shouldForceGoogleLink,
-          });
-          if (!linkedCredential?.user) {
-            throw signInError;
-          }
-          userCredential = linkedCredential;
-        } catch (fallbackError) {
-          const fallbackCode = String(fallbackError?.code || "");
-          if (
-            fallbackCode === "auth/account-exists-with-different-credential"
-          ) {
-            throw signInError;
-          }
-          if (GOOGLE_LINK_CANCEL_CODES.has(fallbackCode)) {
-            toast.info(
-              "Za prvu prijavu lozinkom potrebno je jednom potvrditi Google nalog.",
-            );
-            return;
-          }
-          if (fallbackCode === "auth/popup-blocked") {
-            toast.error(
-              "Preglednik je blokirao Google prozor. Omogući popup i pokušaj ponovo.",
-            );
-            return;
-          }
-          if (fallbackCode === "auth/google-account-mismatch") {
-            toast.error(
-              "Odabran je drugi Google nalog. Odaberi isti nalog kao uneseni e-mail.",
-            );
-            return;
-          }
-          throw fallbackError;
-        }
-      }
-
+      const userCredential = await signin(resolvedEmail, password);
       const user = userCredential?.user;
       if (!user) return;
       if (!user.emailVerified) {
@@ -397,7 +240,6 @@ const LoginWithEmailForm = ({
           toast.error(data.message);
         }
       } catch (error) {
-        const status = Number(error?.response?.status || 0);
         if (isGatewayOrTimeoutError(error)) {
           toast.error(
             "Prijava trenutno nije dostupna. Server za autentifikaciju kasni (504/timeout). Pokušajte ponovo uskoro.",
@@ -425,7 +267,7 @@ const LoginWithEmailForm = ({
     e.preventDefault();
     const normalizedIdentifier = String(identifier || "").trim();
     if (!normalizedIdentifier) {
-      toast.error("Unesite e-mail ili korisničko ime.");
+      toast.error("Unesite korisničko ime ili e-mail.");
       return;
     }
 
@@ -457,11 +299,11 @@ const LoginWithEmailForm = ({
       >
         <div className="labelInputCont">
           <Label className="requiredInputLabel text-sm font-semibold text-foreground">
-            E-mail ili korisničko ime
+            Korisničko ime ili e-mail
           </Label>
           <Input
             type="text"
-            placeholder="Unesite e-mail ili korisničko ime"
+            placeholder="Unesite korisničko ime ili e-mail"
             value={identifier}
             className="h-11 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground"
             autoComplete="username"

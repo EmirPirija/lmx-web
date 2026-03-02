@@ -1227,7 +1227,7 @@ const EditListing = ({ id }) => {
           (Number.isFinite(Number(listingData?.latitude)) &&
           Number.isFinite(Number(listingData?.longitude))
             ? "map"
-            : "profile"),
+            : "manual"),
       });
 
       if (!hasAppliedLocalDraftRef.current && typeof window !== "undefined") {
@@ -1674,14 +1674,17 @@ const EditListing = ({ id }) => {
     const hasPreciseRealEstatePin =
       Number.isFinite(Number(Location?.lat)) &&
       Number.isFinite(Number(Location?.long));
-    const usesRealEstateProfileLocation =
-      is_real_estate &&
-      (realEstateLocationSource === "profile" ||
-        (!hasPreciseRealEstatePin && realEstateLocationSource !== "map"));
+    const normalizedRealEstateLocationSource = is_real_estate
+      ? ["profile", "manual", "map"].includes(realEstateLocationSource)
+        ? realEstateLocationSource
+        : hasPreciseRealEstatePin
+          ? "map"
+          : "manual"
+      : String(Location?.location_source || "manual").toLowerCase();
 
     if (
       is_real_estate &&
-      !usesRealEstateProfileLocation &&
+      normalizedRealEstateLocationSource === "map" &&
       !hasPreciseRealEstatePin
     ) {
       toast.error("Za nekretninu označite tačnu lokaciju na mapi.");
@@ -1761,6 +1764,33 @@ const EditListing = ({ id }) => {
 
     const videoTempId = extractTempMediaId(video);
     const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
+    const editLocationSourceRaw = String(
+      Location?.location_source || "",
+    ).toLowerCase();
+    const editLatNum = Number(Location?.lat);
+    const editLngNum = Number(Location?.long);
+    const hasPreciseEditCoords =
+      Number.isFinite(editLatNum) && Number.isFinite(editLngNum);
+    const normalizedRealEstateLocationSource = is_real_estate
+      ? ["profile", "manual", "map"].includes(editLocationSourceRaw)
+        ? editLocationSourceRaw
+        : hasPreciseEditCoords
+          ? "map"
+          : "manual"
+      : String(Location?.location_source || "manual").toLowerCase();
+    const shouldUsePreciseEditCoords = is_real_estate
+      ? normalizedRealEstateLocationSource === "map" && hasPreciseEditCoords
+      : hasPreciseEditCoords;
+    const payloadLatitude = is_real_estate
+      ? shouldUsePreciseEditCoords
+        ? editLatNum
+        : null
+      : Location?.lat;
+    const payloadLongitude = is_real_estate
+      ? shouldUsePreciseEditCoords
+        ? editLngNum
+        : null
+      : Location?.long;
 
     const allData = {
       id: id,
@@ -1849,12 +1879,10 @@ const EditListing = ({ id }) => {
       formatted_address: Location?.formattedAddress || Location?.address || "",
       address_translated:
         Location?.address_translated || Location?.address || "",
-      latitude: Location?.lat,
-      longitude: Location?.long,
+      latitude: payloadLatitude,
+      longitude: payloadLongitude,
       location_source: is_real_estate
-        ? String(Location?.location_source || "").toLowerCase() === "profile"
-          ? "profile"
-          : "map"
+        ? normalizedRealEstateLocationSource
         : String(Location?.location_source || "manual").toLowerCase(),
       custom_field_files: customFieldFiles,
       country: Location?.country,
@@ -2183,9 +2211,27 @@ const EditListing = ({ id }) => {
     ],
   );
 
-  const hasValidLocation = Boolean(
+  const hasBaseLocation = Boolean(
     Location?.address && Location?.city && Location?.country,
   );
+  const hasPreciseLocation = Boolean(
+    Number.isFinite(Number(Location?.lat)) &&
+    Number.isFinite(Number(Location?.long)),
+  );
+  const normalizedRealEstateLocationSourceForValidity = is_real_estate
+    ? (() => {
+        const source = String(Location?.location_source || "").toLowerCase();
+        if (["profile", "manual", "map"].includes(source)) return source;
+        return hasPreciseLocation ? "map" : "manual";
+      })()
+    : "manual";
+  const requiresPreciseRealEstatePinForValidity =
+    is_real_estate && normalizedRealEstateLocationSourceForValidity === "map";
+  const hasValidLocation =
+    hasBaseLocation &&
+    (!is_real_estate ||
+      !requiresPreciseRealEstatePinForValidity ||
+      hasPreciseLocation);
 
   const listingFlowIssues = useMemo(() => {
     const issues = [];

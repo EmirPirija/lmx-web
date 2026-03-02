@@ -11,6 +11,7 @@ import {
 import { useSelector } from "react-redux";
 import {
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   getAuth,
   GoogleAuthProvider,
   sendEmailVerification,
@@ -47,11 +48,9 @@ import {
   settingsData,
 } from "@/redux/reducer/settingSlice";
 import { setIsLoginOpen } from "@/redux/reducer/globalStateSlice";
+import { loadUpdateData, loadUpdateUserData } from "@/redux/reducer/authSlice";
 import {
-  loadUpdateData,
-  loadUpdateUserData,
-} from "@/redux/reducer/authSlice";
-import {
+  authApi,
   getOtpApi,
   updateProfileApi,
   userSignUpApi,
@@ -68,7 +67,10 @@ import {
   resolveLmxPhoneDialCode,
 } from "@/components/Common/phoneInputTheme";
 import { buildPhoneE164, maskPhoneForDebug } from "./phoneAuthUtils";
-import { isLocationComplete, resolveLocationSelection } from "@/lib/bih-locations";
+import {
+  isLocationComplete,
+  resolveLocationSelection,
+} from "@/lib/bih-locations";
 import {
   clearRecaptchaVerifier,
   ensureRecaptchaVerifier,
@@ -78,11 +80,12 @@ import {
 const STEP_META = [
   "Izvor registracije",
   "Potvrda pristupa",
-  "Ime profila",
+  "Korisničko ime",
   "Avatar i završetak",
 ];
 
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
+const USERNAME_REGEX = /^[a-zA-Z0-9._-]{3,30}$/;
 const AVATAR_CROP_FRAME_SIZE = 272;
 const AVATAR_OUTPUT_SIZE = 512;
 const REGISTER_LOCATION_STORAGE_KEY = "user_bih_location";
@@ -95,7 +98,9 @@ const EMPTY_REGISTER_LOCATION = {
   formattedAddress: "",
 };
 
-const DEFAULT_REGISTER_REGION = String(LMX_PHONE_DEFAULT_COUNTRY || "ba").toLowerCase();
+const DEFAULT_REGISTER_REGION = String(
+  LMX_PHONE_DEFAULT_COUNTRY || "ba",
+).toLowerCase();
 const DEFAULT_REGISTER_COUNTRY_CODE = `+${resolveLmxPhoneDialCode(DEFAULT_REGISTER_REGION)}`;
 
 const clamp = (value, min, max) => {
@@ -151,6 +156,204 @@ const getStepIndex = (step) => {
   }
   if (step === "profile_name") return 2;
   return 3;
+};
+
+const normalizeComparable = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const normalizeProfileNameValue = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/\s+/g, "");
+
+const isValidProfileUsername = (value) =>
+  USERNAME_REGEX.test(normalizeProfileNameValue(value));
+
+const DUPLICATE_HINTS = [
+  "already",
+  "exists",
+  "duplicate",
+  "zauzet",
+  "zauzeto",
+  "vec postoji",
+  "već postoji",
+  "već registrovan",
+  "already registered",
+  "already in use",
+];
+const EMAIL_HINTS = ["email", "e-mail", "mail"];
+const NAME_HINTS = ["name", "ime", "username", "korisnick", "nickname", "nick"];
+const PHONE_HINTS = ["phone", "mobile", "telefon", "broj"];
+const NOT_FOUND_HINTS = [
+  "not found",
+  "nije prona",
+  "ne postoji",
+  "not registered",
+  "nije registro",
+];
+const NOT_FOUND_REASONS = new Set([
+  "identifier_not_found",
+  "email_not_found",
+  "user_not_found",
+  "not_found",
+  "phone_not_registered",
+]);
+
+const extractErrorSearchText = (errorLike) => {
+  const responseData =
+    errorLike?.response?.data || errorLike?.data || errorLike || {};
+  const message = String(
+    responseData?.message || errorLike?.message || "",
+  ).trim();
+  const reason = String(
+    responseData?.data?.reason || errorLike?.apiReason || "",
+  ).trim();
+  const fieldErrors = Object.values(responseData?.errors || {})
+    .flat()
+    .map((entry) => String(entry || ""))
+    .join(" ");
+
+  return normalizeComparable(`${message} ${reason} ${fieldErrors}`);
+};
+
+const inferDuplicateField = (errorLike) => {
+  const text = extractErrorSearchText(errorLike);
+  if (!DUPLICATE_HINTS.some((hint) => text.includes(hint))) {
+    return null;
+  }
+  if (EMAIL_HINTS.some((hint) => text.includes(hint))) return "email";
+  if (NAME_HINTS.some((hint) => text.includes(hint))) return "name";
+  if (PHONE_HINTS.some((hint) => text.includes(hint))) return "phone";
+  return "generic";
+};
+
+const getDuplicateMessage = (errorLike) => {
+  const field = inferDuplicateField(errorLike);
+  if (field === "email") {
+    return "E-mail je već zauzet. Koristite prijavu ili drugi e-mail.";
+  }
+  if (field === "name") {
+    return "Korisničko ime je već zauzeto. Odaberite drugo korisničko ime.";
+  }
+  if (field === "phone") {
+    return "Broj telefona je već povezan s drugim računom.";
+  }
+  if (field === "generic") {
+    return "Uneseni podaci već postoje. Provjerite e-mail i korisničko ime.";
+  }
+  return "";
+};
+
+const extractResolvedUserId = (payload) => {
+  const candidates = [
+    payload?.id,
+    payload?.user_id,
+    payload?.userId,
+    payload?.user?.id,
+  ];
+  const found = candidates.find(
+    (value) =>
+      value !== undefined && value !== null && String(value).trim() !== "",
+  );
+  return found ? String(found).trim() : "";
+};
+
+const extractResolvedEmail = (payload) => {
+  const candidates = [payload?.email, payload?.user?.email];
+  const found = candidates.find(
+    (value) =>
+      value !== undefined && value !== null && String(value).trim() !== "",
+  );
+  return normalizeComparable(found || "");
+};
+
+const isSameResolvedUser = ({ payload, currentUserId, currentEmail }) => {
+  if (!payload || typeof payload !== "object") return false;
+  const resolvedId = extractResolvedUserId(payload);
+  const resolvedEmail = extractResolvedEmail(payload);
+  const normalizedCurrentId = String(currentUserId || "").trim();
+  const normalizedCurrentEmail = normalizeComparable(currentEmail || "");
+
+  if (normalizedCurrentId && resolvedId && normalizedCurrentId === resolvedId) {
+    return true;
+  }
+  if (
+    normalizedCurrentEmail &&
+    resolvedEmail &&
+    normalizedCurrentEmail === resolvedEmail
+  ) {
+    return true;
+  }
+  return false;
+};
+
+const resolveIdentifierOwner = async ({ identifier, identifierType } = {}) => {
+  const normalizedIdentifier = String(identifier || "").trim();
+  if (!normalizedIdentifier) return null;
+
+  try {
+    const response = await authApi.resolveLoginIdentifier({
+      identifier: normalizedIdentifier,
+      identifier_type: identifierType || undefined,
+    });
+
+    const payload = response?.data?.data;
+    if (response?.data?.error === true) {
+      const reason = normalizeComparable(payload?.reason || "");
+      const message = normalizeComparable(response?.data?.message || "");
+      if (
+        NOT_FOUND_REASONS.has(reason) ||
+        NOT_FOUND_HINTS.some((hint) => message.includes(hint))
+      ) {
+        return null;
+      }
+    }
+
+    if (!payload || typeof payload !== "object") return null;
+    const hasIdentity = Boolean(
+      extractResolvedUserId(payload) ||
+      extractResolvedEmail(payload) ||
+      String(payload?.mobile || "").trim() ||
+      String(payload?.identifier || "").trim() ||
+      String(payload?.name || "").trim(),
+    );
+    return hasIdentity ? payload : null;
+  } catch (error) {
+    const status = Number(error?.response?.status || 0);
+    const reason = normalizeComparable(
+      error?.response?.data?.data?.reason || error?.apiReason || "",
+    );
+    const message = normalizeComparable(
+      error?.response?.data?.message || error?.message || "",
+    );
+
+    if (status === 429) {
+      const rateLimitError = new Error("RATE_LIMIT");
+      rateLimitError.code = "RATE_LIMIT";
+      throw rateLimitError;
+    }
+
+    if (
+      status === 404 ||
+      NOT_FOUND_REASONS.has(reason) ||
+      NOT_FOUND_HINTS.some((hint) => message.includes(hint))
+    ) {
+      return null;
+    }
+
+    if (status >= 500) {
+      console.warn("Provjera identiteta je preskočena (server error):", error);
+      return null;
+    }
+
+    if (inferDuplicateField(error)) {
+      return { duplicate_hint: true };
+    }
+
+    return null;
+  }
 };
 
 const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
@@ -210,7 +413,9 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   const [studioPreview, setStudioPreview] = useState("");
   const [showStudio, setShowStudio] = useState(false);
   const [locationSetupMode, setLocationSetupMode] = useState("later"); // now | later
-  const [registerLocation, setRegisterLocation] = useState(() => ({ ...EMPTY_REGISTER_LOCATION }));
+  const [registerLocation, setRegisterLocation] = useState(() => ({
+    ...EMPTY_REGISTER_LOCATION,
+  }));
 
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [pendingUploadFile, setPendingUploadFile] = useState(null);
@@ -383,7 +588,9 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
   useEffect(() => {
     setGoogleAvatarLoadError(false);
-    setGoogleAvatarIsLoading(Boolean(String(googleDraft?.photoURL || "").trim()));
+    setGoogleAvatarIsLoading(
+      Boolean(String(googleDraft?.photoURL || "").trim()),
+    );
   }, [googleDraft?.photoURL]);
 
   useEffect(() => {
@@ -494,7 +701,10 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       String(countryCode || "").trim() || DEFAULT_REGISTER_COUNTRY_CODE;
     const effectiveLocalNumber =
       String(formattedNumber || "").trim() || String(number || "").trim();
-    const phoneE164 = buildPhoneE164(effectiveCountryCode, effectiveLocalNumber);
+    const phoneE164 = buildPhoneE164(
+      effectiveCountryCode,
+      effectiveLocalNumber,
+    );
 
     if (!isValidPhoneNumber(phoneE164)) {
       toast.error("Neispravan broj telefona");
@@ -525,6 +735,16 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     try {
       const popupResponse = await signInWithPopup(auth, provider);
       const googleUser = popupResponse.user;
+      const isIdentityUnique = await ensureRegistrationIdentityIsUnique({
+        emailValue: googleUser?.email || "",
+        profileNameValue: googleUser?.displayName || "",
+        checkEmail: true,
+      });
+      if (!isIdentityUnique) {
+        await signOut(auth).catch(() => {});
+        setStep("method");
+        return;
+      }
 
       const response = await userSignUpApi.userSignup({
         name: googleUser?.displayName || "",
@@ -538,7 +758,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       const data = response?.data;
 
       if (data?.error === true) {
-        toast.error(data?.message || "Google registracija nije uspjela.");
+        toast.error(
+          getDuplicateMessage({ data }) ||
+            data?.message ||
+            "Google registracija nije uspjela.",
+        );
         setStep("method");
         return;
       }
@@ -593,7 +817,9 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   const handleEmailCredentials = (e) => {
     e.preventDefault();
 
-    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
 
     if (!normalizedEmail || !EMAIL_REGEX.test(normalizedEmail)) {
       toast.error("Unesi ispravan e-mail");
@@ -610,7 +836,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
     setEmail(normalizedEmail);
     if (!profileName.trim()) {
-      const emailNameGuess = normalizedEmail.split("@")[0]?.replace(/[._-]+/g, " ") || "";
+      const emailNameGuess =
+        normalizedEmail
+          .split("@")[0]
+          ?.replace(/[^a-zA-Z0-9._-]+/g, "")
+          .slice(0, 30) || "";
       setProfileName(emailNameGuess);
     }
     setStep("profile_name");
@@ -628,13 +858,107 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
   const handleNameContinue = (e) => {
     e.preventDefault();
-    const normalizedName = String(profileName || "").trim();
+    const normalizedName = normalizeProfileNameValue(profileName);
     if (!normalizedName) {
-      toast.error("Ime je obavezno");
+      toast.error("Korisničko ime je obavezno.");
+      return;
+    }
+    if (!isValidProfileUsername(normalizedName)) {
+      toast.error(
+        "Korisničko ime mora imati 3-30 znakova (slova, brojevi, ., _, -).",
+      );
       return;
     }
     setProfileName(normalizedName);
     setStep("avatar");
+  };
+
+  const ensureRegistrationIdentityIsUnique = async ({
+    emailValue = "",
+    profileNameValue = "",
+    checkEmail = true,
+    currentUserId = null,
+    currentEmail = "",
+  } = {}) => {
+    const normalizedEmail = normalizeComparable(emailValue);
+    const normalizedProfileName = normalizeProfileNameValue(profileNameValue);
+
+    if (checkEmail && normalizedEmail) {
+      try {
+        const signInMethods = await fetchSignInMethodsForEmail(
+          auth,
+          normalizedEmail,
+        );
+        if (Array.isArray(signInMethods) && signInMethods.length > 0) {
+          toast.error(
+            "E-mail je već zauzet. Koristite prijavu ili drugi e-mail.",
+          );
+          return false;
+        }
+      } catch (error) {
+        console.warn("Preskačem Firebase email uniqueness check:", error);
+      }
+
+      try {
+        const emailOwner = await resolveIdentifierOwner({
+          identifier: normalizedEmail,
+          identifierType: "email",
+        });
+        if (
+          emailOwner &&
+          !isSameResolvedUser({
+            payload: emailOwner,
+            currentUserId,
+            currentEmail,
+          })
+        ) {
+          toast.error(
+            "E-mail je već zauzet. Koristite prijavu ili drugi e-mail.",
+          );
+          return false;
+        }
+      } catch (error) {
+        if (error?.code === "RATE_LIMIT") {
+          toast.error("Previše pokušaja provjere. Pokušajte ponovo za minutu.");
+          return false;
+        }
+      }
+    }
+
+    if (normalizedProfileName) {
+      try {
+        let nameOwner = await resolveIdentifierOwner({
+          identifier: normalizedProfileName,
+          identifierType: "username",
+        });
+        if (!nameOwner) {
+          nameOwner = await resolveIdentifierOwner({
+            identifier: normalizedProfileName,
+          });
+        }
+
+        if (
+          nameOwner &&
+          !isSameResolvedUser({
+            payload: nameOwner,
+            currentUserId,
+            currentEmail,
+          })
+        ) {
+          toast.error(
+            "Korisničko ime je već zauzeto. Odaberite drugo korisničko ime.",
+          );
+          return false;
+        }
+      } catch (error) {
+        if (error?.code === "RATE_LIMIT") {
+          toast.error("Previše pokušaja provjere. Pokušajte ponovo za minutu.");
+          return false;
+        }
+      }
+    }
+
+    return true;
   };
 
   const resetUploadCropDraft = () => {
@@ -693,7 +1017,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   };
 
   const applyCroppedUpload = async () => {
-    if (!pendingUploadFile || !cropMeta.naturalWidth || !cropMeta.naturalHeight) {
+    if (
+      !pendingUploadFile ||
+      !cropMeta.naturalWidth ||
+      !cropMeta.naturalHeight
+    ) {
       toast.error("Sliku nije moguće obraditi. Pokušaj ponovo.");
       return;
     }
@@ -716,7 +1044,8 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         Math.max(cropMeta.naturalWidth - sourceCropWidth, 0),
       );
       const sourceY = clamp(
-        (cropMeta.naturalHeight - sourceCropHeight) / 2 - cropY / effectiveScale,
+        (cropMeta.naturalHeight - sourceCropHeight) / 2 -
+          cropY / effectiveScale,
         0,
         Math.max(cropMeta.naturalHeight - sourceCropHeight, 0),
       );
@@ -853,7 +1182,9 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         return await urlToImageFile(googleDraft.photoURL);
       } catch (error) {
         console.error("Greška pri preuzimanju Google slike:", error);
-        toast.warning("Google slika nije dostupna, nastavak bez profilne slike.");
+        toast.warning(
+          "Google slika nije dostupna, nastavak bez profilne slike.",
+        );
         return null;
       }
     }
@@ -865,7 +1196,9 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     if (!isLocationComplete(locationValue)) return "";
     const resolved = resolveLocationSelection(locationValue);
     const addressLine = String(locationValue.address || "").trim();
-    const formattedLine = String(locationValue.formattedAddress || resolved?.formatted || "").trim();
+    const formattedLine = String(
+      locationValue.formattedAddress || resolved?.formatted || "",
+    ).trim();
     if (addressLine && formattedLine) return `${addressLine}, ${formattedLine}`;
     return addressLine || formattedLine || "";
   };
@@ -897,15 +1230,18 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     addressValue,
     authToken,
   }) => {
-    const attempts = [1, 2];
+    const maxRetries = 1;
 
-    for (const attempt of attempts) {
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       try {
         const response = await updateProfileApi.updateProfile({
           name: String(name || "").trim(),
-          email: String(email || "").trim().toLowerCase(),
+          email: String(email || "")
+            .trim()
+            .toLowerCase(),
           profile: profileFile || undefined,
-          country_code: String(countryCodeValue || "").replace(/\D/g, "") || undefined,
+          country_code:
+            String(countryCodeValue || "").replace(/\D/g, "") || undefined,
           region_code: String(regionCodeValue || "").toUpperCase() || undefined,
           mobile: String(mobileValue || "").trim() || undefined,
           address: String(addressValue || "").trim() || undefined,
@@ -919,10 +1255,19 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
           }
           return { ok: true, response };
         }
+        const responseError = new Error(
+          response?.data?.message || "Spremanje profila nije uspjelo.",
+        );
+        responseError.data = response?.data || null;
+        return { ok: false, error: responseError };
       } catch (error) {
-        if (attempt === attempts.length) {
+        const status = Number(error?.response?.status || 0);
+        const isRetryable = AUTH_SYNC_RETRYABLE_STATUSES.has(status);
+        const isLastAttempt = attempt === maxRetries;
+        if (!isRetryable || isLastAttempt) {
           return { ok: false, error };
         }
+        await sleep(320 * (attempt + 1));
       }
     }
 
@@ -951,10 +1296,14 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   };
 
   const finalizeEmailRegistration = async () => {
-    const normalizedEmail = String(email || "").trim().toLowerCase();
-    const normalizedName = String(profileName || "").trim();
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+    const normalizedName = normalizeProfileNameValue(profileName);
     const locationAddress =
-      locationSetupMode === "now" ? resolveRegisterLocationAddress(registerLocation) : "";
+      locationSetupMode === "now"
+        ? resolveRegisterLocationAddress(registerLocation)
+        : "";
 
     if (!normalizedEmail || !EMAIL_REGEX.test(normalizedEmail)) {
       toast.error("Unesi ispravan e-mail");
@@ -965,12 +1314,27 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       return;
     }
     if (!normalizedName) {
-      toast.error("Ime je obavezno");
+      toast.error("Korisničko ime je obavezno.");
+      return;
+    }
+    if (!isValidProfileUsername(normalizedName)) {
+      toast.error(
+        "Korisničko ime mora imati 3-30 znakova (slova, brojevi, ., _, -).",
+      );
       return;
     }
 
     setIsBusy(true);
     try {
+      const isIdentityUnique = await ensureRegistrationIdentityIsUnique({
+        emailValue: normalizedEmail,
+        profileNameValue: normalizedName,
+        checkEmail: true,
+      });
+      if (!isIdentityUnique) {
+        return;
+      }
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         normalizedEmail,
@@ -998,7 +1362,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       let authData = signupResponse?.data;
 
       if (authData?.error === true) {
-        toast.error(authData?.message || "Registracija nije uspjela.");
+        toast.error(
+          getDuplicateMessage({ data: authData }) ||
+            authData?.message ||
+            "Registracija nije uspjela.",
+        );
         return;
       }
 
@@ -1012,7 +1380,8 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
       if (!authData?.token || authData?.error === true) {
         toast.error(
-          authData?.message ||
+          getDuplicateMessage({ data: authData }) ||
+            authData?.message ||
             "Račun je kreiran, ali automatska prijava nije uspjela. Pokušaj prijavu ručno.",
         );
         return;
@@ -1029,6 +1398,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         authToken: authData?.token,
       });
       if (!profileSync?.ok) {
+        const duplicateMessage = getDuplicateMessage(profileSync?.error);
+        if (duplicateMessage) {
+          toast.error(duplicateMessage);
+          return;
+        }
         toast.warning(
           "Račun je kreiran, ali dio podataka profila nije potvrđeno sačuvan. Možeš ih doraditi u postavkama.",
         );
@@ -1048,6 +1422,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       );
       await OnHide();
     } catch (error) {
+      const duplicateMessage = getDuplicateMessage(error);
+      if (duplicateMessage) {
+        toast.error(duplicateMessage);
+        return;
+      }
       if (isGatewayOrTimeoutError(error)) {
         toast.error(
           "Račun je kreiran na Firebase strani, ali backend ne odgovara (504/timeout). Pokušaj prijavu za 1-2 minute.",
@@ -1064,12 +1443,20 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
   };
 
   const finalizeAuthenticatedRegistration = async () => {
-    const normalizedName = String(profileName || "").trim();
+    const normalizedName = normalizeProfileNameValue(profileName);
     const locationAddress =
-      locationSetupMode === "now" ? resolveRegisterLocationAddress(registerLocation) : "";
+      locationSetupMode === "now"
+        ? resolveRegisterLocationAddress(registerLocation)
+        : "";
 
     if (!normalizedName) {
-      toast.error("Ime je obavezno");
+      toast.error("Korisničko ime je obavezno.");
+      return;
+    }
+    if (!isValidProfileUsername(normalizedName)) {
+      toast.error(
+        "Korisničko ime mora imati 3-30 znakova (slova, brojevi, ., _, -).",
+      );
       return;
     }
 
@@ -1080,10 +1467,23 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
     setIsBusy(true);
     try {
+      const isIdentityUnique = await ensureRegistrationIdentityIsUnique({
+        profileNameValue: normalizedName,
+        checkEmail: false,
+        currentUserId: authPayload?.data?.id,
+        currentEmail: authPayload?.data?.email || "",
+      });
+      if (!isIdentityUnique) {
+        return;
+      }
+
       const selectedAvatarFile = await resolveSelectedAvatarFile();
-      const normalizedMobile = String(authPayload?.data?.mobile || formattedNumber || "").trim();
-      const normalizedCountryCode =
-        String(authPayload?.data?.country_code || countryCode || "").replace(/\D/g, "");
+      const normalizedMobile = String(
+        authPayload?.data?.mobile || formattedNumber || "",
+      ).trim();
+      const normalizedCountryCode = String(
+        authPayload?.data?.country_code || countryCode || "",
+      ).replace(/\D/g, "");
       const normalizedRegionCode = String(
         authPayload?.data?.region_code || regionCode || "",
       ).toUpperCase();
@@ -1100,7 +1500,10 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       });
 
       if (!profileSync?.ok) {
-        toast.error("Završetak registracije nije uspio. Pokušaj ponovo.");
+        toast.error(
+          getDuplicateMessage(profileSync?.error) ||
+            "Završetak registracije nije uspio. Pokušaj ponovo.",
+        );
         return;
       }
 
@@ -1111,7 +1514,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       toast.success("Registracija je uspješno završena.");
       await OnHide();
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Greška pri završetku registracije.");
+      toast.error(
+        getDuplicateMessage(error) ||
+          error?.response?.data?.message ||
+          "Greška pri završetku registracije.",
+      );
     } finally {
       setIsBusy(false);
     }
@@ -1119,7 +1526,9 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
   const handleFinalize = async () => {
     if (locationSetupMode === "now" && !isLocationComplete(registerLocation)) {
-      toast.error("Odaberi lokaciju ili nastavi opcijom 'Kasnije u postavkama'.");
+      toast.error(
+        "Odaberi lokaciju ili nastavi opcijom 'Kasnije u postavkama'.",
+      );
       return;
     }
     if (registerMethod === "email") {
@@ -1162,10 +1571,12 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
 
   const hasGooglePhotoUrl = Boolean(String(googleDraft?.photoURL || "").trim());
   const canShowGoogleAvatar = hasGooglePhotoUrl && !googleAvatarLoadError;
-  const canFinalizeAvatarSelection = avatarMode !== "studio" || Boolean(studioBlob);
+  const canFinalizeAvatarSelection =
+    avatarMode !== "studio" || Boolean(studioBlob);
   const canFinalizeLocationSelection =
     locationSetupMode !== "now" || isLocationComplete(registerLocation);
-  const canFinalizeRegistration = canFinalizeAvatarSelection && canFinalizeLocationSelection;
+  const canFinalizeRegistration =
+    canFinalizeAvatarSelection && canFinalizeLocationSelection;
 
   const openUploadPicker = () => {
     uploadInputRef.current?.click?.();
@@ -1256,7 +1667,8 @@ xl:max-w-7xl
                   </DialogTitle>
 
                   <DialogDescription className="text-left text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-                    U nekoliko jasnih koraka podesi račun, profil i avatar. Već imaš račun?{" "}
+                    U nekoliko jasnih koraka podesi račun, profil i avatar. Već
+                    imaš račun?{" "}
                     <span
                       className="cursor-pointer font-semibold text-primary underline"
                       onClick={async () => {
@@ -1288,7 +1700,8 @@ xl:max-w-7xl
 
                 {!hasAnyMethodEnabled ? (
                   <div className="mt-5 rounded-2xl border border-red-300/60 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
-                    Trenutno nijedan metod registracije nije aktivan. Kontaktiraj administratora.
+                    Trenutno nijedan metod registracije nije aktivan.
+                    Kontaktiraj administratora.
                   </div>
                 ) : null}
 
@@ -1317,8 +1730,12 @@ xl:max-w-7xl
                             )}
                           >
                             <MdOutlineEmail className="h-6 w-6 text-primary" />
-                            <span className="text-sm font-semibold text-foreground">E-mail</span>
-                            <span className="text-xs text-muted-foreground">Klasična prijava lozinkom</span>
+                            <span className="text-sm font-semibold text-foreground">
+                              E-mail
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Klasična prijava lozinkom
+                            </span>
                           </button>
 
                           <button
@@ -1333,8 +1750,12 @@ xl:max-w-7xl
                             )}
                           >
                             <MdOutlineLocalPhone className="h-6 w-6 text-primary" />
-                            <span className="text-sm font-semibold text-foreground">Mobitel</span>
-                            <span className="text-xs text-muted-foreground">Brza potvrda putem OTP-a</span>
+                            <span className="text-sm font-semibold text-foreground">
+                              Mobitel
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Brza potvrda putem OTP-a
+                            </span>
                           </button>
 
                           <button
@@ -1349,13 +1770,20 @@ xl:max-w-7xl
                             )}
                           >
                             <FcGoogle className="h-6 w-6" />
-                            <span className="text-sm font-semibold text-foreground">Google</span>
-                            <span className="text-xs text-muted-foreground">Nastavak postojećim Google profilom</span>
+                            <span className="text-sm font-semibold text-foreground">
+                              Google
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Nastavak postojećim Google profilom
+                            </span>
                           </button>
                         </div>
                       </div>
 
-                      <TermsAndPrivacyLinks settings={settings} OnHide={OnHide} />
+                      <TermsAndPrivacyLinks
+                        settings={settings}
+                        OnHide={OnHide}
+                      />
                     </motion.div>
                   ) : null}
 
@@ -1370,7 +1798,9 @@ xl:max-w-7xl
                         onSubmit={handleEmailCredentials}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground">Unesi pristupne podatke</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            Unesi pristupne podatke
+                          </p>
                           <Button
                             type="button"
                             variant="ghost"
@@ -1414,19 +1844,27 @@ xl:max-w-7xl
                             <button
                               type="button"
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                              onClick={() => setIsPasswordVisible((prev) => !prev)}
+                              onClick={() =>
+                                setIsPasswordVisible((prev) => !prev)
+                              }
                             >
                               {isPasswordVisible ? "Sakrij" : "Prikaži"}
                             </button>
                           </div>
                         </div>
 
-                        <Button type="submit" className="h-11 rounded-xl text-sm font-semibold">
+                        <Button
+                          type="submit"
+                          className="h-11 rounded-xl text-sm font-semibold"
+                        >
                           Nastavi
                         </Button>
                       </form>
 
-                      <TermsAndPrivacyLinks settings={settings} OnHide={OnHide} />
+                      <TermsAndPrivacyLinks
+                        settings={settings}
+                        OnHide={OnHide}
+                      />
                     </motion.div>
                   ) : null}
 
@@ -1441,7 +1879,9 @@ xl:max-w-7xl
                         onSubmit={handleSendOtp}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground">Potvrdi broj mobitela</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            Potvrdi broj mobitela
+                          </p>
                           <Button
                             type="button"
                             variant="ghost"
@@ -1462,7 +1902,9 @@ xl:max-w-7xl
                           handleInputChange={(value, data) => {
                             setNumber(value);
                             setCountryCode("+" + (data?.dialCode || ""));
-                            setRegionCode(data?.countryCode?.toLowerCase() || "");
+                            setRegionCode(
+                              data?.countryCode?.toLowerCase() || "",
+                            );
                           }}
                           setCountryCode={setCountryCode}
                         />
@@ -1472,11 +1914,18 @@ xl:max-w-7xl
                           className="h-11 rounded-xl text-sm font-semibold"
                           disabled={isBusy}
                         >
-                          {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pošalji OTP"}
+                          {isBusy ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Pošalji OTP"
+                          )}
                         </Button>
                       </form>
 
-                      <TermsAndPrivacyLinks settings={settings} OnHide={OnHide} />
+                      <TermsAndPrivacyLinks
+                        settings={settings}
+                        OnHide={OnHide}
+                      />
                     </motion.div>
                   ) : null}
 
@@ -1524,8 +1973,12 @@ xl:max-w-7xl
                       className="mt-5 rounded-xl bg-muted/35 p-5 text-center"
                     >
                       <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-primary" />
-                      <p className="text-sm font-semibold text-foreground">Povezujem Google nalog...</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Sačekaj trenutak, pripremamo sljedeći korak.</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        Povezujem Google nalog...
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Sačekaj trenutak, pripremamo sljedeći korak.
+                      </p>
                     </motion.div>
                   ) : null}
 
@@ -1540,7 +1993,9 @@ xl:max-w-7xl
                         onSubmit={handleNameContinue}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground">Kako želiš da te drugi vide?</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            Kako želiš da te drugi vide?
+                          </p>
                           {registerMethod !== "google" ? (
                             <Button
                               type="button"
@@ -1557,12 +2012,12 @@ xl:max-w-7xl
 
                         <div>
                           <Label className="mb-1.5 block text-sm font-semibold text-foreground">
-                            Ime profila
+                            Korisničko ime
                           </Label>
                           <Input
                             type="text"
                             value={profileName}
-                            placeholder="Unesi ime ili korisničko ime"
+                            placeholder="Unesi korisničko ime"
                             onChange={(e) => setProfileName(e.target.value)}
                             className="h-11 rounded-xl border-border bg-background"
                             autoFocus
@@ -1572,15 +2027,23 @@ xl:max-w-7xl
                         {registerMethod === "google" && googleDraft?.name ? (
                           <button
                             type="button"
-                            onClick={() => setProfileName(googleDraft.name)}
+                            onClick={() =>
+                              setProfileName(
+                                normalizeProfileNameValue(googleDraft.name),
+                              )
+                            }
                             className="inline-flex w-max items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/80"
                           >
                             <Check className="h-3.5 w-3.5" />
-                            Zadrži Google ime: {googleDraft.name}
+                            Predloži iz Google naloga:{" "}
+                            {normalizeProfileNameValue(googleDraft.name)}
                           </button>
                         ) : null}
 
-                        <Button type="submit" className="h-11 rounded-xl text-sm font-semibold">
+                        <Button
+                          type="submit"
+                          className="h-11 rounded-xl text-sm font-semibold"
+                        >
                           Nastavi na avatar
                         </Button>
                       </form>
@@ -1596,9 +2059,12 @@ xl:max-w-7xl
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="text-sm font-semibold text-foreground">Odaberi profilnu sliku</p>
+                            <p className="text-sm font-semibold text-foreground">
+                              Odaberi profilnu sliku
+                            </p>
                             <p className="text-xs text-muted-foreground">
-                              Učitaj svoju sliku, koristi Google sliku ili kreiraj vlastiti avatar.
+                              Učitaj svoju sliku, koristi Google sliku ili
+                              kreiraj vlastiti avatar.
                             </p>
                           </div>
                           <Button
@@ -1649,7 +2115,9 @@ xl:max-w-7xl
                           <button
                             type="button"
                             onClick={() => handleAvatarModeSelect("google")}
-                            disabled={!hasGooglePhotoUrl || googleAvatarLoadError}
+                            disabled={
+                              !hasGooglePhotoUrl || googleAvatarLoadError
+                            }
                             className={cn(
                               "rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
                               avatarMode === "google"
@@ -1678,9 +2146,12 @@ xl:max-w-7xl
 
                         <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
                           <div className="mb-2">
-                            <p className="text-sm font-semibold text-foreground">Lokacija profila (opcionalno)</p>
+                            <p className="text-sm font-semibold text-foreground">
+                              Lokacija profila (opcionalno)
+                            </p>
                             <p className="text-xs text-muted-foreground">
-                              Lokaciju možeš postaviti odmah ili kasnije iz postavki profila.
+                              Lokaciju možeš postaviti odmah ili kasnije iz
+                              postavki profila.
                             </p>
                           </div>
 
@@ -1720,7 +2191,8 @@ xl:max-w-7xl
                             />
                           ) : (
                             <p className="text-xs text-muted-foreground">
-                              Lokaciju možeš bez problema dodati kasnije u sekciji profila.
+                              Lokaciju možeš bez problema dodati kasnije u
+                              sekciji profila.
                             </p>
                           )}
                         </div>
@@ -1732,9 +2204,12 @@ xl:max-w-7xl
                                 <User className="h-5 w-5 text-muted-foreground" />
                               </div>
                               <div>
-                                <p className="text-sm font-semibold text-foreground">Nastavak bez slike</p>
+                                <p className="text-sm font-semibold text-foreground">
+                                  Nastavak bez slike
+                                </p>
                                 <p className="text-xs text-muted-foreground">
-                                  Možeš kasnije dodati profilnu sliku iz postavki profila.
+                                  Možeš kasnije dodati profilnu sliku iz
+                                  postavki profila.
                                 </p>
                               </div>
                             </div>
@@ -1750,9 +2225,12 @@ xl:max-w-7xl
                                     className="h-20 w-20 rounded-xl object-cover"
                                   />
                                   <div className="min-w-[180px] flex-1">
-                                    <p className="text-sm font-semibold text-foreground">Vlastita slika je spremna</p>
+                                    <p className="text-sm font-semibold text-foreground">
+                                      Vlastita slika je spremna
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
-                                      Ako želiš, izreži kadar i podešavaj zum prije završetka.
+                                      Ako želiš, izreži kadar i podešavaj zum
+                                      prije završetka.
                                     </p>
                                   </div>
                                   <div className="flex flex-wrap gap-2">
@@ -1807,11 +2285,15 @@ xl:max-w-7xl
                                       alt="Google profilna slika"
                                       className={cn(
                                         "h-20 w-20 rounded-xl object-cover transition-opacity duration-200",
-                                        googleAvatarIsLoading ? "opacity-0" : "opacity-100",
+                                        googleAvatarIsLoading
+                                          ? "opacity-0"
+                                          : "opacity-100",
                                       )}
                                       loading="lazy"
                                       referrerPolicy="no-referrer"
-                                      onLoad={() => setGoogleAvatarIsLoading(false)}
+                                      onLoad={() =>
+                                        setGoogleAvatarIsLoading(false)
+                                      }
                                       onError={() => {
                                         setGoogleAvatarLoadError(true);
                                         setGoogleAvatarIsLoading(false);
@@ -1819,7 +2301,9 @@ xl:max-w-7xl
                                     />
                                   </div>
                                   <div className="min-w-[180px] flex-1">
-                                    <p className="text-sm font-semibold text-foreground">Google profilna slika</p>
+                                    <p className="text-sm font-semibold text-foreground">
+                                      Google profilna slika
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
                                       Koristi se slika preuzeta s Google naloga.
                                     </p>
@@ -1835,7 +2319,8 @@ xl:max-w-7xl
                                       Google slika nije dostupna
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                      Odaberi vlastitu sliku ili kreiraj avatar u studiju.
+                                      Odaberi vlastitu sliku ili kreiraj avatar
+                                      u studiju.
                                     </p>
                                   </div>
                                 </div>
@@ -1853,9 +2338,12 @@ xl:max-w-7xl
                                     className="h-20 w-20 rounded-xl object-cover"
                                   />
                                   <div className="min-w-[180px] flex-1">
-                                    <p className="text-sm font-semibold text-foreground">Studio avatar je spreman</p>
+                                    <p className="text-sm font-semibold text-foreground">
+                                      Studio avatar je spreman
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
-                                      Možeš ga ponovo urediti prije završetka registracije.
+                                      Možeš ga ponovo urediti prije završetka
+                                      registracije.
                                     </p>
                                   </div>
                                   <Button
@@ -1871,9 +2359,12 @@ xl:max-w-7xl
                               ) : (
                                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg px-1 py-1">
                                   <div>
-                                    <p className="text-sm font-semibold text-foreground">Kreiraj studio avatar</p>
+                                    <p className="text-sm font-semibold text-foreground">
+                                      Kreiraj studio avatar
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
-                                      Otvori studio i napravi avatar u par klikova.
+                                      Otvori studio i napravi avatar u par
+                                      klikova.
                                     </p>
                                   </div>
                                   <Button
@@ -1881,10 +2372,14 @@ xl:max-w-7xl
                                     variant="outline"
                                     size="sm"
                                     className="h-9"
-                                    onClick={() => setShowStudio((prev) => !prev)}
+                                    onClick={() =>
+                                      setShowStudio((prev) => !prev)
+                                    }
                                   >
                                     <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                                    {showStudio ? "Sakrij studio" : "Otvori studio"}
+                                    {showStudio
+                                      ? "Sakrij studio"
+                                      : "Otvori studio"}
                                   </Button>
                                 </div>
                               )}
@@ -1905,12 +2400,15 @@ xl:max-w-7xl
 
                         {!canFinalizeAvatarSelection ? (
                           <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
-                            Prije završetka klikni "Sačuvaj" unutar avatar studija.
+                            Prije završetka klikni "Sačuvaj" unutar avatar
+                            studija.
                           </p>
                         ) : null}
-                        {locationSetupMode === "now" && !isLocationComplete(registerLocation) ? (
+                        {locationSetupMode === "now" &&
+                        !isLocationComplete(registerLocation) ? (
                           <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
-                            Odaberi lokaciju ili prebaci na opciju "Kasnije u postavkama".
+                            Odaberi lokaciju ili prebaci na opciju "Kasnije u
+                            postavkama".
                           </p>
                         ) : null}
 
@@ -1941,7 +2439,10 @@ xl:max-w-7xl
                         </div>
                       </div>
 
-                      <TermsAndPrivacyLinks settings={settings} OnHide={OnHide} />
+                      <TermsAndPrivacyLinks
+                        settings={settings}
+                        OnHide={OnHide}
+                      />
                     </motion.div>
                   ) : null}
                 </AnimatePresence>
@@ -1992,7 +2493,9 @@ xl:max-w-7xl
                       transformOrigin: "center center",
                     }}
                     onLoad={handleCropImageLoad}
-                    onError={() => toast.error("Sliku nije moguće učitati za obradu.")}
+                    onError={() =>
+                      toast.error("Sliku nije moguće učitati za obradu.")
+                    }
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
@@ -2029,7 +2532,9 @@ xl:max-w-7xl
                   disabled={cropMaxOffsetX <= 0}
                   value={[cropX]}
                   onValueChange={(values) =>
-                    setCropX(clamp(values?.[0] || 0, -cropMaxOffsetX, cropMaxOffsetX))
+                    setCropX(
+                      clamp(values?.[0] || 0, -cropMaxOffsetX, cropMaxOffsetX),
+                    )
                   }
                 />
               </div>
@@ -2046,7 +2551,9 @@ xl:max-w-7xl
                   disabled={cropMaxOffsetY <= 0}
                   value={[cropY]}
                   onValueChange={(values) =>
-                    setCropY(clamp(values?.[0] || 0, -cropMaxOffsetY, cropMaxOffsetY))
+                    setCropY(
+                      clamp(values?.[0] || 0, -cropMaxOffsetY, cropMaxOffsetY),
+                    )
                   }
                 />
               </div>

@@ -36,7 +36,7 @@ const MapClickHandler = ({ onMapClick }) => {
   return null;
 };
 
-const GetLocationWithMap = ({ position, getLocationWithMap, KmRange, locationLabel = "" }) => {
+const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
   const latitude = useSelector(getDefaultLatitude);
   const longitude = useSelector(getDefaultLongitude);
   const globalPos = useSelector(getCityData);
@@ -52,15 +52,12 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange, locationLab
     position?.lat && position?.lng ? position : placeHolderPos;
   const displayLat = markerLatLong?.lat || latitude;
   const displayLng = markerLatLong?.lng || longitude;
-  const hasPrecisePoint =
-    Number.isFinite(Number(markerLatLong?.lat)) &&
-    Number.isFinite(Number(markerLatLong?.lng));
-  const radiusLabel = KmRange ? `${KmRange} km` : "Bez radijusa";
+  const safeRadiusKm = Number.isFinite(Number(KmRange)) ? Number(KmRange) : 0;
   useEffect(() => {
     if (mapRef.current && markerLatLong.lat && markerLatLong.lng) {
       mapRef.current.flyTo(
         [markerLatLong.lat, markerLatLong.lng],
-        mapRef.current.getZoom()
+        mapRef.current.getZoom(),
       );
     }
   }, [markerLatLong?.lat, markerLatLong?.lng]);
@@ -102,7 +99,7 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange, locationLab
         <Marker position={[displayLat, displayLng]}></Marker>
         <Circle
           center={[displayLat, displayLng]}
-          radius={KmRange * 1000} // radius in meters
+          radius={safeRadiusKm * 1000}
           pathOptions={{
             color: getComputedStyle(document.documentElement)
               .getPropertyValue("--primary-color")
@@ -114,26 +111,6 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange, locationLab
           }}
         />
       </MapContainer>
-      <div className="pointer-events-none absolute top-4 left-4 right-4 z-[5] flex flex-wrap gap-2">
-        <div className="bg-white/95 border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
-          <p className="text-xs text-slate-500">Odabrana lokacija</p>
-          <p className="text-sm font-semibold text-slate-800">
-            {locationLabel || "Nije odabrano područje"}
-          </p>
-        </div>
-        <div className="bg-white/95 border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
-          <p className="text-xs text-slate-500">Radijus pretrage</p>
-          <p className="text-sm font-semibold text-slate-800">{radiusLabel}</p>
-        </div>
-        {hasPrecisePoint && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 shadow-sm text-emerald-700 text-xs font-semibold">
-            Precizna lokacija
-          </div>
-        )}
-        <div className="bg-slate-900/90 text-white rounded-xl px-3 py-2 text-xs font-medium shadow-sm">
-          Klikni na mapu da pomjeriš marker
-        </div>
-      </div>
     </div>
   );
 };

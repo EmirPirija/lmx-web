@@ -28,9 +28,12 @@ const formatTimeAgo = (dateString) => {
   const diffMonths = Math.floor(diffDays / 30);
 
   if (diffMins < 60) return `prije ${diffMins} min`;
-  if (diffHours < 24) return `prije ${diffHours} ${diffHours === 1 ? "sat" : diffHours < 5 ? "sata" : "sati"}`;
-  if (diffDays < 7) return `prije ${diffDays} ${diffDays === 1 ? "dan" : "dana"}`;
-  if (diffWeeks < 4) return `prije ${diffWeeks} ${diffWeeks === 1 ? "sedmica" : "sedmica"}`;
+  if (diffHours < 24)
+    return `prije ${diffHours} ${diffHours === 1 ? "sat" : diffHours < 5 ? "sata" : "sati"}`;
+  if (diffDays < 7)
+    return `prije ${diffDays} ${diffDays === 1 ? "dan" : "dana"}`;
+  if (diffWeeks < 4)
+    return `prije ${diffWeeks} ${diffWeeks === 1 ? "sedmica" : "sedmica"}`;
   return `prije ${diffMonths} ${diffMonths === 1 ? "mjesec" : "mjeseci"}`;
 };
 
@@ -90,7 +93,14 @@ const ProductMarker = ({
   const markerRef = useRef(null);
 
   useEffect(() => {
-    if (!map || !position || !position[0] || !position[1]) return;
+    if (
+      !map ||
+      !position ||
+      !Number.isFinite(position[0]) ||
+      !Number.isFinite(position[1])
+    ) {
+      return;
+    }
 
     if (markerRef.current) {
       map.removeLayer(markerRef.current);
@@ -160,7 +170,7 @@ const ProductMarker = ({
             ${
               locationLabel
                 ? `<p class="popup-location"><span class="popup-location-label">Lokacija:</span> ${escapeHtml(
-                    locationLabel
+                    locationLabel,
                   )}</p>`
                 : ""
             }
@@ -172,8 +182,6 @@ const ProductMarker = ({
       </div>
     `;
 
-
-
     marker.addTo(map);
     markerRef.current = marker;
 
@@ -183,6 +191,72 @@ const ProductMarker = ({
       }
     };
   }, [map, position, productData, privacyMode, approximateRadiusMeters]);
+
+  return null;
+};
+
+const MapViewportSync = ({
+  center,
+  zoom,
+  privacyMode = false,
+  approximateRadiusMeters = 0,
+}) => {
+  const map = useMap();
+  const previousViewportRef = useRef(null);
+
+  useEffect(() => {
+    if (
+      !map ||
+      !center ||
+      !Number.isFinite(center[0]) ||
+      !Number.isFinite(center[1])
+    ) {
+      return;
+    }
+
+    const previous = previousViewportRef.current;
+    const hasCenterChanged =
+      !previous?.center ||
+      Math.abs(previous.center[0] - center[0]) > 0.000001 ||
+      Math.abs(previous.center[1] - center[1]) > 0.000001;
+    const hasModeChanged = !previous || previous.privacyMode !== privacyMode;
+    const hasRadiusChanged =
+      !previous || previous.approximateRadiusMeters !== approximateRadiusMeters;
+    const hasZoomChanged = !previous || previous.zoom !== zoom;
+    const hasViewportChanged =
+      hasCenterChanged || hasModeChanged || hasRadiusChanged || hasZoomChanged;
+
+    if (hasViewportChanged) {
+      if (privacyMode && approximateRadiusMeters > 0) {
+        const fitDiameterMeters = Math.max(approximateRadiusMeters * 2.2, 800);
+        const bounds = L.latLng(center[0], center[1]).toBounds(
+          fitDiameterMeters,
+        );
+        map.fitBounds(bounds, {
+          animate: false,
+          padding: [16, 16],
+          maxZoom: 15,
+        });
+      } else {
+        map.setView(center, zoom, { animate: false });
+      }
+
+      previousViewportRef.current = {
+        center: [center[0], center[1]],
+        privacyMode,
+        approximateRadiusMeters,
+        zoom,
+      };
+    }
+
+    const resizeTimer = window.setTimeout(() => {
+      map.invalidateSize();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(resizeTimer);
+    };
+  }, [map, center, zoom, privacyMode, approximateRadiusMeters]);
 
   return null;
 };
@@ -209,6 +283,7 @@ const Map = ({
   const isValidLng = !Number.isNaN(lng) && lng >= -180 && lng <= 180;
   const shouldShowMarker = isValidLat && isValidLng;
   const center = [lat, lng];
+  const zoom = privacyMode ? 13 : 14;
 
   if (!shouldShowMarker) return null;
 
@@ -264,7 +339,10 @@ const Map = ({
         }
 
         .price-text {
-          font-family: system-ui, -apple-system, sans-serif;
+          font-family:
+            system-ui,
+            -apple-system,
+            sans-serif;
         }
 
         .custom-map-popup .leaflet-popup-content-wrapper {
@@ -507,11 +585,18 @@ const Map = ({
       <MapContainer
         style={containerStyle}
         center={center}
-        zoom={privacyMode ? 13 : 14}
+        zoom={zoom}
         scrollWheelZoom={false}
         zoomControl={true}
         attributionControl={false}
       >
+        <MapViewportSync
+          center={center}
+          zoom={zoom}
+          privacyMode={privacyMode}
+          approximateRadiusMeters={approximateRadiusMeters}
+        />
+
         <TileLayer
           attribution={tileTheme.attribution}
           url={tileTheme.url}
@@ -532,12 +617,14 @@ const Map = ({
           />
         )}
 
-        <ProductMarker
-          position={center}
-          productData={productData}
-          privacyMode={privacyMode}
-          approximateRadiusMeters={approximateRadiusMeters}
-        />
+        {!privacyMode && (
+          <ProductMarker
+            position={center}
+            productData={productData}
+            privacyMode={privacyMode}
+            approximateRadiusMeters={approximateRadiusMeters}
+          />
+        )}
       </MapContainer>
     </>
   );

@@ -50,6 +50,7 @@ import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
 import {
   normalizeSellerCardPreferences,
   resolveSellerContactEngine,
+  resolveSellerDisplayName,
 } from "@/lib/seller-settings-engine";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { getIsLoggedIn, userSignUpData } from "@/redux/reducer/authSlice";
@@ -572,9 +573,10 @@ export const SellerPreviewSkeleton = ({ compactness = "normal" }) => {
    MODAL ZA SLANJE PORUKE
 ===================================================== */
 
-const SendMessageModal = ({ open, setOpen, seller, onSuccess }) => {
+const SendMessageModal = ({ open, setOpen, seller, settings, onSuccess }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
+  const sellerDisplayName = resolveSellerDisplayName({ seller, settings });
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -707,7 +709,7 @@ const SendMessageModal = ({ open, setOpen, seller, onSuccess }) => {
                       seller?.avatar,
                     ]}
                     verificationSource={seller}
-                    alt={seller?.name || "Prodavač"}
+                    alt={sellerDisplayName || "Prodavač"}
                     className="w-full h-full rounded-xl"
                     roundedClassName="rounded-xl"
                     imageClassName="w-full h-full object-cover"
@@ -719,7 +721,7 @@ const SendMessageModal = ({ open, setOpen, seller, onSuccess }) => {
                   Poruka
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {seller?.name || "Prodavač"}
+                  {sellerDisplayName || "Prodavač"}
                 </p>
               </div>
             </div>
@@ -814,15 +816,14 @@ const ContactSheet = ({
     settings,
     isLoggedIn,
   });
-  const { contactPolicy, phoneContact, channels } = contactEngine;
+  const { contactPolicy, phoneContact, channels, whatsappNumber, viberNumber } =
+    contactEngine;
   const showPhone = channels.call;
   const showWhatsapp = channels.whatsapp;
   const showViber = channels.viber;
   const showEmail = channels.email;
-
-  const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
-  const viberNumber = settings?.viber_number || seller?.mobile;
-  const phone = phoneContact.phone;
+  const phoneRaw = phoneContact.phone;
+  const phoneDisplay = phoneContact.formattedPhone || phoneRaw;
   const email = seller?.email;
 
   const [copiedKey, setCopiedKey] = useState("");
@@ -841,14 +842,15 @@ const ContactSheet = ({
   const contactMethods = [
     {
       key: "phone",
-      show: showPhone && phone,
+      show: showPhone && phoneRaw,
       icon: Phone,
       iconColor: "text-emerald-500",
       bgColor: "bg-emerald-50 dark:bg-emerald-900/25",
       borderColor: "border-emerald-100 dark:border-emerald-800/40",
       label: "Pozovi",
-      value: phone,
-      href: `tel:${phone}`,
+      value: phoneRaw,
+      displayValue: phoneDisplay,
+      href: `tel:${phoneRaw}`,
       onClick: onPhoneReveal,
       copyable: true,
     },
@@ -893,7 +895,7 @@ const ContactSheet = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-md bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg"
+        className="max-w-md bg-white border border-slate-200 rounded-xl p-0 overflow-hidden shadow-lg dark:bg-slate-900 dark:border-slate-700"
       >
         <motion.div
           {...fadeInUp}
@@ -903,10 +905,10 @@ const ContactSheet = ({
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
-              <h3 className="text-base font-semibold text-slate-900">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                 Kontaktiraj prodavača
               </h3>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Odaberi način kontaktiranja
               </p>
             </div>
@@ -915,9 +917,12 @@ const ContactSheet = ({
               whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
             >
-              <CloseCircle size={20} className="text-slate-500" />
+              <CloseCircle
+                size={20}
+                className="text-slate-500 dark:text-slate-300"
+              />
             </motion.button>
           </div>
 
@@ -947,27 +952,27 @@ const ContactSheet = ({
                     onClick={() => method.onClick?.()}
                     className={cn(
                       "flex-1 flex items-center gap-3.5 p-3.5 rounded-xl",
-                      "border border-slate-100",
-                      "bg-slate-50/70",
-                      "hover:bg-white hover:border-slate-200",
+                      "border border-slate-200 dark:border-slate-700",
+                      "bg-slate-50/70 dark:bg-slate-800/60",
+                      "hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600",
                       "transition-all duration-200",
                       actionsDisabled && "opacity-50 pointer-events-none",
                     )}
                   >
-                    <div className="p-2.5 rounded-lg border border-slate-100 bg-white">
+                    <div className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                       <Icon size={20} className={method.iconColor} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {method.label}
                       </div>
-                      <div className="text-xs text-slate-500 truncate">
-                        {method.value}
+                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {method.displayValue || method.value}
                       </div>
                     </div>
                     <ArrowRight
                       size={18}
-                      className="text-slate-400 flex-shrink-0"
+                      className="text-slate-400 dark:text-slate-500 flex-shrink-0"
                     />
                   </a>
 
@@ -978,9 +983,9 @@ const ContactSheet = ({
                       type="button"
                       onClick={() => copy(method.key, method.value)}
                       className={cn(
-                        "p-3 rounded-xl border border-slate-100",
-                        "bg-white",
-                        "hover:bg-slate-50",
+                        "p-3 rounded-xl border border-slate-200 dark:border-slate-700",
+                        "bg-white dark:bg-slate-900",
+                        "hover:bg-slate-50 dark:hover:bg-slate-800",
                         "transition-all duration-200",
                       )}
                     >
@@ -1037,7 +1042,7 @@ const ContactSheet = ({
               }}
               className={cn(
                 "w-full flex items-center justify-center gap-2 p-3 rounded-xl mt-3",
-                "bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold",
+                "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-sm font-semibold",
                 "transition-colors",
               )}
             >
@@ -1092,6 +1097,10 @@ export const SellerPreviewCard = ({
   const prefs = uiPrefs || {};
 
   const mergedPrefs = normalizeCardPreferences(settings?.card_preferences);
+  const sellerDisplayName = useMemo(
+    () => resolveSellerDisplayName({ seller, settings }),
+    [seller, settings],
+  );
 
   const compactness = prefs.compactness || mergedPrefs?.compactness || "normal";
   const contactStyle =
@@ -1128,7 +1137,7 @@ export const SellerPreviewCard = ({
       ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${sellerId}`
       : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
-  const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
+  const title = `${sellerDisplayName || "Prodavač"} | ${CompanyName}`;
 
   const responseLabel = showResponseTime
     ? getResponseTimeLabel({
@@ -1165,7 +1174,8 @@ export const SellerPreviewCard = ({
     settings,
     isLoggedIn,
   });
-  const { contactPolicy, phoneContact, emailVerified } = contactEngine;
+  const { contactPolicy, phoneContact, emailVerified, whatsappNumber } =
+    contactEngine;
   const quietHoursActive = contactPolicy.quietHoursActive;
   const hasDirectContactOptions = contactEngine.hasDirectContactOptions;
 
@@ -1242,7 +1252,7 @@ export const SellerPreviewCard = ({
                           seller?.avatar,
                         ]}
                         verificationSource={seller}
-                        alt={seller?.name || "Prodavač"}
+                        alt={sellerDisplayName || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"
                         imageClassName="w-full h-full object-cover"
@@ -1323,7 +1333,7 @@ export const SellerPreviewCard = ({
                     href={`/seller/${sellerId}`}
                     className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-primary truncate transition-colors flex items-center gap-1.5"
                   >
-                    <span className="truncate">{seller?.name}</span>
+                    <span className="truncate">{sellerDisplayName}</span>
                     {resolvedMembership.isPremium && (
                       <MembershipBadge
                         tier={resolvedMembership.tier}
@@ -1333,7 +1343,7 @@ export const SellerPreviewCard = ({
                   </CustomLink>
                 ) : (
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
-                    <span className="truncate">{seller?.name}</span>
+                    <span className="truncate">{sellerDisplayName}</span>
                     {resolvedMembership.isPremium && (
                       <MembershipBadge
                         tier={resolvedMembership.tier}
@@ -1447,7 +1457,10 @@ export const SellerPreviewCard = ({
               Poruka
             </button>
 
-            <SavedToListButton sellerId={sellerId} sellerName={seller?.name} />
+            <SavedToListButton
+              sellerId={sellerId}
+              sellerName={sellerDisplayName}
+            />
 
             {contactStyle === "sheet" ? (
               hasDirectContactOptions ? (
@@ -1483,7 +1496,7 @@ export const SellerPreviewCard = ({
                 )}
                 {contactEngine.channels.whatsapp && (
                   <a
-                    href={`https://wa.me/${String(settings?.whatsapp_number || seller?.mobile).replace(/\D/g, "")}`}
+                    href={`https://wa.me/${String(whatsappNumber || "").replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-green-600 transition-colors"

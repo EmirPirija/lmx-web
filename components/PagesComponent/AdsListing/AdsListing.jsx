@@ -1457,14 +1457,17 @@ const AdsListing = () => {
     const hasPreciseRealEstatePin =
       Number.isFinite(Number(location?.lat)) &&
       Number.isFinite(Number(location?.long));
-    const usesRealEstateProfileLocation =
-      is_real_estate &&
-      (realEstateLocationSource === "profile" ||
-        (!hasPreciseRealEstatePin && realEstateLocationSource !== "map"));
+    const normalizedRealEstateLocationSource = is_real_estate
+      ? ["profile", "manual", "map"].includes(realEstateLocationSource)
+        ? realEstateLocationSource
+        : hasPreciseRealEstatePin
+          ? "map"
+          : "manual"
+      : String(location?.location_source || "manual").toLowerCase();
 
     if (
       is_real_estate &&
-      !usesRealEstateProfileLocation &&
+      normalizedRealEstateLocationSource === "map" &&
       !hasPreciseRealEstatePin
     ) {
       toast.error("Za nekretninu označite tačnu lokaciju na mapi.");
@@ -1548,14 +1551,32 @@ const AdsListing = () => {
     const galleryFallbackFiles = (otherImages || []).filter(
       (entry) => entry instanceof File || entry instanceof Blob,
     );
+    const realEstateSourceRawForPayload = String(
+      location?.location_source || "",
+    ).toLowerCase();
     const latNum = Number(location?.lat);
     const lngNum = Number(location?.long);
-    const resolvedLatitude = Number.isFinite(latNum)
+    const hasPreciseCoords = Number.isFinite(latNum) && Number.isFinite(lngNum);
+    const normalizedRealEstateLocationSource = is_real_estate
+      ? ["profile", "manual", "map"].includes(realEstateSourceRawForPayload)
+        ? realEstateSourceRawForPayload
+        : hasPreciseCoords
+          ? "map"
+          : "manual"
+      : String(location?.location_source || "manual").toLowerCase();
+    const shouldUsePreciseCoordinates = is_real_estate
+      ? normalizedRealEstateLocationSource === "map" && hasPreciseCoords
+      : hasPreciseCoords;
+    const resolvedLatitude = shouldUsePreciseCoordinates
       ? latNum
-      : DEFAULT_BIH_COORDS.lat;
-    const resolvedLongitude = Number.isFinite(lngNum)
+      : is_real_estate
+        ? null
+        : DEFAULT_BIH_COORDS.lat;
+    const resolvedLongitude = shouldUsePreciseCoordinates
       ? lngNum
-      : DEFAULT_BIH_COORDS.lng;
+      : is_real_estate
+        ? null
+        : DEFAULT_BIH_COORDS.lng;
 
     const allData = {
       name: defaultDetails.name,
@@ -1634,9 +1655,7 @@ const AdsListing = () => {
       latitude: resolvedLatitude,
       longitude: resolvedLongitude,
       location_source: is_real_estate
-        ? String(location?.location_source || "").toLowerCase() === "profile"
-          ? "profile"
-          : "map"
+        ? normalizedRealEstateLocationSource
         : String(location?.location_source || "manual").toLowerCase(),
       custom_field_files: customFieldFiles,
       country: location?.country,
@@ -1984,14 +2003,20 @@ const AdsListing = () => {
     Number.isFinite(Number(location?.lat)) &&
     Number.isFinite(Number(location?.long)),
   );
-  const usesProfileLocation =
-    is_real_estate &&
-    (String(location?.location_source || "").toLowerCase() === "profile" ||
-      (!hasPreciseLocation &&
-        String(location?.location_source || "").toLowerCase() !== "map"));
+  const normalizedRealEstateLocationSourceForValidity = is_real_estate
+    ? (() => {
+        const source = String(location?.location_source || "").toLowerCase();
+        if (["profile", "manual", "map"].includes(source)) return source;
+        return hasPreciseLocation ? "map" : "manual";
+      })()
+    : "manual";
+  const requiresPreciseRealEstatePinForValidity =
+    is_real_estate && normalizedRealEstateLocationSourceForValidity === "map";
   const hasValidLocation =
     hasBaseLocation &&
-    (!is_real_estate || usesProfileLocation || hasPreciseLocation);
+    (!is_real_estate ||
+      !requiresPreciseRealEstatePinForValidity ||
+      hasPreciseLocation);
 
   const syncStepRailFill = useCallback(() => {
     const railEl = stepRailRef.current;

@@ -2230,7 +2230,7 @@ const Ads = () => {
                       showCurrentLocationButton={false}
                       showMarkerPopup={false}
                       useApproximateZoneMarkers={true}
-                      approximateZoneRadiusMeters={1100}
+                      approximateZoneRadiusMeters={100}
                     />
                     {mapCardDetails ? (
                       <div className="pointer-events-none absolute left-3 top-3 z-[550] w-[min(460px,calc(100%-1.5rem))]">

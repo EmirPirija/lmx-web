@@ -28,6 +28,7 @@ import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
 import {
   normalizeSellerCardPreferences,
   resolveSellerContactEngine,
+  resolveSellerDisplayName,
 } from "@/lib/seller-settings-engine";
 import { getCompanyName } from "@/redux/reducer/settingSlice";
 import { userSignUpData, getIsLoggedIn } from "@/redux/reducer/authSlice";
@@ -251,29 +252,31 @@ const ContactModal = ({
     settings,
     isLoggedIn,
   });
-  const { contactPolicy, phoneContact, channels } = contactEngine;
+  const { contactPolicy, phoneContact, channels, whatsappNumber, viberNumber } =
+    contactEngine;
   const showPhone = channels.call;
   const showWhatsapp = channels.whatsapp;
   const showViber = channels.viber;
   const showEmail = channels.email;
 
-  const phone = phoneContact.phone;
-  const whatsappNumber = settings?.whatsapp_number || seller?.mobile;
-  const viberNumber = settings?.viber_number || seller?.mobile;
+  const phoneRaw = phoneContact.phone;
+  const phoneDisplay = phoneContact.formattedPhone || phoneRaw;
   const email = seller?.email;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl"
+        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
       >
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">Kontakt</h3>
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Kontakt
+          </h3>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="p-1 rounded-md hover:bg-slate-100 text-slate-400"
+            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
           >
             <X className="w-4 h-4" />
           </button>
@@ -296,16 +299,18 @@ const ContactModal = ({
           {showPhone && (
             <div className="flex items-center gap-1.5">
               <a
-                href={`tel:${phone}`}
-                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+                href={`tel:${phoneRaw}`}
+                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
               >
                 <Phone className="w-4 h-4 text-emerald-500" />
-                <span className="text-slate-700">{phone}</span>
+                <span className="text-slate-700 dark:text-slate-200">
+                  {phoneDisplay}
+                </span>
               </a>
               <button
                 type="button"
-                onClick={() => copy("phone", phone)}
-                className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50"
+                onClick={() => copy("phone", phoneRaw)}
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 {copiedKey === "phone" ? (
                   <Check className="w-4 h-4 text-green-500" />
@@ -351,24 +356,26 @@ const ContactModal = ({
               href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
             >
               <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                 <MessageCircle className="w-2.5 h-2.5 text-white" />
               </div>
-              <span className="text-slate-700">WhatsApp</span>
+              <span className="text-slate-700 dark:text-slate-200">
+                WhatsApp
+              </span>
             </a>
           )}
 
           {showViber && (
             <a
               href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}
-              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm"
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
             >
               <div className="w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
                 <Phone className="w-2.5 h-2.5 text-white" />
               </div>
-              <span className="text-slate-700">Viber</span>
+              <span className="text-slate-700 dark:text-slate-200">Viber</span>
             </a>
           )}
 
@@ -376,14 +383,16 @@ const ContactModal = ({
             <div className="flex items-center gap-1.5">
               <a
                 href={`mailto:${email}`}
-                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-sm truncate"
+                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm truncate"
               >
-                <span className="text-slate-700 truncate">{email}</span>
+                <span className="text-slate-700 dark:text-slate-200 truncate">
+                  {email}
+                </span>
               </a>
               <button
                 type="button"
                 onClick={() => copy("email", email)}
-                className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50"
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 {copiedKey === "email" ? (
                   <Check className="w-4 h-4 text-green-500" />
@@ -403,10 +412,11 @@ const ContactModal = ({
    SEND MESSAGE MODAL
 ===================================================== */
 
-const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
+const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
   const isLoggedIn = useSelector(getIsLoggedIn);
+  const sellerDisplayName = resolveSellerDisplayName({ seller, settings });
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -528,14 +538,14 @@ const SendMessageModal = ({ open, onOpenChange, seller, itemId }) => {
                   seller?.avatar,
                 ]}
                 verificationSource={seller}
-                alt={seller?.name || "Prodavač"}
+                alt={sellerDisplayName || "Prodavač"}
                 className="w-8 h-8 rounded-lg"
                 roundedClassName="rounded-lg"
                 imageClassName="w-full h-full object-cover"
               />
             </div>
             <span className="text-sm font-semibold text-slate-900">
-              {seller?.name}
+              {sellerDisplayName}
             </span>
           </div>
           <button
@@ -792,6 +802,10 @@ export const MinimalSellerCard = ({
 
   // Card preferences from seller settings - parse if JSON string
   const cardPrefs = normalizeCardPreferences(settings?.card_preferences);
+  const sellerDisplayName = useMemo(
+    () => resolveSellerDisplayName({ seller, settings }),
+    [seller, settings],
+  );
   const showRatings = cardPrefs.show_ratings;
   const showBadges = cardPrefs.show_badges;
   const showMemberSince = cardPrefs.show_member_since;
@@ -815,7 +829,7 @@ export const MinimalSellerCard = ({
       ? `${process.env.NEXT_PUBLIC_WEB_URL}/seller/${seller.id}`
       : `${process.env.NEXT_PUBLIC_WEB_URL}${pathname}`);
 
-  const title = `${seller?.name || "Prodavač"} | ${CompanyName}`;
+  const title = `${sellerDisplayName || "Prodavač"} | ${CompanyName}`;
 
   const responseLabel = showResponseTime
     ? getResponseTimeLabel({
@@ -898,6 +912,7 @@ export const MinimalSellerCard = ({
         open={isMessageOpen}
         onOpenChange={setIsMessageOpen}
         seller={seller}
+        settings={settings}
         itemId={itemId}
       />
 
@@ -950,7 +965,7 @@ export const MinimalSellerCard = ({
                   phoneVerifiedBadgeClassName={
                     hasReel ? "-left-0.5 !right-auto" : ""
                   }
-                  alt={seller?.name || "Prodavač"}
+                  alt={sellerDisplayName || "Prodavač"}
                   className="w-full h-full"
                   roundedClassName={
                     variant === "compact" ? "rounded-[10px]" : "rounded-xl"
@@ -985,7 +1000,7 @@ export const MinimalSellerCard = ({
                 href={`/seller/${seller?.id}`}
                 className="text-sm font-semibold text-slate-900 hover:text-primary truncate transition-colors flex items-center gap-1.5"
               >
-                <span className="truncate">{seller?.name}</span>
+                <span className="truncate">{sellerDisplayName}</span>
                 <MembershipBadge tier={resolvedMembership.tier} size="xs" />
               </CustomLink>
 

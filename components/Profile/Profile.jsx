@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "@/utils/toastBs";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import UserAvatarMedia from "@/components/Common/UserAvatar";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js/max";
+import { getAuth, onAuthStateChanged, updateEmail } from "firebase/auth";
 
 import {
   User,
@@ -40,6 +41,10 @@ import {
   LMX_PHONE_INPUT_PROPS,
   resolveLmxPhoneCountry,
 } from "@/components/Common/phoneInputTheme";
+import {
+  normalizeSellerCardPreferences,
+  SELLER_NAME_DISPLAY_MODES,
+} from "@/lib/seller-settings-engine";
 
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -49,6 +54,7 @@ import { loadUpdateUserData, userSignUpData } from "@/redux/reducer/authSlice";
 import { Fcmtoken, settingsData } from "@/redux/reducer/settingSlice";
 
 import {
+  authApi,
   getUserInfoApi,
   getVerificationStatusApi,
   updateProfileApi,
@@ -247,6 +253,258 @@ const isValidEmailLoose = (value) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+const USERNAME_REGEX = /^[a-zA-Z0-9._-]{3,30}$/;
+
+const normalizeUsernameValue = (value) => String(value || "").trim();
+
+const isValidUsernameValue = (value) =>
+  USERNAME_REGEX.test(normalizeUsernameValue(value));
+
+const splitFullName = (value) => {
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!cleaned || !cleaned.includes(" ")) {
+    return { firstName: "", lastName: "" };
+  }
+  const [firstName, ...rest] = cleaned.split(" ");
+  return {
+    firstName: String(firstName || "").trim(),
+    lastName: String(rest.join(" ") || "").trim(),
+  };
+};
+
+const parseCardPreferencesSafe = (value) => {
+  if (!value) return {};
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return typeof value === "object" ? { ...value } : {};
+};
+
+const normalizeProfileDisplayMode = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === SELLER_NAME_DISPLAY_MODES.FULL_NAME) {
+    return SELLER_NAME_DISPLAY_MODES.FULL_NAME;
+  }
+  if (normalized === SELLER_NAME_DISPLAY_MODES.FIRST_NAME) {
+    return SELLER_NAME_DISPLAY_MODES.FIRST_NAME;
+  }
+  if (normalized === SELLER_NAME_DISPLAY_MODES.LAST_NAME) {
+    return SELLER_NAME_DISPLAY_MODES.LAST_NAME;
+  }
+  return SELLER_NAME_DISPLAY_MODES.USERNAME;
+};
+
+const resolveProfileDisplayName = ({
+  username = "",
+  firstName = "",
+  lastName = "",
+  displayMode = SELLER_NAME_DISPLAY_MODES.USERNAME,
+} = {}) => {
+  const safeUsername = normalizeUsernameValue(username);
+  const safeFirstName = String(firstName || "").trim();
+  const safeLastName = String(lastName || "").trim();
+  const safeFullName = [safeFirstName, safeLastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  if (displayMode === SELLER_NAME_DISPLAY_MODES.FULL_NAME && safeFullName) {
+    return safeFullName;
+  }
+  if (displayMode === SELLER_NAME_DISPLAY_MODES.FIRST_NAME && safeFirstName) {
+    return safeFirstName;
+  }
+  if (displayMode === SELLER_NAME_DISPLAY_MODES.LAST_NAME && safeLastName) {
+    return safeLastName;
+  }
+
+  return safeUsername || safeFullName || safeFirstName || safeLastName || "";
+};
+
+const normalizeComparable = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const DUPLICATE_HINTS = [
+  "already",
+  "exists",
+  "duplicate",
+  "zauzet",
+  "zauzeto",
+  "već postoji",
+  "vec postoji",
+  "already in use",
+];
+const EMAIL_HINTS = ["email", "e-mail", "mail"];
+const NAME_HINTS = ["name", "ime", "username", "korisnick", "nickname", "nick"];
+const PHONE_HINTS = ["phone", "mobile", "telefon", "broj"];
+const NOT_FOUND_HINTS = [
+  "not found",
+  "nije prona",
+  "ne postoji",
+  "not registered",
+  "nije registro",
+];
+const NOT_FOUND_REASONS = new Set([
+  "identifier_not_found",
+  "email_not_found",
+  "user_not_found",
+  "not_found",
+  "phone_not_registered",
+]);
+
+const extractErrorSearchText = (errorLike) => {
+  const responseData =
+    errorLike?.response?.data || errorLike?.data || errorLike || {};
+  const message = String(
+    responseData?.message || errorLike?.message || "",
+  ).trim();
+  const reason = String(
+    responseData?.data?.reason || errorLike?.apiReason || "",
+  ).trim();
+  const fieldErrors = Object.values(responseData?.errors || {})
+    .flat()
+    .map((entry) => String(entry || ""))
+    .join(" ");
+  return normalizeComparable(`${message} ${reason} ${fieldErrors}`);
+};
+
+const inferDuplicateField = (errorLike) => {
+  const text = extractErrorSearchText(errorLike);
+  if (!DUPLICATE_HINTS.some((hint) => text.includes(hint))) {
+    return null;
+  }
+  if (EMAIL_HINTS.some((hint) => text.includes(hint))) return "email";
+  if (NAME_HINTS.some((hint) => text.includes(hint))) return "name";
+  if (PHONE_HINTS.some((hint) => text.includes(hint))) return "phone";
+  return "generic";
+};
+
+const getDuplicateMessage = (errorLike) => {
+  const field = inferDuplicateField(errorLike);
+  if (field === "email") return "E-mail je već zauzet.";
+  if (field === "name") return "Korisničko ime je već zauzeto.";
+  if (field === "phone")
+    return "Broj telefona je već povezan s drugim računom.";
+  if (field === "generic")
+    return "Uneseni podaci već postoje. Provjerite e-mail i korisničko ime.";
+  return "";
+};
+
+const extractResolvedUserId = (payload) => {
+  const candidates = [
+    payload?.id,
+    payload?.user_id,
+    payload?.userId,
+    payload?.user?.id,
+  ];
+  const found = candidates.find(
+    (value) =>
+      value !== undefined && value !== null && String(value).trim() !== "",
+  );
+  return found ? String(found).trim() : "";
+};
+
+const extractResolvedEmail = (payload) => {
+  const candidates = [payload?.email, payload?.user?.email];
+  const found = candidates.find(
+    (value) =>
+      value !== undefined && value !== null && String(value).trim() !== "",
+  );
+  return normalizeComparable(found || "");
+};
+
+const isSameResolvedUser = ({ payload, currentUserId, currentEmail }) => {
+  if (!payload || typeof payload !== "object") return false;
+  const resolvedId = extractResolvedUserId(payload);
+  const resolvedEmail = extractResolvedEmail(payload);
+  const normalizedCurrentId = String(currentUserId || "").trim();
+  const normalizedCurrentEmail = normalizeComparable(currentEmail || "");
+
+  if (normalizedCurrentId && resolvedId && normalizedCurrentId === resolvedId) {
+    return true;
+  }
+  if (
+    normalizedCurrentEmail &&
+    resolvedEmail &&
+    normalizedCurrentEmail === resolvedEmail
+  ) {
+    return true;
+  }
+  return false;
+};
+
+const resolveIdentifierOwnerSafe = async ({
+  identifier,
+  identifierType,
+} = {}) => {
+  const normalizedIdentifier = String(identifier || "").trim();
+  if (!normalizedIdentifier) return null;
+
+  try {
+    const response = await authApi.resolveLoginIdentifier({
+      identifier: normalizedIdentifier,
+      identifier_type: identifierType || undefined,
+    });
+    const payload = response?.data?.data;
+
+    if (response?.data?.error === true) {
+      const reason = normalizeComparable(payload?.reason || "");
+      const message = normalizeComparable(response?.data?.message || "");
+      if (
+        NOT_FOUND_REASONS.has(reason) ||
+        NOT_FOUND_HINTS.some((hint) => message.includes(hint))
+      ) {
+        return null;
+      }
+    }
+
+    if (!payload || typeof payload !== "object") return null;
+    const hasIdentity = Boolean(
+      extractResolvedUserId(payload) ||
+      extractResolvedEmail(payload) ||
+      String(payload?.mobile || "").trim() ||
+      String(payload?.identifier || "").trim() ||
+      String(payload?.name || "").trim(),
+    );
+    return hasIdentity ? payload : null;
+  } catch (error) {
+    const status = Number(error?.response?.status || 0);
+    const reason = normalizeComparable(
+      error?.response?.data?.data?.reason || error?.apiReason || "",
+    );
+    const message = normalizeComparable(
+      error?.response?.data?.message || error?.message || "",
+    );
+    if (
+      status === 404 ||
+      NOT_FOUND_REASONS.has(reason) ||
+      NOT_FOUND_HINTS.some((hint) => message.includes(hint)) ||
+      status >= 500
+    ) {
+      return null;
+    }
+    return null;
+  }
+};
+
+const extractFirebaseProviderIds = (firebaseUser) =>
+  Array.isArray(firebaseUser?.providerData)
+    ? firebaseUser.providerData
+        .map((provider) => String(provider?.providerId || "").trim())
+        .filter(Boolean)
+    : [];
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -265,6 +523,12 @@ export default function Profile() {
   const [profileImage, setProfileImage] = useState("");
   const [profileFile, setProfileFile] = useState(null);
   const [sellerSettingsData, setSellerSettingsData] = useState(null);
+  const [identityData, setIdentityData] = useState({
+    firstName: "",
+    lastName: "",
+    displayMode: SELLER_NAME_DISPLAY_MODES.USERNAME,
+  });
+  const [isSavingIdentity, setIsSavingIdentity] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -294,9 +558,16 @@ export default function Profile() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [publicProfileUrl, setPublicProfileUrl] = useState("");
   const [isLinkCopied, setIsLinkCopied] = useState(false);
+  const [firebaseProviderIds, setFirebaseProviderIds] = useState([]);
+  const [firebaseAuthEmail, setFirebaseAuthEmail] = useState("");
 
   // Refs
   const initialDataRef = useRef(null);
+  const initialIdentityRef = useRef({
+    firstName: "",
+    lastName: "",
+    displayMode: SELLER_NAME_DISPLAY_MODES.USERNAME,
+  });
   const fileInputRef = useRef(null);
   const saveTimeoutRef = useRef(null);
 
@@ -308,6 +579,69 @@ export default function Profile() {
   }, [userLocation]);
 
   useEffect(() => {
+    const auth = getAuth();
+    const syncIdentity = (firebaseUser) => {
+      setFirebaseProviderIds(extractFirebaseProviderIds(firebaseUser));
+      setFirebaseAuthEmail(
+        String(firebaseUser?.email || "")
+          .trim()
+          .toLowerCase(),
+      );
+    };
+    syncIdentity(auth.currentUser);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      syncIdentity(firebaseUser);
+    });
+    return () => unsubscribe?.();
+  }, []);
+
+  const isGoogleOnlyIdentity = useMemo(() => {
+    const providers = new Set(firebaseProviderIds);
+    return providers.has("google.com") && !providers.has("password");
+  }, [firebaseProviderIds]);
+
+  const emailChangeDisabledReason = isGoogleOnlyIdentity
+    ? "Email je vezan za Google nalog i ne može se mijenjati ovdje. Promjena emaila radi se na Google računu."
+    : "";
+  const isEmailChangeDisabled = Boolean(emailChangeDisabledReason);
+  const profileDisplayOptions = useMemo(
+    () => [
+      {
+        value: SELLER_NAME_DISPLAY_MODES.FULL_NAME,
+        label: "Ime i prezime",
+      },
+      {
+        value: SELLER_NAME_DISPLAY_MODES.FIRST_NAME,
+        label: "Samo ime",
+      },
+      {
+        value: SELLER_NAME_DISPLAY_MODES.LAST_NAME,
+        label: "Samo prezime",
+      },
+      {
+        value: SELLER_NAME_DISPLAY_MODES.USERNAME,
+        label: "Korisničko ime",
+      },
+    ],
+    [],
+  );
+  const profileVisibleName = useMemo(
+    () =>
+      resolveProfileDisplayName({
+        username: formData.name,
+        firstName: identityData.firstName,
+        lastName: identityData.lastName,
+        displayMode: identityData.displayMode,
+      }) || "Vaš profil",
+    [
+      formData.name,
+      identityData.firstName,
+      identityData.lastName,
+      identityData.displayMode,
+    ],
+  );
+
+  useEffect(() => {
     if (!IsLoggedIn) {
       setIsLoading(false);
       return;
@@ -315,6 +649,8 @@ export default function Profile() {
 
     const fetchData = async () => {
       setIsLoading(true);
+      let loadedUser = null;
+      let loadedSellerSettings = null;
       try {
         const [verificationRes, userRes, sellerRes] = await Promise.allSettled([
           getVerificationStatusApi.getVerificationStatus(),
@@ -349,6 +685,7 @@ export default function Profile() {
           userRes.value?.data?.error === false
         ) {
           const d = userRes.value.data.data;
+          loadedUser = d;
           const region = (d?.region_code || "ba").toLowerCase();
           const countryCode = normalizeCountryCode(d?.country_code);
           const phone = normalizeMobileLocal(d?.mobile, countryCode);
@@ -365,6 +702,39 @@ export default function Profile() {
           };
 
           setFormData(nextForm);
+          const normalizedBackendEmail = normalizeComparable(d?.email || "");
+          const auth = getAuth();
+          const firebaseUser = auth.currentUser;
+          const normalizedFirebaseEmail = normalizeComparable(
+            firebaseUser?.email || firebaseAuthEmail,
+          );
+          const providerIds = new Set(extractFirebaseProviderIds(firebaseUser));
+          const isGoogleOnly =
+            providerIds.has("google.com") && !providerIds.has("password");
+
+          if (
+            normalizedBackendEmail &&
+            isValidEmailLoose(normalizedBackendEmail) &&
+            firebaseUser &&
+            !isGoogleOnly &&
+            normalizedBackendEmail !== normalizedFirebaseEmail
+          ) {
+            try {
+              await updateEmail(firebaseUser, normalizedBackendEmail);
+              setFirebaseAuthEmail(normalizedBackendEmail);
+            } catch (firebaseSyncError) {
+              const code = String(firebaseSyncError?.code || "");
+              if (
+                code !== "auth/requires-recent-login" &&
+                code !== "auth/operation-not-allowed"
+              ) {
+                console.warn(
+                  "Neuspjelo usklađivanje Firebase e-maila:",
+                  firebaseSyncError,
+                );
+              }
+            }
+          }
           setProfileImage(
             resolveAvatarUrl([d?.profile, d?.profile_image, d?.avatar], {
               placeholderImage: placeholder_image,
@@ -388,7 +758,38 @@ export default function Profile() {
           sellerRes.value?.data?.error === false &&
           sellerRes.value?.data?.data
         ) {
-          setSellerSettingsData(sellerRes.value.data.data);
+          loadedSellerSettings = sellerRes.value.data.data;
+          setSellerSettingsData(loadedSellerSettings);
+        }
+
+        if (loadedUser) {
+          const splitName = splitFullName(loadedUser?.name);
+          const rawCardPreferences = parseCardPreferencesSafe(
+            loadedSellerSettings?.card_preferences,
+          );
+          const normalizedCardPreferences =
+            normalizeSellerCardPreferences(rawCardPreferences);
+
+          const nextIdentityData = {
+            firstName: String(
+              normalizedCardPreferences?.identity_first_name ||
+                loadedUser?.first_name ||
+                splitName.firstName ||
+                "",
+            ).trim(),
+            lastName: String(
+              normalizedCardPreferences?.identity_last_name ||
+                loadedUser?.last_name ||
+                splitName.lastName ||
+                "",
+            ).trim(),
+            displayMode: normalizeProfileDisplayMode(
+              normalizedCardPreferences?.identity_display_mode,
+            ),
+          };
+
+          setIdentityData(nextIdentityData);
+          initialIdentityRef.current = nextIdentityData;
         }
       } catch (error) {
         console.error("Greška pri učitavanju podataka:", error);
@@ -404,11 +805,31 @@ export default function Profile() {
   // Auto-save function
   const autoSave = useCallback(
     async (fieldName, skipValidation = false, options = {}) => {
+      let firebaseUser = null;
+      let previousFirebaseEmail = "";
+      let normalizedEmail = "";
+      let didUpdateFirebaseEmail = false;
+
       // Validation
       if (!skipValidation) {
-        if (fieldName === "name" && !formData.name.trim()) {
-          toast.error("Ime je obavezno polje");
-          return;
+        if (fieldName === "name") {
+          const username = normalizeUsernameValue(formData.name);
+          if (!username) {
+            toast.error("Korisničko ime je obavezno polje.");
+            return;
+          }
+          const initialUsername = normalizeUsernameValue(
+            initialDataRef.current?.name || "",
+          );
+          const usernameChanged =
+            normalizeComparable(username) !==
+            normalizeComparable(initialUsername);
+          if (usernameChanged && !isValidUsernameValue(username)) {
+            toast.error(
+              "Korisničko ime mora imati 3-30 znakova (slova, brojevi, ., _, -).",
+            );
+            return;
+          }
         }
 
         if (fieldName === "email" && !isValidEmailLoose(formData.email)) {
@@ -467,22 +888,141 @@ export default function Profile() {
           normalizedCountryCode,
         );
         const phoneE164 = `+${normalizedCountryCode}${normalizedMobile}`;
-        const canSendMobile = normalizedMobile
-          ? isValidPhoneNumber(phoneE164)
-          : false;
+        normalizedEmail = String(formData.email || "")
+          .trim()
+          .toLowerCase();
+        const normalizedName = normalizeUsernameValue(formData.name);
+        const normalizedRegionCode = String(formData.region_code || "")
+          .trim()
+          .toUpperCase();
+        const canSendMobile = Boolean(
+          normalizedMobile &&
+          normalizedCountryCode &&
+          isValidPhoneNumber(phoneE164),
+        );
+
+        const initialName = normalizeComparable(
+          initialDataRef.current?.name || "",
+        );
+        const initialEmail = normalizeComparable(
+          initialDataRef.current?.email || "",
+        );
+        const nameChanged =
+          fieldName === "name" &&
+          normalizedName &&
+          normalizeComparable(normalizedName) !== initialName;
+        const emailChanged =
+          fieldName === "email" &&
+          normalizedEmail &&
+          normalizeComparable(normalizedEmail) !== initialEmail;
+
+        if (emailChanged) {
+          if (isEmailChangeDisabled) {
+            toast.error(emailChangeDisabledReason);
+            return;
+          }
+
+          const emailOwner = await resolveIdentifierOwnerSafe({
+            identifier: normalizedEmail,
+            identifierType: "email",
+          });
+          if (
+            emailOwner &&
+            !isSameResolvedUser({
+              payload: emailOwner,
+              currentUserId: UserData?.id,
+              currentEmail: UserData?.email || normalizedEmail,
+            })
+          ) {
+            toast.error("E-mail je već zauzet.");
+            return;
+          }
+        }
+
+        if (nameChanged) {
+          let nameOwner = await resolveIdentifierOwnerSafe({
+            identifier: normalizedName,
+            identifierType: "username",
+          });
+          if (!nameOwner) {
+            nameOwner = await resolveIdentifierOwnerSafe({
+              identifier: normalizedName,
+            });
+          }
+          if (
+            nameOwner &&
+            !isSameResolvedUser({
+              payload: nameOwner,
+              currentUserId: UserData?.id,
+              currentEmail: UserData?.email || normalizedEmail,
+            })
+          ) {
+            toast.error("Korisničko ime je već zauzeto.");
+            return;
+          }
+        }
+
+        if (emailChanged) {
+          const auth = getAuth();
+          firebaseUser = auth.currentUser;
+          previousFirebaseEmail = String(firebaseUser?.email || "")
+            .trim()
+            .toLowerCase();
+          if (!previousFirebaseEmail && firebaseAuthEmail) {
+            previousFirebaseEmail = firebaseAuthEmail;
+          }
+
+          if (!firebaseUser) {
+            toast.error(
+              "Sigurnosna sesija je istekla. Odjavite se i prijavite ponovo prije promjene e-maila.",
+            );
+            return;
+          }
+
+          if (
+            !previousFirebaseEmail ||
+            previousFirebaseEmail !== normalizedEmail
+          ) {
+            try {
+              await updateEmail(firebaseUser, normalizedEmail);
+              didUpdateFirebaseEmail = true;
+            } catch (error) {
+              const code = String(error?.code || "");
+              if (code === "auth/requires-recent-login") {
+                toast.error(
+                  "Zbog sigurnosti, za promjenu e-maila se prvo ponovo prijavite pa pokušajte opet.",
+                );
+                return;
+              }
+              if (code === "auth/operation-not-allowed") {
+                toast.error(
+                  "Promjena e-maila nije dozvoljena za ovaj način prijave.",
+                );
+                return;
+              }
+              const message =
+                error?.message ||
+                "Promjena e-maila nije uspjela na sigurnosnom servisu.";
+              toast.error(message);
+              return;
+            }
+          }
+        }
 
         const response = await updateProfileApi.updateProfile({
-          name: String(formData.name || "").trim(),
-          email: String(formData.email || "").trim(),
+          name: normalizedName,
+          email: normalizedEmail,
           mobile: canSendMobile ? normalizedMobile : undefined,
           address: formattedAddress,
           profile: profileFile,
           fcm_id: fetchFCM || "",
           notification: formData.notification,
-          country_code: normalizedCountryCode || undefined,
+          country_code: canSendMobile ? normalizedCountryCode : undefined,
           show_personal_details: formData.show_personal_details,
           region_code:
-            String(formData.region_code || "").toUpperCase() || undefined,
+            canSendMobile && normalizedRegionCode
+              ? normalizedRegionCode
+              : undefined,
         });
 
         if (response.data.error !== true) {
@@ -496,6 +1036,18 @@ export default function Profile() {
           }
 
           setProfileFile(null);
+          initialDataRef.current = {
+            ...(initialDataRef.current || {}),
+            name: normalizedName,
+            email: normalizedEmail,
+            phone: normalizedMobile,
+            address: formattedAddress,
+            notification: formData.notification,
+            show_personal_details: formData.show_personal_details,
+            region_code: normalizedRegionCode.toLowerCase(),
+            country_code: normalizedCountryCode,
+            bihLocation: locationToSave,
+          };
           toast.success("Sačuvano");
         } else {
           toast.error(response.data.message || "Greška pri čuvanju");
@@ -503,9 +1055,42 @@ export default function Profile() {
       } catch (error) {
         console.error("Greška:", error);
         const status = error?.response?.status;
+
+        if (didUpdateFirebaseEmail && firebaseUser) {
+          if (
+            previousFirebaseEmail &&
+            previousFirebaseEmail !== normalizedEmail
+          ) {
+            try {
+              await updateEmail(firebaseUser, previousFirebaseEmail);
+            } catch (rollbackError) {
+              console.error(
+                "Greška pri vraćanju e-maila nakon neuspjelog backend snimanja:",
+                rollbackError,
+              );
+              toast.error(
+                "E-mail je promijenjen u sigurnosnom nalogu, ali profil nije sačuvan. Prijavite se ponovo i ponovite izmjenu.",
+              );
+              return;
+            }
+          } else {
+            toast.error(
+              "E-mail je promijenjen na sigurnosnom servisu, ali profil nije sačuvan. Prijavite se ponovo i pokušajte opet.",
+            );
+            return;
+          }
+        }
+
+        const duplicateMessage = getDuplicateMessage(error);
+        if (duplicateMessage) {
+          toast.error(duplicateMessage);
+          return;
+        }
         const apiMessage =
           error?.response?.data?.message ||
           error?.response?.data?.errors?.mobile?.[0] ||
+          error?.response?.data?.errors?.country_code?.[0] ||
+          error?.response?.data?.errors?.region_code?.[0] ||
           error?.response?.data?.errors?.email?.[0] ||
           error?.message;
         if (status === 422) {
@@ -523,6 +1108,11 @@ export default function Profile() {
       profileFile,
       fetchFCM,
       UserData?.fcm_id,
+      UserData?.id,
+      UserData?.email,
+      firebaseAuthEmail,
+      isEmailChangeDisabled,
+      emailChangeDisabledReason,
       saveLocation,
     ],
   );
@@ -540,6 +1130,79 @@ export default function Profile() {
     [autoSave],
   );
 
+  const saveIdentityPreferences = useCallback(
+    async (nextIdentityCandidate = null) => {
+      const nextIdentity = {
+        firstName: String(
+          nextIdentityCandidate?.firstName ?? identityData.firstName ?? "",
+        ).trim(),
+        lastName: String(
+          nextIdentityCandidate?.lastName ?? identityData.lastName ?? "",
+        ).trim(),
+        displayMode: normalizeProfileDisplayMode(
+          nextIdentityCandidate?.displayMode ?? identityData.displayMode,
+        ),
+      };
+
+      const initialIdentity = initialIdentityRef.current || {};
+      const isSameIdentity =
+        normalizeComparable(initialIdentity.firstName) ===
+          normalizeComparable(nextIdentity.firstName) &&
+        normalizeComparable(initialIdentity.lastName) ===
+          normalizeComparable(nextIdentity.lastName) &&
+        normalizeProfileDisplayMode(initialIdentity.displayMode) ===
+          nextIdentity.displayMode;
+
+      if (isSameIdentity) return;
+
+      setIsSavingIdentity(true);
+      try {
+        const currentCardPreferences = parseCardPreferencesSafe(
+          sellerSettingsData?.card_preferences,
+        );
+        const nextCardPreferences = {
+          ...currentCardPreferences,
+          identity_first_name: nextIdentity.firstName,
+          identity_last_name: nextIdentity.lastName,
+          identity_display_mode: nextIdentity.displayMode,
+        };
+
+        const response = await sellerSettingsApi.updateSettings({
+          card_preferences: nextCardPreferences,
+        });
+
+        if (response?.data?.error === false) {
+          setSellerSettingsData((prev) => {
+            const prevSafe = prev && typeof prev === "object" ? prev : {};
+            const responseData =
+              response?.data?.data && typeof response.data.data === "object"
+                ? response.data.data
+                : {};
+            return {
+              ...prevSafe,
+              ...responseData,
+              card_preferences: nextCardPreferences,
+            };
+          });
+          initialIdentityRef.current = nextIdentity;
+          setIdentityData(nextIdentity);
+          toast.success("Sačuvano");
+          return;
+        }
+
+        toast.error(response?.data?.message || "Greška pri čuvanju.");
+      } catch (error) {
+        console.error("Greška pri čuvanju prikaza imena:", error);
+        toast.error(
+          error?.response?.data?.message || "Greška pri čuvanju prikaza imena.",
+        );
+      } finally {
+        setIsSavingIdentity(false);
+      }
+    },
+    [identityData, sellerSettingsData],
+  );
+
   // Handlers
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -547,6 +1210,25 @@ export default function Profile() {
 
   const handleBlur = (field) => {
     debouncedSave(field);
+  };
+
+  const handleIdentityChange = (field, value) => {
+    setIdentityData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleIdentityBlur = () => {
+    saveIdentityPreferences();
+  };
+
+  const handleDisplayModeChange = (value) => {
+    const normalizedValue = normalizeProfileDisplayMode(value);
+    setIdentityData((prev) => {
+      const nextIdentity = { ...prev, displayMode: normalizedValue };
+      window.setTimeout(() => {
+        saveIdentityPreferences(nextIdentity);
+      }, 80);
+      return nextIdentity;
+    });
   };
 
   const handlePhoneChange = (value, data) => {
@@ -702,7 +1384,7 @@ export default function Profile() {
               <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="truncate text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {formData.name || "Vaš profil"}
+                    {profileVisibleName}
                   </h1>
                   <VerificationBadge
                     status={verificationStatus}
@@ -784,22 +1466,100 @@ export default function Profile() {
             description="Vaši lični podaci"
           >
             <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="first_name"
+                    className="text-xs text-slate-600 dark:text-slate-300"
+                  >
+                    Ime
+                  </Label>
+                  <Input
+                    id="first_name"
+                    value={identityData.firstName}
+                    onChange={(e) =>
+                      handleIdentityChange("firstName", e.target.value)
+                    }
+                    onBlur={handleIdentityBlur}
+                    placeholder="Unesite ime"
+                    className="h-10"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="last_name"
+                    className="text-xs text-slate-600 dark:text-slate-300"
+                  >
+                    Prezime
+                  </Label>
+                  <Input
+                    id="last_name"
+                    value={identityData.lastName}
+                    onChange={(e) =>
+                      handleIdentityChange("lastName", e.target.value)
+                    }
+                    onBlur={handleIdentityBlur}
+                    placeholder="Unesite prezime"
+                    className="h-10"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label
                   htmlFor="name"
                   className="text-xs text-slate-600 dark:text-slate-300"
                 >
-                  Ime i prezime
+                  Korisničko ime
                 </Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   onBlur={() => handleBlur("name")}
-                  placeholder="Unesite vaše puno ime"
+                  placeholder="korisnicko_ime"
                   className="h-10"
                 />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Prijava je putem korisničkog imena ili e-maila.
+                </p>
               </div>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="name_display_mode"
+                  className="text-xs text-slate-600 dark:text-slate-300"
+                >
+                  Prikaz imena na profilu
+                </Label>
+                <select
+                  id="name_display_mode"
+                  value={identityData.displayMode}
+                  onChange={(event) =>
+                    handleDisplayModeChange(event.target.value)
+                  }
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                >
+                  {profileDisplayOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Trenutni prikaz: {profileVisibleName}
+                  </p>
+                  {isSavingIdentity ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Čuvanje...
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label
                   htmlFor="email"
@@ -811,11 +1571,21 @@ export default function Profile() {
                   id="email"
                   type="email"
                   value={formData.email}
+                  disabled={isEmailChangeDisabled}
                   onChange={(e) => handleChange("email", e.target.value)}
                   onBlur={() => handleBlur("email")}
                   placeholder="email@primjer.com"
-                  className="h-10"
+                  className={cn(
+                    "h-10",
+                    isEmailChangeDisabled &&
+                      "opacity-70 cursor-not-allowed bg-slate-100 dark:bg-slate-800",
+                  )}
                 />
+                {isEmailChangeDisabled ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-300">
+                    {emailChangeDisabledReason}
+                  </p>
+                ) : null}
               </div>
             </div>
           </SettingCard>

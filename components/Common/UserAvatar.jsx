@@ -96,6 +96,7 @@ const UserAvatar = ({
             className={cn(
               "h-full w-full flex items-center justify-center",
               fallbackClassName,
+              roundedClassName,
             )}
           >
             <Icon className={iconClassName} />

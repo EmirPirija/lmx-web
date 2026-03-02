@@ -11,7 +11,8 @@ import { getLocationApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
 
-const MAP_PRIVACY_RADIUS_METERS = 1200;
+const MAP_PRIVACY_RADIUS_METERS = 100;
+const COORDINATE_MISMATCH_THRESHOLD_METERS = 60000;
 
 const Map = dynamic(() => import("@/components/Location/Map"), {
   ssr: false,
@@ -45,6 +46,8 @@ const normalizeText = (value) =>
 const LOCATION_COORDINATE_FALLBACK = [
   { key: "sarajevo", lat: 43.8563, lng: 18.4131 },
   { key: "mostar", lat: 43.3438, lng: 17.8078 },
+  { key: "capljina", lat: 43.1217, lng: 17.6844 },
+  { key: "čapljina", lat: 43.1217, lng: 17.6844 },
   { key: "bihac", lat: 44.8167, lng: 15.87 },
   { key: "bihać", lat: 44.8167, lng: 15.87 },
   { key: "tuzla", lat: 44.5384, lng: 18.6671 },
@@ -132,6 +135,16 @@ const resolvePrimaryCoordinates = (details) => {
   const extraDetails = parseExtraDetailsSafe(details?.extra_details);
 
   const directCandidates = [
+    [details?.map_display_latitude, details?.map_display_longitude],
+    [details?.display_latitude, details?.display_longitude],
+    [
+      details?.translated_item?.map_display_latitude,
+      details?.translated_item?.map_display_longitude,
+    ],
+    [
+      details?.translated_item?.display_latitude,
+      details?.translated_item?.display_longitude,
+    ],
     [details?.latitude, details?.longitude],
     [details?.lat, details?.lng],
     [details?.lat, details?.long],
@@ -150,6 +163,8 @@ const resolvePrimaryCoordinates = (details) => {
     [extraDetails?.latitude, extraDetails?.longitude],
     [extraDetails?.lat, extraDetails?.lng],
     [extraDetails?.lat, extraDetails?.long],
+    [extraDetails?.map_display_latitude, extraDetails?.map_display_longitude],
+    [extraDetails?.display_latitude, extraDetails?.display_longitude],
     [extraDetails?.location?.latitude, extraDetails?.location?.longitude],
     [extraDetails?.location?.lat, extraDetails?.location?.lng],
     [extraDetails?.location?.lat, extraDetails?.location?.long],
@@ -189,6 +204,22 @@ const resolvePrimaryCoordinates = (details) => {
 };
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const toRadians = (value) => (value * Math.PI) / 180;
+
+const distanceBetweenCoordinatesMeters = (from, to) => {
+  if (!from || !to) return Number.POSITIVE_INFINITY;
+  const earthRadiusMeters = 6371000;
+  const dLat = toRadians((to.lat || 0) - (from.lat || 0));
+  const dLng = toRadians((to.lng || 0) - (from.lng || 0));
+  const lat1 = toRadians(from.lat || 0);
+  const lat2 = toRadians(to.lat || 0);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusMeters * c;
+};
 
 const createSeed = (input) => {
   const str = String(input || "");
@@ -245,6 +276,25 @@ const normalizeCountryLabel = (value) => {
     return "BiH";
   }
   return token;
+};
+
+const expandLocationCollisionTokens = (value) => {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return [];
+
+  const parts = normalized
+    .split(/[,\-/]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const words = normalized
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 3);
+
+  return Array.from(new Set([normalized, ...parts, ...words]));
 };
 
 const normalizeLocationToken = (value) => {
@@ -413,8 +463,12 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
   );
 
   const municipalityOrCityFallback = useMemo(() => {
-    const fromPinState = normalizeLocationToken(resolvedLocationByPin?.state || "");
-    const fromPinCity = normalizeLocationToken(resolvedLocationByPin?.city || "");
+    const fromPinState = normalizeLocationToken(
+      resolvedLocationByPin?.state || "",
+    );
+    const fromPinCity = normalizeLocationToken(
+      resolvedLocationByPin?.city || "",
+    );
     const fromDetailsState = normalizeLocationToken(
       productDetails?.state_translation ||
         productDetails?.state ||
@@ -431,11 +485,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     );
 
     return (
-      fromPinState ||
-      fromPinCity ||
-      fromDetailsState ||
-      fromDetailsCity ||
-      ""
+      fromPinState || fromPinCity || fromDetailsState || fromDetailsCity || ""
     );
   }, [
     resolvedLocationByPin?.state,
@@ -486,30 +536,31 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
 
   const countryLabel = useMemo(() => {
     const localityToken = normalizeLocationToken(municipalityOrCityFallback);
+    const locationCollisionCandidates = [
+      localityToken,
+      ...normalizedLocationParts,
+      normalizeLocationToken(
+        productDetails?.state_translation ||
+          productDetails?.state ||
+          productDetails?.translated_item?.state_translation ||
+          productDetails?.translated_item?.state,
+      ),
+      normalizeLocationToken(
+        productDetails?.city_translation ||
+          productDetails?.city ||
+          productDetails?.translated_item?.city_translation ||
+          productDetails?.translated_item?.city,
+      ),
+      normalizeLocationToken(
+        productDetails?.area?.translated_name ||
+          productDetails?.area?.name ||
+          productDetails?.area_name ||
+          productDetails?.translated_item?.area_name,
+      ),
+    ];
     const localityCollisionTokens = new Set(
-      [
-        localityToken,
-        ...normalizedLocationParts,
-        normalizeLocationToken(
-          productDetails?.state_translation ||
-            productDetails?.state ||
-            productDetails?.translated_item?.state_translation ||
-            productDetails?.translated_item?.state,
-        ),
-        normalizeLocationToken(
-          productDetails?.city_translation ||
-            productDetails?.city ||
-            productDetails?.translated_item?.city_translation ||
-            productDetails?.translated_item?.city,
-        ),
-        normalizeLocationToken(
-          productDetails?.area?.translated_name ||
-            productDetails?.area?.name ||
-            productDetails?.area_name ||
-            productDetails?.translated_item?.area_name,
-        ),
-      ]
-        .map((entry) => String(entry || "").toLowerCase().trim())
+      locationCollisionCandidates
+        .flatMap((entry) => expandLocationCollisionTokens(entry))
         .filter(Boolean),
     );
     const explicitCountryCandidates = [
@@ -536,8 +587,15 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     }
 
     if (normalizedLocationParts.length > 1) {
-      const inferredCountry = normalizeCountryLabel(normalizedLocationParts.at(-1));
-      if (inferredCountry) return inferredCountry;
+      const inferredCountry = normalizeCountryLabel(
+        normalizedLocationParts.at(-1),
+      );
+      if (inferredCountry) {
+        const inferredLower = inferredCountry.toLowerCase();
+        if (!localityCollisionTokens.has(inferredLower)) {
+          return inferredCountry;
+        }
+      }
     }
 
     return "BiH";
@@ -572,7 +630,8 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     });
   }, [countryLabel, normalizedLocationParts]);
   const regionLabel = useMemo(
-    () => municipalityOrCityFallback || locationPartsWithoutCountry.at(-1) || "",
+    () =>
+      municipalityOrCityFallback || locationPartsWithoutCountry.at(-1) || "",
     [locationPartsWithoutCountry, municipalityOrCityFallback],
   );
   const zoneLocation = useMemo(() => {
@@ -581,7 +640,8 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     return locationPartsWithoutCountry.slice(0, 2).join(", ");
   }, [locationPartsWithoutCountry, municipalityOrCityFallback]);
   const shortLocation = useMemo(() => {
-    const primary = zoneLocation || regionLabel || locationPartsWithoutCountry.at(0);
+    const primary =
+      zoneLocation || regionLabel || locationPartsWithoutCountry.at(0);
     return primary || "Lokacija nije specificirana";
   }, [locationPartsWithoutCountry, regionLabel, zoneLocation]);
 
@@ -629,14 +689,18 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     structuredLocationText,
   ]);
 
+  const fastSearchFallbackCoordinates = useMemo(
+    () =>
+      searchLocationQuery
+        ? resolveCoordinatesFromLocationText(searchLocationQuery)
+        : null,
+    [searchLocationQuery],
+  );
+
   useEffect(() => {
     let cancelled = false;
 
     const resolveBySearch = async () => {
-      if (isMeaningfulCoordinatePair(preciseLat, preciseLng)) {
-        setResolvedCoordinatesBySearch(null);
-        return;
-      }
       if (!searchLocationQuery) {
         setResolvedCoordinatesBySearch(null);
         return;
@@ -680,27 +744,49 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     return () => {
       cancelled = true;
     };
-  }, [currentLanguage?.code, preciseLat, preciseLng, searchLocationQuery]);
+  }, [currentLanguage?.code, searchLocationQuery]);
 
   const effectiveCoordinates = useMemo(() => {
-    if (isMeaningfulCoordinatePair(preciseLat, preciseLng)) {
-      return { lat: preciseLat, lng: preciseLng };
+    const preciseCandidate = isMeaningfulCoordinatePair(preciseLat, preciseLng)
+      ? { lat: preciseLat, lng: preciseLng }
+      : null;
+    const resolvedSearchCandidate =
+      resolvedCoordinatesBySearch || fastSearchFallbackCoordinates;
+    const searchCandidate = isMeaningfulCoordinatePair(
+      resolvedSearchCandidate?.lat ?? null,
+      resolvedSearchCandidate?.lng ?? null,
+    )
+      ? {
+          lat: resolvedSearchCandidate.lat,
+          lng: resolvedSearchCandidate.lng,
+        }
+      : null;
+
+    if (preciseCandidate && searchCandidate) {
+      const mismatchDistance = distanceBetweenCoordinatesMeters(
+        preciseCandidate,
+        searchCandidate,
+      );
+      const hasStrongLocalitySignal = Boolean(
+        normalizeLocationToken(municipalityOrCityFallback),
+      );
+      if (
+        hasStrongLocalitySignal &&
+        mismatchDistance > COORDINATE_MISMATCH_THRESHOLD_METERS
+      ) {
+        return searchCandidate;
+      }
+      return preciseCandidate;
     }
-    if (
-      isMeaningfulCoordinatePair(
-        resolvedCoordinatesBySearch?.lat ?? null,
-        resolvedCoordinatesBySearch?.lng ?? null,
-      )
-    ) {
-      return {
-        lat: resolvedCoordinatesBySearch.lat,
-        lng: resolvedCoordinatesBySearch.lng,
-      };
-    }
+
+    if (preciseCandidate) return preciseCandidate;
+    if (searchCandidate) return searchCandidate;
     return null;
   }, [
+    municipalityOrCityFallback,
     preciseLat,
     preciseLng,
+    fastSearchFallbackCoordinates,
     resolvedCoordinatesBySearch?.lat,
     resolvedCoordinatesBySearch?.lng,
   ]);
@@ -823,23 +909,6 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
 
   return (
     <div className="flex flex-col rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 dark:border-slate-800 dark:bg-slate-900">
-      <div className="bg-gradient-to-r from-slate-50 via-white to-slate-50 px-5 py-4 border-b border-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 dark:border-slate-800">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-xl border border-slate-100 dark:bg-slate-800 dark:border-slate-700">
-              <MdMap className="text-slate-600 text-xl dark:text-slate-300" />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-800 dark:text-slate-100">
-                Lokacija oglasa
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {locationHeaderHint}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <div className="flex flex-col p-4 lg:p-5 gap-4">
         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 dark:bg-slate-800/50 dark:border-slate-800">
