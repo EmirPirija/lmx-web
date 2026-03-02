@@ -535,7 +535,18 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
     clearRecaptchaVerifier({ containerId: "recaptcha-container" });
   };
 
-  const OnHide = async () => {
+  const OnHide = async ({ preserveSession = false } = {}) => {
+    const shouldRollbackGoogleSession =
+      !preserveSession &&
+      registerMethod === "google" &&
+      step !== "method" &&
+      Boolean(auth.currentUser);
+
+    if (shouldRollbackGoogleSession) {
+      try {
+        await signOut(auth);
+      } catch (_) {}
+    }
     await recaptchaClear();
     resetState();
     setIsRegisterModalOpen(false);
@@ -763,6 +774,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
             data?.message ||
             "Google registracija nije uspjela.",
         );
+        await signOut(auth).catch(() => {});
         setStep("method");
         return;
       }
@@ -782,13 +794,11 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       setStep("profile_name");
       toast.success("Google nalog je povezan. Dovrši profil.");
     } catch (error) {
+      await signOut(auth).catch(() => {});
       if (isGatewayOrTimeoutError(error)) {
         toast.error(
           "Registracija trenutno nije dostupna. Backend autentifikacija kasni (504/timeout).",
         );
-        try {
-          await signOut(auth);
-        } catch (_) {}
       } else {
         handleFirebaseAuthError(error);
       }
@@ -931,11 +941,6 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
           identifier: normalizedProfileName,
           identifierType: "username",
         });
-        if (!nameOwner) {
-          nameOwner = await resolveIdentifierOwner({
-            identifier: normalizedProfileName,
-          });
-        }
 
         if (
           nameOwner &&
@@ -1420,7 +1425,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
         authData?.message ||
           "Račun je kreiran. E-mail možeš verificirati kasnije u postavkama.",
       );
-      await OnHide();
+      await OnHide({ preserveSession: true });
     } catch (error) {
       const duplicateMessage = getDuplicateMessage(error);
       if (duplicateMessage) {
@@ -1512,7 +1517,7 @@ const RegisterModal = ({ IsRegisterModalOpen, setIsRegisterModalOpen }) => {
       }
 
       toast.success("Registracija je uspješno završena.");
-      await OnHide();
+      await OnHide({ preserveSession: true });
     } catch (error) {
       toast.error(
         getDuplicateMessage(error) ||

@@ -33,6 +33,7 @@ import {
   browserSessionPersistence,
   getAuth,
   GoogleAuthProvider,
+  signOut,
   setPersistence,
   signInWithPopup,
 } from "firebase/auth";
@@ -209,11 +210,19 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
           firebase_id: user?.uid, // Accessing UID directly from the user object
           fcm_id: fetchFCM ? fetchFCM : "",
           type: "google",
+          auth_intent: "login",
         });
 
         const data = response.data;
-        if (data.error === true) {
-          toast.error(data.message);
+        const hasBackendSession = Boolean(data?.token || data?.data?.id);
+        if (data.error === true || !hasBackendSession) {
+          toast.error(
+            data?.message ||
+              "Prijava nije dovršena. Pokušajte ponovo ili koristite prijavu e-mailom.",
+          );
+          try {
+            await signOut(auth);
+          } catch (_) {}
         } else {
           loadUpdateData(data);
           handleAuthenticated(data, {
@@ -221,8 +230,8 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
             identifier: user?.email || "",
           });
           toast.success(data.message);
+          OnHide();
         }
-        OnHide();
       } catch (error) {
         console.error("Error:", error);
         if (isGatewayOrTimeoutError(error)) {
@@ -230,8 +239,11 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
             "Prijava trenutno nije dostupna. Server za autentifikaciju kasni (504/timeout).",
           );
         } else {
-          toast.error("Registracija nije završena. Pokušajte ponovo.");
+          toast.error("Prijava nije završena. Pokušajte ponovo.");
         }
+        try {
+          await signOut(auth);
+        } catch (_) {}
       }
     } catch (error) {
       handleFirebaseAuthError(error);
@@ -244,7 +256,8 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   };
 
   const handleRememberChange = (checked) => {
-    const nextValue = checked === true || checked === "indeterminate" ? true : Boolean(checked);
+    const nextValue =
+      checked === true || checked === "indeterminate" ? true : Boolean(checked);
     setRememberMe(nextValue);
     setRememberMePreference(nextValue);
   };
@@ -260,7 +273,9 @@ const LoginModal = ({ IsLoginOpen, setIsRegisterModalOpen }) => {
   };
 
   const handlePickDeviceProfile = (profile) => {
-    const identifier = String(profile?.email || profile?.identifier || "").trim();
+    const identifier = String(
+      profile?.email || profile?.identifier || "",
+    ).trim();
     if (!identifier) return;
     setIsLoginWithEmail(true);
     setPrefilledIdentifier(identifier);
@@ -313,7 +328,6 @@ lg:max-w-6xl
 xl:max-w-7xl
 2xl:max-w-[1520px]
 "
-
         >
           <div className="grid h-full min-h-0 lg:grid-cols-[0.95fr_1.25fr]">
             <AuthValuePanel mode={IsOTPScreen ? "otp" : "login"} />
@@ -359,7 +373,11 @@ xl:max-w-7xl
 
                 <div className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-muted/35 px-3 py-2">
                   <p className="text-xs font-medium text-foreground">
-                    {["Odabir metode", "Potvrda koda", "Pristup računu"][activeLoginStepIndex]}
+                    {
+                      ["Odabir metode", "Potvrda koda", "Pristup računu"][
+                        activeLoginStepIndex
+                      ]
+                    }
                   </p>
                   <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                     {activeLoginStepIndex + 1}/3
@@ -402,7 +420,8 @@ xl:max-w-7xl
                       {...primaryStepMotion}
                       className="mt-5 flex flex-col gap-5"
                     >
-                      {quickLoginProfiles.length > 0 && email_authentication === 1 ? (
+                      {quickLoginProfiles.length > 0 &&
+                      email_authentication === 1 ? (
                         <div className="rounded-2xl bg-muted/35 p-3">
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -414,7 +433,8 @@ xl:max-w-7xl
                           </div>
                           <div className="grid gap-2 sm:grid-cols-2">
                             {quickLoginProfiles.slice(0, 4).map((profile) => {
-                              const isLastUsed = profile.key === lastUsedProfileKey;
+                              const isLastUsed =
+                                profile.key === lastUsedProfileKey;
                               return (
                                 <div
                                   key={profile.key}
@@ -438,7 +458,9 @@ xl:max-w-7xl
                                   ) : null}
                                   <button
                                     type="button"
-                                    onClick={() => handlePickDeviceProfile(profile)}
+                                    onClick={() =>
+                                      handlePickDeviceProfile(profile)
+                                    }
                                     className={cn(
                                       "flex w-full items-center gap-2.5 text-left",
                                       isLastUsed ? "pt-4" : "",
@@ -446,7 +468,7 @@ xl:max-w-7xl
                                   >
                                     <UserAvatarMedia
                                       sources={[profile?.profile]}
-              verificationSource={profile}
+                                      verificationSource={profile}
                                       alt={profile?.name || "Profil"}
                                       className="h-9 w-9 rounded-lg border border-border bg-muted"
                                       roundedClassName="rounded-lg"
@@ -479,7 +501,8 @@ xl:max-w-7xl
                             })}
                           </div>
                           <p className="mt-2 text-[11px] text-muted-foreground">
-                            Klik na profil automatski popunjava e-mail. Lozinku i dalje unosiš ručno radi sigurnosti.
+                            Klik na profil automatski popunjava e-mail. Lozinku
+                            i dalje unosiš ručno radi sigurnosti.
                           </p>
                         </div>
                       ) : null}

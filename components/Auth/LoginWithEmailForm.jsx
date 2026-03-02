@@ -24,6 +24,8 @@ import { useEffect, useRef, useState } from "react";
 import { isPhoneNotRegisteredError } from "./authPhoneErrors";
 
 const EMAIL_REGEX = /\S+@\S+\.\S+/;
+const PHONE_IDENTIFIER_REGEX = /^\+?[0-9]{6,20}$/;
+const USERNAME_IDENTIFIER_REGEX = /^[a-zA-Z0-9._-]{3,30}$/;
 const RETRYABLE_GATEWAY_STATUSES = new Set([502, 503]);
 const GATEWAY_TIMEOUT_STATUS = 504;
 const GOOGLE_PROVIDER_ID = "google.com";
@@ -78,6 +80,16 @@ const LoginWithEmailForm = ({
     }, 680);
   }, [prefillIdentifier]);
 
+  const inferIdentifierType = (rawIdentifier) => {
+    const normalized = String(rawIdentifier || "").trim();
+    if (!normalized) return undefined;
+    if (EMAIL_REGEX.test(normalized)) return "email";
+    if (PHONE_IDENTIFIER_REGEX.test(normalized.replace(/\s+/g, ""))) {
+      return "phone";
+    }
+    return "username";
+  };
+
   const resolveEmailFromIdentifier = async (rawIdentifier) => {
     const normalizedIdentifier = String(rawIdentifier || "").trim();
     if (!normalizedIdentifier) return "";
@@ -85,9 +97,21 @@ const LoginWithEmailForm = ({
       return normalizedIdentifier.toLowerCase();
     }
 
+    const identifierType = inferIdentifierType(normalizedIdentifier);
+    if (
+      identifierType === "username" &&
+      !USERNAME_IDENTIFIER_REGEX.test(normalizedIdentifier)
+    ) {
+      toast.error(
+        "Korisničko ime mora imati 3-30 znakova (slova, brojevi, ., _, -).",
+      );
+      return null;
+    }
+
     try {
       const resolved = await authApi.resolveLoginIdentifier({
         identifier: normalizedIdentifier,
+        identifier_type: identifierType,
       });
 
       const resolvedEmail = String(resolved?.data?.data?.email || "")
