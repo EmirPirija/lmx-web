@@ -53,14 +53,22 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
   const displayLat = markerLatLong?.lat || latitude;
   const displayLng = markerLatLong?.lng || longitude;
   const safeRadiusKm = Number.isFinite(Number(KmRange)) ? Number(KmRange) : 0;
+  const focusZoom =
+    safeRadiusKm > 0 && safeRadiusKm <= 0.15
+      ? 14
+      : safeRadiusKm > 0 && safeRadiusKm <= 0.5
+        ? 13
+        : safeRadiusKm > 0 && safeRadiusKm <= 2
+          ? 11
+          : 6;
   useEffect(() => {
     if (mapRef.current && markerLatLong.lat && markerLatLong.lng) {
       mapRef.current.flyTo(
         [markerLatLong.lat, markerLatLong.lng],
-        mapRef.current.getZoom(),
+        Math.max(mapRef.current.getZoom(), focusZoom),
       );
     }
-  }, [markerLatLong?.lat, markerLatLong?.lng]);
+  }, [focusZoom, markerLatLong?.lat, markerLatLong?.lng]);
 
   const containerStyle = {
     width: "100%",
@@ -83,7 +91,7 @@ const GetLocationWithMap = ({ position, getLocationWithMap, KmRange }) => {
         className="z-0"
         style={containerStyle}
         center={[displayLat, displayLng]}
-        zoom={6}
+        zoom={focusZoom}
         ref={mapRef}
         whenCreated={(mapInstance) => {
           mapRef.current = mapInstance;

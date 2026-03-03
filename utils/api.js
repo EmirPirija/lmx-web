@@ -1267,6 +1267,12 @@ export const addItemApi = {
     address_translated,
     latitude,
     longitude,
+    location_source,
+    location_latitude,
+    location_longitude,
+    map_display_latitude,
+    map_display_longitude,
+    map_display_radius_m,
     custom_field_files = [],
     area_id,
     country,
@@ -1283,6 +1289,7 @@ export const addItemApi = {
     temp_main_image_id,
     temp_gallery_image_ids,
     temp_video_id,
+    main_image_id,
 
     // podrži sve varijante imena koje se mogu desiti u kodu
     available_now,
@@ -1379,6 +1386,13 @@ export const addItemApi = {
     if (temp_main_image_id) {
       formData.append("temp_main_image_id", String(temp_main_image_id));
     }
+    if (
+      main_image_id !== undefined &&
+      main_image_id !== null &&
+      String(main_image_id).trim() !== ""
+    ) {
+      formData.append("main_image_id", String(main_image_id));
+    }
 
     const normalizedGalleryTempIds = normalizeTempIdArray(
       temp_gallery_image_ids,
@@ -1416,6 +1430,48 @@ export const addItemApi = {
       String(longitude).trim() !== ""
     ) {
       formData.append("longitude", longitude);
+    }
+    if (
+      location_source !== undefined &&
+      location_source !== null &&
+      String(location_source).trim() !== ""
+    ) {
+      formData.append("location_source", String(location_source).trim());
+    }
+    if (
+      location_latitude !== undefined &&
+      location_latitude !== null &&
+      String(location_latitude).trim() !== ""
+    ) {
+      formData.append("location_latitude", location_latitude);
+    }
+    if (
+      location_longitude !== undefined &&
+      location_longitude !== null &&
+      String(location_longitude).trim() !== ""
+    ) {
+      formData.append("location_longitude", location_longitude);
+    }
+    if (
+      map_display_latitude !== undefined &&
+      map_display_latitude !== null &&
+      String(map_display_latitude).trim() !== ""
+    ) {
+      formData.append("map_display_latitude", map_display_latitude);
+    }
+    if (
+      map_display_longitude !== undefined &&
+      map_display_longitude !== null &&
+      String(map_display_longitude).trim() !== ""
+    ) {
+      formData.append("map_display_longitude", map_display_longitude);
+    }
+    if (
+      map_display_radius_m !== undefined &&
+      map_display_radius_m !== null &&
+      String(map_display_radius_m).trim() !== ""
+    ) {
+      formData.append("map_display_radius_m", map_display_radius_m);
     }
 
     custom_field_files.forEach(({ key, files }) => {
@@ -1553,6 +1609,12 @@ export const editItemApi = {
     address_translated,
     latitude,
     longitude,
+    location_source,
+    location_latitude,
+    location_longitude,
+    map_display_latitude,
+    map_display_longitude,
+    map_display_radius_m,
     custom_field_files = [],
     area_id,
     country,
@@ -1594,6 +1656,7 @@ export const editItemApi = {
     temp_main_image_id,
     temp_gallery_image_ids,
     temp_video_id,
+    main_image_id,
   } = {}) => {
     const formData = new FormData();
 
@@ -1624,6 +1687,48 @@ export const editItemApi = {
       String(longitude).trim() !== ""
     ) {
       formData.append("longitude", longitude);
+    }
+    if (
+      location_source !== undefined &&
+      location_source !== null &&
+      String(location_source).trim() !== ""
+    ) {
+      formData.append("location_source", String(location_source).trim());
+    }
+    if (
+      location_latitude !== undefined &&
+      location_latitude !== null &&
+      String(location_latitude).trim() !== ""
+    ) {
+      formData.append("location_latitude", location_latitude);
+    }
+    if (
+      location_longitude !== undefined &&
+      location_longitude !== null &&
+      String(location_longitude).trim() !== ""
+    ) {
+      formData.append("location_longitude", location_longitude);
+    }
+    if (
+      map_display_latitude !== undefined &&
+      map_display_latitude !== null &&
+      String(map_display_latitude).trim() !== ""
+    ) {
+      formData.append("map_display_latitude", map_display_latitude);
+    }
+    if (
+      map_display_longitude !== undefined &&
+      map_display_longitude !== null &&
+      String(map_display_longitude).trim() !== ""
+    ) {
+      formData.append("map_display_longitude", map_display_longitude);
+    }
+    if (
+      map_display_radius_m !== undefined &&
+      map_display_radius_m !== null &&
+      String(map_display_radius_m).trim() !== ""
+    ) {
+      formData.append("map_display_radius_m", map_display_radius_m);
     }
 
     if (delete_item_image_id) {
@@ -1762,6 +1867,13 @@ export const editItemApi = {
     // ✅ TEMP IDS (OVO je potrebno da edit “native upload” upadne u item)
     if (temp_main_image_id) {
       formData.append("temp_main_image_id", String(temp_main_image_id));
+    }
+    if (
+      main_image_id !== undefined &&
+      main_image_id !== null &&
+      String(main_image_id).trim() !== ""
+    ) {
+      formData.append("main_image_id", String(main_image_id));
     }
 
     const normalizedGalleryTempIds = normalizeTempIdArray(
@@ -2069,17 +2181,20 @@ export const getLocationApi = {
           ? long
           : longitude;
 
+    const params = {
+      lat,
+      lang,
+      search,
+      place_id,
+      session_id,
+    };
+
+    if (resolvedLng !== undefined && resolvedLng !== null && resolvedLng !== "") {
+      params.lng = resolvedLng;
+    }
+
     return Api.get(GET_LOCATION, {
-      params: {
-        lat,
-        lng: resolvedLng,
-        long: resolvedLng,
-        longitude: resolvedLng,
-        lang,
-        search,
-        place_id,
-        session_id,
-      },
+      params,
     });
   },
 };

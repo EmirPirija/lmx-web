@@ -15,8 +15,6 @@ import { toast } from "@/utils/toastBs";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-import ProductSellerDetailCard from "@/components/PagesComponent/ProductDetail/ProductSellerDetailCard";
-
 // Icons
 import {
   MdClose,
@@ -129,16 +127,11 @@ const MobileProfileDockSlot = ({
           "shrink-0",
           showLabel
             ? "flex min-w-[62px] flex-col items-center justify-center gap-1"
-            : "flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70",
+            : "flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white/95 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.7)] dark:border-slate-700/70 dark:bg-slate-900/85",
           className,
         )}
       >
-        <div
-          className={cn(
-            "relative flex items-center justify-center",
-            showLabel ? "" : "scale-[0.92]",
-          )}
-        >
+        <div className="relative flex items-center justify-center">
           <ProfileDropdown
             setIsLogout={setIsLogoutOpen}
             IsLogout={isLogoutOpen}
@@ -162,7 +155,7 @@ const MobileProfileDockSlot = ({
         "group shrink-0 transition-all active:scale-95",
         showLabel
           ? "flex min-w-[62px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-0.5"
-          : "flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70",
+          : "flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white/95 shadow-[0_8px_18px_-14px_rgba(15,23,42,0.7)] dark:border-slate-700/70 dark:bg-slate-900/85",
         className,
       )}
       aria-label="Prijava"
@@ -218,149 +211,174 @@ const MobileStickyBar = ({
           maximumFractionDigits: 2,
         }).format(Number(realEstatePricing.areaM2))
       : null;
+  const normalizedStatus = String(productDetails?.status || "").toLowerCase();
+  const myStatus = {
+    approved: {
+      label: "Aktivan",
+      dot: "bg-emerald-500",
+      chip:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/70 dark:bg-emerald-950/40 dark:text-emerald-300",
+    },
+    pending: {
+      label: "Na čekanju",
+      dot: "bg-amber-500",
+      chip:
+        "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/70 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    rejected: {
+      label: "Odbijen",
+      dot: "bg-rose-500",
+      chip:
+        "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/40 dark:text-rose-300",
+    },
+    "sold out": {
+      label: "Prodato",
+      dot: "bg-sky-500",
+      chip:
+        "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800/70 dark:bg-sky-950/40 dark:text-sky-300",
+    },
+  }[normalizedStatus] || {
+    label: productDetails?.status || "Neaktivan",
+    dot: "bg-slate-400",
+    chip:
+      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300",
+  };
 
   return (
     <div
       className={cn(
-        "lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-3 safe-area-bottom z-[108] transition-all duration-300 ease-out",
+        "fixed bottom-0 left-0 right-0 z-[110] px-4 pt-2 pb-[max(0.85rem,env(safe-area-inset-bottom))] transition-all duration-300 ease-out lg:hidden",
         hide
           ? "translate-y-full opacity-0 pointer-events-none"
           : "translate-y-0 opacity-100",
       )}
     >
-      <div className="container flex items-center gap-3">
-        {/* Lijeva strana (Info) */}
-        <div className="flex-1 min-w-0">
+      <div className="container">
+        <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-[0_18px_36px_-28px_rgba(15,23,42,0.6)] dark:border-slate-700 dark:bg-slate-900">
           {isMyListing ? (
-            <>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
-                Status oglasa
-              </p>
-              <div className="flex items-center gap-2">
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2 px-1">
+                <span className={cn("h-2.5 w-2.5 rounded-full", myStatus.dot)} />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  Status oglasa
+                </p>
                 <span
                   className={cn(
-                    "w-2 h-2 rounded-full",
-                    productDetails.status === "approved"
-                      ? "bg-green-500"
-                      : productDetails.status === "pending"
-                        ? "bg-yellow-500"
-                        : "bg-slate-400",
+                    "ml-auto inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold",
+                    myStatus.chip,
                   )}
-                />
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                  {productDetails.status === "approved"
-                    ? "Aktivan"
-                    : productDetails.status === "pending"
-                      ? "Na čekanju"
-                      : productDetails.status}
-                </p>
+                >
+                  {myStatus.label}
+                </span>
               </div>
-            </>
-          ) : (
-            <>
-              {disableContactActions ? (
-                <>
-                  <p className="text-[10px] text-rose-500 dark:text-rose-300 font-bold uppercase tracking-wide">
-                    Status
-                  </p>
-                  <p className="text-base font-black text-rose-600 dark:text-rose-300 truncate">
-                    Rasprodano
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">
-                    Cijena
-                  </p>
-                  <p className="text-lg font-black text-primary truncate">
-                    {priceOnRequest
-                      ? "Na upit"
-                      : `${new Intl.NumberFormat("bs-BA", {
-                          minimumFractionDigits: 0,
-                        }).format(Number(productDetails?.price || 0))} KM`}
-                  </p>
-                  {formattedPerM2 ? (
-                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
-                      {formattedPerM2}
-                      {formattedAreaM2 ? ` • ${formattedAreaM2} m²` : ""}
-                    </p>
-                  ) : Number(productDetails?.price_per_unit) > 0 ? (
-                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate">
-                      {new Intl.NumberFormat("bs-BA", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2,
-                      }).format(Number(productDetails.price_per_unit))}{" "}
-                      KM / kom
-                    </p>
-                  ) : null}
-                </>
-              )}
-            </>
-          )}
-        </div>
 
-        {/* Desna strana (Akcije) */}
-        <div className="flex items-center gap-2">
-          {isMyListing ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-1 dark:border-slate-700 dark:bg-slate-800/60">
-              {/* UREDI */}
-              <Link
-                href={`/edit-listing/${productDetails.id}`}
-                className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl active:scale-95 transition-all border border-slate-200/80 dark:border-slate-700"
-              >
-                <MdEdit size={20} />
-              </Link>
+              <div className="grid grid-cols-[44px_44px_minmax(0,1fr)_44px] items-center gap-2">
+                <Link
+                  href={`/edit-listing/${productDetails.id}`}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-all duration-200 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  aria-label="Uredi oglas"
+                >
+                  <MdEdit size={19} />
+                </Link>
 
-              {/* DELETE */}
-              <button
-                onClick={onDeleteClick}
-                className="w-10 h-10 flex items-center justify-center bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl active:scale-95 transition-all border border-rose-100 dark:border-rose-900/30"
-              >
-                <MdDelete size={20} />
-              </button>
+                <button
+                  onClick={onDeleteClick}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-200 bg-rose-50/95 text-rose-600 transition-all duration-200 active:scale-95 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300"
+                  aria-label="Obriši oglas"
+                >
+                  <MdDelete size={19} />
+                </button>
 
-              {/* MORE ACTIONS */}
-              <button
-                onClick={onStatusClick}
-                className="px-4 h-10 flex items-center justify-center bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 rounded-xl font-bold text-sm active:scale-95 shadow-lg shadow-slate-900/20 dark:shadow-none border border-transparent dark:border-slate-700"
-              >
-                Opcije
-              </button>
+                <button
+                  onClick={onStatusClick}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.99] dark:bg-slate-100 dark:text-slate-900"
+                >
+                  Opcije
+                </button>
 
-              <MobileProfileDockSlot
-                isLoggedIn={isLoggedIn}
-                onOpenLogin={onOpenLogin}
-                isLogoutOpen={isLogoutOpen}
-                setIsLogoutOpen={setIsLogoutOpen}
-                profileLabel={profileLabel}
-                showLabel={false}
-              />
+                <MobileProfileDockSlot
+                  isLoggedIn={isLoggedIn}
+                  onOpenLogin={onOpenLogin}
+                  isLogoutOpen={isLogoutOpen}
+                  setIsLogoutOpen={setIsLogoutOpen}
+                  profileLabel={profileLabel}
+                  showLabel={false}
+                />
+              </div>
             </div>
           ) : (
-            <>
-              <button
-                onClick={onPhoneClick}
-                disabled={disableContactActions}
-                className="w-10 h-10 flex items-center justify-center bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/30 rounded-xl active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <MdPhone size={22} />
-              </button>
-              <button
-                onClick={onChatClick}
-                disabled={disableContactActions}
-                className="px-4 h-10 flex items-center justify-center gap-2 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <MdChat size={20} />
-                <span>Poruka</span>
-              </button>
-              <MobileProfileDockSlot
-                isLoggedIn={isLoggedIn}
-                onOpenLogin={onOpenLogin}
-                isLogoutOpen={isLogoutOpen}
-                setIsLogoutOpen={setIsLogoutOpen}
-                profileLabel={profileLabel}
-              />
-            </>
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1 px-1 pt-0.5">
+                  {disableContactActions ? (
+                    <>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rose-500 dark:text-rose-300">
+                        Status
+                      </p>
+                      <p className="truncate text-base font-black text-rose-600 dark:text-rose-300">
+                        Rasprodano
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                        Cijena
+                      </p>
+                      <p className="truncate text-xl font-black text-primary">
+                        {priceOnRequest
+                          ? "Na upit"
+                          : `${new Intl.NumberFormat("bs-BA", {
+                              minimumFractionDigits: 0,
+                            }).format(Number(productDetails?.price || 0))} KM`}
+                      </p>
+                      {formattedPerM2 ? (
+                        <p className="truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          {formattedPerM2}
+                          {formattedAreaM2 ? ` • ${formattedAreaM2} m²` : ""}
+                        </p>
+                      ) : Number(productDetails?.price_per_unit) > 0 ? (
+                        <p className="truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          {new Intl.NumberFormat("bs-BA", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          }).format(Number(productDetails.price_per_unit))}{" "}
+                          KM / kom
+                        </p>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+
+                <MobileProfileDockSlot
+                  isLoggedIn={isLoggedIn}
+                  onOpenLogin={onOpenLogin}
+                  isLogoutOpen={isLogoutOpen}
+                  setIsLogoutOpen={setIsLogoutOpen}
+                  profileLabel={profileLabel}
+                  showLabel={false}
+                />
+              </div>
+
+              <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-2">
+                <button
+                  onClick={onPhoneClick}
+                  disabled={disableContactActions}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/90 text-emerald-600 transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
+                  aria-label="Pozovi prodavača"
+                >
+                  <MdPhone size={20} />
+                </button>
+
+                <button
+                  onClick={onChatClick}
+                  disabled={disableContactActions}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-[0_10px_24px_-18px_rgba(13,148,136,0.9)] transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <MdChat size={18} />
+                  <span>Poruka</span>
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -488,6 +506,7 @@ const ProductDetails = ({ slug }) => {
   const [showProductReviewDialog, setShowProductReviewDialog] = useState(false);
   const [IsLogout, setIsLogout] = useState(false);
   const [IsLoggingOut, setIsLoggingOut] = useState(false);
+  const [isSellerOverlayOpen, setIsSellerOverlayOpen] = useState(false);
 
   // Mobile Drawers
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
@@ -774,7 +793,8 @@ const ProductDetails = ({ slug }) => {
     showStatusDrawer ||
     showFeaturedDrawer ||
     isDeleteOpen ||
-    isOpenInApp;
+    isOpenInApp ||
+    isSellerOverlayOpen;
 
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
@@ -1003,6 +1023,7 @@ const ProductDetails = ({ slug }) => {
                     onProfileClick={trackSellerProfileClick}
                     disableContactActions={isInventoryOutOfStock}
                     contactBlockedMessage="Oglas je rasprodan. Kontakt opcije su trenutno onemogućene dok prodavač ne dopuni zalihu."
+                    onOverlayStateChange={setIsSellerOverlayOpen}
                   />
                 </div>
               )}

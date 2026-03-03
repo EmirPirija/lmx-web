@@ -122,7 +122,7 @@ export default function RootLayout({ children }) {
 
 
           {/* 4. Ostali globalni elementi */}
-          <div id="recaptcha-container"></div>
+          <div id="recaptcha-container" suppressHydrationWarning></div>
           
         </ThemeProvider>
       </body>

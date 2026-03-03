@@ -321,6 +321,19 @@ const extractTempMediaId = (value) => {
   );
 };
 
+const extractPersistentMediaId = (value) => {
+  if (!value || typeof value !== "object") return null;
+  const persistentId = value?.id;
+  if (persistentId === null || persistentId === undefined) return null;
+
+  const hasPersistentImageUrl = Boolean(
+    value?.image || value?.original_url || value?.path,
+  );
+  if (!hasPersistentImageUrl) return null;
+
+  return persistentId;
+};
+
 const PUBLISH_STAGES = [
   {
     title: "Pripremamo oglas",
@@ -345,6 +358,33 @@ const CREATE_DRAFT_DEBOUNCE_MS = 1800;
 const DEFAULT_BIH_COORDS = {
   lat: 43.8563,
   lng: 18.4131,
+};
+
+const parseCoordinateValue = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const normalized = String(value).trim().replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const hasPreciseCoordinatePair = (latValue, lngValue) =>
+  parseCoordinateValue(latValue) !== null &&
+  parseCoordinateValue(lngValue) !== null;
+
+const normalizeRealEstateLocationSource = ({
+  source,
+  hasPreciseCoordinates,
+}) => {
+  const normalizedSource = String(source || "").toLowerCase().trim();
+  if (normalizedSource === "manual") return "manual";
+  if (normalizedSource === "profile") return "profile";
+  if (normalizedSource === "map") return "map";
+  return hasPreciseCoordinates ? "map" : "manual";
+};
+
+const parseAreaId = (value) => {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null;
 };
 
 const toDraftSafeValue = (value) => {
@@ -1385,7 +1425,11 @@ const AdsListing = () => {
     }
   }, [fetchInstagramConnection]);
 
-  const handleFullSubmission = (scheduledDateTime = null) => {
+  const handleFullSubmission = (
+    scheduledDateTime = null,
+    locationOverride = null,
+  ) => {
+    const submissionLocation = locationOverride || location || {};
     const { name, description } = defaultDetails;
     const contact = mobile;
     const country_code = countryCode;
@@ -1446,24 +1490,28 @@ const AdsListing = () => {
       return setStep(4);
     }
 
-    if (!location?.country || !location?.city || !location?.address) {
+    if (
+      !submissionLocation?.country ||
+      !submissionLocation?.city ||
+      !submissionLocation?.address
+    ) {
       toast.error("Odaberi lokaciju");
       return;
     }
 
     const realEstateLocationSource = String(
-      location?.location_source || "",
+      submissionLocation?.location_source || "",
     ).toLowerCase();
-    const hasPreciseRealEstatePin =
-      Number.isFinite(Number(location?.lat)) &&
-      Number.isFinite(Number(location?.long));
+    const hasPreciseRealEstatePin = hasPreciseCoordinatePair(
+      submissionLocation?.lat,
+      submissionLocation?.long,
+    );
     const normalizedRealEstateLocationSource = is_real_estate
-      ? ["profile", "manual", "map"].includes(realEstateLocationSource)
-        ? realEstateLocationSource
-        : hasPreciseRealEstatePin
-          ? "map"
-          : "manual"
-      : String(location?.location_source || "manual").toLowerCase();
+      ? normalizeRealEstateLocationSource({
+          source: realEstateLocationSource,
+          hasPreciseCoordinates: hasPreciseRealEstatePin,
+        })
+      : String(submissionLocation?.location_source || "manual").toLowerCase();
 
     if (
       is_real_estate &&
@@ -1523,10 +1571,11 @@ const AdsListing = () => {
       );
     }
 
-    postAd(scheduledDateTime);
+    postAd(scheduledDateTime, submissionLocation);
   };
 
-  const postAd = async (scheduledDateTime = null) => {
+  const postAd = async (scheduledDateTime = null, locationOverride = null) => {
+    const submissionLocation = locationOverride || location || {};
     const catId = categoryPath.at(-1)?.id;
     const customFieldTranslations =
       prepareCustomFieldTranslations(extraDetails);
@@ -1540,6 +1589,7 @@ const AdsListing = () => {
     );
     const trimmedVideoLink = (defaultDetails?.video_link || "").trim();
     const mainTempId = extractTempMediaId(uploadedImages?.[0]);
+    const mainPersistentImageId = extractPersistentMediaId(uploadedImages?.[0]);
     const galleryTempIds = (otherImages || [])
       .map(extractTempMediaId)
       .filter(Boolean);
@@ -1552,21 +1602,25 @@ const AdsListing = () => {
       (entry) => entry instanceof File || entry instanceof Blob,
     );
     const realEstateSourceRawForPayload = String(
-      location?.location_source || "",
+      submissionLocation?.location_source || "",
     ).toLowerCase();
-    const latNum = Number(location?.lat);
-    const lngNum = Number(location?.long);
-    const hasPreciseCoords = Number.isFinite(latNum) && Number.isFinite(lngNum);
+    const latNum = parseCoordinateValue(submissionLocation?.lat);
+    const lngNum = parseCoordinateValue(submissionLocation?.long);
+    const hasPreciseCoords = latNum !== null && lngNum !== null;
     const normalizedRealEstateLocationSource = is_real_estate
-      ? ["profile", "manual", "map"].includes(realEstateSourceRawForPayload)
-        ? realEstateSourceRawForPayload
-        : hasPreciseCoords
-          ? "map"
-          : "manual"
-      : String(location?.location_source || "manual").toLowerCase();
+      ? normalizeRealEstateLocationSource({
+          source: realEstateSourceRawForPayload,
+          hasPreciseCoordinates: hasPreciseCoords,
+        })
+      : String(submissionLocation?.location_source || "manual").toLowerCase();
     const shouldUsePreciseCoordinates = is_real_estate
       ? normalizedRealEstateLocationSource === "map" && hasPreciseCoords
       : hasPreciseCoords;
+    const usesExactRealEstatePin =
+      is_real_estate &&
+      normalizedRealEstateLocationSource === "map" &&
+      hasPreciseCoords;
+    const normalizedAreaId = parseAreaId(submissionLocation?.area_id);
     const resolvedLatitude = shouldUsePreciseCoordinates
       ? latNum
       : is_real_estate
@@ -1633,6 +1687,9 @@ const AdsListing = () => {
           ),
       video_link: trimmedVideoLink,
       ...(mainTempId ? { temp_main_image_id: mainTempId } : {}),
+      ...(!mainTempId && mainPersistentImageId
+        ? { main_image_id: mainPersistentImageId }
+        : {}),
       ...(galleryTempIds.length
         ? { temp_gallery_image_ids: galleryTempIds }
         : {}),
@@ -1648,24 +1705,34 @@ const AdsListing = () => {
         ? false
         : Boolean(publishToInstagram),
       instagram_source_url: (instagramSourceUrl || "").trim(),
-      address: location?.address,
-      formatted_address: location?.formattedAddress || location?.address || "",
+      address: submissionLocation?.address,
+      formatted_address:
+        submissionLocation?.formattedAddress ||
+        submissionLocation?.address ||
+        "",
       address_translated:
-        location?.address_translated || location?.address || "",
+        submissionLocation?.address_translated ||
+        submissionLocation?.address ||
+        "",
       latitude: resolvedLatitude,
       longitude: resolvedLongitude,
       location_source: is_real_estate
         ? normalizedRealEstateLocationSource
-        : String(location?.location_source || "manual").toLowerCase(),
+        : String(submissionLocation?.location_source || "manual").toLowerCase(),
+      ...(usesExactRealEstatePin
+        ? {
+            location_latitude: latNum,
+            location_longitude: lngNum,
+            map_display_latitude: latNum,
+            map_display_longitude: lngNum,
+            map_display_radius_m: 100,
+          }
+        : {}),
       custom_field_files: customFieldFiles,
-      country: location?.country,
-      state: location?.state,
-      city: location?.city,
-      ...(is_real_estate
-        ? { area_id: location?.area_id ? Number(location?.area_id) : "" }
-        : location?.area_id
-          ? { area_id: Number(location?.area_id) }
-          : {}),
+      country: submissionLocation?.country,
+      state: submissionLocation?.state,
+      city: submissionLocation?.city,
+      ...(normalizedAreaId ? { area_id: normalizedAreaId } : {}),
       ...(Object.keys(nonDefaultTranslations).length > 0 && {
         translations: nonDefaultTranslations,
       }),
@@ -1999,9 +2066,9 @@ const AdsListing = () => {
   const hasBaseLocation = Boolean(
     location?.country && location?.city && location?.address,
   );
-  const hasPreciseLocation = Boolean(
-    Number.isFinite(Number(location?.lat)) &&
-    Number.isFinite(Number(location?.long)),
+  const hasPreciseLocation = hasPreciseCoordinatePair(
+    location?.lat,
+    location?.long,
   );
   const normalizedRealEstateLocationSourceForValidity = is_real_estate
     ? (() => {

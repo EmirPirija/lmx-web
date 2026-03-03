@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[127] bg-black/35 backdrop-blur-0",
+      "fixed inset-0 z-[220] bg-slate-950/62 backdrop-blur-0",
       "data-[state=open]:animate-in data-[state=open]:fade-in-0",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
       "duration-300 ease-out",
@@ -38,7 +38,15 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
  */
 const DialogContent = React.forwardRef(
   (
-    { className, children, showCloseButton = true, size = "default", ...props },
+    {
+      className,
+      children,
+      showCloseButton = true,
+      size = "default",
+      "aria-describedby": ariaDescribedBy,
+      "aria-labelledby": ariaLabelledBy,
+      ...props
+    },
     ref,
   ) => {
     const sizeClasses = {
@@ -54,9 +62,11 @@ const DialogContent = React.forwardRef(
         <DialogOverlay />
         <DialogPrimitive.Content
           ref={ref}
+          aria-describedby={ariaDescribedBy ?? undefined}
+          aria-labelledby={ariaLabelledBy ?? undefined}
           className={cn(
             /* ── Base ── */
-            "fixed z-[128] grid w-full bg-white outline-none",
+            "fixed z-[221] grid w-full bg-white outline-none",
 
             /* ── Mobile: bottom-sheet ── */
             "inset-x-0 bottom-0 top-auto",

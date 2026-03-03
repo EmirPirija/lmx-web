@@ -10,9 +10,20 @@ import { toast } from "@/utils/toastBs";
 import { getLocationApi } from "@/utils/api";
 import { useSelector } from "react-redux";
 import { CurrentLanguageData } from "@/redux/reducer/languageSlice";
+import { isRealEstateItem } from "@/utils/realEstatePricing";
+import {
+  resolveLocationSelection as resolveBiHLocationSelection,
+  searchLocations as searchBiHLocations,
+} from "@/lib/bih-locations";
 
-const MAP_PRIVACY_RADIUS_METERS = 100;
 const COORDINATE_MISMATCH_THRESHOLD_METERS = 60000;
+const LOCATION_SEARCH_SCORE_MATCH_THRESHOLD = 70;
+const MAP_PRIVACY_RADIUS_REAL_ESTATE_METERS = 100;
+const MAP_PRIVACY_RADIUS_MUNICIPALITY_METERS = 3200;
+const MAP_PRIVACY_RADIUS_CITY_METERS = 9000;
+const MAP_PRIVACY_RADIUS_GENERIC_METERS = 6000;
+const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
+const NOMINATIM_MAX_RESULTS = 6;
 
 const Map = dynamic(() => import("@/components/Location/Map"), {
   ssr: false,
@@ -42,36 +53,6 @@ const normalizeText = (value) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
-
-const LOCATION_COORDINATE_FALLBACK = [
-  { key: "sarajevo", lat: 43.8563, lng: 18.4131 },
-  { key: "mostar", lat: 43.3438, lng: 17.8078 },
-  { key: "capljina", lat: 43.1217, lng: 17.6844 },
-  { key: "čapljina", lat: 43.1217, lng: 17.6844 },
-  { key: "bihac", lat: 44.8167, lng: 15.87 },
-  { key: "bihać", lat: 44.8167, lng: 15.87 },
-  { key: "tuzla", lat: 44.5384, lng: 18.6671 },
-  { key: "zenica", lat: 44.2034, lng: 17.9077 },
-  { key: "banja luka", lat: 44.7722, lng: 17.191 },
-  { key: "banjaluka", lat: 44.7722, lng: 17.191 },
-  { key: "brcko", lat: 44.8728, lng: 18.8102 },
-  { key: "brčko", lat: 44.8728, lng: 18.8102 },
-  { key: "berkovici", lat: 43.0935, lng: 18.1713 },
-  { key: "berkovići", lat: 43.0935, lng: 18.1713 },
-  { key: "trebinje", lat: 42.7119, lng: 18.3436 },
-];
-
-const resolveCoordinatesFromLocationText = (...chunks) => {
-  const normalizedJoined = normalizeText(chunks.filter(Boolean).join(" | "));
-  if (!normalizedJoined) return null;
-
-  const match = LOCATION_COORDINATE_FALLBACK.find((entry) =>
-    normalizedJoined.includes(entry.key),
-  );
-  if (!match) return null;
-
-  return { lat: match.lat, lng: match.lng };
-};
 
 const parseExtraDetailsSafe = (value) => {
   if (!value) return null;
@@ -127,6 +108,204 @@ const resolveCoordinatesFromObject = (source) => {
   }
 
   return null;
+};
+
+const toSearchCandidatesArray = (payload) => {
+  if (Array.isArray(payload)) return payload.filter(Boolean);
+  if (Array.isArray(payload?.results)) return payload.results.filter(Boolean);
+  if (payload && typeof payload === "object") return [payload];
+  return [];
+};
+
+const collectSearchResultTokens = (result) => {
+  if (!result || typeof result !== "object") return [];
+  const addressValues =
+    result?.address && typeof result.address === "object"
+      ? Object.values(result.address)
+      : [];
+  const values = [
+    result?.display_name,
+    result?.formatted,
+    result?.formatted_address,
+    result?.address,
+    result?.name,
+    result?.title,
+    result?.area_translation,
+    result?.area,
+    result?.city_translation,
+    result?.city,
+    result?.state_translation,
+    result?.state,
+    result?.country_translation,
+    result?.country,
+    result?.location,
+    result?.label,
+    ...addressValues,
+  ];
+  return values.map((value) => normalizeText(value)).filter(Boolean);
+};
+
+const scoreSearchResultForQuery = (result, normalizedQuery) => {
+  if (!normalizedQuery) return 0;
+  const tokens = collectSearchResultTokens(result);
+  if (!tokens.length) return 0;
+
+  let bestScore = 0;
+  for (const token of tokens) {
+    if (token === normalizedQuery) {
+      bestScore = Math.max(bestScore, 120);
+      continue;
+    }
+    if (token.startsWith(normalizedQuery)) {
+      bestScore = Math.max(bestScore, 96);
+      continue;
+    }
+    if (token.includes(normalizedQuery)) {
+      bestScore = Math.max(bestScore, 84);
+      continue;
+    }
+    if (normalizedQuery.startsWith(token) && token.length >= 4) {
+      bestScore = Math.max(bestScore, 60);
+      continue;
+    }
+  }
+
+  const resultCoordinates = resolveCoordinatesFromObject(result);
+  if (
+    bestScore > 0 &&
+    isMeaningfulCoordinatePair(
+      resultCoordinates?.lat ?? null,
+      resultCoordinates?.lng ?? null,
+    )
+  ) {
+    return bestScore + 8;
+  }
+
+  return bestScore;
+};
+
+const pickBestSearchResult = (payload, searchQuery) => {
+  const results = toSearchCandidatesArray(payload);
+  if (!results.length) return null;
+  const normalizedQuery = normalizeText(searchQuery);
+
+  let bestResult = null;
+  let bestScore = -1;
+
+  for (const result of results) {
+    const score = scoreSearchResultForQuery(result, normalizedQuery);
+    if (score > bestScore) {
+      bestScore = score;
+      bestResult = result;
+    }
+  }
+
+  if (bestScore < LOCATION_SEARCH_SCORE_MATCH_THRESHOLD) return null;
+  return bestResult || null;
+};
+
+const buildLocationSearchVariants = (query) => {
+  const normalizedQuery = String(query || "").trim();
+  if (!normalizedQuery) return [];
+
+  const libraryMatches = searchBiHLocations(normalizedQuery).slice(0, 6);
+  const variants = [
+    normalizedQuery,
+    `${normalizedQuery}, Bosna i Hercegovina`,
+    `${normalizedQuery}, BiH`,
+    ...libraryMatches.map((entry) => entry?.displayName),
+    ...libraryMatches.map((entry) => entry?.formatted),
+  ];
+
+  const deduped = [];
+  const seen = new Set();
+  for (const value of variants) {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) continue;
+    const key = normalizeText(trimmed);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(trimmed);
+  }
+
+  return deduped.slice(0, 8);
+};
+
+const getCoordinatesFromNominatimResult = (result) => {
+  if (!result || typeof result !== "object") return null;
+  const lat = parseCoordinate(result?.lat);
+  const lng = parseCoordinate(
+    result?.lon ?? result?.lng ?? result?.long ?? result?.longitude,
+  );
+  if (!isMeaningfulCoordinatePair(lat, lng)) return null;
+  return { lat, lng };
+};
+
+const resolveCoordinatesViaNominatim = async ({
+  searchVariants = [],
+  baseQuery = "",
+  languageCode = "bs",
+}) => {
+  const candidateQueries = [...searchVariants, baseQuery]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  if (!candidateQueries.length) return null;
+
+  let bestCoordinates = null;
+  let bestScore = -1;
+
+  for (const query of candidateQueries.slice(0, 5)) {
+    const params = new URLSearchParams({
+      format: "jsonv2",
+      addressdetails: "1",
+      countrycodes: "ba",
+      limit: String(NOMINATIM_MAX_RESULTS),
+      q: query,
+    });
+    if (languageCode) {
+      params.set("accept-language", languageCode);
+    }
+
+    let response = null;
+    try {
+      response = await fetch(`${NOMINATIM_BASE_URL}?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+    } catch {
+      continue;
+    }
+    if (!response?.ok) continue;
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      continue;
+    }
+    const results = Array.isArray(payload) ? payload : [];
+    if (!results.length) continue;
+
+    for (const result of results) {
+      const coordinates = getCoordinatesFromNominatimResult(result);
+      if (!coordinates) continue;
+
+      const score = scoreSearchResultForQuery(
+        result,
+        normalizeText(baseQuery || query),
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        bestCoordinates = coordinates;
+      }
+    }
+  }
+
+  if (!bestCoordinates) return null;
+  if (bestScore < LOCATION_SEARCH_SCORE_MATCH_THRESHOLD) return null;
+  return bestCoordinates;
 };
 
 const resolvePrimaryCoordinates = (details) => {
@@ -198,6 +377,42 @@ const resolvePrimaryCoordinates = (details) => {
   for (const candidate of objectCandidates) {
     const resolved = resolveCoordinatesFromObject(candidate);
     if (resolved) return resolved;
+  }
+
+  return null;
+};
+
+const resolveExactPinCoordinates = (details) => {
+  if (!details || typeof details !== "object") return null;
+
+  const extraDetails = parseExtraDetailsSafe(details?.extra_details);
+
+  const exactCandidates = [
+    [details?.latitude, details?.longitude],
+    [details?.lat, details?.lng],
+    [details?.lat, details?.long],
+    [details?.location_latitude, details?.location_longitude],
+    [details?.location_lat, details?.location_lng],
+    [details?.translated_item?.latitude, details?.translated_item?.longitude],
+    [details?.translated_item?.lat, details?.translated_item?.lng],
+    [details?.translated_item?.lat, details?.translated_item?.long],
+    [extraDetails?.latitude, extraDetails?.longitude],
+    [extraDetails?.lat, extraDetails?.lng],
+    [extraDetails?.lat, extraDetails?.long],
+    [extraDetails?.location?.latitude, extraDetails?.location?.longitude],
+    [extraDetails?.location?.lat, extraDetails?.location?.lng],
+    [extraDetails?.location?.lat, extraDetails?.location?.long],
+    [extraDetails?.pin_latitude, extraDetails?.pin_longitude],
+    [extraDetails?.pin_lat, extraDetails?.pin_lng],
+    [extraDetails?.pin_lat, extraDetails?.pin_long],
+  ];
+
+  for (const [latRaw, lngRaw] of exactCandidates) {
+    const lat = parseCoordinate(latRaw);
+    const lng = parseCoordinate(lngRaw);
+    if (isMeaningfulCoordinatePair(lat, lng)) {
+      return { lat, lng };
+    }
   }
 
   return null;
@@ -361,10 +576,35 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
   const [resolvedLocationByPin, setResolvedLocationByPin] = useState(null);
   const [resolvedCoordinatesBySearch, setResolvedCoordinatesBySearch] =
     useState(null);
+  const isRealEstateAd = useMemo(
+    () => isRealEstateItem(productDetails || {}),
+    [productDetails],
+  );
 
-  const preciseCoordinates = useMemo(
+  const exactPinCoordinates = useMemo(
+    () => resolveExactPinCoordinates(productDetails),
+    [productDetails],
+  );
+  const primaryCoordinates = useMemo(
     () => resolvePrimaryCoordinates(productDetails),
     [productDetails],
+  );
+  const shouldForceRealEstatePinCoordinates = useMemo(() => {
+    if (!isRealEstateAd) return false;
+    if (!exactPinCoordinates) return false;
+    return true;
+  }, [isRealEstateAd, exactPinCoordinates]);
+
+  const preciseCoordinates = useMemo(
+    () =>
+      shouldForceRealEstatePinCoordinates
+        ? exactPinCoordinates
+        : primaryCoordinates,
+    [
+      shouldForceRealEstatePinCoordinates,
+      exactPinCoordinates,
+      primaryCoordinates,
+    ],
   );
   const preciseLat = preciseCoordinates?.lat ?? null;
   const preciseLng = preciseCoordinates?.lng ?? null;
@@ -463,6 +703,13 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
   );
 
   const municipalityOrCityFallback = useMemo(() => {
+    const fromDetailsArea = normalizeLocationToken(
+      productDetails?.area?.translated_name ||
+        productDetails?.area?.name ||
+        productDetails?.area_name ||
+        productDetails?.translated_item?.area_name ||
+        "",
+    );
     const fromPinState = normalizeLocationToken(
       resolvedLocationByPin?.state || "",
     );
@@ -485,9 +732,18 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     );
 
     return (
-      fromPinState || fromPinCity || fromDetailsState || fromDetailsCity || ""
+      fromDetailsArea ||
+      fromDetailsState ||
+      fromDetailsCity ||
+      fromPinState ||
+      fromPinCity ||
+      ""
     );
   }, [
+    productDetails?.area?.translated_name,
+    productDetails?.area?.name,
+    productDetails?.area_name,
+    productDetails?.translated_item?.area_name,
     resolvedLocationByPin?.state,
     resolvedLocationByPin?.city,
     productDetails?.state_translation,
@@ -500,22 +756,68 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     productDetails?.translated_item?.city,
   ]);
 
+  const areaLocationSignal = useMemo(
+    () =>
+      normalizeLocationToken(
+        productDetails?.area?.translated_name ||
+          productDetails?.area?.name ||
+          productDetails?.area_name ||
+          productDetails?.translated_item?.area_name ||
+          "",
+      ),
+    [
+      productDetails?.area?.translated_name,
+      productDetails?.area?.name,
+      productDetails?.area_name,
+      productDetails?.translated_item?.area_name,
+    ],
+  );
+
+  const pinLocationTokens = useMemo(
+    () =>
+      [
+        resolvedLocationByPin?.area,
+        resolvedLocationByPin?.state,
+        resolvedLocationByPin?.city,
+        resolvedLocationByPin?.address,
+      ]
+        .map((token) => normalizeLocationToken(token))
+        .filter(Boolean),
+    [
+      resolvedLocationByPin?.area,
+      resolvedLocationByPin?.state,
+      resolvedLocationByPin?.city,
+      resolvedLocationByPin?.address,
+    ],
+  );
+
+  const pinMatchesLocationSignal = useMemo(() => {
+    if (!pinLocationTokens.length) return true;
+    if (!areaLocationSignal) return true;
+    return pinLocationTokens.some(
+      (token) =>
+        token === areaLocationSignal ||
+        token.includes(areaLocationSignal) ||
+        areaLocationSignal.includes(token),
+    );
+  }, [areaLocationSignal, pinLocationTokens]);
+
   const effectiveLocationText = useMemo(() => {
     if (preciseLat !== null && preciseLng !== null) {
       return (
-        resolvedLocationByPin?.address ||
         fallbackLocationText ||
         structuredLocationText ||
         municipalityOrCityFallback ||
+        resolvedLocationByPin?.address ||
         "Lokacija nije specificirana"
       );
     }
 
     return (
       fallbackLocationText ||
-      resolvedLocationByPin?.address ||
       structuredLocationText ||
-      municipalityOrCityFallback
+      municipalityOrCityFallback ||
+      resolvedLocationByPin?.address
     );
   }, [
     fallbackLocationText,
@@ -647,18 +949,22 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
 
   const searchLocationQuery = useMemo(() => {
     const candidates = [
-      municipalityOrCityFallback,
-      regionLabel,
-      zoneLocation,
-      shortLocation,
+      areaLocationSignal,
+      productDetails?.area_name,
+      productDetails?.area?.translated_name,
+      productDetails?.area?.name,
+      productDetails?.translated_item?.area_name,
       productDetails?.state_translation,
       productDetails?.state,
       productDetails?.city_translation,
       productDetails?.city,
-      productDetails?.area?.translated_name,
-      productDetails?.area?.name,
+      municipalityOrCityFallback,
+      regionLabel,
+      zoneLocation,
+      shortLocation,
       fallbackLocationText,
       structuredLocationText,
+      resolvedLocationByPin?.address,
     ];
 
     for (const candidate of candidates) {
@@ -675,27 +981,23 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
 
     return "";
   }, [
-    municipalityOrCityFallback,
-    regionLabel,
-    zoneLocation,
-    shortLocation,
+    areaLocationSignal,
+    productDetails?.area_name,
+    productDetails?.area?.translated_name,
+    productDetails?.area?.name,
+    productDetails?.translated_item?.area_name,
     productDetails?.state_translation,
     productDetails?.state,
     productDetails?.city_translation,
     productDetails?.city,
-    productDetails?.area?.translated_name,
-    productDetails?.area?.name,
+    municipalityOrCityFallback,
+    regionLabel,
+    zoneLocation,
+    shortLocation,
     fallbackLocationText,
     structuredLocationText,
+    resolvedLocationByPin?.address,
   ]);
-
-  const fastSearchFallbackCoordinates = useMemo(
-    () =>
-      searchLocationQuery
-        ? resolveCoordinatesFromLocationText(searchLocationQuery)
-        : null,
-    [searchLocationQuery],
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -706,35 +1008,66 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
         return;
       }
 
-      try {
-        const response = await getLocationApi.getLocation({
-          search: searchLocationQuery,
-          lang: currentLanguage?.code || "bs",
-        });
+      const searchVariants = buildLocationSearchVariants(searchLocationQuery);
+      if (!searchVariants.length) {
+        setResolvedCoordinatesBySearch(null);
+        return;
+      }
 
-        if (cancelled) return;
-        if (response?.data?.error === true) {
-          const fallbackResolved =
-            resolveCoordinatesFromLocationText(searchLocationQuery);
-          setResolvedCoordinatesBySearch(fallbackResolved || null);
-          return;
+      try {
+        let bestResolved = null;
+        let bestScore = -1;
+
+        for (const searchVariant of searchVariants) {
+          let response = null;
+          try {
+            response = await getLocationApi.getLocation({
+              search: searchVariant,
+              lang: currentLanguage?.code || "bs",
+            });
+          } catch {
+            continue;
+          }
+
+          if (cancelled) return;
+          if (response?.data?.error === true) {
+            continue;
+          }
+
+          const payload = response?.data?.data;
+          const bestResult = pickBestSearchResult(payload, searchLocationQuery);
+          if (!bestResult) continue;
+
+          const score = scoreSearchResultForQuery(
+            bestResult,
+            normalizeText(searchLocationQuery),
+          );
+          const coordinates = resolveCoordinatesFromObject(bestResult);
+          if (!coordinates) continue;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestResolved = coordinates;
+          }
         }
 
-        const payload = response?.data?.data;
-        const firstResult = Array.isArray(payload)
-          ? payload[0] || null
-          : payload?.results?.[0] || payload || null;
-
         const resolved =
-          resolveCoordinatesFromObject(firstResult) ||
-          resolveCoordinatesFromLocationText(searchLocationQuery);
+          bestResolved ||
+          (await resolveCoordinatesViaNominatim({
+            searchVariants,
+            baseQuery: searchLocationQuery,
+            languageCode: currentLanguage?.code || "bs",
+          }));
         if (!cancelled) {
           setResolvedCoordinatesBySearch(resolved || null);
         }
       } catch {
         if (!cancelled) {
-          const fallbackResolved =
-            resolveCoordinatesFromLocationText(searchLocationQuery);
+          const fallbackResolved = await resolveCoordinatesViaNominatim({
+            searchVariants: buildLocationSearchVariants(searchLocationQuery),
+            baseQuery: searchLocationQuery,
+            languageCode: currentLanguage?.code || "bs",
+          });
           setResolvedCoordinatesBySearch(fallbackResolved || null);
         }
       }
@@ -746,12 +1079,54 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
     };
   }, [currentLanguage?.code, searchLocationQuery]);
 
+  const mapPrivacyRadiusMeters = useMemo(() => {
+    if (isRealEstateAd) return MAP_PRIVACY_RADIUS_REAL_ESTATE_METERS;
+
+    const resolvedBiHLocation = resolveBiHLocationSelection({
+      city:
+        resolvedLocationByPin?.city ||
+        productDetails?.city_translation ||
+        productDetails?.city ||
+        "",
+      municipalityName:
+        resolvedLocationByPin?.area ||
+        productDetails?.area?.translated_name ||
+        productDetails?.area?.name ||
+        productDetails?.area_name ||
+        municipalityOrCityFallback ||
+        "",
+      state:
+        resolvedLocationByPin?.state ||
+        productDetails?.state_translation ||
+        productDetails?.state ||
+        "",
+    });
+
+    if (resolvedBiHLocation?.municipality) {
+      return MAP_PRIVACY_RADIUS_MUNICIPALITY_METERS;
+    }
+    if (resolvedBiHLocation?.city) return MAP_PRIVACY_RADIUS_CITY_METERS;
+    return MAP_PRIVACY_RADIUS_GENERIC_METERS;
+  }, [
+    isRealEstateAd,
+    municipalityOrCityFallback,
+    productDetails?.area?.name,
+    productDetails?.area?.translated_name,
+    productDetails?.area_name,
+    productDetails?.city,
+    productDetails?.city_translation,
+    productDetails?.state,
+    productDetails?.state_translation,
+    resolvedLocationByPin?.area,
+    resolvedLocationByPin?.city,
+    resolvedLocationByPin?.state,
+  ]);
+
   const effectiveCoordinates = useMemo(() => {
     const preciseCandidate = isMeaningfulCoordinatePair(preciseLat, preciseLng)
       ? { lat: preciseLat, lng: preciseLng }
       : null;
-    const resolvedSearchCandidate =
-      resolvedCoordinatesBySearch || fastSearchFallbackCoordinates;
+    const resolvedSearchCandidate = resolvedCoordinatesBySearch;
     const searchCandidate = isMeaningfulCoordinatePair(
       resolvedSearchCandidate?.lat ?? null,
       resolvedSearchCandidate?.lng ?? null,
@@ -761,6 +1136,10 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
           lng: resolvedSearchCandidate.lng,
         }
       : null;
+
+    if (shouldForceRealEstatePinCoordinates && preciseCandidate) {
+      return preciseCandidate;
+    }
 
     if (preciseCandidate && searchCandidate) {
       const mismatchDistance = distanceBetweenCoordinatesMeters(
@@ -779,14 +1158,22 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
       return preciseCandidate;
     }
 
+    if (
+      preciseCandidate &&
+      !pinMatchesLocationSignal &&
+      !shouldForceRealEstatePinCoordinates
+    ) {
+      return null;
+    }
     if (preciseCandidate) return preciseCandidate;
     if (searchCandidate) return searchCandidate;
     return null;
   }, [
+    shouldForceRealEstatePinCoordinates,
+    pinMatchesLocationSignal,
     municipalityOrCityFallback,
     preciseLat,
     preciseLng,
-    fastSearchFallbackCoordinates,
     resolvedCoordinatesBySearch?.lat,
     resolvedCoordinatesBySearch?.lng,
   ]);
@@ -909,7 +1296,6 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
 
   return (
     <div className="flex flex-col rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 dark:border-slate-800 dark:bg-slate-900">
-
       <div className="flex flex-col p-4 lg:p-5 gap-4">
         <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 dark:bg-slate-800/50 dark:border-slate-800">
           <div className="p-2 bg-primary/10 rounded-lg mt-0.5 text-primary dark:bg-primary/20 dark:text-primary-400">
@@ -962,7 +1348,7 @@ const ProductLocation = ({ productDetails, onMapOpen }) => {
             longitude={obscuredCoordinates?.lng}
             productData={mapProductData}
             privacyMode
-            approximateRadiusMeters={MAP_PRIVACY_RADIUS_METERS}
+            approximateRadiusMeters={mapPrivacyRadiusMeters}
           />
         </div>
 

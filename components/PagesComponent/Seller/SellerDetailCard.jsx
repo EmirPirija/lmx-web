@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -581,6 +581,13 @@ const SendMessageModal = ({ open, setOpen, seller, settings, onSuccess }) => {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
+  const messageInputRef = useRef(null);
+  const focusMessageInput = useCallback((event) => {
+    event.preventDefault();
+    requestAnimationFrame(() => {
+      messageInputRef.current?.focus();
+    });
+  }, []);
 
   // Reset stanja kada se modal otvori
   useEffect(() => {
@@ -690,7 +697,8 @@ const SendMessageModal = ({ open, setOpen, seller, settings, onSuccess }) => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-lg bg-white border border-slate-100 rounded-xl p-0 overflow-hidden shadow-lg"
+        onOpenAutoFocus={focusMessageInput}
+        className="w-screen max-w-none overflow-hidden rounded-t-[1.6rem] border-x-0 border-b-0 border-slate-200 bg-white/98 p-0 shadow-[0_-24px_64px_-34px_rgba(15,23,42,0.52)] dark:border-slate-700 dark:bg-slate-900/98 sm:w-full sm:max-w-lg sm:rounded-xl sm:border sm:border-slate-100 sm:shadow-lg [&>div:nth-child(2)]:px-0 [&>div:nth-child(2)]:pb-0 [&>div:nth-child(2)]:pt-0"
       >
         <motion.div
           {...fadeInUp}
@@ -731,7 +739,7 @@ const SendMessageModal = ({ open, setOpen, seller, settings, onSuccess }) => {
               whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
             >
               <CloseCircle size={20} className="text-slate-500" />
             </motion.button>
@@ -744,6 +752,7 @@ const SendMessageModal = ({ open, setOpen, seller, settings, onSuccess }) => {
                 Vaša poruka
               </label>
               <textarea
+                ref={messageInputRef}
                 value={message}
                 onChange={(e) => {
                   setMessage(e.target.value);
@@ -811,6 +820,14 @@ const ContactSheet = ({
   onPhoneReveal,
   onChatClick,
 }) => {
+  const primaryActionRef = useRef(null);
+  const focusPrimaryAction = useCallback((event) => {
+    event.preventDefault();
+    requestAnimationFrame(() => {
+      primaryActionRef.current?.focus();
+    });
+  }, []);
+
   const contactEngine = resolveSellerContactEngine({
     seller,
     settings,
@@ -895,7 +912,8 @@ const ContactSheet = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-md bg-white border border-slate-200 rounded-xl p-0 overflow-hidden shadow-lg dark:bg-slate-900 dark:border-slate-700"
+        onOpenAutoFocus={focusPrimaryAction}
+        className="w-screen max-w-none gap-0 overflow-hidden rounded-t-[1.6rem] border-x-0 border-b-0 border-slate-200 bg-white/98 p-0 shadow-[0_-24px_64px_-34px_rgba(15,23,42,0.52)] dark:border-slate-700 dark:bg-slate-900/98 sm:w-full sm:max-w-md sm:rounded-xl sm:border sm:shadow-lg [&>div:nth-child(2)]:px-0 [&>div:nth-child(2)]:pb-0 [&>div:nth-child(2)]:pt-0"
       >
         <motion.div
           {...fadeInUp}
@@ -917,7 +935,7 @@ const ContactSheet = ({
               whileTap={{ scale: 0.9 }}
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
             >
               <CloseCircle
                 size={20}
@@ -1034,6 +1052,7 @@ const ContactSheet = ({
 
             {/* Send message button */}
             <motion.button
+              ref={primaryActionRef}
               variants={fadeInUp}
               type="button"
               onClick={() => {
@@ -1043,7 +1062,7 @@ const ContactSheet = ({
               className={cn(
                 "w-full flex items-center justify-center gap-2 p-3 rounded-xl mt-3",
                 "bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-sm font-semibold",
-                "transition-colors",
+                "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
               )}
             >
               <ChatRound size={20} />

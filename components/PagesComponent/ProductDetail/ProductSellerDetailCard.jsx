@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -181,6 +181,9 @@ const getResponseTimeLabel = ({ responseTime, responseTimeAvg, settings }) => {
   return responseTimeLabels[responseTime] || null;
 };
 
+const MOBILE_SHEET_DIALOG_CLASS =
+  "w-screen max-w-none gap-0 overflow-hidden rounded-t-[1.35rem] border-x-0 border-b-0 border-slate-200 bg-white p-0 shadow-[0_-24px_52px_-34px_rgba(15,23,42,0.5)] dark:border-slate-700 dark:bg-slate-900 sm:w-full sm:max-w-sm sm:rounded-2xl sm:border sm:shadow-xl [&>div:nth-child(2)]:max-h-[calc(86dvh-0.75rem)] [&>div:nth-child(2)]:overflow-y-auto [&>div:nth-child(2)]:px-0 [&>div:nth-child(2)]:pb-[max(1rem,env(safe-area-inset-bottom))] [&>div:nth-child(2)]:pt-0";
+
 /* =====================================================
    CONTACT MODAL
 ===================================================== */
@@ -195,6 +198,13 @@ const ContactModal = ({
   onPhoneCall,
 }) => {
   const [copiedKey, setCopiedKey] = useState("");
+  const primaryActionRef = useRef(null);
+  const focusPrimaryAction = useCallback((event) => {
+    event.preventDefault();
+    requestAnimationFrame(() => {
+      primaryActionRef.current?.focus();
+    });
+  }, []);
 
   const copy = async (key, value) => {
     try {
@@ -226,55 +236,57 @@ const ContactModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+        onOpenAutoFocus={focusPrimaryAction}
+        className={cn(MOBILE_SHEET_DIALOG_CLASS, "sm:max-w-md")}
       >
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Kontakt
           </h3>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-3 space-y-1.5">
+        <div className="space-y-2.5 p-4">
           <button
+            ref={primaryActionRef}
             type="button"
             onClick={() => {
               onMessageClick?.();
               onOpenChange(false);
             }}
-            className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium"
+            className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-slate-900 px-4 text-base font-semibold text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
           >
             <MessageCircle className="w-4 h-4" />
             Poruka
           </button>
 
           {showPhone && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <a
                 href={`tel:${phoneRaw}`}
                 onClick={() => onPhoneCall?.()}
-                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+                className="flex h-12 flex-1 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800"
               >
-                <Phone className="w-4 h-4 text-emerald-500" />
-                <span className="text-slate-700 dark:text-slate-200">
+                <Phone className="h-4 w-4 text-emerald-500" />
+                <span className="truncate font-medium text-slate-700 dark:text-slate-200">
                   {phoneDisplay}
                 </span>
               </a>
               <button
                 type="button"
                 onClick={() => copy("phone", phoneRaw)}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 {copiedKey === "phone" ? (
-                  <Check className="w-4 h-4 text-green-500" />
+                  <Check className="h-4 w-4 text-green-500" />
                 ) : (
-                  <Copy className="w-4 h-4 text-slate-400" />
+                  <Copy className="h-4 w-4 text-slate-400" />
                 )}
               </button>
             </div>
@@ -316,12 +328,12 @@ const ContactModal = ({
               href={`https://wa.me/${String(whatsappNumber).replace(/\D/g, "")}`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+              className="flex h-12 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800"
             >
               <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                 <MessageCircle className="w-2.5 h-2.5 text-white" />
               </div>
-              <span className="text-slate-700 dark:text-slate-200">
+              <span className="font-medium text-slate-700 dark:text-slate-200">
                 WhatsApp
               </span>
             </a>
@@ -330,34 +342,36 @@ const ContactModal = ({
           {showViber && (
             <a
               href={`viber://chat?number=${String(viberNumber).replace(/\D/g, "")}`}
-              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+              className="flex h-12 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800"
             >
               <div className="w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center">
                 <Phone className="w-2.5 h-2.5 text-white" />
               </div>
-              <span className="text-slate-700 dark:text-slate-200">Viber</span>
+              <span className="font-medium text-slate-700 dark:text-slate-200">
+                Viber
+              </span>
             </a>
           )}
 
           {showEmail && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <a
                 href={`mailto:${email}`}
-                className="flex-1 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm truncate"
+                className="flex h-12 flex-1 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800"
               >
-                <span className="text-slate-700 dark:text-slate-200 truncate">
+                <span className="truncate font-medium text-slate-700 dark:text-slate-200">
                   {email}
                 </span>
               </a>
               <button
                 type="button"
                 onClick={() => copy("email", email)}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 {copiedKey === "email" ? (
-                  <Check className="w-4 h-4 text-green-500" />
+                  <Check className="h-4 w-4 text-green-500" />
                 ) : (
-                  <Copy className="w-4 h-4 text-slate-400" />
+                  <Copy className="h-4 w-4 text-slate-400" />
                 )}
               </button>
             </div>
@@ -377,6 +391,13 @@ const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
   const currentUser = useSelector(userSignUpData);
   const isLoggedIn = useSelector(getIsLoggedIn);
   const sellerDisplayName = resolveSellerDisplayName({ seller, settings });
+  const messageInputRef = useRef(null);
+  const focusMessageInput = useCallback((event) => {
+    event.preventDefault();
+    requestAnimationFrame(() => {
+      messageInputRef.current?.focus();
+    });
+  }, []);
 
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -479,7 +500,8 @@ const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-sm p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+        onOpenAutoFocus={focusMessageInput}
+        className={cn(MOBILE_SHEET_DIALOG_CLASS, "sm:max-w-sm")}
       >
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -500,7 +522,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
           >
             <X className="w-4 h-4" />
           </button>
@@ -516,6 +538,7 @@ const SendMessageModal = ({ open, onOpenChange, seller, settings, itemId }) => {
             />
           ) : null}
           <textarea
+            ref={messageInputRef}
             value={message}
             onChange={(e) => {
               setMessage(e.target.value);
@@ -563,6 +586,13 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
   const router = useRouter();
   const currentUser = useSelector(userSignUpData);
   const isLoggedIn = useSelector(getIsLoggedIn);
+  const amountInputRef = useRef(null);
+  const focusAmountInput = useCallback((event) => {
+    event.preventDefault();
+    requestAnimationFrame(() => {
+      amountInputRef.current?.focus();
+    });
+  }, []);
 
   const [amount, setAmount] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -620,7 +650,8 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-xs p-0 gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+        onOpenAutoFocus={focusAmountInput}
+        className={cn(MOBILE_SHEET_DIALOG_CLASS, "sm:max-w-xs")}
       >
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -629,7 +660,7 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+            className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
           >
             <X className="w-4 h-4" />
           </button>
@@ -648,6 +679,7 @@ const SendOfferModal = ({ open, onOpenChange, seller, itemId, itemPrice }) => {
           )}
           <div className="relative">
             <input
+              ref={amountInputRef}
               type="number"
               value={amount}
               onChange={(e) => {
@@ -723,6 +755,7 @@ const ProductSellerDetailCard = ({
   enableOwnerReelControls = true,
   disableContactActions = false,
   contactBlockedMessage = "",
+  onOverlayStateChange = () => {},
 }) => {
   const pathname = usePathname();
   const CompanyName = useSelector(getCompanyName);
@@ -914,6 +947,28 @@ const ProductSellerDetailCard = ({
   const [isReelViewerOpen, setIsReelViewerOpen] = useState(false);
   const currentUser = useSelector(userSignUpData);
   const isLoggedIn = useSelector(getIsLoggedIn);
+
+  useEffect(() => {
+    const hasOverlayOpen =
+      isContactOpen ||
+      isMessageOpen ||
+      isOfferOpen ||
+      isReelModalOpen ||
+      isReelViewerOpen;
+
+    onOverlayStateChange(hasOverlayOpen);
+
+    return () => {
+      onOverlayStateChange(false);
+    };
+  }, [
+    isContactOpen,
+    isMessageOpen,
+    isOfferOpen,
+    isReelModalOpen,
+    isReelViewerOpen,
+    onOverlayStateChange,
+  ]);
 
   if (!seller) return <ProductSellerCardSkeleton />;
 

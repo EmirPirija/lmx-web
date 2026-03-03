@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "firebase/messaging";
 import FirebaseData from "../../utils/Firebase";
 import { useDispatch, useSelector } from "react-redux";
@@ -57,6 +57,25 @@ const PushNotificationLayout = ({ children }) => {
   const currentUser = useSelector(userSignUpData);
   const unsubscribeRef = useRef(null);
   const eventTimestampsRef = useRef(new Map());
+  const shouldEnablePushNotifications = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    if (!isLoggedIn) return false;
+    if (!window.isSecureContext) return false;
+
+    const host = String(window.location?.hostname || "").toLowerCase();
+    const isLocalHost =
+      host === "localhost" || host === "127.0.0.1" || host === "::1";
+    if (isLocalHost) return false;
+
+    const featureFlag = String(
+      process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    if (featureFlag === "0" || featureFlag === "false") return false;
+
+    return true;
+  }, [isLoggedIn]);
 
   const getCurrentUserId = useCallback(() => {
     return Number(
@@ -191,18 +210,23 @@ const PushNotificationLayout = ({ children }) => {
     [dispatch, emitRealtimeEvent, isDuplicateEvent, showRealtimePopup]
   );
 
-  const handleFetchToken = async () => {
-    await fetchToken(setFcmToken);
-  };
+  const handleFetchToken = useCallback(async () => {
+    if (!shouldEnablePushNotifications) return;
+    try {
+      await fetchToken(setFcmToken);
+    } catch (error) {
+      console.warn("Skipping push token fetch:", error?.message || error);
+    }
+  }, [fetchToken, shouldEnablePushNotifications]);
 
-  // Fetch token when user logs in
+  // Fetch token only when push notifications are eligible.
   useEffect(() => {
     handleFetchToken();
-  }, []);
+  }, [handleFetchToken]);
 
   // Set up message listener when logged in, clean up when logged out
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !shouldEnablePushNotifications) {
       // Clean up listener when user logs out
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
@@ -243,7 +267,7 @@ const PushNotificationLayout = ({ children }) => {
         unsubscribeRef.current = null;
       }
     };
-  }, [isLoggedIn, onMessageListener, processRealtimeEvent]);
+  }, [isLoggedIn, onMessageListener, processRealtimeEvent, shouldEnablePushNotifications]);
 
   const handleRealtimeEvent = useCallback(
     (eventData) => {
@@ -256,7 +280,7 @@ const PushNotificationLayout = ({ children }) => {
   useRealtimeUserEvents({ onEvent: handleRealtimeEvent });
 
   useEffect(() => {
-    if (fcmToken) {
+    if (fcmToken && shouldEnablePushNotifications) {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker
           .register("/firebase-messaging-sw.js")
@@ -271,7 +295,7 @@ const PushNotificationLayout = ({ children }) => {
           });
       }
     }
-  }, [fcmToken]);
+  }, [fcmToken, shouldEnablePushNotifications]);
 
   return children;
 };

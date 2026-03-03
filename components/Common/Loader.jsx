@@ -3,6 +3,7 @@ export default function Loader({ size = 220, className = "" }) {
 
   return (
     <div
+      suppressHydrationWarning
       className={`${className}`.trim()}
       style={{
         minHeight: "100dvh",

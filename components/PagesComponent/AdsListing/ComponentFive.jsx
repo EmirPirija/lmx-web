@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSelector } from "react-redux";
 import {
@@ -43,8 +43,16 @@ const REAL_ESTATE_MODE_MANUAL = "manual";
 const REAL_ESTATE_MODE_PIN = "pin";
 const REAL_ESTATE_PRIVACY_RADIUS_KM = 0.1;
 
+const parseCoordinateValue = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const normalized = String(value).trim().replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const hasPreciseCoordinates = (value = {}) =>
-  Number.isFinite(Number(value?.lat)) && Number.isFinite(Number(value?.long));
+  parseCoordinateValue(value?.lat) !== null &&
+  parseCoordinateValue(value?.long) !== null;
 
 const resolveRealEstateMode = (source, hasPrecise) => {
   const normalizedSource = String(source || "").toLowerCase();
@@ -94,6 +102,17 @@ const ComponentFive = ({
   const [realEstateLocationMode, setRealEstateLocationMode] =
     useState(REAL_ESTATE_MODE_PIN); // "pin" | "manual" | "profile"
   const [mapPreviewPosition, setMapPreviewPosition] = useState(null);
+  const realEstateLocationModeRef = useRef(realEstateLocationMode);
+
+  const setRealEstateModeAndSource = useCallback((nextMode) => {
+    realEstateLocationModeRef.current = nextMode;
+    setRealEstateLocationMode(nextMode);
+    setLocationSource(modeToLocationSource(nextMode));
+  }, []);
+
+  useEffect(() => {
+    realEstateLocationModeRef.current = realEstateLocationMode;
+  }, [realEstateLocationMode]);
 
   const hasAddressData = Boolean(
     location?.country && location?.city && location?.address,
@@ -241,10 +260,7 @@ const ComponentFive = ({
       const hasPrecise = hasPreciseCoordinates(location);
       if (isRealEstate) {
         const resolvedMode = resolveRealEstateMode(source, hasPrecise);
-        setRealEstateLocationMode(resolvedMode);
-        setLocationSource(
-          resolvedMode === REAL_ESTATE_MODE_PROFILE ? "profile" : "manual",
-        );
+        setRealEstateModeAndSource(resolvedMode);
 
         const latNum = Number(location?.lat);
         const lngNum = Number(location?.long);
@@ -296,8 +312,7 @@ const ComponentFive = ({
     }
 
     if (isRealEstate) {
-      setRealEstateLocationMode(REAL_ESTATE_MODE_PIN);
-      setLocationSource("manual");
+      setRealEstateModeAndSource(REAL_ESTATE_MODE_PIN);
       setIsInitialized(true);
       return;
     }
@@ -312,6 +327,7 @@ const ComponentFive = ({
     resolveApproximateMapPoint,
     convertApiLocationToBiH,
     setLocation,
+    setRealEstateModeAndSource,
     userLocation,
   ]);
 
@@ -321,6 +337,12 @@ const ComponentFive = ({
     if (!isLocationComplete(newBihLocation)) return;
 
     try {
+      const activeRealEstateMode =
+        realEstateLocationModeRef.current || realEstateLocationMode;
+      const activeLocationSource = isRealEstate
+        ? modeToLocationSource(activeRealEstateMode)
+        : "manual";
+      const hasExistingPrecisePin = hasPreciseCoordinates(location);
       const fullLocation = resolveLocationSelection(newBihLocation);
 
       if (fullLocation) {
@@ -338,14 +360,39 @@ const ComponentFive = ({
           address: formattedAddr,
           formattedAddress: formattedAddr,
           address_translated: formattedAddr,
-          lat: isRealEstate ? null : BIH_DEFAULT_COORDS.lat,
-          long: isRealEstate ? null : BIH_DEFAULT_COORDS.long,
-          area_id: null,
-          location_source: isRealEstate
-            ? modeToLocationSource(realEstateLocationMode)
-            : "manual",
+          lat:
+            isRealEstate &&
+            activeRealEstateMode === REAL_ESTATE_MODE_PIN &&
+            hasPreciseCoordinates(prev)
+              ? prev?.lat
+              : isRealEstate
+                ? null
+                : BIH_DEFAULT_COORDS.lat,
+          long:
+            isRealEstate &&
+            activeRealEstateMode === REAL_ESTATE_MODE_PIN &&
+            hasPreciseCoordinates(prev)
+              ? prev?.long
+              : isRealEstate
+                ? null
+                : BIH_DEFAULT_COORDS.long,
+          area_id:
+            isRealEstate &&
+            activeRealEstateMode === REAL_ESTATE_MODE_PIN &&
+            hasPreciseCoordinates(prev)
+              ? prev?.area_id ?? null
+              : null,
+          location_source: activeLocationSource,
         }));
-        setLocationSource("manual");
+        setLocationSource(activeLocationSource);
+
+        if (
+          isRealEstate &&
+          activeRealEstateMode === REAL_ESTATE_MODE_PIN &&
+          hasExistingPrecisePin
+        ) {
+          return;
+        }
 
         if (isRealEstate) {
           resolveApproximateMapPoint(formattedAddr).then((point) => {
@@ -401,7 +448,7 @@ const ComponentFive = ({
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
     if (isRealEstate) {
-      setRealEstateLocationMode(REAL_ESTATE_MODE_PIN);
+      setRealEstateModeAndSource(REAL_ESTATE_MODE_PIN);
     }
     setIsResolvingMapPoint(true);
 
@@ -488,7 +535,6 @@ const ComponentFive = ({
           convertedLocation?.municipalityId || prev?.municipalityId || null,
         location_source: isRealEstate ? "map" : "manual",
       }));
-      setLocationSource("manual");
       setMapPreviewPosition({ lat, lng });
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
@@ -537,16 +583,73 @@ const ComponentFive = ({
     setShowPublishModal(true);
   };
 
+  const getSubmissionLocationSnapshot = useCallback(() => {
+    const baseLocation = { ...(location || {}) };
+
+    if (!isRealEstate) {
+      return baseLocation;
+    }
+
+    const activeMode =
+      realEstateLocationModeRef.current || realEstateLocationMode;
+
+    if (activeMode === REAL_ESTATE_MODE_PROFILE) {
+      const profileLocation = getProfileLocationForRealEstate();
+      if (profileLocation) {
+        return {
+          ...baseLocation,
+          ...profileLocation,
+          lat: null,
+          long: null,
+          area_id: null,
+          location_source: "profile",
+        };
+      }
+
+      return {
+        ...baseLocation,
+        lat: null,
+        long: null,
+        area_id: null,
+        location_source: "profile",
+      };
+    }
+
+    if (activeMode === REAL_ESTATE_MODE_MANUAL) {
+      return {
+        ...baseLocation,
+        lat: null,
+        long: null,
+        area_id: null,
+        location_source: "manual",
+      };
+    }
+
+    return {
+      ...baseLocation,
+      location_source: "map",
+    };
+  }, [
+    getProfileLocationForRealEstate,
+    isRealEstate,
+    location,
+    realEstateLocationMode,
+  ]);
+
   const handlePublishNow = () => {
+    const submissionLocation = getSubmissionLocationSnapshot();
     if (setScheduledAt) setScheduledAt(null);
     setShowPublishModal(false);
-    handleFullSubmission();
+    setLocation(submissionLocation);
+    handleFullSubmission(null, submissionLocation);
   };
 
   const handleSchedule = (scheduledDateTime) => {
+    const submissionLocation = getSubmissionLocationSnapshot();
     if (setScheduledAt) setScheduledAt(scheduledDateTime);
     setShowPublishModal(false);
-    handleFullSubmission(scheduledDateTime);
+    setLocation(submissionLocation);
+    handleFullSubmission(scheduledDateTime, submissionLocation);
   };
 
   const shouldShowStandardLocationPicker =
@@ -568,15 +671,13 @@ const ComponentFive = ({
       );
       return;
     }
-    setRealEstateLocationMode(REAL_ESTATE_MODE_PROFILE);
-    setLocationSource("profile");
+    setRealEstateModeAndSource(REAL_ESTATE_MODE_PROFILE);
     setMapPreviewPosition(null);
     setLocation(profileLocation);
   };
 
   const handleUseRealEstateManualLocation = () => {
-    setRealEstateLocationMode(REAL_ESTATE_MODE_MANUAL);
-    setLocationSource("manual");
+    setRealEstateModeAndSource(REAL_ESTATE_MODE_MANUAL);
     setLocation((prev) => ({
       ...(prev || {}),
       lat: null,
@@ -597,8 +698,7 @@ const ComponentFive = ({
   };
 
   const handleUseRealEstatePinLocation = () => {
-    setRealEstateLocationMode(REAL_ESTATE_MODE_PIN);
-    setLocationSource("manual");
+    setRealEstateModeAndSource(REAL_ESTATE_MODE_PIN);
     setLocation((prev) => ({
       ...(prev || {}),
       location_source: "map",
@@ -645,9 +745,10 @@ const ComponentFive = ({
               <button
                 type="button"
                 onClick={handleUseRealEstatePinLocation}
+                aria-pressed={realEstateLocationMode === REAL_ESTATE_MODE_PIN}
                 className={`rounded-xl border p-4 text-left transition-all ${
                   realEstateLocationMode === REAL_ESTATE_MODE_PIN
-                    ? "border-primary/50 bg-primary/10 shadow-sm"
+                    ? "border-primary bg-primary/10 shadow-[0_10px_24px_-16px_rgba(8,145,178,0.85)] ring-1 ring-primary/25"
                     : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
                 }`}
               >
@@ -655,9 +756,16 @@ const ComponentFive = ({
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     Tačan pin na mapi
                   </p>
-                  <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
-                    Preporučeno
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                      Preporučeno
+                    </span>
+                    {realEstateLocationMode === REAL_ESTATE_MODE_PIN ? (
+                      <span className="inline-flex items-center rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        Aktivno
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                   Postavite preciznu tačku, a kupcima se i dalje prikazuje samo
@@ -667,15 +775,23 @@ const ComponentFive = ({
               <button
                 type="button"
                 onClick={handleUseRealEstateManualLocation}
+                aria-pressed={realEstateLocationMode === REAL_ESTATE_MODE_MANUAL}
                 className={`rounded-xl border p-4 text-left transition-all ${
                   realEstateLocationMode === REAL_ESTATE_MODE_MANUAL
-                    ? "border-primary/50 bg-primary/10 shadow-sm"
+                    ? "border-primary bg-primary/10 shadow-[0_10px_24px_-16px_rgba(8,145,178,0.85)] ring-1 ring-primary/25"
                     : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
                 }`}
               >
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Ručno po općini
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Ručno po općini
+                  </p>
+                  {realEstateLocationMode === REAL_ESTATE_MODE_MANUAL ? (
+                    <span className="inline-flex items-center rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      Aktivno
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                   Odaberite grad/općinu i adresu bez preciznog pina.
                 </p>
@@ -684,15 +800,23 @@ const ComponentFive = ({
                 type="button"
                 onClick={handleUseRealEstateProfileLocation}
                 disabled={!hasLocation}
+                aria-pressed={realEstateLocationMode === REAL_ESTATE_MODE_PROFILE}
                 className={`rounded-xl border p-4 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                   realEstateLocationMode === REAL_ESTATE_MODE_PROFILE
-                    ? "border-primary/50 bg-primary/10 shadow-sm"
+                    ? "border-primary bg-primary/10 shadow-[0_10px_24px_-16px_rgba(8,145,178,0.85)] ring-1 ring-primary/25"
                     : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
                 }`}
               >
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Koristi lokaciju iz profila
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Koristi lokaciju iz profila
+                  </p>
+                  {realEstateLocationMode === REAL_ESTATE_MODE_PROFILE ? (
+                    <span className="inline-flex items-center rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      Aktivno
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                   {hasLocation
                     ? `Sačuvana lokacija: ${getFormattedAddress()}`

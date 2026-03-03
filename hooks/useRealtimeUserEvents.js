@@ -99,7 +99,13 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
       if (channelRef.current) {
         channelRef.current.unbind("RealtimeNotification", handleEvent);
         channelRef.current.unbind(".RealtimeNotification", handleEvent);
-        pusher.unsubscribe(channelName);
+        try {
+          if (pusher.connection?.state === "connected") {
+            pusher.unsubscribe(channelName);
+          }
+        } catch (error) {
+          // Ignore noisy close-race errors during navigation/HMR teardown.
+        }
         channelRef.current = null;
       }
 
