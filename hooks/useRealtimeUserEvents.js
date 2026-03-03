@@ -45,10 +45,21 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
 
     const key = process.env.NEXT_PUBLIC_REVERB_APP_KEY;
     const host = process.env.NEXT_PUBLIC_REVERB_HOST;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
     const scheme = String(process.env.NEXT_PUBLIC_REVERB_SCHEME || "https").toLowerCase();
+    const useInternalProxy = String(
+      process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
+    )
+      .trim()
+      .toLowerCase();
+    const shouldUseInternalProxy =
+      useInternalProxy !== "0" && useInternalProxy !== "false";
+    const authEndpoint = shouldUseInternalProxy
+      ? "/api/internal/broadcasting/auth"
+      : `${apiUrl}/broadcasting/auth`;
 
-    if (!key || !host || !apiUrl) return;
+    if (!key || !host) return;
+    if (!shouldUseInternalProxy && !apiUrl) return;
 
     const wsPort = parsePort(process.env.NEXT_PUBLIC_REVERB_PORT, 80);
     const wssPort = parsePort(process.env.NEXT_PUBLIC_REVERB_PORT, 443);
@@ -64,7 +75,7 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
       disableStats: true,
       enabledTransports: ["ws", "wss"],
       cluster: "mt1",
-      authEndpoint: `${apiUrl}/broadcasting/auth`,
+      authEndpoint,
       auth: {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -72,7 +83,7 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
         },
       },
       channelAuthorization: {
-        endpoint: `${apiUrl}/broadcasting/auth`,
+        endpoint: authEndpoint,
         transport: "ajax",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -99,13 +110,6 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
       if (channelRef.current) {
         channelRef.current.unbind("RealtimeNotification", handleEvent);
         channelRef.current.unbind(".RealtimeNotification", handleEvent);
-        try {
-          if (pusher.connection?.state === "connected") {
-            pusher.unsubscribe(channelName);
-          }
-        } catch (error) {
-          // Ignore noisy close-race errors during navigation/HMR teardown.
-        }
         channelRef.current = null;
       }
 

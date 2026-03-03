@@ -2,6 +2,7 @@
 const shouldDisableImageOptimization =
   process.env.NEXT_PUBLIC_DISABLE_IMAGE_OPTIMIZATION === "1" ||
   process.env.NEXT_PUBLIC_DISABLE_IMAGE_OPTIMIZATION === "true";
+const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig = {
   reactStrictMode: false,
@@ -46,6 +47,11 @@ const nextConfig = {
     ];
   },
   async headers() {
+    const scriptSrc = ["'self'", "'unsafe-inline'", "https:"];
+    if (isDev) {
+      scriptSrc.push("'unsafe-eval'");
+    }
+
     const csp = [
       "default-src 'self'",
       "base-uri 'self'",
@@ -54,11 +60,14 @@ const nextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https:",
       "style-src 'self' 'unsafe-inline' https:",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+      `script-src ${scriptSrc.join(" ")}`,
       "connect-src 'self' https: wss:",
       "frame-src 'self' https:",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
       "media-src 'self' blob: data: https:",
       "form-action 'self' https://admin.lmx.ba",
+      "upgrade-insecure-requests",
     ].join("; ");
 
     return [

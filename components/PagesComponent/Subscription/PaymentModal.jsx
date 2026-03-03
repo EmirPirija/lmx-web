@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,15 @@ import BankTransferPayment from "./BankTransferPayment";
 import CustomImage from "@/components/Common/CustomImage";
 import PaypalPayment from "./PaypalPayment";
 
+const getOriginFromUrl = (value) => {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+};
+
 const PaymentModal = ({
   showPaymentModal,
   setShowPaymentModal,
@@ -32,7 +41,27 @@ const PaymentModal = ({
   const isBankTransferActive =
     Number(packageSettings?.bankTransfer?.status) === 1;
 
-  const updateActivePackage = () => {
+  const allowedMessageOrigins = useMemo(() => {
+    const origins = new Set();
+    if (typeof window !== "undefined") {
+      origins.add(window.location.origin);
+    }
+
+    const apiOrigin = getOriginFromUrl(process.env.NEXT_PUBLIC_API_URL);
+    if (apiOrigin) origins.add(apiOrigin);
+
+    const webOrigin = getOriginFromUrl(process.env.NEXT_PUBLIC_WEB_URL);
+    if (webOrigin) origins.add(webOrigin);
+
+    return origins;
+  }, []);
+
+  const updateActivePackage = useCallback(() => {
+    if (!selectedPackage?.id || !selectedPackage?.type) {
+      toast.success("Uplata uspješna!");
+      return;
+    }
+
     if (selectedPackage.type === "advertisement") {
       setAdPackages((prev) => {
         return prev.map((item) => {
@@ -53,16 +82,21 @@ const PaymentModal = ({
       });
     }
     toast.success("Uplata uspješna!");
-  };
+  }, [selectedPackage, setAdPackages, setListingPackages]);
 
-  const PaymentModalClose = () => {
+  const PaymentModalClose = useCallback(() => {
     setShowPaymentModal(false);
     setShowStripePayment(false);
-  };
+  }, [setShowPaymentModal]);
 
-  const handleMessage = (event) => {
-    if (event.origin === process.env.NEXT_PUBLIC_API_URL) {
-      const { status } = event.data;
+  const handleMessage = useCallback(
+    (event) => {
+      if (!allowedMessageOrigins.has(event?.origin)) return;
+      if (!event?.data || typeof event.data !== "object") return;
+
+      const status = String(event.data.status || "").toLowerCase();
+      if (!status) return;
+
       if (status === "success") {
         updateActivePackage();
       } else if (status === "cancel") {
@@ -71,8 +105,9 @@ const PaymentModal = ({
         toast.error("Plaćanje nije uspjelo. Pokušaj ponovo.");
       }
       PaymentModalClose();
-    }
-  };
+    },
+    [PaymentModalClose, allowedMessageOrigins, updateActivePackage]
+  );
 
   useEffect(() => {
     window.addEventListener("message", handleMessage);

@@ -3,13 +3,45 @@
 import { useEffect, useRef, useCallback } from "react";
 import { getAppStore } from "@/redux/store/storeRef";
 
+const isTrackingDebugEnabled = process.env.NODE_ENV !== "production";
+const trackingDebugLog = (...args) => {
+  if (isTrackingDebugEnabled) {
+    console.log(...args);
+  }
+};
+
 // ============================================
 // API BASE URL
 // ============================================
 const getApiBase = () => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-  const endPoint = process.env.NEXT_PUBLIC_END_POINT || "/api/";
-  return `${apiUrl.replace(/\/$/, "")}${endPoint.replace(/\/$/, "")}`;
+  const useInternalProxy = String(
+    process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
+  )
+    .trim()
+    .toLowerCase();
+  const shouldUseInternalProxy =
+    useInternalProxy !== "0" && useInternalProxy !== "false";
+
+  if (typeof window !== "undefined" && shouldUseInternalProxy) {
+    return "/api/internal";
+  }
+
+  const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const endPointRaw = String(process.env.NEXT_PUBLIC_END_POINT || "/api/");
+  const endPoint = endPointRaw.startsWith("/") ? endPointRaw : `/${endPointRaw}`;
+  const normalizedEndpoint = endPoint.replace(/\/+$/, "");
+
+  if (typeof window !== "undefined") {
+    const host = String(window.location?.hostname || "").toLowerCase();
+    const isLocalHost =
+      host === "localhost" || host === "127.0.0.1" || host === "::1";
+
+    if (isLocalHost) {
+      return normalizedEndpoint;
+    }
+  }
+
+  return `${apiUrl}${normalizedEndpoint}`;
 };
 
 // ============================================
@@ -326,7 +358,7 @@ export const useItemTracking = (itemId, options = {}) => {
       explicitDetail,
     });
 
-    console.log("📊 Tracking view:", {
+    trackingDebugLog("📊 Tracking view:", {
       item_id: currentItemId,
       ...attribution,
     });
@@ -347,7 +379,7 @@ export const useItemTracking = (itemId, options = {}) => {
       explicitSource: context?.source,
       explicitDetail: context?.source_detail,
     });
-    console.log("📊 Tracking contact:", {
+    trackingDebugLog("📊 Tracking contact:", {
       item_id: currentItemId,
       contact_type: contactType,
       ...attribution,
@@ -369,7 +401,7 @@ export const useItemTracking = (itemId, options = {}) => {
       explicitSource: context?.source,
       explicitDetail: context?.source_detail,
     });
-    console.log("📊 Tracking share:", {
+    trackingDebugLog("📊 Tracking share:", {
       item_id: currentItemId,
       platform,
       ...attribution,
@@ -407,7 +439,7 @@ export const useItemTracking = (itemId, options = {}) => {
         explicitSource: context?.source,
         explicitDetail: context?.source_detail,
       });
-      console.log("📊 Tracking engagement:", {
+      trackingDebugLog("📊 Tracking engagement:", {
         item_id: currentItemId,
         engagement_type: engagementType,
         extraData,
@@ -432,7 +464,7 @@ export const useItemTracking = (itemId, options = {}) => {
       explicitSource: context?.source,
       explicitDetail: context?.source_detail,
     });
-    console.log("📊 Tracking favorite:", {
+    trackingDebugLog("📊 Tracking favorite:", {
       item_id: currentItemId,
       added,
       ...attribution,
@@ -454,7 +486,7 @@ export const useItemTracking = (itemId, options = {}) => {
 
     if (duration > 2) {
       // Minimum 2 seconds
-      console.log("📊 Tracking time on page:", {
+      trackingDebugLog("📊 Tracking time on page:", {
         item_id: currentItemId,
         duration,
       });
@@ -624,7 +656,7 @@ export const useSearchTracking = () => {
       return searchId;
     }
 
-    console.log("📊 Tracking search impressions:", {
+    trackingDebugLog("📊 Tracking search impressions:", {
       search_id: searchId,
       item_count: itemIds.length,
       search_query: searchData?.search_query || null,
@@ -682,7 +714,7 @@ export const useSearchTracking = () => {
             search_query: context?.search_query || null,
           };
 
-      console.log("📊 Tracking search click:", {
+      trackingDebugLog("📊 Tracking search click:", {
         item_id: itemId,
         position,
         impression_id: impId,

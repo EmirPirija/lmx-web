@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import "firebase/messaging";
 import FirebaseData from "../../utils/Firebase";
 import { useDispatch, useSelector } from "react-redux";
@@ -50,8 +50,7 @@ const extractPathFromUrl = (value) => {
 
 const PushNotificationLayout = ({ children }) => {
   const dispatch = useDispatch();
-  const [fcmToken, setFcmToken] = useState("");
-  const { fetchToken, onMessageListener } = FirebaseData();
+  const { fetchToken, onMessageListener } = useMemo(() => FirebaseData(), []);
   const { navigate } = useNavigate();
   const isLoggedIn = useSelector(getIsLoggedIn);
   const currentUser = useSelector(userSignUpData);
@@ -66,6 +65,16 @@ const PushNotificationLayout = ({ children }) => {
     const isLocalHost =
       host === "localhost" || host === "127.0.0.1" || host === "::1";
     if (isLocalHost) return false;
+
+    const isDev = process.env.NODE_ENV !== "production";
+    const devFeatureFlag = String(
+      process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS_DEV ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    if (isDev && devFeatureFlag !== "1" && devFeatureFlag !== "true") {
+      return false;
+    }
 
     const featureFlag = String(
       process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS ?? "",
@@ -213,7 +222,7 @@ const PushNotificationLayout = ({ children }) => {
   const handleFetchToken = useCallback(async () => {
     if (!shouldEnablePushNotifications) return;
     try {
-      await fetchToken(setFcmToken);
+      await fetchToken();
     } catch (error) {
       console.warn("Skipping push token fetch:", error?.message || error);
     }
@@ -278,24 +287,6 @@ const PushNotificationLayout = ({ children }) => {
   );
 
   useRealtimeUserEvents({ onEvent: handleRealtimeEvent });
-
-  useEffect(() => {
-    if (fcmToken && shouldEnablePushNotifications) {
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("/firebase-messaging-sw.js")
-          .then((registration) => {
-            console.log(
-              "Service Worker registration successful with scope: ",
-              registration.scope
-            );
-          })
-          .catch((err) => {
-            console.log("Service Worker registration failed: ", err);
-          });
-      }
-    }
-  }, [fcmToken, shouldEnablePushNotifications]);
 
   return children;
 };

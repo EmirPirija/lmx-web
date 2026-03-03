@@ -17,7 +17,17 @@ import { setAppStore } from "./storeRef";
 const persistConfig = {
   key: 'root',
   storage,
-  manualPersisting: true,
+  version: 1,
+  whitelist: [
+    "Settings",
+    "Category",
+    "BreadcrumbPath",
+    "CurrentLanguage",
+    "Location",
+    "Gamification",
+    "Membership",
+    "Compare",
+  ],
 };
 
 

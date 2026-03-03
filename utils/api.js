@@ -71,6 +71,9 @@ export const UPDATE_JOB_STATUS = "update-job-applications-status";
 export const GET_OTP = AUTH_ENDPOINTS.GET_OTP;
 export const VERIFY_OTP = AUTH_ENDPOINTS.VERIFY_OTP;
 export const GET_LOCATION = "get-location";
+export const INTERNAL_LOCATION_ENDPOINT = "internal/location";
+export const INTERNAL_VERIFICATION_STATUS_ENDPOINT =
+  "internal/verification-status";
 export const GET_USER_INFO = "auth/me";
 export const LOGOUT = "auth/logout";
 export const GET_ACTIVE_SESSIONS = "auth/active-sessions";
@@ -145,6 +148,11 @@ const ITEMS_REQUEST_TTL = 1000 * 15; // 15s
 const ITEMS_CACHE_MAX_SIZE = 120;
 const itemsResponseCache = new Map();
 const itemsInFlightRequests = new Map();
+const LOCATION_REQUEST_TTL_SUCCESS_MS = 1000 * 60 * 5; // 5 min
+const LOCATION_REQUEST_TTL_ERROR_MS = 1000 * 30; // 30s
+const LOCATION_CACHE_MAX_SIZE = 150;
+const locationResponseCache = new Map();
+const locationInFlightRequests = new Map();
 
 const stableSerialize = (value) => {
   if (value === null || value === undefined) return "";
@@ -198,6 +206,55 @@ const setCachedCategoryResponse = (key, response) => {
   if (categoryResponseCache.size <= CATEGORY_CACHE_MAX_SIZE) return;
   const oldestKey = categoryResponseCache.keys().next().value;
   if (oldestKey) categoryResponseCache.delete(oldestKey);
+};
+
+const buildLocationRequestKey = ({
+  lat,
+  lng,
+  long,
+  longitude,
+  lang,
+  search,
+  place_id,
+  session_id,
+} = {}) => {
+  const resolvedLng =
+    lng !== undefined && lng !== null && lng !== ""
+      ? lng
+      : long !== undefined && long !== null && long !== ""
+        ? long
+        : longitude;
+
+  return stableSerialize({
+    lat,
+    lng: resolvedLng,
+    lang,
+    search,
+    place_id,
+    session_id,
+  });
+};
+
+const getCachedLocationResponse = (key) => {
+  const cached = locationResponseCache.get(key);
+  if (!cached) return null;
+
+  const ttl = cached.isError
+    ? LOCATION_REQUEST_TTL_ERROR_MS
+    : LOCATION_REQUEST_TTL_SUCCESS_MS;
+  if (Date.now() - cached.ts > ttl) {
+    locationResponseCache.delete(key);
+    return null;
+  }
+
+  return cached.response;
+};
+
+const setCachedLocationResponse = (key, response, isError = false) => {
+  locationResponseCache.set(key, { ts: Date.now(), response, isError });
+  if (locationResponseCache.size <= LOCATION_CACHE_MAX_SIZE) return;
+  const oldestKey = locationResponseCache.keys().next().value;
+  if (oldestKey) locationResponseCache.delete(oldestKey);
 };
 
 // 3. CATEGORY API
@@ -280,7 +337,9 @@ export const usersApi = {
 export const getVerificationStatusApi = {
   getVerificationStatus: async () => {
     try {
-      return await Api.get(GET_VERIFICATION_STATUS, {});
+      return await Api.get(INTERNAL_VERIFICATION_STATUS_ENDPOINT, {
+        baseURL: "/api",
+      });
     } catch (error) {
       const status = Number(error?.response?.status || 0);
 
@@ -2164,7 +2223,7 @@ export const updateJobStatusApi = {
 };
 
 export const getLocationApi = {
-  getLocation: ({
+  getLocation: async ({
     lat,
     lng,
     long,
@@ -2193,9 +2252,57 @@ export const getLocationApi = {
       params.lng = resolvedLng;
     }
 
-    return Api.get(GET_LOCATION, {
-      params,
+    const requestKey = buildLocationRequestKey({
+      lat,
+      lng,
+      long,
+      longitude,
+      lang,
+      search,
+      place_id,
+      session_id,
     });
+    const cachedResponse = getCachedLocationResponse(requestKey);
+    if (cachedResponse) return cachedResponse;
+
+    if (locationInFlightRequests.has(requestKey)) {
+      return locationInFlightRequests.get(requestKey);
+    }
+
+    const requestPromise = (async () => {
+      try {
+        const response = await Api.get(INTERNAL_LOCATION_ENDPOINT, {
+          baseURL: "/api",
+          params,
+        });
+        setCachedLocationResponse(requestKey, response, false);
+        return response;
+      } catch (error) {
+        const status = Number(error?.response?.status || 0);
+
+        // Graceful fallback for flaky reverse-geocode endpoint in production.
+        if (!status || status >= 500) {
+          const fallbackResponse = {
+            status: status || 500,
+            data: {
+              error: true,
+              fallback: true,
+              message: "Location lookup unavailable",
+              data: null,
+            },
+          };
+          setCachedLocationResponse(requestKey, fallbackResponse, true);
+          return fallbackResponse;
+        }
+
+        throw error;
+      } finally {
+        locationInFlightRequests.delete(requestKey);
+      }
+    })();
+
+    locationInFlightRequests.set(requestKey, requestPromise);
+    return requestPromise;
   },
 };
 

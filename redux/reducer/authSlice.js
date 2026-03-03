@@ -14,7 +14,8 @@ export const authSlice = createSlice({
             usersignup.data = action.payload;
         },
         userUpdateData: (usersignup, action) => {
-            usersignup.data.data = action.payload.data;
+            if (!usersignup.data || typeof usersignup.data !== "object") return;
+            usersignup.data.data = action?.payload?.data ?? usersignup.data.data;
         },
         userLogout: (usersignup) => {
             usersignup.data = null; // Clear data when user logs out

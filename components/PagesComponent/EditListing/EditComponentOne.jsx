@@ -155,10 +155,12 @@ const RichTextarea = ({
 
   // Inicijalno postavljanje vrijednosti
   useEffect(() => {
-    if (editorRef.current && !editorRef.current.innerHTML && value) {
-      editorRef.current.innerHTML = value;
+    if (!editorRef.current) return;
+    const normalizedValue = value || "";
+    if (editorRef.current.innerHTML !== normalizedValue) {
+      editorRef.current.innerHTML = normalizedValue;
     }
-  }, []);
+  }, [value]);
 
   const handleInput = (e) => {
     const html = e.currentTarget.innerHTML;

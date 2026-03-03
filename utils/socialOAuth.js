@@ -25,6 +25,9 @@ const getAllowedOrigins = (authUrl) => {
   const apiOrigin = getOriginFromUrl(process.env.NEXT_PUBLIC_API_URL);
   if (apiOrigin) origins.add(apiOrigin);
 
+  const webOrigin = getOriginFromUrl(process.env.NEXT_PUBLIC_WEB_URL);
+  if (webOrigin) origins.add(webOrigin);
+
   const authOrigin = getOriginFromUrl(authUrl);
   if (authOrigin) origins.add(authOrigin);
 
@@ -100,7 +103,11 @@ export const runSocialOAuthPopup = ({ platform, authUrl, timeoutMs = 180000 } = 
     }, timeoutMs);
 
     const onMessage = (event) => {
-      if (event?.origin && !allowedOrigins.has(event.origin) && event.origin !== "null") {
+      if (event?.source !== popup) {
+        return;
+      }
+
+      if (!event?.origin || !allowedOrigins.has(event.origin)) {
         return;
       }
 

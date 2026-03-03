@@ -38,6 +38,41 @@ const SEARCH_HISTORY_KEY = "lmx_search_history";
 const SEARCH_HISTORY_ENABLED_KEY = "lmx_search_history_enabled";
 const MAX_HISTORY_ITEMS = 8;
 const SEARCH_RESULT_CACHE_TTL_MS = 45 * 1000;
+const API_BASE_URL = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
+  /\/+$/,
+  "",
+);
+const API_ENDPOINT_PREFIX = String(process.env.NEXT_PUBLIC_END_POINT || "/api/")
+  .replace(/^\/?/, "/")
+  .replace(/\/?$/, "/");
+
+const buildSearchApiUrl = (path, params = {}) => {
+  const normalizedPath = String(path || "").replace(/^\/+/, "");
+  const useInternalProxy = String(
+    process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
+  )
+    .trim()
+    .toLowerCase();
+  const shouldUseInternalProxy =
+    useInternalProxy !== "0" && useInternalProxy !== "false";
+
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    query.set(key, String(value));
+  });
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+
+  if (shouldUseInternalProxy && typeof window !== "undefined") {
+    return `/api/internal/${normalizedPath}${suffix}`;
+  }
+
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}${API_ENDPOINT_PREFIX}${normalizedPath}${suffix}`;
+  }
+
+  return `${API_ENDPOINT_PREFIX}${normalizedPath}${suffix}`;
+};
 
 const levenshteinDistance = (str1, str2) => {
   const m = str1.length;
@@ -458,12 +493,10 @@ const Search = ({
       setIsSearching(true);
 
       try {
-        const response = await fetch(
-          `https://admin.lmx.ba/api/get-item?search=${encodeURIComponent(
-            query
-          )}&per_page=50`,
-          { signal: abortControllerRef.current.signal }
-        );
+        const response = await fetch(buildSearchApiUrl("get-item", {
+          search: query,
+          per_page: 50,
+        }), { signal: abortControllerRef.current.signal });
 
         if (!response.ok) throw new Error("Search failed");
 

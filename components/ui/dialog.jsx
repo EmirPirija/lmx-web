@@ -13,6 +13,35 @@ const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
+const DIALOG_TITLE_DISPLAY_NAME =
+  DialogPrimitive.Title.displayName || "DialogTitle";
+const DIALOG_DESCRIPTION_DISPLAY_NAME =
+  DialogPrimitive.Description.displayName || "DialogDescription";
+
+const containsComponentByDisplayName = (nodes, targetDisplayName) => {
+  let hasMatch = false;
+
+  React.Children.forEach(nodes, (child) => {
+    if (hasMatch || !React.isValidElement(child)) return;
+
+    const childDisplayName =
+      child.type?.displayName || child.type?.render?.displayName;
+
+    if (childDisplayName === targetDisplayName) {
+      hasMatch = true;
+      return;
+    }
+
+    if (child.props?.children) {
+      hasMatch = containsComponentByDisplayName(
+        child.props.children,
+        targetDisplayName,
+      );
+    }
+  });
+
+  return hasMatch;
+};
 
 /* ─── Overlay ────────────────────────────────────────────────────────────── */
 const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
@@ -43,6 +72,8 @@ const DialogContent = React.forwardRef(
       children,
       showCloseButton = true,
       size = "default",
+      fallbackTitle = "Dialog",
+      fallbackDescription = "Sadrzaj dijaloga",
       "aria-describedby": ariaDescribedBy,
       "aria-labelledby": ariaLabelledBy,
       ...props
@@ -56,6 +87,14 @@ const DialogContent = React.forwardRef(
       xl: "sm:max-w-[900px]",
       full: "sm:max-w-[calc(100vw-3rem)]",
     };
+    const hasDialogTitle = containsComponentByDisplayName(
+      children,
+      DIALOG_TITLE_DISPLAY_NAME,
+    );
+    const hasDialogDescription = containsComponentByDisplayName(
+      children,
+      DIALOG_DESCRIPTION_DISPLAY_NAME,
+    );
 
     return (
       <DialogPortal>
@@ -109,6 +148,16 @@ const DialogContent = React.forwardRef(
 
           {/* ── Content wrapper with padding ── */}
           <div className="px-5 pb-6 pt-3 sm:px-7 sm:pb-7 sm:pt-6 overflow-auto">
+            {!hasDialogTitle && (
+              <DialogPrimitive.Title className="sr-only">
+                {fallbackTitle}
+              </DialogPrimitive.Title>
+            )}
+            {!hasDialogDescription && (
+              <DialogPrimitive.Description className="sr-only">
+                {fallbackDescription}
+              </DialogPrimitive.Description>
+            )}
             {children}
           </div>
 

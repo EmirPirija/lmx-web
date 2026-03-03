@@ -3,15 +3,191 @@ import { setIsUnauthorized } from "@/redux/reducer/globalStateSlice";
 import { getAppStore } from "@/redux/store/storeRef";
 import axios from "axios";
 
+const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const IDEMPOTENT_METHODS = new Set(["get", "head", "options"]);
+const CRITICAL_ENDPOINT_MATCHERS = [
+  "get-location",
+  "verification-request",
+  "internal/location",
+  "internal/verification-status",
+];
+const CIRCUIT_BREAKER_FAILURE_THRESHOLD = 5;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 30_000;
+const BASE_RETRY_DELAY_MS = 250;
+const MAX_RETRY_ATTEMPTS_DEFAULT = 2;
+const MAX_RETRY_ATTEMPTS_CRITICAL = 3;
+
+const circuitBreakerState = new Map();
+
+const getApiBaseURL = () => {
+  const endpointRaw = String(process.env.NEXT_PUBLIC_END_POINT || "/api");
+  const endpoint = endpointRaw.startsWith("/") ? endpointRaw : `/${endpointRaw}`;
+  const normalizedEndpoint = endpoint.replace(/\/+$/, "");
+
+  if (typeof window !== "undefined") {
+    const useInternalProxy = String(
+      process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
+    )
+      .trim()
+      .toLowerCase();
+    const shouldUseInternalProxy =
+      useInternalProxy !== "0" && useInternalProxy !== "false";
+
+    if (shouldUseInternalProxy) {
+      return "/api/internal";
+    }
+
+    const host = String(window.location?.hostname || "").toLowerCase();
+    const isLocalHost =
+      host === "localhost" || host === "127.0.0.1" || host === "::1";
+
+    // In local development use Next.js rewrite (/api -> admin backend).
+    if (isLocalHost) {
+      return normalizedEndpoint;
+    }
+  }
+
+  const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  return `${apiUrl}${normalizedEndpoint}`;
+};
+
 const Api = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL}${process.env.NEXT_PUBLIC_END_POINT}`,
+  baseURL: getApiBaseURL(),
 });
+
+const createRequestId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const resolveEndpointKey = (config = {}) => {
+  const requestUrl = String(config?.url || "").toLowerCase();
+  return (
+    CRITICAL_ENDPOINT_MATCHERS.find((matcher) => requestUrl.includes(matcher)) ||
+    null
+  );
+};
+
+const getCircuitState = (key) => {
+  if (!key) return null;
+  return circuitBreakerState.get(key) || null;
+};
+
+const markCircuitFailure = (key) => {
+  if (!key) return;
+  const now = Date.now();
+  const prev = getCircuitState(key) || {
+    failures: 0,
+    lastFailureAt: 0,
+    openUntil: 0,
+  };
+  const nextFailures = prev.failures + 1;
+  const openUntil =
+    nextFailures >= CIRCUIT_BREAKER_FAILURE_THRESHOLD
+      ? now + CIRCUIT_BREAKER_COOLDOWN_MS
+      : 0;
+
+  circuitBreakerState.set(key, {
+    failures: nextFailures,
+    lastFailureAt: now,
+    openUntil,
+  });
+};
+
+const resetCircuit = (key) => {
+  if (!key) return;
+  circuitBreakerState.delete(key);
+};
+
+const isNetworkLikeError = (error) => {
+  const code = String(error?.code || "");
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    code === "ECONNABORTED" ||
+    code === "ETIMEDOUT" ||
+    code === "ERR_NETWORK" ||
+    message.includes("network error") ||
+    message.includes("timeout")
+  );
+};
+
+const shouldRetryRequest = (error) => {
+  if (!error) return false;
+  if (error?.isCircuitOpen) return false;
+
+  const config = error.config || {};
+  if (config.__skipRetry) return false;
+
+  const method = String(config.method || "get").toLowerCase();
+  if (!IDEMPOTENT_METHODS.has(method)) return false;
+
+  if (config.signal?.aborted) return false;
+
+  const status = Number(error?.response?.status || 0);
+  if (RETRYABLE_STATUS_CODES.has(status)) return true;
+
+  if (!status && isNetworkLikeError(error)) return true;
+
+  return false;
+};
+
+const getRetryLimit = (config = {}) =>
+  resolveEndpointKey(config)
+    ? MAX_RETRY_ATTEMPTS_CRITICAL
+    : MAX_RETRY_ATTEMPTS_DEFAULT;
+
+const getRetryDelay = (attempt) => {
+  const exp = BASE_RETRY_DELAY_MS * 2 ** Math.max(0, attempt - 1);
+  const jitter = Math.floor(Math.random() * 120);
+  return exp + jitter;
+};
+
+const normalizeApiError = (error) => {
+  const status = Number(error?.response?.status || 0);
+  const data = error?.response?.data;
+  const requestId =
+    error?.response?.headers?.["x-request-id"] ||
+    error?.config?.metadata?.requestId ||
+    null;
+
+  return {
+    status,
+    code:
+      data?.code ||
+      data?.error_code ||
+      error?.code ||
+      (status ? `HTTP_${status}` : "NETWORK_ERROR"),
+    message:
+      data?.message ||
+      error?.message ||
+      "Došlo je do greške prilikom mrežnog zahtjeva.",
+    trace_id: requestId,
+    is_network_error: !status,
+    is_timeout: String(error?.code || "") === "ECONNABORTED",
+    is_circuit_open: Boolean(error?.isCircuitOpen),
+  };
+};
 
 let isUnauthorizedToastShown = false;
 const UNAUTHORIZED_COOLDOWN_MS = 10000;
 let lastUnauthorizedAt = 0;
 
 Api.interceptors.request.use(function (config) {
+  config.headers = config.headers || {};
+  config.timeout = config.timeout ?? 15000;
+
+  const requestId = createRequestId();
+  config.metadata = {
+    ...(config.metadata || {}),
+    requestId,
+    startedAt: Date.now(),
+  };
+  config.headers["X-Request-Id"] = requestId;
+
   let token = undefined;
   let langCode = undefined;
 
@@ -24,16 +200,70 @@ Api.interceptors.request.use(function (config) {
   if (token) config.headers.authorization = `Bearer ${token}`;
   if (langCode) config.headers["Content-Language"] = langCode;
 
+  const endpointKey = resolveEndpointKey(config);
+  const state = getCircuitState(endpointKey);
+  const now = Date.now();
+
+  if (state?.openUntil && state.openUntil > now) {
+    const retryAfterMs = state.openUntil - now;
+    const circuitError = new axios.AxiosError(
+      "Circuit breaker is open for this endpoint.",
+      "ERR_CIRCUIT_OPEN",
+      config,
+    );
+    circuitError.isCircuitOpen = true;
+    circuitError.response = {
+      status: 503,
+      data: {
+        error: true,
+        code: "CIRCUIT_OPEN",
+        message: "Servis je privremeno nedostupan. Pokušajte ponovo uskoro.",
+        retry_after_ms: retryAfterMs,
+        trace_id: requestId,
+      },
+      config,
+      headers: {
+        "x-request-id": requestId,
+      },
+    };
+    circuitError.normalized = normalizeApiError(circuitError);
+    return Promise.reject(circuitError);
+  }
+
   return config;
 });
 
 // Add a response interceptor
 Api.interceptors.response.use(
   function (response) {
+    const endpointKey = resolveEndpointKey(response?.config || {});
+    resetCircuit(endpointKey);
+
+    const startedAt = response?.config?.metadata?.startedAt;
+    if (Number.isFinite(startedAt)) {
+      response.lmxMeta = {
+        requestId: response?.config?.metadata?.requestId || null,
+        durationMs: Date.now() - startedAt,
+      };
+    }
+
     return response;
   },
-  function (error) {
+  async function (error) {
+    if (shouldRetryRequest(error)) {
+      const config = error.config || {};
+      const currentAttempt = Number(config.__retryCount || 0) + 1;
+      const retryLimit = getRetryLimit(config);
+
+      if (currentAttempt <= retryLimit) {
+        config.__retryCount = currentAttempt;
+        await sleep(getRetryDelay(currentAttempt));
+        return Api(config);
+      }
+    }
+
     const status = error?.response?.status;
+
     if (status === 401) {
       const appStore = getAppStore();
       const state = appStore?.getState?.();
@@ -66,6 +296,24 @@ Api.interceptors.response.use(
         }
       }
     }
+
+    const endpointKey = resolveEndpointKey(error?.config || {});
+    const transientStatus = Number(error?.response?.status || 0);
+    const isTransientFailure =
+      !transientStatus ||
+      transientStatus >= 500 ||
+      RETRYABLE_STATUS_CODES.has(transientStatus) ||
+      isNetworkLikeError(error);
+
+    if (endpointKey) {
+      if (isTransientFailure) {
+        markCircuitFailure(endpointKey);
+      } else {
+        resetCircuit(endpointKey);
+      }
+    }
+
+    error.normalized = normalizeApiError(error);
     return Promise.reject(error);
   },
 );

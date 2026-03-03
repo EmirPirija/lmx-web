@@ -66,6 +66,18 @@ const getDeviceType = () => {
 };
 
 const getLiveTrackingEndpoint = () => {
+  const useInternalProxy = String(
+    process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
+  )
+    .trim()
+    .toLowerCase();
+  const shouldUseInternalProxy =
+    useInternalProxy !== "0" && useInternalProxy !== "false";
+
+  if (typeof window !== "undefined" && shouldUseInternalProxy) {
+    return `${window.location.origin}/api/internal/track/live-session`;
+  }
+
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
   const endPoint = process.env.NEXT_PUBLIC_END_POINT || "/api/";
   const normalizedApi = apiUrl.replace(/\/$/, "");
@@ -176,4 +188,3 @@ export default function LiveTrafficTracker() {
 
   return null;
 }
-

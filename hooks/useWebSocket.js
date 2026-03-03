@@ -1,6 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import Pusher from 'pusher-js';
 
+const isWebSocketDebugEnabled = process.env.NODE_ENV !== 'production';
+const wsDebugLog = (...args) => {
+  if (isWebSocketDebugEnabled) {
+    console.log(...args);
+  }
+};
+
 const useWebSocket = ({ userId, onMessage }) => {
   const pusher = useRef(null);
   const channels = useRef(new Map());
@@ -13,13 +20,15 @@ const useWebSocket = ({ userId, onMessage }) => {
 
   useEffect(() => {
     if (!userId) {
-      console.warn('⚠️ No userId provided to useWebSocket');
+      if (isWebSocketDebugEnabled) {
+        console.warn('⚠️ No userId provided to useWebSocket');
+      }
       return;
     }
 
     if (pusher.current) return;
 
-    console.log('🚀 Initializing WebSocket connection...');
+    wsDebugLog('🚀 Initializing WebSocket connection...');
 
     try {
       pusher.current = new Pusher(process.env.NEXT_PUBLIC_REVERB_APP_KEY, {
@@ -34,12 +43,12 @@ const useWebSocket = ({ userId, onMessage }) => {
       });
 
       pusher.current.connection.bind('connected', () => {
-        console.log('✅ WebSocket connected');
+        wsDebugLog('✅ WebSocket connected');
         setIsConnected(true);
       });
 
       pusher.current.connection.bind('disconnected', () => {
-        console.log('🔌 WebSocket disconnected');
+        wsDebugLog('🔌 WebSocket disconnected');
         setIsConnected(false);
       });
 
@@ -51,7 +60,7 @@ const useWebSocket = ({ userId, onMessage }) => {
       const onlineChannel = pusher.current.subscribe('online-status');
       
       onlineChannel.bind('UserOnlineStatus', (data) => {
-        console.log('🟢 Online status event:', data);
+        wsDebugLog('🟢 Online status event:', data);
         onMessageRef.current?.({ ...data, type: 'user_online_status' });
       });
 
@@ -60,7 +69,7 @@ const useWebSocket = ({ userId, onMessage }) => {
     }
 
     return () => {
-      console.log('🧹 Cleaning up WebSocket');
+      wsDebugLog('🧹 Cleaning up WebSocket');
       if (pusher.current) {
         pusher.current.disconnect();
         pusher.current = null;
@@ -76,31 +85,33 @@ const useWebSocket = ({ userId, onMessage }) => {
     }
 
     if (channels.current.has(chatId)) {
-      console.log(`📡 Already subscribed to chat.${chatId}`);
+      wsDebugLog(`📡 Already subscribed to chat.${chatId}`);
       return;
     }
 
-    console.log(`📡 Subscribing to chat.${chatId}...`);
+    wsDebugLog(`📡 Subscribing to chat.${chatId}...`);
 
     try {
       const channel = pusher.current.subscribe(`chat.${chatId}`);
 
       channel.bind('pusher:subscription_succeeded', () => {
-        console.log(`✅ Successfully subscribed to chat.${chatId}`);
+        wsDebugLog(`✅ Successfully subscribed to chat.${chatId}`);
       });
 
       channel.bind('pusher:subscription_error', (error) => {
         console.error(`❌ Subscription error for chat.${chatId}:`, error);
       });
 
-      // DEBUG: Log all events
-      channel.bind_global((eventName, data) => {
-        console.log(`🔔 [chat.${chatId}] Event: ${eventName}`, data);
-      });
+      if (isWebSocketDebugEnabled) {
+        // DEBUG-only global event tap.
+        channel.bind_global((eventName, data) => {
+          wsDebugLog(`🔔 [chat.${chatId}] Event: ${eventName}`, data);
+        });
+      }
 
       // TYPING
       const handleTyping = (data) => {
-        console.log('✍️ Typing event:', data);
+        wsDebugLog('✍️ Typing event:', data);
         onMessageRef.current?.({ 
           ...data, 
           type: 'typing',
@@ -112,7 +123,7 @@ const useWebSocket = ({ userId, onMessage }) => {
 
       // NEW MESSAGE
       const handleNewMessage = (data) => {
-        console.log('💬 New message event:', data);
+        wsDebugLog('💬 New message event:', data);
         onMessageRef.current?.({ 
           ...data, 
           type: 'new_message',
@@ -123,7 +134,7 @@ const useWebSocket = ({ userId, onMessage }) => {
 
       // MESSAGE STATUS
       const handleMessageStatus = (data) => {
-        console.log('👁️ Message status event:', data);
+        wsDebugLog('👁️ Message status event:', data);
         onMessageRef.current?.({ 
           ...data, 
           type: 'message_status',
@@ -142,9 +153,11 @@ const useWebSocket = ({ userId, onMessage }) => {
   const unsubscribeFromChat = useCallback((chatId) => {
     const channel = channels.current.get(chatId);
     if (channel && pusher.current) {
-      console.log(`📴 Unsubscribing from chat.${chatId}`);
+      wsDebugLog(`📴 Unsubscribing from chat.${chatId}`);
       channel.unbind_all();
-      pusher.current.unsubscribe(`chat.${chatId}`);
+      if (pusher.current.connection?.state === 'connected') {
+        pusher.current.unsubscribe(`chat.${chatId}`);
+      }
       channels.current.delete(chatId);
     }
   }, []);
