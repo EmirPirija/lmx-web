@@ -65,6 +65,7 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
     const wssPort = parsePort(process.env.NEXT_PUBLIC_REVERB_PORT, 443);
     const forceTLS = scheme === "wss" || scheme === "https";
     const channelName = `private-user.${userId}`;
+    const subscribedChannelName = channelName;
 
     const pusher = new Pusher(key, {
       wsHost: host,
@@ -107,14 +108,34 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
     channel.bind(".RealtimeNotification", handleEvent);
 
     return () => {
+      const activePusher = pusherRef.current;
+
       if (channelRef.current) {
         channelRef.current.unbind("RealtimeNotification", handleEvent);
         channelRef.current.unbind(".RealtimeNotification", handleEvent);
+
+        const connectionState = activePusher?.connection?.state;
+        if (
+          activePusher &&
+          (connectionState === "connected" || connectionState === "connecting")
+        ) {
+          try {
+            activePusher.unsubscribe(subscribedChannelName);
+          } catch (error) {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn("Realtime unsubscribe skipped:", error);
+            }
+          }
+        }
+
         channelRef.current = null;
       }
 
-      if (pusherRef.current) {
-        pusherRef.current.disconnect();
+      if (activePusher) {
+        const connectionState = activePusher?.connection?.state;
+        if (connectionState && connectionState !== "disconnected") {
+          activePusher.disconnect();
+        }
         pusherRef.current = null;
       }
     };

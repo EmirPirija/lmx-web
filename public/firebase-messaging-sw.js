@@ -1,24 +1,50 @@
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
-importScripts(
-  "https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"
-);
-// // Initialize the Firebase app in the service worker by passing the generated config
+importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
 
-const firebaseConfig = {
-  apiKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  authDomain: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  projectId: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  storageBucket: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  messagingSenderId: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  appId: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  measurementId: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+const parseFirebaseConfigFromQuery = () => {
+  const url = new URL(self.location.href);
+  const get = (key) => {
+    const value = url.searchParams.get(key);
+    return value ? value.trim() : "";
+  };
+
+  return {
+    apiKey: get("apiKey"),
+    authDomain: get("authDomain"),
+    projectId: get("projectId"),
+    storageBucket: get("storageBucket"),
+    messagingSenderId: get("messagingSenderId"),
+    appId: get("appId"),
+    measurementId: get("measurementId"),
+  };
 };
 
-firebase?.initializeApp(firebaseConfig);
+const firebaseConfig = parseFirebaseConfigFromQuery();
+const hasRequiredConfig =
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId;
 
-// Retrieve firebase messaging
-const messaging = firebase.messaging();
+if (hasRequiredConfig) {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
 
-self.addEventListener("install", function (event) {
-  console.log("Hello world from the Service Worker :call_me_hand:");
-});
+  const messaging = firebase.messaging();
+  messaging.onBackgroundMessage((payload) => {
+    const title =
+      payload?.notification?.title ||
+      payload?.data?.title ||
+      "Nova obavijest";
+    const body =
+      payload?.notification?.body ||
+      payload?.data?.body ||
+      "Imate novu aktivnost.";
+
+    self.registration.showNotification(title, {
+      body,
+      data: payload?.data || {},
+    });
+  });
+}

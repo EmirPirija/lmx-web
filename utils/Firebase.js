@@ -19,6 +19,63 @@ const firebaseDebugLog = (...args) => {
   }
 };
 
+const SERVICE_WORKER_BASE_PATH = "/firebase-messaging-sw.js";
+
+const isTruthyFlag = (value) => {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return normalized === "1" || normalized === "true";
+};
+
+const shouldEnablePushForCurrentOrigin = () => {
+  if (typeof window === "undefined") return false;
+  if (!window.isSecureContext) return false;
+
+  const host = String(window.location?.hostname || "").toLowerCase();
+  const isLocalHost =
+    host === "localhost" || host === "127.0.0.1" || host === "::1";
+  const isDev = process.env.NODE_ENV !== "production";
+
+  if (isLocalHost && !isTruthyFlag(process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS_DEV)) {
+    return false;
+  }
+
+  const globalFlag = String(process.env.NEXT_PUBLIC_ENABLE_PUSH_NOTIFICATIONS ?? "")
+    .trim()
+    .toLowerCase();
+  if (globalFlag === "0" || globalFlag === "false") {
+    return false;
+  }
+
+  if (isDev && globalFlag && !isTruthyFlag(globalFlag)) {
+    return false;
+  }
+
+  return true;
+};
+
+const buildMessagingServiceWorkerUrl = () => {
+  const params = new URLSearchParams();
+  const publicConfig = {
+    apiKey: process.env.NEXT_PUBLIC_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_MEASUREMENT_ID,
+  };
+
+  Object.entries(publicConfig).forEach(([key, value]) => {
+    const normalized = String(value || "").trim();
+    if (normalized) params.set(key, normalized);
+  });
+
+  const query = params.toString();
+  return query ? `${SERVICE_WORKER_BASE_PATH}?${query}` : SERVICE_WORKER_BASE_PATH;
+};
+
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_AUTH_DOMAIN,
@@ -42,14 +99,28 @@ const getFirebaseApp = () => {
 };
 
 const ensureServiceWorkerRegistration = async () => {
-  const existing = await navigator.serviceWorker.getRegistration(
-    "/firebase-messaging-sw.js",
-  );
-  if (existing) return existing;
+  const registrationUrl = buildMessagingServiceWorkerUrl();
+  const expectedScriptUrl = new URL(registrationUrl, window.location.origin).toString();
+  const existing = await navigator.serviceWorker.getRegistration("/");
 
-  const registration = await navigator.serviceWorker.register(
-    "/firebase-messaging-sw.js",
-  );
+  if (existing) {
+    const activeScriptUrl =
+      existing.active?.scriptURL ||
+      existing.waiting?.scriptURL ||
+      existing.installing?.scriptURL ||
+      "";
+    if (activeScriptUrl === expectedScriptUrl) {
+      return existing;
+    }
+
+    if (activeScriptUrl.includes(SERVICE_WORKER_BASE_PATH)) {
+      await existing.unregister();
+    }
+  }
+
+  const registration = await navigator.serviceWorker.register(registrationUrl, {
+    scope: "/",
+  });
   await navigator.serviceWorker.ready;
   firebaseDebugLog(
     "Service Worker registration successful with scope:",
@@ -83,6 +154,11 @@ const FirebaseData = () => {
         !("serviceWorker" in navigator) ||
         typeof Notification === "undefined"
       ) {
+        return null;
+      }
+
+      if (!shouldEnablePushForCurrentOrigin()) {
+        firebaseDebugLog("FCM skipped: disabled for current origin/context.");
         return null;
       }
 
