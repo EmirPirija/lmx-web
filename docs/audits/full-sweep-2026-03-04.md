@@ -96,3 +96,58 @@
 - Enable lint + type policy in CI (blocking).
 - Re-enable `reactStrictMode` and fix surfaced side effects.
 - Add contract tests between Next internal proxy routes and Laravel endpoints.
+
+## Runtime Smoke (No Build, dev-only)
+- Date: 2026-03-04
+- Dev server: `next dev --turbopack` on `127.0.0.1:3100`
+
+### 1) `GET /api/internal/verification-status`
+- Result: `401` without auth (expected).
+- Body shape is stable JSON (`UNAUTHORIZED` on missing auth guard).
+
+### 2) `GET /api/internal/location?lat=...&lng=...`
+- Result: currently `500` from upstream (`No nearby city found`) on production backend instance.
+- Frontend proxy behaves correctly; failure is backend data/fallback path.
+- Backend patch now implemented to remove this 500 class via:
+  - reverse geocode fallback,
+  - endpoint cache,
+  - endpoint rate-limit,
+  - structured request logging.
+
+### 3) `POST /api/internal/broadcasting/auth`
+- Before patch: unauthenticated request could bubble as `302 /login` HTML.
+- After patch: normalized to API-style `401` JSON; avoids redirect body leaking into realtime auth flow.
+
+## P1 Stability Closure (current pass)
+- `hooks/useRealtimeUserEvents.js`
+  - Removed explicit `unsubscribe` during teardown (race-prone when socket already closing/closed).
+  - Cleanup now relies on `unbind + disconnect` and swallows teardown race safely in dev logs.
+- `utils/Firebase.js`
+  - Added broader transient error suppression for known FCM registration/update failures (`token-update-failed`, network/cors fetch failures) to avoid noisy fatal console spam.
+- `app/api/internal/broadcasting/auth/route.js`
+  - Forced JSON auth semantics (`Accept: application/json`, `X-Requested-With`).
+  - Added redirect interception (`3xx -> 401 JSON`) for robust realtime auth behavior.
+
+## Regression Test Plan (high signal)
+1. Realtime auth route contract
+- No auth: expect `401` JSON, never HTML redirect.
+- Invalid bearer: expect `401` JSON passthrough.
+- Valid bearer + private channel: expect `200` with auth payload.
+
+2. Geolocation endpoint contract
+- Search mode (`search=Sarajevo`): expect `200`, non-empty candidates.
+- Coordinates mode (Sarajevo/Banja Luka/Mostar): expect `200`, never `500`.
+- Invalid input (`lat=999`): expect `422`.
+- Burst test: exceed threshold from same client, expect `429` with retry metadata.
+
+3. Cache behavior
+- Repeat identical location query twice within TTL.
+- Verify first request marked as non-cache, second as cache hit in backend logs/meta.
+
+4. Websocket lifecycle
+- Login -> subscribe -> navigate/unmount rapidly.
+- Confirm no repeated `WebSocket is already in CLOSING or CLOSED state` warnings.
+
+5. FCM resilience
+- Localhost/dev with blocked FCM or CORS-denied token update.
+- Confirm no fatal error path, only controlled warning and graceful skip.

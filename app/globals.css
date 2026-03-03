@@ -1136,3 +1136,24 @@ body {
 [class*="drop-shadow"] {
   filter: none !important;
 }
+
+/* Global modal focus lock:
+   When any shared modal layer is open, freeze background interactions.
+*/
+html.lmx-modal-open,
+body.lmx-modal-open {
+  overflow: hidden !important;
+}
+
+body.lmx-modal-open #__next,
+body.lmx-modal-open .lmx-app-surface {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+body.lmx-modal-open [data-lmx-modal-content],
+body.lmx-modal-open [data-radix-popper-content-wrapper],
+body.lmx-modal-open [role="dialog"] {
+  pointer-events: auto !important;
+  user-select: auto !important;
+}

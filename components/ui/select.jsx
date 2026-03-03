@@ -62,7 +62,7 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
       <motion.div
         {...floatingMotion}
         className={cn(
-          "relative z-[160] max-h-[--radix-select-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-2xl border border-border/70 bg-popover text-popover-foreground shadow-lg",
+          "relative !z-[40020] max-h-[--radix-select-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-2xl border border-border/70 bg-popover text-popover-foreground shadow-lg",
           "origin-[--radix-select-content-transform-origin]",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",

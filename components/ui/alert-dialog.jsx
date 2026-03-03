@@ -5,8 +5,33 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  useControllableLayerState,
+  useGlobalModalLayerLock,
+} from "@/components/ui/modal-layer-manager";
 
-const AlertDialog = AlertDialogPrimitive.Root;
+const AlertDialog = ({
+  open,
+  defaultOpen = false,
+  onOpenChange,
+  ...props
+}) => {
+  const layerState = useControllableLayerState({
+    open,
+    defaultOpen,
+    onOpenChange,
+  });
+
+  useGlobalModalLayerLock(layerState.open);
+
+  return (
+    <AlertDialogPrimitive.Root
+      open={layerState.open}
+      onOpenChange={layerState.onOpenChange}
+      {...props}
+    />
+  );
+};
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
@@ -16,7 +41,7 @@ const AlertDialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[127] bg-black/35 backdrop-blur-0",
+      "fixed inset-0 !z-[40000] bg-slate-950/66 backdrop-blur-[2px]",
       "data-[state=open]:animate-in data-[state=open]:fade-in-0",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
       className,
@@ -32,8 +57,9 @@ const AlertDialogContent = React.forwardRef(
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
         ref={ref}
+        data-lmx-modal-content="alert-dialog"
         className={cn(
-          "fixed left-[50%] top-[50%] z-[128] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-border/70 bg-background p-6 shadow-xl",
+          "fixed left-[50%] top-[50%] !z-[40010] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-border/70 bg-background p-6 shadow-xl",
           "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
           "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",

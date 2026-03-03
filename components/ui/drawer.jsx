@@ -6,13 +6,35 @@ import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { overlayMotion, sideSheetMotion } from "@/components/ui/ui-motion";
+import {
+  useControllableLayerState,
+  useGlobalModalLayerLock,
+} from "@/components/ui/modal-layer-manager";
 
-const Drawer = ({ shouldScaleBackground = true, ...props }) => (
-  <DrawerPrimitive.Root
-    shouldScaleBackground={shouldScaleBackground}
-    {...props}
-  />
-);
+const Drawer = ({
+  shouldScaleBackground = true,
+  open,
+  defaultOpen = false,
+  onOpenChange,
+  ...props
+}) => {
+  const layerState = useControllableLayerState({
+    open,
+    defaultOpen,
+    onOpenChange,
+  });
+
+  useGlobalModalLayerLock(layerState.open);
+
+  return (
+    <DrawerPrimitive.Root
+      shouldScaleBackground={shouldScaleBackground}
+      open={layerState.open}
+      onOpenChange={layerState.onOpenChange}
+      {...props}
+    />
+  );
+};
 Drawer.displayName = "Drawer";
 
 const DrawerTrigger = DrawerPrimitive.Trigger;
@@ -26,7 +48,7 @@ const DrawerOverlay = React.forwardRef(({ className, ...props }, ref) => (
     <motion.div
       {...overlayMotion}
       className={cn(
-        "fixed inset-0 z-[127] bg-black/35 backdrop-blur-0",
+        "fixed inset-0 !z-[40000] bg-slate-950/66 backdrop-blur-[2px]",
         className,
       )}
     />
@@ -41,8 +63,9 @@ const DrawerContent = React.forwardRef(
       <DrawerPrimitive.Content ref={ref} asChild {...props}>
         <motion.div
           {...sideSheetMotion.bottom}
+          data-lmx-modal-content="drawer"
           className={cn(
-            "fixed inset-x-0 bottom-0 z-[128] mt-24 flex h-auto flex-col rounded-t-3xl border border-border/70 bg-background shadow-xl",
+            "fixed inset-x-0 bottom-0 !z-[40010] mt-24 flex h-auto flex-col rounded-t-3xl border border-border/70 bg-background shadow-xl",
             className,
           )}
         >

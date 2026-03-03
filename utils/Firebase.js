@@ -19,6 +19,26 @@ const firebaseDebugLog = (...args) => {
   }
 };
 
+const normalizeMessagingError = (errorLike) => {
+  const code = String(errorLike?.code || "").trim().toLowerCase();
+  const message = String(errorLike?.message || errorLike || "")
+    .trim()
+    .toLowerCase();
+  return { code, message };
+};
+
+const shouldSilenceMessagingError = (errorLike) => {
+  const { code, message } = normalizeMessagingError(errorLike);
+  if (!code && !message) return false;
+
+  if (code.includes("messaging/token-update-failed")) return true;
+  if (message.includes("messaging/token-update-failed")) return true;
+  if (message.includes("failed to fetch")) return true;
+  if (message.includes("networkerror")) return true;
+  if (message.includes("cors")) return true;
+  return false;
+};
+
 const SERVICE_WORKER_BASE_PATH = "/firebase-messaging-sw.js";
 
 const isTruthyFlag = (value) => {
@@ -204,14 +224,9 @@ const FirebaseData = () => {
 
       return currentToken;
     } catch (err) {
-      const errorCode = String(err?.code || "");
-      const errorMessage = String(err?.message || "");
-
-      if (
-        errorCode.includes("messaging/token-update-failed") ||
-        errorMessage.includes("messaging/token-update-failed")
-      ) {
-        console.warn("FCM token update skipped:", errorMessage);
+      if (shouldSilenceMessagingError(err)) {
+        const { code, message } = normalizeMessagingError(err);
+        console.warn("FCM token fetch skipped:", code || message || "transient failure");
         return null;
       }
 

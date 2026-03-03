@@ -5,8 +5,56 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "@/components/Common/UnifiedIconPack";
 
 import { cn } from "@/lib/utils";
+import {
+  useControllableLayerState,
+  useGlobalModalLayerLock,
+} from "@/components/ui/modal-layer-manager";
 
-const Dialog = DialogPrimitive.Root;
+const focusFirstInteractiveElement = (container) => {
+  if (!(container instanceof HTMLElement)) return false;
+
+  const selectors = [
+    "[data-autofocus]",
+    "[autofocus]",
+    "input:not([type='hidden']):not([disabled])",
+    "textarea:not([disabled])",
+    "select:not([disabled])",
+    "button:not([disabled])",
+    "a[href]",
+    "[tabindex]:not([tabindex='-1'])",
+  ].join(",");
+
+  const candidate = container.querySelector(selectors);
+  if (!(candidate instanceof HTMLElement)) return false;
+
+  candidate.focus({ preventScroll: true });
+  return true;
+};
+
+const Dialog = ({
+  open,
+  defaultOpen = false,
+  onOpenChange,
+  modal = true,
+  ...props
+}) => {
+  const layerState = useControllableLayerState({
+    open,
+    defaultOpen,
+    onOpenChange,
+  });
+
+  useGlobalModalLayerLock(layerState.open);
+
+  return (
+    <DialogPrimitive.Root
+      modal={modal}
+      open={layerState.open}
+      onOpenChange={layerState.onOpenChange}
+      {...props}
+    />
+  );
+};
 
 const DialogTrigger = DialogPrimitive.Trigger;
 
@@ -48,7 +96,7 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[220] bg-slate-950/62 backdrop-blur-0",
+      "fixed inset-0 !z-[40000] bg-slate-950/72 backdrop-blur-[2px]",
       "data-[state=open]:animate-in data-[state=open]:fade-in-0",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
       "duration-300 ease-out",
@@ -76,6 +124,7 @@ const DialogContent = React.forwardRef(
       fallbackDescription = "Sadrzaj dijaloga",
       "aria-describedby": ariaDescribedBy,
       "aria-labelledby": ariaLabelledBy,
+      onOpenAutoFocus,
       ...props
     },
     ref,
@@ -96,16 +145,31 @@ const DialogContent = React.forwardRef(
       DIALOG_DESCRIPTION_DISPLAY_NAME,
     );
 
+    const handleOpenAutoFocus = React.useCallback(
+      (event) => {
+        onOpenAutoFocus?.(event);
+        if (event.defaultPrevented) return;
+
+        const focused = focusFirstInteractiveElement(event.currentTarget);
+        if (focused) {
+          event.preventDefault();
+        }
+      },
+      [onOpenAutoFocus],
+    );
+
     return (
       <DialogPortal>
         <DialogOverlay />
         <DialogPrimitive.Content
           ref={ref}
+          data-lmx-modal-content="dialog"
+          onOpenAutoFocus={handleOpenAutoFocus}
           aria-describedby={ariaDescribedBy ?? undefined}
           aria-labelledby={ariaLabelledBy ?? undefined}
           className={cn(
             /* ── Base ── */
-            "fixed z-[221] grid w-full bg-white outline-none",
+            "fixed !z-[40010] grid w-full bg-white outline-none",
 
             /* ── Mobile: bottom-sheet ── */
             "inset-x-0 bottom-0 top-auto",

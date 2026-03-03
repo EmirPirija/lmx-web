@@ -42,10 +42,10 @@ const DropdownMenuSubContent = React.forwardRef(({ className, children, ...props
     ref={ref}
     asChild
     {...props}>
-    <motion.div
-      {...floatingMotion}
-      className={cn(
-        "z-[72] min-w-[9rem] overflow-hidden rounded-2xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg",
+      <motion.div
+        {...floatingMotion}
+        className={cn(
+        "!z-[40020] min-w-[9rem] overflow-hidden rounded-2xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg",
         className
       )}>
       {children}
@@ -65,7 +65,7 @@ const DropdownMenuContent = React.forwardRef(({ className, sideOffset = 6, child
       <motion.div
         {...floatingMotion}
         className={cn(
-          "z-[72] min-w-[9rem] overflow-hidden rounded-2xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg rtl:[direction:rtl]",
+          "!z-[40020] min-w-[9rem] overflow-hidden rounded-2xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg rtl:[direction:rtl]",
           className
         )}>
         {children}

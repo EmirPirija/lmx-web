@@ -263,6 +263,8 @@ const LocationSelector = ({
         <IoSearch className="size-5 text-primary shrink-0" />
         <input
           type="text"
+          data-autofocus
+          autoFocus
           className="w-full outline-none text-sm bg-transparent"
           placeholder={showMunicipalities ? "Pretraži općinu..." : "Pretraži grad ili općinu..."}
           value={search}

@@ -16,7 +16,8 @@ const getBackendHost = () => {
 
 const buildHeaders = (request, requestId, contentType) => {
   const headers = new Headers();
-  headers.set("Accept", request.headers.get("accept") || "application/json");
+  headers.set("Accept", "application/json");
+  headers.set("X-Requested-With", "XMLHttpRequest");
   headers.set("X-Request-Id", requestId);
 
   const authorization = request.headers.get("authorization");
@@ -67,6 +68,25 @@ const proxyBroadcastAuth = async (request) => {
       cache: "no-store",
       redirect: "manual",
     });
+
+    if (
+      upstreamResponse.status >= 300 &&
+      upstreamResponse.status < 400
+    ) {
+      return NextResponse.json(
+        {
+          error: true,
+          code: "UPSTREAM_AUTH_REDIRECT",
+          message: "Realtime auth was redirected by backend.",
+          upstream_status: upstreamResponse.status,
+          trace_id: requestId,
+        },
+        {
+          status: 401,
+          headers: { "x-request-id": requestId },
+        },
+      );
+    }
 
     const responseText = await upstreamResponse.text();
     const responseHeaders = new Headers();

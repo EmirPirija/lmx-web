@@ -5,8 +5,55 @@ import { cva } from "class-variance-authority";
 import { X } from "@/components/Common/UnifiedIconPack";
 
 import { cn } from "@/lib/utils";
+import {
+  useControllableLayerState,
+  useGlobalModalLayerLock,
+} from "@/components/ui/modal-layer-manager";
 
-const Sheet = SheetPrimitive.Root;
+const focusFirstInteractiveElement = (container) => {
+  if (!(container instanceof HTMLElement)) return false;
+
+  const selectors = [
+    "[data-autofocus]",
+    "[autofocus]",
+    "input:not([type='hidden']):not([disabled])",
+    "textarea:not([disabled])",
+    "select:not([disabled])",
+    "button:not([disabled])",
+    "a[href]",
+    "[tabindex]:not([tabindex='-1'])",
+  ].join(",");
+
+  const candidate = container.querySelector(selectors);
+  if (!(candidate instanceof HTMLElement)) return false;
+  candidate.focus({ preventScroll: true });
+  return true;
+};
+
+const Sheet = ({
+  open,
+  defaultOpen = false,
+  onOpenChange,
+  modal = true,
+  ...props
+}) => {
+  const layerState = useControllableLayerState({
+    open,
+    defaultOpen,
+    onOpenChange,
+  });
+
+  useGlobalModalLayerLock(layerState.open);
+
+  return (
+    <SheetPrimitive.Root
+      modal={modal}
+      open={layerState.open}
+      onOpenChange={layerState.onOpenChange}
+      {...props}
+    />
+  );
+};
 
 const SheetTrigger = SheetPrimitive.Trigger;
 
@@ -18,7 +65,7 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[127] bg-slate-950/45 backdrop-blur-0",
+      "fixed inset-0 !z-[40000] bg-slate-950/66 backdrop-blur-[2px]",
       "data-[state=open]:animate-in data-[state=open]:fade-in-0",
       "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
       className,
@@ -29,7 +76,7 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-[128] gap-4 bg-background p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
+  "fixed !z-[40010] gap-4 bg-background p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
   {
     variants: {
       side: {
@@ -49,28 +96,52 @@ const sheetVariants = cva(
 
 const SheetContent = React.forwardRef(
   (
-    { side = "right", className, children, overlayClassName, ...props },
+    {
+      side = "right",
+      className,
+      children,
+      overlayClassName,
+      onOpenAutoFocus,
+      ...props
+    },
     ref,
-  ) => (
-    <SheetPortal>
-      <SheetOverlay className={overlayClassName} />
-      <SheetPrimitive.Content
-        ref={ref}
-        className={cn(sheetVariants({ side }), className)}
-        {...props}
-      >
-        <SheetPrimitive.Title className="sr-only">Panel</SheetPrimitive.Title>
-        <SheetPrimitive.Description className="sr-only">
-          Podesivi sadržaj bočnog panela.
-        </SheetPrimitive.Description>
-        {children}
-        <SheetPrimitive.Close className="absolute top-4 rounded-full border border-border/70 bg-background/80 p-2 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 ltr:right-4 rtl:left-4">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Zatvori</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
-    </SheetPortal>
-  ),
+  ) => {
+    const handleOpenAutoFocus = React.useCallback(
+      (event) => {
+        onOpenAutoFocus?.(event);
+        if (event.defaultPrevented) return;
+
+        const focused = focusFirstInteractiveElement(event.currentTarget);
+        if (focused) {
+          event.preventDefault();
+        }
+      },
+      [onOpenAutoFocus],
+    );
+
+    return (
+      <SheetPortal>
+        <SheetOverlay className={overlayClassName} />
+        <SheetPrimitive.Content
+          ref={ref}
+          data-lmx-modal-content="sheet"
+          onOpenAutoFocus={handleOpenAutoFocus}
+          className={cn(sheetVariants({ side }), className)}
+          {...props}
+        >
+          <SheetPrimitive.Title className="sr-only">Panel</SheetPrimitive.Title>
+          <SheetPrimitive.Description className="sr-only">
+            Podesivi sadržaj bočnog panela.
+          </SheetPrimitive.Description>
+          {children}
+          <SheetPrimitive.Close className="absolute top-4 rounded-full border border-border/70 bg-background/80 p-2 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 ltr:right-4 rtl:left-4">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Zatvori</span>
+          </SheetPrimitive.Close>
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    );
+  },
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
