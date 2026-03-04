@@ -1137,6 +1137,14 @@ body {
   filter: none !important;
 }
 
+/* Modal layers must keep depth/shadow even when global shadow cleanup is active. */
+[data-lmx-modal-content] {
+  box-shadow:
+    0 28px 80px -32px rgba(2, 8, 23, 0.55),
+    0 0 0 1px rgba(15, 23, 42, 0.08) !important;
+  isolation: isolate;
+}
+
 /* Global modal focus lock:
    When any shared modal layer is open, freeze background interactions.
 */
@@ -1149,6 +1157,9 @@ body.lmx-modal-open #__next,
 body.lmx-modal-open .lmx-app-surface {
   pointer-events: none !important;
   user-select: none !important;
+  filter: blur(1.5px) saturate(0.95);
+  opacity: 0.9;
+  transition: filter 160ms ease, opacity 160ms ease;
 }
 
 body.lmx-modal-open [data-lmx-modal-content],
@@ -1156,4 +1167,6 @@ body.lmx-modal-open [data-radix-popper-content-wrapper],
 body.lmx-modal-open [role="dialog"] {
   pointer-events: auto !important;
   user-select: auto !important;
+  filter: none !important;
+  opacity: 1 !important;
 }

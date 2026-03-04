@@ -112,14 +112,49 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
       if (channelRef.current) {
         channelRef.current.unbind("RealtimeNotification", handleEvent);
         channelRef.current.unbind(".RealtimeNotification", handleEvent);
+        try {
+          const connectionState = String(
+            activePusher?.connection?.state || "",
+          ).toLowerCase();
+          const canUnsubscribe =
+            connectionState !== "disconnecting" &&
+            connectionState !== "disconnected" &&
+            connectionState !== "failed";
+          if (canUnsubscribe) {
+            activePusher?.unsubscribe(channelName);
+          }
+        } catch (error) {
+          const message = String(error?.message || "").toLowerCase();
+          if (
+            process.env.NODE_ENV !== "production" &&
+            !message.includes("closing or closed state")
+          ) {
+            console.warn("Realtime unsubscribe skipped:", error);
+          }
+        }
         channelRef.current = null;
       }
 
       if (activePusher) {
         try {
-          activePusher.disconnect();
+          const connectionState = String(
+            activePusher?.connection?.state || "",
+          ).toLowerCase();
+          const canDisconnect =
+            connectionState &&
+            connectionState !== "disconnecting" &&
+            connectionState !== "disconnected" &&
+            connectionState !== "failed";
+
+          if (canDisconnect) {
+            activePusher.disconnect();
+          }
         } catch (error) {
-          if (process.env.NODE_ENV !== "production") {
+          const message = String(error?.message || "").toLowerCase();
+          if (
+            process.env.NODE_ENV !== "production" &&
+            !message.includes("closing or closed state")
+          ) {
             console.warn("Realtime disconnect skipped:", error);
           }
         }

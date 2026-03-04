@@ -41,7 +41,9 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
+        // Keep local /api passthrough for legacy/dev calls, but never override
+        // Next.js internal proxy handlers under /api/internal/*.
+        source: "/api/:path((?!internal(?:/|$)).*)",
         destination: "https://admin.lmx.ba/api/:path*",
       },
     ];

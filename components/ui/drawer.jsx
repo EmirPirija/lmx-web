@@ -48,7 +48,7 @@ const DrawerOverlay = React.forwardRef(({ className, ...props }, ref) => (
     <motion.div
       {...overlayMotion}
       className={cn(
-        "fixed inset-0 !z-[40000] bg-slate-950/66 backdrop-blur-[2px]",
+        "fixed inset-0 !z-[40000] bg-slate-950/78 backdrop-blur-[4px]",
         className,
       )}
     />
