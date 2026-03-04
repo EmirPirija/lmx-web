@@ -71,9 +71,9 @@ export const UPDATE_JOB_STATUS = "update-job-applications-status";
 export const GET_OTP = AUTH_ENDPOINTS.GET_OTP;
 export const VERIFY_OTP = AUTH_ENDPOINTS.VERIFY_OTP;
 export const GET_LOCATION = "get-location";
-export const INTERNAL_LOCATION_ENDPOINT = "internal/location";
+export const INTERNAL_LOCATION_ENDPOINT = "location";
 export const INTERNAL_VERIFICATION_STATUS_ENDPOINT =
-  "internal/verification-status";
+  "verification-status";
 export const GET_USER_INFO = "auth/me";
 export const LOGOUT = "auth/logout";
 export const GET_ACTIVE_SESSIONS = "auth/active-sessions";
@@ -337,9 +337,7 @@ export const usersApi = {
 export const getVerificationStatusApi = {
   getVerificationStatus: async () => {
     try {
-      return await Api.get(INTERNAL_VERIFICATION_STATUS_ENDPOINT, {
-        baseURL: "/api",
-      });
+      return await Api.get(INTERNAL_VERIFICATION_STATUS_ENDPOINT);
     } catch (error) {
       const status = Number(error?.response?.status || 0);
 
@@ -2272,7 +2270,6 @@ export const getLocationApi = {
     const requestPromise = (async () => {
       try {
         const response = await Api.get(INTERNAL_LOCATION_ENDPOINT, {
-          baseURL: "/api",
           params,
         });
         setCachedLocationResponse(requestKey, response, false);

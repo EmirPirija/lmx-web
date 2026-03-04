@@ -10,6 +10,11 @@ const LAST_SEEN_KEY = "lmx_live_session_last_seen";
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const HEARTBEAT_INTERVAL_MS = 25 * 1000;
+const INTERNAL_PROXY_BASE_PATH = String(
+  process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
+)
+  .trim()
+  .replace(/\/+$/, "");
 
 const safeGet = (key) => {
   if (typeof window === "undefined") return null;
@@ -75,7 +80,7 @@ const getLiveTrackingEndpoint = () => {
     useInternalProxy !== "0" && useInternalProxy !== "false";
 
   if (typeof window !== "undefined" && shouldUseInternalProxy) {
-    return `${window.location.origin}/api/internal/track/live-session`;
+    return `${window.location.origin}${INTERNAL_PROXY_BASE_PATH || "/internal-api"}/track/live-session`;
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";

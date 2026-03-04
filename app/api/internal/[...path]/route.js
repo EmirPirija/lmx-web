@@ -44,7 +44,8 @@ const getForwardHeaders = (request, requestId, hasBody) => {
   return headers;
 };
 
-const proxy = async (request, params) => {
+const proxy = async (request, paramsLike) => {
+  const params = await paramsLike;
   const requestId = request.headers.get("x-request-id") || createRequestId();
   const backendBase = getBackendApiBaseUrl();
 

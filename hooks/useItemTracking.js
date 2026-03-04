@@ -23,7 +23,12 @@ const getApiBase = () => {
     useInternalProxy !== "0" && useInternalProxy !== "false";
 
   if (typeof window !== "undefined" && shouldUseInternalProxy) {
-    return "/api/internal";
+    const proxyBase = String(
+      process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
+    )
+      .trim()
+      .replace(/\/+$/, "");
+    return proxyBase || "/internal-api";
   }
 
   const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");

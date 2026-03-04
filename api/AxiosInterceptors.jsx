@@ -10,6 +10,8 @@ const CRITICAL_ENDPOINT_MATCHERS = [
   "verification-request",
   "internal/location",
   "internal/verification-status",
+  "location",
+  "verification-status",
 ];
 const CIRCUIT_BREAKER_FAILURE_THRESHOLD = 5;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 30_000;
@@ -23,6 +25,11 @@ const getApiBaseURL = () => {
   const endpointRaw = String(process.env.NEXT_PUBLIC_END_POINT || "/api");
   const endpoint = endpointRaw.startsWith("/") ? endpointRaw : `/${endpointRaw}`;
   const normalizedEndpoint = endpoint.replace(/\/+$/, "");
+  const internalProxyBase = String(
+    process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
+  )
+    .trim()
+    .replace(/\/+$/, "");
 
   if (typeof window !== "undefined") {
     const useInternalProxy = String(
@@ -34,7 +41,7 @@ const getApiBaseURL = () => {
       useInternalProxy !== "0" && useInternalProxy !== "false";
 
     if (shouldUseInternalProxy) {
-      return "/api/internal";
+      return internalProxyBase || "/internal-api";
     }
 
     const host = String(window.location?.hostname || "").toLowerCase();

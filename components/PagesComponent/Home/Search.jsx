@@ -45,6 +45,11 @@ const API_BASE_URL = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
 const API_ENDPOINT_PREFIX = String(process.env.NEXT_PUBLIC_END_POINT || "/api/")
   .replace(/^\/?/, "/")
   .replace(/\/?$/, "/");
+const INTERNAL_PROXY_BASE_PATH = String(
+  process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
+)
+  .trim()
+  .replace(/\/+$/, "");
 
 const buildSearchApiUrl = (path, params = {}) => {
   const normalizedPath = String(path || "").replace(/^\/+/, "");
@@ -64,7 +69,7 @@ const buildSearchApiUrl = (path, params = {}) => {
   const suffix = query.toString() ? `?${query.toString()}` : "";
 
   if (shouldUseInternalProxy && typeof window !== "undefined") {
-    return `/api/internal/${normalizedPath}${suffix}`;
+    return `${INTERNAL_PROXY_BASE_PATH || "/internal-api"}/${normalizedPath}${suffix}`;
   }
 
   if (API_BASE_URL) {

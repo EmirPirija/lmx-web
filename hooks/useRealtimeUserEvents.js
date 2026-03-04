@@ -55,7 +55,7 @@ export default function useRealtimeUserEvents({ onEvent } = {}) {
     const shouldUseInternalProxy =
       useInternalProxy !== "0" && useInternalProxy !== "false";
     const authEndpoint = shouldUseInternalProxy
-      ? "/api/internal/broadcasting/auth"
+      ? "/internal-api/broadcasting/auth"
       : `${apiUrl}/broadcasting/auth`;
 
     if (!key || !host) return;
