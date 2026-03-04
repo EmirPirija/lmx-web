@@ -151,3 +151,23 @@
 5. FCM resilience
 - Localhost/dev with blocked FCM or CORS-denied token update.
 - Confirm no fatal error path, only controlled warning and graceful skip.
+
+## Release-Safety Additions (implemented)
+1. Internal proxy kill-switch + failover
+- Axios now supports:
+  - hard kill-switch (`NEXT_PUBLIC_INTERNAL_PROXY_KILL_SWITCH`)
+  - one-shot failover from `/internal-api/*` to direct backend base when internal proxy returns `404/5xx/network/html`.
+
+2. Pre-deploy smoke gate
+- Added script:
+  - `npm run smoke:proxy`
+- Blocks deployment if critical proxy contract endpoints are broken.
+
+3. Contract tests (route map + wiring)
+- Added script:
+  - `npm run test:contracts:internal-proxy`
+- Verifies required internal route handlers + client wiring.
+
+4. Incident alert signal
+- Axios emits structured alert when internal proxy failures spike in 2-minute window.
+- Supports optional Sentry message capture if Sentry is present.

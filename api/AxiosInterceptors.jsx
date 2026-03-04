@@ -4,6 +4,7 @@ import { getAppStore } from "@/redux/store/storeRef";
 import axios from "axios";
 
 const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const INTERNAL_PROXY_FAILOVER_STATUS_CODES = new Set([404, 500, 502, 503, 504]);
 const IDEMPOTENT_METHODS = new Set(["get", "head", "options"]);
 const CRITICAL_ENDPOINT_MATCHERS = [
   "get-location",
@@ -18,30 +19,92 @@ const CIRCUIT_BREAKER_COOLDOWN_MS = 30_000;
 const BASE_RETRY_DELAY_MS = 250;
 const MAX_RETRY_ATTEMPTS_DEFAULT = 2;
 const MAX_RETRY_ATTEMPTS_CRITICAL = 3;
+const DEFAULT_INTERNAL_PROXY_BASE_PATH = "/internal-api";
+const DEFAULT_API_ENDPOINT_PATH = "/api";
+const DEFAULT_PROXY_ALERT_THRESHOLD = 8;
+const DEFAULT_PROXY_ALERT_WINDOW_MS = 120_000;
+const DEFAULT_PROXY_ALERT_COOLDOWN_MS = 120_000;
+const INTERNAL_PROXY_TO_BACKEND_ENDPOINT_MAP = new Map([
+  ["location", "get-location"],
+  ["verification-status", "verification-request"],
+]);
 
 const circuitBreakerState = new Map();
+const internalProxyIncidentState = {
+  events: [],
+  lastAlertAt: 0,
+};
 
-const getApiBaseURL = () => {
-  const endpointRaw = String(process.env.NEXT_PUBLIC_END_POINT || "/api");
-  const endpoint = endpointRaw.startsWith("/") ? endpointRaw : `/${endpointRaw}`;
-  const normalizedEndpoint = endpoint.replace(/\/+$/, "");
-  const internalProxyBase = String(
-    process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
+const parseBooleanFlag = (value, fallback = false) => {
+  if (value === undefined || value === null || value === "") return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === "1" || normalized === "true" || normalized === "yes") return true;
+  if (normalized === "0" || normalized === "false" || normalized === "no") return false;
+  return fallback;
+};
+
+const parsePositiveNumber = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const getInternalProxyBasePath = () =>
+  String(
+    process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH ||
+      DEFAULT_INTERNAL_PROXY_BASE_PATH,
   )
     .trim()
-    .replace(/\/+$/, "");
+    .replace(/\/+$/, "") || DEFAULT_INTERNAL_PROXY_BASE_PATH;
+
+const getApiEndpointPath = () => {
+  const endpointRaw = String(
+    process.env.NEXT_PUBLIC_END_POINT || DEFAULT_API_ENDPOINT_PATH,
+  );
+  const endpoint = endpointRaw.startsWith("/") ? endpointRaw : `/${endpointRaw}`;
+  return endpoint.replace(/\/+$/, "") || DEFAULT_API_ENDPOINT_PATH;
+};
+
+const shouldUseInternalApiProxy = () =>
+  parseBooleanFlag(process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true", true);
+
+const isInternalProxyKillSwitchEnabled = () =>
+  parseBooleanFlag(process.env.NEXT_PUBLIC_INTERNAL_PROXY_KILL_SWITCH, false);
+
+const isInternalProxyFallbackEnabled = () =>
+  parseBooleanFlag(
+    process.env.NEXT_PUBLIC_INTERNAL_PROXY_FALLBACK_ENABLED ?? "true",
+    true,
+  );
+
+const getDirectApiBaseURL = () => {
+  const normalizedEndpoint = getApiEndpointPath();
+  const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+
+  if (apiUrl) {
+    return `${apiUrl}${normalizedEndpoint}`;
+  }
 
   if (typeof window !== "undefined") {
-    const useInternalProxy = String(
-      process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
-    )
-      .trim()
-      .toLowerCase();
-    const shouldUseInternalProxy =
-      useInternalProxy !== "0" && useInternalProxy !== "false";
+    const host = String(window.location?.hostname || "").toLowerCase();
+    const isLocalHost =
+      host === "localhost" || host === "127.0.0.1" || host === "::1";
+    if (isLocalHost) {
+      return normalizedEndpoint;
+    }
+  }
 
-    if (shouldUseInternalProxy) {
-      return internalProxyBase || "/internal-api";
+  return normalizedEndpoint;
+};
+
+const getApiBaseURL = () => {
+  const normalizedEndpoint = getApiEndpointPath();
+  const internalProxyBase = getInternalProxyBasePath();
+  const shouldUseProxy =
+    shouldUseInternalApiProxy() && !isInternalProxyKillSwitchEnabled();
+
+  if (typeof window !== "undefined") {
+    if (shouldUseProxy) {
+      return internalProxyBase || DEFAULT_INTERNAL_PROXY_BASE_PATH;
     }
 
     const host = String(window.location?.hostname || "").toLowerCase();
@@ -70,6 +133,168 @@ const createRequestId = () => {
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isAbsoluteHttpUrl = (value) => /^https?:\/\//i.test(String(value || ""));
+
+const normalizeProxyRouteUrl = (urlLike) => {
+  const raw = String(urlLike || "").trim();
+  if (!raw || isAbsoluteHttpUrl(raw)) return raw;
+
+  const internalBasePath = getInternalProxyBasePath();
+  let withoutPrefix = raw;
+
+  if (withoutPrefix.startsWith(`${internalBasePath}/`)) {
+    withoutPrefix = withoutPrefix.slice(internalBasePath.length + 1);
+  } else if (withoutPrefix === internalBasePath) {
+    withoutPrefix = "";
+  } else {
+    withoutPrefix = withoutPrefix.replace(/^\/+/, "");
+  }
+
+  if (!withoutPrefix) return withoutPrefix;
+
+  const [pathname, query = ""] = withoutPrefix.split("?");
+  const mappedPathname =
+    INTERNAL_PROXY_TO_BACKEND_ENDPOINT_MAP.get(pathname) || pathname;
+  return query ? `${mappedPathname}?${query}` : mappedPathname;
+};
+
+const isInternalProxyRequest = (config = {}) => {
+  const internalBasePath = getInternalProxyBasePath();
+  const configBaseUrl = String(config?.baseURL ?? Api.defaults.baseURL ?? "");
+  const requestUrl = String(config?.url || "");
+
+  if (configBaseUrl === internalBasePath) return true;
+  if (requestUrl.startsWith(`${internalBasePath}/`)) return true;
+  if (requestUrl === internalBasePath) return true;
+  return false;
+};
+
+const shouldTriggerInternalProxyFailover = (error) => {
+  if (!isInternalProxyFallbackEnabled()) return false;
+
+  const config = error?.config || {};
+  if (config.__internalProxyFallbackAttempted) return false;
+  if (!isInternalProxyRequest(config)) return false;
+
+  const status = Number(error?.response?.status || 0);
+  if (INTERNAL_PROXY_FAILOVER_STATUS_CODES.has(status)) return true;
+
+  const responseContentType = String(
+    error?.response?.headers?.["content-type"] ||
+      error?.response?.headers?.["Content-Type"] ||
+      "",
+  ).toLowerCase();
+  if (responseContentType.includes("text/html")) return true;
+
+  if (!status && isNetworkLikeError(error)) return true;
+
+  return false;
+};
+
+const getProxyAlertWindowMs = () =>
+  parsePositiveNumber(
+    process.env.NEXT_PUBLIC_INTERNAL_PROXY_ALERT_WINDOW_MS,
+    DEFAULT_PROXY_ALERT_WINDOW_MS,
+  );
+
+const getProxyAlertThreshold = () =>
+  parsePositiveNumber(
+    process.env.NEXT_PUBLIC_INTERNAL_PROXY_ALERT_THRESHOLD,
+    DEFAULT_PROXY_ALERT_THRESHOLD,
+  );
+
+const getProxyAlertCooldownMs = () =>
+  parsePositiveNumber(
+    process.env.NEXT_PUBLIC_INTERNAL_PROXY_ALERT_COOLDOWN_MS,
+    DEFAULT_PROXY_ALERT_COOLDOWN_MS,
+  );
+
+const emitInternalProxyAlert = (payload) => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("lmx:internal-proxy-alert", {
+        detail: payload,
+      }),
+    );
+  }
+
+  console.error("[ALERT][internal-proxy] incident spike detected", payload);
+
+  const sentry = globalThis?.Sentry;
+  if (sentry?.captureMessage) {
+    sentry.captureMessage("internal_proxy_incident_spike", {
+      level: "error",
+      tags: {
+        area: "internal_proxy",
+      },
+      extra: payload,
+    });
+  }
+};
+
+const recordInternalProxyIncident = (error) => {
+  if (!isInternalProxyRequest(error?.config || {})) return;
+
+  const now = Date.now();
+  const windowMs = getProxyAlertWindowMs();
+  const threshold = getProxyAlertThreshold();
+  const cooldownMs = getProxyAlertCooldownMs();
+  const status = Number(error?.response?.status || 0) || null;
+
+  internalProxyIncidentState.events.push({
+    at: now,
+    status,
+    code: String(error?.code || ""),
+    path: String(error?.config?.url || ""),
+    requestId:
+      error?.response?.headers?.["x-request-id"] ||
+      error?.config?.metadata?.requestId ||
+      null,
+  });
+
+  internalProxyIncidentState.events = internalProxyIncidentState.events.filter(
+    (entry) => now - entry.at <= windowMs,
+  );
+
+  if (
+    internalProxyIncidentState.events.length >= threshold &&
+    now - internalProxyIncidentState.lastAlertAt >= cooldownMs
+  ) {
+    internalProxyIncidentState.lastAlertAt = now;
+    const recent = internalProxyIncidentState.events.slice(-5);
+    const statuses = [...new Set(recent.map((entry) => entry.status).filter(Boolean))];
+    emitInternalProxyAlert({
+      incidents_in_window: internalProxyIncidentState.events.length,
+      window_ms: windowMs,
+      threshold,
+      statuses,
+      samples: recent,
+    });
+  }
+};
+
+const buildInternalProxyFailoverConfig = (config = {}) => {
+  const directBaseUrl = getDirectApiBaseURL();
+  if (!directBaseUrl) return null;
+
+  const rewrittenUrl = normalizeProxyRouteUrl(config.url);
+  if (!rewrittenUrl) return null;
+  if (isAbsoluteHttpUrl(rewrittenUrl)) return null;
+
+  return {
+    ...config,
+    baseURL: directBaseUrl,
+    url: rewrittenUrl,
+    __internalProxyFallbackAttempted: true,
+    metadata: {
+      ...(config.metadata || {}),
+      internalProxyFailover: true,
+      internalProxyFailoverAt: Date.now(),
+      internalProxyOriginalUrl: config.url,
+    },
+  };
+};
 
 const resolveEndpointKey = (config = {}) => {
   const requestUrl = String(config?.url || "").toLowerCase();
@@ -188,10 +413,17 @@ Api.interceptors.request.use(function (config) {
   config.timeout = config.timeout ?? 15000;
 
   const requestId = createRequestId();
+  const resolvedBaseUrl = String(config.baseURL ?? Api.defaults.baseURL ?? "");
+  const requestViaInternalProxy = isInternalProxyRequest({
+    ...config,
+    baseURL: resolvedBaseUrl,
+  });
   config.metadata = {
     ...(config.metadata || {}),
     requestId,
     startedAt: Date.now(),
+    resolvedBaseUrl,
+    requestProxyMode: requestViaInternalProxy ? "internal" : "direct",
   };
   config.headers["X-Request-Id"] = requestId;
 
@@ -269,6 +501,14 @@ Api.interceptors.response.use(
       }
     }
 
+    if (shouldTriggerInternalProxyFailover(error)) {
+      recordInternalProxyIncident(error);
+      const failoverConfig = buildInternalProxyFailoverConfig(error?.config || {});
+      if (failoverConfig) {
+        return Api(failoverConfig);
+      }
+    }
+
     const status = error?.response?.status;
 
     if (status === 401) {
@@ -319,6 +559,8 @@ Api.interceptors.response.use(
         resetCircuit(endpointKey);
       }
     }
+
+    recordInternalProxyIncident(error);
 
     error.normalized = normalizeApiError(error);
     return Promise.reject(error);
