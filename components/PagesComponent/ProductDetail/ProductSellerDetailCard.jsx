@@ -1002,7 +1002,7 @@ const ProductSellerDetailCard = ({
   const lastSeenDate = parseLastSeenDate(seller);
   const seenAgoLabel = formatSeenAgoLabel(lastSeenDate);
   const seenInfoLabel =
-    lastSeenDate && seenAgoLabel ? `Viđen ${seenAgoLabel}` : null;
+    lastSeenDate && seenAgoLabel ? `Na mreži ${seenAgoLabel}` : null;
   const contactEngine = resolveSellerContactEngine({
     seller,
     settings,

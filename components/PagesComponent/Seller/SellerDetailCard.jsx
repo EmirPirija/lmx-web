@@ -1168,7 +1168,7 @@ export const SellerPreviewCard = ({
   const lastSeenDate = parseLastSeenDate(seller);
   const seenAgoLabel = formatSeenAgoLabel(lastSeenDate);
   const seenInfoLabel =
-    lastSeenDate && seenAgoLabel ? `Viđen ${seenAgoLabel}` : "";
+    lastSeenDate && seenAgoLabel ? `Na mreži ${seenAgoLabel}` : "";
 
   const memberSince = showMemberSince
     ? formatMemberSince(seller?.created_at)
