@@ -14,39 +14,12 @@ const trackingDebugLog = (...args) => {
 // API BASE URL
 // ============================================
 const getApiBase = () => {
-  const useInternalProxy = String(
-    process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
+  const proxyBase = String(
+    process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
   )
     .trim()
-    .toLowerCase();
-  const shouldUseInternalProxy =
-    useInternalProxy !== "0" && useInternalProxy !== "false";
-
-  if (typeof window !== "undefined" && shouldUseInternalProxy) {
-    const proxyBase = String(
-      process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
-    )
-      .trim()
-      .replace(/\/+$/, "");
-    return proxyBase || "/internal-api";
-  }
-
-  const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
-  const endPointRaw = String(process.env.NEXT_PUBLIC_END_POINT || "/api/");
-  const endPoint = endPointRaw.startsWith("/") ? endPointRaw : `/${endPointRaw}`;
-  const normalizedEndpoint = endPoint.replace(/\/+$/, "");
-
-  if (typeof window !== "undefined") {
-    const host = String(window.location?.hostname || "").toLowerCase();
-    const isLocalHost =
-      host === "localhost" || host === "127.0.0.1" || host === "::1";
-
-    if (isLocalHost) {
-      return normalizedEndpoint;
-    }
-  }
-
-  return `${apiUrl}${normalizedEndpoint}`;
+    .replace(/\/+$/, "");
+  return proxyBase || "/internal-api";
 };
 
 // ============================================

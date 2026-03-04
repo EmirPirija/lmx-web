@@ -31,6 +31,7 @@ import ReusableAlertDialog from "@/components/Common/ReusableAlertDialog.jsx";
 import { toast } from "@/utils/toastBs";
 import ChoosePackageModal from "./ChoosePackageModal.jsx";
 import { getIsFreAdListing } from "@/redux/reducer/settingSlice.js";
+import { getIsLoggedIn } from "@/redux/reducer/authSlice";
 import { useNavigate } from "@/components/Common/useNavigate";
 import { cn } from "@/lib/utils";
 import { isPromoFreeAccessEnabled } from "@/lib/promoMode";
@@ -437,6 +438,7 @@ const MyAds = () => {
   const { navigate } = useNavigate();
   const searchParams = useSearchParams();
   const isRTL = useSelector(getIsRtl);
+  const isLoggedIn = useSelector(getIsLoggedIn);
   const isFreeAdListing =
     useSelector(getIsFreAdListing) || isPromoFreeAccessEnabled();
 
@@ -562,6 +564,8 @@ const MyAds = () => {
 
   const fetchRenewDueItems = useCallback(
     async ({ sortBy = sortValue } = {}) => {
+      if (!isLoggedIn) return [];
+
       const approvedItems = [];
       let page = 1;
       let lastPage = 1;
@@ -585,10 +589,23 @@ const MyAds = () => {
       const now = new Date();
       return approvedItems.filter((item) => isAdEligibleForPositionRenew(item, now));
     },
-    [sortValue]
+    [isLoggedIn, sortValue]
   );
 
   const refreshStatusCounts = useCallback(async () => {
+    if (!isLoggedIn) {
+      setStatusCounts((prev) => ({
+        ...prev,
+        approved: 0,
+        inactive: 0,
+        "sold out": 0,
+        featured: 0,
+        expired: 0,
+        [RENEW_DUE_STATUS]: 0,
+      }));
+      return;
+    }
+
     const regularTabs = tabs.filter((t) => t.value !== RENEW_DUE_STATUS);
     const promises = regularTabs.map(async (t) => {
       try {
@@ -609,10 +626,18 @@ const MyAds = () => {
       newCounts[item.status] = item.count;
     });
     setStatusCounts((prev) => ({ ...prev, ...newCounts }));
-  }, [tabs]);
+  }, [isLoggedIn, tabs]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      setIsRenewDueCountResolved(false);
+    }
+  }, [isLoggedIn]);
 
   // Fetch counts
   useEffect(() => {
+    if (!isLoggedIn) return;
+
     let isMounted = true;
     (async () => {
       try {
@@ -624,9 +649,14 @@ const MyAds = () => {
     return () => {
       isMounted = false;
     };
-  }, [refreshStatusCounts]);
+  }, [isLoggedIn, refreshStatusCounts]);
 
   useEffect(() => {
+    if (!isLoggedIn) {
+      setIsRenewDueCountResolved(true);
+      return;
+    }
+
     if (isRenewDueCountResolved) return;
 
     let cancelled = false;
@@ -665,10 +695,19 @@ const MyAds = () => {
         window.cancelIdleCallback(idleId);
       }
     };
-  }, [fetchRenewDueItems, isRenewDueCountResolved]);
+  }, [fetchRenewDueItems, isLoggedIn, isRenewDueCountResolved]);
 
   // Fetch items
   const getMyItemsData = useCallback(async (page = 1) => {
+    if (!isLoggedIn) {
+      setMyItems([]);
+      setCurrentPage(1);
+      setLastPage(1);
+      setIsLoading(false);
+      setIsLoadMore(false);
+      return;
+    }
+
     try {
       page > 1 ? setIsLoadMore(true) : setIsLoading(true);
 
@@ -695,9 +734,15 @@ const MyAds = () => {
         setCurrentPage(data?.data?.current_page);
         setLastPage(data?.data?.last_page);
       }
-    } catch (error) { console.error(error); }
+    } catch (error) {
+      const statusCode = Number(error?.response?.status || 0);
+      if (statusCode === 401) {
+        return;
+      }
+      console.error(error);
+    }
     finally { setIsLoading(false); setIsLoadMore(false); }
-  }, [sortValue, status, fetchRenewDueItems]);
+  }, [isLoggedIn, sortValue, status, fetchRenewDueItems]);
 
   const refreshAfterMutation = useCallback(async () => {
     await getMyItemsData(1);
@@ -720,7 +765,10 @@ const MyAds = () => {
     }
   }, []);
 
-  useEffect(() => { getMyItemsData(1); }, [getMyItemsData]);
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    getMyItemsData(1);
+  }, [getMyItemsData, isLoggedIn]);
 
   useEffect(() => {
     if (!bulkMode) {

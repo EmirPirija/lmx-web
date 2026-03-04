@@ -29,6 +29,18 @@ const assertFileContains = (relativePath, snippets) => {
   }
 };
 
+const assertFileNotContains = (relativePath, snippets) => {
+  assert(exists(relativePath), `Missing file: ${relativePath}`);
+  if (!exists(relativePath)) return;
+  const content = readFile(relativePath);
+  for (const snippet of snippets) {
+    assert(
+      !content.includes(snippet),
+      `File ${relativePath} contains forbidden snippet: ${snippet}`,
+    );
+  }
+};
+
 assertFileContains("app/internal-api/[...path]/route.js", [
   'from "../../api/internal/[...path]/route"',
   "export {",
@@ -47,10 +59,14 @@ assertFileContains("app/internal-api/broadcasting/auth/route.js", [
 ]);
 
 assertFileContains("api/AxiosInterceptors.jsx", [
+  "Browser requests are always forced through the internal BFF layer.",
+  "recordInternalProxyIncident",
+]);
+assertFileNotContains("api/AxiosInterceptors.jsx", [
   "NEXT_PUBLIC_INTERNAL_PROXY_KILL_SWITCH",
   "NEXT_PUBLIC_INTERNAL_PROXY_FALLBACK_ENABLED",
   "buildInternalProxyFailoverConfig",
-  "recordInternalProxyIncident",
+  "shouldTriggerInternalProxyFailover",
 ]);
 
 assertFileContains("utils/api.js", [
@@ -62,6 +78,65 @@ assertFileContains("utils/api.js", [
 assertFileContains("hooks/useRealtimeUserEvents.js", [
   '"/internal-api/broadcasting/auth"',
 ]);
+
+const CLIENT_SCAN_DIRS = ["components", "hooks", "utils", "app"];
+const CLIENT_SCAN_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx"]);
+const CLIENT_SCAN_ALLOWLIST = new Set([
+  "utils/socialOAuth.js",
+  "components/PagesComponent/Subscription/PaymentModal.jsx",
+]);
+const CLIENT_FORBIDDEN_SNIPPETS = [
+  "NEXT_PUBLIC_API_URL",
+  "https://admin.lmx.ba",
+];
+
+const walkFiles = (relativeDir) => {
+  const dirPath = path.join(rootDir, relativeDir);
+  if (!fs.existsSync(dirPath)) return [];
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const relativePath = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(relativePath));
+      continue;
+    }
+
+    const ext = path.extname(entry.name);
+    if (!CLIENT_SCAN_EXTENSIONS.has(ext)) continue;
+    files.push(relativePath);
+  }
+
+  return files;
+};
+
+const hasUseClientDirective = (content) => {
+  const normalized = content.replace(/^\uFEFF/, "").trimStart();
+  return (
+    normalized.startsWith('"use client";') ||
+    normalized.startsWith("'use client';") ||
+    normalized.startsWith('"use client"') ||
+    normalized.startsWith("'use client'")
+  );
+};
+
+for (const dir of CLIENT_SCAN_DIRS) {
+  for (const relativePath of walkFiles(dir)) {
+    if (CLIENT_SCAN_ALLOWLIST.has(relativePath)) continue;
+
+    const content = readFile(relativePath);
+    if (!hasUseClientDirective(content)) continue;
+
+    for (const snippet of CLIENT_FORBIDDEN_SNIPPETS) {
+      if (content.includes(snippet)) {
+        failures.push(
+          `[client-contract] ${relativePath} contains forbidden direct-backend snippet: ${snippet}`,
+        );
+      }
+    }
+  }
+}
 
 const runtimeBase = String(process.env.CONTRACT_BASE_URL || "").trim().replace(/\/+$/, "");
 

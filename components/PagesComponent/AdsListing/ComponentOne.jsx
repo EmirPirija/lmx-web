@@ -23,13 +23,6 @@ import UserAvatarMedia from "@/components/Common/UserAvatar";
 import CategorySemanticIcon from "@/components/Common/CategorySemanticIcon";
 import { resolveAvatarUrl } from "@/utils/avatar";
 
-const API_BASE_URL = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
-  /\/+$/,
-  "",
-);
-const API_ENDPOINT_PREFIX = (process.env.NEXT_PUBLIC_END_POINT || "/api/")
-  .replace(/^\/?/, "/")
-  .replace(/\/?$/, "/");
 const INTERNAL_PROXY_BASE_PATH = String(
   process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
 )
@@ -38,13 +31,6 @@ const INTERNAL_PROXY_BASE_PATH = String(
 
 const buildApiUrl = (path, params = {}) => {
   const normalizedPath = String(path || "").replace(/^\/+/, "");
-  const useInternalProxy = String(
-    process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
-  )
-    .trim()
-    .toLowerCase();
-  const shouldUseInternalProxy =
-    useInternalProxy !== "0" && useInternalProxy !== "false";
   const query = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
@@ -52,16 +38,7 @@ const buildApiUrl = (path, params = {}) => {
     query.set(key, String(value));
   });
   const suffix = query.toString() ? `?${query.toString()}` : "";
-
-  if (shouldUseInternalProxy && typeof window !== "undefined") {
-    return `${INTERNAL_PROXY_BASE_PATH || "/internal-api"}/${normalizedPath}${suffix}`;
-  }
-
-  if (API_BASE_URL) {
-    return `${API_BASE_URL}${API_ENDPOINT_PREFIX}${normalizedPath}${suffix}`;
-  }
-
-  return `${API_ENDPOINT_PREFIX}${normalizedPath}${suffix}`;
+  return `${INTERNAL_PROXY_BASE_PATH || "/internal-api"}/${normalizedPath}${suffix}`;
 };
 
 // ═══════════════════════════════════════════════════════════════════

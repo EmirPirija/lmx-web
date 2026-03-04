@@ -4,7 +4,6 @@ import { getAppStore } from "@/redux/store/storeRef";
 import axios from "axios";
 
 const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
-const INTERNAL_PROXY_FAILOVER_STATUS_CODES = new Set([404, 500, 502, 503, 504]);
 const IDEMPOTENT_METHODS = new Set(["get", "head", "options"]);
 const CRITICAL_ENDPOINT_MATCHERS = [
   "get-location",
@@ -24,23 +23,11 @@ const DEFAULT_API_ENDPOINT_PATH = "/api";
 const DEFAULT_PROXY_ALERT_THRESHOLD = 8;
 const DEFAULT_PROXY_ALERT_WINDOW_MS = 120_000;
 const DEFAULT_PROXY_ALERT_COOLDOWN_MS = 120_000;
-const INTERNAL_PROXY_TO_BACKEND_ENDPOINT_MAP = new Map([
-  ["location", "get-location"],
-  ["verification-status", "verification-request"],
-]);
 
 const circuitBreakerState = new Map();
 const internalProxyIncidentState = {
   events: [],
   lastAlertAt: 0,
-};
-
-const parseBooleanFlag = (value, fallback = false) => {
-  if (value === undefined || value === null || value === "") return fallback;
-  const normalized = String(value).trim().toLowerCase();
-  if (normalized === "1" || normalized === "true" || normalized === "yes") return true;
-  if (normalized === "0" || normalized === "false" || normalized === "no") return false;
-  return fallback;
 };
 
 const parsePositiveNumber = (value, fallback) => {
@@ -64,59 +51,15 @@ const getApiEndpointPath = () => {
   return endpoint.replace(/\/+$/, "") || DEFAULT_API_ENDPOINT_PATH;
 };
 
-const shouldUseInternalApiProxy = () =>
-  parseBooleanFlag(process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true", true);
-
-const isInternalProxyKillSwitchEnabled = () =>
-  parseBooleanFlag(process.env.NEXT_PUBLIC_INTERNAL_PROXY_KILL_SWITCH, false);
-
-const isInternalProxyFallbackEnabled = () =>
-  parseBooleanFlag(
-    process.env.NEXT_PUBLIC_INTERNAL_PROXY_FALLBACK_ENABLED ?? "true",
-    true,
-  );
-
-const getDirectApiBaseURL = () => {
-  const normalizedEndpoint = getApiEndpointPath();
-  const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
-
-  if (apiUrl) {
-    return `${apiUrl}${normalizedEndpoint}`;
-  }
-
-  if (typeof window !== "undefined") {
-    const host = String(window.location?.hostname || "").toLowerCase();
-    const isLocalHost =
-      host === "localhost" || host === "127.0.0.1" || host === "::1";
-    if (isLocalHost) {
-      return normalizedEndpoint;
-    }
-  }
-
-  return normalizedEndpoint;
-};
-
 const getApiBaseURL = () => {
-  const normalizedEndpoint = getApiEndpointPath();
   const internalProxyBase = getInternalProxyBasePath();
-  const shouldUseProxy =
-    shouldUseInternalApiProxy() && !isInternalProxyKillSwitchEnabled();
 
   if (typeof window !== "undefined") {
-    if (shouldUseProxy) {
-      return internalProxyBase || DEFAULT_INTERNAL_PROXY_BASE_PATH;
-    }
-
-    const host = String(window.location?.hostname || "").toLowerCase();
-    const isLocalHost =
-      host === "localhost" || host === "127.0.0.1" || host === "::1";
-
-    // In local development use Next.js rewrite (/api -> admin backend).
-    if (isLocalHost) {
-      return normalizedEndpoint;
-    }
+    // Browser requests are always forced through the internal BFF layer.
+    return internalProxyBase || DEFAULT_INTERNAL_PROXY_BASE_PATH;
   }
 
+  const normalizedEndpoint = getApiEndpointPath();
   const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
   return `${apiUrl}${normalizedEndpoint}`;
 };
@@ -134,31 +77,6 @@ const createRequestId = () => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const isAbsoluteHttpUrl = (value) => /^https?:\/\//i.test(String(value || ""));
-
-const normalizeProxyRouteUrl = (urlLike) => {
-  const raw = String(urlLike || "").trim();
-  if (!raw || isAbsoluteHttpUrl(raw)) return raw;
-
-  const internalBasePath = getInternalProxyBasePath();
-  let withoutPrefix = raw;
-
-  if (withoutPrefix.startsWith(`${internalBasePath}/`)) {
-    withoutPrefix = withoutPrefix.slice(internalBasePath.length + 1);
-  } else if (withoutPrefix === internalBasePath) {
-    withoutPrefix = "";
-  } else {
-    withoutPrefix = withoutPrefix.replace(/^\/+/, "");
-  }
-
-  if (!withoutPrefix) return withoutPrefix;
-
-  const [pathname, query = ""] = withoutPrefix.split("?");
-  const mappedPathname =
-    INTERNAL_PROXY_TO_BACKEND_ENDPOINT_MAP.get(pathname) || pathname;
-  return query ? `${mappedPathname}?${query}` : mappedPathname;
-};
-
 const isInternalProxyRequest = (config = {}) => {
   const internalBasePath = getInternalProxyBasePath();
   const configBaseUrl = String(config?.baseURL ?? Api.defaults.baseURL ?? "");
@@ -167,28 +85,6 @@ const isInternalProxyRequest = (config = {}) => {
   if (configBaseUrl === internalBasePath) return true;
   if (requestUrl.startsWith(`${internalBasePath}/`)) return true;
   if (requestUrl === internalBasePath) return true;
-  return false;
-};
-
-const shouldTriggerInternalProxyFailover = (error) => {
-  if (!isInternalProxyFallbackEnabled()) return false;
-
-  const config = error?.config || {};
-  if (config.__internalProxyFallbackAttempted) return false;
-  if (!isInternalProxyRequest(config)) return false;
-
-  const status = Number(error?.response?.status || 0);
-  if (INTERNAL_PROXY_FAILOVER_STATUS_CODES.has(status)) return true;
-
-  const responseContentType = String(
-    error?.response?.headers?.["content-type"] ||
-      error?.response?.headers?.["Content-Type"] ||
-      "",
-  ).toLowerCase();
-  if (responseContentType.includes("text/html")) return true;
-
-  if (!status && isNetworkLikeError(error)) return true;
-
   return false;
 };
 
@@ -272,28 +168,6 @@ const recordInternalProxyIncident = (error) => {
       samples: recent,
     });
   }
-};
-
-const buildInternalProxyFailoverConfig = (config = {}) => {
-  const directBaseUrl = getDirectApiBaseURL();
-  if (!directBaseUrl) return null;
-
-  const rewrittenUrl = normalizeProxyRouteUrl(config.url);
-  if (!rewrittenUrl) return null;
-  if (isAbsoluteHttpUrl(rewrittenUrl)) return null;
-
-  return {
-    ...config,
-    baseURL: directBaseUrl,
-    url: rewrittenUrl,
-    __internalProxyFallbackAttempted: true,
-    metadata: {
-      ...(config.metadata || {}),
-      internalProxyFailover: true,
-      internalProxyFailoverAt: Date.now(),
-      internalProxyOriginalUrl: config.url,
-    },
-  };
 };
 
 const resolveEndpointKey = (config = {}) => {
@@ -498,14 +372,6 @@ Api.interceptors.response.use(
         config.__retryCount = currentAttempt;
         await sleep(getRetryDelay(currentAttempt));
         return Api(config);
-      }
-    }
-
-    if (shouldTriggerInternalProxyFailover(error)) {
-      recordInternalProxyIncident(error);
-      const failoverConfig = buildInternalProxyFailoverConfig(error?.config || {});
-      if (failoverConfig) {
-        return Api(failoverConfig);
       }
     }
 

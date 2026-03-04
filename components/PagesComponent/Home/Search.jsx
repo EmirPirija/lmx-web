@@ -38,13 +38,6 @@ const SEARCH_HISTORY_KEY = "lmx_search_history";
 const SEARCH_HISTORY_ENABLED_KEY = "lmx_search_history_enabled";
 const MAX_HISTORY_ITEMS = 8;
 const SEARCH_RESULT_CACHE_TTL_MS = 45 * 1000;
-const API_BASE_URL = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
-  /\/+$/,
-  "",
-);
-const API_ENDPOINT_PREFIX = String(process.env.NEXT_PUBLIC_END_POINT || "/api/")
-  .replace(/^\/?/, "/")
-  .replace(/\/?$/, "/");
 const INTERNAL_PROXY_BASE_PATH = String(
   process.env.NEXT_PUBLIC_INTERNAL_PROXY_BASE_PATH || "/internal-api",
 )
@@ -53,13 +46,6 @@ const INTERNAL_PROXY_BASE_PATH = String(
 
 const buildSearchApiUrl = (path, params = {}) => {
   const normalizedPath = String(path || "").replace(/^\/+/, "");
-  const useInternalProxy = String(
-    process.env.NEXT_PUBLIC_USE_INTERNAL_API_PROXY ?? "true",
-  )
-    .trim()
-    .toLowerCase();
-  const shouldUseInternalProxy =
-    useInternalProxy !== "0" && useInternalProxy !== "false";
 
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -67,16 +53,7 @@ const buildSearchApiUrl = (path, params = {}) => {
     query.set(key, String(value));
   });
   const suffix = query.toString() ? `?${query.toString()}` : "";
-
-  if (shouldUseInternalProxy && typeof window !== "undefined") {
-    return `${INTERNAL_PROXY_BASE_PATH || "/internal-api"}/${normalizedPath}${suffix}`;
-  }
-
-  if (API_BASE_URL) {
-    return `${API_BASE_URL}${API_ENDPOINT_PREFIX}${normalizedPath}${suffix}`;
-  }
-
-  return `${API_ENDPOINT_PREFIX}${normalizedPath}${suffix}`;
+  return `${INTERNAL_PROXY_BASE_PATH || "/internal-api"}/${normalizedPath}${suffix}`;
 };
 
 const levenshteinDistance = (str1, str2) => {
