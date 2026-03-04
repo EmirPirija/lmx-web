@@ -25,6 +25,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { resolveMembership } from "@/lib/membership";
+import { isSellerVerified } from "@/lib/seller-verification";
 import { hasItemVideo, hasSellerActiveReel } from "@/lib/seller-reel";
 import { PHONE_CONTACT_STATES } from "@/lib/seller-contact";
 import {
@@ -900,6 +901,23 @@ const ProductSellerDetailCard = ({
       : membership?.tier;
   const hasMembershipBadge =
     membershipTier === "shop" || membershipTier === "pro";
+  const resolvedAvatarVerified = useMemo(() => {
+    if (typeof avatarVerified === "boolean") return avatarVerified;
+    return isSellerVerified(
+      seller,
+      settings,
+      sellerSettings,
+      productDetails?.seller,
+      productDetails?.user,
+    );
+  }, [
+    avatarVerified,
+    seller,
+    settings,
+    sellerSettings,
+    productDetails?.seller,
+    productDetails?.user,
+  ]);
 
   const acceptsOffers =
     acceptsOffersProp ||
@@ -1192,7 +1210,7 @@ const ProductSellerDetailCard = ({
                         src={sellerAvatar}
                         verificationSource={seller}
                         showVerifiedBadge={showVerifiedAvatarBadge}
-                        verified={avatarVerified}
+                        verified={resolvedAvatarVerified}
                         alt={sellerDisplayName || "Prodavač"}
                         className="w-full h-full rounded-xl"
                         roundedClassName="rounded-xl"
@@ -1201,6 +1219,11 @@ const ProductSellerDetailCard = ({
                     </div>
                   </motion.div>
                 </div>
+                {showVerifiedAvatarBadge && resolvedAvatarVerified ? (
+                  <span className="pointer-events-none absolute -top-1 -right-1 z-30 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-emerald-500 shadow-sm dark:border-slate-900">
+                    <Check className="h-2.5 w-2.5 text-white" />
+                  </span>
+                ) : null}
                 {canManageReels && (
                   <button
                     type="button"
@@ -1218,38 +1241,45 @@ const ProductSellerDetailCard = ({
                 )}
               </div>
             ) : (
-              <div className="relative isolate flex-shrink-0">
-                <motion.div
-                  className={cn(
-                    showStoryRing
-                      ? "reel-ring"
-                      : "rounded-[14px] p-[2px] bg-transparent",
-                  )}
-                  animate={ringMotion}
-                  transition={ringTransition}
-                >
-                  <div
+              <>
+                <div className="relative isolate flex-shrink-0">
+                  <motion.div
                     className={cn(
-                      "w-12 h-12 overflow-hidden bg-slate-100 dark:bg-slate-800",
-                      showStoryRing ? "reel-ring-inner" : "rounded-xl",
                       showStoryRing
-                        ? "border border-white/70 dark:border-slate-700/80"
-                        : "border border-slate-200/60 dark:border-slate-700/60",
+                        ? "reel-ring"
+                        : "rounded-[14px] p-[2px] bg-transparent",
                     )}
+                    animate={ringMotion}
+                    transition={ringTransition}
                   >
-                    <UserAvatarMedia
-                      src={sellerAvatar}
-                      verificationSource={seller}
-                      showVerifiedBadge={showVerifiedAvatarBadge}
-                      verified={avatarVerified}
-                      alt={sellerDisplayName || "Prodavač"}
-                      className="w-full h-full rounded-xl"
-                      roundedClassName="rounded-xl"
-                      imageClassName="w-full h-full object-cover"
-                    />
-                  </div>
-                </motion.div>
-              </div>
+                    <div
+                      className={cn(
+                        "w-12 h-12 overflow-hidden bg-slate-100 dark:bg-slate-800",
+                        showStoryRing ? "reel-ring-inner" : "rounded-xl",
+                        showStoryRing
+                          ? "border border-white/70 dark:border-slate-700/80"
+                          : "border border-slate-200/60 dark:border-slate-700/60",
+                      )}
+                    >
+                      <UserAvatarMedia
+                        src={sellerAvatar}
+                        verificationSource={seller}
+                        showVerifiedBadge={showVerifiedAvatarBadge}
+                        verified={resolvedAvatarVerified}
+                        alt={sellerDisplayName || "Prodavač"}
+                        className="w-full h-full rounded-xl"
+                        roundedClassName="rounded-xl"
+                        imageClassName="w-full h-full object-cover"
+                      />
+                    </div>
+                  </motion.div>
+                </div>
+                {showVerifiedAvatarBadge && resolvedAvatarVerified ? (
+                  <span className="pointer-events-none absolute -top-1 -right-1 z-30 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-emerald-500 shadow-sm dark:border-slate-900">
+                    <Check className="h-2.5 w-2.5 text-white" />
+                  </span>
+                ) : null}
+              </>
             )}
 
             {/* Info */}
